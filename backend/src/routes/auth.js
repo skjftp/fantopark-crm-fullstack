@@ -41,7 +41,7 @@ router.post('/login', async (req, res) => {
         role: userData.role,
         name: userData.name 
       },
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET || 'your-secret-key-change-this',
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
     );
     
