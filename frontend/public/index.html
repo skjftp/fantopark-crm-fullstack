@@ -1506,6 +1506,7 @@ const closeForm = () => {
         
         try {
             // Make API call to delete from backend
+            console.log(`Attempting to delete ${type} with id ${id} at endpoint: /${type}/${id}`);
             await apiCall(`/${type}/${id}`, {
                 method: 'DELETE'
             });
@@ -1532,6 +1533,8 @@ const closeForm = () => {
             alert(`${type === 'inventory' ? 'Event' : type.slice(0, -1)} deleted successfully!`);
         } catch (error) {
             console.error(`Error deleting ${type}:`, error);
+            console.log('Error response:', error.message);
+            console.log('Full error:', error);
             setLoading(false);
             
             // If backend doesn't support DELETE, try alternative approaches
