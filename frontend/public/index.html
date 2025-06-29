@@ -932,15 +932,16 @@ setCurrentOrderDetail(null);
         });
         
         // Update local state with response from server
+        console.log("Status update response:", response);
         setLeads(prevLeads => 
             prevLeads.map(lead => 
-                lead.id === leadId ? response : lead
+                lead.id === leadId ? response.data : lead
             )
         );
         
         // Update current lead if in detail view
         if (showLeadDetail && currentLead?.id === leadId) {
-            setCurrentLead(response);
+            setCurrentLead(response.data);
         }
         
         alert(`Lead status updated to: ${LEAD_STATUSES[newStatus]?.label || newStatus}`);
@@ -2582,7 +2583,7 @@ const handleFormSubmit = async (e) => {
                 body: JSON.stringify(formData)
             });
             setLeads(prev => prev.map(lead => 
-                lead.id === currentLead.id ? response : lead
+                lead.id === currentLead.id ? response.data : lead
             ));
             alert('Lead updated successfully!');
             
@@ -2694,12 +2695,12 @@ const handleAssignLead = async (e) => {
         });
         
         setLeads(prev => prev.map(lead => 
-            lead.id === currentLead.id ? response : lead
+            lead.id === currentLead.id ? response.data : lead
         ));
         
         // Update currentLead if viewing the assigned lead
         if (showLeadDetail && currentLead?.id === response.id) {
-            setCurrentLead(response);
+            setCurrentLead(response.data);
         }
         alert('Lead assigned successfully!');
         closeForm();
