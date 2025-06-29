@@ -823,6 +823,15 @@ useEffect(() => {
         setUsers(DEFAULT_USERS);
     }
     }, []);
+    // Apply dark mode
+    useEffect(() => {
+        if (darkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+        localStorage.setItem('crm_dark_mode', darkMode);
+    }, [darkMode]);
 
     useEffect(() => {
     try {
@@ -5224,7 +5233,12 @@ order.invoice_number && React.createElement('button', {
                         React.createElement('p', { className: 'text-sm text-gray-600' }, USER_ROLES[user?.role]?.label + ' • ' + user?.department)
                     ),
                     React.createElement('div', { className: 'flex items-center space-x-4' },
-                        React.createElement('span', { className: 'text-lg' }, '🔔'),
+                        React.createElement('button', {
+                        onClick: () => setDarkMode(!darkMode),
+                        className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
+                        title: darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'
+                    }, darkMode ? '☀️' : '��'),
+                    React.createElement('span', { className: 'text-lg' }, '🔔'),
                         React.createElement('div', { className: 'w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center' },
                             React.createElement('span', { className: 'text-white text-sm' }, (user?.name || 'A')[0])
                         )
