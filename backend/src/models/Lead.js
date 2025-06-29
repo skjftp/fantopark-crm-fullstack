@@ -74,7 +74,10 @@ class Lead {
   static async update(id, data) {
     const updateData = { ...data, updated_date: new Date().toISOString() };
     await db.collection(collections.leads).doc(id).update(updateData);
-    return { id, ...updateData };
+    
+    // Fetch and return the complete updated lead
+    const doc = await db.collection(collections.leads).doc(id).get();
+    return { id: doc.id, ...doc.data() };
   }
 
   static async delete(id) {
