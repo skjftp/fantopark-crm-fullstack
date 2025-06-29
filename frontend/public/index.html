@@ -676,6 +676,9 @@ const [currentOrderDetail, setCurrentOrderDetail] = useState(null);
     const [currentForm, setCurrentForm] = useState('');
     const [currentLead, setCurrentLead] = useState(null);
     const [currentInventory, setCurrentInventory] = useState(null);
+    const [darkMode, setDarkMode] = useState(() => {
+        return localStorage.getItem('crm_dark_mode') === 'true';
+    });
     const [currentUser, setCurrentUser] = useState(null);
     const [formData, setFormData] = useState({});
     const [paymentData, setPaymentData] = useState({});
