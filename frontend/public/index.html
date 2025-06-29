@@ -509,8 +509,6 @@ const formatCurrency = (amount) => {
 
 function App() {
     
-    console.log("App function called");
-    console.log("isLoggedIn:", isLoggedIn);
     // Authentication states
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [user, setUser] = useState(null);
@@ -732,8 +730,7 @@ const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
     
     const hasAccess = modulePermissions[action] === true;
     console.log(`Permission check: ${user.role} -> ${module}.${action} = ${hasAccess}`);
-        console.log("After permission check, continuing...");
-    return hasAccess;
+        return hasAccess;
 };
 
     // Check if user can access a tab
@@ -1532,16 +1529,13 @@ const closeForm = () => {
             // If successful, update local state
             switch(type) {
                 case 'leads':
-                console.log("Rendering leads tab");
-                    setLeads(prev => prev.filter(item => item.id !== id));
+                setLeads(prev => prev.filter(item => item.id !== id));
                     break;
                 case 'inventory':
-                console.log("Rendering inventory tab");
-                    setInventory(prev => prev.filter(item => item.id !== id));
+                setInventory(prev => prev.filter(item => item.id !== id));
                     break;
                 case 'orders':
-                console.log("Rendering orders tab");
-                    setOrders(prev => prev.filter(item => item.id !== id));
+                setOrders(prev => prev.filter(item => item.id !== id));
                     // Close detail view if viewing deleted order
                     if (showOrderDetail && currentOrder?.id === id) {
                         setShowOrderDetail(false);
@@ -2071,7 +2065,6 @@ const closeForm = () => {
     // with permission checks added throughout.
 
     const renderContent = () => {
-        console.log("renderContent function called");
         if (loading && activeTab !== 'leads') {
             return React.createElement('div', { className: 'flex items-center justify-center h-64' },
                 React.createElement('div', { className: 'text-gray-500' }, 'Loading...')
@@ -2080,28 +2073,23 @@ const closeForm = () => {
 
         switch (activeTab) {
             case 'dashboard':
-                console.log("Rendering dashboard tab");
                 return renderDashboardContent();
             case 'leads':
-                console.log("Rendering leads tab");
                 return hasPermission('leads', 'read') ? renderLeadsContent() : 
                     React.createElement('div', { className: 'text-center py-12' },
                         React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view leads.')
                     );
             case 'inventory':
-                console.log("Rendering inventory tab");
                 return hasPermission('inventory', 'read') ? renderInventoryContent() : 
                     React.createElement('div', { className: 'text-center py-12' },
                         React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view inventory.')
                     );
             case 'orders':
-                console.log("Rendering orders tab");
                 return hasPermission('orders', 'read') ? renderOrdersContent() : 
                     React.createElement('div', { className: 'text-center py-12' },
                         React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view orders.')
                     );
             case 'finance':
-                console.log("Rendering finance tab");
                 return hasPermission('finance', 'read') ? 
                     React.createElement('div', { className: 'text-center py-12' },
                         React.createElement('p', { className: 'text-gray-500 text-lg' }, 'Finance module - Invoice management coming soon...')
@@ -2110,7 +2098,6 @@ const closeForm = () => {
                         React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view finance.')
                     );
             case 'delivery':
-                console.log("Rendering delivery tab");
                 return hasPermission('delivery', 'read') ? renderDeliveryContent() : 
                     React.createElement('div', { className: 'text-center py-12' },
                         React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view delivery.')
@@ -2121,9 +2108,7 @@ const closeForm = () => {
     // Removed extra closing brace
 
     // Login screen
-    console.log("Checking isLoggedIn:", isLoggedIn);
     if (!isLoggedIn) {
-        console.log("User not logged in, showing login screen");
         return React.createElement('div', { className: 'min-h-screen bg-gray-100 flex items-center justify-center' },
             React.createElement('div', { className: 'max-w-md w-full bg-white rounded-lg shadow-md p-6' },
                 React.createElement('div', { className: 'text-center mb-8' },
@@ -2921,8 +2906,7 @@ const handleFormSubmit = async (e) => {
                     break;
                     
                 case 'inventory':
-                console.log("Rendering inventory tab");
-                    const invResponse = await apiCall('/inventory', {
+                const invResponse = await apiCall('/inventory', {
                         method: 'POST',
                         body: JSON.stringify({
                             ...formData,
@@ -3180,8 +3164,7 @@ const handleAssignLead = async (e) => {
                     title = 'Add New Lead';
                     break;
                 case 'inventory':
-                console.log("Rendering inventory tab");
-                    fields = inventoryFormFields;
+                fields = inventoryFormFields;
                     title = 'Add New Event';
                     break;
                 case 'order':
@@ -5303,8 +5286,7 @@ order.invoice_number && React.createElement('button', {
     );
 };
     // Main application layout
-    return React.createElement    console.log("Returning main app layout");
-    return React.createElement(\'div\', { className: \'flex h-screen bg-gray-100\' },
+    return React.createElement    return React.createElement(\'div\', { className: \'flex h-screen bg-gray-100\' },
         renderSidebar(),
         React.createElement('div', { className: 'flex-1 flex flex-col overflow-hidden' },
             React.createElement('header', { className: 'bg-white shadow-sm border-b px-6 py-4' },
@@ -5347,9 +5329,7 @@ renderPaymentPostServiceForm()
 }
 
 // Render the app
-console.log("About to render App"); ReactDOM.render(React.createElement(App), document.getElementById('root')); console.log("Render called");
-        
-    </script>
+ReactDOM.render(React.createElement(App), document.getElementById('root')); </script>
 </body>
 </html>
 <!-- Password: Updated: Sun Jun 29 11:38:10 AM UTC 2025 -->
