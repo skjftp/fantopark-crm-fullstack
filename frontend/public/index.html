@@ -936,7 +936,7 @@ setCurrentOrderDetail(null);
         // Update local state with response from server
         setLeads(prevLeads => 
             prevLeads.map(lead => 
-                lead.id === leadId ? response.data : lead
+                lead.id === leadId ? response : lead
             )
         );
         
@@ -1196,7 +1196,7 @@ const handlePaymentPostServiceSubmit = async (e) => {
         // Update local state
         setLeads(prev => 
             prev.map(lead => 
-                lead.id === currentLead.id ? leadResponse.data : lead
+                lead.id === currentLead.id ? leadResponse : lead
             )
         );
 
@@ -1243,7 +1243,7 @@ const handlePaymentPostServiceSubmit = async (e) => {
             })
         });
 
-        setOrders(prev => [...prev, orderResponse.data]);
+        setOrders(prev => [...prev, orderResponse]);
 
         // Create email notification via API
         const notificationResponse = await apiCall('/notifications', {
@@ -2584,7 +2584,7 @@ const handleFormSubmit = async (e) => {
                 body: JSON.stringify(formData)
             });
             setLeads(prev => prev.map(lead => 
-                lead.id === currentLead.id ? response.data : lead
+                lead.id === currentLead.id ? response : lead
             ));
             alert('Lead updated successfully!');
             
@@ -2595,7 +2595,7 @@ const handleFormSubmit = async (e) => {
                 body: JSON.stringify(formData)
             });
             setInventory(prev => prev.map(item => 
-                item.id === currentInventory.id ? response.data : item
+                item.id === currentInventory.id ? response : item
             ));
             alert('Inventory updated successfully!');
             
@@ -2612,7 +2612,7 @@ const handleFormSubmit = async (e) => {
                             created_date: new Date().toISOString()
                         })
                     });
-                    setLeads(prev => [...prev, leadResponse.data]);
+                    setLeads(prev => [...prev, leadResponse]);
                     alert('Lead added successfully!');
                     break;
                     
@@ -2625,7 +2625,7 @@ const handleFormSubmit = async (e) => {
                             created_date: new Date().toISOString()
                         })
                     });
-                    setInventory(prev => [...prev, invResponse.data]);
+                    setInventory(prev => [...prev, invResponse]);
                     alert('Inventory added successfully!');
                     break;
                     
@@ -2641,7 +2641,7 @@ const handleFormSubmit = async (e) => {
                             created_date: new Date().toISOString()
                         })
                     });
-                    setOrders(prev => [...prev, orderResponse.data]);
+                    setOrders(prev => [...prev, orderResponse]);
                     alert('Order created successfully!');
                     break;
             }
@@ -2695,7 +2695,7 @@ const handleAssignLead = async (e) => {
         });
         
         setLeads(prev => prev.map(lead => 
-            lead.id === currentLead.id ? response.data : lead
+            lead.id === currentLead.id ? response : lead
         ));
         
         alert('Lead assigned successfully!');
