@@ -2663,7 +2663,7 @@ const handleAssignLead = async (e) => {
         ));
         
         // Update currentLead if viewing the assigned lead
-        if (showLeadDetail && currentLead?.id === response.id) {
+        if (showLeadDetail && currentLead?.id === response.data.id) {
             setCurrentLead(response.data);
         }
         alert('Lead assigned successfully!');
@@ -3611,6 +3611,9 @@ React.createElement('div', { className: 'mb-6 p-4 bg-yellow-50 rounded-lg' },
                             alert('Failed to upload PAN Card: ' + error.message);
                             e.target.value = '';
                         }
+        if (currentLead?.id === leadId) {
+            setCurrentLead(response.data);
+        }
                         setLoading(false);
                     }
                 },
