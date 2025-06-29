@@ -2096,11 +2096,11 @@ const closeForm = () => {
                     React.createElement('div', { className: 'text-center py-12' },
                         React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view finance.')
                     );
-                    case 'delivery':
-    return hasPermission('delivery', 'read') ? renderDeliveryContent() : 
-        React.createElement('div', { className: 'text-center py-12' },
-            React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view delivery.')
-        );
+            case 'delivery':
+                return hasPermission('delivery', 'read') ? renderDeliveryContent() : 
+                    React.createElement('div', { className: 'text-center py-12' },
+                        React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view delivery.')
+                    );
             default:
                 return renderDashboardContent();
         }
