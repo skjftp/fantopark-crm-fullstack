@@ -3267,6 +3267,7 @@ const renderPaymentForm = () => {
     return renderEnhancedPaymentForm();
 };
 
+const renderPaymentPostServiceForm = () => {
     if (!showPaymentPostServiceForm || !currentLead) return null;
 
     return React.createElement('div', { 
@@ -4981,6 +4982,8 @@ order.invoice_number && React.createElement('button', {
             )
         )
     );
+    );
+};
 };
     // Main application layout
     return React.createElement('div', { className: 'flex h-screen bg-gray-100' },
