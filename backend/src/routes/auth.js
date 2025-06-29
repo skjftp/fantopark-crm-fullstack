@@ -41,8 +41,8 @@ router.post('/login', async (req, res) => {
         role: userData.role,
         name: userData.name 
       },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE }
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: process.env.JWT_EXPIRE || '7d' }
     );
     
     // Return user data without password

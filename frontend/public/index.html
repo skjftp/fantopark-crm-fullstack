@@ -13,7 +13,7 @@
         // Configure API endpoint
         const API_URL = window.location.hostname === 'localhost' 
             ? 'http://localhost:8080/api' 
-            : 'https://fantopark-crm-backend-150582227311.us-central1.run.app/api';
+            : 'https://fantopark-backend-150582227311.us-central1.run.app/api';
         
         // Get stored auth token
         let authToken = localStorage.getItem('crm_auth_token');
@@ -394,20 +394,16 @@ function App() {
     const [loading, setLoading] = useState(false);
 
     // Users management
-    const [users, setUsers] = useState(() => {
-        try {
-            const saved = localStorage.getItem('crm_users');
-            return saved ? JSON.parse(saved) : DEFAULT_USERS;
-        } catch (e) {
-            return DEFAULT_USERS;
-        }
-    });
 
 // Initialize empty, will fetch from API
 const [leads, setLeads] = useState([]);
 const [inventory, setInventory] = useState([]);
 const [orders, setOrders] = useState([]);
 const [invoices, setInvoices] = useState([]);
+const [deliveries, setDeliveries] = useState([]);
+const [receivables, setReceivables] = useState([]);
+const [emailNotifications, setEmailNotifications] = useState([]);
+const [users, setUsers] = useState([]);
 
 // Add data fetching function
 const fetchData = async () => {
@@ -437,42 +433,10 @@ useEffect(() => {
     }
 }, [isLoggedIn]);
     
-    const [inventory, setInventory] = useState(() => {
-        try {
-            const saved = localStorage.getItem('crm_inventory');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) {
-            return [];
-        }
-    });
+   
     
-    const [orders, setOrders] = useState(() => {
-        try {
-            const saved = localStorage.getItem('crm_orders');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) {
-            return [];
-        }
-    });
-    
-    const [invoices, setInvoices] = useState(() => {
-        try {
-            const saved = localStorage.getItem('crm_invoices');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) {
-            return [];
-        }
-    });
 
     // Add after other state variables
-const [deliveries, setDeliveries] = useState(() => {
-    try {
-        const saved = localStorage.getItem('crm_deliveries');
-        return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-        return [];
-    }
-});
 
 const [searchQuery, setSearchQuery] = useState('');
 const [statusFilter, setStatusFilter] = useState('all');
@@ -602,22 +566,6 @@ const [currentDelivery, setCurrentDelivery] = useState(null);
 const [deliveryFormData, setDeliveryFormData] = useState({});
 const [showPaymentPostServiceForm, setShowPaymentPostServiceForm] = useState(false);
 const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
-const [receivables, setReceivables] = useState(() => {
-    try {
-        const saved = localStorage.getItem('crm_receivables');
-        return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-        return [];
-    }
-});
-const [emailNotifications, setEmailNotifications] = useState(() => {
-    try {
-        const saved = localStorage.getItem('crm_email_notifications');
-        return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-        return [];
-    }
-});
 
     // Choice modal states for lead progression
     const [showChoiceModal, setShowChoiceModal] = useState(false);
@@ -854,21 +802,6 @@ const handleLogin = async (e) => {
     }
 };
             
-            if (foundUser) {
-                setIsLoggedIn(true);
-                setUser(foundUser);
-                try {
-                    localStorage.setItem('crm_current_user', JSON.stringify(foundUser));
-                    localStorage.setItem('crm_logged_in', 'true');
-                } catch (e) {
-                    console.log('Failed to save auth state:', e);
-                }
-            } else {
-                alert('Invalid credentials or account disabled');
-            }
-            setLoading(false);
-        }, 1000);
-    };
 
     const handleLogout = () => {
         setIsLoggedIn(false);
@@ -1946,22 +1879,10 @@ const closeForm = () => {
                         className: 'w-full bg-blue-50 text-blue-700 p-3 rounded-lg hover:bg-blue-100 text-left',
                         onClick: () => openAddForm('lead')
                     }, '+ Add New Lead'),
-                    React.createElement('button', {
-                    onClick: fetchData,
-                    className: 'bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700'
-                }, '🔄 Refresh')
-            )
-        ),
                     hasPermission('orders', 'write') && React.createElement('button', {
                         className: 'w-full bg-green-50 text-green-700 p-3 rounded-lg hover:bg-green-100 text-left',
                         onClick: () => openAddForm('order')
                     }, '+ Create Manual Order'),
-                    React.createElement('button', {
-                    onClick: fetchData,
-                    className: 'bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700'
-                }, '🔄 Refresh')
-            )
-        ),
                     hasPermission('inventory', 'write') && React.createElement('button', {
                         className: 'w-full bg-purple-50 text-purple-700 p-3 rounded-lg hover:bg-purple-100 text-left',
                         onClick: () => openAddForm('inventory')
@@ -1972,7 +1893,6 @@ const closeForm = () => {
                     }, '👤 Manage Users')
                 )
             )
-        )
     );
 };
 
