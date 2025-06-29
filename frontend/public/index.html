@@ -1497,14 +1497,21 @@ const closeForm = () => {
             alert(`You do not have permission to delete ${type}`);
             return;
         }
-
-        if (!confirm(`Are you sure you want to delete ${name}?`)) return;
-
+        
+        if (!confirm(`Are you sure you want to delete this ${type === 'inventory' ? 'event' : type.slice(0, -1)}: ${name}?`)) {
+            return;
+        }
+        
         setLoading(true);
+        
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            switch (type) {
+            // Make API call to delete from backend
+            await apiCall(`/${type}/${id}`, {
+                method: 'DELETE'
+            });
+            
+            // If successful, update local state
+            switch(type) {
                 case 'leads':
                     setLeads(prev => prev.filter(item => item.id !== id));
                     break;
@@ -1513,14 +1520,61 @@ const closeForm = () => {
                     break;
                 case 'orders':
                     setOrders(prev => prev.filter(item => item.id !== id));
+                    // Close detail view if viewing deleted order
+                    if (showOrderDetail && currentOrder?.id === id) {
+                        setShowOrderDetail(false);
+                        setCurrentOrder(null);
+                    }
                     break;
             }
-
+            
             setLoading(false);
-            alert(`${name} deleted successfully!`);
+            alert(`${type === 'inventory' ? 'Event' : type.slice(0, -1)} deleted successfully!`);
         } catch (error) {
+            console.error(`Error deleting ${type}:`, error);
             setLoading(false);
-            alert('Delete failed. Please try again.');
+            
+            // If backend doesn't support DELETE, try alternative approaches
+            if (error.message && (error.message.includes('404') || error.message.includes('405'))) {
+                if (type === 'orders') {
+                    // Try to cancel the order instead
+                    try {
+                        await apiCall(`/orders/${id}`, {
+                            method: 'PUT',
+                            body: JSON.stringify({
+                                status: 'cancelled',
+                                cancelled_date: new Date().toISOString(),
+                                cancelled_by: user.name
+                            })
+                        });
+                        
+                        setOrders(prev => prev.map(item => 
+                            item.id === id 
+                                ? { ...item, status: 'cancelled' }
+                                : item
+                        ));
+                        
+                        alert('Order cancelled (backend does not support deletion)');
+                    } catch (updateError) {
+                        // Last resort - remove locally only
+                        setOrders(prev => prev.filter(item => item.id !== id));
+                        alert('Order removed locally. Note: This change may not persist after page reload.');
+                    }
+                } else {
+                    // For other types, just remove locally with warning
+                    switch(type) {
+                        case 'leads':
+                            setLeads(prev => prev.filter(item => item.id !== id));
+                            break;
+                        case 'inventory':
+                            setInventory(prev => prev.filter(item => item.id !== id));
+                            break;
+                    }
+                    alert(`${type === 'inventory' ? 'Event' : type.slice(0, -1)} removed locally. Note: This change may not persist after page reload.`);
+                }
+            } else {
+                alert(`Failed to delete ${type === 'inventory' ? 'event' : type.slice(0, -1)}. Please try again.`);
+            }
         }
     };
 
