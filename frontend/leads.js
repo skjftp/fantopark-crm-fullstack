@@ -6,7 +6,7 @@ const { authenticateToken } = require('../middleware/auth');
 // GET all leads
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const leads = await Lead.getAll(req.query);
+    const leads = await Lead.getAll();
     res.json({ data: leads });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -30,8 +30,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const lead = new Lead(req.body);
-    const savedLead = await lead.save();
-    res.status(201).json({ data: savedLead });
+    const saved = await lead.save();
+    res.status(201).json({ data: saved });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -40,8 +40,8 @@ router.post('/', authenticateToken, async (req, res) => {
 // PUT update lead
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
-    const updatedLead = await Lead.update(req.params.id, req.body);
-    res.json({ data: updatedLead });
+    const updated = await Lead.update(req.params.id, req.body);
+    res.json({ data: updated });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
