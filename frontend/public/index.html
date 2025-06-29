@@ -43,6 +43,132 @@
             return response.json();
         }
     </script>
+
+    <style>
+        /* Dark mode base styles */
+        .dark {
+            color-scheme: dark;
+        }
+        
+        .dark body {
+            background-color: #111827;
+            color: #f3f4f6;
+        }
+        
+        /* Dark mode for main containers */
+        .dark .bg-white {
+            background-color: #1f2937 !important;
+        }
+        
+        .dark .bg-gray-50 {
+            background-color: #111827 !important;
+        }
+        
+        .dark .bg-gray-100 {
+            background-color: #0f172a !important;
+        }
+        
+        /* Dark mode for text */
+        .dark .text-gray-900 {
+            color: #f3f4f6 !important;
+        }
+        
+        .dark .text-gray-800 {
+            color: #e5e7eb !important;
+        }
+        
+        .dark .text-gray-700 {
+            color: #d1d5db !important;
+        }
+        
+        .dark .text-gray-600 {
+            color: #9ca3af !important;
+        }
+        
+        .dark .text-gray-500 {
+            color: #6b7280 !important;
+        }
+        
+        /* Dark mode for borders */
+        .dark .border-gray-200 {
+            border-color: #374151 !important;
+        }
+        
+        .dark .border-gray-300 {
+            border-color: #4b5563 !important;
+        }
+        
+        .dark .border-b {
+            border-color: #374151 !important;
+        }
+        
+        /* Dark mode for inputs and forms */
+        .dark input, .dark select, .dark textarea {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            color: #f3f4f6 !important;
+        }
+        
+        .dark input:focus, .dark select:focus, .dark textarea:focus {
+            border-color: #3b82f6 !important;
+            background-color: #4b5563 !important;
+        }
+        
+        /* Dark mode for hover states */
+        .dark .hover\:bg-gray-50:hover {
+            background-color: #374151 !important;
+        }
+        
+        .dark .hover\:bg-gray-100:hover {
+            background-color: #4b5563 !important;
+        }
+        
+        /* Dark mode for tables */
+        .dark table {
+            background-color: #1f2937 !important;
+        }
+        
+        .dark thead {
+            background-color: #111827 !important;
+        }
+        
+        .dark tbody tr:hover {
+            background-color: #374151 !important;
+        }
+        
+        /* Dark mode for modals */
+        .dark .bg-black.bg-opacity-50 {
+            background-color: rgba(0, 0, 0, 0.75) !important;
+        }
+        
+        /* Dark mode for shadows */
+        .dark .shadow-sm {
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.5) !important;
+        }
+        
+        .dark .shadow-md {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+        }
+        
+        /* Dark mode for sidebar */
+        .dark .bg-gray-900 {
+            background-color: #0f172a !important;
+        }
+        
+        /* Dark mode scrollbars */
+        .dark ::-webkit-scrollbar {
+            background-color: #1f2937;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb {
+            background-color: #4b5563;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background-color: #6b7280;
+        }
+    </style>
+
 </head>
 <body>
     <div id="root"></div>
@@ -2258,7 +2384,133 @@ const renderGSTInvoicePreview = () => {
                         }
                     }
                 </style>
-            </head>
+            
+    <style>
+        /* Dark mode base styles */
+        .dark {
+            color-scheme: dark;
+        }
+        
+        .dark body {
+            background-color: #111827;
+            color: #f3f4f6;
+        }
+        
+        /* Dark mode for main containers */
+        .dark .bg-white {
+            background-color: #1f2937 !important;
+        }
+        
+        .dark .bg-gray-50 {
+            background-color: #111827 !important;
+        }
+        
+        .dark .bg-gray-100 {
+            background-color: #0f172a !important;
+        }
+        
+        /* Dark mode for text */
+        .dark .text-gray-900 {
+            color: #f3f4f6 !important;
+        }
+        
+        .dark .text-gray-800 {
+            color: #e5e7eb !important;
+        }
+        
+        .dark .text-gray-700 {
+            color: #d1d5db !important;
+        }
+        
+        .dark .text-gray-600 {
+            color: #9ca3af !important;
+        }
+        
+        .dark .text-gray-500 {
+            color: #6b7280 !important;
+        }
+        
+        /* Dark mode for borders */
+        .dark .border-gray-200 {
+            border-color: #374151 !important;
+        }
+        
+        .dark .border-gray-300 {
+            border-color: #4b5563 !important;
+        }
+        
+        .dark .border-b {
+            border-color: #374151 !important;
+        }
+        
+        /* Dark mode for inputs and forms */
+        .dark input, .dark select, .dark textarea {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            color: #f3f4f6 !important;
+        }
+        
+        .dark input:focus, .dark select:focus, .dark textarea:focus {
+            border-color: #3b82f6 !important;
+            background-color: #4b5563 !important;
+        }
+        
+        /* Dark mode for hover states */
+        .dark .hover\:bg-gray-50:hover {
+            background-color: #374151 !important;
+        }
+        
+        .dark .hover\:bg-gray-100:hover {
+            background-color: #4b5563 !important;
+        }
+        
+        /* Dark mode for tables */
+        .dark table {
+            background-color: #1f2937 !important;
+        }
+        
+        .dark thead {
+            background-color: #111827 !important;
+        }
+        
+        .dark tbody tr:hover {
+            background-color: #374151 !important;
+        }
+        
+        /* Dark mode for modals */
+        .dark .bg-black.bg-opacity-50 {
+            background-color: rgba(0, 0, 0, 0.75) !important;
+        }
+        
+        /* Dark mode for shadows */
+        .dark .shadow-sm {
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.5) !important;
+        }
+        
+        .dark .shadow-md {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+        }
+        
+        /* Dark mode for sidebar */
+        .dark .bg-gray-900 {
+            background-color: #0f172a !important;
+        }
+        
+        /* Dark mode scrollbars */
+        .dark ::-webkit-scrollbar {
+            background-color: #1f2937;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb {
+            background-color: #4b5563;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background-color: #6b7280;
+        }
+    </style>
+
+</head>
             <body>
                 <div class="invoice-preview">
                     ${invoiceContent}
@@ -4970,7 +5222,12 @@ order.invoice_number && React.createElement('button', {
                         React.createElement('p', { className: 'text-sm text-gray-600' }, USER_ROLES[user?.role]?.label + ' • ' + user?.department)
                     ),
                     React.createElement('div', { className: 'flex items-center space-x-4' },
-                        React.createElement('span', { className: 'text-lg' }, '🔔'),
+                        React.createElement('button', {
+                        onClick: () => setDarkMode(!darkMode),
+                        className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
+                        title: darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'
+                    }, darkMode ? '☀️' : '🌙'),
+                    React.createElement('span', { className: 'text-lg' }, '🔔'),
                         React.createElement('div', { className: 'w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center' },
                             React.createElement('span', { className: 'text-white text-sm' }, (user?.name || 'A')[0])
                         )
