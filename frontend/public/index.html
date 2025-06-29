@@ -8,7 +8,7 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- API Configuration-->
+    <!-- API Configuration -->
     <script>
         // Configure API endpoint
         const API_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname.includes("8000")) ? "http://localhost:8080/api" : "https://fantopark-backend-150582227311.us-central1.run.app/api";
@@ -1242,20 +1242,22 @@ const handlePaymentPostServiceSubmit = async (e) => {
             })
         });
 
-        // Create email notification via API
-//         const notificationResponse = await apiCall('/notifications', {
-//             method: 'POST',
-//             body: JSON.stringify({
-//                 type: 'payment_post_service_created',
-//                 recipient: 'sales_head@fantopark.com',
-//                 subject: `Payment Post Service Order Created - ${currentLead.name}`,
-//                 body: `A new payment post service order has been created for ${currentLead.name}. Amount: ₹${paymentPostServiceData.expected_amount}. Please review and approve.`,
-//                 status: 'pending',
-//                 created_date: new Date().toISOString()
-//             })
-//         });
+        setOrders(prev => [...prev, orderResponse.data]);
 
-// //         setEmailNotifications(prev => [...prev, notificationResponse.data]);
+        // Create email notification via API
+        const notificationResponse = await apiCall('/notifications', {
+            method: 'POST',
+            body: JSON.stringify({
+                type: 'payment_post_service_created',
+                recipient: 'sales_head@fantopark.com',
+                subject: `Payment Post Service Order Created - ${currentLead.name}`,
+                body: `A new payment post service order has been created for ${currentLead.name}. Amount: ₹${paymentPostServiceData.expected_amount}. Please review and approve.`,
+                status: 'pending',
+                created_date: new Date().toISOString()
+            })
+        });
+
+        setEmailNotifications(prev => [...prev, notificationResponse.data]);
 
         alert('Payment post service order created successfully!');
         closeForm();
@@ -1293,14 +1295,14 @@ const sendEmailNotification = (notification) => {
     });
     
     // Update notification status
-//     setEmailNotifications(prev => 
-//         prev.map(n => 
-//             n.id === notification.id 
-//                 ? { ...n, status: 'sent', sent_date: new Date().toISOString() }
-//                 : n
-//         )
-//     );
-// };
+    setEmailNotifications(prev => 
+        prev.map(n => 
+            n.id === notification.id 
+                ? { ...n, status: 'sent', sent_date: new Date().toISOString() }
+                : n
+        )
+    );
+};
 
 const handleDeliverySubmit = async (e) => {
     e.preventDefault();
@@ -2639,6 +2641,7 @@ const handleFormSubmit = async (e) => {
                             created_date: new Date().toISOString()
                         })
                     });
+                    setOrders(prev => [...prev, orderResponse.data]);
                     alert('Order created successfully!');
                     break;
             }
@@ -5027,6 +5030,6 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
     </script>
 </body>
 </html>
-<!-- Updated: Sun Jun 29 11:38:10 AM UTC 2025-->
-<!-- LATEST_DEPLOY: 2025-06-29 11:41:06 UTC-->
-<!-- Deployed: Sun Jun 29 12:22:47 PM UTC 2025-->
+<- Password: Updated: Sun Jun 29 11:38:10 AM UTC 2025 -->
+<- Password: LATEST_DEPLOY: 2025-06-29 11:41:06 UTC -->
+<- Password: Deployed: Sun Jun 29 12:22:47 PM UTC 2025 -->
