@@ -14,6 +14,7 @@ app.use(cors({
       "http://localhost:8080",
       "https://8000-my-workstation.cluster-zimojywdj5auyrswx7eyn2ckg6.cloudworkstations.dev",
       /^https:\/\/fantopark-.*\.vercel\.app$/,
+      "https://skjftp.github.io",
       /^https:\/\/.*-skjftps-projects\.vercel\.app$/
     ];
     
