@@ -2107,7 +2107,9 @@ const closeForm = () => {
     }
 
     // Login screen
-    if (!isLoggedIn) {
+    // Login check
+    const loginScreen = () => {
+        if (!isLoggedIn) {
         return React.createElement('div', { className: 'min-h-screen bg-gray-100 flex items-center justify-center' },
             React.createElement('div', { className: 'max-w-md w-full bg-white rounded-lg shadow-md p-6' },
                 React.createElement('div', { className: 'text-center mb-8' },
