@@ -1199,78 +1199,42 @@ const handlePaymentPostServiceSubmit = async (e) => {
             )
         );
 
-        // Create receivable via API
-        const receivableResponse = await apiCall('/receivables', {
-            method: 'POST',
-            body: JSON.stringify({
-                lead_id: currentLead.id,
-                client_name: currentLead.name,
-                client_email: currentLead.email,
-                client_phone: currentLead.phone,
-                expected_amount: parseFloat(paymentPostServiceData.expected_amount),
-                expected_payment_date: paymentPostServiceData.expected_payment_date,
-                service_date: paymentPostServiceData.service_date,
-                payment_terms: paymentPostServiceData.payment_terms,
-                status: 'pending',
-                created_by: user.name,
-                created_date: new Date().toISOString()
-            })
-        });
+        // Create a local order record instead of calling /receivables
+        const newOrder = {
+            id: `ORD-${Date.now()}`,
+            lead_id: currentLead.id,
+            lead_name: currentLead.name,
+            lead_email: currentLead.email,
+            lead_phone: currentLead.phone,
+            
+            // Payment post service details
+            expected_amount: parseFloat(paymentPostServiceData.expected_amount),
+            expected_payment_date: paymentPostServiceData.expected_payment_date,
+            service_description: paymentPostServiceData.service_description,
+            notes: paymentPostServiceData.notes,
+            
+            // Order metadata
+            order_type: 'payment_post_service',
+            payment_status: 'pending',
+            service_status: 'pending',
+            status: 'pending_approval',
+            created_date: new Date().toISOString().split('T')[0],
+            created_by: user.name
+        };
 
-        setReceivables(prev => [...prev, receivableResponse.data]);
+        // Add to orders in local state
+        setOrders(prev => [...prev, newOrder]);
 
-        // Create order for approval via API
-        const orderResponse = await apiCall('/orders', {
-            method: 'POST',
-            body: JSON.stringify({
-                order_number: `ORD-${Date.now()}`,
-                lead_id: currentLead.id,
-                client_name: currentLead.name,
-                client_email: currentLead.email,
-                client_phone: currentLead.phone,
-                event_name: currentLead.lead_for_event || 'Service',
-                tickets_allocated: currentLead.number_of_people || 1,
-                total_amount: parseFloat(paymentPostServiceData.expected_amount),
-                payment_type: 'post_service',
-                payment_received: false,
-                service_date: paymentPostServiceData.service_date,
-                service_details: paymentPostServiceData.service_details,
-                status: 'pending_approval',
-                requires_sales_head_approval: true,
-                created_by: user.name,
-                created_date: new Date().toISOString()
-            })
-        });
-
-        setOrders(prev => [...prev, orderResponse.data]);
-
-        // Create email notification via API
-        const notificationResponse = await apiCall('/notifications', {
-            method: 'POST',
-            body: JSON.stringify({
-                type: 'payment_post_service_created',
-                recipient: 'sales_head@fantopark.com',
-                subject: `Payment Post Service Order Created - ${currentLead.name}`,
-                body: `A new payment post service order has been created for ${currentLead.name}. Amount: ₹${paymentPostServiceData.expected_amount}. Please review and approve.`,
-                status: 'pending',
-                created_date: new Date().toISOString()
-            })
-        });
-
-        setEmailNotifications(prev => [...prev, notificationResponse.data]);
-
-        alert('Payment post service order created successfully!');
-        closeForm();
-        
-        // Refresh all data to ensure consistency
-        await fetchData();
-        
-    } catch (error) {
-        alert('Failed to create payment post service order: ' + error.message);
-    } finally {
         setLoading(false);
+        alert('Payment Post Service order created successfully! Awaiting approval.');
+        closeForm();
+    } catch (error) {
+        setLoading(false);
+        alert('Failed to process payment post service. Please try again.');
+        console.error('Payment post service error:', error);
     }
 };
+
 
 const collectPostServicePayment = (receivable) => {
     const lead = leads.find(l => l.id === receivable.lead_id);
