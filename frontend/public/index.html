@@ -1579,8 +1579,7 @@ const closeForm = () => {
                         setOrders(prev => prev.filter(order => order.id !== id));
                         alert('Order hidden locally.');
                     }
-                    return;
-                }
+                                    }
             }
             
             alert(`Failed to delete ${type === 'inventory' ? 'event' : type.slice(0, -1)}: ${error.message}`);
