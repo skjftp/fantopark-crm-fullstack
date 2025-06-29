@@ -1478,6 +1478,7 @@ const closeForm = () => {
 
     // Delete function with permission check
     const handleDelete = async (type, id, name) => {
+        console.log("handleDelete called:", type, id, name);
         const modulePermissions = {
             'leads': 'leads',
             'inventory': 'inventory',
@@ -1494,8 +1495,10 @@ const closeForm = () => {
         setLoading(true);
         try {
             // Special handling for orders - convert delete to cancel
+                console.log("Processing order deletion as cancellation");
             if (type === 'orders') {
                 // Update order status to cancelled instead of deleting
+                console.log("Making API call to:", `/${type}/${id}`);
                 await apiCall(`/${type}/${id}`, {
                     method: 'PUT',
                     body: JSON.stringify({
@@ -1517,7 +1520,8 @@ const closeForm = () => {
             } else {
                 // For leads and inventory, try actual DELETE
                 try {
-                    await apiCall(`/${type}/${id}`, {
+                    console.log("Making API call to:", `/${type}/${id}`);
+                await apiCall(`/${type}/${id}`, {
                         method: 'DELETE'
                     });
                     
