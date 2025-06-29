@@ -1294,13 +1294,13 @@ const sendEmailNotification = (notification) => {
     
     // Update notification status
 //     setEmailNotifications(prev => 
-        prev.map(n => 
-            n.id === notification.id 
-                ? { ...n, status: 'sent', sent_date: new Date().toISOString() }
-                : n
-        )
-    );
-};
+//         prev.map(n => 
+//             n.id === notification.id 
+//                 ? { ...n, status: 'sent', sent_date: new Date().toISOString() }
+//                 : n
+//         )
+//     );
+// };
 
 const handleDeliverySubmit = async (e) => {
     e.preventDefault();
