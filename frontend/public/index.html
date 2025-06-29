@@ -1533,64 +1533,43 @@ const closeForm = () => {
             alert(`${type === 'inventory' ? 'Event' : type.slice(0, -1)} deleted successfully!`);
         } catch (error) {
             console.error(`Error deleting ${type}:`, error);
-            console.log('Error response:', error.message);
-            console.log('Full error:', error);
-            setLoading(false);
             
-            // Check if it's a 404 (endpoint not found) or 405 (method not allowed)
-            if (type === 'orders' && (error.message.includes('404') || error.message.includes('405') || error.message.includes('Not Found'))) {
-                console.log('DELETE not supported for orders, trying to cancel instead...');
+            
+            // For orders, always try to cancel instead of delete
+            if (type === 'orders') {
+                console.log('DELETE failed, attempting to cancel order instead...');
                 try {
-                    // Mark order as cancelled instead
-                    await apiCall(`/orders/${id}`, {
+                    const response = await apiCall(`/orders/${id}`, {
                         method: 'PUT',
                         body: JSON.stringify({
                             status: 'cancelled',
                             cancelled_date: new Date().toISOString(),
-                            cancelled_by: user.name,
-                            cancelled_reason: 'Deleted by user'
+                            cancelled_by: user?.name || 'Admin'
                         })
                     });
                     
-                    // Update local state
-                    setOrders(prev => prev.map(item => 
-                        item.id === id 
-                            ? { ...item, status: 'cancelled', cancelled_date: new Date().toISOString() }
-                            : item
+                    // Update local state to reflect cancellation
+                    setOrders(prev => prev.map(order => 
+                        order.id === id 
+                            ? { ...order, status: 'cancelled' }
+                            : order
                     ));
                     
-                    alert('Order has been cancelled successfully!');
+                    setLoading(false);
+                    alert('Order cancelled successfully!');
                     return;
-                } catch (updateError) {
-                    console.error('Failed to cancel order:', updateError);
-                    
-                    // If we can't even update, give user the option
-                    if (confirm('Unable to delete/cancel order on server. Remove from display only? (Will reappear on refresh)')) {
-                        setOrders(prev => prev.filter(item => item.id !== id));
-                        alert('Order hidden from view. Refresh page to see it again.');
-                    } else {
-                        alert('Order deletion cancelled.');
+                } catch (cancelError) {
+                    console.error('Failed to cancel order:', cancelError);
+                    setLoading(false);
+                    if (confirm('Unable to cancel order on server. Hide it locally? (Will reappear on refresh)')) {
+                        setOrders(prev => prev.filter(order => order.id !== id));
+                        alert('Order hidden locally.');
                     }
                     return;
                 }
             }
             
-            // For other types or other errors
-            if ((error.message.includes('404') || error.message.includes('405')) && confirm(`Delete not supported on server. Remove from display only? (Will reappear on refresh)`)) {
-                switch(type) {
-                    case 'leads':
-                        setLeads(prev => prev.filter(item => item.id !== id));
-                        break;
-                    case 'inventory':
-                        setInventory(prev => prev.filter(item => item.id !== id));
-                        break;
-                    case 'orders':
-                        setOrders(prev => prev.filter(item => item.id !== id));
-                        break;
-                }
-                alert(`${type === 'inventory' ? 'Event' : type.slice(0, -1)} hidden from view. Refresh page to see it again.`);
-            } else {
-                alert(`Failed to delete ${type === 'inventory' ? 'event' : type.slice(0, -1)}: ${error.message}`);
+            alert(`Failed to delete ${type === 'inventory' ? 'event' : type.slice(0, -1)}: ${error.message}`);
             }}
     };
 
