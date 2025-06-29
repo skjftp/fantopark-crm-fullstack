@@ -1507,9 +1507,23 @@ const closeForm = () => {
         try {
             // Make API call to delete from backend
             console.log(`Attempting to delete ${type} with id ${id} at endpoint: /${type}/${id}`);
-            await apiCall(`/${type}/${id}`, {
-                method: 'DELETE'
-            });
+            // Special handling for orders
+            if (type === 'orders') {
+                // Always use PUT to cancel instead of DELETE
+                await apiCall(`/${type}/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        status: 'cancelled',
+                        cancelled_date: new Date().toISOString(),
+                        cancelled_by: user?.name || 'Admin'
+                    })
+                });
+            } else {
+                // For other types, try DELETE
+                await apiCall(`/${type}/${id}`, {
+                    method: 'DELETE'
+                });
+            }
             
             // If successful, update local state
             switch(type) {
@@ -1530,7 +1544,7 @@ const closeForm = () => {
             }
             
             setLoading(false);
-            alert(`${type === 'inventory' ? 'Event' : type.slice(0, -1)} deleted successfully!`);
+            alert(type === 'orders' ? 'Order cancelled successfully!' : `${type === 'inventory' ? 'Event' : type.slice(0, -1)} deleted successfully!`);
         } catch (error) {
             console.error(`Error deleting ${type}:`, error);
             
