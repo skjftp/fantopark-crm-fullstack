@@ -1493,25 +1493,64 @@ const closeForm = () => {
 
         setLoading(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            switch (type) {
-                case 'leads':
-                    setLeads(prev => prev.filter(item => item.id !== id));
-                    break;
-                case 'inventory':
-                    setInventory(prev => prev.filter(item => item.id !== id));
-                    break;
-                case 'orders':
-                    setOrders(prev => prev.filter(item => item.id !== id));
-                    break;
+            // Special handling for orders - convert delete to cancel
+            if (type === 'orders') {
+                // Update order status to cancelled instead of deleting
+                await apiCall(`/${type}/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        status: 'cancelled',
+                        cancelled_date: new Date().toISOString(),
+                        cancelled_by: user?.name || 'Admin'
+                    })
+                });
+                
+                // Update local state to reflect cancellation
+                setOrders(prev => prev.map(order => 
+                    order.id === id 
+                        ? { ...order, status: 'cancelled' }
+                        : order
+                ));
+                
+                setLoading(false);
+                alert('Order cancelled successfully!');
+            } else {
+                // For leads and inventory, try actual DELETE
+                try {
+                    await apiCall(`/${type}/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    // If successful, update local state
+                    switch (type) {
+                        case 'leads':
+                            setLeads(prev => prev.filter(item => item.id !== id));
+                            break;
+                        case 'inventory':
+                            setInventory(prev => prev.filter(item => item.id !== id));
+                            break;
+                    }
+                    
+                    setLoading(false);
+                    alert(`${type === 'inventory' ? 'Event' : type.slice(0, -1)} deleted successfully!`);
+                } catch (deleteError) {
+                    // If DELETE fails, just remove from local state with warning
+                    switch (type) {
+                        case 'leads':
+                            setLeads(prev => prev.filter(item => item.id !== id));
+                            break;
+                        case 'inventory':
+                            setInventory(prev => prev.filter(item => item.id !== id));
+                            break;
+                    }
+                    
+                    setLoading(false);
+                    alert(`${type === 'inventory' ? 'Event' : type.slice(0, -1)} removed locally. May reappear on refresh if server delete is not supported.`);
+                }
             }
-
-            setLoading(false);
-            alert(`${name} deleted successfully!`);
         } catch (error) {
             setLoading(false);
-            alert('Delete failed. Please try again.');
+            alert(`Failed to process ${type === 'inventory' ? 'event' : type.slice(0, -1)}: ${error.message}`);
         }
     };
 
