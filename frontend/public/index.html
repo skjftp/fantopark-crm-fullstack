@@ -13,7 +13,7 @@
         // Configure API endpoint
         const API_URL = window.location.hostname === 'localhost' 
             ? 'http://localhost:8080/api' 
-            : 'https://your-backend-url.run.app/api';
+            : 'https://fantopark-crm-backend-150582227311.us-central1.run.app/api';
         
         // Get stored auth token
         let authToken = localStorage.getItem('crm_auth_token');
@@ -403,15 +403,39 @@ function App() {
         }
     });
 
-    // Data states with localStorage persistence
-    const [leads, setLeads] = useState(() => {
-        try {
-            const saved = localStorage.getItem('crm_leads');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) {
-            return [];
-        }
-    });
+// Initialize empty, will fetch from API
+const [leads, setLeads] = useState([]);
+const [inventory, setInventory] = useState([]);
+const [orders, setOrders] = useState([]);
+const [invoices, setInvoices] = useState([]);
+
+// Add data fetching function
+const fetchData = async () => {
+    if (!isLoggedIn || !authToken) return;
+    
+    try {
+        const [leadsData, inventoryData, ordersData, invoicesData] = await Promise.all([
+            apiCall('/leads').catch(() => ({ data: [] })),
+            apiCall('/inventory').catch(() => ({ data: [] })),
+            apiCall('/orders').catch(() => ({ data: [] })),
+            apiCall('/invoices').catch(() => ({ data: [] }))
+        ]);
+        
+        setLeads(leadsData.data || []);
+        setInventory(inventoryData.data || []);
+        setOrders(ordersData.data || []);
+        setInvoices(invoicesData.data || []);
+    } catch (error) {
+        console.error('Error fetching data:', error);
+    }
+};
+
+// Fetch data when logged in
+useEffect(() => {
+    if (isLoggedIn) {
+        fetchData();
+    }
+}, [isLoggedIn]);
     
     const [inventory, setInventory] = useState(() => {
         try {
@@ -656,47 +680,6 @@ const [emailNotifications, setEmailNotifications] = useState(() => {
         }
     }, []);
 
-    // Save data to localStorage whenever state changes
-    useEffect(() => {
-        try {
-            localStorage.setItem('crm_users', JSON.stringify(users));
-        } catch (e) {
-            console.log('Failed to save users:', e);
-        }
-    }, [users]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem('crm_leads', JSON.stringify(leads));
-        } catch (e) {
-            console.log('Failed to save leads:', e);
-        }
-    }, [leads]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem('crm_inventory', JSON.stringify(inventory));
-        } catch (e) {
-            console.log('Failed to save inventory:', e);
-        }
-    }, [inventory]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem('crm_orders', JSON.stringify(orders));
-        } catch (e) {
-            console.log('Failed to save orders:', e);
-        }
-    }, [orders]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem('crm_invoices', JSON.stringify(invoices));
-        } catch (e) {
-            console.log('Failed to save invoices:', e);
-        }
-    }, [invoices]);
-
     // Calculate dashboard stats
     useEffect(() => {
         if (isLoggedIn) {
@@ -845,16 +828,31 @@ const calculateDashboardStats = () => {
 };
 
     // Authentication
-    const handleLogin = (e) => {
-        e.preventDefault();
-        setLoading(true);
+const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+        const response = await apiCall('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        });
         
-        setTimeout(() => {
-            const foundUser = users.find(u => 
-                u.email === email && 
-                u.password === password && 
-                u.status === 'active'
-            );
+        if (response.token && response.user) {
+            authToken = response.token;
+            localStorage.setItem('crm_auth_token', response.token);
+            localStorage.setItem('crm_user', JSON.stringify(response.user));
+            setUser(response.user);
+            setIsLoggedIn(true);
+            setEmail('');
+            setPassword('');
+        }
+    } catch (error) {
+        alert(error.message || 'Invalid credentials');
+    } finally {
+        setLoading(false);
+    }
+};
             
             if (foundUser) {
                 setIsLoggedIn(true);
@@ -983,31 +981,44 @@ setCurrentOrderDetail(null);
     };
 
     // Status update function with permission check
-    const updateLeadStatus = async (leadId, newStatus) => {
-        if (!hasPermission('leads', 'progress')) {
-            alert('You do not have permission to progress leads');
-            return;
+   const updateLeadStatus = async (leadId, newStatus) => {
+    if (!hasPermission('leads', 'progress')) {
+        alert('You do not have permission to progress leads');
+        return;
+    }
+    
+    try {
+        setLoading(true);
+        
+        // API call to update lead status
+        const response = await apiCall(`/leads/${leadId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                status: newStatus,
+                last_contact_date: new Date().toISOString(),
+                [`${newStatus}_date`]: new Date().toISOString()
+            })
+        });
+        
+        // Update local state with response from server
+        setLeads(prevLeads => 
+            prevLeads.map(lead => 
+                lead.id === leadId ? response.data : lead
+            )
+        );
+        
+        // Update current lead if in detail view
+        if (showLeadDetail && currentLead?.id === leadId) {
+            setCurrentLead(response.data);
         }
-
-        try {
-            setLoading(true);
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            setLeads(prevLeads => 
-                prevLeads.map(lead => 
-                    lead.id === leadId 
-                        ? { ...lead, status: newStatus, last_contact_date: new Date().toISOString().split('T')[0] }
-                        : lead
-                )
-            );
-            
-            setLoading(false);
-            alert(`Lead status updated to: ${LEAD_STATUSES[newStatus]?.label || newStatus}`);
-        } catch (error) {
-            setLoading(false);
-            alert('Failed to update status: ' + error.message);
-        }
-    };
+        
+        alert(`Lead status updated to: ${LEAD_STATUSES[newStatus]?.label || newStatus}`);
+    } catch (error) {
+        alert('Failed to update status: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
+};
 
     // Enhanced lead progression function with permission check
     const handleLeadProgression = (lead) => {
@@ -1082,6 +1093,7 @@ setCurrentOrderDetail(null);
         }
     }
 };
+
 
     // Form handlers with permission checks
     const openAddForm = (type) => {
@@ -1238,99 +1250,93 @@ const handlePaymentPostServiceSubmit = async (e) => {
     setLoading(true);
 
     try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Update lead status via API
+        const leadResponse = await apiCall(`/leads/${currentLead.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                status: 'payment_post_service',
+                payment_post_service_details: paymentPostServiceData,
+                payment_post_service_date: new Date().toISOString()
+            })
+        });
 
-        // Update lead status
+        // Update local state
         setLeads(prev => 
             prev.map(lead => 
-                lead.id === currentLead.id 
-                    ? { 
-                        ...lead, 
-                        status: 'payment_post_service',
-                        payment_post_service_details: paymentPostServiceData,
-                        payment_post_service_date: new Date().toISOString().split('T')[0]
-                    } 
-                    : lead
+                lead.id === currentLead.id ? leadResponse.data : lead
             )
         );
 
-        // Create receivable entry
-        const newReceivable = {
-            id: Date.now(),
-            lead_id: currentLead.id,
-            client_name: currentLead.name,
-            client_email: currentLead.email,
-            client_phone: currentLead.phone,
-            expected_amount: parseFloat(paymentPostServiceData.expected_amount),
-            expected_payment_date: paymentPostServiceData.expected_payment_date,
-            service_date: paymentPostServiceData.service_date,
-            payment_terms: paymentPostServiceData.payment_terms,
-            status: 'pending',
-            created_date: new Date().toISOString().split('T')[0],
-            created_by: user.name
-        };
+        // Create receivable via API
+        const receivableResponse = await apiCall('/receivables', {
+            method: 'POST',
+            body: JSON.stringify({
+                lead_id: currentLead.id,
+                client_name: currentLead.name,
+                client_email: currentLead.email,
+                client_phone: currentLead.phone,
+                expected_amount: parseFloat(paymentPostServiceData.expected_amount),
+                expected_payment_date: paymentPostServiceData.expected_payment_date,
+                service_date: paymentPostServiceData.service_date,
+                payment_terms: paymentPostServiceData.payment_terms,
+                status: 'pending',
+                created_by: user.name,
+                created_date: new Date().toISOString()
+            })
+        });
 
-        setReceivables(prev => [...prev, newReceivable]);
+        setReceivables(prev => [...prev, receivableResponse.data]);
 
-        // Create order for approval
-        const newOrder = {
-            id: Date.now(),
-            order_number: `ORD-${Date.now()}`,
-            lead_id: currentLead.id,
-            client_name: currentLead.name,
-            client_email: currentLead.email,
-            client_phone: currentLead.phone,
-            event_name: currentLead.lead_for_event || 'Service',
-            tickets_allocated: currentLead.number_of_people || 1,
-            total_amount: parseFloat(paymentPostServiceData.expected_amount),
-            payment_type: 'post_service',
-            payment_received: false,
-            service_date: paymentPostServiceData.service_date,
-            service_details: paymentPostServiceData.service_details,
-            status: 'pending_approval',
-            requires_sales_head_approval: true,
-            created_date: new Date().toISOString().split('T')[0],
-            created_by: user.name
-        };
+        // Create order for approval via API
+        const orderResponse = await apiCall('/orders', {
+            method: 'POST',
+            body: JSON.stringify({
+                order_number: `ORD-${Date.now()}`,
+                lead_id: currentLead.id,
+                client_name: currentLead.name,
+                client_email: currentLead.email,
+                client_phone: currentLead.phone,
+                event_name: currentLead.lead_for_event || 'Service',
+                tickets_allocated: currentLead.number_of_people || 1,
+                total_amount: parseFloat(paymentPostServiceData.expected_amount),
+                payment_type: 'post_service',
+                payment_received: false,
+                service_date: paymentPostServiceData.service_date,
+                service_details: paymentPostServiceData.service_details,
+                status: 'pending_approval',
+                requires_sales_head_approval: true,
+                created_by: user.name,
+                created_date: new Date().toISOString()
+            })
+        });
 
-        setOrders(prev => [...prev, newOrder]);
+        setOrders(prev => [...prev, orderResponse.data]);
 
-        // Create email notification
-        const notification = {
-            id: Date.now(),
-            type: 'payment_post_service_created',
-            recipient: 'sales_head@fantopark.com',
-            subject: `Payment Post Service Order Created - ${currentLead.name}`,
-            body: `A new payment post service order has been created for ${currentLead.name}. Amount: ₹${paymentPostServiceData.expected_amount}. Please review and approve.`,
-            status: 'pending',
-            created_date: new Date().toISOString()
-        };
+        // Create email notification via API
+        const notificationResponse = await apiCall('/notifications', {
+            method: 'POST',
+            body: JSON.stringify({
+                type: 'payment_post_service_created',
+                recipient: 'sales_head@fantopark.com',
+                subject: `Payment Post Service Order Created - ${currentLead.name}`,
+                body: `A new payment post service order has been created for ${currentLead.name}. Amount: ₹${paymentPostServiceData.expected_amount}. Please review and approve.`,
+                status: 'pending',
+                created_date: new Date().toISOString()
+            })
+        });
 
-        setEmailNotifications(prev => [...prev, notification]);
+        setEmailNotifications(prev => [...prev, notificationResponse.data]);
 
-        // Schedule reminder notifications
-        const reminderDate = new Date(paymentPostServiceData.expected_payment_date);
-        reminderDate.setDate(reminderDate.getDate() - parseInt(paymentPostServiceData.reminder_days));
-
-        const reminderNotification = {
-            id: Date.now() + 1,
-            type: 'payment_reminder',
-            recipient: currentLead.email,
-            subject: `Payment Reminder - ${currentLead.lead_for_event}`,
-            body: `This is a reminder that your payment of ₹${paymentPostServiceData.expected_amount} is due on ${new Date(paymentPostServiceData.expected_payment_date).toLocaleDateString()}.`,
-            scheduled_date: reminderDate.toISOString(),
-            status: 'scheduled',
-            receivable_id: newReceivable.id
-        };
-
-        setEmailNotifications(prev => [...prev, reminderNotification]);
-
-        setLoading(false);
-        alert('Payment Post Service order created successfully! Order sent for approval.');
+        alert('Payment post service order created successfully!');
         closeForm();
+        
+        // Refresh all data to ensure consistency
+        await fetchData();
+        
     } catch (error) {
+        alert('Failed to create payment post service order: ' + error.message);
+    } finally {
         setLoading(false);
-        alert('Failed to create payment post service order. Please try again.');
     }
 };
 
@@ -1814,6 +1820,11 @@ const closeForm = () => {
                     `Welcome back, ${user?.name} (${USER_ROLES[user?.role]?.label})`
                 )
             ),
+                React.createElement('button', {
+                onClick: fetchData,
+                className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
+            }, '🔄 Refresh Data')
+        ),
             hasPermission('leads', 'write') && React.createElement('button', { 
                 className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
                 onClick: () => openAddForm('lead')
@@ -1935,10 +1946,22 @@ const closeForm = () => {
                         className: 'w-full bg-blue-50 text-blue-700 p-3 rounded-lg hover:bg-blue-100 text-left',
                         onClick: () => openAddForm('lead')
                     }, '+ Add New Lead'),
+                    React.createElement('button', {
+                    onClick: fetchData,
+                    className: 'bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700'
+                }, '🔄 Refresh')
+            )
+        ),
                     hasPermission('orders', 'write') && React.createElement('button', {
                         className: 'w-full bg-green-50 text-green-700 p-3 rounded-lg hover:bg-green-100 text-left',
                         onClick: () => openAddForm('order')
                     }, '+ Create Manual Order'),
+                    React.createElement('button', {
+                    onClick: fetchData,
+                    className: 'bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700'
+                }, '🔄 Refresh')
+            )
+        ),
                     hasPermission('inventory', 'write') && React.createElement('button', {
                         className: 'w-full bg-purple-50 text-purple-700 p-3 rounded-lg hover:bg-purple-100 text-left',
                         onClick: () => openAddForm('inventory')
@@ -2629,109 +2652,140 @@ const handleOrderApproval = async (orderId, action) => {
     }
 };
 
-    // Form submission with permission checks
-    const handleFormSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-
-        try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            if (showEditForm) {
-                if (!hasPermission('leads', 'write')) {
-                    throw new Error('You do not have permission to edit leads');
-                }
-                setLeads(prev => 
-                    prev.map(lead => 
-                        lead.id === currentLead.id ? { ...lead, ...formData } : lead
-                    )
-                );
-                alert('Lead updated successfully!');
-            } else if (showEditInventoryForm) {
-                if (!hasPermission('inventory', 'write')) {
-                    throw new Error('You do not have permission to edit inventory');
-                }
-                setInventory(prev => 
-                    prev.map(item => 
-                        item.id === currentInventory.id ? { ...item, ...formData } : item
-                    )
-                );
-                alert('Inventory updated successfully!');
-            } else {
-                const newItem = { 
-                    id: Date.now(), 
-                    ...formData,
-                    created_date: new Date().toISOString().split('T')[0]
-                };
-
-                switch (currentForm) {
-                    case 'lead':
-                        if (!hasPermission('leads', 'write')) {
-                            throw new Error('You do not have permission to create leads');
-                        }
-                        newItem.status = 'unassigned';
-                        setLeads(prev => [...prev, newItem]);
-                        break;
-                    case 'inventory':
-                        if (!hasPermission('inventory', 'write')) {
-                            throw new Error('You do not have permission to create inventory');
-                        }
-                        setInventory(prev => [...prev, newItem]);
-                        break;
-                    case 'order':
-                        if (!hasPermission('orders', 'write')) {
-                            throw new Error('You do not have permission to create orders');
-                        }
-                        newItem.status = 'pending_approval';
-                        setOrders(prev => [...prev, newItem]);
-                        break;
-                }
-                alert(`${currentForm} added successfully!`);
+const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+        if (showEditForm) {
+            // Update lead via API
+            const response = await apiCall(`/leads/${currentLead.id}`, {
+                method: 'PUT',
+                body: JSON.stringify(formData)
+            });
+            setLeads(prev => prev.map(lead => 
+                lead.id === currentLead.id ? response.data : lead
+            ));
+            alert('Lead updated successfully!');
+            
+        } else if (showEditInventoryForm) {
+            // Update inventory via API
+            const response = await apiCall(`/inventory/${currentInventory.id}`, {
+                method: 'PUT',
+                body: JSON.stringify(formData)
+            });
+            setInventory(prev => prev.map(item => 
+                item.id === currentInventory.id ? response.data : item
+            ));
+            alert('Inventory updated successfully!');
+            
+        } else {
+            // Create new items
+            switch (currentForm) {
+                case 'lead':
+                    const leadResponse = await apiCall('/leads', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            ...formData,
+                            status: 'unassigned',
+                            created_by: user.name,
+                            created_date: new Date().toISOString()
+                        })
+                    });
+                    setLeads(prev => [...prev, leadResponse.data]);
+                    alert('Lead added successfully!');
+                    break;
+                    
+                case 'inventory':
+                    const invResponse = await apiCall('/inventory', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            ...formData,
+                            created_by: user.name,
+                            created_date: new Date().toISOString()
+                        })
+                    });
+                    setInventory(prev => [...prev, invResponse.data]);
+                    alert('Inventory added successfully!');
+                    break;
+                    
+                case 'order':
+                    const orderResponse = await apiCall('/orders', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            ...formData,
+                            order_number: `ORD-${Date.now()}`,
+                            status: 'pending_approval',
+                            total_amount: formData.tickets_allocated * formData.price_per_ticket,
+                            created_by: user.name,
+                            created_date: new Date().toISOString()
+                        })
+                    });
+                    setOrders(prev => [...prev, orderResponse.data]);
+                    alert('Order created successfully!');
+                    break;
             }
-
-            setLoading(false);
-            closeForm();
-        } catch (error) {
-            setLoading(false);
-            alert('Operation failed: ' + error.message);
-        }
-    };
-
-    // Assignment with permission check
-    const handleAssignLead = async (e) => {
-        e.preventDefault();
-        if (!hasPermission('leads', 'assign')) {
-            alert('You do not have permission to assign leads');
-            return;
         }
         
-        setLoading(true);
+        closeForm();
+    } catch (error) {
+        alert('Operation failed: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
+};
 
-        try {
-            await new Promise(resolve => setTimeout(resolve, 500));
+        const handleDeleteLead = async (leadId) => {
+    if (!confirm('Are you sure you want to delete this lead?')) return;
+    
+    try {
+        await apiCall(`/leads/${leadId}`, { method: 'DELETE' });
+        setLeads(prev => prev.filter(lead => lead.id !== leadId));
+        alert('Lead deleted successfully!');
+    } catch (error) {
+        alert('Failed to delete lead: ' + error.message);
+    }
+};
 
-            setLeads(prev => 
-                prev.map(lead => 
-                    lead.id === currentLead.id 
-                        ? { 
-                            ...lead, 
-                            assigned_to: formData.assigned_to, 
-                            assigned_team: formData.assigned_team,
-                            status: 'assigned',
-                            assigned_date: new Date().toISOString().split('T')[0]
-                        } 
-                        : lead
-                )
-            );
+const handleDeleteInventory = async (inventoryId) => {
+    if (!confirm('Are you sure you want to delete this event?')) return;
+    
+    try {
+        await apiCall(`/inventory/${inventoryId}`, { method: 'DELETE' });
+        setInventory(prev => prev.filter(item => item.id !== inventoryId));
+        alert('Event deleted successfully!');
+    } catch (error) {
+        alert('Failed to delete event: ' + error.message);
+    }
+};
 
-            setLoading(false);
-            alert(`Lead assigned to ${formData.assigned_to} successfully!`);
-            closeForm();
-        } catch (error) {
-            setLoading(false);
-            alert('Assignment failed. Please try again.');
-        }
-    };
+    // Assignment with permission check
+const handleAssignLead = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+        const response = await apiCall(`/leads/${currentLead.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                status: 'assigned',
+                assigned_to: formData.assigned_to,
+                assignment_date: new Date().toISOString()
+            })
+        });
+        
+        setLeads(prev => prev.map(lead => 
+            lead.id === currentLead.id ? response.data : lead
+        ));
+        
+        alert('Lead assigned successfully!');
+        closeForm();
+    } catch (error) {
+        alert('Assignment failed: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
+};
 
     // Payment submission with permission check
     const handlePaymentSubmit = async (e) => {
