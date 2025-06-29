@@ -11,10 +11,7 @@
     <!-- API Configuration -->
     <script>
         // Configure API endpoint
-        const API_URL = window.location.hostname === 'localhost' 
-            ? 'http://localhost:8080/api' 
-            : 'https://fantopark-backend-150582227311.us-central1.run.app/api';
-        
+        const API_URL = "https://fantopark-backend-150582227311.us-central1.run.app/api";
         // Get stored auth token
         let authToken = localStorage.getItem('crm_auth_token');
         
@@ -615,12 +612,13 @@ const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
     // Persist authentication state
     useEffect(() => {
         try {
-            const savedUser = localStorage.getItem('crm_current_user');
-            const savedLoginState = localStorage.getItem('crm_logged_in');
+            const savedUser = localStorage.getItem('crm_user');
+            const savedLoginState = localStorage.getItem('crm_auth_token');
             
-            if (savedUser && savedLoginState === 'true') {
+            if (savedUser && savedLoginState) {
                 const userData = JSON.parse(savedUser);
                 setUser(userData);
+                authToken = savedLoginState;
                 setIsLoggedIn(true);
             }
         } catch (e) {
@@ -810,8 +808,8 @@ const handleLogin = async (e) => {
         setPassword('');
         setActiveTab('dashboard');
         try {
-            localStorage.removeItem('crm_current_user');
-            localStorage.removeItem('crm_logged_in');
+            localStorage.removeItem('crm_user');
+            localStorage.removeItem('crm_auth_token');
         } catch (e) {
             console.log('Failed to clear auth state:', e);
         }
@@ -1243,7 +1241,7 @@ const handlePaymentPostServiceSubmit = async (e) => {
             })
         });
 
-        setOrders(prev => [...prev, orderResponse]);
+        setOrders(prev => [...prev, orderResponse.data]);
 
         // Create email notification via API
         const notificationResponse = await apiCall('/notifications', {
@@ -2584,7 +2582,7 @@ const handleFormSubmit = async (e) => {
                 body: JSON.stringify(formData)
             });
             setLeads(prev => prev.map(lead => 
-                lead.id === currentLead.id ? response : lead
+                lead.id === currentLead.id ? response.data : lead
             ));
             alert('Lead updated successfully!');
             
@@ -2595,7 +2593,7 @@ const handleFormSubmit = async (e) => {
                 body: JSON.stringify(formData)
             });
             setInventory(prev => prev.map(item => 
-                item.id === currentInventory.id ? response : item
+                item.id === currentInventory.id ? response.data : item
             ));
             alert('Inventory updated successfully!');
             
@@ -2612,7 +2610,7 @@ const handleFormSubmit = async (e) => {
                             created_date: new Date().toISOString()
                         })
                     });
-                    setLeads(prev => [...prev, leadResponse]);
+                    setLeads(prev => [...prev, leadResponse.data]);
                     alert('Lead added successfully!');
                     break;
                     
@@ -2625,7 +2623,8 @@ const handleFormSubmit = async (e) => {
                             created_date: new Date().toISOString()
                         })
                     });
-                    setInventory(prev => [...prev, invResponse]);
+                    console.log("Inventory API Response:", invResponse);
+                    setInventory(prev => [...prev, invResponse.data]);
                     alert('Inventory added successfully!');
                     break;
                     
@@ -2641,7 +2640,7 @@ const handleFormSubmit = async (e) => {
                             created_date: new Date().toISOString()
                         })
                     });
-                    setOrders(prev => [...prev, orderResponse]);
+                    setOrders(prev => [...prev, orderResponse.data]);
                     alert('Order created successfully!');
                     break;
             }
@@ -2695,7 +2694,7 @@ const handleAssignLead = async (e) => {
         });
         
         setLeads(prev => prev.map(lead => 
-            lead.id === currentLead.id ? response : lead
+            lead.id === currentLead.id ? response.data : lead
         ));
         
         alert('Lead assigned successfully!');
