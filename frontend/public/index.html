@@ -1,3 +1,4 @@
+<!-- CRM Version: FIXED-ORDER-CREATION-20250630-121231 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1394,9 +1395,20 @@ const handlePaymentPostServiceSubmit = async (e) => {
             created_by: user.name
         };
 
-        // Add to orders in local state
-        setOrders(prev => [...prev, newOrder]);
-
+        // Create order in backend first
+        try {
+            const orderResponse = await apiCall('/orders', {
+                method: 'POST',
+                body: JSON.stringify(newOrder)
+            });
+            console.log('Order created in backend (Post Service):', orderResponse);
+            setOrders(prev => [...prev, orderResponse]);
+        } catch (orderError) {
+            console.error('Failed to create order in backend:', orderError);
+            setOrders(prev => [...prev, newOrder]);
+            alert('Warning: Order may not have been saved to server. Please check orders page.');
+        }
+        
         setLoading(false);
         alert('Payment Post Service order created successfully! Awaiting approval.');
         closeForm();
@@ -2325,7 +2337,46 @@ const closeForm = () => {
                 assigned_to: null
             };
 
-            setOrders(prev => [...prev, newOrder]);
+            // Create order in backend first
+
+
+            try {
+
+
+                const orderResponse = await apiCall('/orders', {
+
+
+                    method: 'POST',
+
+
+                    body: JSON.stringify(newOrder)
+
+
+                });
+
+
+                console.log('Order created in backend (Service Assignment):', orderResponse);
+
+
+                setOrders(prev => [...prev, orderResponse]);
+
+
+            } catch (orderError) {
+
+
+                console.error('Failed to create order in backend:', orderError);
+
+
+                // Create order in backend first
+                try {
+                    const orderResponse = await apiCall('/orders', {
+                        method: 'POST',
+                        body: JSON.stringify(newOrder)
+                    });
+                    console.log('Order created in backend:', orderResponse);
+                    setOrders(prev => [...prev, orderResponse]);
+                setOrders(prev => [...prev, newOrder]);
+            }
 
             setLeads(prev => 
                 prev.map(lead => 
@@ -3314,8 +3365,6 @@ const handleAssignLead = async (e) => {
         } catch (error) {
             console.error('Failed to create order:', error);
             alert('Order creation failed: ' + error.message);
-            // Don't throw - let's see what happens
-            // throw error;
             orderResponse = {data: null, error: error.message};
         }
 
