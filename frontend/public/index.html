@@ -2782,6 +2782,14 @@ const handleOrderApproval = async (orderId, action) => {
         setLoading(true);
         
         try {
+            // First get the current order to preserve all fields
+            const currentOrder = orders.find(o => o.id === orderId);
+            if (!currentOrder) {
+                throw new Error('Order not found');
+            }
+            
+            let updateData;
+            
             if (action === 'reject') {
                 // Ask for rejection reason
                 const reason = prompt('Please provide a reason for rejection:');
@@ -2790,57 +2798,43 @@ const handleOrderApproval = async (orderId, action) => {
                     return;
                 }
                 
-                // Update order with rejection details
-                await apiCall(`/orders/${orderId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        status: 'rejected',
-                        rejection_reason: reason,
-                        rejected_date: new Date().toISOString(),
-                        rejected_by: user?.name || 'Admin'
-                    })
-                });
-                
-                // Update local state
-                setOrders(prev => prev.map(order => 
-                    order.id === orderId 
-                        ? { 
-                            ...order, 
-                            status: 'rejected',
-                            rejection_reason: reason,
-                            rejected_date: new Date().toISOString(),
-                            rejected_by: user?.name || 'Admin'
-                        }
-                        : order
-                ));
-                
-                alert('Order rejected successfully!');
+                // Update order with rejection details while preserving all other fields
+                updateData = {
+                    ...currentOrder,
+                    status: 'rejected',
+                    rejection_reason: reason,
+                    rejected_date: new Date().toISOString(),
+                    rejected_by: user?.name || 'Admin'
+                };
             } else {
-                // Original approval logic
-                await apiCall(`/orders/${orderId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        status: 'approved',
-                        approved_date: new Date().toISOString(),
-                        approved_by: user?.name || 'Admin'
-                    })
-                });
-                
-                setOrders(prev => prev.map(order => 
-                    order.id === orderId 
-                        ? { 
-                            ...order, 
-                            status: 'approved',
-                            approved_date: new Date().toISOString(),
-                            approved_by: user?.name || 'Admin'
-                        }
-                        : order
-                ));
-                
-                alert('Order approved successfully!');
+                // Approval - preserve all existing fields
+                updateData = {
+                    ...currentOrder,
+                    status: 'approved',
+                    approved_date: new Date().toISOString(),
+                    approved_by: user?.name || 'Admin',
+                    // Clear any rejection fields if they exist
+                    rejection_reason: null,
+                    rejected_date: null,
+                    rejected_by: null
+                };
             }
+            
+            // Send update to backend
+            const response = await apiCall(`/orders/${orderId}`, {
+                method: 'PUT',
+                body: JSON.stringify(updateData)
+            });
+            
+            // Update local state with the response from backend
+            setOrders(prev => prev.map(order => 
+                order.id === orderId ? response.data : order
+            ));
+            
+            alert(`Order ${action === 'reject' ? 'rejected' : 'approved'} successfully!`);
         } catch (error) {
-            alert('Failed to process order: ' + error.message);
+            console.error('Error updating order:', error);
+            alert(`Failed to ${action} order: ${error.message}`);
         } finally {
             setLoading(false);
         }
