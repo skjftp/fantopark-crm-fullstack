@@ -2805,6 +2805,10 @@ const handleOrderApproval = async (orderId, action) => {
                     rejected_by: user?.name || 'Admin'
                 };
                 
+                console.log('Sending order update:', updateData);
+                console.log('Order ID:', orderId);
+                console.log('Order ID type:', typeof orderId);
+                
                 const response = await apiCall(`/orders/${orderId}`, {
                     method: 'PUT',
                     body: JSON.stringify(updateData)
@@ -2824,6 +2828,10 @@ const handleOrderApproval = async (orderId, action) => {
                     approved_date: new Date().toISOString(),
                     approved_by: user?.name || 'Admin'
                 };
+                
+                console.log('Sending order update:', updateData);
+                console.log('Order ID:', orderId);
+                console.log('Order ID type:', typeof orderId);
                 
                 const response = await apiCall(`/orders/${orderId}`, {
                     method: 'PUT',
