@@ -1046,11 +1046,61 @@ useEffect(() => {
 const assignOrderToService = async (orderId, assignee) => {
     setLoading(true);
     try {
+        const order = orders.find(o => o.id === orderId);
+        if (!order) {
+            throw new Error('Order not found');
+        }
+        
         const updateData = {
             assigned_to: assignee,
             status: 'service_assigned',
             assigned_date: new Date().toISOString()
         };
+        
+        // Update order in backend
+        await apiCall(`/orders/${orderId}`, {
+            method: 'PUT',
+            body: JSON.stringify(updateData)
+        });
+        
+        // Update local orders state
+        setOrders(prev => 
+            prev.map(order => 
+                order.id === orderId 
+                    ? { ...order, ...updateData }
+                    : order
+            )
+        );
+        
+        // Create delivery entry for supply team assignment
+        const newDelivery = {
+            id: `DEL-${Date.now()}`,
+            order_id: orderId,
+            order_number: order.order_number,
+            client_name: order.client_name,
+            client_email: order.client_email,
+            client_phone: order.client_phone,
+            event_name: order.event_name || 'N/A',
+            event_date: order.event_date,
+            tickets_count: order.tickets_allocated || 0,
+            delivery_type: 'physical',
+            assigned_to: assignee,
+            status: 'pending',
+            created_date: new Date().toISOString().split('T')[0],
+            created_by: user.name
+        };
+        
+        // Add to deliveries state
+        setDeliveries(prev => [...prev, newDelivery]);
+        
+        alert(`Order assigned to ${assignee} and delivery entry created!`);
+    } catch (error) {
+        console.error('Error assigning order:', error);
+        alert('Failed to assign order');
+    } finally {
+        setLoading(false);
+    }
+};
         
         await apiCall(`/orders/${orderId}`, {
             method: 'PUT',
@@ -1973,7 +2023,8 @@ const closeForm = () => {
                                             React.createElement('div', { className: 'flex space-x-2' },
                                                 hasPermission('users', 'write') && React.createElement('button', {
                                                     onClick: () => openUserForm(user),
-                                                    className: 'text-blue-600 hover:text-blue-900 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50'
+                                                    className: 'text-blue-600 hover:text-blue-900 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
+                                                onClick: () => openOrderDetail(order)
                                                 }, 'Edit'),
                                                 hasPermission('users', 'delete') && user.id !== 1 && React.createElement('button', {
                                                     onClick: () => handleDeleteUser(user.id, user.name),
@@ -5686,6 +5737,7 @@ currentInventoryItems.map(item =>
                                         React.createElement('div', { className: 'flex flex-wrap gap-1' },
                                             hasPermission('inventory', 'write') && React.createElement('button', { 
                                                 className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
+                                                onClick: () => openOrderDetail(order),
                                                 onClick: () => openEditInventoryForm(item)
                                             }, '✏️ Edit'),
                                             hasPermission('inventory', 'allocate') && item.available_tickets > 0 && React.createElement('button', { 
@@ -5906,6 +5958,7 @@ order.invoice_number && React.createElement('button', {
                                             }, '✅ Complete'),
                                             hasPermission('orders', 'write') && React.createElement('button', {
                                                 className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
+                                                onClick: () => openOrderDetail(order),
                                                 onClick: () => openEditOrderForm(order)
                                             }, '✏️ Edit'),
                                             hasPermission('orders', 'delete') && React.createElement('button', { 
