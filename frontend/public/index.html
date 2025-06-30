@@ -788,17 +788,19 @@ const fetchData = async () => {
     if (!isLoggedIn || !authToken) return;
     
     try {
-        const [leadsData, inventoryData, ordersData, invoicesData] = await Promise.all([
+        const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData] = await Promise.all([
             apiCall('/leads').catch(() => ({ data: [] })),
             apiCall('/inventory').catch(() => ({ data: [] })),
             apiCall('/orders').catch(() => ({ data: [] })),
-            apiCall('/invoices').catch(() => ({ data: [] }))
+            apiCall('/invoices').catch(() => ({ data: [] })),
+            apiCall('/deliveries').catch(() => ({ data: [] }))
         ]);
         
         setLeads(leadsData.data || []);
         setInventory(inventoryData.data || []);
         setOrders(ordersData.data || []);
         setInvoices(invoicesData.data || []);
+        setDeliveries(deliveriesData.data || []);
     } catch (error) {
         console.error('Error fetching data:', error);
     }
@@ -1884,6 +1886,22 @@ const handleDeliverySubmit = async (e) => {
     try {
         await new Promise(resolve => setTimeout(resolve, 1000));
 
+        // Update in backend
+        try {
+            await apiCall(`/deliveries/${currentDelivery.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    ...delivery,
+                    ...deliveryFormData,
+                    status: 'scheduled',
+                    scheduled_date: new Date().toISOString()
+                })
+            });
+        } catch (error) {
+            console.error('Failed to update delivery in backend:', error);
+        }
+        
+        // Update local state
         setDeliveries(prev => 
             prev.map(delivery => 
                 delivery.id === currentDelivery.id 
