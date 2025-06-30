@@ -5356,11 +5356,35 @@ order.invoice_number && React.createElement('button', {
     className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
     onClick: () => {
         console.log('Looking for invoice for order:', order.id);
-        console.log('Available invoices:', invoices);
-        const invoice = invoices.find(inv => inv.order_id === order.id);
-        console.log('Found invoice:', invoice);
-        if (invoice) {
-            openInvoicePreview(invoice);
+        
+        // Reconstruct invoice from order data since invoices array is lost on reload
+        if (order.invoice_number) {
+            const reconstructedInvoice = {
+                id: order.invoice_id || order.id,
+                invoice_number: order.invoice_number,
+                order_id: order.id,
+                order_number: order.order_number,
+                client_name: order.legal_name || order.client_name,
+                client_email: order.client_email,
+                gstin: order.gstin,
+                legal_name: order.legal_name,
+                category_of_sale: order.category_of_sale,
+                type_of_sale: order.type_of_sale,
+                registered_address: order.registered_address,
+                indian_state: order.indian_state,
+                is_outside_india: order.is_outside_india,
+                invoice_items: order.invoice_items,
+                base_amount: order.base_amount,
+                gst_calculation: order.gst_calculation,
+                total_tax: order.total_tax,
+                final_amount: order.final_amount,
+                invoice_date: order.approved_date || new Date().toISOString().split('T')[0],
+                due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                status: 'generated',
+                generated_by: order.approved_by || 'System'
+            };
+            console.log('Reconstructed invoice:', reconstructedInvoice);
+            openInvoicePreview(reconstructedInvoice);
         } else {
             alert('Invoice not found for this order');
         }
