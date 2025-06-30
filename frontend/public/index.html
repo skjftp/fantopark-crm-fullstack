@@ -1768,54 +1768,70 @@ const handlePaymentPostServiceSubmit = async (e) => {
             )
         );
 
-        // Create a local order record instead of calling /receivables
+        // Create order with all required fields
         const newOrder = {
-            id: `ORD-${Date.now()}`,
+            order_number: `ORD-${Date.now()}`,
             lead_id: currentLead.id,
-            lead_name: currentLead.name,
-            lead_email: currentLead.email,
-            lead_phone: currentLead.phone,
+            client_name: currentLead.name,
+            client_email: currentLead.email,
+            client_phone: currentLead.phone,
             
-            // Payment post service details
+            // Required order fields for backend
+            event_name: paymentPostServiceData.service_details || 'Payment Post Service',
+            event_date: paymentPostServiceData.service_date || new Date().toISOString().split('T')[0],
+            tickets_allocated: 1,
+            ticket_category: 'Post Service',
+            price_per_ticket: parseFloat(paymentPostServiceData.expected_amount) || 0,
+            total_amount: parseFloat(paymentPostServiceData.expected_amount) || 0,
+            
+            // Payment post service specific fields
             expected_amount: parseFloat(paymentPostServiceData.expected_amount),
             expected_payment_date: paymentPostServiceData.expected_payment_date,
-            service_description: paymentPostServiceData.service_description,
+            service_description: paymentPostServiceData.service_details,
             notes: paymentPostServiceData.notes,
+            payment_terms: paymentPostServiceData.payment_terms,
             
             // Order metadata
             order_type: 'payment_post_service',
             payment_status: 'pending',
-            service_status: 'pending',
             status: 'pending_approval',
             requires_gst_invoice: true,
-            created_date: new Date().toISOString().split('T')[0],
-            created_by: user.name
+            created_date: new Date().toISOString(),
+            created_by: user.name,
+            assigned_to: ''  // Will be assigned later
         };
 
-        // Create order in backend first
+        // Create order in backend
         try {
-            console.log('Creating order with data:', JSON.stringify(orderData, null, 2));
-        console.log('Key fields:', {
-            event_name: orderData.event_name,
-            tickets_allocated: orderData.tickets_allocated,
-            ticket_category: orderData.ticket_category,
-            total_amount: orderData.total_amount
-        });
-        const orderResponse = await apiCall('/orders', {
+            console.log('Creating payment post service order:', JSON.stringify(newOrder, null, 2));
+            const orderResponse = await apiCall('/orders', {
                 method: 'POST',
                 body: JSON.stringify(newOrder)
             });
             console.log('Order created in backend (Post Service):', orderResponse);
-            setOrders(prev => [...prev, orderResponse]);
+            
+            // Use the response data or fallback to newOrder
+            const finalOrder = orderResponse.data || orderResponse || newOrder;
+            if (!finalOrder.id && newOrder.order_number) {
+                finalOrder.id = newOrder.order_number;
+            }
+            
+            setOrders(prev => [...prev, finalOrder]);
+            
+            setLoading(false);
+            alert('Payment Post Service order created successfully! Awaiting approval.');
+            closeForm();
         } catch (orderError) {
             console.error('Failed to create order in backend:', orderError);
+            
+            // Add to local state with the order_number as id
+            newOrder.id = newOrder.order_number;
             setOrders(prev => [...prev, newOrder]);
+            
+            setLoading(false);
             alert('Warning: Order may not have been saved to server. Please check orders page.');
+            closeForm();
         }
-        
-        setLoading(false);
-        alert('Payment Post Service order created successfully! Awaiting approval.');
-        closeForm();
     } catch (error) {
         setLoading(false);
         alert('Failed to process payment post service. Please try again.');
