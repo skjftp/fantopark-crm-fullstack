@@ -6071,7 +6071,6 @@ currentInventoryItems.map(item =>
                                             
                                             // Finance approval buttons
                                             // REPLACE the Finance approval buttons section with this:
-// Finance approval buttons
 hasPermission('orders', 'approve') && order.status === 'pending_approval' && [
     // Show if this requires sales head approval
     order.order_type === 'payment_post_service' && React.createElement('span', {
