@@ -2917,6 +2917,7 @@ const renderGSTInvoicePreview = () => {
     // Order approval with permission check
     // REPLACE your existing handleOrderApproval function with this:
 
+const handleFormSubmit = async (e) => {
 const handleOrderApproval = async (orderId, action) => {
     setLoading(true);
     
@@ -2937,8 +2938,8 @@ const handleOrderApproval = async (orderId, action) => {
         let invoiceNumber = null;
         let invoiceId = null;
         
-        // Generate GST invoice if approved
-        if (action === 'approve' && order.requires_gst_invoice) {
+        // Generate GST invoice if approved (check both requires_gst_invoice and gstin)
+        if (action === 'approve' && (order.requires_gst_invoice || order.gstin)) {
             invoiceNumber = `STTS/INV/${new Date().getFullYear()}/${String(Date.now()).slice(-6)}`;
             invoiceId = Date.now();
             
@@ -3010,7 +3011,7 @@ const handleOrderApproval = async (orderId, action) => {
 
         setLoading(false);
         alert(action === 'approve' 
-            ? 'Order approved successfully! GST Invoice has been generated.' 
+            ? (invoiceNumber ? 'Order approved successfully! GST Invoice has been generated.' : 'Order approved successfully!')
             : 'Order rejected successfully.'
         );
     } catch (error) {
@@ -3019,7 +3020,6 @@ const handleOrderApproval = async (orderId, action) => {
         alert('Failed to update order status');
     }
 };
-const handleFormSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     
@@ -3275,6 +3275,7 @@ const handleAssignLead = async (e) => {
             service_fee_amount: paymentData.service_fee_amount,
             invoice_items: paymentData.invoice_items,
             status: 'pending_approval',
+            requires_gst_invoice: true,
             // Add the missing fields by extracting from invoice items
             event_name: paymentData.invoice_items?.[0]?.description || currentLead?.lead_for_event || 'General Event',
             event_date: paymentData.payment_date || new Date().toISOString().split('T')[0],
