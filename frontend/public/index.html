@@ -827,7 +827,8 @@ const [invoices, setInvoices] = useState([]);
 const [deliveries, setDeliveries] = useState([]);
 const [receivables, setReceivables] = useState([]);
 const [emailNotifications, setEmailNotifications] = useState([]);
-const [users, setUsers] = useState([]);
+const [allUsers, setAllUsers] = useState([]);
+    const [users, setUsers] = useState([]);
 
 // Add data fetching function
 const fetchData = async () => {
@@ -1152,6 +1153,13 @@ useEffect(() => {
         setUsers(DEFAULT_USERS);
     }
     }, []);
+    // Fetch all users on app initialization
+    useEffect(() => {
+        if (isLoggedIn && allUsers.length === 0) {
+            fetchUsers();
+        }
+    }, [isLoggedIn]);
+
 
     useEffect(() => {
     try {
