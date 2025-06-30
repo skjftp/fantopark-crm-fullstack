@@ -3314,7 +3314,9 @@ const handleAssignLead = async (e) => {
         } catch (error) {
             console.error('Failed to create order:', error);
             alert('Order creation failed: ' + error.message);
-            throw error;
+            // Don't throw - let's see what happens
+            // throw error;
+            orderResponse = {data: null, error: error.message};
         }
 
         // Update local orders state
