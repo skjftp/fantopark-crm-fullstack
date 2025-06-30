@@ -1061,6 +1061,8 @@ const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
                 setUser(userData);
                 authToken = savedLoginState;
                 setIsLoggedIn(true);
+            // Fetch users for dropdowns
+            fetchUsers();
             // Clear any cached user management data
             setUsers([]);
             }
@@ -1431,7 +1433,9 @@ const handleLogin = async (e) => {
             localStorage.setItem('crm_auth_token', response.token);
             localStorage.setItem('crm_user', JSON.stringify(response.user));
             setUser(response.user);
-            debugLog('LOGIN_SUCCESS', { user: response.user });
+            debugLog('LOG
+            // Fetch users for dropdowns
+            fetchUsers();IN_SUCCESS', { user: response.user });
         setIsLoggedIn(true);
             // Clear any cached user management data
             setUsers([]);
