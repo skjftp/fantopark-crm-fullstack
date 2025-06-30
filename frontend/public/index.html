@@ -1111,7 +1111,6 @@ setCurrentOrderDetail(null);
         } else {
             updateLeadStatus(lead.id, nextStatus);
         }
-    } else {
         // Handle special case for converted status with payment options
         if (currentStatus === 'converted' && nextOptions.includes('payment') && nextOptions.includes('payment_post_service')) {
             setCurrentLeadForChoice(lead);
@@ -2846,7 +2845,6 @@ const renderGSTInvoicePreview = () => {
     // Order approval with permission check
     // REPLACE your existing handleOrderApproval function with this:
 
-            } else {
                 // Approval - preserve all existing fields
                 updateData = {
                     ...currentOrder,
@@ -2975,7 +2973,6 @@ const renderGSTInvoicePreview = () => {
                 ));
                 
                 alert('Order rejected successfully!');
-            } else {
                 // Original approval logic
                 await apiCall(`/orders/${orderId}`, {
                     method: 'PUT',
