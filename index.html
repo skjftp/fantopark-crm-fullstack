@@ -528,7 +528,9 @@ const fetchData = async () => {
 };
 
 // Fetch data when logged in
-useEffect(() => {
+useEffect(() => { catch (error) {
+        console.error('Error:', error);
+    }
     if (isLoggedIn) {
         fetchData();
     }
@@ -574,7 +576,9 @@ const getUploadUrl = async (fileName, fileType, documentType) => {
 };
 
 // Upload file to Google Cloud Storage
-const uploadFileToGCS = async (file, documentType) => {
+const uploadFileToGCS = async (file, documentType) => { catch (error) {
+        console.error('Error:', error);
+    }
     try {
         // Step 1: Get signed upload URL
         const { uploadUrl, filePath, publicUrl } = await getUploadUrl(
@@ -612,7 +616,9 @@ const uploadFileToGCS = async (file, documentType) => {
 };
 
 // Get signed URL for reading/viewing files
-const getFileViewUrl = async (filePath) => {
+const getFileViewUrl = async (filePath) => { catch (error) {
+        console.error('Error:', error);
+    }
     try {
         const response = await fetch(READ_URL_FUNCTION, {
             method: 'POST',
@@ -657,7 +663,9 @@ const [currentOrderDetail, setCurrentOrderDetail] = useState(null);
     const [currentForm, setCurrentForm] = useState('');
     const [currentLead, setCurrentLead] = useState(null);
     const [currentInventory, setCurrentInventory] = useState(null);
-    const [darkMode, setDarkMode] = useState(() => {
+    const [darkMode, setDarkMode] = useState(() => { catch (error) {
+        console.error('Error:', error);
+    }
         return localStorage.getItem('crm_dark_mode') === 'true';
     });
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -738,7 +746,9 @@ const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
     }, []);
 
     // Calculate dashboard stats
-    useEffect(() => {
+    useEffect(() => { catch (error) {
+        console.error('Error:', error);
+    }
         if (isLoggedIn) {
             calculateDashboardStats();
         }
@@ -830,7 +840,9 @@ useEffect(() => {
     }
 }, [deliveries]);
 
-useEffect(() => {
+useEffect(() => { catch (error) {
+        console.error('Error:', error);
+    }
     try {
         localStorage.setItem('crm_receivables', JSON.stringify(receivables));
     } catch (e) {
@@ -838,7 +850,9 @@ useEffect(() => {
     }
 }, [receivables]);
 
-useEffect(() => {
+useEffect(() => { catch (error) {
+        console.error('Error:', error);
+    }
     try {
         localStorage.setItem('crm_email_notifications', JSON.stringify(emailNotifications));
     } catch (e) {
@@ -846,7 +860,9 @@ useEffect(() => {
     }
 }, [emailNotifications]);
 
-const openOrderDetail = (order) => {
+const openOrderDetail = (order) => { catch (error) {
+        console.error('Error:', error);
+    }
     setCurrentOrderDetail(order);
     setShowOrderDetail(true);
 };
@@ -928,7 +944,9 @@ const handleLogin = async (e) => {
 };
             
 
-    const handleLogout = () => {
+    const handleLogout = () => { catch (error) {
+        console.error('Error:', error);
+    }
         setIsLoggedIn(false);
         setUser(null);
         setEmail('');
@@ -943,7 +961,9 @@ const handleLogin = async (e) => {
     };
 
     // User Management Functions
-    const openUserManagement = () => {
+    const openUserManagement = () => { catch (error) {
+        console.error('Error:', error);
+    }
         if (!hasPermission('users', 'read')) {
             alert('You do not have permission to access user management');
             return;
@@ -1009,7 +1029,9 @@ const handleLogin = async (e) => {
         }
     };
 
-    const closeUserForm = () => {
+    const closeUserForm = () => { catch (error) {
+        console.error('Error:', error);
+    }
         setShowUserForm(false);
         setShowUserManagement(false);
         setCurrentUser(null);
@@ -1039,7 +1061,9 @@ setCurrentOrderDetail(null);
     };
 
     // Status update function with permission check
-   const updateLeadStatus = async (leadId, newStatus) => {
+   const updateLeadStatus = async (leadId, newStatus) => { catch (error) {
+        console.error('Error:', error);
+    }
     if (!hasPermission('leads', 'progress')) {
         alert('You do not have permission to progress leads');
         return;
@@ -1080,7 +1104,9 @@ setCurrentOrderDetail(null);
 };
 
     // Enhanced lead progression function with permission check
-    const handleLeadProgression = (lead) => {
+    const handleLeadProgression = (lead) => { catch (error) {
+        console.error('Error:', error);
+    }
     if (!hasPermission('leads', 'progress')) {
         alert('You do not have permission to progress leads');
         return;
@@ -1362,7 +1388,9 @@ const handlePaymentPostServiceSubmit = async (e) => {
 };
 
 
-const collectPostServicePayment = (receivable) => {
+const collectPostServicePayment = (receivable) => { catch (error) {
+        console.error('Error:', error);
+    }
     const lead = leads.find(l => l.id === receivable.lead_id);
     if (lead) {
         setCurrentLead(lead);
@@ -1428,7 +1456,9 @@ const handleDeliverySubmit = async (e) => {
     }
 };
 
-const closeForm = () => {
+const closeForm = () => { catch (error) {
+        console.error('Error:', error);
+    }
     setShowAddForm(false);
     setShowEditForm(false);
     setShowAssignForm(false);
@@ -1653,7 +1683,9 @@ const closeForm = () => {
     };
 
     // User Management Modal
-    const renderUserManagement = () => {
+    const renderUserManagement = () => { catch (error) {
+        console.error('Error:', error);
+    }
         if (!showUserManagement) return null;
 
         return React.createElement('div', { 
@@ -2388,7 +2420,9 @@ const closeForm = () => {
     };
 
     // ADD this enhanced order approval function
-const handleEnhancedOrderApproval = async (orderId, action, notes = '') => {
+const handleEnhancedOrderApproval = async (orderId, action, notes = '') => { catch (error) {
+        console.error('Error:', error);
+    }
     if (!hasPermission('orders', 'approve')) {
         alert('You do not have permission to approve orders');
         return;
@@ -2467,7 +2501,9 @@ const handleEnhancedOrderApproval = async (orderId, action, notes = '') => {
 };
 
 // ADD this GST invoice preview function
-const openInvoicePreview = (invoice) => {
+const openInvoicePreview = (invoice) => { catch (error) {
+        console.error('Error:', error);
+    }
     setCurrentInvoice(invoice);
     setShowInvoicePreview(true);
 };
@@ -2931,7 +2967,9 @@ const renderGSTInvoicePreview = () => {
 
 
     // Service assignment with permission check
-    const assignOrderToService = async (orderId, servicePerson) => {
+    const assignOrderToService = async (orderId, servicePerson) => { catch (error) {
+        console.error('Error:', error);
+    }
     if (!hasPermission('orders', 'assign')) {
         alert('You do not have permission to assign orders');
         return;
@@ -2998,7 +3036,9 @@ const renderGSTInvoicePreview = () => {
     }
 };
 
-const handleFormSubmit = async (e) => {
+const handleFormSubmit = async (e) => { catch (error) {
+        console.error('Error:', error);
+    }
     e.preventDefault();
     setLoading(true);
     
@@ -3082,7 +3122,9 @@ const handleFormSubmit = async (e) => {
     }
 };
 
-        const handleDeleteLead = async (leadId) => {
+        const handleDeleteLead = async (leadId) => { catch (error) {
+        console.error('Error:', error);
+    }
     if (!confirm('Are you sure you want to delete this lead?')) return;
     
     try {
@@ -3094,7 +3136,9 @@ const handleFormSubmit = async (e) => {
     }
 };
 
-const handleDeleteInventory = async (inventoryId) => {
+const handleDeleteInventory = async (inventoryId) => { catch (error) {
+        console.error('Error:', error);
+    }
     if (!confirm('Are you sure you want to delete this event?')) return;
     
     try {
@@ -3107,7 +3151,9 @@ const handleDeleteInventory = async (inventoryId) => {
 };
 
     // Assignment with permission check
-const handleAssignLead = async (e) => {
+const handleAssignLead = async (e) => { catch (error) {
+        console.error('Error:', error);
+    }
     e.preventDefault();
     setLoading(true);
     
@@ -3139,7 +3185,9 @@ const handleAssignLead = async (e) => {
 };
 
     // Payment submission with permission check
-    const handlePaymentSubmit = async (e) => {
+    const handlePaymentSubmit = async (e) => { catch (error) {
+        console.error('Error:', error);
+    }
     e.preventDefault();
     
     // ADD THESE DEBUG LINES
@@ -3282,7 +3330,9 @@ const handleAssignLead = async (e) => {
 };
 
     // Generic form renderer with all sections
-    const renderForm = () => {
+    const renderForm = () => { catch (error) {
+        console.error('Error:', error);
+    }
         if (!showAddForm && !showEditForm && !showEditInventoryForm) return null;
 
         let fields = [];
@@ -4054,7 +4104,9 @@ React.createElement('div', { className: 'mb-6 p-4 bg-yellow-50 rounded-lg' },
                 accept: '.pdf,.jpg,.jpeg,.png',
                 onChange: async (e) => {
                     const file = e.target.files[0];
-                    if (file) {
+                    if (file) { catch (error) {
+        console.error('Error:', error);
+    }
                         console.log('=== FILE UPLOAD START ===');
                         console.log('Uploading file:', file.name);
                         if (file.size > 5 * 1024 * 1024) {
@@ -4502,7 +4554,9 @@ const totalPages = Math.ceil(sortedLeads.length / itemsPerPage);
                                             }, '👤'),
                                         hasPermission('leads', 'progress') && React.createElement('button', {
                                             className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
-                                            onClick: () => {
+                                            onClick: () => { catch (error) {
+        console.error('Error:', error);
+    }
                                                 // If lead is unassigned and not assigned to anyone, open assign form
                                                 if (lead.status === 'unassigned' && !lead.assigned_to) {
                                                     openAssignForm(lead);
