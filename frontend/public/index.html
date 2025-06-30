@@ -552,6 +552,16 @@ const fetchData = async () => {
         setLeads(leadsData.data || []);
         setInventory(inventoryData.data || []);
         setOrders(ordersData.data || []);
+        // Debug: Log first order structure
+        if (ordersData && ordersData.length > 0) {
+            console.log('=== ORDER STRUCTURE DEBUG ===');
+            console.log('First order:', ordersData[0]);
+            console.log('Fields present:', Object.keys(ordersData[0]));
+            console.log('event_name:', ordersData[0].event_name);
+            console.log('tickets_allocated:', ordersData[0].tickets_allocated);
+            console.log('ticket_category:', ordersData[0].ticket_category);
+            console.log('===========================');
+        }
         setInvoices(invoicesData.data || []);
     } catch (error) {
         console.error('Error fetching data:', error);
@@ -5142,9 +5152,9 @@ currentInventoryItems.map(item =>
                                         order.client_phone && React.createElement('div', { className: 'text-xs text-gray-500' }, order.client_phone)
                                     ),
                                     React.createElement('td', { className: 'px-6 py-4' },
-                                        React.createElement('div', { className: 'text-sm text-gray-900' }, order.event_name || 'No Event'),
+                                        React.createElement('div', { className: 'text-sm text-gray-900' }, order.event_name || order.event || order.inventory_name || 'No Event'),
                                         React.createElement('div', { className: 'text-xs text-gray-500' }, 
-                                            `${order.tickets_allocated || 0} tickets - ${order.ticket_category}`
+                                            `${order.tickets_allocated || order.tickets || 0} tickets${order.ticket_category ? " - " + order.ticket_category : ""}`
                                         ),
                                         order.event_date && React.createElement('div', { className: 'text-xs text-blue-600' }, 
                                             new Date(order.event_date).toLocaleDateString()
