@@ -978,7 +978,7 @@ const handleLogin = async (e) => {
         setLoading(true);
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+//             await new Promise(resolve => setTimeout(resolve, 1000));
 
             if (currentUser) {
                 // Update existing user
@@ -1028,7 +1028,7 @@ setCurrentOrderDetail(null);
 
         setLoading(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
+//             await new Promise(resolve => setTimeout(resolve, 500));
             setUsers(prev => prev.filter(u => u.id !== userId));
             setLoading(false);
             alert(`User ${userName} deleted successfully!`);
@@ -1404,7 +1404,7 @@ const handleDeliverySubmit = async (e) => {
     setLoading(true);
 
     try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+//         await new Promise(resolve => setTimeout(resolve, 1000));
 
         setDeliveries(prev => 
             prev.map(delivery => 
@@ -1497,7 +1497,7 @@ const closeForm = () => {
                 console.log("Deleting order permanently");
                 try {
                     // Actually delete the order
-                    await apiCall(`/${type}/${id}`, {
+                    // await apiCall(`/${type}/${id}`, {
                         method: 'DELETE'
                     });
                     
@@ -1514,7 +1514,7 @@ const closeForm = () => {
                     if (deleteError.message && (deleteError.message.includes('404') || deleteError.message.includes('405'))) {
                         console.log("Backend doesn't support DELETE, marking as deleted");
                         try {
-                            await apiCall(`/orders/${id}`, {
+                            // await apiCall(`/orders/${id}`, {
                                 method: 'PUT',
                                 body: JSON.stringify({
                                     status: 'deleted',
@@ -1542,7 +1542,7 @@ const closeForm = () => {
                 // For leads and inventory, try actual DELETE
                 try {
                     console.log("Making API call to:", `/${type}/${id}`);
-                await apiCall(`/${type}/${id}`, {
+                // await apiCall(`/${type}/${id}`, {
                         method: 'DELETE'
                     });
                     
@@ -1629,7 +1629,7 @@ const closeForm = () => {
             
             console.log('Sending update:', updateData);
             
-            const response = await apiCall(`/orders/${orderId}`, {
+//             const response = await apiCall(`/orders/${orderId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -2859,7 +2859,7 @@ const renderGSTInvoicePreview = () => {
             }
             
             // Send update to backend
-            const response = await apiCall(`/orders/${orderId}`, {
+//             const response = await apiCall(`/orders/${orderId}`, {
                 method: 'PUT',
                 body: JSON.stringify(updateData)
             });
@@ -2949,7 +2949,7 @@ const renderGSTInvoicePreview = () => {
                 }
                 
                 // Update order with rejection details
-                await apiCall(`/orders/${orderId}`, {
+                // await apiCall(`/orders/${orderId}`, {
                     method: 'PUT',
                     body: JSON.stringify({
                         status: 'rejected',
@@ -2974,7 +2974,7 @@ const renderGSTInvoicePreview = () => {
                 
                 alert('Order rejected successfully!');
                 // Original approval logic
-                await apiCall(`/orders/${orderId}`, {
+                // await apiCall(`/orders/${orderId}`, {
                     method: 'PUT',
                     body: JSON.stringify({
                         status: action === 'approve' ? 'approved' : 'rejected',
@@ -3016,7 +3016,7 @@ const handleFormSubmit = async (e) => {
             
         } else if (showEditInventoryForm) {
             // Update inventory via API
-            const response = await apiCall(`/inventory/${currentInventory.id}`, {
+//             const response = await apiCall(`/inventory/${currentInventory.id}`, {
                 method: 'PUT',
                 body: JSON.stringify(formData)
             });
@@ -3029,7 +3029,7 @@ const handleFormSubmit = async (e) => {
             // Create new items
             switch (currentForm) {
                 case 'lead':
-                    const leadResponse = await apiCall('/leads', {
+//                     const leadResponse = await apiCall('/leads', {
                         method: 'POST',
                         body: JSON.stringify({
                             ...formData,
@@ -3043,7 +3043,7 @@ const handleFormSubmit = async (e) => {
                     break;
                     
                 case 'inventory':
-                    const invResponse = await apiCall('/inventory', {
+//                     const invResponse = await apiCall('/inventory', {
                         method: 'POST',
                         body: JSON.stringify({
                             ...formData,
@@ -3057,7 +3057,7 @@ const handleFormSubmit = async (e) => {
                     break;
                     
                 case 'order':
-                    const orderResponse = await apiCall('/orders', {
+//                     const orderResponse = await apiCall('/orders', {
                         method: 'POST',
                         body: JSON.stringify({
                             ...formData,
@@ -3086,7 +3086,7 @@ const handleFormSubmit = async (e) => {
     if (!confirm('Are you sure you want to delete this lead?')) return;
     
     try {
-        await apiCall(`/leads/${leadId}`, { method: 'DELETE' });
+        // await apiCall(`/leads/${leadId}`, { method: 'DELETE' });
         setLeads(prev => prev.filter(lead => lead.id !== leadId));
         alert('Lead deleted successfully!');
     } catch (error) {
@@ -3098,7 +3098,7 @@ const handleDeleteInventory = async (inventoryId) => {
     if (!confirm('Are you sure you want to delete this event?')) return;
     
     try {
-        await apiCall(`/inventory/${inventoryId}`, { method: 'DELETE' });
+        // await apiCall(`/inventory/${inventoryId}`, { method: 'DELETE' });
         setInventory(prev => prev.filter(item => item.id !== inventoryId));
         alert('Event deleted successfully!');
     } catch (error) {
@@ -3156,7 +3156,7 @@ const handleAssignLead = async (e) => {
     setLoading(true);
 
     try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+//         await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Check if this is a post-service payment
         if (paymentData.payment_post_service && paymentData.receivable_id) {
