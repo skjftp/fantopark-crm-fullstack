@@ -897,7 +897,7 @@ const calculateDashboardStats = () => {
     
     const thisMonthRevenue = orders
         .filter(order => order.status === 'completed' && (order.payment_received !== false))
-        .reduce((sum, order) => sum + (order.total_amount || 0), 0);
+        .reduce((sum, order) => sum + (order.total_amount || 0) 0);
     
     const pendingDeliveries = orders.filter(order => !order.is_deleted && order.status !== "deleted" && 
         order.status === 'service_assigned'
@@ -909,7 +909,7 @@ const calculateDashboardStats = () => {
     // Calculate receivables
     const totalReceivables = receivables
         .filter(r => r.status === 'pending')
-        .reduce((sum, r) => sum + (r.expected_amount || 0), 0);
+        .reduce((sum, r) => sum + (r.expected_amount || 0) 0);
     
     const overdueReceivables = receivables
         .filter(r => {
@@ -917,7 +917,7 @@ const calculateDashboardStats = () => {
             const dueDate = new Date(r.expected_payment_date);
             return dueDate < new Date();
         })
-        .reduce((sum, r) => sum + (r.expected_amount || 0), 0);
+        .reduce((sum, r) => sum + (r.expected_amount || 0) 0);
 
     setDashboardStats({
         totalLeads,
@@ -5137,7 +5137,7 @@ currentInventoryItems.map(item =>
                                         )
                                     ),
                                     React.createElement('td', { className: 'px-6 py-4' },
-                                        React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, order.client_name || order.lead_name || 'Unknown'),,
+                                        React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, order.client_name || order.lead_name || 'Unknown'),
                                         React.createElement('div', { className: 'text-xs text-gray-500' }, order.client_email),
                                         order.client_phone && React.createElement('div', { className: 'text-xs text-gray-500' }, order.client_phone)
                                     ),
