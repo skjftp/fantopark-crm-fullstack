@@ -703,53 +703,19 @@ const [orders, setOrders] = useState([]);
             return;
         }
         
-        // Show current status and allow changes
-        const currentStatus = order.status || 'pending_approval';
-        
-        let message = `Edit Order: ${order.order_number}\n\n`;
-        message += `Current Status: ${currentStatus}\n`;
-        message += `Client: ${order.client_name}\n`;
-        message += `Amount: ₹${order.total_amount || 0}\n\n`;
-        message += 'Select new status:\n';
-        message += '1. Pending Approval\n';
-        message += '2. Approved\n';
-        message += '3. Rejected\n';
-        message += '4. Service Assigned\n';
-        message += '5. Delivered\n\n';
-        message += 'Enter number (1-5) or Cancel:';
-        
-        const choice = prompt(message);
-        
-        if (!choice || choice === 'Cancel') {
+        if (!hasPermission('orders', 'write')) {
+            alert('You do not have permission to edit orders');
             return;
         }
         
-        const statusMap = {
-            '1': 'pending_approval',
-            '2': 'approved',
-            '3': 'rejected',
-            '4': 'service_assigned',
-            '5': 'delivered'
-        };
-        
-        const newStatus = statusMap[choice];
-        
-        if (!newStatus) {
-            alert('Invalid choice');
-            return;
-        }
-        
-        // If changing to rejected, ask for reason
-        let rejectionReason = '';
-        if (newStatus === 'rejected') {
-            rejectionReason = prompt('Please provide rejection reason:');
-            if (!rejectionReason) {
-                return;
-            }
-        }
-        
-        // Update order status
-        updateOrderStatus(order.id, newStatus, rejectionReason);
+        setCurrentOrderForEdit(order);
+        setOrderEditData({
+            ...order,
+            status: order.status || 'pending_approval',
+            rejection_reason: order.rejection_reason || '',
+            assigned_to: order.assigned_to || ''
+        });
+        setShowEditOrderForm(true);
     };
     
     // Helper function to update order status
@@ -5482,19 +5448,33 @@ const handleEditOrderSubmit = async (e) => {
     setLoading(true);
     
     try {
+        // Prepare update data
+        const updateData = {
+            ...orderEditData,
+            updated_date: new Date().toISOString(),
+            updated_by: user.name
+        };
+        
+        // Clear rejection fields if status is not rejected
+        if (orderEditData.status !== 'rejected') {
+            updateData.rejection_reason = null;
+            updateData.rejected_date = null;
+            updateData.rejected_by = null;
+        } else if (orderEditData.status === 'rejected' && orderEditData.rejection_reason) {
+            // Set rejection metadata if status is rejected
+            updateData.rejected_date = new Date().toISOString();
+            updateData.rejected_by = user.name;
+        }
+        
         const response = await apiCall(`/orders/${currentOrderForEdit.id}`, {
             method: 'PUT',
-            body: JSON.stringify({
-                ...orderEditData,
-                updated_date: new Date().toISOString(),
-                updated_by: user.name
-            })
+            body: JSON.stringify(updateData)
         });
         
         // Update local state
         setOrders(prev => prev.map(order => 
             order.id === currentOrderForEdit.id 
-                ? { ...order, ...orderEditData }
+                ? { ...order, ...updateData }
                 : order
         ));
         
@@ -5528,6 +5508,29 @@ const renderEditOrderForm = () => {
                         })
                     ),
                     React.createElement('div', { className: 'mb-4' },
+                        React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Client Name'),
+                        React.createElement('input', {
+                            type: 'text',
+                            value: orderEditData.client_name || '',
+                            disabled: true,
+                            className: 'w-full px-3 py-2 border rounded-md bg-gray-100'
+                        })
+                    ),
+                    React.createElement('div', { className: 'mb-4' },
+                        React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Assigned To'),
+                        React.createElement('select', {
+                            value: orderEditData.assigned_to || '',
+                            onChange: (e) => setOrderEditData(prev => ({ ...prev, assigned_to: e.target.value })),
+                            className: 'w-full px-3 py-2 border rounded-md',
+                            required: true
+                        },
+                            React.createElement('option', { value: '' }, 'Select Assignee'),
+                            ...SUPPLY_TEAM.map(member =>
+                                React.createElement('option', { key: member, value: member }, member)
+                            )
+                        )
+                    ),
+                    React.createElement('div', { className: 'mb-4' },
                         React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Status'),
                         React.createElement('select', {
                             value: orderEditData.status || '',
@@ -5541,27 +5544,28 @@ const renderEditOrderForm = () => {
                             )
                         )
                     ),
-                    orderEditData.status === 'rejected' && React.createElement('div', { className: 'mb-4' },
+                    React.createElement('div', { className: 'mb-4' },
                         React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Rejection Reason'),
                         React.createElement('textarea', {
                             value: orderEditData.rejection_reason || '',
                             onChange: (e) => setOrderEditData(prev => ({ ...prev, rejection_reason: e.target.value })),
                             className: 'w-full px-3 py-2 border rounded-md',
                             rows: 3,
-                            required: true
+                            placeholder: orderEditData.status === 'rejected' ? 'Please provide a reason for rejection' : 'Add rejection reason if applicable',
+                            required: orderEditData.status === 'rejected'
                         })
                     ),
                     React.createElement('div', { className: 'flex justify-end gap-2' },
                         React.createElement('button', {
                             type: 'button',
                             onClick: () => setShowEditOrderForm(false),
-                            className: 'px-4 py-2 border rounded-md hover:bg-gray-50'
+                            className: 'px-4 py-2 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-700'
                         }, 'Cancel'),
                         React.createElement('button', {
                             type: 'submit',
                             disabled: loading,
-                            className: 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
-                        }, loading ? 'Saving...' : 'Save Changes')
+                            className: 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+                        }, loading ? 'Updating...' : 'Update Order')
                     )
                 )
             )
