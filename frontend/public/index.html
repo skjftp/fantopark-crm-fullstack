@@ -2789,44 +2789,60 @@ const handleOrderApproval = async (orderId, action) => {
     setLoading(true);
     
     try {
-        // Update order status
-        setOrders(prev => 
-            prev.map(order => 
-                order.id === orderId 
-                    ? { ...order, status: 'service_assigned', assigned_to: servicePerson, service_assigned_date: new Date().toISOString().split('T')[0] }
-                    : order
-            )
-        );
-
-        // Find the order details
-        const order = orders.find(o => o.id === orderId);
-        
-        // Create delivery record
-        const newDelivery = {
-            id: Date.now(),
-            delivery_number: `DEL-${Date.now()}`,
-            order_id: orderId,
-            order_number: order.order_number,
-            client_name: order.client_name,
-            client_email: order.client_email,
-            client_phone: order.client_phone,
-            event_name: order.event_name,
-            event_date: order.event_date,
-            tickets_count: order.tickets_allocated,
-            assigned_to: servicePerson,
-            delivery_type: '', // Will be set when delivery is scheduled
-            pickup_location: '',
-            delivery_location: '',
-            status: 'pending',
-            created_date: new Date().toISOString().split('T')[0],
-            created_by: user.name
-        };
-
-        setDeliveries(prev => [...prev, newDelivery]);
-
-        setLoading(false);
-        alert(`Order assigned to ${servicePerson} and delivery record created!`);
-    } catch (error) {
+            if (action === 'reject') {
+                // Ask for rejection reason
+                const reason = prompt('Please provide a reason for rejection:');
+                if (!reason) {
+                    setLoading(false);
+                    return;
+                }
+                
+                // Update order with rejection details
+                await apiCall(`/orders/${orderId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        status: 'rejected',
+                        rejection_reason: reason,
+                        rejected_date: new Date().toISOString(),
+                        rejected_by: user?.name || 'Admin'
+                    })
+                });
+                
+                // Update local state
+                setOrders(prev => prev.map(order => 
+                    order.id === orderId 
+                        ? { 
+                            ...order, 
+                            status: 'rejected',
+                            rejection_reason: reason,
+                            rejected_date: new Date().toISOString(),
+                            rejected_by: user?.name || 'Admin'
+                        }
+                        : order
+                ));
+                
+                alert('Order rejected successfully!');
+            } else {
+                // Original approval logic
+                await apiCall(`/orders/${orderId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        status: action === 'approve' ? 'approved' : 'rejected',
+                        [`${action}d_date`]: new Date().toISOString(),
+                        [`${action}d_by`]: user?.name || 'Admin'
+                    })
+                });
+                
+                setOrders(prev => prev.map(order => 
+                    order.id === orderId 
+                        ? { ...order, status: action === 'approve' ? 'approved' : 'rejected' }
+                        : order
+                ));
+                
+                alert(`Order ${action}d successfully!`);
+            }
+            
+            setLoading(false);} catch (error) {
         setLoading(false);
         alert('Failed to assign order');
     }
