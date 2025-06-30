@@ -4794,6 +4794,9 @@ currentInventoryItems.map(item =>
 
     // Enhanced orders content with permission checks
     const renderOrdersContent = () => {
+        console.log("All orders:", orders);
+        console.log("Orders with is_deleted:", orders.filter(o => o.is_deleted));
+        console.log("Orders with status deleted:", orders.filter(o => o.status === "deleted"));
         return React.createElement('div', { className: 'space-y-6' },
             React.createElement('div', { className: 'flex justify-between items-center' },
                 React.createElement('h1', { className: 'text-3xl font-bold text-gray-900' }, 'Order Management'),
