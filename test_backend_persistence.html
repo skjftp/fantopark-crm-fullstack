@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backend Persistence Test</title>
+</head>
+<body>
+    <h1>Test Backend Persistence</h1>
+    <button onclick="testLeadUpdate()">Test Lead Status Update</button>
+    <button onclick="testOrderCreation()">Test Order Creation</button>
+    <button onclick="checkBackendLogs()">Check Backend Logs</button>
+    <div id="results"></div>
+    
+    <script>
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app/api';
+    const token = localStorage.getItem('token');
+    
+    async function testLeadUpdate() {
+        const results = document.getElementById('results');
+        results.innerHTML = '<h2>Testing Lead Update...</h2>';
+        
+        try {
+            // Get first lead
+            const leadsResponse = await fetch(`${API_URL}/leads`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const leads = await leadsResponse.json();
+            
+            if (!leads.data || leads.data.length === 0) {
+                results.innerHTML += '<p>No leads found</p>';
+                return;
+            }
+            
+            const lead = leads.data[0];
+            results.innerHTML += `<p>Testing with lead: ${lead.id} - ${lead.client_name}</p>`;
+            results.innerHTML += `<p>Current status: ${lead.status}</p>`;
+            
+            // Update status
+            const updateData = {
+                ...lead,
+                status: 'payment_received',
+                test_field: 'test_' + Date.now()
+            };
+            
+            const updateResponse = await fetch(`${API_URL}/leads/${lead.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            });
+            
+            const updated = await updateResponse.json();
+            results.innerHTML += `<p>Update response: ${updateResponse.status}</p>`;
+            results.innerHTML += `<p>Updated status: ${updated.data?.status}</p>`;
+            
+            // Verify after delay
+            setTimeout(async () => {
+                const verifyResponse = await fetch(`${API_URL}/leads/${lead.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const verified = await verifyResponse.json();
+                
+                results.innerHTML += '<h3>Verification after 3 seconds:</h3>';
+                results.innerHTML += `<p>Status persisted: ${verified.data?.status === 'payment_received' ? '✅ YES' : '❌ NO'}</p>`;
+                results.innerHTML += `<p>Actual status: ${verified.data?.status}</p>`;
+                results.innerHTML += `<p>Test field: ${verified.data?.test_field || 'not found'}</p>`;
+            }, 3000);
+            
+        } catch (error) {
+            results.innerHTML += `<p style="color:red">Error: ${error.message}</p>`;
+        }
+    }
+    
+    async function testOrderCreation() {
+        const results = document.getElementById('results');
+        results.innerHTML = '<h2>Testing Order Creation...</h2>';
+        
+        try {
+            const orderData = {
+                order_number: `TEST-${Date.now()}`,
+                client_name: "Persistence Test",
+                event_name: "Test Event",
+                event_date: new Date().toISOString().split('T')[0],
+                tickets_allocated: 5,
+                price_per_ticket: 100,
+                total_amount: 500,
+                status: 'pending_approval',
+                created_date: new Date().toISOString(),
+                created_by: 'Test'
+            };
+            
+            results.innerHTML += '<p>Creating order...</p>';
+            
+            const createResponse = await fetch(`${API_URL}/orders`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(orderData)
+            });
+            
+            const created = await createResponse.json();
+            results.innerHTML += `<p>Create response: ${createResponse.status}</p>`;
+            results.innerHTML += `<p>Order ID: ${created.data?.id || 'NO ID'}</p>`;
+            
+            // Verify after delay
+            setTimeout(async () => {
+                const ordersResponse = await fetch(`${API_URL}/orders`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const orders = await ordersResponse.json();
+                
+                const found = orders.data?.find(o => o.id === created.data?.id);
+                
+                results.innerHTML += '<h3>Verification after 3 seconds:</h3>';
+                results.innerHTML += `<p>Order persisted: ${found ? '✅ YES' : '❌ NO'}</p>`;
+                if (found) {
+                    results.innerHTML += `<p>Order found: ${found.order_number}</p>`;
+                } else {
+                    results.innerHTML += `<p>Total orders in system: ${orders.data?.length || 0}</p>`;
+                }
+            }, 3000);
+            
+        } catch (error) {
+            results.innerHTML += `<p style="color:red">Error: ${error.message}</p>`;
+        }
+    }
+    
+    function checkBackendLogs() {
+        const results = document.getElementById('results');
+        results.innerHTML = '<h2>Backend Logs</h2>';
+        results.innerHTML += '<p>To check backend logs:</p>';
+        results.innerHTML += '<ol>';
+        results.innerHTML += '<li>Open Google Cloud Console</li>';
+        results.innerHTML += '<li>Go to Cloud Run → fantopark-backend</li>';
+        results.innerHTML += '<li>Click on "Logs"</li>';
+        results.innerHTML += '<li>Look for errors during PUT/POST requests</li>';
+        results.innerHTML += '</ol>';
+        results.innerHTML += '<p>Common issues:</p>';
+        results.innerHTML += '<ul>';
+        results.innerHTML += '<li>Firestore permissions</li>';
+        results.innerHTML += '<li>Missing await in backend</li>';
+        results.innerHTML += '<li>Transaction not committing</li>';
+        results.innerHTML += '</ul>';
+    }
+    </script>
+</body>
+</html>

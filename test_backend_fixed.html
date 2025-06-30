@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backend Order Test</title>
+</head>
+<body>
+    <h1>Order Persistence Test</h1>
+    <button onclick="testOrders()">Test Orders API</button>
+    <button onclick="checkCurrentOrders()">Check Current Orders</button>
+    <div id="results"></div>
+    
+    <script>
+    const BACKEND_URL = 'https://fantopark-backend-150582227311.us-central1.run.app/api';
+    
+    async function checkCurrentOrders() {
+        const results = document.getElementById('results');
+        results.innerHTML = '<h2>Checking current orders...</h2>';
+        
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                results.innerHTML += '<p style="color:red">❌ No token found. Please login first.</p>';
+                return;
+            }
+            
+            const response = await fetch(`${BACKEND_URL}/orders`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log('Response status:', response.status);
+            const data = await response.json();
+            console.log('Orders data:', data);
+            
+            results.innerHTML += `<p>Response status: ${response.status}</p>`;
+            results.innerHTML += `<p>Orders found: ${data.data?.length || 0}</p>`;
+            
+            if (data.data && data.data.length > 0) {
+                results.innerHTML += '<h3>Recent Orders:</h3>';
+                data.data.slice(0, 5).forEach(order => {
+                    results.innerHTML += `<p>ID: ${order.id} - ${order.order_number} - Status: ${order.status}</p>`;
+                });
+            }
+        } catch (error) {
+            results.innerHTML += `<p style="color:red">❌ Error: ${error.message}</p>`;
+            console.error('Error:', error);
+        }
+    }
+    
+    async function testOrders() {
+        const results = document.getElementById('results');
+        results.innerHTML = '<h2>Testing order creation...</h2>';
+        
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                results.innerHTML += '<p style="color:red">❌ No token found. Please login first.</p>';
+                return;
+            }
+            
+            // Create a test order
+            const testOrder = {
+                order_number: `TEST-${Date.now()}`,
+                client_name: "Test Client",
+                event_name: "Test Event", 
+                event_date: new Date().toISOString().split('T')[0],
+                tickets_allocated: 10,
+                price_per_ticket: 100,
+                total_amount: 1000,
+                status: "pending_approval",
+                created_date: new Date().toISOString(),
+                created_by: "Test User",
+                payment_type: "postpaid"
+            };
+            
+            console.log('Creating order:', testOrder);
+            
+            const createResponse = await fetch(`${BACKEND_URL}/orders`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(testOrder)
+            });
+            
+            console.log('Create response status:', createResponse.status);
+            const responseText = await createResponse.text();
+            console.log('Response text:', responseText);
+            
+            let newOrder;
+            try {
+                newOrder = JSON.parse(responseText);
+            } catch (e) {
+                throw new Error(`Invalid JSON response: ${responseText}`);
+            }
+            
+            if (createResponse.ok) {
+                results.innerHTML += `<p style="color:green">✅ Order created: ${newOrder.data?.id}</p>`;
+                
+                // Wait and check if it persists
+                setTimeout(() => checkCurrentOrders(), 2000);
+            } else {
+                results.innerHTML += `<p style="color:red">❌ Create failed: ${createResponse.status}</p>`;
+                results.innerHTML += `<p>Error: ${JSON.stringify(newOrder)}</p>`;
+            }
+            
+        } catch (error) {
+            results.innerHTML += `<p style="color:red">❌ Error: ${error.message}</p>`;
+            console.error('Test error:', error);
+        }
+    }
+    </script>
+</body>
+</html>

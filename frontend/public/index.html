@@ -1633,7 +1633,7 @@ const closeForm = () => {
                     setLoading(false);
                     alert(`${type === 'inventory' ? 'Event' : type.slice(0, -1)} removed locally. May reappear on refresh if server delete is not supported.`);
                 }
-            }
+            
         } catch (error) {
             setLoading(false);
             alert(`Failed to process ${type === 'inventory' ? 'event' : type.slice(0, -1)}: ${error.message}`);

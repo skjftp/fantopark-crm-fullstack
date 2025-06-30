@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backend Order Test</title>
+</head>
+<body>
+    <h1>Order Persistence Test</h1>
+    <button onclick="testOrders()">Test Orders API</button>
+    <div id="results"></div>
+    
+    <script>
+    const BACKEND_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
+    
+    async function testOrders() {
+        const results = document.getElementById('results');
+        results.innerHTML = '<h2>Testing...</h2>';
+        
+        try {
+            // Get token
+            const token = localStorage.getItem('token');
+            if (!token) {
+                results.innerHTML += '<p style="color:red">❌ No token found. Please login first.</p>';
+                return;
+            }
+            results.innerHTML += '<p style="color:green">✅ Token found</p>';
+            
+            // Test 1: Fetch existing orders
+            results.innerHTML += '<h3>1. Fetching existing orders...</h3>';
+            const fetchResponse = await fetch(`${BACKEND_URL}/orders`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!fetchResponse.ok) {
+                throw new Error(`Fetch failed: ${fetchResponse.status}`);
+            }
+            
+            const orders = await fetchResponse.json();
+            results.innerHTML += `<p>Found ${orders.data?.length || 0} orders</p>`;
+            
+            // Test 2: Create a test order
+            results.innerHTML += '<h3>2. Creating test order...</h3>';
+            const testOrder = {
+                order_number: `TEST-${Date.now()}`,
+                client_name: "Test Client",
+                event_name: "Test Event",
+                event_date: new Date().toISOString().split('T')[0],
+                tickets_allocated: 10,
+                price_per_ticket: 100,
+                total_amount: 1000,
+                status: "pending_approval",
+                created_date: new Date().toISOString(),
+                created_by: "Test User"
+            };
+            
+            const createResponse = await fetch(`${BACKEND_URL}/orders`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(testOrder)
+            });
+            
+            if (!createResponse.ok) {
+                const error = await createResponse.text();
+                throw new Error(`Create failed: ${createResponse.status} - ${error}`);
+            }
+            
+            const newOrder = await createResponse.json();
+            results.innerHTML += `<p style="color:green">✅ Order created: ${newOrder.data?.id || 'No ID returned'}</p>`;
+            
+            // Test 3: Verify order persists
+            results.innerHTML += '<h3>3. Verifying persistence...</h3>';
+            setTimeout(async () => {
+                const verifyResponse = await fetch(`${BACKEND_URL}/orders`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const verifyOrders = await verifyResponse.json();
+                const found = verifyOrders.data?.find(o => o.id === newOrder.data?.id);
+                
+                if (found) {
+                    results.innerHTML += '<p style="color:green">✅ Order persisted in backend!</p>';
+                } else {
+                    results.innerHTML += '<p style="color:red">❌ Order NOT found in backend after creation</p>';
+                    results.innerHTML += '<p>This indicates a backend persistence issue</p>';
+                }
+            }, 2000);
+            
+        } catch (error) {
+            results.innerHTML += `<p style="color:red">❌ Error: ${error.message}</p>`;
+            console.error('Test error:', error);
+        }
+    }
+    </script>
+</body>
+</html>
