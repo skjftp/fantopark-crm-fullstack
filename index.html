@@ -1395,7 +1395,51 @@ const handlePaymentPostServiceSubmit = async (e) => {
         };
 
         // Add to orders in local state
-        setOrders(prev => [...prev, newOrder]);
+        // Create order in backend first
+        try {
+            const orderResponse = await apiCall("/orders", {
+                method: "POST",
+                body: JSON.stringify(newOrder)
+            });
+            console.log("Order created in backend (Post Service):", orderResponse);
+            setOrders(prev => [...prev, orderResponse]);
+        } catch (orderError) {
+            console.error("Failed to create order in backend:", orderError);
+            // Create order in backend first
+
+            try {
+
+                const orderResponse = await apiCall('/orders', {
+
+                    method: 'POST',
+
+                    body: JSON.stringify(newOrder)
+
+                });
+
+                console.log('Order created in backend (Post Service):', orderResponse);
+
+                setOrders(prev => [...prev, orderResponse]);
+
+            } catch (orderError) {
+
+                console.error('Failed to create order in backend:', orderError);
+
+                // Create order in backend first
+                try {
+                    const orderResponse = await apiCall('/orders', {
+                        method: 'POST',
+                        body: JSON.stringify(newOrder)
+                    });
+                    console.log('Order created in backend:', orderResponse);
+                    setOrders(prev => [...prev, orderResponse]);
+                } catch (orderError) {
+                    console.error('Failed to create order in backend:', orderError);
+                    setOrders(prev => [...prev, newOrder]);
+                }
+
+            }
+        }
 
         setLoading(false);
         alert('Payment Post Service order created successfully! Awaiting approval.');
@@ -2325,7 +2369,51 @@ const closeForm = () => {
                 assigned_to: null
             };
 
-            setOrders(prev => [...prev, newOrder]);
+            // Create order in backend first
+
+
+            try {
+
+
+                const orderResponse = await apiCall('/orders', {
+
+
+                    method: 'POST',
+
+
+                    body: JSON.stringify(newOrder)
+
+
+                });
+
+
+                console.log('Order created in backend (Service Assignment):', orderResponse);
+
+
+                setOrders(prev => [...prev, orderResponse]);
+
+
+            } catch (orderError) {
+
+
+                console.error('Failed to create order in backend:', orderError);
+
+
+                // Create order in backend first
+                try {
+                    const orderResponse = await apiCall('/orders', {
+                        method: 'POST',
+                        body: JSON.stringify(newOrder)
+                    });
+                    console.log('Order created in backend:', orderResponse);
+                    setOrders(prev => [...prev, orderResponse]);
+                } catch (orderError) {
+                    console.error('Failed to create order in backend:', orderError);
+                    setOrders(prev => [...prev, newOrder]);
+                }
+
+
+            }
 
             setLeads(prev => 
                 prev.map(lead => 
@@ -3304,7 +3392,56 @@ const handleAssignLead = async (e) => {
             orderResponse = await apiCall('/orders', {
                 method: 'POST',
                 body: JSON.stringify(orderData)
-            });
+            // Create order in backend first
+            try {
+                const orderResponse = await apiCall("/orders", {
+                    method: "POST",
+                    body: JSON.stringify(newOrder)
+                });
+                
+                console.log("Order created in backend:", orderResponse);
+                
+                // Update local state with the response from backend (which includes the ID)
+                setOrders(prev => [...prev, orderResponse]);
+            } catch (orderError) {
+                console.error("Failed to create order in backend:", orderError);
+                // Still update local state as fallback
+                // Create order in backend first
+
+                try {
+
+                    const orderResponse = await apiCall('/orders', {
+
+                        method: 'POST',
+
+                        body: JSON.stringify(newOrder)
+
+                    });
+
+                    console.log('Order created in backend (Payment):', orderResponse);
+
+                    setOrders(prev => [...prev, orderResponse]);
+
+                } catch (orderError) {
+
+                    console.error('Failed to create order in backend:', orderError);
+
+                    // Create order in backend first
+                    try {
+                        const orderResponse = await apiCall('/orders', {
+                            method: 'POST',
+                            body: JSON.stringify(newOrder)
+                        });
+                        console.log('Order created in backend:', orderResponse);
+                        setOrders(prev => [...prev, orderResponse]);
+                    } catch (orderError) {
+                        console.error('Failed to create order in backend:', orderError);
+                        setOrders(prev => [...prev, newOrder]);
+                    }
+
+                }
+                alert("Warning: Order may not have been saved to server. Please check orders page.");
+            }
             console.log('Order creation response:', orderResponse);
             
             // Validate response
