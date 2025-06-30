@@ -703,23 +703,113 @@ const [orders, setOrders] = useState([]);
             return;
         }
         
-        const details = [
-            'Edit Order Details',
-            '==================',
-            `Order #: ${order.order_number || 'N/A'}`,
-            `Client: ${order.client_name || 'N/A'}`,
-            `Email: ${order.client_email || 'N/A'}`,
-            `Phone: ${order.client_phone || 'N/A'}`,
-            `Event: ${order.event_name || 'N/A'}`,
-            `Tickets: ${order.tickets_allocated || 0}`,
-            `Amount: ₹${order.total_amount || 0}`,
-            `Status: ${order.status || 'N/A'}`,
-            order.assigned_to ? `Assigned to: ${order.assigned_to}` : '',
-            order.approval_notes ? `Notes: ${order.approval_notes}` : ''
-        ].filter(line => line).join('\n');
+        // Show current status and allow changes
+        const currentStatus = order.status || 'pending_approval';
         
-        alert(details);
+        let message = `Edit Order: ${order.order_number}\n\n`;
+        message += `Current Status: ${currentStatus}\n`;
+        message += `Client: ${order.client_name}\n`;
+        message += `Amount: ₹${order.total_amount || 0}\n\n`;
+        message += 'Select new status:\n';
+        message += '1. Pending Approval\n';
+        message += '2. Approved\n';
+        message += '3. Rejected\n';
+        message += '4. Service Assigned\n';
+        message += '5. Delivered\n\n';
+        message += 'Enter number (1-5) or Cancel:';
+        
+        const choice = prompt(message);
+        
+        if (!choice || choice === 'Cancel') {
+            return;
+        }
+        
+        const statusMap = {
+            '1': 'pending_approval',
+            '2': 'approved',
+            '3': 'rejected',
+            '4': 'service_assigned',
+            '5': 'delivered'
+        };
+        
+        const newStatus = statusMap[choice];
+        
+        if (!newStatus) {
+            alert('Invalid choice');
+            return;
+        }
+        
+        // If changing to rejected, ask for reason
+        let rejectionReason = '';
+        if (newStatus === 'rejected') {
+            rejectionReason = prompt('Please provide rejection reason:');
+            if (!rejectionReason) {
+                return;
+            }
+        }
+        
+        // Update order status
+        updateOrderStatus(order.id, newStatus, rejectionReason);
     };
+    
+    // Helper function to update order status
+    const updateOrderStatus = async (orderId, newStatus, rejectionReason = '') => {
+        setLoading(true);
+        try {
+            const updateData = {
+                status: newStatus,
+                updated_date: new Date().toISOString(),
+                updated_by: user.name
+            };
+            
+            // Add specific fields based on status
+            if (newStatus === 'rejected' && rejectionReason) {
+                updateData.rejection_reason = rejectionReason;
+                updateData.rejected_date = new Date().toISOString();
+                updateData.rejected_by = user.name;
+            } else if (newStatus === 'approved') {
+                updateData.approved_date = new Date().toISOString();
+                updateData.approved_by = user.name;
+                
+                // Generate invoice if needed
+                const order = orders.find(o => o.id === orderId);
+                if (order && (order.requires_gst_invoice || order.gstin)) {
+                    const invoiceNumber = `STTS/INV/${new Date().getFullYear()}/${String(Date.now()).slice(-6)}`;
+                    updateData.invoice_number = invoiceNumber;
+                    updateData.invoice_id = Date.now();
+                }
+            } else if (newStatus === 'pending_approval') {
+                // Clear rejection/approval data when moving back to pending
+                updateData.rejection_reason = null;
+                updateData.rejected_date = null;
+                updateData.rejected_by = null;
+                updateData.approved_date = null;
+                updateData.approved_by = null;
+            }
+            
+            // Update in backend
+            await apiCall(`/orders/${orderId}`, {
+                method: 'PUT',
+                body: JSON.stringify(updateData)
+            });
+            
+            // Update local state
+            setOrders(prev => 
+                prev.map(order => 
+                    order.id === orderId 
+                        ? { ...order, ...updateData }
+                        : order
+                )
+            );
+            
+            alert(`Order status updated to: ${newStatus}`);
+        } catch (error) {
+            console.error('Error updating order status:', error);
+            alert('Failed to update order status');
+        } finally {
+            setLoading(false);
+        }
+    }
     
 const [invoices, setInvoices] = useState([]);
 const [deliveries, setDeliveries] = useState([]);
