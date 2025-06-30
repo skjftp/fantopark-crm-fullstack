@@ -2809,9 +2809,77 @@ const renderGSTInvoicePreview = () => {
     // Order approval with permission check
     // REPLACE your existing handleOrderApproval function with this:
 const handleOrderApproval = async (orderId, action) => {
-    // Use the enhanced function instead
-    return handleEnhancedOrderApproval(orderId, action);
-};
+        if (!hasPermission('orders', 'approve')) {
+            alert('You do not have permission to approve/reject orders');
+            return;
+        }
+        
+        setLoading(true);
+        
+        try {
+            if (action === 'reject') {
+                // Ask for rejection reason
+                const reason = prompt('Please provide a reason for rejection:');
+                if (!reason) {
+                    setLoading(false);
+                    return;
+                }
+                
+                // Update order with rejection details
+                await apiCall(`/orders/${orderId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        status: 'rejected',
+                        rejection_reason: reason,
+                        rejected_date: new Date().toISOString(),
+                        rejected_by: user?.name || 'Admin'
+                    })
+                });
+                
+                // Update local state
+                setOrders(prev => prev.map(order => 
+                    order.id === orderId 
+                        ? { 
+                            ...order, 
+                            status: 'rejected',
+                            rejection_reason: reason,
+                            rejected_date: new Date().toISOString(),
+                            rejected_by: user?.name || 'Admin'
+                        }
+                        : order
+                ));
+                
+                alert('Order rejected successfully!');
+            } else {
+                // Original approval logic
+                await apiCall(`/orders/${orderId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        status: 'approved',
+                        approved_date: new Date().toISOString(),
+                        approved_by: user?.name || 'Admin'
+                    })
+                });
+                
+                setOrders(prev => prev.map(order => 
+                    order.id === orderId 
+                        ? { 
+                            ...order, 
+                            status: 'approved',
+                            approved_date: new Date().toISOString(),
+                            approved_by: user?.name || 'Admin'
+                        }
+                        : order
+                ));
+                
+                alert('Order approved successfully!');
+            }
+        } catch (error) {
+            alert('Failed to process order: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Edit order functionality
     const openEditOrderForm = (order) => {
