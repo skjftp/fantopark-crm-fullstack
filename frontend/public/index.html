@@ -2782,6 +2782,12 @@ const handleOrderApproval = async (orderId, action) => {
         setLoading(true);
         
         try {
+            // First get the current order to preserve all fields
+            const currentOrder = orders.find(o => o.id === orderId);
+            if (!currentOrder) {
+                throw new Error('Order not found');
+            }
+            
             if (action === 'reject') {
                 // Ask for rejection reason
                 const reason = prompt('Please provide a reason for rejection:');
@@ -2791,56 +2797,48 @@ const handleOrderApproval = async (orderId, action) => {
                 }
                 
                 // Update order with rejection details
-                await apiCall(`/orders/${orderId}`, {
+                const updateData = {
+                    ...currentOrder,
+                    status: 'rejected',
+                    rejection_reason: reason,
+                    rejected_date: new Date().toISOString(),
+                    rejected_by: user?.name || 'Admin'
+                };
+                
+                const response = await apiCall(`/orders/${orderId}`, {
                     method: 'PUT',
-                    body: JSON.stringify({
-                        status: 'rejected',
-                        rejection_reason: reason,
-                        rejected_date: new Date().toISOString(),
-                        rejected_by: user?.name || 'Admin'
-                    })
+                    body: JSON.stringify(updateData)
                 });
                 
                 // Update local state
                 setOrders(prev => prev.map(order => 
-                    order.id === orderId 
-                        ? { 
-                            ...order, 
-                            status: 'rejected',
-                            rejection_reason: reason,
-                            rejected_date: new Date().toISOString(),
-                            rejected_by: user?.name || 'Admin'
-                        }
-                        : order
+                    order.id === orderId ? response.data : order
                 ));
                 
                 alert('Order rejected successfully!');
             } else {
-                // Original approval logic
-                await apiCall(`/orders/${orderId}`, {
+                // Approval - preserve all existing fields
+                const updateData = {
+                    ...currentOrder,
+                    status: 'approved',
+                    approved_date: new Date().toISOString(),
+                    approved_by: user?.name || 'Admin'
+                };
+                
+                const response = await apiCall(`/orders/${orderId}`, {
                     method: 'PUT',
-                    body: JSON.stringify({
-                        status: 'approved',
-                        approved_date: new Date().toISOString(),
-                        approved_by: user?.name || 'Admin'
-                    })
+                    body: JSON.stringify(updateData)
                 });
                 
                 setOrders(prev => prev.map(order => 
-                    order.id === orderId 
-                        ? { 
-                            ...order, 
-                            status: 'approved',
-                            approved_date: new Date().toISOString(),
-                            approved_by: user?.name || 'Admin'
-                        }
-                        : order
+                    order.id === orderId ? response.data : order
                 ));
                 
                 alert('Order approved successfully!');
             }
         } catch (error) {
-            alert('Failed to process order: ' + error.message);
+            console.error('Order approval error:', error);
+            alert('Failed to process order: ' + (error.response?.data?.message || error.message));
         } finally {
             setLoading(false);
         }
