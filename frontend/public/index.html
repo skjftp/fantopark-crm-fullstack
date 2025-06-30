@@ -788,17 +788,19 @@ const fetchData = async () => {
     if (!isLoggedIn || !authToken) return;
     
     try {
-        const [leadsData, inventoryData, ordersData, invoicesData] = await Promise.all([
+        const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData] = await Promise.all([
             apiCall('/leads').catch(() => ({ data: [] })),
             apiCall('/inventory').catch(() => ({ data: [] })),
             apiCall('/orders').catch(() => ({ data: [] })),
-            apiCall('/invoices').catch(() => ({ data: [] }))
+            apiCall('/invoices').catch(() => ({ data: [] })),
+            apiCall('/deliveries').catch(() => ({ data: [] }))
         ]);
         
         setLeads(leadsData.data || []);
         setInventory(inventoryData.data || []);
         setOrders(ordersData.data || []);
         setInvoices(invoicesData.data || []);
+        setDeliveries(deliveriesData.data || []);
     } catch (error) {
         console.error('Error fetching data:', error);
     }
@@ -1199,6 +1201,23 @@ Status: ${order.status}`);
             setDeliveries(prev => [...prev, newDelivery]);
             
             console.log('Delivery entry created:', newDelivery);
+            
+            // Save delivery to backend
+            try {
+                const deliveryResponse = await apiCall('/deliveries', {
+                    method: 'POST',
+                    body: JSON.stringify(newDelivery)
+                });
+                console.log('Delivery saved to backend:', deliveryResponse);
+                // Update local state with backend response if it has an ID
+                if (deliveryResponse && deliveryResponse.data && deliveryResponse.data.id) {
+                    setDeliveries(prev => prev.map(d => 
+                        d.id === newDelivery.id ? { ...d, id: deliveryResponse.data.id } : d
+                    ));
+                }
+            } catch (error) {
+                console.error('Failed to save delivery to backend:', error);
+            }
         }
         
         alert(`Order assigned to ${assignee} successfully!`);
@@ -1884,7 +1903,23 @@ const handleDeliverySubmit = async (e) => {
     try {
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        setDeliveries(prev => 
+        // Update delivery in backend
+            try {
+                await apiCall(`/deliveries/${currentDelivery.id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        ...currentDelivery,
+                        ...deliveryFormData,
+                        status: 'scheduled',
+                        scheduled_date: new Date().toISOString()
+                    })
+                });
+                console.log('Delivery updated in backend');
+            } catch (error) {
+                console.error('Failed to update delivery in backend:', error);
+            }
+            
+            setDeliveries(prev => 
             prev.map(delivery => 
                 delivery.id === currentDelivery.id 
                     ? { 
