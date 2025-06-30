@@ -1043,6 +1043,38 @@ useEffect(() => {
 }, [emailNotifications]);
 
 
+const assignOrderToService = async (orderId, assignee) => {
+    setLoading(true);
+    try {
+        const updateData = {
+            assigned_to: assignee,
+            status: 'service_assigned',
+            assigned_date: new Date().toISOString()
+        };
+        
+        await apiCall(`/orders/${orderId}`, {
+            method: 'PUT',
+            body: JSON.stringify(updateData)
+        });
+        
+        setOrders(prev => 
+            prev.map(order => 
+                order.id === orderId 
+                    ? { ...order, ...updateData }
+                    : order
+            )
+        );
+        
+        alert(`Order assigned to ${assignee} successfully!`);
+    } catch (error) {
+        console.error('Error assigning order:', error);
+        alert('Failed to assign order');
+    } finally {
+        setLoading(false);
+    }
+};
+
+
 const openOrderDetail = (order) => {
     setCurrentOrderDetail(order);
     setShowOrderDetail(true);
