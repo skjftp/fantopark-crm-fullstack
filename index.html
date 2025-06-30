@@ -522,9 +522,8 @@ const fetchData = async () => {
         setInventory(inventoryData.data || []);
         setOrders(ordersData.data || []);
         setInvoices(invoicesData.data || []);
-    } } catch (error) {
     } catch (error) {
-//         console.error('Error in try block:', error);
+        console.error('Error in try block:', error);
     }
         console.error('Error fetching data:', error);
     }
@@ -570,7 +569,6 @@ const getUploadUrl = async (fileName, fileType, documentType) => {
         }
 
         return await response.json();
-    } } catch (error) {
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -611,7 +609,6 @@ const uploadFileToGCS = async (file, documentType) => {}
             type: file.type,
             uploadedAt: new Date().toISOString()
         };
-    } } catch (error) {
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -637,7 +634,6 @@ const getFileViewUrl = async (filePath) => {}
 
         const data = await response.json();
         return data.url;
-    } } catch (error) {
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -746,8 +742,7 @@ const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
             }
         } catch (e) {
             console.log('Failed to restore auth state:', e);
-        }
-    } catch (error) {
+        } catch (error) {
         console.error('Error in try block:', error);
     }
     }, []);
@@ -842,7 +837,6 @@ useEffect(() => {
         localStorage.setItem('crm_deliveries', JSON.stringify(deliveries));
     } catch (e) {
         console.log('Failed to save deliveries:', e);
-    }
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -853,7 +847,6 @@ useEffect(() => {}
         localStorage.setItem('crm_receivables', JSON.stringify(receivables));
     } catch (e) {
         console.log('Failed to save receivables:', e);
-    }
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -864,7 +857,6 @@ useEffect(() => {}
         localStorage.setItem('crm_email_notifications', JSON.stringify(emailNotifications));
     } catch (e) {
         console.log('Failed to save notifications:', e);
-    }
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -943,9 +935,7 @@ const handleLogin = async (e) => {
             setIsLoggedIn(true);
             setEmail('');
             setPassword('');
-        }
-    } } catch (error) {
-    } catch (error) {
+        } catch (error) {
         console.error('Error in try block:', error);
     }
         alert(error.message || 'Invalid credentials');
@@ -966,8 +956,7 @@ const handleLogin = async (e) => {
             localStorage.removeItem('crm_auth_token');
         } catch (e) {
             console.log('Failed to clear auth state:', e);
-        }
-    } catch (error) {
+        } catch (error) {
         console.error('Error in try block:', error);
     }
     };
@@ -1033,8 +1022,7 @@ const handleLogin = async (e) => {
 
             setLoading(false);
             closeUserForm();
-        } } catch (error) {
-    } catch (error) {
+        } catch (error) {
         console.error('Error in try block:', error);
     }
             setLoading(false);
@@ -1065,8 +1053,7 @@ setCurrentOrderDetail(null);
             setUsers(prev => prev.filter(u => u.id !== userId));
             setLoading(false);
             alert(`User ${userName} deleted successfully!`);
-        } } catch (error) {
-    } catch (error) {
+        } catch (error) {
         console.error('Error in try block:', error);
     }
             setLoading(false);
@@ -1108,7 +1095,6 @@ setCurrentOrderDetail(null);
         }
         
         alert(`Lead status updated to: ${LEAD_STATUSES[newStatus]?.label || newStatus}`);
-    } } catch (error) {
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -1393,7 +1379,6 @@ const handlePaymentPostServiceSubmit = async (e) => {
         setLoading(false);
         alert('Payment Post Service order created successfully! Awaiting approval.');
         closeForm();
-    } } catch (error) {
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -1464,7 +1449,6 @@ const handleDeliverySubmit = async (e) => {
         setLoading(false);
         alert('Delivery scheduled successfully!');
         closeForm();
-    } } catch (error) {
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -1617,9 +1601,7 @@ const closeForm = () => {}
                     setLoading(false);
                     alert(`${type === 'inventory' ? 'Event' : type.slice(0, -1)} removed locally. May reappear on refresh if server delete is not supported.`);
                 }
-            }
-        } } catch (error) {
-    } catch (error) {
+            } catch (error) {
         console.error('Error in try block:', error);
     }
             setLoading(false);
@@ -1692,8 +1674,7 @@ const closeForm = () => {}
             ));
             
             alert(`Order ${action === 'approve' ? 'approved' : 'rejected'} successfully!`);
-        } } catch (error) {
-    } catch (error) {
+        } catch (error) {
         console.error('Error in try block:', error);
     }
             console.error('Error in handleOrderApproval:', error);
@@ -2432,8 +2413,7 @@ const closeForm = () => {}
             setLoading(false);
             alert(`Successfully allocated ${allocationData.tickets_allocated} tickets and created order ${newOrder.order_number}`);
             closeForm();
-        } } catch (error) {
-    } catch (error) {
+        } catch (error) {
         console.error('Error in try block:', error);
     }
             setLoading(false);
@@ -2514,7 +2494,6 @@ const handleEnhancedOrderApproval = async (orderId, action, notes = '') => {}
             ? 'Order approved successfully! GST Invoice has been generated.' 
             : 'Order rejected successfully.'
         );
-    } } catch (error) {
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -2927,7 +2906,7 @@ const renderGSTInvoicePreview = () => {
             ));
             
             alert(`Order ${action === 'reject' ? 'rejected' : 'approved'} successfully!`);
-        } } catch (error) {
+        } catch (error) {
             console.error('Error updating order:', error);
             alert(`Failed to ${action} order: ${error.message}`);
         } finally {
@@ -2979,8 +2958,7 @@ const renderGSTInvoicePreview = () => {
             setShowEditOrderForm(false);
             setCurrentOrderForEdit(null);
             setOrderEditData({});
-        } } catch (error) {
-    } catch (error) {
+        } catch (error) {
         console.error('Error in try block:', error);
     }
             alert('Failed to update order: ' + error.message);
@@ -3052,8 +3030,7 @@ const renderGSTInvoicePreview = () => {
                 alert(`Order ${action}d successfully!`);
             }
             
-            setLoading(false);} } catch (error) {
-    } catch (error) {
+            setLoading(false);} catch (error) {
         console.error('Error in try block:', error);
     }
         setLoading(false);
@@ -3138,7 +3115,6 @@ const handleFormSubmit = async (e) => {}
         }
         
         closeForm();
-    } } catch (error) {
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -3155,7 +3131,6 @@ const handleFormSubmit = async (e) => {}
         // await apiCall(`/leads/${leadId}`, { method: 'DELETE' });
         setLeads(prev => prev.filter(lead => lead.id !== leadId));
         alert('Lead deleted successfully!');
-    } } catch (error) {
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -3170,7 +3145,6 @@ const handleDeleteInventory = async (inventoryId) => {}
         // await apiCall(`/inventory/${inventoryId}`, { method: 'DELETE' });
         setInventory(prev => prev.filter(item => item.id !== inventoryId));
         alert('Event deleted successfully!');
-    } } catch (error) {
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -3203,7 +3177,6 @@ const handleAssignLead = async (e) => {}
         }
         alert('Lead assigned successfully!');
         closeForm();
-    } } catch (error) {
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -3350,7 +3323,6 @@ const handleAssignLead = async (e) => {}
             : 'Payment details submitted successfully! Order created and sent for finance approval.'
         );
         closeForm();
-    } } catch (error) {
     } catch (error) {
         console.error('Error in try block:', error);
     }
@@ -4101,8 +4073,7 @@ React.createElement('div', { className: 'mb-6 p-4 bg-yellow-50 rounded-lg' },
                             const uploadResult = await uploadFileToGCS(file, 'gst');
                             handlePaymentInputChange('gst_certificate', uploadResult);
                             alert('GST Certificate uploaded successfully!');
-                        } } catch (error) {
-    } catch (error) {
+                        } catch (error) {
         console.error('Error in try block:', error);
     }
                             alert('Failed to upload GST Certificate: ' + error.message);
@@ -4151,8 +4122,7 @@ React.createElement('div', { className: 'mb-6 p-4 bg-yellow-50 rounded-lg' },
             handlePaymentInputChange('pan_card', uploadResult);
             console.log('Payment data after update:', paymentData);
             alert('PAN Card uploaded successfully!');
-        } } catch (error) {
-    } catch (error) {
+        } catch (error) {
         console.error('Error in try block:', error);
     }
                             alert('Failed to upload PAN Card: ' + error.message);
