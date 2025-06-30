@@ -337,6 +337,7 @@
 </head>
 <body>
     <div id="root"></div>
+    <div id="error-message" style="position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 12px 20px; border-radius: 6px; display: none; z-index: 9999;"></div>
     <script>
         const { useState, useEffect } = React;
 
@@ -1373,7 +1374,8 @@ const handleLogin = async (e) => {
             setPassword('');
         }
     } catch (error) {
-        alert(error.message || 'Invalid credentials');
+        console.error("Login failed:", error.message || "Invalid credentials");
+        console.error("Full error:", error);
     } finally {
         setLoading(false);
     }
