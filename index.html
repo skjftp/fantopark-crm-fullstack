@@ -169,6 +169,58 @@
         }
     </style>
 
+<style>
+@media (max-width: 1024px) {
+    /* Ensure content doesn't go under fixed sidebar */
+    .lg\:ml-64 {
+        margin-left: 0;
+    }
+    
+    /* Better mobile table display */
+    table {
+        font-size: 0.875rem;
+    }
+    
+    /* Smaller padding on mobile */
+    .p-4 {
+        padding: 1rem;
+    }
+    
+    /* Stack buttons vertically on very small screens */
+    @media (max-width: 640px) {
+        .flex-wrap.gap-1 {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .flex-wrap.gap-1 > * {
+            width: 100%;
+            margin-bottom: 0.25rem;
+        }
+    }
+}
+
+/* Dark mode improvements */
+.dark .bg-gray-800 {
+    background-color: #1f2937;
+}
+
+.dark .bg-gray-900 {
+    background-color: #111827;
+}
+
+.dark .text-gray-300 {
+    color: #d1d5db;
+}
+
+/* Better mobile modal display */
+@media (max-width: 640px) {
+    .fixed.inset-0 > div {
+        margin: 1rem;
+        max-height: calc(100vh - 2rem);
+    }
+}
+</style>
 </head>
 <body>
     <div id="root"></div>
@@ -1627,7 +1679,8 @@ const closeForm = () => {
                 ),
                 React.createElement('div', { className: 'p-6' },
                     React.createElement('div', { className: 'overflow-x-auto' },
-                        React.createElement('table', { className: 'w-full' },
+                        React.createElement('div', { className: 'w-full overflow-x-auto -mx-4 sm:mx-0' },
+                    React.createElement('table', { className: 'w-full min-w-full' },
                             React.createElement('thead', { className: 'bg-gray-50' },
                                 React.createElement('tr', null,
                                     React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'User'),
@@ -2601,6 +2654,58 @@ const renderGSTInvoicePreview = () => {
         }
     </style>
 
+<style>
+@media (max-width: 1024px) {
+    /* Ensure content doesn't go under fixed sidebar */
+    .lg\:ml-64 {
+        margin-left: 0;
+    }
+    
+    /* Better mobile table display */
+    table {
+        font-size: 0.875rem;
+    }
+    
+    /* Smaller padding on mobile */
+    .p-4 {
+        padding: 1rem;
+    }
+    
+    /* Stack buttons vertically on very small screens */
+    @media (max-width: 640px) {
+        .flex-wrap.gap-1 {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .flex-wrap.gap-1 > * {
+            width: 100%;
+            margin-bottom: 0.25rem;
+        }
+    }
+}
+
+/* Dark mode improvements */
+.dark .bg-gray-800 {
+    background-color: #1f2937;
+}
+
+.dark .bg-gray-900 {
+    background-color: #111827;
+}
+
+.dark .text-gray-300 {
+    color: #d1d5db;
+}
+
+/* Better mobile modal display */
+@media (max-width: 640px) {
+    .fixed.inset-0 > div {
+        margin: 1rem;
+        max-height: calc(100vh - 2rem);
+    }
+}
+</style>
 </head>
             <body>
                 <div class="invoice-preview">
@@ -5508,10 +5613,10 @@ order.invoice_number && React.createElement('button', {
     );
 };
     // Main application layout
-    return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:bg-gray-900' },
+    return React.createElement('div', { className: 'min-h-screen bg-gray-100 dark:bg-gray-900' },
         renderSidebar(),
-        React.createElement('div', { className: 'flex-1 flex flex-col overflow-hidden' },
-            React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-4 lg:px-6 py-4 ml-0 lg:ml-0' },
+        React.createElement('div', { className: 'lg:ml-64 flex flex-col min-h-screen' },
+            React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-4 lg:px-6 py-4 pl-16 lg:pl-6' },
                 React.createElement('div', { className: 'flex items-center justify-between' },
                     React.createElement('div', null,
                         React.createElement('h1', { className: 'text-lg font-semibold' }, 'Welcome, ' + (user?.name || 'Admin User')),
