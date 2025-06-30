@@ -2609,11 +2609,6 @@ const closeForm = () => {
         React.createElement('div', { className: 'text-center py-12' },
             React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view delivery.')
         );
-            case 'myactions':
-                return hasPermission('dashboard', 'read') ? renderMyActionsContent() : 
-                    React.createElement('div', { className: 'text-center py-12' },
-                        React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view My Actions.')
-                    );
             default:
                 return renderDashboardContent();
         }
@@ -6550,35 +6545,7 @@ order.invoice_number && React.createElement('button', {
     );
 };
     // Main application layout
-    
-    const renderHelpGuide = () => {
-        if (!showHelpGuide) return null;
-        
-        return React.createElement('div', { 
-            className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4',
-            onClick: () => setShowHelpGuide(false)
-        },
-            React.createElement('div', { 
-                className: 'bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full p-6',
-                onClick: (e) => e.stopPropagation()
-            },
-                React.createElement('h2', { className: 'text-2xl font-bold mb-4' }, 'How to Use FanToPark CRM'),
-                React.createElement('button', {
-                    onClick: () => setShowHelpGuide(false),
-                    className: 'absolute top-4 right-4 text-gray-500'
-                }, '✕'),
-                React.createElement('div', { className: 'space-y-4' },
-                    React.createElement('p', null, '1. Sales Team: Create and qualify leads'),
-                    React.createElement('p', null, '2. Convert leads to orders'),
-                    React.createElement('p', null, '3. Finance approves orders'),
-                    React.createElement('p', null, '4. Supply schedules delivery'),
-                    React.createElement('p', null, '5. Complete delivery and generate invoice')
-                )
-            )
-        );
-    };
-
-return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:bg-gray-900' },
+    return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:bg-gray-900' },
         renderSidebar(),
         React.createElement('div', { className: 'flex-1 flex flex-col overflow-hidden' },
             React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-6 py-4' },
@@ -6597,13 +6564,7 @@ return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:b
                             },
                             className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
                             title: darkMode ? 'Switch to light mode' : 'Switch to dark mode'
-                        },React.createElement('button', {
-                            onClick: () => setShowHelpGuide(true),
-                            className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
-                            title: 'How to use CRM'
-                        }, '❓'),
-                        
-  ,
+                        }, darkMode ? '☀️' : '🌙'),
                         React.createElement('div', { className: 'w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center' },
                             React.createElement('span', { className: 'text-white text-sm' }, (user?.name || 'A')[0])
                         )
@@ -6629,8 +6590,7 @@ return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:b
 renderDeliveryForm(),
 renderOrderDetail(),
         renderEditOrderForm(),
-renderPaymentPostServiceForm(),
-        renderHelpGuide()
+renderPaymentPostServiceForm()
     );
 }
 
