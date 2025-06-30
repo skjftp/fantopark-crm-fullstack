@@ -1044,6 +1044,18 @@ useEffect(() => {
 
 
 const assignOrderToService = async (orderId, assignee) => {
+
+const openEditOrderForm = (order) => {
+    alert(`Edit Order: ${order.order_number}
+
+Client: ${order.client_name}
+Email: ${order.client_email}
+Event: ${order.event_name || 'N/A'}
+Tickets: ${order.tickets_allocated || 0}
+Amount: ₹${order.total_amount || 0}
+
+Status: ${order.status}`);
+};
     setLoading(true);
     try {
         const updateData = {
