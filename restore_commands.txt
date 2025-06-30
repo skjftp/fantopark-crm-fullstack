@@ -1,0 +1,14 @@
+# To restore from this backup:
+
+# Option 1: Restore just the frontend
+cp backups/backup_20250630_064301_working_with_all_features/index.html .
+cp backups/backup_20250630_064301_working_with_all_features/frontend/public/index.html frontend/public/
+
+# Option 2: Restore everything
+cp -r backups/backup_20250630_064301_working_with_all_features/* .
+
+# Option 3: Restore from git tag
+git checkout v1.0-stable-20250630
+
+# Option 4: Use specific file backup
+cp index.html.backup-20250630_064301-all-features-working index.html

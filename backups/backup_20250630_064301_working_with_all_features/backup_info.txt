@@ -1,0 +1,20 @@
+Backup Created: Mon Jun 30 06:43:05 AM UTC 2025
+Git Branch: main
+Last Commit: 7f19527 Implement dark mode with toggle and persistent state
+
+Features Included:
+✅ Rejection reason display in orders
+✅ Edit order functionality  
+✅ Tab persistence on reload
+✅ Dark mode with toggle
+✅ Leads page fixed
+✅ Full backend integration
+✅ JWT authentication working
+
+Backend URL: https://fantopark-backend-150582227311.us-central1.run.app
+Frontend URL: https://skjftp.github.io/fantopark-crm-fullstack/
+
+Notes:
+- All features tested and working
+- Dark mode preference saved in localStorage
+- No mobile UI issues
