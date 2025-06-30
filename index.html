@@ -1110,6 +1110,8 @@ setCurrentOrderDetail(null);
         const response = await apiCall(`/leads/${leadId}`, {
             method: 'PUT',
             body: JSON.stringify({
+                ...leads.find(l => l.id === leadId), // Include ALL current fields
+
                 status: newStatus,
                 last_contact_date: new Date().toISOString(),
                 [`${newStatus}_date`]: new Date().toISOString()
