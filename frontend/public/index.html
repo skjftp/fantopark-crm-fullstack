@@ -1,4 +1,4 @@
-<!-- CRM Version: FIXED-SYNTAX-AND-ORDERS-20250630 -->
+<!-- CRM Version: FIELD-MAPPING-FIXED-20250630 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3159,7 +3159,7 @@ const handleFormSubmit = async (e) => {
                             created_date: new Date().toISOString()
                         })
                     });
-                    setOrders(prev => [...prev, orderResponse.data || orderResponse]);
+                    setOrders(prev => [...prev, orderResponse]);
                     alert('Order created successfully!');
                     break;
             }
@@ -3372,10 +3372,10 @@ const handleAssignLead = async (e) => {
         }
 
         // Update local orders state
-        setOrders(prev => [...prev, orderResponse.data || orderResponse]);
+        setOrders(prev => [...prev, orderResponse]);
 
         // Log for debugging
-        console.log('Order created:', orderResponse.data);
+        console.log('Order created:', orderResponse);
         
         // Update status using updateLeadStatus to ensure persistence
         await updateLeadStatus(currentLead.id, 'payment_received');
