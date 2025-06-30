@@ -685,6 +685,7 @@ const [currentOrderDetail, setCurrentOrderDetail] = useState(null);
     const [darkMode, setDarkMode] = useState(() => {
         return localStorage.getItem('crm_dark_mode') === 'true';
     });
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const [formData, setFormData] = useState({});
     const [paymentData, setPaymentData] = useState({});
@@ -774,6 +775,13 @@ const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
             localStorage.setItem('crm_active_tab', activeTab);
         }
     }, [activeTab, isLoggedIn]);
+
+    // Apply dark mode on mount
+    useEffect(() => {
+        if (darkMode) {
+            document.documentElement.classList.add('dark');
+        }
+    }, [darkMode]);
     // Chart initialization
 useEffect(() => {
     if (isLoggedIn && hasPermission('finance', 'read')) {
@@ -1603,7 +1611,7 @@ const closeForm = () => {
             className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
             onClick: (e) => e.target === e.currentTarget && closeUserForm()
         },
-            React.createElement('div', { className: 'bg-white rounded-lg w-full max-w-6xl max-h-[95vh] overflow-y-auto' },
+            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl mx-4 lg:mx-0 max-h-[95vh] overflow-y-auto' },
                 React.createElement('div', { className: 'sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center' },
                     React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 'User Management'),
                     React.createElement('div', { className: 'flex space-x-2' },
@@ -2425,7 +2433,7 @@ const renderGSTInvoicePreview = () => {
         className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-backdrop',
         onClick: (e) => e.target === e.currentTarget && closeForm()
     },
-        React.createElement('div', { className: 'bg-white rounded-lg w-full max-w-6xl max-h-[95vh] overflow-y-auto' },
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl mx-4 lg:mx-0 max-h-[95vh] overflow-y-auto' },
             React.createElement('div', { className: 'sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center action-buttons' },
                 React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 
                     `GST Invoice: ${invoice.invoice_number}`
@@ -3448,7 +3456,7 @@ const handleAssignLead = async (e) => {
             className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
             onClick: (e) => e.target === e.currentTarget && closeForm()
         },
-            React.createElement('div', { className: 'bg-white rounded-lg w-full max-w-4xl max-h-[95vh] overflow-y-auto' },
+            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl mx-4 lg:mx-0 max-h-[95vh] overflow-y-auto' },
                 React.createElement('div', { className: 'sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center' },
                     React.createElement('div', null,
                         React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, currentLead.name),
@@ -4634,7 +4642,7 @@ const renderEditOrderForm = () => {
         className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
         onClick: (e) => e.target === e.currentTarget && setShowOrderDetail(false)
     },
-        React.createElement('div', { className: 'bg-white rounded-lg w-full max-w-4xl max-h-[95vh] overflow-y-auto' },
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl mx-4 lg:mx-0 max-h-[95vh] overflow-y-auto' },
             React.createElement('div', { className: 'sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center' },
                 React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 
                     `Order Details: ${currentOrderDetail.order_number}`
@@ -4649,7 +4657,7 @@ const renderEditOrderForm = () => {
                 // Client Details
                 React.createElement('div', { className: 'bg-gray-50 rounded-lg p-4' },
                     React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-3' }, '👤 Client Information'),
-                    React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
+                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
                         React.createElement('div', null,
                             React.createElement('span', { className: 'font-medium text-gray-700' }, 'Legal Name: '),
                             React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.legal_name || currentOrderDetail.client_name)
@@ -4684,7 +4692,7 @@ const renderEditOrderForm = () => {
                 // Order Details
                 React.createElement('div', { className: 'bg-blue-50 rounded-lg p-4' },
                     React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-3' }, '📋 Order Information'),
-                    React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
+                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
                         React.createElement('div', null,
                             React.createElement('span', { className: 'font-medium text-gray-700' }, 'Event: '),
                             React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.event_name)
@@ -4715,7 +4723,7 @@ const renderEditOrderForm = () => {
                 // Financial Details
                 React.createElement('div', { className: 'bg-green-50 rounded-lg p-4' },
                     React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-3' }, '💰 Financial Details'),
-                    React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
+                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
                         React.createElement('div', null,
                             React.createElement('span', { className: 'font-medium text-gray-700' }, 'Total Amount: '),
                             React.createElement('span', { className: 'text-gray-900 font-semibold' }, 
@@ -4754,7 +4762,7 @@ const renderEditOrderForm = () => {
                 // Documents Section
                 React.createElement('div', { className: 'bg-yellow-50 rounded-lg p-4' },
                     React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-3' }, '📎 Uploaded Documents'),
-                    React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
+                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
                         React.createElement('div', null,
                             React.createElement('span', { className: 'font-medium text-gray-700' }, 'GST Certificate: '),
                             currentOrderDetail.gst_certificate 
@@ -5416,7 +5424,7 @@ order.invoice_number && React.createElement('button', {
                                 placeholder: 'Enter pickup location if tickets need to be collected'
                             })
                         ),
-                        React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
+                        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
                             React.createElement('div', null,
                                 React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Pickup Date'),
                                 React.createElement('input', {
@@ -5447,7 +5455,7 @@ order.invoice_number && React.createElement('button', {
                                 required: deliveryFormData.delivery_type === 'offline'
                             })
                         ),
-                        React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
+                        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
                             React.createElement('div', null,
                                 React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Delivery Date *'),
                                 React.createElement('input', {
@@ -5500,10 +5508,10 @@ order.invoice_number && React.createElement('button', {
     );
 };
     // Main application layout
-    return React.createElement('div', { className: 'flex h-screen bg-gray-100' },
+    return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:bg-gray-900' },
         renderSidebar(),
         React.createElement('div', { className: 'flex-1 flex flex-col overflow-hidden' },
-            React.createElement('header', { className: 'bg-white shadow-sm border-b px-6 py-4' },
+            React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-4 lg:px-6 py-4 ml-0 lg:ml-0' },
                 React.createElement('div', { className: 'flex items-center justify-between' },
                     React.createElement('div', null,
                         React.createElement('h1', { className: 'text-lg font-semibold' }, 'Welcome, ' + (user?.name || 'Admin User')),
@@ -5511,13 +5519,21 @@ order.invoice_number && React.createElement('button', {
                     ),
                     React.createElement('div', { className: 'flex items-center space-x-4' },
                         React.createElement('span', { className: 'text-lg' }, '🔔'),
-                        React.createElement('div', { className: 'w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center' },
+                        React.createElement('button', {
+                        onClick: () => {
+                            setDarkMode(!darkMode);
+                            document.documentElement.classList.toggle('dark');
+                            localStorage.setItem('crm_dark_mode', !darkMode);
+                        },
+                        className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors'
+                    }, darkMode ? '☀️' : '🌙'),
+                    React.createElement('div', { className: 'w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center' },
                             React.createElement('span', { className: 'text-white text-sm' }, (user?.name || 'A')[0])
                         )
                     )
                 )
             ),
-            React.createElement('main', { className: 'flex-1 overflow-y-auto p-6' },
+            React.createElement('main', { className: 'flex-1 overflow-y-auto p-4 lg:p-6' },
                 renderContent()
             )
         ),
