@@ -1482,14 +1482,27 @@ const handleLogin = async (e) => {
         }
         
         setCurrentUser(editUser);
-        setUserFormData(editUser || {
-            name: '',
-            email: '',
-            password: '',
-            role: 'viewer',
-            department: '',
-            status: 'active'
-        });
+        if (editUser) {
+            // Editing existing user
+            setUserFormData({
+                name: editUser.name || '',
+                email: editUser.email || '',
+                password: '', // Never show existing password
+                role: editUser.role || 'viewer',
+                department: editUser.department || '',
+                status: editUser.status || 'active'
+            });
+        } else {
+            // Creating new user - reset form completely
+            setUserFormData({
+                name: '',
+                email: '',
+                password: '',
+                role: 'viewer',
+                department: '',
+                status: 'active'
+            });
+        }
         setShowUserForm(true);
     };
 
@@ -2205,7 +2218,7 @@ const closeForm = () => {
                     React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 'User Management'),
                     React.createElement('div', { className: 'flex space-x-2' },
                         hasPermission('users', 'write') && React.createElement('button', {
-                            onClick: () => openUserForm(user),
+                            onClick: () => openUserForm(),
                             className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
                         }, '+ Add User'),
                         React.createElement('button', {
@@ -2259,7 +2272,7 @@ const closeForm = () => {
                                         React.createElement('td', { className: 'px-6 py-4' },
                                             React.createElement('div', { className: 'flex space-x-2' },
                                                 hasPermission('users', 'write') && React.createElement('button', {
-                                                    onClick: () => openUserForm(user),
+                                                    onClick: () => openUserForm(),
                                                     className: 'text-blue-600 hover:text-blue-900 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50'
                                                 }, 'Edit'),
                                                 hasPermission('users', 'delete') && user.id !== 1 && React.createElement('button', {
