@@ -51,4 +51,24 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// DELETE order
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    // Check if order exists
+    const orderDoc = await db.collection(collections.orders).doc(req.params.id).get();
+    
+    if (!orderDoc.exists) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    // Delete the order
+    await db.collection(collections.orders).doc(req.params.id).delete();
+    
+    res.json({ data: { message: 'Order deleted successfully' } });
+  } catch (error) {
+    console.error('Delete order error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
