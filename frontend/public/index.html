@@ -1397,7 +1397,8 @@ const handlePaymentPostServiceSubmit = async (e) => {
 
         // Create order in backend first
         try {
-            const orderResponse = await apiCall('/orders', {
+            console.log('Creating order with data:', orderData);
+        const orderResponse = await apiCall('/orders', {
                 method: 'POST',
                 body: JSON.stringify(newOrder)
             });
@@ -2322,7 +2323,7 @@ const closeForm = () => {
                 client_name: selectedLead.name,
                 client_email: selectedLead.email,
                 client_phone: selectedLead.phone,
-                event_name: currentInventory.event_name,
+                event_name: currentInventory.event_name || currentInventory.match_name || "Event",
                 event_date: currentInventory.event_date,
                 tickets_allocated: allocationData.tickets_allocated,
                 ticket_category: currentInventory.category_of_ticket,
@@ -2343,7 +2344,8 @@ const closeForm = () => {
             try {
 
 
-                const orderResponse = await apiCall('/orders', {
+                console.log('Creating order with data:', orderData);
+        const orderResponse = await apiCall('/orders', {
 
 
                     method: 'POST',
@@ -2369,7 +2371,8 @@ const closeForm = () => {
 
                 // Create order in backend first
                 try {
-                    const orderResponse = await apiCall('/orders', {
+                    console.log('Creating order with data:', orderData);
+        const orderResponse = await apiCall('/orders', {
                         method: 'POST',
                         body: JSON.stringify(newOrder)
                     });
@@ -3148,7 +3151,8 @@ const handleFormSubmit = async (e) => {
                     break;
                     
                 case 'order':
-                    const orderResponse = await apiCall('/orders', {
+                    console.log('Creating order with data:', orderData);
+        const orderResponse = await apiCall('/orders', {
                         method: 'POST',
                         body: JSON.stringify({
                             ...formData,
