@@ -1,4 +1,4 @@
-<!-- CRM Version: FIXED-ORDER-CREATION-20250630-121231 -->
+<!-- CRM Version: FIXED-SYNTAX-AND-ORDERS-20250630 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2375,7 +2375,10 @@ const closeForm = () => {
                     });
                     console.log('Order created in backend:', orderResponse);
                     setOrders(prev => [...prev, orderResponse]);
-                setOrders(prev => [...prev, newOrder]);
+                } catch (orderError) {
+                    console.error("Failed to create order in backend:", orderError);
+                    setOrders(prev => [...prev, newOrder]);
+                }
             }
 
             setLeads(prev => 
