@@ -6746,24 +6746,44 @@ order.invoice_number && React.createElement('button', {
                         className: 'text-gray-500 hover:text-gray-700' 
                     }, '✕')
                 ),
-                React.createElement('div', { className: 'flowchart-container' },
+                React.createElement('div', { className: 'space-y-6' },
                     React.createElement('h3', { className: 'text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200' }, 'CRM Workflow'),
                     
                     React.createElement('div', { className: 'space-y-4' },
-                        React.createElement('div', { className: 'flowchart-node sales-node' }, '1. Sales Team: Create Lead'),
-                        React.createElement('div', { className: 'flowchart-arrow' }),
-                        React.createElement('div', { className: 'flowchart-node sales-node' }, '2. Sales Team: Qualify Lead (Hot/Warm/Cold)'),
-                        React.createElement('div', { className: 'flowchart-arrow' }),
-                        React.createElement('div', { className: 'flowchart-node sales-node' }, '3. Sales Team: Create Order from Lead'),
-                        React.createElement('div', { className: 'flowchart-arrow' }),
-                        React.createElement('div', { className: 'flowchart-node finance-node' }, '4. Finance/Sales Head: Approve Order'),
-                        React.createElement('div', { className: 'text-center text-sm text-gray-600 dark:text-gray-400 my-2' }, '(Finance for regular, Sales Head for Payment Post Service)'),
-                        React.createElement('div', { className: 'flowchart-arrow' }),
-                        React.createElement('div', { className: 'flowchart-node supply-node' }, '5. Supply Team: Schedule Delivery'),
-                        React.createElement('div', { className: 'flowchart-arrow' }),
-                        React.createElement('div', { className: 'flowchart-node supply-node' }, '6. Supply Team: Complete Delivery'),
-                        React.createElement('div', { className: 'flowchart-arrow' }),
-                        React.createElement('div', { className: 'flowchart-node finance-node' }, '7. Finance: Generate Invoice & Collect Payment')
+                        React.createElement('div', { className: 'p-4 rounded-lg bg-blue-100 dark:bg-blue-900 border-2 border-blue-400' }, 
+                            React.createElement('div', { className: 'font-medium text-blue-900 dark:text-blue-100' }, '1. Sales Team: Create Lead'),
+                            React.createElement('div', { className: 'text-sm text-blue-700 dark:text-blue-300 mt-1' }, 'Start by creating a new lead with client information')
+                        ),
+                        React.createElement('div', { className: 'text-center text-gray-400' }, '↓'),
+                        React.createElement('div', { className: 'p-4 rounded-lg bg-blue-100 dark:bg-blue-900 border-2 border-blue-400' }, 
+                            React.createElement('div', { className: 'font-medium text-blue-900 dark:text-blue-100' }, '2. Sales Team: Qualify Lead'),
+                            React.createElement('div', { className: 'text-sm text-blue-700 dark:text-blue-300 mt-1' }, 'Mark as Hot, Warm, or Cold based on client interest')
+                        ),
+                        React.createElement('div', { className: 'text-center text-gray-400' }, '↓'),
+                        React.createElement('div', { className: 'p-4 rounded-lg bg-blue-100 dark:bg-blue-900 border-2 border-blue-400' }, 
+                            React.createElement('div', { className: 'font-medium text-blue-900 dark:text-blue-100' }, '3. Sales Team: Create Order'),
+                            React.createElement('div', { className: 'text-sm text-blue-700 dark:text-blue-300 mt-1' }, 'Convert qualified leads into orders')
+                        ),
+                        React.createElement('div', { className: 'text-center text-gray-400' }, '↓'),
+                        React.createElement('div', { className: 'p-4 rounded-lg bg-yellow-100 dark:bg-yellow-900 border-2 border-yellow-400' }, 
+                            React.createElement('div', { className: 'font-medium text-yellow-900 dark:text-yellow-100' }, '4. Finance/Sales Head: Approve Order'),
+                            React.createElement('div', { className: 'text-sm text-yellow-700 dark:text-yellow-300 mt-1' }, 'Finance approves regular orders, Sales Head approves Payment Post Service')
+                        ),
+                        React.createElement('div', { className: 'text-center text-gray-400' }, '↓'),
+                        React.createElement('div', { className: 'p-4 rounded-lg bg-green-100 dark:bg-green-900 border-2 border-green-400' }, 
+                            React.createElement('div', { className: 'font-medium text-green-900 dark:text-green-100' }, '5. Supply Team: Schedule Delivery'),
+                            React.createElement('div', { className: 'text-sm text-green-700 dark:text-green-300 mt-1' }, 'Assign delivery date and details')
+                        ),
+                        React.createElement('div', { className: 'text-center text-gray-400' }, '↓'),
+                        React.createElement('div', { className: 'p-4 rounded-lg bg-green-100 dark:bg-green-900 border-2 border-green-400' }, 
+                            React.createElement('div', { className: 'font-medium text-green-900 dark:text-green-100' }, '6. Supply Team: Complete Delivery'),
+                            React.createElement('div', { className: 'text-sm text-green-700 dark:text-green-300 mt-1' }, 'Mark delivery as completed')
+                        ),
+                        React.createElement('div', { className: 'text-center text-gray-400' }, '↓'),
+                        React.createElement('div', { className: 'p-4 rounded-lg bg-yellow-100 dark:bg-yellow-900 border-2 border-yellow-400' }, 
+                            React.createElement('div', { className: 'font-medium text-yellow-900 dark:text-yellow-100' }, '7. Finance: Generate Invoice'),
+                            React.createElement('div', { className: 'text-sm text-yellow-700 dark:text-yellow-300 mt-1' }, 'Create GST invoice and collect payment')
+                        )
                     ),
                     
                     React.createElement('div', { className: 'mt-8 grid grid-cols-1 md:grid-cols-3 gap-4' },
@@ -6792,38 +6812,6 @@ order.invoice_number && React.createElement('button', {
                                 React.createElement('li', null, '• Schedule deliveries'),
                                 React.createElement('li', null, '• Update delivery status'),
                                 React.createElement('li', null, '• Track allocations')
-                            )
-                        )
-                    )
-                )
-            )
-        );
-    };    // Help Guide Modal
-        return React.createElement('div', { 
-            className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4',
-            onClick: () => setShowHelpGuide(false)
-        },
-                className: 'bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto p-6',
-                onClick: (e) => e.stopPropagation()
-            },
-                        onClick: () => setShowHelpGuide(false),
-                        className: 'text-gray-500 hover:text-gray-700' 
-                    }, '✕')
-                ),
-                    
-                        ),
-                        ),
-                        ),
-                        ),
-                        ),
-                        ),
-                        )
-                    ),
-                    
-                            )
-                        ),
-                            )
-                        ),
                             )
                         )
                     )
@@ -6931,13 +6919,12 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
         renderUserManagement(),
         renderUserForm(),
         renderGSTInvoicePreview(),
-            renderOrderDetailModal(),
-            renderOrderDetailModal(),
+            
 renderDeliveryForm(),
 renderOrderDetail(),
         renderEditOrderForm(),
-renderPaymentPostServiceForm()
-        renderHelpGuide(),
+renderPaymentPostServiceForm(),
+        renderHelpGuide()
     );
 }
 
@@ -6949,5 +6936,3 @@ renderPaymentPostServiceForm()
 <!-- Password: Updated: Sun Jun 29 11:38:10 AM UTC 2025 -->
 <!-- Password: LATEST_DEPLOY: 2025-06-29 11:41:06 UTC -->
 <!-- Password: Deployed: Sun Jun 29 12:22:47 PM UTC 2025 -->
-</body>
-            </html>
