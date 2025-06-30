@@ -6879,19 +6879,18 @@ order.invoice_number && React.createElement('button', {
 }
 
 // Render the app
-}
+
 ReactDOM.render(React.createElement(App), document.getElementById('root'));
 setDarkMode(!darkMode);
                                 document.documentElement.classList.toggle('dark');
                                 localStorage.setItem('crm_dark_mode', !darkMode);
-                            },
+                            ,
                             className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
                             title: darkMode ? 'Switch to light mode' : 'Switch to dark mode'
-                        }, 
+                        , 
                             className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
                             title: 'How to use CRM'
-                        }, '❓'),
-                        darkMode ? '☀️' : '🌙'),
+                        , '❓'),
                         )
                     )
                 )
@@ -6916,10 +6915,10 @@ renderOrderDetail(),
 renderPaymentPostServiceForm(),
         renderHelpGuide()
     );
-}
+
 
 // Render the app
-        
+ReactDOM.render(React.createElement(App), document.getElementById('root'));
     </script>
 </body>
 </html><!-- Password: Updated: Sun Jun 29 11:38:10 AM UTC 2025 -->
