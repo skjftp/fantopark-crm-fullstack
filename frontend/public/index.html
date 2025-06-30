@@ -696,12 +696,9 @@ const INDIAN_STATES = [
     'Lakshadweep', 'Puducherry'
 ];
 
-// Team configurations
-const SALES_TEAM = ['Varun', 'Pratik', 'Manmeet', 'Ankita', 'Amisha', 'Amit'];
-const SUPPLY_TEAM = ['Akshay', 'Shafeeq', 'Ankit'];
-const FINANCE_TEAM = ['Finance Manager', 'Accounts Head'];
+// Team configurations removed - now using dynamic users from database
 
-// Add these helper functions after FINANCE_TEAM
+// Add these helper functions after (users || []).filter(u => ['finance_manager', 'finance_executive'].includes(u.role)).map(u => u.name)
 // Replace the calculateGST function (around line 90)
 const calculateGST = (amount, isIntraState, gstRate = 18) => {
     if (isIntraState) {
@@ -2831,7 +2828,7 @@ const renderContent = () => {
             '₹50 Lakhs - ₹1 Crore', '₹1-2 Crores', '₹2-5 Crores', 'Above ₹5 Crores'
         ], required: true, section: 'financial' },
         { name: 'status', label: 'Lead Status', type: 'select', options: Object.keys(LEAD_STATUSES), section: 'sales', editOnly: true },
-        { name: 'assigned_to', label: 'Assigned To', type: 'select', options: [...SALES_TEAM, ...SUPPLY_TEAM], section: 'sales', editOnly: true },
+        { name: 'assigned_to', label: 'Assigned To', type: 'select', options: [...(users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role)).map(u => u.name), ...(users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(u => u.name)], section: 'sales', editOnly: true },
         { name: 'last_quoted_price', label: 'Last Quoted Price (₹)', type: 'number', section: 'sales', editOnly: true },
         { name: 'potential_value', label: 'Potential Value (₹)', type: 'number', section: 'business' },
         { name: 'notes', label: 'Additional Notes', type: 'textarea', section: 'business' }
@@ -4695,7 +4692,7 @@ const handleAssignLead = async (e) => {
     const renderAssignForm = () => {
         if (!showAssignForm || !currentLead) return null;
 
-        const teamMembers = formData.assigned_team === 'supply' ? SUPPLY_TEAM : SALES_TEAM;
+        const teamMembers = formData.assigned_team === 'supply' ? (users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(u => u.name) : (users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role)).map(u => u.name);
 
         return React.createElement('div', { 
             className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
@@ -5711,7 +5708,7 @@ const renderEditOrderForm = () => {
                             required: true
                         },
                             React.createElement('option', { value: '' }, 'Select Assignee'),
-                            ...SUPPLY_TEAM.map(member =>
+                            ...(users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(u => u.name).map(member =>
                                 React.createElement('option', { key: member, value: member }, member)
                             )
                         )
@@ -6296,7 +6293,7 @@ order.invoice_number && React.createElement('button', {
 }, '📄 View Invoice'),
                                             // Service assignment
                                             hasPermission('orders', 'assign') && order.status === 'approved' && !order.assigned_to && 
-                                                SUPPLY_TEAM.map(person =>
+                                                (users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(u => u.name).map(person =>
                                                     React.createElement('button', {
                                                         key: person,
                                                         className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
