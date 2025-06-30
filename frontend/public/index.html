@@ -6025,58 +6025,28 @@ currentInventoryItems.map(item =>
     ) : React.createElement('span', { className: 'px-2 py-1 text-xs rounded bg-gray-100 text-gray-800' }, 'Prepaid')
 ),
                                     React.createElement('td', { className: 'px-6 py-4' },
-                                        // Enhanced assigned_to display logic
-                                        (() => {
-                                            // For pending approval orders
-                                            if (order.status === 'pending_approval') {
-                                                if (order.order_type === 'payment_post_service') {
-                                                    return React.createElement('div', null,
-                                                        React.createElement('div', { className: 'text-sm font-medium text-purple-600' }, 'Sales Head'),
-                                                        React.createElement('div', { className: 'text-xs text-gray-500' }, 'Awaiting Approval')
-                                                    );
-                                                } else {
-                                                    return React.createElement('div', null,
-                                                        React.createElement('div', { className: 'text-sm font-medium text-green-600' }, 'Finance Team'),
-                                                        React.createElement('div', { className: 'text-xs text-gray-500' }, 'Awaiting Approval')
-                                                    );
-                                                }
-                                            }
-                                            
-                                            // For assigned orders
-                                            if (order.assigned_to) {
-                                                return React.createElement('div', null,
-                                                    React.createElement('div', { className: 'text-sm font-medium text-blue-600' }, order.assigned_to),
-                                                    React.createElement('div', { className: 'text-xs text-gray-500' }, 'Service Team')
-                                                );
-                                            }
-                                            
-                                            // Default unassigned
-                                            return React.createElement('span', { className: 'text-sm text-gray-400' }, 'Unassigned');
-                                        })(),
+                                        order.assigned_to ? React.createElement('div', null,
+                                            React.createElement('div', { className: 'text-sm font-medium text-blue-600' }, order.assigned_to),
+                                            React.createElement('div', { className: 'text-xs text-gray-500' }, 'Service Team')
+                                        ) : React.createElement('span', { className: 'text-sm text-gray-400' }, 'Unassigned')
+                                    ),
                                     React.createElement('td', { className: 'px-6 py-4' },
                                         React.createElement('div', { className: 'flex flex-wrap gap-1' },
-                                            // View button - ALWAYS visible for ALL orders
-                                            React.createElement('button', {
-                                                key: 'view-always',
-                                                className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
-                                                onClick: () => openOrderDetail(order)
-                                            }, '��️ View'),
-                                            
-                                            // Edit button for users with write permission
-                                            hasPermission('orders', 'write') && React.createElement('button', {
-                                                key: 'edit',
-                                                className: 'text-gray-600 hover:text-gray-900 text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-50',
-                                                onClick: () => openEditOrderForm(order)
-                                            }, '✏️ Edit'),
-                                            
                                             // Finance approval buttons
                                             // REPLACE the Finance approval buttons section with this:
+// Finance approval buttons
 hasPermission('orders', 'approve') && order.status === 'pending_approval' && [
     // Show if this requires sales head approval
-    order.order_type === 'payment_post_service' && React.createElement('span', {
+    order.requires_sales_head_approval && React.createElement('span', {
         key: 'sales-head-label',
         className: 'px-2 py-1 text-xs rounded bg-purple-100 text-purple-800'
-    }, 'Sales Head Approval'),
+    }, 'Sales Head Approval Required'),
+    // Add this before the approval buttons
+    React.createElement('button', {
+        key: 'view',
+        className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
+        onClick: () => openOrderDetail(order)
+    }, '👁️ View'),
     React.createElement('button', {
         key: 'approve',
         className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
