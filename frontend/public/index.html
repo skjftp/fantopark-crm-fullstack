@@ -1255,7 +1255,6 @@ const renderOrderDetailModal = () => {
                 React.createElement('div', { className: 'flex justify-end space-x-2 mt-6' },
                     currentOrderDetail.status === 'pending_approval' && hasPermission('orders', 'approve') && [
                         React.createElement('button', {
-    React.createElement('button', {
                             key: 'approve',
                             className: 'bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700',
                             onClick: () => {
