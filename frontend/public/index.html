@@ -998,6 +998,8 @@ const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
     // Check if user can access a tab
     const canAccessTab = (tabId) => {
         if (!user) return false;
+        // My Actions is available to all logged-in users
+        if (tabId === 'myactions') return true;
         return hasPermission(tabId, 'read');
     };
 
