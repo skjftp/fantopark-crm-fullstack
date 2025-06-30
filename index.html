@@ -468,8 +468,7 @@ const calculateGST = (amount, isIntraState, gstRate = 18) => {
         // Haryana (intra-state): CGST + SGST
         const cgst = (amount * (gstRate / 2)) / 100;
         const sgst = (amount * (gstRate / 2)) / 100;
-        return { cgst, sgst, igst: 0 };
-    } else {
+        return { cgst, sgst, igst: 0 } } {
         // Inter-state: IGST
         const igst = (amount * gstRate) / 100;
         return { cgst: 0, sgst: 0, igst };
