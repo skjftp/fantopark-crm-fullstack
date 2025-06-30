@@ -3256,6 +3256,57 @@ const handleAssignLead = async (e) => {
                 lead.id === currentLead.id ? updatedLead : lead
             )
         );
+
+        // Create order after successful payment
+        const orderData = {
+            order_number: `ORD-${Date.now()}`,
+            lead_id: currentLead.id,
+            lead_name: currentLead.name || currentLead.client_name,
+            lead_email: currentLead.email || currentLead.client_email,
+            lead_phone: currentLead.phone || currentLead.client_phone,
+            
+            // Event details
+            event_name: paymentData.event_name || currentLead.event_name || '',
+            event_date: paymentData.event_date || currentLead.event_date || '',
+            
+            // Payment details
+            payment_type: 'prepaid',
+            payment_status: 'paid',
+            payment_received: true,
+            payment_date: new Date().toISOString(),
+            payment_method: paymentData.payment_method,
+            payment_reference: paymentData.payment_reference,
+            
+            // Financial details
+            total_amount: finalAmount,
+            base_amount: baseAmount,
+            cgst: gstCalculation.cgst,
+            sgst: gstCalculation.sgst,
+            igst: gstCalculation.igst,
+            gst_rate: gstRate,
+            
+            // Invoice details
+            invoice_items: paymentData.invoice_items,
+            type_of_sale: paymentData.type_of_sale,
+            
+            // Additional details
+            notes: paymentData.notes || '',
+            status: 'pending_approval',
+            created_date: new Date().toISOString(),
+            created_by: user?.name || 'System'
+        };
+
+        // Create order via API
+        const orderResponse = await apiCall('/orders', {
+            method: 'POST',
+            body: JSON.stringify(orderData)
+        });
+
+        // Update local orders state
+        setOrders(prev => [...prev, orderResponse.data]);
+
+        // Log for debugging
+        console.log('Order created:', orderResponse.data);
         
         // Update status using updateLeadStatus to ensure persistence
         await updateLeadStatus(currentLead.id, 'payment_received');
