@@ -2571,7 +2571,24 @@ const closeForm = () => {
     // For brevity, I'm including the main structure. The full implementation would include all the original functions
     // with permission checks added throughout.
 
-    const renderContent = () => {
+    
+    const renderMyActionsContent = () => {
+        return React.createElement('div', { className: 'space-y-6' },
+            React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'My Actions'),
+            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-6' },
+                React.createElement('p', { className: 'text-gray-600 dark:text-gray-400' }, 
+                    'Your pending actions based on your role will appear here.'
+                ),
+                React.createElement('ul', { className: 'mt-4 space-y-2' },
+                    React.createElement('li', null, '• Sales: Leads assigned to you'),
+                    React.createElement('li', null, '• Finance: Orders pending approval'),
+                    React.createElement('li', null, '• Supply: Orders needing delivery')
+                )
+            )
+        );
+    };
+
+const renderContent = () => {
         if (loading && activeTab !== 'leads') {
             return React.createElement('div', { className: 'flex items-center justify-center h-64' },
                 React.createElement('div', { className: 'text-gray-500' }, 'Loading...')
@@ -2609,6 +2626,8 @@ const closeForm = () => {
         React.createElement('div', { className: 'text-center py-12' },
             React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view delivery.')
         );
+            case 'myactions':
+                return renderMyActionsContent();
             default:
                 return renderDashboardContent();
         }
@@ -6545,7 +6564,48 @@ order.invoice_number && React.createElement('button', {
     );
 };
     // Main application layout
-    return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:bg-gray-900' },
+    
+    const renderHelpGuide = () => {
+        if (!showHelpGuide) return null;
+        
+        return React.createElement('div', { 
+            className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4',
+            onClick: () => setShowHelpGuide(false)
+        },
+            React.createElement('div', { 
+                className: 'bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full p-6',
+                onClick: (e) => e.stopPropagation()
+            },
+                React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+                    React.createElement('h2', { className: 'text-2xl font-bold text-gray-900 dark:text-white' }, 'How to Use FanToPark CRM'),
+                    React.createElement('button', {
+                        onClick: () => setShowHelpGuide(false),
+                        className: 'text-gray-500 hover:text-gray-700'
+                    }, '✕')
+                ),
+                React.createElement('div', { className: 'space-y-4 text-gray-700 dark:text-gray-300' },
+                    React.createElement('h3', { className: 'font-bold text-lg' }, 'Workflow Overview:'),
+                    React.createElement('ol', { className: 'list-decimal list-inside space-y-2' },
+                        React.createElement('li', null, 'Sales Team: Create and qualify leads (Hot/Warm/Cold)'),
+                        React.createElement('li', null, 'Sales Team: Convert qualified leads to orders'),
+                        React.createElement('li', null, 'Finance Team: Approve orders (or Sales Head for Payment Post Service)'),
+                        React.createElement('li', null, 'Supply Team: Schedule and manage deliveries'),
+                        React.createElement('li', null, 'Finance Team: Generate invoices and track payments')
+                    ),
+                    React.createElement('div', { className: 'mt-4 pt-4 border-t' },
+                        React.createElement('p', { className: 'font-medium' }, 'Quick Tips:'),
+                        React.createElement('ul', { className: 'list-disc list-inside mt-2 space-y-1 text-sm' },
+                            React.createElement('li', null, 'Use the dark mode toggle for comfortable viewing'),
+                            React.createElement('li', null, 'Check "My Actions" tab for your pending tasks'),
+                            React.createElement('li', null, 'All actions are logged and tracked automatically')
+                        )
+                    )
+                )
+            )
+        );
+    };
+
+return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:bg-gray-900' },
         renderSidebar(),
         React.createElement('div', { className: 'flex-1 flex flex-col overflow-hidden' },
             React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-6 py-4' },
@@ -6556,6 +6616,11 @@ order.invoice_number && React.createElement('button', {
                     ),
                     React.createElement('div', { className: 'flex items-center space-x-4' },
                         React.createElement('span', { className: 'text-lg' }, '🔔'),
+                        React.createElement('button', {
+                            onClick: () => setShowHelpGuide(true),
+                            className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
+                            title: 'How to use CRM'
+                        }, '❓'),
                         React.createElement('button', {
                             onClick: () => {
                                 setDarkMode(!darkMode);
@@ -6590,7 +6655,8 @@ order.invoice_number && React.createElement('button', {
 renderDeliveryForm(),
 renderOrderDetail(),
         renderEditOrderForm(),
-renderPaymentPostServiceForm()
+renderPaymentPostServiceForm(),
+        renderHelpGuide()
     );
 }
 
