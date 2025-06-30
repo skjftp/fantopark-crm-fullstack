@@ -1481,39 +1481,64 @@ const handleLogin = async (e) => {
         setShowUserForm(true);
     };
 
-    const handleUserSubmit = async (e) => {
+    
+    const fetchUsers = async () => {
+        try {
+            const response = await apiCall('/users');
+            if (response.data) {
+                setUsers(response.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch users:', error);
+        }
+    };
+
+const handleUserSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            if (currentUser) {
-                // Update existing user
-                setUsers(prev => 
-                    prev.map(u => 
-                        u.id === currentUser.id 
-                            ? { ...u, ...userFormData }
-                            : u
-                    )
-                );
-                alert('User updated successfully!');
-            } else {
-                // Create new user
-                const newUser = {
-                    id: Date.now(),
-                    ...userFormData,
-                    created_date: new Date().toISOString().split('T')[0]
-                };
-                setUsers(prev => [...prev, newUser]);
-                alert('User created successfully!');
+            const endpoint = currentUser ? `/users/${currentUser.id}` : '/users';
+            const method = currentUser ? 'PUT' : 'POST';
+            
+            // Prepare user data
+            const userData = { ...userFormData };
+            
+            // For updates, only include password if it was changed
+            if (currentUser && !userData.password) {
+                delete userData.password;
             }
+            
+            const response = await apiCall(endpoint, {
+                method: method,
+                body: JSON.stringify(userData)
+            });
 
-            setLoading(false);
-            closeUserForm();
+            if (response.data) {
+                if (currentUser) {
+                    // Update existing user in state
+                    setUsers(prev => 
+                        prev.map(u => 
+                            u.id === currentUser.id 
+                                ? response.data
+                                : u
+                        )
+                    );
+                    alert('User updated successfully!');
+                } else {
+                    // Add new user to state
+                    setUsers(prev => [...prev, response.data]);
+                    alert('User created successfully!');
+                }
+
+                // Refresh users list
+                fetchUsers();
+                closeUserForm();
+            }
         } catch (error) {
+            alert('Failed to save user: ' + error.message);
+        } finally {
             setLoading(false);
-            alert('Operation failed. Please try again.');
         }
     };
 
