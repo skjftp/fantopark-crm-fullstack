@@ -3231,12 +3231,9 @@ const handleAssignLead = async (e) => {
         const finalAmount = baseAmount + totalTax;
 
         // Update lead with payment details
-        setLeads(prev => 
-            prev.map(lead => 
-                lead.id === currentLead.id 
-                    ? { 
-                        ...lead, 
-                        payment_details: {
+        const updatedLead = {
+            ...currentLead,
+            payment_details: {
                             ...paymentData,
                             advance_amount: parseFloat(paymentData.advance_amount) || 0,
                             invoice_total: invoiceTotal,
@@ -3245,12 +3242,18 @@ const handleAssignLead = async (e) => {
                             total_tax: totalTax,
                             final_amount: finalAmount
                         },
-                        status: 'payment_received',
-                        payment_received_date: new Date().toISOString().split('T')[0]
-                    } 
-                    : lead
+            payment_received_date: new Date().toISOString().split('T')[0]
+        };
+        
+        // Update local state with payment details
+        setLeads(prev => 
+            prev.map(lead => 
+                lead.id === currentLead.id ? updatedLead : lead
             )
         );
+        
+        // Update status using updateLeadStatus to ensure persistence
+        await updateLeadStatus(currentLead.id, 'payment_received');
 
         // Create order for finance approval (if not post-service payment)
         if (!paymentData.payment_post_service) {
