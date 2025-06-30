@@ -2917,197 +2917,106 @@ const renderGSTInvoicePreview = () => {
     // Order approval with permission check
     // REPLACE your existing handleOrderApproval function with this:
 const handleOrderApproval = async (orderId, action) => {
-        if (!hasPermission('orders', 'approve')) {
-            alert('You do not have permission to approve/reject orders');
-            return;
-        }
-        
-        setLoading(true);
-        
-        try {
-            if (action === 'reject') {
-                // Ask for rejection reason
-                const reason = prompt('Please provide a reason for rejection:');
-                if (!reason) {
-                    setLoading(false);
-                    return;
-                }
-                
-                // Update order with rejection details
-                await apiCall(`/orders/${orderId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        status: 'rejected',
-                        rejection_reason: reason,
-                        rejected_date: new Date().toISOString(),
-                        rejected_by: user?.name || 'Admin'
-                    })
-                });
-                
-                // Update local state
-                setOrders(prev => prev.map(order => 
-                    order.id === orderId 
-                        ? { 
-                            ...order, 
-                            status: 'rejected',
-                            rejection_reason: reason,
-                            rejected_date: new Date().toISOString(),
-                            rejected_by: user?.name || 'Admin'
-                        }
-                        : order
-                ));
-                
-                alert('Order rejected successfully!');
-            } else {
-                // Original approval logic
-                await apiCall(`/orders/${orderId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        status: 'approved',
-                        approved_date: new Date().toISOString(),
-                        approved_by: user?.name || 'Admin'
-                    })
-                });
-                
-                setOrders(prev => prev.map(order => 
-                    order.id === orderId 
-                        ? { 
-                            ...order, 
-                            status: 'approved',
-                            approved_date: new Date().toISOString(),
-                            approved_by: user?.name || 'Admin'
-                        }
-                        : order
-                ));
-                
-                alert('Order approved successfully!');
-            }
-        } catch (error) {
-            alert('Failed to process order: ' + error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+   setLoading(true);
+   
+   try {
+       const order = orders.find(o => o.id === orderId);
+       
+       // If rejecting, ask for notes
+       let notes = '';
+       if (action === 'reject') {
+           notes = prompt('Please provide rejection reason:');
+           if (!notes) {
+               setLoading(false);
+               return;
+           }
+       }
+       
+       const newStatus = action === 'approve' ? 'approved' : 'rejected';
+       let invoiceNumber = null;
+       let invoiceId = null;
+       
+       // Generate GST invoice if approved
+       if (action === 'approve' && order.requires_gst_invoice) {
+           invoiceNumber = `STTS/INV/${new Date().getFullYear()}/${String(Date.now()).slice(-6)}`;
+           invoiceId = Date.now();
+           
+           const newInvoice = {
+               id: invoiceId,
+               invoice_number: invoiceNumber,
+               order_id: orderId,
+               order_number: order.order_number,
+               client_name: order.legal_name || order.client_name,
+               client_email: order.client_email,
+               
+               // GST Details
+               gstin: order.gstin,
+               legal_name: order.legal_name,
+               category_of_sale: order.category_of_sale,
+               type_of_sale: order.type_of_sale,
+               registered_address: order.registered_address,
+               indian_state: order.indian_state,
+               is_outside_india: order.is_outside_india,
+               
+               // Invoice calculation
+               invoice_items: order.invoice_items,
+               base_amount: order.base_amount,
+               gst_calculation: order.gst_calculation,
+               total_tax: order.total_tax,
+               final_amount: order.final_amount,
+               
+               invoice_date: new Date().toISOString().split('T')[0],
+               due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+               status: 'generated',
+               generated_by: user.name
+           };
+           
+           setInvoices(prev => [...prev, newInvoice]);
+       }
+       
+       // Update order in backend with all necessary fields including invoice info
+       const updateData = {
+           status: newStatus,
+           approved_date: new Date().toISOString().split('T')[0],
+           approval_notes: notes,
+           approved_by: user.name
+       };
+       
+       // Add invoice fields if invoice was generated
+       if (invoiceNumber && invoiceId) {
+           updateData.invoice_number = invoiceNumber;
+           updateData.invoice_id = invoiceId;
+       }
+       
+       // Send update to backend
+       await apiCall(`/orders/${orderId}`, {
+           method: 'PUT',
+           body: JSON.stringify(updateData)
+       });
+       
+       // Update local state
+       setOrders(prev => 
+           prev.map(order => {
+               if (order.id === orderId) {
+                   return { 
+                       ...order, 
+                       ...updateData
+                   };
+               }
+               return order;
+           })
+       );
 
-    // Edit order functionality
-    const openEditOrderForm = (order) => {
-        if (!hasPermission('orders', 'write')) {
-            alert('You do not have permission to edit orders');
-            return;
-        }
-        
-        setCurrentOrderForEdit(order);
-        setOrderEditData({
-            ...order,
-            status: lead.status,
-            rejection_reason: order.rejection_reason || ''
-        });
-        setShowEditOrderForm(true);
-    };
-
-    const handleOrderEditSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        
-        try {
-            if (currentOrderForEdit.status === 'rejected' && orderEditData.status !== 'rejected') {
-                orderEditData.rejection_reason = null;
-                orderEditData.rejected_date = null;
-                orderEditData.rejected_by = null;
-            }
-            
-            const response = await apiCall(`/orders/${currentOrderForEdit.id}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    ...orderEditData,
-                    modified_date: new Date().toISOString(),
-                    modified_by: user?.name || 'Admin'
-                })
-            });
-            
-            setOrders(prev => prev.map(order => 
-                order.id === currentOrderForEdit.id ? response.data : order
-            ));
-            
-            alert('Order updated successfully!');
-            setShowEditOrderForm(false);
-            setCurrentOrderForEdit(null);
-            setOrderEditData({});
-        } catch (error) {
-            alert('Failed to update order: ' + error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-
-    // Service assignment with permission check
-    const assignOrderToService = async (orderId, servicePerson) => {
-    if (!hasPermission('orders', 'assign')) {
-        alert('You do not have permission to assign orders');
-        return;
-    }
-    
-    setLoading(true);
-    
-    try {
-            if (action === 'reject') {
-                // Ask for rejection reason
-                const reason = prompt('Please provide a reason for rejection:');
-                if (!reason) {
-                    setLoading(false);
-                    return;
-                }
-                
-                // Update order with rejection details
-                await apiCall(`/orders/${orderId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        status: 'rejected',
-                        rejection_reason: reason,
-                        rejected_date: new Date().toISOString(),
-                        rejected_by: user?.name || 'Admin'
-                    })
-                });
-                
-                // Update local state
-                setOrders(prev => prev.map(order => 
-                    order.id === orderId 
-                        ? { 
-                            ...order, 
-                            status: 'rejected',
-                            rejection_reason: reason,
-                            rejected_date: new Date().toISOString(),
-                            rejected_by: user?.name || 'Admin'
-                        }
-                        : order
-                ));
-                
-                alert('Order rejected successfully!');
-            } else {
-                // Original approval logic
-                await apiCall(`/orders/${orderId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        status: action === 'approve' ? 'approved' : 'rejected',
-                        [`${action}d_date`]: new Date().toISOString(),
-                        [`${action}d_by`]: user?.name || 'Admin'
-                    })
-                });
-                
-                setOrders(prev => prev.map(order => 
-                    order.id === orderId 
-                        ? { ...order, status: action === 'approve' ? 'approved' : 'rejected' }
-                        : order
-                ));
-                
-                alert(`Order ${action}d successfully!`);
-            }
-            
-            setLoading(false);} catch (error) {
-        setLoading(false);
-        alert('Failed to assign order');
-    }
+       setLoading(false);
+       alert(action === 'approve' 
+           ? 'Order approved successfully! GST Invoice has been generated.' 
+           : 'Order rejected successfully.'
+       );
+   } catch (error) {
+       console.error('Order approval error:', error);
+       setLoading(false);
+       alert('Failed to update order status');
+   }
 };
 
 const handleFormSubmit = async (e) => {
