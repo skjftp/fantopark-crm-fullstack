@@ -12,7 +12,7 @@
     <!-- API Configuration -->
     <script>
         // Configure API endpoint
-        const API_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname.includes("8000")) ? "http://localhost:8080/api" : "https://fantopark-backend-150582227311.us-central1.run.app/api";
+        const API_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname.includes("8000") ? "http://localhost:8080/api" : "https://fantopark-backend-150582227311.us-central1.run.app/api";
         // Get stored auth token
         let authToken = localStorage.getItem('crm_auth_token');
         
@@ -466,8 +466,8 @@ const FINANCE_TEAM = ['Finance Manager', 'Accounts Head'];
 const calculateGST = (amount, isIntraState, gstRate = 18) => {
     if (isIntraState) {
         // Haryana (intra-state): CGST + SGST
-        const cgst = (amount * (gstRate / 2)) / 100;
-        const sgst = (amount * (gstRate / 2)) / 100;
+        const cgst = (amount * (gstRate / 2) / 100;
+        const sgst = (amount * (gstRate / 2) / 100;
         return { cgst, sgst, igst: 0 };
     } else {
         // Inter-state: IGST
@@ -513,10 +513,10 @@ const fetchData = async () => {
     
     try {
         const [leadsData, inventoryData, ordersData, invoicesData] = await Promise.all([
-            apiCall('/leads').catch(() => ({ data: [] })),
-            apiCall('/inventory').catch(() => ({ data: [] })),
-            apiCall('/orders').catch(() => ({ data: [] })),
-            apiCall('/invoices').catch(() => ({ data: [] }))
+            apiCall('/leads').catch(() => ({ data: [] }),
+            apiCall('/inventory').catch(() => ({ data: [] }),
+            apiCall('/orders').catch(() => ({ data: [] }),
+            apiCall('/invoices').catch(() => ({ data: [] })
         ]);
         
         setLeads(leadsData.data || []);
@@ -762,7 +762,7 @@ const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
     }, [darkMode]);
     // Chart initialization
 useEffect(() => {
-    if (isLoggedIn && hasPermission('finance', 'read')) {
+    if (isLoggedIn && hasPermission('finance', 'read') {
         const chartElement = document.getElementById('receivablesPieChart');
         if (chartElement && receivables.filter(r => r.status === 'pending').length > 0) {
             const ctx = chartElement.getContext('2d');
@@ -825,7 +825,7 @@ useEffect(() => {
 
     useEffect(() => {
     try {
-        localStorage.setItem('crm_deliveries', JSON.stringify(deliveries));
+        localStorage.setItem('crm_deliveries', JSON.stringify(deliveries);
     } catch (e) {
         console.log('Failed to save deliveries:', e);
     }
@@ -833,7 +833,7 @@ useEffect(() => {
 
 useEffect(() => {
     try {
-        localStorage.setItem('crm_receivables', JSON.stringify(receivables));
+        localStorage.setItem('crm_receivables', JSON.stringify(receivables);
     } catch (e) {
         console.log('Failed to save receivables:', e);
     }
@@ -841,7 +841,7 @@ useEffect(() => {
 
 useEffect(() => {
     try {
-        localStorage.setItem('crm_email_notifications', JSON.stringify(emailNotifications));
+        localStorage.setItem('crm_email_notifications', JSON.stringify(emailNotifications);
     } catch (e) {
         console.log('Failed to save notifications:', e);
     }
@@ -856,7 +856,7 @@ const getInventoryDueInDays = (eventDate) => {
     const today = new Date();
     const event = new Date(eventDate);
     const diffTime = event - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24);
     return diffDays;
 };
 
@@ -867,7 +867,7 @@ const calculateDashboardStats = () => {
     ).length;
     
     const thisMonthRevenue = orders
-        .filter(order => order.status === 'completed' && (order.payment_received !== false))
+        .filter(order => order.status === 'completed' && (order.payment_received !== false)
         .reduce((sum, order) => sum + (order.total_amount || 0), 0);
     
     const pendingDeliveries = orders.filter(order => !order.is_deleted && order.status !== "deleted" && 
@@ -875,7 +875,7 @@ const calculateDashboardStats = () => {
     ).length;
     
     const inventoryValue = inventory.reduce((sum, item) => 
-        sum + ((item.selling_price || 0) * (item.available_tickets || 0)), 0);
+        sum + ((item.selling_price || 0) * (item.available_tickets || 0), 0);
     
     // Calculate receivables
     const totalReceivables = receivables
@@ -915,7 +915,7 @@ const handleLogin = async (e) => {
         if (response.token && response.user) {
             authToken = response.token;
             localStorage.setItem('crm_auth_token', response.token);
-            localStorage.setItem('crm_user', JSON.stringify(response.user));
+            localStorage.setItem('crm_user', JSON.stringify(response.user);
             setUser(response.user);
             setIsLoggedIn(true);
             setEmail('');
@@ -945,7 +945,7 @@ const handleLogin = async (e) => {
 
     // User Management Functions
     const openUserManagement = () => {
-        if (!hasPermission('users', 'read')) {
+        if (!hasPermission('users', 'read') {
             alert('You do not have permission to access user management');
             return;
         }
@@ -953,11 +953,11 @@ const handleLogin = async (e) => {
     };
 
     const openUserForm = (editUser = null) => {
-        if (editUser && !hasPermission('users', 'write')) {
+        if (editUser && !hasPermission('users', 'write') {
             alert('You do not have permission to edit users');
             return;
         }
-        if (!editUser && !hasPermission('users', 'write')) {
+        if (!editUser && !hasPermission('users', 'write') {
             alert('You do not have permission to create users');
             return;
         }
@@ -979,7 +979,7 @@ const handleLogin = async (e) => {
         setLoading(true);
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 1000);
 
             if (currentUser) {
                 // Update existing user
@@ -1020,17 +1020,17 @@ setCurrentOrderDetail(null);
     };
 
     const handleDeleteUser = async (userId, userName) => {
-        if (!hasPermission('users', 'delete')) {
+        if (!hasPermission('users', 'delete') {
             alert('You do not have permission to delete users');
             return;
         }
         
-        if (!confirm(`Are you sure you want to delete user ${userName}?`)) return;
+        if (!confirm(`Are you sure you want to delete user ${userName}?`) return;
 
         setLoading(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            setUsers(prev => prev.filter(u => u.id !== userId));
+            await new Promise(resolve => setTimeout(resolve, 500);
+            setUsers(prev => prev.filter(u => u.id !== userId);
             setLoading(false);
             alert(`User ${userName} deleted successfully!`);
         } catch (error) {
@@ -1041,7 +1041,7 @@ setCurrentOrderDetail(null);
 
     // Status update function with permission check
    const updateLeadStatus = async (leadId, newStatus) => {
-    if (!hasPermission('leads', 'progress')) {
+    if (!hasPermission('leads', 'progress') {
         alert('You do not have permission to progress leads');
         return;
     }
@@ -1082,7 +1082,7 @@ setCurrentOrderDetail(null);
 
     // Enhanced lead progression function with permission check
     const handleLeadProgression = (lead) => {
-    if (!hasPermission('leads', 'progress')) {
+    if (!hasPermission('leads', 'progress') {
         alert('You do not have permission to progress leads');
         return;
     }
@@ -1114,7 +1114,7 @@ setCurrentOrderDetail(null);
         }
     } else {
         // Handle special case for converted status with payment options
-        if (currentStatus === 'converted' && nextOptions.includes('payment') && nextOptions.includes('payment_post_service')) {
+        if (currentStatus === 'converted' && nextOptions.includes('payment') && nextOptions.includes('payment_post_service') {
             setCurrentLeadForChoice(lead);
             setChoiceOptions([
                 { value: 'payment', label: 'Collect Payment Now', icon: '💳' },
@@ -1157,7 +1157,7 @@ setCurrentOrderDetail(null);
 
     // Form handlers with permission checks
     const openAddForm = (type) => {
-        if (!hasPermission(type === 'lead' ? 'leads' : (type === 'order' ? 'orders' : type), 'write')) {
+        if (!hasPermission(type === 'lead' ? 'leads' : (type === 'order' ? 'orders' : type), 'write') {
             alert(`You do not have permission to create ${type}s`);
             return;
         }
@@ -1167,7 +1167,7 @@ setCurrentOrderDetail(null);
     };
 
     const openEditForm = (lead) => {
-        if (!hasPermission('leads', 'write')) {
+        if (!hasPermission('leads', 'write') {
             alert('You do not have permission to edit leads');
             return;
         }
@@ -1177,7 +1177,7 @@ setCurrentOrderDetail(null);
     };
 
     const openAssignForm = (lead) => {
-        if (!hasPermission('leads', 'assign')) {
+        if (!hasPermission('leads', 'assign') {
             alert('You do not have permission to assign leads');
             return;
         }
@@ -1187,7 +1187,7 @@ setCurrentOrderDetail(null);
     };
 
     const openPaymentForm = (lead) => {
-    if (!hasPermission('leads', 'write')) {
+    if (!hasPermission('leads', 'write') {
         alert('You do not have permission to manage payments');
         return;
     }
@@ -1232,7 +1232,7 @@ setCurrentOrderDetail(null);
     };
 
     const openAllocationForm = (inventoryItem) => {
-        if (!hasPermission('inventory', 'allocate')) {
+        if (!hasPermission('inventory', 'allocate') {
             alert('You do not have permission to allocate inventory');
             return;
         }
@@ -1247,7 +1247,7 @@ setCurrentOrderDetail(null);
     };
 
     const openEditInventoryForm = (inventoryItem) => {
-        if (!hasPermission('inventory', 'write')) {
+        if (!hasPermission('inventory', 'write') {
             alert('You do not have permission to edit inventory');
             return;
         }
@@ -1256,7 +1256,7 @@ setCurrentOrderDetail(null);
         setShowEditInventoryForm(true);
     };
     const openDeliveryForm = (delivery) => {
-    if (!hasPermission('delivery', 'write')) {
+    if (!hasPermission('delivery', 'write') {
         alert('You do not have permission to manage deliveries');
         return;
     }
@@ -1278,7 +1278,7 @@ setCurrentOrderDetail(null);
 };
 
 const openPaymentPostServiceForm = (lead) => {
-    if (!hasPermission('leads', 'write')) {
+    if (!hasPermission('leads', 'write') {
         alert('You do not have permission to manage payment post service');
         return;
     }
@@ -1296,13 +1296,13 @@ const openPaymentPostServiceForm = (lead) => {
 };
 
 const handlePaymentPostServiceInputChange = (field, value) => {
-    setPaymentPostServiceData(prev => ({ ...prev, [field]: value }));
+    setPaymentPostServiceData(prev => ({ ...prev, [field]: value });
 };
 
 const handlePaymentPostServiceSubmit = async (e) => {
     e.preventDefault();
     
-    if (!hasPermission('leads', 'write')) {
+    if (!hasPermission('leads', 'write') {
         alert('You do not have permission to manage payment post service');
         return;
     }
@@ -1398,7 +1398,7 @@ const sendEmailNotification = (notification) => {
 
 const handleDeliverySubmit = async (e) => {
     e.preventDefault();
-    if (!hasPermission('delivery', 'write')) {
+    if (!hasPermission('delivery', 'write') {
         alert('You do not have permission to manage deliveries');
         return;
     }
@@ -1406,7 +1406,7 @@ const handleDeliverySubmit = async (e) => {
     setLoading(true);
 
     try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1000);
 
         setDeliveries(prev => 
             prev.map(delivery => 
@@ -1457,22 +1457,22 @@ const closeForm = () => {
 };
 
     const handleInputChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        setFormData(prev => ({ ...prev, [field]: value });
     };
 
     const handleUserInputChange = (field, value) => {
-        setUserFormData(prev => ({ ...prev, [field]: value }));
+        setUserFormData(prev => ({ ...prev, [field]: value });
     };
 
     const handlePaymentInputChange = (field, value) => {
-        setPaymentData(prev => ({ ...prev, [field]: value }));
+        setPaymentData(prev => ({ ...prev, [field]: value });
     };
 
     const handleAllocationInputChange = (field, value) => {
-        setAllocationData(prev => ({ ...prev, [field]: value }));
+        setAllocationData(prev => ({ ...prev, [field]: value });
     };
     const handleDeliveryInputChange = (field, value) => {
-    setDeliveryFormData(prev => ({ ...prev, [field]: value }));
+    setDeliveryFormData(prev => ({ ...prev, [field]: value });
 };
 
     // Delete function with permission check
@@ -1484,12 +1484,12 @@ const closeForm = () => {
             'orders': 'orders'
         };
         
-        if (!hasPermission(modulePermissions[type], 'delete')) {
+        if (!hasPermission(modulePermissions[type], 'delete') {
             alert(`You do not have permission to delete ${type}`);
             return;
         }
 
-        if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+        if (!confirm(`Are you sure you want to delete ${name}?`) return;
 
         setLoading(true);
         try {
@@ -1504,7 +1504,7 @@ const closeForm = () => {
                     });
                     
                     // If successful, remove from local state
-                    setOrders(prev => prev.filter(order => order.id !== id));
+                    setOrders(prev => prev.filter(order => order.id !== id);
                     
                     setLoading(false);
                     alert('Order deleted successfully!');
@@ -1513,7 +1513,7 @@ const closeForm = () => {
                     console.log("Delete error details:", deleteError.message, deleteError.status);
                     
                     // If backend doesn't support DELETE, mark as deleted instead
-                    if (deleteError.message && (deleteError.message.includes('404') || deleteError.message.includes('405'))) {
+                    if (deleteError.message && (deleteError.message.includes('404') || deleteError.message.includes('405')) {
                         console.log("Backend doesn't support DELETE, marking as deleted");
                         try {
                             await apiCall(`/orders/${id}`, {
@@ -1527,7 +1527,7 @@ const closeForm = () => {
                             });
                             
                             // Remove from local view
-                            setOrders(prev => prev.filter(order => order.id !== id));
+                            setOrders(prev => prev.filter(order => order.id !== id);
                             alert('Order marked as deleted successfully!');
                             return;
                         } catch (putError) {
@@ -1535,7 +1535,7 @@ const closeForm = () => {
                         }
                     }
                     // If DELETE not supported, remove locally with warning
-                    setOrders(prev => prev.filter(order => order.id !== id));
+                    setOrders(prev => prev.filter(order => order.id !== id);
                     setLoading(false);
                     alert('Order removed. Note: This may reappear on refresh if server delete is not supported.');
                 }setLoading(false);
@@ -1551,10 +1551,10 @@ const closeForm = () => {
                     // If successful, update local state
                     switch (type) {
                         case 'leads':
-                            setLeads(prev => prev.filter(item => item.id !== id));
+                            setLeads(prev => prev.filter(item => item.id !== id);
                             break;
                         case 'inventory':
-                            setInventory(prev => prev.filter(item => item.id !== id));
+                            setInventory(prev => prev.filter(item => item.id !== id);
                             break;
                     }
                     
@@ -1564,10 +1564,10 @@ const closeForm = () => {
                     // If DELETE fails, just remove from local state with warning
                     switch (type) {
                         case 'leads':
-                            setLeads(prev => prev.filter(item => item.id !== id));
+                            setLeads(prev => prev.filter(item => item.id !== id);
                             break;
                         case 'inventory':
-                            setInventory(prev => prev.filter(item => item.id !== id));
+                            setInventory(prev => prev.filter(item => item.id !== id);
                             break;
                     }
                     
@@ -1640,7 +1640,7 @@ const closeForm = () => {
                                                 className: `px-2 py-1 text-xs rounded ${
                                                     user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                                 }`
-                                            }, user.status.charAt(0).toUpperCase() + user.status.slice(1))
+                                            }, user.status.charAt(0).toUpperCase() + user.status.slice(1)
                                         ),
                                         React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, 
                                             new Date(user.created_date).toLocaleDateString()
@@ -1770,7 +1770,7 @@ const closeForm = () => {
                             type: 'submit',
                             disabled: loading,
                             className: 'flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50'
-                        }, loading ? 'Saving...' : (currentUser ? 'Update User' : 'Create User'))
+                        }, loading ? 'Saving...' : (currentUser ? 'Update User' : 'Create User')
                     )
                 )
             )
@@ -1870,7 +1870,7 @@ const closeForm = () => {
                 )
             ),
             React.createElement('nav', { className: 'mt-8' },
-                menuItems.filter(item => canAccessTab(item.id)).map(item =>
+                menuItems.filter(item => canAccessTab(item.id).map(item =>
                     React.createElement('button', {
                         key: item.id,
                         onClick: () => setActiveTab(item.id),
@@ -1943,7 +1943,7 @@ const closeForm = () => {
             hasPermission('finance', 'read') && React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow border' },
                 React.createElement('div', null,
                     React.createElement('p', { className: 'text-sm font-medium text-gray-600' }, 'This Month Revenue'),
-                    React.createElement('p', { className: 'text-2xl font-bold text-gray-900' }, '₹' + dashboardStats.thisMonthRevenue.toLocaleString())
+                    React.createElement('p', { className: 'text-2xl font-bold text-gray-900' }, '₹' + dashboardStats.thisMonthRevenue.toLocaleString()
                 )
             ),
             React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow border' },
@@ -1965,7 +1965,7 @@ const closeForm = () => {
             hasPermission('finance', 'read') && React.createElement('div', { className: 'bg-purple-50 p-6 rounded-lg shadow border border-purple-200' },
                 React.createElement('div', null,
                     React.createElement('p', { className: 'text-sm font-medium text-purple-700' }, 'Total Receivables'),
-                    React.createElement('p', { className: 'text-2xl font-bold text-purple-900' }, '₹' + (dashboardStats.totalReceivables || 0).toLocaleString()),
+                    React.createElement('p', { className: 'text-2xl font-bold text-purple-900' }, '₹' + (dashboardStats.totalReceivables || 0).toLocaleString(),
                     dashboardStats.overdueReceivables > 0 && React.createElement('p', { className: 'text-xs text-red-600 mt-1' }, 
                         'Overdue: ₹' + dashboardStats.overdueReceivables.toLocaleString()
                     )
@@ -1980,13 +1980,13 @@ const closeForm = () => {
             React.createElement('div', { className: 'space-y-3' },
                 receivables
                     .filter(r => r.status === 'pending')
-                    .sort((a, b) => new Date(a.expected_payment_date) - new Date(b.expected_payment_date))
+                    .sort((a, b) => new Date(a.expected_payment_date) - new Date(b.expected_payment_date)
                     .slice(0, 5)
                     .map(receivable => {
                         const dueDate = new Date(receivable.expected_payment_date);
                         const today = new Date();
                         const isOverdue = dueDate < today;
-                        const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                        const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24);
                         
                         return React.createElement('div', { 
                             key: receivable.id, 
@@ -2229,7 +2229,7 @@ const closeForm = () => {
     // Enhanced allocation handling with permission check
     const handleAllocation = async (e) => {
         e.preventDefault();
-        if (!hasPermission('inventory', 'allocate')) {
+        if (!hasPermission('inventory', 'allocate') {
             alert('You do not have permission to allocate inventory');
             return;
         }
@@ -2237,7 +2237,7 @@ const closeForm = () => {
         setLoading(true);
 
         try {
-            const selectedLead = leads.find(lead => lead.id === parseInt(allocationData.lead_id));
+            const selectedLead = leads.find(lead => lead.id === parseInt(allocationData.lead_id);
             
             if (!selectedLead) {
                 throw new Error('Lead not found');
@@ -2318,7 +2318,7 @@ const closeForm = () => {
 
     // ADD this enhanced order approval function
 const handleEnhancedOrderApproval = async (orderId, action, notes = '') => {
-    if (!hasPermission('orders', 'approve')) {
+    if (!hasPermission('orders', 'approve') {
         alert('You do not have permission to approve orders');
         return;
     }
@@ -2341,7 +2341,7 @@ const handleEnhancedOrderApproval = async (orderId, action, notes = '') => {
                     
                     // Generate GST invoice if approved
                     if (action === 'approve' && order.requires_gst_invoice) {
-                        const invoiceNumber = `STTS/INV/${new Date().getFullYear()}/${String(Date.now()).slice(-6)}`;
+                        const invoiceNumber = `STTS/INV/${new Date().getFullYear()}/${String(Date.now().slice(-6)}`;
                         
                         const newInvoice = {
                             id: Date.now(),
@@ -2662,14 +2662,14 @@ const renderGSTInvoicePreview = () => {
                             React.createElement('tr', { key: index },
                                 React.createElement('td', null, item.description),
                                 React.createElement('td', { style: { textAlign: 'center' }}, item.quantity),
-                                React.createElement('td', { style: { textAlign: 'center' }}, formatCurrency(item.rate)),
-                                React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(item.quantity * item.rate))
+                                React.createElement('td', { style: { textAlign: 'center' }}, formatCurrency(item.rate),
+                                React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(item.quantity * item.rate)
                             )
                         ),
                         // Service Charge row for Service Fee type
                         invoice.type_of_sale === 'Service Fee' && invoice.base_amount > 0 && React.createElement('tr', null,
                             React.createElement('td', { colSpan: 3, style: { textAlign: 'right', fontWeight: 'bold' }}, 'Service Charge'),
-                            React.createElement('td', { style: { textAlign: 'right', fontWeight: 'bold' }}, formatCurrency(invoice.base_amount))
+                            React.createElement('td', { style: { textAlign: 'right', fontWeight: 'bold' }}, formatCurrency(invoice.base_amount)
                         )
                     )
                 ),
@@ -2685,17 +2685,17 @@ const renderGSTInvoicePreview = () => {
     React.createElement('tr', { key: 'cgst' },
         React.createElement('td', null, invoice.type_of_sale === 'Service Fee' ? 'CGST on Service Charge' : 'CGST'),
         React.createElement('td', { style: { textAlign: 'center' }}, invoice.type_of_sale === 'Tour' ? '2.50%' : '9.00%'),
-        React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(invoice.gst_calculation?.cgst || 0))
+        React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(invoice.gst_calculation?.cgst || 0)
     ),
     React.createElement('tr', { key: 'sgst' },
         React.createElement('td', null, invoice.type_of_sale === 'Service Fee' ? 'SGST on Service Charge' : 'SGST'),
         React.createElement('td', { style: { textAlign: 'center' }}, invoice.type_of_sale === 'Tour' ? '2.50%' : '9.00%'),
-        React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(invoice.gst_calculation?.sgst || 0))
+        React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(invoice.gst_calculation?.sgst || 0)
     )
 ] : React.createElement('tr', null,
     React.createElement('td', null, invoice.type_of_sale === 'Service Fee' ? 'IGST on Service Charge' : 'IGST'),
     React.createElement('td', { style: { textAlign: 'center' }}, invoice.type_of_sale === 'Tour' ? '5.00%' : '18.00%'),
-    React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(invoice.gst_calculation?.igst || 0))
+    React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(invoice.gst_calculation?.igst || 0)
 ),
                     React.createElement('tr', null,
                         React.createElement('td', null, 'TCS'),
@@ -2705,7 +2705,7 @@ const renderGSTInvoicePreview = () => {
                     React.createElement('tr', { style: { fontWeight: 'bold' }},
                         React.createElement('td', null, 'Grand Total'),
                         React.createElement('td', null),
-                        React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(invoice.final_amount || 0))
+                        React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(invoice.final_amount || 0)
                     ),
                     React.createElement('tr', null,
                         React.createElement('td', null, 'Round-off'),
@@ -2715,7 +2715,7 @@ const renderGSTInvoicePreview = () => {
                     React.createElement('tr', { style: { fontWeight: 'bold' }},
                         React.createElement('td', null, 'Invoice Value'),
                         React.createElement('td', null),
-                        React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(invoice.final_amount || 0))
+                        React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(invoice.final_amount || 0)
                     )
                 ),
                 
@@ -2746,7 +2746,7 @@ const renderGSTInvoicePreview = () => {
                         React.createElement('h4', { style: { color: '#2c3e50', marginBottom: '6px', borderBottom: '1px solid #2c3e50', paddingBottom: '2px', textAlign: 'center', fontSize: '9px' }}, 'Company Information'),
                         React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }},
                             React.createElement('div', { style: { fontSize: '8px', lineHeight: '1.1' }},
-                                React.createElement('div', null, React.createElement('strong', null, 'FanToPark')),
+                                React.createElement('div', null, React.createElement('strong', null, 'FanToPark'),
                                 React.createElement('div', null, 'F2P Sports Pvt Ltd.'),
                                 React.createElement('div', null, 'Gurgaon, Haryana, India'),
                                 React.createElement('div', { style: { marginTop: '3px' }}, React.createElement('strong', null, 'Email:'), ' info@fantopark.com'),
@@ -2774,7 +2774,7 @@ const renderGSTInvoicePreview = () => {
     // Order approval with permission check
     // REPLACE your existing handleOrderApproval function with this:
 const handleOrderApproval = async (orderId, action) => {
-        if (!hasPermission('orders', 'approve')) {
+        if (!hasPermission('orders', 'approve') {
             alert('You do not have permission to approve/reject orders');
             return;
         }
@@ -2817,7 +2817,7 @@ const handleOrderApproval = async (orderId, action) => {
                 // Update local state
                 setOrders(prev => prev.map(order => 
                     order.id === orderId ? response.data : order
-                ));
+                );
                 
                 alert('Order rejected successfully!');
             } else {
@@ -2840,13 +2840,13 @@ const handleOrderApproval = async (orderId, action) => {
                 
                 setOrders(prev => prev.map(order => 
                     order.id === orderId ? response.data : order
-                ));
+                );
                 
                 alert('Order approved successfully!');
             }
         } catch (error) {
             console.error('Order approval error:', error);
-            alert('Failed to process order: ' + (error.response?.data?.message || error.message));
+            alert('Failed to process order: ' + (error.response?.data?.message || error.message);
         } finally {
             setLoading(false);
         }
@@ -2854,7 +2854,7 @@ const handleOrderApproval = async (orderId, action) => {
 
     // Edit order functionality
     const openEditOrderForm = (order) => {
-        if (!hasPermission('orders', 'write')) {
+        if (!hasPermission('orders', 'write') {
             alert('You do not have permission to edit orders');
             return;
         }
@@ -2890,7 +2890,7 @@ const handleOrderApproval = async (orderId, action) => {
             
             setOrders(prev => prev.map(order => 
                 order.id === currentOrderForEdit.id ? response.data : order
-            ));
+            );
             
             alert('Order updated successfully!');
             setShowEditOrderForm(false);
@@ -2906,7 +2906,7 @@ const handleOrderApproval = async (orderId, action) => {
 
     // Service assignment with permission check
     const assignOrderToService = async (orderId, servicePerson) => {
-    if (!hasPermission('orders', 'assign')) {
+    if (!hasPermission('orders', 'assign') {
         alert('You do not have permission to assign orders');
         return;
     }
@@ -2944,7 +2944,7 @@ const handleOrderApproval = async (orderId, action) => {
                             rejected_by: user?.name || 'Admin'
                         }
                         : order
-                ));
+                );
                 
                 alert('Order rejected successfully!');
             } else {
@@ -2962,7 +2962,7 @@ const handleOrderApproval = async (orderId, action) => {
                     order.id === orderId 
                         ? { ...order, status: action === 'approve' ? 'approved' : 'rejected' }
                         : order
-                ));
+                );
                 
                 alert(`Order ${action}d successfully!`);
             }
@@ -2986,7 +2986,7 @@ const handleFormSubmit = async (e) => {
             });
             setLeads(prev => prev.map(lead => 
                 lead.id === currentLead.id ? response.data : lead
-            ));
+            );
             alert('Lead updated successfully!');
             
         } else if (showEditInventoryForm) {
@@ -2997,7 +2997,7 @@ const handleFormSubmit = async (e) => {
             });
             setInventory(prev => prev.map(item => 
                 item.id === currentInventory.id ? response.data : item
-            ));
+            );
             alert('Inventory updated successfully!');
             
         } else {
@@ -3058,11 +3058,11 @@ const handleFormSubmit = async (e) => {
 };
 
         const handleDeleteLead = async (leadId) => {
-    if (!confirm('Are you sure you want to delete this lead?')) return;
+    if (!confirm('Are you sure you want to delete this lead?') return;
     
     try {
         await apiCall(`/leads/${leadId}`, { method: 'DELETE' });
-        setLeads(prev => prev.filter(lead => lead.id !== leadId));
+        setLeads(prev => prev.filter(lead => lead.id !== leadId);
         alert('Lead deleted successfully!');
     } catch (error) {
         alert('Failed to delete lead: ' + error.message);
@@ -3070,11 +3070,11 @@ const handleFormSubmit = async (e) => {
 };
 
 const handleDeleteInventory = async (inventoryId) => {
-    if (!confirm('Are you sure you want to delete this event?')) return;
+    if (!confirm('Are you sure you want to delete this event?') return;
     
     try {
         await apiCall(`/inventory/${inventoryId}`, { method: 'DELETE' });
-        setInventory(prev => prev.filter(item => item.id !== inventoryId));
+        setInventory(prev => prev.filter(item => item.id !== inventoryId);
         alert('Event deleted successfully!');
     } catch (error) {
         alert('Failed to delete event: ' + error.message);
@@ -3098,7 +3098,7 @@ const handleAssignLead = async (e) => {
         
         setLeads(prev => prev.map(lead => 
             lead.id === currentLead.id ? response.data : lead
-        ));
+        );
         
         // Update currentLead if viewing the assigned lead
         if (showLeadDetail && currentLead?.id === response.data.id) {
@@ -3123,7 +3123,7 @@ const handleAssignLead = async (e) => {
     console.log('GST Certificate:', paymentData.gst_certificate);
     console.log('PAN Card:', paymentData.pan_card);
     
-    if (!hasPermission('leads', 'write')) {
+    if (!hasPermission('leads', 'write') {
         alert('You do not have permission to manage payments');
         return;
     }
@@ -3131,7 +3131,7 @@ const handleAssignLead = async (e) => {
     setLoading(true);
 
     try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1000);
 
         // Check if this is a post-service payment
         if (paymentData.payment_post_service && paymentData.receivable_id) {
@@ -3398,7 +3398,7 @@ const handleAssignLead = async (e) => {
                             type: 'submit',
                             disabled: loading,
                             className: 'flex-1 bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium'
-                        }, loading ? 'Saving...' : (showEditForm || showEditInventoryForm ? 'Update' : 'Create'))
+                        }, loading ? 'Saving...' : (showEditForm || showEditInventoryForm ? 'Update' : 'Create')
                     )
                 )
             )
@@ -4135,7 +4135,7 @@ React.createElement('div', { className: 'mb-6 p-4 bg-yellow-50 rounded-lg' },
                             ),
                             React.createElement('div', { className: 'flex items-end' },
                                 React.createElement('div', { className: 'text-sm font-medium text-gray-700' },
-                                    'Total: ₹', ((item.quantity || 0) * (item.rate || 0)).toFixed(2)
+                                    'Total: ₹', ((item.quantity || 0) * (item.rate || 0).toFixed(2)
                                 )
                             )
                         )
@@ -4163,7 +4163,7 @@ React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
     (() => {
         const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
         const invoiceTotal = paymentData.invoice_items?.reduce((sum, item) => 
-            sum + ((item.quantity || 0) * (item.rate || 0)), 0
+            sum + ((item.quantity || 0) * (item.rate || 0), 0
         ) || 0;
         const gstRate = paymentData.type_of_sale === 'Tour' ? 5 : 18;
         const baseAmount = paymentData.type_of_sale === 'Service Fee' 
@@ -4177,7 +4177,7 @@ React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
         return React.createElement('div', { className: 'space-y-2 text-sm' },
             React.createElement('div', { className: 'flex justify-between' },
                 React.createElement('span', null, 'Invoice Total:'),
-                React.createElement('span', { className: 'font-medium' }, '₹', formatCurrency(invoiceTotal))
+                React.createElement('span', { className: 'font-medium' }, '₹', formatCurrency(invoiceTotal)
             ),
             React.createElement('div', { className: 'flex justify-between' },
                 React.createElement('span', null, 'GST Rate:'),
@@ -4190,31 +4190,31 @@ React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
             isIntraState ? [
                 React.createElement('div', { key: 'cgst', className: 'flex justify-between' },
                     React.createElement('span', null, `CGST (${gstRate/2}%):`),
-                    React.createElement('span', { className: 'font-medium' }, '₹', formatCurrency(gstCalculation.cgst))
+                    React.createElement('span', { className: 'font-medium' }, '₹', formatCurrency(gstCalculation.cgst)
                 ),
                 React.createElement('div', { key: 'sgst', className: 'flex justify-between' },
                     React.createElement('span', null, `SGST (${gstRate/2}%):`),
-                    React.createElement('span', { className: 'font-medium' }, '₹', formatCurrency(gstCalculation.sgst))
+                    React.createElement('span', { className: 'font-medium' }, '₹', formatCurrency(gstCalculation.sgst)
                 )
             ] : React.createElement('div', { className: 'flex justify-between' },
                 React.createElement('span', null, `IGST (${gstRate}%):`),
-                React.createElement('span', { className: 'font-medium' }, '₹', formatCurrency(gstCalculation.igst))
+                React.createElement('span', { className: 'font-medium' }, '₹', formatCurrency(gstCalculation.igst)
             ),
             React.createElement('div', { className: 'flex justify-between border-t pt-2' },
                 React.createElement('span', { className: 'font-semibold' }, 'Total Tax:'),
-                React.createElement('span', { className: 'font-semibold text-red-600' }, '₹', formatCurrency(totalTax))
+                React.createElement('span', { className: 'font-semibold text-red-600' }, '₹', formatCurrency(totalTax)
             ),
             React.createElement('div', { className: 'flex justify-between' },
                 React.createElement('span', { className: 'font-bold' }, 'Final Invoice Amount:'),
-                React.createElement('span', { className: 'font-bold text-green-600' }, '₹', formatCurrency(finalAmount))
+                React.createElement('span', { className: 'font-bold text-green-600' }, '₹', formatCurrency(finalAmount)
             ),
             React.createElement('div', { className: 'flex justify-between border-t pt-2' },
                 React.createElement('span', { className: 'font-semibold' }, 'Advance Received:'),
-                React.createElement('span', { className: 'font-semibold text-blue-600' }, '₹', formatCurrency(advanceAmount))
+                React.createElement('span', { className: 'font-semibold text-blue-600' }, '₹', formatCurrency(advanceAmount)
             ),
             React.createElement('div', { className: 'flex justify-between' },
                 React.createElement('span', { className: 'font-bold' }, 'Balance Due:'),
-                React.createElement('span', { className: 'font-bold text-orange-600' }, '₹', formatCurrency(finalAmount - advanceAmount))
+                React.createElement('span', { className: 'font-bold text-orange-600' }, '₹', formatCurrency(finalAmount - advanceAmount)
             )
         );
     })()
@@ -4302,7 +4302,7 @@ React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
                         React.createElement('input', {
                             type: 'number',
                             value: allocationData.tickets_allocated || '',
-                            onChange: (e) => handleAllocationInputChange('tickets_allocated', parseInt(e.target.value)),
+                            onChange: (e) => handleAllocationInputChange('tickets_allocated', parseInt(e.target.value),
                             className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                             required: true,
                             min: 1,
@@ -4344,10 +4344,10 @@ React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
     const filteredLeads = leads.filter(lead => {
         // Search filter
         const matchesSearch = searchQuery === '' || 
-            lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            lead.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (lead.company && lead.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (lead.phone && lead.phone.includes(searchQuery));
+            lead.name.toLowerCase().includes(searchQuery.toLowerCase() ||
+            lead.email.toLowerCase().includes(searchQuery.toLowerCase() ||
+            (lead.company && lead.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (lead.phone && lead.phone.includes(searchQuery);
         
         // Status filter
         const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
@@ -4514,13 +4514,13 @@ const totalPages = Math.ceil(sortedLeads.length / itemsPerPage);
                     ),
                     React.createElement('div', { className: 'flex space-x-2' },
                         React.createElement('button', {
-                            onClick: () => setCurrentLeadsPage(prev => Math.max(prev - 1, 1)),
+                            onClick: () => setCurrentLeadsPage(prev => Math.max(prev - 1, 1),
                             disabled: currentLeadsPage === 1,
                             className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
                         }, 'Previous'),
                         React.createElement('span', { className: 'px-3 py-1' }, `Page ${currentLeadsPage} of ${totalPages}`),
                         React.createElement('button', {
-                            onClick: () => setCurrentLeadsPage(prev => Math.min(prev + 1, totalPages)),
+                            onClick: () => setCurrentLeadsPage(prev => Math.min(prev + 1, totalPages),
                             disabled: currentLeadsPage === totalPages,
                             className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
                         }, 'Next')
@@ -4558,7 +4558,7 @@ const renderEditOrderForm = () => {
                         React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Status'),
                         React.createElement('select', {
                             value: orderEditData.status || '',
-                            onChange: (e) => setOrderEditData(prev => ({ ...prev, status: e.target.value })),
+                            onChange: (e) => setOrderEditData(prev => ({ ...prev, status: e.target.value }),
                             className: 'w-full px-3 py-2 border rounded-md'
                         },
                             Object.keys(ORDER_STATUSES).map(status =>
@@ -4572,7 +4572,7 @@ const renderEditOrderForm = () => {
                         React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Rejection Reason'),
                         React.createElement('textarea', {
                             value: orderEditData.rejection_reason || '',
-                            onChange: (e) => setOrderEditData(prev => ({ ...prev, rejection_reason: e.target.value })),
+                            onChange: (e) => setOrderEditData(prev => ({ ...prev, rejection_reason: e.target.value }),
                             className: 'w-full px-3 py-2 border rounded-md',
                             rows: 3,
                             required: true
@@ -4699,7 +4699,7 @@ const renderEditOrderForm = () => {
                         React.createElement('div', null,
                             React.createElement('span', { className: 'font-medium text-gray-700' }, 'Balance Due: '),
                             React.createElement('span', { className: 'text-orange-600 font-semibold' }, 
-                                '₹' + formatCurrency((currentOrderDetail.final_amount || currentOrderDetail.total_amount || 0) - (currentOrderDetail.advance_amount || 0))
+                                '₹' + formatCurrency((currentOrderDetail.final_amount || currentOrderDetail.total_amount || 0) - (currentOrderDetail.advance_amount || 0)
                             )
                         ),
                         React.createElement('div', null,
@@ -4808,7 +4808,7 @@ const renderEditOrderForm = () => {
 });
 
 // Sort the filtered inventory
-const sortedInventory = filteredInventory.sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
+const sortedInventory = filteredInventory.sort((a, b) => new Date(b.event_date) - new Date(a.event_date);
 
 // Pagination logic for inventory
 const indexOfLastInventory = currentInventoryPage * itemsPerPage;
@@ -4847,7 +4847,7 @@ const totalInventoryPages = Math.ceil(sortedInventory.length / itemsPerPage);
                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
             },
                 React.createElement('option', { value: 'all' }, 'All Events'),
-                ...Array.from(new Set(currentInventoryItems.map(item => item.event_name))).map(event =>
+                ...Array.from(new Set(currentInventoryItems.map(item => item.event_name)).map(event =>
                     React.createElement('option', { key: event, value: event }, event)
                 )
             )
@@ -4892,7 +4892,7 @@ currentInventoryItems.map(item =>
                                         }, item.category_of_ticket || 'General'),
                                         item.stand ? React.createElement('div', { className: 'text-xs text-gray-500 mt-1' }, item.stand) : null
                                     ),
-                                    React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, new Date(item.event_date).toLocaleDateString()),
+                                    React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, new Date(item.event_date).toLocaleDateString(),
                                     React.createElement('td', { className: 'px-6 py-4' },
                                         React.createElement('span', {
                                             className: `px-2 py-1 text-xs rounded ${
@@ -4904,7 +4904,7 @@ currentInventoryItems.map(item =>
                                     ),
                                     hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
                                         React.createElement('div', { className: 'text-sm text-gray-900' }, 
-                                            '₹' + ((item.selling_price || item.price_per_ticket || 0) - (item.buying_price || 0)).toLocaleString()
+                                            '₹' + ((item.selling_price || item.price_per_ticket || 0) - (item.buying_price || 0).toLocaleString()
                                         ),
                                         React.createElement('div', { className: 'text-xs text-gray-500' },
                                             'Buy: ₹' + (item.buying_price || 0).toLocaleString() + 
@@ -4939,13 +4939,13 @@ currentInventoryItems.map(item =>
                         ),
                         React.createElement('div', { className: 'flex space-x-2' },
                             React.createElement('button', {
-                                onClick: () => setCurrentInventoryPage(prev => Math.max(prev - 1, 1)),
+                                onClick: () => setCurrentInventoryPage(prev => Math.max(prev - 1, 1),
                                 disabled: currentInventoryPage === 1,
                                 className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
                             }, 'Previous'),
                             React.createElement('span', { className: 'px-3 py-1' }, `Page ${currentInventoryPage} of ${totalInventoryPages}`),
                             React.createElement('button', {
-                                onClick: () => setCurrentInventoryPage(prev => Math.min(prev + 1, totalInventoryPages)),
+                                onClick: () => setCurrentInventoryPage(prev => Math.min(prev + 1, totalInventoryPages),
                                 disabled: currentInventoryPage === totalInventoryPages,
                                 className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
                             }, 'Next')
@@ -4959,8 +4959,8 @@ currentInventoryItems.map(item =>
     // Enhanced orders content with permission checks
     const renderOrdersContent = () => {
         console.log("All orders:", orders);
-        console.log("Orders with is_deleted:", orders.filter(o => o.is_deleted));
-        console.log("Orders with status deleted:", orders.filter(o => o.status === "deleted"));
+        console.log("Orders with is_deleted:", orders.filter(o => o.is_deleted);
+        console.log("Orders with status deleted:", orders.filter(o => o.status === "deleted");
         return React.createElement('div', { className: 'space-y-6' },
             React.createElement('div', { className: 'flex justify-between items-center' },
                 React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Order Management'),
@@ -5057,7 +5057,7 @@ hasPermission('orders', 'approve') && order.status === 'pending_approval' && [
     React.createElement('button', {
         key: 'approve',
         className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
-        onClick: () => handleOrderApproval(order.id, 'approve'), 'approve'),
+        onClick: () => handleOrderApproval(order.id, 'approve'),
         disabled: loading
     }, '✅ Approve'),
     React.createElement('button', {
@@ -5187,7 +5187,7 @@ order.invoice_number && React.createElement('button', {
                                         className: `px-2 py-1 text-xs rounded ${
                                             delivery.delivery_type === 'online' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                                         }`
-                                    }, delivery.delivery_type.charAt(0).toUpperCase() + delivery.delivery_type.slice(1)) :
+                                    }, delivery.delivery_type.charAt(0).toUpperCase() + delivery.delivery_type.slice(1) :
                                     React.createElement('span', { className: 'text-xs text-gray-400' }, 'Not Set')
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4' },
@@ -5503,7 +5503,7 @@ order.invoice_number && React.createElement('button', {
                         key: item,
                         onClick: () => { setActiveTab(item); setMobileMenuOpen(false); },
                         className: `w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${activeTab === item ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : ''}`
-                    }, item.charAt(0).toUpperCase() + item.slice(1))
+                    }, item.charAt(0).toUpperCase() + item.slice(1)
                 ),
                 React.createElement('hr', { className: 'my-2 border-gray-200 dark:border-gray-700' }),
                 React.createElement('button', {
@@ -5517,7 +5517,7 @@ renderSidebar(),
             React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-6 py-4' },
                 React.createElement('div', { className: 'flex items-center justify-between' },
                     React.createElement('div', null,
-                        React.createElement('h1', { className: 'text-lg font-semibold' }, 'Welcome, ' + (user?.name || 'Admin User')),
+                        React.createElement('h1', { className: 'text-lg font-semibold' }, 'Welcome, ' + (user?.name || 'Admin User'),
                         React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, USER_ROLES[user?.role]?.label + ' • ' + user?.department)
                     ),
                     React.createElement('div', { className: 'flex items-center space-x-4' },
@@ -5559,7 +5559,7 @@ renderPaymentPostServiceForm()
 }
 
 // Render the app
-ReactDOM.render(React.createElement(App), document.getElementById('root'));
+ReactDOM.render(React.createElement(App), document.getElementById('root');
         
     </script>
 </body>
