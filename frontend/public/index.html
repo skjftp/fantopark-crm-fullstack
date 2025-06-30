@@ -339,7 +339,34 @@
     <div id="root"></div>
     <div id="error-message" style="position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 12px 20px; border-radius: 6px; display: none; z-index: 9999;"></div>
     <script>
-        const { useState, useEffect } = React;
+        
+// Persistent logging for debugging
+const debugLog = (key, data) => {
+    const logs = JSON.parse(sessionStorage.getItem('debugLogs') || '[]');
+    logs.push({ time: new Date().toISOString(), key, data });
+    sessionStorage.setItem('debugLogs', JSON.stringify(logs));
+    console.log(`[${key}]`, data);
+};
+
+// Show previous logs on page load
+window.addEventListener('load', () => {
+    const logs = JSON.parse(sessionStorage.getItem('debugLogs') || '[]');
+    if (logs.length > 0) {
+        console.log('=== Previous Session Logs ===');
+        logs.forEach(log => console.log(`[${log.time}] ${log.key}:`, log.data));
+        console.log('=== End Previous Logs ===');
+    }
+});
+
+// Clear logs button (press Ctrl+Shift+L)
+document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key === 'L') {
+        sessionStorage.removeItem('debugLogs');
+        console.log('Debug logs cleared');
+    }
+});
+
+const { useState, useEffect } = React;
 
 // User roles and permissions configuration
 const USER_ROLES = {
@@ -1351,6 +1378,7 @@ const calculateDashboardStats = () => {
 
     // Authentication
 const handleLogin = async (e) => {
+        debugLog('LOGIN_START', { email, timestamp: Date.now() });
     e.preventDefault();
     setLoading(true);
     
@@ -1358,6 +1386,12 @@ const handleLogin = async (e) => {
         const response = await apiCall('/auth/login', {
             method: 'POST',
             body: JSON.stringify({ email, password })
+        });
+        debugLog('LOGIN_RESPONSE', { 
+            response, 
+            hasToken: response?.token !== undefined,
+            hasUser: response?.user !== undefined,
+            responseType: typeof response
         });
         
         console.log("Login response structure:", response);
@@ -1369,11 +1403,13 @@ const handleLogin = async (e) => {
             localStorage.setItem('crm_auth_token', response.token);
             localStorage.setItem('crm_user', JSON.stringify(response.user));
             setUser(response.user);
-            setIsLoggedIn(true);
+            debugLog('LOGIN_SUCCESS', { user: response.user });
+        setIsLoggedIn(true);
             setEmail('');
             setPassword('');
         }
     } catch (error) {
+        debugLog('LOGIN_ERROR', { error: error.message, stack: error.stack });
         console.error("Login failed:", error.message || "Invalid credentials");
         console.error("Full error:", error);
     } finally {
