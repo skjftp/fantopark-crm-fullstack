@@ -532,7 +532,32 @@ const [emailNotifications, setEmailNotifications] = useState([]);
 const [users, setUsers] = useState([]);
 
 // Add data fetching function
-const fetchData = async () => {
+
+    // Add token refresh handler
+    const handleAuthError = () => {
+        console.log('Authentication failed, redirecting to login...');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setIsLoggedIn(false);
+        alert('Session expired. Please login again.');
+    };
+
+    // Modified apiCall to handle auth errors
+    const apiCallWithAuth = async (endpoint, options = {}) => {
+        try {
+            const response = await apiCall(endpoint, options);
+            return response;
+        } catch (error) {
+            if (error.status === 403 || error.message?.includes('token')) {
+                handleAuthError();
+                throw error;
+            }
+            throw error;
+        }
+    };
+
+
+    const fetchData = async () => {
     if (!isLoggedIn || !authToken) return;
     
     try {
@@ -547,7 +572,16 @@ const fetchData = async () => {
         setInventory(inventoryData.data || []);
         setOrders(ordersData.data || []);
         setInvoices(invoicesData.data || []);
-    } catch (error) {
+
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            if (error.status === 403 || error.status === 401) {
+                alert('Your session has expired. Please login again.');
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                setIsLoggedIn(false);
+            }
+        }    } catch (error) {
         console.error('Error fetching data:', error);
     }
 };
