@@ -1060,6 +1060,8 @@ const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
                 setUser(userData);
                 authToken = savedLoginState;
                 setIsLoggedIn(true);
+            // Clear any cached user management data
+            setUsers([]);
             }
         } catch (e) {
             console.log('Failed to restore auth state:', e);
@@ -1423,6 +1425,8 @@ const handleLogin = async (e) => {
             setUser(response.user);
             debugLog('LOGIN_SUCCESS', { user: response.user });
         setIsLoggedIn(true);
+            // Clear any cached user management data
+            setUsers([]);
             setEmail('');
             setPassword('');
         }
