@@ -695,6 +695,32 @@ function App() {
 const [leads, setLeads] = useState([]);
 const [inventory, setInventory] = useState([]);
 const [orders, setOrders] = useState([]);
+    
+    // Edit order function - in App scope
+    const openEditOrderForm = (order) => {
+        if (!order) {
+            alert('Order data not found');
+            return;
+        }
+        
+        const details = [
+            'Edit Order Details',
+            '==================',
+            `Order #: ${order.order_number || 'N/A'}`,
+            `Client: ${order.client_name || 'N/A'}`,
+            `Email: ${order.client_email || 'N/A'}`,
+            `Phone: ${order.client_phone || 'N/A'}`,
+            `Event: ${order.event_name || 'N/A'}`,
+            `Tickets: ${order.tickets_allocated || 0}`,
+            `Amount: ₹${order.total_amount || 0}`,
+            `Status: ${order.status || 'N/A'}`,
+            order.assigned_to ? `Assigned to: ${order.assigned_to}` : '',
+            order.approval_notes ? `Notes: ${order.approval_notes}` : ''
+        ].filter(line => line).join('\n');
+        
+        alert(details);
+    };
+    
 const [invoices, setInvoices] = useState([]);
 const [deliveries, setDeliveries] = useState([]);
 const [receivables, setReceivables] = useState([]);
