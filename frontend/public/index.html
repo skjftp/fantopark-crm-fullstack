@@ -1193,6 +1193,48 @@ Status: ${order.status}`);
             )
         );
         
+        
+        // Create delivery entry when assigning to supply team
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+            const newDelivery = {
+                id: `DEL-${Date.now()}`,
+                order_id: orderId,
+                order_number: order.order_number,
+                client_name: order.client_name,
+                client_email: order.client_email,
+                client_phone: order.client_phone,
+                event_name: order.event_name || 'N/A',
+                event_date: order.event_date || new Date().toISOString().split('T')[0],
+                tickets_count: order.tickets_allocated || 0,
+                amount: order.total_amount || 0,
+                
+                // Delivery form fields
+                delivery_type: 'offline',
+                pickup_location: '',
+                pickup_date: '',
+                pickup_time: '',
+                delivery_location: order.delivery_address || order.client_address || '',
+                delivery_date: '',
+                delivery_time: '',
+                delivery_person: assignee,
+                delivery_notes: '',
+                online_platform: '',
+                online_link: '',
+                
+                // Status and metadata
+                assigned_to: assignee,
+                status: 'pending',
+                created_date: new Date().toISOString().split('T')[0],
+                created_by: user.name
+            };
+            
+            // Add to deliveries state
+            setDeliveries(prev => [...prev, newDelivery]);
+            
+            console.log('Delivery entry created:', newDelivery);
+        }
+        
         alert(`Order assigned to ${assignee} successfully!`);
     } catch (error) {
         console.error('Error assigning order:', error);
