@@ -513,7 +513,10 @@ function App() {
     const [user, setUser] = useState(null);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const [activeTab, setActiveTab] = useState(() => {
+        const savedTab = localStorage.getItem('crm_active_tab');
+        return savedTab || 'dashboard';
+    });
     const [loading, setLoading] = useState(false);
 
     // Users management
