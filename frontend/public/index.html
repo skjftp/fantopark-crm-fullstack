@@ -2193,7 +2193,7 @@ const closeForm = () => {
                     React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 'User Management'),
                     React.createElement('div', { className: 'flex space-x-2' },
                         hasPermission('users', 'write') && React.createElement('button', {
-                            onClick: () => openUserForm(),
+                            onClick: () => openUserForm(user),
                             className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
                         }, '+ Add User'),
                         React.createElement('button', {
