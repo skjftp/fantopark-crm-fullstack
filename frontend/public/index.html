@@ -6879,6 +6879,7 @@ order.invoice_number && React.createElement('button', {
 }
 
 // Render the app
+}
 ReactDOM.render(React.createElement(App), document.getElementById('root'));
 
 
@@ -6888,7 +6889,6 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
     
 
 
-                            onClick: () => {
                                 setDarkMode(!darkMode);
                                 document.documentElement.classList.toggle('dark');
                                 localStorage.setItem('crm_dark_mode', !darkMode);
@@ -6896,7 +6896,6 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
                             className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
                             title: darkMode ? 'Switch to light mode' : 'Switch to dark mode'
                         }, 
-                            onClick: () => setShowHelpGuide(true),
                             className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
                             title: 'How to use CRM'
                         }, '❓'),
