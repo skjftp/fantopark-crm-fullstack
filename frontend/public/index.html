@@ -3105,7 +3105,7 @@ const handleFormSubmit = async (e) => {
                             created_date: new Date().toISOString()
                         })
                     });
-                    setOrders(prev => [...prev, orderResponse.data]);
+                    setOrders(prev => [...prev, orderResponse.data || orderResponse]);
                     alert('Order created successfully!');
                     break;
             }
@@ -3306,6 +3306,11 @@ const handleAssignLead = async (e) => {
                 body: JSON.stringify(orderData)
             });
             console.log('Order creation response:', orderResponse);
+            
+            // Validate response
+            if (!orderResponse || (!orderResponse.data && !orderResponse.id)) {
+                throw new Error('Invalid response from order creation API');
+            }
         } catch (error) {
             console.error('Failed to create order:', error);
             alert('Order creation failed: ' + error.message);
@@ -3313,7 +3318,7 @@ const handleAssignLead = async (e) => {
         }
 
         // Update local orders state
-        setOrders(prev => [...prev, orderResponse.data]);
+        setOrders(prev => [...prev, orderResponse.data || orderResponse]);
 
         // Log for debugging
         console.log('Order created:', orderResponse.data);
@@ -3321,54 +3326,8 @@ const handleAssignLead = async (e) => {
         // Update status using updateLeadStatus to ensure persistence
         await updateLeadStatus(currentLead.id, 'payment_received');
 
-        // Create order for finance approval (if not post-service payment)
-        if (!paymentData.payment_post_service) {
-            const newOrder = {
-                id: Date.now(),
-                order_number: `ORD-${Date.now()}`,
-                lead_id: currentLead.id,
-                client_name: currentLead.name,
-                client_email: currentLead.email,
-                client_phone: currentLead.phone,
-                event_name: currentLead.lead_for_event || 'Travel Package',
-                tickets_allocated: currentLead.number_of_people || 1,
-                ticket_category: 'Premium',
-                price_per_ticket: invoiceTotal / (currentLead.number_of_people || 1),
-                total_amount: finalAmount,
-                payment_received: true,
-                
-                // GST and Legal details
-                legal_name: paymentData.legal_name || currentLead.name,
-                gstin: paymentData.gstin,
-                category_of_sale: paymentData.category_of_sale,
-                type_of_sale: paymentData.type_of_sale,
-                registered_address: paymentData.registered_address,
-                indian_state: paymentData.indian_state,
-                is_outside_india: paymentData.is_outside_india,
-                gst_certificate: paymentData.gst_certificate,
-                pan_card: paymentData.pan_card,
-                
-                // Invoice details
-                invoice_items: paymentData.invoice_items,
-                base_amount: baseAmount,
-                gst_calculation: gstCalculation,
-                total_tax: totalTax,
-                final_amount: finalAmount,
-                
-                // Payment details
-                advance_amount: paymentData.advance_amount,
-                payment_method: paymentData.payment_method,
-                transaction_id: paymentData.transaction_id,
-                payment_date: paymentData.payment_date,
-                
-                status: 'pending_approval',
-                created_date: new Date().toISOString().split('T')[0],
-                created_by: user.name,
-                requires_gst_invoice: true
-            };
-
-            setOrders(prev => [...prev, newOrder]);
-        }
+        // Order already created via API above - duplicate creation removed
+        // The order was created and added to state after the API call
 
         setLoading(false);
         alert(paymentData.payment_post_service 
