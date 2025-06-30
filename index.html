@@ -2773,39 +2773,7 @@ const renderGSTInvoicePreview = () => {
 
     // Order approval with permission check
     // REPLACE your existing handleOrderApproval function with this:
-const handleOrderApproval = async (orderId, action) => {
-        if (!hasPermission('orders', 'approve')) {
-            alert('You do not have permission to approve/reject orders');
-            return;
-        }
-        
-        setLoading(true);
-        
-        try {
-            // First get the current order to preserve all fields
-            const currentOrder = orders.find(o => o.id === orderId);
-            if (!currentOrder) {
-                throw new Error('Order not found');
-            }
-            
-            let updateData;
-            
-            if (action === 'reject') {
-                // Ask for rejection reason
-                const reason = prompt('Please provide a reason for rejection:');
-                if (!reason) {
-                    setLoading(false);
-                    return;
-                }
-                
-                // Update order with rejection details while preserving all other fields
-                updateData = {
-                    ...currentOrder,
-                    status: 'rejected',
-                    rejection_reason: reason,
-                    rejected_date: new Date().toISOString(),
-                    rejected_by: user?.name || 'Admin'
-                };
+
             } else {
                 // Approval - preserve all existing fields
                 updateData = {
