@@ -1359,6 +1359,10 @@ const handleLogin = async (e) => {
             body: JSON.stringify({ email, password })
         });
         
+        console.log("Login response structure:", response);
+        console.log("Response type:", typeof response);
+        console.log("Has token?", response.token !== undefined);
+        console.log("Has user?", response.user !== undefined);
         if (response.token && response.user) {
             authToken = response.token;
             localStorage.setItem('crm_auth_token', response.token);
