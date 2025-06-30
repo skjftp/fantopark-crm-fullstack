@@ -1497,25 +1497,25 @@ const closeForm = () => {
             // Special handling for orders - convert delete to cancel
                 console.log("Processing order deletion as cancellation");
             if (type === 'orders') {
-                // Update order status to cancelled instead of deleting
-                console.log("Making API call to:", `/${type}/${id}`);
-                await apiCall(`/${type}/${id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        status: 'cancelled',
-                        cancelled_date: new Date().toISOString(),
-                        cancelled_by: user?.name || 'Admin'
-                    })
-                });
-                
-                // Update local state to reflect cancellation
-                setOrders(prev => prev.map(order => 
-                    order.id === id 
-                        ? { ...order, status: 'cancelled' }
-                        : order
-                ));
-                
-                setLoading(false);
+                console.log("Deleting order permanently");
+                try {
+                    // Actually delete the order
+                    await apiCall(`/${type}/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    // If successful, remove from local state
+                    setOrders(prev => prev.filter(order => order.id !== id));
+                    
+                    setLoading(false);
+                    alert('Order deleted successfully!');
+                } catch (deleteError) {
+                    console.error("Delete failed:", deleteError);
+                    // If DELETE not supported, remove locally with warning
+                    setOrders(prev => prev.filter(order => order.id !== id));
+                    setLoading(false);
+                    alert('Order removed. Note: This may reappear on refresh if server delete is not supported.');
+                }setLoading(false);
                 alert('Order cancelled successfully!');
             } else {
                 // For leads and inventory, try actual DELETE
