@@ -3257,6 +3257,7 @@ const handleAssignLead = async (e) => {
             )
         );
 
+        console.log('=== REACHED ORDER CREATION SECTION ===');
         // Create order after successful payment
         const orderData = {
             order_number: `ORD-${Date.now()}`,
