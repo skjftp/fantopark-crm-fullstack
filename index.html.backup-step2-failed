@@ -170,20 +170,6 @@
         }
     </style>
 
-    <style>
-        @media (max-width: 768px) {
-            .w-64 { width: 100%; position: relative; }
-            .flex.h-screen { flex-direction: column; height: auto; min-height: 100vh; }
-            .overflow-x-auto { -webkit-overflow-scrolling: touch; }
-            .p-6 { padding: 1rem; }
-            .px-6 { padding-left: 1rem; padding-right: 1rem; }
-            .grid.grid-cols-4 { grid-template-columns: 1fr; }
-            .grid.grid-cols-2 { grid-template-columns: 1fr; }
-            .flex.flex-wrap.gap-1 { flex-direction: column; }
-            .flex.flex-wrap.gap-1 > button { width: 100%; }
-            .max-w-6xl, .max-w-4xl, .max-w-2xl { max-width: 95%; margin: 1rem; }
-        }
-    </style>
 </head>
 <body>
     <div id="root"></div>
@@ -700,6 +686,7 @@ const [currentOrderDetail, setCurrentOrderDetail] = useState(null);
     const [darkMode, setDarkMode] = useState(() => {
         return localStorage.getItem('crm_dark_mode') === 'true';
     });
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const [formData, setFormData] = useState({});
     const [paymentData, setPaymentData] = useState({});
@@ -2618,20 +2605,6 @@ const renderGSTInvoicePreview = () => {
         }
     </style>
 
-    <style>
-        @media (max-width: 768px) {
-            .w-64 { width: 100%; position: relative; }
-            .flex.h-screen { flex-direction: column; height: auto; min-height: 100vh; }
-            .overflow-x-auto { -webkit-overflow-scrolling: touch; }
-            .p-6 { padding: 1rem; }
-            .px-6 { padding-left: 1rem; padding-right: 1rem; }
-            .grid.grid-cols-4 { grid-template-columns: 1fr; }
-            .grid.grid-cols-2 { grid-template-columns: 1fr; }
-            .flex.flex-wrap.gap-1 { flex-direction: column; }
-            .flex.flex-wrap.gap-1 > button { width: 100%; }
-            .max-w-6xl, .max-w-4xl, .max-w-2xl { max-width: 95%; margin: 1rem; }
-        }
-    </style>
 </head>
             <body>
                 <div class="invoice-preview">
@@ -5540,6 +5513,12 @@ order.invoice_number && React.createElement('button', {
 };
     // Main application layout
     return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:bg-gray-900' },
+        // Mobile menu button
+        React.createElement('button', {
+            className: 'fixed top-4 left-4 z-50 p-2 bg-gray-900 text-white rounded-lg lg:hidden',
+            onClick: () => setMobileMenuOpen(!mobileMenuOpen)
+        }, mobileMenuOpen ? '✕' : '☰'),
+        
         renderSidebar(),
         React.createElement('div', { className: 'flex-1 flex flex-col overflow-hidden' },
             React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-6 py-4' },
