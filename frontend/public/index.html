@@ -30,16 +30,32 @@
             
             const response = await fetch(`${API_URL}${endpoint}`, config);
             
+            console.log('API Request:', {
+                url: `${API_URL}${endpoint}`,
+                method: config.method || 'GET',
+                headers: config.headers
+            });
+            console.log('Response Status:', response.status, response.statusText);
+            
             if (response.status === 401) {
                 // Token expired or invalid
+                console.error('401 Unauthorized - Authentication failed');
+                console.error('Endpoint:', endpoint);
+                console.error('Response status:', response.status);
                 localStorage.removeItem('crm_auth_token');
                 localStorage.removeItem('crm_user');
-                window.location.reload();
-                throw new Error('Authentication failed');
+                
+                // Don't reload immediately for login attempts
+                if (endpoint !== '/auth/login') {
+                    window.location.reload();
+                }
+                throw new Error('Authentication failed - Invalid credentials');
             }
             
             if (!response.ok) {
-                throw new Error(`API Error: ${response.statusText}`);
+                const errorText = await response.text();
+                console.error('API Error Response:', errorText);
+                throw new Error(`API Error: ${response.statusText} - ${errorText}`);
             }
             
             const data = await response.json();
