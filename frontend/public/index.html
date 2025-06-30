@@ -1407,7 +1407,24 @@ const handlePaymentPostServiceSubmit = async (e) => {
 
         // Create order in backend first
         try {
-            const orderResponse = await apiCall('/orders', {
+            
+        // Validate and ensure all required fields
+        if (!orderData.event_name) {
+            orderData.event_name = currentLead?.lead_for_event || 'General Event';
+        }
+        if (!orderData.tickets_allocated) {
+            orderData.tickets_allocated = 1;
+        }
+        if (!orderData.ticket_category) {
+            orderData.ticket_category = 'General';
+        }
+        if (!orderData.event_date) {
+            orderData.event_date = new Date().toISOString().split('T')[0];
+        }
+        
+        console.log('Sending order data:', orderData);
+
+        , {
                 method: 'POST',
                 body: JSON.stringify(newOrder)
             });
@@ -2332,7 +2349,7 @@ const closeForm = () => {
                 client_name: selectedLead.name,
                 client_email: selectedLead.email,
                 client_phone: selectedLead.phone,
-                event_name: currentInventory.event_name,
+                event_name: currentInventory.event_name || currentInventory.match_name || 'Event',
                 event_date: currentInventory.event_date,
                 tickets_allocated: allocationData.tickets_allocated,
                 ticket_category: currentInventory.category_of_ticket,
@@ -2353,7 +2370,24 @@ const closeForm = () => {
             try {
 
 
-                const orderResponse = await apiCall('/orders', {
+                
+        // Validate and ensure all required fields
+        if (!orderData.event_name) {
+            orderData.event_name = currentLead?.lead_for_event || 'General Event';
+        }
+        if (!orderData.tickets_allocated) {
+            orderData.tickets_allocated = 1;
+        }
+        if (!orderData.ticket_category) {
+            orderData.ticket_category = 'General';
+        }
+        if (!orderData.event_date) {
+            orderData.event_date = new Date().toISOString().split('T')[0];
+        }
+        
+        console.log('Sending order data:', orderData);
+
+        , {
 
 
                     method: 'POST',
@@ -2379,7 +2413,24 @@ const closeForm = () => {
 
                 // Create order in backend first
                 try {
-                    const orderResponse = await apiCall('/orders', {
+                    
+        // Validate and ensure all required fields
+        if (!orderData.event_name) {
+            orderData.event_name = currentLead?.lead_for_event || 'General Event';
+        }
+        if (!orderData.tickets_allocated) {
+            orderData.tickets_allocated = 1;
+        }
+        if (!orderData.ticket_category) {
+            orderData.ticket_category = 'General';
+        }
+        if (!orderData.event_date) {
+            orderData.event_date = new Date().toISOString().split('T')[0];
+        }
+        
+        console.log('Sending order data:', orderData);
+
+        , {
                         method: 'POST',
                         body: JSON.stringify(newOrder)
                     });
@@ -3158,7 +3209,24 @@ const handleFormSubmit = async (e) => {
                     break;
                     
                 case 'order':
-                    const orderResponse = await apiCall('/orders', {
+                    
+        // Validate and ensure all required fields
+        if (!orderData.event_name) {
+            orderData.event_name = currentLead?.lead_for_event || 'General Event';
+        }
+        if (!orderData.tickets_allocated) {
+            orderData.tickets_allocated = 1;
+        }
+        if (!orderData.ticket_category) {
+            orderData.ticket_category = 'General';
+        }
+        if (!orderData.event_date) {
+            orderData.event_date = new Date().toISOString().split('T')[0];
+        }
+        
+        console.log('Sending order data:', orderData);
+
+        , {
                         method: 'POST',
                         body: JSON.stringify({
                             ...formData,
@@ -4804,7 +4872,7 @@ const renderEditOrderForm = () => {
                     React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
                         React.createElement('div', null,
                             React.createElement('span', { className: 'font-medium text-gray-700' }, 'Event: '),
-                            React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.event_name)
+                            React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.event_name || 'No Event Specified')
                         ),
                         React.createElement('div', null,
                             React.createElement('span', { className: 'font-medium text-gray-700' }, 'Event Date: '),
@@ -4815,7 +4883,7 @@ const renderEditOrderForm = () => {
                         React.createElement('div', null,
                             React.createElement('span', { className: 'font-medium text-gray-700' }, 'Tickets: '),
                             React.createElement('span', { className: 'text-gray-900' }, 
-                                `${currentOrderDetail.tickets_allocated} - ${currentOrderDetail.ticket_category}`
+                                `${currentOrderDetail.tickets_allocated || 0} - ${currentOrderDetail.ticket_category || 'General'}`
                             )
                         ),
                         React.createElement('div', null,
