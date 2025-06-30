@@ -3297,10 +3297,19 @@ const handleAssignLead = async (e) => {
         };
 
         // Create order via API
-        const orderResponse = await apiCall('/orders', {
-            method: 'POST',
-            body: JSON.stringify(orderData)
-        });
+        console.log('Creating order with data:', orderData);
+        let orderResponse;
+        try {
+            orderResponse = await apiCall('/orders', {
+                method: 'POST',
+                body: JSON.stringify(orderData)
+            });
+            console.log('Order creation response:', orderResponse);
+        } catch (error) {
+            console.error('Failed to create order:', error);
+            alert('Order creation failed: ' + error.message);
+            throw error;
+        }
 
         // Update local orders state
         setOrders(prev => [...prev, orderResponse.data]);
