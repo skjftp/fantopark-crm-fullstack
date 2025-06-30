@@ -871,7 +871,7 @@ const calculateDashboardStats = () => {
         .filter(order => order.status === 'completed' && (order.payment_received !== false))
         .reduce((sum, order) => sum + (order.total_amount || 0), 0);
     
-    const pendingDeliveries = orders.filter(order => 
+    const pendingDeliveries = orders.filter(order => !order.is_deleted && order.status !== "deleted" && 
         order.status === 'service_assigned'
     ).length;
     
@@ -1511,6 +1511,30 @@ const closeForm = () => {
                     alert('Order deleted successfully!');
                 } catch (deleteError) {
                     console.error("Delete failed:", deleteError);
+                    console.log("Delete error details:", deleteError.message, deleteError.status);
+                    
+                    // If backend doesn't support DELETE, mark as deleted instead
+                    if (deleteError.message && (deleteError.message.includes('404') || deleteError.message.includes('405'))) {
+                        console.log("Backend doesn't support DELETE, marking as deleted");
+                        try {
+                            await apiCall(`/orders/${id}`, {
+                                method: 'PUT',
+                                body: JSON.stringify({
+                                    status: 'deleted',
+                                    deleted_date: new Date().toISOString(),
+                                    deleted_by: user?.name || 'Admin',
+                                    is_deleted: true
+                                })
+                            });
+                            
+                            // Remove from local view
+                            setOrders(prev => prev.filter(order => order.id !== id));
+                            alert('Order marked as deleted successfully!');
+                            return;
+                        } catch (putError) {
+                            console.error("PUT also failed:", putError);
+                        }
+                    }
                     // If DELETE not supported, remove locally with warning
                     setOrders(prev => prev.filter(order => order.id !== id));
                     setLoading(false);
