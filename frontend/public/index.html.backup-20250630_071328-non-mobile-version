@@ -45,80 +45,128 @@
         }
     </script>
 
-        <style>
-        /* Mobile-first responsive design */
-        @media screen and (max-width: 1023px) {
-            /* Hide entire sidebar section on mobile */
-            .w-64.bg-gray-900,
-            .w-64.bg-gray-900.dark\:bg-gray-950,
-            .w-64 {
-                display: none !important;
-            }
-            
-            /* Also hide the sidebar container */
-            .flex.h-screen > div:first-child {
-                display: none !important;
-            }
-            
-            /* Remove margin from content */
-            .flex-1 {
-                margin-left: 0 !important;
-            }
-            
-            /* Add top padding for fixed header */
-            main {
-                padding-top: 4rem !important;
-            }
-            
-            /* Responsive grids */
-            .grid.grid-cols-4 {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 0.75rem;
-            }
-            
-            .grid.grid-cols-2 {
-                grid-template-columns: 1fr;
-            }
-            
-            /* Compact cards */
-            .rounded-lg.shadow.p-6 {
-                padding: 0.75rem;
-            }
-            
-            /* Mobile-friendly tables */
-            .overflow-x-auto {
-                margin: 0 -1rem;
-                padding: 0 1rem;
-            }
-            
-            table {
-                font-size: 0.75rem;
-            }
-            
-            /* Smaller padding */
-            .p-6 {
-                padding: 0.75rem;
-            }
-            
-            /* Stack some buttons, keep others inline */
-            td .flex.flex-wrap.gap-1 {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 0.25rem;
-            }
-            
-            td .flex.flex-wrap.gap-1 button {
-                font-size: 0.75rem;
-                padding: 0.25rem 0.5rem;
-            }
+    <style>
+        /* Dark mode base styles */
+        .dark {
+            color-scheme: dark;
         }
         
-        /* Desktop styles */
-        @media screen and (min-width: 1024px) {
-            /* Hide mobile header on desktop */
-            .lg\:hidden {
-                display: none !important;
-            }
+        .dark body {
+            background-color: #111827;
+            color: #f3f4f6;
+        }
+        
+        /* Dark mode for main containers */
+        .dark .bg-white {
+            background-color: #1f2937 !important;
+        }
+        
+        .dark .bg-gray-50 {
+            background-color: #111827 !important;
+        }
+        
+        .dark .bg-gray-100 {
+            background-color: #0f172a !important;
+        }
+        
+        /* Dark mode for text */
+        .dark .text-gray-900 {
+            color: #f3f4f6 !important;
+        }
+        
+        .dark .text-gray-800 {
+            color: #e5e7eb !important;
+        }
+        
+        .dark .text-gray-700 {
+            color: #d1d5db !important;
+        }
+        
+        .dark .text-gray-600 {
+            color: #9ca3af !important;
+        }
+        
+        .dark .text-gray-500 {
+            color: #6b7280 !important;
+        }
+        
+        /* Dark mode for borders */
+        .dark .border-gray-200 {
+            border-color: #374151 !important;
+        }
+        
+        .dark .border-gray-300 {
+            border-color: #4b5563 !important;
+        }
+        
+        .dark .border-b {
+            border-color: #374151 !important;
+        }
+        
+        /* Dark mode for inputs and forms */
+        .dark input, .dark select, .dark textarea {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            color: #f3f4f6 !important;
+        }
+        
+        .dark input:focus, .dark select:focus, .dark textarea:focus {
+            border-color: #3b82f6 !important;
+            background-color: #4b5563 !important;
+        }
+        
+        /* Dark mode for hover states */
+        .dark .hover\:bg-gray-50:hover {
+            background-color: #374151 !important;
+        }
+        
+        .dark .hover\:bg-gray-100:hover {
+            background-color: #4b5563 !important;
+        }
+        
+        /* Dark mode for tables */
+        .dark table {
+            background-color: #1f2937 !important;
+        }
+        
+        .dark thead {
+            background-color: #111827 !important;
+        }
+        
+        .dark tbody tr:hover {
+            background-color: #374151 !important;
+        }
+        
+        /* Dark mode for modals */
+        .dark .bg-black.bg-opacity-50 {
+            background-color: rgba(0, 0, 0, 0.75) !important;
+        }
+        
+        /* Dark mode for shadows */
+        .dark .shadow-sm {
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.5) !important;
+        }
+        
+        .dark .shadow-md {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+        }
+        
+        /* Dark mode for sidebar */
+        .dark .bg-gray-900 {
+            background-color: #0f172a !important;
+        }
+        
+        /* Dark mode scrollbars */
+        .dark ::-webkit-scrollbar {
+            background-color: #1f2937;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb {
+            background-color: #4b5563;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background-color: #6b7280;
         }
     </style>
 
@@ -136,16 +184,7 @@
             .max-w-6xl, .max-w-4xl, .max-w-2xl { max-width: 95%; margin: 1rem; }
         }
     </style>
-
-    <style>
-        /* Ensure mobile header is visible */
-        @media (max-width: 1023px) {
-            div.fixed.top-0.left-0.right-0.z-50 {
-                display: flex !important;
-            }
-        }
-    </style>
-    </head>
+</head>
 <body>
     <div id="root"></div>
     <script>
@@ -661,7 +700,6 @@ const [currentOrderDetail, setCurrentOrderDetail] = useState(null);
     const [darkMode, setDarkMode] = useState(() => {
         return localStorage.getItem('crm_dark_mode') === 'true';
     });
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const [formData, setFormData] = useState({});
     const [paymentData, setPaymentData] = useState({});
@@ -2455,80 +2493,128 @@ const renderGSTInvoicePreview = () => {
                     }
                 </style>
             
-        <style>
-        /* Mobile-first responsive design */
-        @media screen and (max-width: 1023px) {
-            /* Hide entire sidebar section on mobile */
-            .w-64.bg-gray-900,
-            .w-64.bg-gray-900.dark\:bg-gray-950,
-            .w-64 {
-                display: none !important;
-            }
-            
-            /* Also hide the sidebar container */
-            .flex.h-screen > div:first-child {
-                display: none !important;
-            }
-            
-            /* Remove margin from content */
-            .flex-1 {
-                margin-left: 0 !important;
-            }
-            
-            /* Add top padding for fixed header */
-            main {
-                padding-top: 4rem !important;
-            }
-            
-            /* Responsive grids */
-            .grid.grid-cols-4 {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 0.75rem;
-            }
-            
-            .grid.grid-cols-2 {
-                grid-template-columns: 1fr;
-            }
-            
-            /* Compact cards */
-            .rounded-lg.shadow.p-6 {
-                padding: 0.75rem;
-            }
-            
-            /* Mobile-friendly tables */
-            .overflow-x-auto {
-                margin: 0 -1rem;
-                padding: 0 1rem;
-            }
-            
-            table {
-                font-size: 0.75rem;
-            }
-            
-            /* Smaller padding */
-            .p-6 {
-                padding: 0.75rem;
-            }
-            
-            /* Stack some buttons, keep others inline */
-            td .flex.flex-wrap.gap-1 {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 0.25rem;
-            }
-            
-            td .flex.flex-wrap.gap-1 button {
-                font-size: 0.75rem;
-                padding: 0.25rem 0.5rem;
-            }
+    <style>
+        /* Dark mode base styles */
+        .dark {
+            color-scheme: dark;
         }
         
-        /* Desktop styles */
-        @media screen and (min-width: 1024px) {
-            /* Hide mobile header on desktop */
-            .lg\:hidden {
-                display: none !important;
-            }
+        .dark body {
+            background-color: #111827;
+            color: #f3f4f6;
+        }
+        
+        /* Dark mode for main containers */
+        .dark .bg-white {
+            background-color: #1f2937 !important;
+        }
+        
+        .dark .bg-gray-50 {
+            background-color: #111827 !important;
+        }
+        
+        .dark .bg-gray-100 {
+            background-color: #0f172a !important;
+        }
+        
+        /* Dark mode for text */
+        .dark .text-gray-900 {
+            color: #f3f4f6 !important;
+        }
+        
+        .dark .text-gray-800 {
+            color: #e5e7eb !important;
+        }
+        
+        .dark .text-gray-700 {
+            color: #d1d5db !important;
+        }
+        
+        .dark .text-gray-600 {
+            color: #9ca3af !important;
+        }
+        
+        .dark .text-gray-500 {
+            color: #6b7280 !important;
+        }
+        
+        /* Dark mode for borders */
+        .dark .border-gray-200 {
+            border-color: #374151 !important;
+        }
+        
+        .dark .border-gray-300 {
+            border-color: #4b5563 !important;
+        }
+        
+        .dark .border-b {
+            border-color: #374151 !important;
+        }
+        
+        /* Dark mode for inputs and forms */
+        .dark input, .dark select, .dark textarea {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            color: #f3f4f6 !important;
+        }
+        
+        .dark input:focus, .dark select:focus, .dark textarea:focus {
+            border-color: #3b82f6 !important;
+            background-color: #4b5563 !important;
+        }
+        
+        /* Dark mode for hover states */
+        .dark .hover\:bg-gray-50:hover {
+            background-color: #374151 !important;
+        }
+        
+        .dark .hover\:bg-gray-100:hover {
+            background-color: #4b5563 !important;
+        }
+        
+        /* Dark mode for tables */
+        .dark table {
+            background-color: #1f2937 !important;
+        }
+        
+        .dark thead {
+            background-color: #111827 !important;
+        }
+        
+        .dark tbody tr:hover {
+            background-color: #374151 !important;
+        }
+        
+        /* Dark mode for modals */
+        .dark .bg-black.bg-opacity-50 {
+            background-color: rgba(0, 0, 0, 0.75) !important;
+        }
+        
+        /* Dark mode for shadows */
+        .dark .shadow-sm {
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.5) !important;
+        }
+        
+        .dark .shadow-md {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+        }
+        
+        /* Dark mode for sidebar */
+        .dark .bg-gray-900 {
+            background-color: #0f172a !important;
+        }
+        
+        /* Dark mode scrollbars */
+        .dark ::-webkit-scrollbar {
+            background-color: #1f2937;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb {
+            background-color: #4b5563;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background-color: #6b7280;
         }
     </style>
 
@@ -2546,16 +2632,7 @@ const renderGSTInvoicePreview = () => {
             .max-w-6xl, .max-w-4xl, .max-w-2xl { max-width: 95%; margin: 1rem; }
         }
     </style>
-
-    <style>
-        /* Ensure mobile header is visible */
-        @media (max-width: 1023px) {
-            div.fixed.top-0.left-0.right-0.z-50 {
-                display: flex !important;
-            }
-        }
-    </style>
-    </head>
+</head>
             <body>
                 <div class="invoice-preview">
                     ${invoiceContent}
@@ -5463,50 +5540,7 @@ order.invoice_number && React.createElement('button', {
 };
     // Main application layout
     return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:bg-gray-900' },
-        
-        // Mobile Header (only visible on mobile)
-        React.createElement('div', {
-            className: 'lg:hidden fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-50 px-4 py-3'
-        },
-            React.createElement('div', { className: 'flex items-center justify-between' },
-                React.createElement('h1', { className: 'text-lg font-bold' }, 'FanToPark CRM'),
-                React.createElement('div', { className: 'flex items-center space-x-2' },
-                    React.createElement('button', {
-                        onClick: () => {
-                            setDarkMode(!darkMode);
-                            document.documentElement.classList.toggle('dark');
-                            localStorage.setItem('crm_dark_mode', !darkMode);
-                        },
-                        className: 'p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded'
-                    }, darkMode ? '☀️' : '🌙'),
-                    React.createElement('button', {
-                        onClick: () => setMobileMenuOpen(!mobileMenuOpen),
-                        className: 'p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded'
-                    }, '☰')
-                )
-            )
-        ),
-        
-        // Mobile Menu Dropdown
-        mobileMenuOpen && React.createElement('div', {
-            className: 'lg:hidden fixed top-14 right-4 bg-white dark:bg-gray-800 shadow-lg rounded-lg z-50 w-48'
-        },
-            React.createElement('nav', { className: 'py-2' },
-                ['dashboard', 'leads', 'inventory', 'orders', 'delivery'].map(item =>
-                    React.createElement('button', {
-                        key: item,
-                        onClick: () => { setActiveTab(item); setMobileMenuOpen(false); },
-                        className: `w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${activeTab === item ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : ''}`
-                    }, item.charAt(0).toUpperCase() + item.slice(1))
-                ),
-                React.createElement('hr', { className: 'my-2 border-gray-200 dark:border-gray-700' }),
-                React.createElement('button', {
-                    onClick: handleLogout,
-                    className: 'w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600'
-                }, 'Logout')
-            )
-        ),
-renderSidebar(),
+        renderSidebar(),
         React.createElement('div', { className: 'flex-1 flex flex-col overflow-hidden' },
             React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-6 py-4' },
                 React.createElement('div', { className: 'flex items-center justify-between' },
