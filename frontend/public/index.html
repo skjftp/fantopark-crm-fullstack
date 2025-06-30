@@ -12,7 +12,6 @@
     
     <!-- API Configuration -->
     <script>
-{{{{{{{{{
         // Configure API endpoint
         const API_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname.includes("8000")) ? "http://localhost:8080/api" : "https://fantopark-backend-ofkn6rpg3a-uc.a.run.app/api";
         // Get stored auth token
@@ -339,7 +338,6 @@
 <body>
     <div id="root"></div>
     <script>
-{{{{{{{{{
         const { useState, useEffect } = React;
 
 // User roles and permissions configuration
@@ -6057,17 +6055,21 @@ currentInventoryItems.map(item =>
                                     ),
                                     React.createElement('td', { className: 'px-6 py-4' },
                                         React.createElement('div', { className: 'flex flex-wrap gap-1' },
-                                            // View button - always visible
-                                                                                    // Finance approval buttons
+                                            // View button - always visible for all orders
+                                            React.createElement('button', {
+                                                key: 'view',
+                                                className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
+                                                onClick: () => openOrderDetail(order)
+                                            }, '👁️ View'),
+                                            
+                                            // Finance approval buttons
                                             // REPLACE the Finance approval buttons section with this:
-// Finance approval buttons
 hasPermission('orders', 'approve') && order.status === 'pending_approval' && [
     // Show if this requires sales head approval
     order.order_type === 'payment_post_service' && React.createElement('span', {
         key: 'sales-head-label',
         className: 'px-2 py-1 text-xs rounded bg-purple-100 text-purple-800'
-    }, 'Sales Head Approval Required'),
-    // Add this before the approval buttons
+    }, 'Sales Head Approval'),
     React.createElement('button', {
         key: 'approve',
         className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
