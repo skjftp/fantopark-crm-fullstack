@@ -422,7 +422,12 @@ const LEAD_STATUSES = {
     converted: { 
         label: 'Converted', 
         color: 'bg-green-100 text-green-800', 
-        next: ['payment', 'payment_post_service'] 
+        next: ['payment', 'payment_post_service', 'payment_received'] 
+    },
+    payment_received: { 
+        label: 'Payment Received', 
+        color: 'bg-green-100 text-green-800', 
+        next: [] 
     },
     dropped: { 
         label: 'Dropped', 
