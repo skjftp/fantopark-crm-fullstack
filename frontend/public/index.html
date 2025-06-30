@@ -788,26 +788,17 @@ const fetchData = async () => {
     if (!isLoggedIn || !authToken) return;
     
     try {
-        const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData] = await Promise.all([
+        const [leadsData, inventoryData, ordersData, invoicesData] = await Promise.all([
             apiCall('/leads').catch(() => ({ data: [] })),
             apiCall('/inventory').catch(() => ({ data: [] })),
             apiCall('/orders').catch(() => ({ data: [] })),
-            apiCall('/invoices').catch(() => ({ data: [] })),
-            apiCall('/deliveries').catch(() => ({ data: [] }))
+            apiCall('/invoices').catch(() => ({ data: [] }))
         ]);
         
         setLeads(leadsData.data || []);
         setInventory(inventoryData.data || []);
         setOrders(ordersData.data || []);
-
-        // Rebuild deliveries from orders that have delivery info
-        const deliveriesFromOrders = (ordersData.data || [])
-            .filter(order => order.has_delivery && order.delivery_info)
-            .map(order => order.delivery_info);
-        console.log('Rebuilding deliveries from orders:', deliveriesFromOrders);
-        setDeliveries(deliveriesFromOrders);
         setInvoices(invoicesData.data || []);
-        setDeliveries(deliveriesData.data || []);
     } catch (error) {
         console.error('Error fetching data:', error);
     }
@@ -1205,50 +1196,9 @@ Status: ${order.status}`);
             };
             
             // Add to deliveries state
-        // Also update the order with the delivery schedule
-        try {
-            const order = orders.find(o => o.id === currentDelivery.order_id);
-            if (order) {
-                await apiCall(`/orders/${order.id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        ...order,
-                        delivery_info: {
-                            ...currentDelivery,
-                            ...deliveryFormData,
-                            status: 'scheduled',
-                            scheduled_date: new Date().toISOString()
-                        }
-                    })
-                });
-                console.log('Order updated with scheduled delivery info');
-            }
-        } catch (error) {
-            console.error('Failed to update order with delivery schedule:', error);
-        }
-
             setDeliveries(prev => [...prev, newDelivery]);
             
             console.log('Delivery entry created:', newDelivery);
-
-        // Save delivery info to the order in backend
-        try {
-            const orderUpdateWithDelivery = {
-                ...updateData,
-                delivery_info: newDelivery,
-                has_delivery: true,
-                delivery_id: newDelivery.id
-            };
-            
-            await apiCall(`/orders/${orderId}`, {
-                method: 'PUT',
-                body: JSON.stringify(orderUpdateWithDelivery)
-            });
-            
-            console.log('Order updated with delivery info in backend');
-        } catch (error) {
-            console.error('Failed to save delivery info to order:', error);
-        }
         }
         
         alert(`Order assigned to ${assignee} successfully!`);
@@ -1933,44 +1883,6 @@ const handleDeliverySubmit = async (e) => {
 
     try {
         await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Update in backend
-        try {
-            await apiCall(`/deliveries/${currentDelivery.id}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    ...delivery,
-                    ...deliveryFormData,
-                    status: 'scheduled',
-                    scheduled_date: new Date().toISOString()
-                })
-            });
-        } catch (error) {
-            console.error('Failed to update delivery in backend:', error);
-        }
-        
-        // Update local state
-        // Also update the order with the delivery schedule
-        try {
-            const order = orders.find(o => o.id === currentDelivery.order_id);
-            if (order) {
-                await apiCall(`/orders/${order.id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        ...order,
-                        delivery_info: {
-                            ...currentDelivery,
-                            ...deliveryFormData,
-                            status: 'scheduled',
-                            scheduled_date: new Date().toISOString()
-                        }
-                    })
-                });
-                console.log('Order updated with scheduled delivery info');
-            }
-        } catch (error) {
-            console.error('Failed to update order with delivery schedule:', error);
-        }
 
         setDeliveries(prev => 
             prev.map(delivery => 
@@ -6338,28 +6250,6 @@ order.invoice_number && React.createElement('button', {
                                             React.createElement('button', {
                                                 className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
                                                 onClick: () => {
-        // Also update the order with the delivery schedule
-        try {
-            const order = orders.find(o => o.id === currentDelivery.order_id);
-            if (order) {
-                await apiCall(`/orders/${order.id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        ...order,
-                        delivery_info: {
-                            ...currentDelivery,
-                            ...deliveryFormData,
-                            status: 'scheduled',
-                            scheduled_date: new Date().toISOString()
-                        }
-                    })
-                });
-                console.log('Order updated with scheduled delivery info');
-            }
-        } catch (error) {
-            console.error('Failed to update order with delivery schedule:', error);
-        }
-
                                                     setDeliveries(prev => 
                                                         prev.map(d => 
                                                             d.id === delivery.id 
@@ -6374,28 +6264,6 @@ order.invoice_number && React.createElement('button', {
                                             React.createElement('button', {
                                                 className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
                                                 onClick: () => {
-        // Also update the order with the delivery schedule
-        try {
-            const order = orders.find(o => o.id === currentDelivery.order_id);
-            if (order) {
-                await apiCall(`/orders/${order.id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        ...order,
-                        delivery_info: {
-                            ...currentDelivery,
-                            ...deliveryFormData,
-                            status: 'scheduled',
-                            scheduled_date: new Date().toISOString()
-                        }
-                    })
-                });
-                console.log('Order updated with scheduled delivery info');
-            }
-        } catch (error) {
-            console.error('Failed to update order with delivery schedule:', error);
-        }
-
                                                     setDeliveries(prev => 
                                                         prev.map(d => 
                                                             d.id === delivery.id 
