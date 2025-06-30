@@ -2894,7 +2894,7 @@ const handleOrderApproval = async (orderId, action) => {
         setCurrentOrderForEdit(order);
         setOrderEditData({
             ...order,
-            status: order.status,
+            status: lead.status,
             rejection_reason: order.rejection_reason || ''
         });
         setShowEditOrderForm(true);
@@ -4485,9 +4485,9 @@ const totalPages = Math.ceil(sortedLeads.length / itemsPerPage);
                                         className: `px-2 py-1 text-xs rounded ${status.color}`
                                     }, status.label)
                                 ),
-                                    order.status === 'rejected' && order.rejection_reason && React.createElement('div', {
+                                    lead.status === 'rejected' && lead.rejection_reason && React.createElement('div', {
                                         className: 'mt-1 text-xs text-red-600 italic'
-                                    }, `Reason: ${order.rejection_reason}`),
+                                    }, `Reason: ${lead.rejection_reason}`),
                                 hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
                                     React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, 
                                         '₹' + (lead.potential_value || 0).toLocaleString()
