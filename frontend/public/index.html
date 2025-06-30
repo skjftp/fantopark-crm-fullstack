@@ -5306,6 +5306,38 @@ const totalPages = Math.ceil(sortedLeads.length / itemsPerPage);
     );
 };
 
+
+const handleEditOrderSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+        const response = await apiCall(`/orders/${currentOrderForEdit.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                ...orderEditData,
+                updated_date: new Date().toISOString(),
+                updated_by: user.name
+            })
+        });
+        
+        // Update local state
+        setOrders(prev => prev.map(order => 
+            order.id === currentOrderForEdit.id 
+                ? { ...order, ...orderEditData }
+                : order
+        ));
+        
+        setShowEditOrderForm(false);
+        alert('Order updated successfully!');
+    } catch (error) {
+        console.error('Error updating order:', error);
+        alert('Failed to update order');
+    } finally {
+        setLoading(false);
+    }
+};
+
 const renderEditOrderForm = () => {
         if (!showEditOrderForm || !currentOrderForEdit) return null;
 
