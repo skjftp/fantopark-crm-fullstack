@@ -35,14 +35,16 @@
                 localStorage.removeItem('crm_auth_token');
                 localStorage.removeItem('crm_user');
                 window.location.reload();
-                return;
+                throw new Error('Authentication failed');
             }
             
             if (!response.ok) {
                 throw new Error(`API Error: ${response.statusText}`);
             }
             
-            return response.json();
+            const data = await response.json();
+            console.log(`API Response from ${endpoint}:`, data);
+            return data;
         }
     </script>
 
