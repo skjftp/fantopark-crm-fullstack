@@ -367,6 +367,10 @@
     </style>
 </head>
 <body>
+<div id="test-mode-indicator" style="display:none; background:#dc2626; color:white; text-align:center; padding:10px; font-weight:bold;">
+    🧪 TEST MODE ACTIVE - Delete All buttons enabled
+</div>
+<script>if(localStorage.getItem('testMode')==='true') document.getElementById('test-mode-indicator').style.display='block';</script>
     <div id="root"></div>
     <div id="error-message" style="position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 12px 20px; border-radius: 6px; display: none; z-index: 9999;"></div>
     <script>
