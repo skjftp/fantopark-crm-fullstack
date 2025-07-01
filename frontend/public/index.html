@@ -8473,6 +8473,11 @@ return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:b
                 )
             ),
             React.createElement('main', { className: 'flex-1 overflow-y-auto p-6' },
+                testMode && user.role === 'super_admin' && React.createElement('div', {
+                    className: 'bg-red-100 border-2 border-red-500 text-red-700 p-4 rounded-lg mb-4 text-center font-bold animate-pulse'
+                }, 
+                    '⚠️ TEST MODE ACTIVE - Delete buttons and test data fills are enabled!'
+                ),
                 renderContent()
             )
         ),
