@@ -28,7 +28,7 @@
                 ...options,
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(authToken && { 'Authorization': authToken ? `Bearer ${authToken}` : undefined }),
+                    ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
                     ...options.headers
                 }
             };
@@ -1542,11 +1542,8 @@ const handleLogin = async (e) => {
         console.log("Has token?", response.token !== undefined);
         console.log("Has user?", response.user !== undefined);
         if (response.token && response.user) {
-            authToken = response.token;
+            authToken = response.token;  // Update global authToken variable
             localStorage.setItem('crm_auth_token', response.token);
-            authToken = response.token;  // Critical: Update the global authToken variable
-            authToken = response.token;  // Update the global authToken variable
-            authToken = response.token;
             localStorage.setItem('crm_user', JSON.stringify(response.user));
             setUser(response.user);
             debugLog('LOGIN_SUCCESS', { user: response.user });
