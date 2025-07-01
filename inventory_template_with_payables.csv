@@ -1,0 +1,4 @@
+Name,Category,Description,Quantity,Price,Due Date,Event Name,Payment Status,Supplier Name,Supplier Invoice,Purchase Price,Total Purchase Amount,Amount Paid,Payment Due Date
+Sample Event Ticket,Ticket,VIP Concert Ticket,100,500,2024-12-31,New Year Concert,paid,ABC Suppliers,INV-001,400,40000,40000,2024-11-30
+Theater Show,Ticket,Premium Seats,50,300,2024-12-25,Christmas Special,pending,XYZ Events,INV-002,250,12500,0,2024-12-15
+Sports Event,Ticket,Stadium Entry,200,150,2024-12-20,Football Match,partial,Sports Co,INV-003,120,24000,10000,2024-12-10
