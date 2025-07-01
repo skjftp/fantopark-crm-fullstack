@@ -4680,7 +4680,7 @@ const handleAssignLead = async (e) => {
                                                 React.createElement('option', { value: '' }, 'Select ' + field.label),
                                                 field.options.map(option =>
                                                     React.createElement('option', { key: option, value: option }, 
-                                                        option.charAt(0).toUpperCase() + option.slice(1).replace('_', ' ')
+                                                        (typeof option === 'string' ? option.charAt(0).toUpperCase() + option.slice(1) : (option.name || option)).replace('_', ' ')
                                                     )
                                                 )
                                             ) :
