@@ -1149,6 +1149,12 @@ const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
         console.log('Test mode state:', testMode);
         console.log('Current user:', currentUser);
         console.log('Is super admin:', currentUser?.role === 'super_admin');
+        console.log('User object:', JSON.stringify(currentUser));
+        
+        // Force re-render when user changes
+        if (currentUser && currentUser.role === 'super_admin') {
+            console.log('Super admin logged in - test mode toggle should be visible');
+        }
     }, [testMode, currentUser]);
 
     // Persist authentication state
