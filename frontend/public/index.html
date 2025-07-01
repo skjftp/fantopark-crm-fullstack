@@ -1571,6 +1571,19 @@ const handleLogin = async (e) => {
         }
         setShowUserForm(true);
     };
+
+    const closeUserForm = () => {
+        setShowUserForm(false);
+        setEditingUser(null);
+        setUserFormData({
+            name: '',
+            email: '',
+            password: '',
+            role: 'viewer',
+            department: '',
+            status: 'active'
+        });
+    };
     
     const handleUserSubmit = async (e) => {
         e.preventDefault();
