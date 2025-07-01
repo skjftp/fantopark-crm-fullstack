@@ -861,7 +861,9 @@ useEffect(() => {
     }
         
         // Fetch My Actions data
+        console.log('useEffect triggered - activeTab:', activeTab, 'isLoggedIn:', isLoggedIn);
         if (activeTab === 'myActions') {
+            console.log('My Actions tab is active, calling fetchMyActions...');
             fetchMyActions();
         }
 }, [isLoggedIn, activeTab]);
@@ -1527,6 +1529,18 @@ const handleLogin = async (e) => {
     };
 
 const fetchMyActions = async () => {
+    console.log('===== fetchMyActions CALLED =====');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Current user:', user);
+    console.log('User email:', user?.email);
+    console.log('User role:', user?.role);
+    console.log('Is logged in:', isLoggedIn);
+    console.log('Loading state:', loading);
+    
+    if (!user) {
+        console.error('No user object - cannot fetch actions');
+        return;
+    }
     // Prevent multiple simultaneous calls
     if (loading) {
         console.log('Already fetching, skipping...');
