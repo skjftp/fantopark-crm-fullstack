@@ -1,4 +1,5 @@
 const express = require('express');
+const admin = require('../config/firebase');
 const router = express.Router();
 const Inventory = require('../models/Inventory');
 const { authenticateToken, checkPermission } = require('../middleware/auth');
