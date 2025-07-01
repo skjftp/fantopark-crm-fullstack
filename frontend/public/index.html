@@ -9416,6 +9416,188 @@ window.createCustomLead = async function(leadData) {
     }
 };
 
+
+
+// Analyze existing lead structure
+window.analyzeLeadStructure = async function() {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        // Get existing leads
+        const response = await fetch(API_URL + '/api/leads', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + authToken
+            }
+        });
+        
+        const result = await response.json();
+        console.log('Leads response:', result);
+        
+        if (result.data && result.data.length > 0) {
+            const lead = result.data[0];
+            console.log('Sample lead:', lead);
+            console.log('Lead fields:', Object.keys(lead));
+            console.log('Field types:');
+            for (const key in lead) {
+                console.log(`  ${key}: ${typeof lead[key]} = ${lead[key]}`);
+            }
+            
+            // Check date fields specifically
+            if (lead.date_of_enquiry) {
+                console.log('date_of_enquiry format:', lead.date_of_enquiry);
+            }
+            
+            return lead;
+        } else {
+            console.log('No existing leads found');
+            return null;
+        }
+    } catch (error) {
+        console.error('Error analyzing leads:', error);
+        return null;
+    }
+};
+
+// Create lead with minimal required fields
+window.createMinimalLead = async function() {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    // Start with absolute minimum fields
+    const minimalData = {
+        name: 'Minimal Test ' + Math.floor(Math.random() * 1000),
+        email: 'minimal' + Math.floor(Math.random() * 1000) + '@test.com',
+        phone: '9876543210',
+        status: 'new'
+    };
+    
+    console.log('Creating minimal lead:', minimalData);
+    
+    try {
+        const response = await fetch(API_URL + '/api/leads', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(minimalData)
+        });
+        
+        const result = await response.json();
+        console.log('Response status:', response.status);
+        console.log('Response:', result);
+        
+        if (response.ok) {
+            alert('Minimal lead created successfully!');
+            return result;
+        } else {
+            console.error('Failed:', result);
+            alert('Failed: ' + (result.error || result.message || 'Unknown error'));
+            return null;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+        return null;
+    }
+};
+
+// Fixed create test lead based on backend requirements
+window.createTestLead = async function() {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    // First analyze existing lead to understand structure
+    console.log('Analyzing existing lead structure...');
+    const existingLead = await analyzeLeadStructure();
+    
+    // Create test data matching the structure
+    const testData = {
+        name: 'Test User ' + Math.floor(Math.random() * 1000),
+        email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
+        phone: '98' + Math.floor(Math.random() * 90000000 + 10000000),
+        company: 'Test Company ' + Math.floor(Math.random() * 100),
+        lead_for_event: 'General Inquiry',
+        lead_source: 'Website',
+        lead_type: 'warm',
+        status: 'new',
+        notes: 'Test lead created via test mode',
+        requirements: 'Test requirements'
+    };
+    
+    // If we found date fields in existing lead, add them
+    if (existingLead && existingLead.date_of_enquiry) {
+        // Copy the date format from existing lead
+        const dateFormat = existingLead.date_of_enquiry;
+        console.log('Using date format from existing lead:', dateFormat);
+        
+        // If it's a timestamp, use current timestamp
+        if (typeof dateFormat === 'object' || dateFormat.includes('T')) {
+            testData.date_of_enquiry = new Date().toISOString();
+        } else {
+            // Otherwise use YYYY-MM-DD format
+            const now = new Date();
+            testData.date_of_enquiry = now.getFullYear() + '-' + 
+                                      String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                                      String(now.getDate()).padStart(2, '0');
+        }
+    }
+    
+    console.log('Creating lead with data:', testData);
+    
+    try {
+        const response = await fetch(API_URL + '/api/leads', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            console.log('Lead created successfully:', result);
+            alert('Test lead created: ' + testData.name);
+            window.location.reload();
+        } else {
+            console.error('Failed to create lead:', result);
+            
+            // If date_of_enquiry is the issue, try without it
+            if (result.error && result.error.includes('date_of_enquiry')) {
+                console.log('Retrying without date_of_enquiry...');
+                delete testData.date_of_enquiry;
+                
+                const retry = await fetch(API_URL + '/api/leads', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                const retryResult = await retry.json();
+                
+                if (retry.ok) {
+                    alert('Test lead created (without date): ' + testData.name);
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (retryResult.error || retryResult.message || 'Failed to create lead'));
+                }
+            } else {
+                alert('Error: ' + (result.error || result.message || 'Failed to create lead'));
+            }
+        }
+    } catch (error) {
+        console.error('Create lead error:', error);
+        alert('Error creating lead: ' + error.message);
+    }
+};
+
 </script>
 
 </body>
