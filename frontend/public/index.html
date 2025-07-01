@@ -2424,6 +2424,382 @@ const closeForm = () => {
         );
     };
 
+    const renderRoleManagement = () => {
+        const [roles, setRoles] = useState([]);
+        const [showRoleForm, setShowRoleForm] = useState(false);
+        const [editingRole, setEditingRole] = useState(null);
+        const [roleFormData, setRoleFormData] = useState({
+            name: '',
+            label: '',
+            description: '',
+            permissions: {
+                dashboard: { read: false, write: false, delete: false, manage_users: false },
+                leads: { read: false, write: false, delete: false, assign: false, progress: false },
+                inventory: { read: false, write: false, delete: false, allocate: false },
+                orders: { read: false, write: false, delete: false, approve: false, assign: false },
+                finance: { read: false, write: false, delete: false, approve: false },
+                delivery: { read: false, write: false, delete: false },
+                users: { read: false, write: false, delete: false, manage_roles: false }
+            }
+        });
+
+        // Fetch roles on component mount
+        useEffect(() => {
+            fetchRoles();
+        }, []);
+
+        const fetchRoles = async () => {
+            try {
+                const response = await apiCall('/roles');
+                setRoles(response.data || []);
+            } catch (error) {
+                console.error('Failed to fetch roles:', error);
+            }
+        };
+
+        const handlePermissionToggle = (module, permission) => {
+            setRoleFormData(prev => ({
+                ...prev,
+                permissions: {
+                    ...prev.permissions,
+                    [module]: {
+                        ...prev.permissions[module],
+                        [permission]: !prev.permissions[module][permission]
+                    }
+                }
+            }));
+        };
+
+        const handleSubmit = async (e) => {
+            e.preventDefault();
+            try {
+                if (editingRole) {
+                    await apiCall(`/roles/${editingRole.id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(roleFormData)
+                    });
+                    alert('Role updated successfully!');
+                } else {
+                    await apiCall('/roles', {
+                        method: 'POST',
+                        body: JSON.stringify(roleFormData)
+                    });
+                    alert('Role created successfully!');
+                }
+                setShowRoleForm(false);
+                setEditingRole(null);
+                setRoleFormData({
+                    name: '',
+                    label: '',
+                    description: '',
+                    permissions: {
+                        dashboard: { read: false, write: false, delete: false, manage_users: false },
+                        leads: { read: false, write: false, delete: false, assign: false, progress: false },
+                        inventory: { read: false, write: false, delete: false, allocate: false },
+                        orders: { read: false, write: false, delete: false, approve: false, assign: false },
+                        finance: { read: false, write: false, delete: false, approve: false },
+                        delivery: { read: false, write: false, delete: false },
+                        users: { read: false, write: false, delete: false, manage_roles: false }
+                    }
+                });
+                fetchRoles();
+            } catch (error) {
+                alert('Failed to save role: ' + error.message);
+            }
+        };
+
+        const handleEdit = (role) => {
+            setEditingRole(role);
+            setRoleFormData({
+                name: role.name,
+                label: role.label,
+                description: role.description || '',
+                permissions: role.permissions
+            });
+            setShowRoleForm(true);
+        };
+
+        const handleDelete = async (role) => {
+            if (!confirm(`Are you sure you want to delete the role "${role.label}"?`)) return;
+            
+            try {
+                await apiCall(`/roles/${role.id}`, { method: 'DELETE' });
+                alert('Role deleted successfully!');
+                fetchRoles();
+            } catch (error) {
+                alert('Failed to delete role: ' + error.message);
+            }
+        };
+
+        return React.createElement('div', { className: 'p-6' },
+            React.createElement('div', { className: 'flex justify-between items-center mb-6' },
+                React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Role Management'),
+                React.createElement('button', {
+                    onClick: () => setShowRoleForm(true),
+                    className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
+                }, '+ Create New Role')
+            ),
+
+            // Roles table
+            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden' },
+                React.createElement('table', { className: 'min-w-full' },
+                    React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
+                        React.createElement('tr', null,
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider' }, 'Role Name'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider' }, 'Label'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider' }, 'Description'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider' }, 'Type'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider' }, 'Actions')
+                        )
+                    ),
+                    React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700' },
+                        roles.map(role => 
+                            React.createElement('tr', { key: role.id },
+                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white' }, role.name),
+                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300' }, role.label),
+                                React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-500 dark:text-gray-300' }, role.description || '-'),
+                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300' },
+                                    React.createElement('span', {
+                                        className: `px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                            role.is_system ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
+                                        }`
+                                    }, role.is_system ? 'System' : 'Custom')
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm font-medium' },
+                                    React.createElement('button', {
+                                        onClick: () => handleEdit(role),
+                                        className: 'text-indigo-600 hover:text-indigo-900 mr-4'
+                                    }, 'Edit'),
+                                    !role.is_system && React.createElement('button', {
+                                        onClick: () => handleDelete(role),
+                                        className: 'text-red-600 hover:text-red-900'
+                                    }, 'Delete')
+                                )
+                            )
+                        )
+                    )
+                )
+            ),
+
+            roles.length === 0 && React.createElement('div', { className: 'text-center py-8' },
+                React.createElement('p', { className: 'text-gray-500 mb-4' }, 'No roles found. Initialize default roles to get started.'),
+                React.createElement('button', {
+                    onClick: async () => {
+                        try {
+                            await apiCall('/roles/initialize', { method: 'POST' });
+                            alert('Default roles initialized successfully!');
+                            fetchRoles();
+                        } catch (error) {
+                            alert('Failed to initialize roles: ' + error.message);
+                        }
+                    },
+                    className: 'bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700'
+                }, 'Initialize Default Roles')
+            ),
+
+            // Role form modal
+            showRoleForm && React.createElement('div', {
+                className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
+            },
+                React.createElement('div', {
+                    className: 'bg-white dark:bg-gray-800 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto'
+                },
+                    React.createElement('h2', {
+                        className: 'text-2xl font-bold mb-4 text-gray-900 dark:text-white'
+                    }, editingRole ? 'Edit Role' : 'Create New Role'),
+
+                    React.createElement('form', { onSubmit: handleSubmit },
+                        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-6' },
+                            React.createElement('div', null,
+                                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Role Name (ID) *'),
+                                React.createElement('input', {
+                                    type: 'text',
+                                    value: roleFormData.name,
+                                    onChange: (e) => setRoleFormData({ ...roleFormData, name: e.target.value.toLowerCase().replace(/\\s+/g, '_') }),
+                                    className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md',
+                                    required: true,
+                                    disabled: editingRole?.is_system,
+                                    placeholder: 'e.g., regional_manager'
+                                })
+                            ),
+                            React.createElement('div', null,
+                                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Display Label *'),
+                                React.createElement('input', {
+                                    type: 'text',
+                                    value: roleFormData.label,
+                                    onChange: (e) => setRoleFormData({ ...roleFormData, label: e.target.value }),
+                                    className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md',
+                                    required: true,
+                                    placeholder: 'e.g., Regional Manager'
+                                })
+                            )
+                        ),
+
+                        React.createElement('div', { className: 'mb-6' },
+                            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Description'),
+                            React.createElement('textarea', {
+                                value: roleFormData.description,
+                                onChange: (e) => setRoleFormData({ ...roleFormData, description: e.target.value }),
+                                className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md',
+                                rows: 2,
+                                placeholder: 'Brief description of this role'
+                            })
+                        ),
+
+                        React.createElement('h3', { className: 'text-lg font-medium mb-4 text-gray-900 dark:text-white' }, 'Permissions'),
+                        
+                        // Permissions table
+                        React.createElement('div', { className: 'overflow-x-auto mb-6' },
+                            React.createElement('table', { className: 'min-w-full divide-y divide-gray-200 dark:divide-gray-700' },
+                                React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
+                                    React.createElement('tr', null,
+                                        React.createElement('th', { className: 'px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase' }, 'Module'),
+                                        React.createElement('th', { className: 'px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase' }, 'Read'),
+                                        React.createElement('th', { className: 'px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase' }, 'Write'),
+                                        React.createElement('th', { className: 'px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase' }, 'Delete'),
+                                        React.createElement('th', { className: 'px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase' }, 'Special')
+                                    )
+                                ),
+                                React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700' },
+                                    Object.entries({
+                                        dashboard: 'Dashboard',
+                                        leads: 'Leads',
+                                        inventory: 'Inventory',
+                                        orders: 'Orders',
+                                        finance: 'Finance',
+                                        delivery: 'Delivery',
+                                        users: 'Users'
+                                    }).map(([module, label]) =>
+                                        React.createElement('tr', { key: module },
+                                            React.createElement('td', { className: 'px-4 py-2 text-sm font-medium text-gray-900 dark:text-white' }, label),
+                                            React.createElement('td', { className: 'px-4 py-2 text-center' },
+                                                React.createElement('input', {
+                                                    type: 'checkbox',
+                                                    checked: roleFormData.permissions[module].read,
+                                                    onChange: () => handlePermissionToggle(module, 'read'),
+                                                    className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                                                })
+                                            ),
+                                            React.createElement('td', { className: 'px-4 py-2 text-center' },
+                                                React.createElement('input', {
+                                                    type: 'checkbox',
+                                                    checked: roleFormData.permissions[module].write,
+                                                    onChange: () => handlePermissionToggle(module, 'write'),
+                                                    className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                                                })
+                                            ),
+                                            React.createElement('td', { className: 'px-4 py-2 text-center' },
+                                                React.createElement('input', {
+                                                    type: 'checkbox',
+                                                    checked: roleFormData.permissions[module].delete,
+                                                    onChange: () => handlePermissionToggle(module, 'delete'),
+                                                    className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                                                })
+                                            ),
+                                            React.createElement('td', { className: 'px-4 py-2 text-center' },
+                                                module === 'dashboard' && React.createElement('label', { className: 'flex items-center justify-center' },
+                                                    React.createElement('input', {
+                                                        type: 'checkbox',
+                                                        checked: roleFormData.permissions[module].manage_users,
+                                                        onChange: () => handlePermissionToggle(module, 'manage_users'),
+                                                        className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-1'
+                                                    }),
+                                                    React.createElement('span', { className: 'text-xs' }, 'Manage Users')
+                                                ),
+                                                module === 'leads' && React.createElement('div', { className: 'flex items-center justify-center space-x-2' },
+                                                    React.createElement('label', { className: 'flex items-center' },
+                                                        React.createElement('input', {
+                                                            type: 'checkbox',
+                                                            checked: roleFormData.permissions[module].assign,
+                                                            onChange: () => handlePermissionToggle(module, 'assign'),
+                                                            className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-1'
+                                                        }),
+                                                        React.createElement('span', { className: 'text-xs' }, 'Assign')
+                                                    ),
+                                                    React.createElement('label', { className: 'flex items-center' },
+                                                        React.createElement('input', {
+                                                            type: 'checkbox',
+                                                            checked: roleFormData.permissions[module].progress,
+                                                            onChange: () => handlePermissionToggle(module, 'progress'),
+                                                            className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-1'
+                                                        }),
+                                                        React.createElement('span', { className: 'text-xs' }, 'Progress')
+                                                    )
+                                                ),
+                                                module === 'inventory' && React.createElement('label', { className: 'flex items-center justify-center' },
+                                                    React.createElement('input', {
+                                                        type: 'checkbox',
+                                                        checked: roleFormData.permissions[module].allocate,
+                                                        onChange: () => handlePermissionToggle(module, 'allocate'),
+                                                        className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-1'
+                                                    }),
+                                                    React.createElement('span', { className: 'text-xs' }, 'Allocate')
+                                                ),
+                                                module === 'orders' && React.createElement('div', { className: 'flex items-center justify-center space-x-2' },
+                                                    React.createElement('label', { className: 'flex items-center' },
+                                                        React.createElement('input', {
+                                                            type: 'checkbox',
+                                                            checked: roleFormData.permissions[module].approve,
+                                                            onChange: () => handlePermissionToggle(module, 'approve'),
+                                                            className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-1'
+                                                        }),
+                                                        React.createElement('span', { className: 'text-xs' }, 'Approve')
+                                                    ),
+                                                    React.createElement('label', { className: 'flex items-center' },
+                                                        React.createElement('input', {
+                                                            type: 'checkbox',
+                                                            checked: roleFormData.permissions[module].assign,
+                                                            onChange: () => handlePermissionToggle(module, 'assign'),
+                                                            className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-1'
+                                                        }),
+                                                        React.createElement('span', { className: 'text-xs' }, 'Assign')
+                                                    )
+                                                ),
+                                                module === 'finance' && React.createElement('label', { className: 'flex items-center justify-center' },
+                                                    React.createElement('input', {
+                                                        type: 'checkbox',
+                                                        checked: roleFormData.permissions[module].approve,
+                                                        onChange: () => handlePermissionToggle(module, 'approve'),
+                                                        className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-1'
+                                                    }),
+                                                    React.createElement('span', { className: 'text-xs' }, 'Approve')
+                                                ),
+                                                module === 'users' && React.createElement('label', { className: 'flex items-center justify-center' },
+                                                    React.createElement('input', {
+                                                        type: 'checkbox',
+                                                        checked: roleFormData.permissions[module].manage_roles,
+                                                        onChange: () => handlePermissionToggle(module, 'manage_roles'),
+                                                        className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-1'
+                                                    }),
+                                                    React.createElement('span', { className: 'text-xs' }, 'Manage Roles')
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+
+                        React.createElement('div', { className: 'flex justify-end gap-2' },
+                            React.createElement('button', {
+                                type: 'button',
+                                onClick: () => {
+                                    setShowRoleForm(false);
+                                    setEditingRole(null);
+                                },
+                                className: 'px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded hover:bg-gray-400 dark:hover:bg-gray-700'
+                            }, 'Cancel'),
+                            React.createElement('button', {
+                                type: 'submit',
+                                className: 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
+                            }, editingRole ? 'Update Role' : 'Create Role')
+                        )
+                    )
+                )
+            )
+        );
+    };
+
     // User Form Modal
     const renderUserForm = () => {
         if (!showUserForm) return null;
