@@ -7405,7 +7405,8 @@ showCSVUploadModal && React.createElement(CSVUploadModal, {
         setShowCSVUploadModal(false);
         setCSVUploadType('');
     },
-    type: csvUploadType
+    type: csvUploadType,
+    authToken: authToken
 }),
         renderAssignForm(),
         renderPaymentForm(),
