@@ -28,12 +28,51 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // POST create inventory
-router.post('/', authenticateToken, async (req, res) => {
+// Create inventory
+router.post('/', authenticateToken, checkPermission('inventory', 'create'), async (req, res) => {
   try {
-    const inventory = new Inventory(req.body);
-    const saved = await inventory.save();
-    res.status(201).json({ data: saved });
+    const inventoryData = {
+      ...req.body,
+      created_by: req.user.name,
+      created_date: new Date().toISOString(),
+      updated_date: new Date().toISOString()
+    };
+    
+    const docRef = await db.collection('crm_inventory').add(inventoryData);
+    
+    // Create payable if payment is pending
+    if (inventoryData.paymentStatus === 'pending' && inventoryData.totalPurchaseAmount > 0) {
+      try {
+        const payableData = {
+          inventoryId: docRef.id,
+          supplierName: inventoryData.supplierName || inventoryData.vendor_name || 'Unknown Supplier',
+          eventName: inventoryData.event_name,
+          amount: parseFloat(inventoryData.totalPurchaseAmount) || 0,
+          amountPaid: parseFloat(inventoryData.amountPaid) || 0,
+          balance: (parseFloat(inventoryData.totalPurchaseAmount) || 0) - (parseFloat(inventoryData.amountPaid) || 0),
+          dueDate: inventoryData.paymentDueDate || null,
+          status: 'pending',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdBy: req.user.id,
+          description: `Payment for inventory: ${inventoryData.event_name}`
+        };
+        
+        const payableRef = await db.collection('crm_payables').add(payableData);
+        console.log('Payable created with ID:', payableRef.id);
+      } catch (payableError) {
+        console.error('Error creating payable:', payableError);
+        // Don't fail the inventory creation if payable fails
+      }
+    }
+    
+    res.status(201).json({ 
+      data: { 
+        id: docRef.id, 
+        ...inventoryData 
+      } 
+    });
   } catch (error) {
+    console.error('Error creating inventory:', error);
     res.status(500).json({ error: error.message });
   }
 });
