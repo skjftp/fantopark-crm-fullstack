@@ -992,6 +992,23 @@ const [currentOrderDetail, setCurrentOrderDetail] = useState(null);
     const [showEditInventoryForm, setShowEditInventoryForm] = useState(false);
     const [showUserManagement, setShowUserManagement] = useState(false);
     const [showUserForm, setShowUserForm] = useState(false);
+    const [roles, setRoles] = useState([]);
+    const [showRoleForm, setShowRoleForm] = useState(false);
+    const [editingRole, setEditingRole] = useState(null);
+    const [roleFormData, setRoleFormData] = useState({
+        name: '',
+        label: '',
+        description: '',
+        permissions: {
+            dashboard: { read: false, write: false, delete: false, manage_users: false },
+            leads: { read: false, write: false, delete: false, assign: false, progress: false },
+            inventory: { read: false, write: false, delete: false, allocate: false },
+            orders: { read: false, write: false, delete: false, approve: false, assign: false },
+            finance: { read: false, write: false, delete: false, approve: false },
+            delivery: { read: false, write: false, delete: false },
+            users: { read: false, write: false, delete: false, manage_roles: false }
+        }
+    });
     const [editingUser, setEditingUser] = useState(null);
     const [showCSVUploadModal, setShowCSVUploadModal] = useState(false);
 const [availableRoles, setAvailableRoles] = useState([]);
@@ -3183,37 +3200,12 @@ const renderContent = () => {
 case 'myactions':
                 return renderMyActionsContent();
             case 'roles':
-                // State variables for Role Management
-                if (!window.roleManagementState) {
-                    window.roleManagementState = {
-                        roles: [],
-                        showRoleForm: false,
-                        editingRole: null,
-                        roleFormData: {
-                            name: '',
-                            label: '',
-                            description: '',
-                            permissions: {
-                                dashboard: { read: false, write: false, delete: false, manage_users: false },
-                                leads: { read: false, write: false, delete: false, assign: false, progress: false },
-                                inventory: { read: false, write: false, delete: false, allocate: false },
-                                orders: { read: false, write: false, delete: false, approve: false, assign: false },
-                                finance: { read: false, write: false, delete: false, approve: false },
-                                delivery: { read: false, write: false, delete: false },
-                                users: { read: false, write: false, delete: false, manage_roles: false }
-                            }
-                        },
-                        initialized: false
-                    };
-                }
-
-                const roleState = window.roleManagementState;
+                // Role Management - using React state
 
                 // Fetch roles if not initialized
                 if (!roleState.initialized && user?.role === 'super_admin') {
-                    roleState.initialized = true;
                     apiCall('/roles').then(response => {
-                        roleState.roles = response.data || [];
+                        setRoles(response.data || []);
                         // Force re-render
                         setActiveTab('roles');
                     }).catch(error => {
@@ -3227,9 +3219,9 @@ case 'myactions':
                         React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Role Management'),
                         React.createElement('button', {
                             onClick: () => {
-                                roleState.showRoleForm = true;
-                                roleState.editingRole = null;
-                                roleState.roleFormData = {
+                                setShowRoleForm(true);
+                                editingRole = null;
+                                roleFormData = {
                                     name: '',
                                     label: '',
                                     description: '',
@@ -3250,14 +3242,14 @@ case 'myactions':
                     ),
 
                     // Show initialize button if no roles
-                    roleState.roles.length === 0 && React.createElement('div', { className: 'bg-yellow-50 border border-yellow-200 rounded-lg p-4' },
+                    roles.length === 0 && React.createElement('div', { className: 'bg-yellow-50 border border-yellow-200 rounded-lg p-4' },
                         React.createElement('p', { className: 'text-yellow-800' }, 'No roles found. Initialize default roles to get started.'),
                         React.createElement('button', {
                             onClick: async () => {
                                 try {
                                     const response = await apiCall('/roles/initialize', { method: 'POST', body: JSON.stringify({}) });
                                     console.log('Default roles initialized successfully');
-                                    roleState.roles = response.data || [];
+                                    roles = response.data || [];
                                     setActiveTab('roles'); // Force re-render
                                 } catch (error) {
                                     console.error('Failed to initialize roles:', error);
@@ -3270,7 +3262,7 @@ case 'myactions':
 
                     // Display roles
                     React.createElement('div', { className: 'grid gap-4' },
-                        roleState.roles.map(role => React.createElement('div', {
+                        roles.map(role => React.createElement('div', {
                             key: role._id,
                             className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-6'
                         },
@@ -3289,9 +3281,9 @@ case 'myactions':
                                 React.createElement('div', { className: 'flex gap-2' },
                                     !role.is_system && React.createElement('button', {
                                         onClick: () => {
-                                            roleState.editingRole = role;
-                                            roleState.roleFormData = JSON.parse(JSON.stringify(role)); // Deep copy
-                                            roleState.showRoleForm = true;
+                                            editingRole = role;
+                                            roleFormData = JSON.parse(JSON.stringify(role)); // Deep copy
+                                            setShowRoleForm(true);
                                             setActiveTab('roles'); // Force re-render
                                         },
                                         className: 'text-blue-600 hover:text-blue-800'
@@ -3302,7 +3294,7 @@ case 'myactions':
                                             try {
                                                 await apiCall(`/roles/${role._id}`, { method: 'DELETE' });
                                                 console.log('Role deleted successfully');
-                                                roleState.roles = roleState.roles.filter(r => r._id !== role._id);
+                                                roles = roles.filter(r => r._id !== role._id);
                                                 setActiveTab('roles'); // Force re-render
                                             } catch (error) {
                                                 console.error('Error deleting role:', error);
@@ -3331,36 +3323,36 @@ case 'myactions':
                     ),
 
                     // Role Form Modal
-                    roleState.showRoleForm && React.createElement('div', {
+                    showRoleForm && React.createElement('div', {
                         className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
                         onClick: (e) => {
                             if (e.target === e.currentTarget) {
-                                roleState.showRoleForm = false;
+                                setShowRoleForm(false);
                                 setActiveTab('roles');
                             }
                         }
                     },
                         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-y-auto' },
                             React.createElement('h2', { className: 'text-2xl font-bold mb-4' }, 
-                                roleState.editingRole ? 'Edit Role' : 'Create New Role'
+                                editingRole ? 'Edit Role' : 'Create New Role'
                             ),
                             React.createElement('form', { 
                                 onSubmit: async (e) => {
                                     e.preventDefault();
                                     try {
-                                        if (roleState.editingRole) {
-                                            await apiCall(`/roles/${roleState.editingRole._id}`, { method: 'PUT', body: JSON.stringify(roleState.roleFormData) });
+                                        if (editingRole) {
+                                            await apiCall(`/roles/${editingRole._id}`, { method: 'PUT', body: JSON.stringify(roleFormData) });
                                             console.log('Role updated successfully');
                                         } else {
-                                            await apiCall('/roles', { method: 'POST', body: JSON.stringify(roleState.roleFormData) });
+                                            await apiCall('/roles', { method: 'POST', body: JSON.stringify(roleFormData) });
                                             console.log('Role created successfully');
                                         }
                                         
                                         // Refresh roles
                                         const response = await apiCall('/roles');
-                                        roleState.roles = response.data || [];
-                                        roleState.showRoleForm = false;
-                                        roleState.editingRole = null;
+                                        roles = response.data || [];
+                                        setShowRoleForm(false);
+                                        editingRole = null;
                                         setActiveTab('roles'); // Force re-render
                                     } catch (error) {
                                         console.error('Error saving role:', error);
@@ -3373,23 +3365,23 @@ case 'myactions':
                                         React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Role Name'),
                                         React.createElement('input', {
                                             type: 'text',
-                                            value: roleState.roleFormData.name,
+                                            value: roleFormData.name,
                                             onChange: (e) => {
-                                                roleState.roleFormData.name = e.target.value;
+                                                roleFormData.name = e.target.value;
                                                 setActiveTab('roles'); // Force re-render
                                             },
                                             className: 'w-full border rounded px-3 py-2',
                                             required: true,
-                                            disabled: roleState.editingRole?.is_system
+                                            disabled: editingRole?.is_system
                                         })
                                     ),
                                     React.createElement('div', null,
                                         React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Display Label'),
                                         React.createElement('input', {
                                             type: 'text',
-                                            value: roleState.roleFormData.label,
+                                            value: roleFormData.label,
                                             onChange: (e) => {
-                                                roleState.roleFormData.label = e.target.value;
+                                                roleFormData.label = e.target.value;
                                                 setActiveTab('roles'); // Force re-render
                                             },
                                             className: 'w-full border rounded px-3 py-2',
@@ -3399,9 +3391,9 @@ case 'myactions':
                                     React.createElement('div', { className: 'md:col-span-2' },
                                         React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Description'),
                                         React.createElement('textarea', {
-                                            value: roleState.roleFormData.description,
+                                            value: roleFormData.description,
                                             onChange: (e) => {
-                                                roleState.roleFormData.description = e.target.value;
+                                                roleFormData.description = e.target.value;
                                                 setActiveTab('roles'); // Force re-render
                                             },
                                             className: 'w-full border rounded px-3 py-2',
@@ -3413,7 +3405,7 @@ case 'myactions':
                                 React.createElement('div', { className: 'mb-6' },
                                     React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Permissions'),
                                     React.createElement('div', { className: 'space-y-4' },
-                                        Object.entries(roleState.roleFormData.permissions).map(([module, perms]) =>
+                                        Object.entries(roleFormData.permissions).map(([module, perms]) =>
                                             React.createElement('div', { key: module, className: 'border rounded-lg p-4' },
                                                 React.createElement('h4', { className: 'font-medium capitalize mb-2' }, module),
                                                 React.createElement('div', { className: 'grid grid-cols-2 md:grid-cols-4 gap-4' },
@@ -3426,10 +3418,10 @@ case 'myactions':
                                                                 type: 'checkbox',
                                                                 checked: value,
                                                                 onChange: (e) => {
-                                                                    roleState.roleFormData.permissions[module][perm] = e.target.checked;
+                                                                    roleFormData.permissions[module][perm] = e.target.checked;
                                                                     setActiveTab('roles'); // Force re-render
                                                                 },
-                                                                disabled: roleState.editingRole?.is_system && module === 'users' && perm === 'manage_roles'
+                                                                disabled: editingRole?.is_system && module === 'users' && perm === 'manage_roles'
                                                             }),
                                                             React.createElement('span', { className: 'text-sm capitalize' }, 
                                                                 perm.replace(/_/g, ' ')
@@ -3445,8 +3437,8 @@ case 'myactions':
                                     React.createElement('button', {
                                         type: 'button',
                                         onClick: () => {
-                                            roleState.showRoleForm = false;
-                                            roleState.editingRole = null;
+                                            setShowRoleForm(false);
+                                            editingRole = null;
                                             setActiveTab('roles'); // Force re-render
                                         },
                                         className: 'px-4 py-2 border rounded hover:bg-gray-100'
@@ -3454,7 +3446,7 @@ case 'myactions':
                                     React.createElement('button', {
                                         type: 'submit',
                                         className: 'px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700'
-                                    }, roleState.editingRole ? 'Update Role' : 'Create Role')
+                                    }, editingRole ? 'Update Role' : 'Create Role')
                                 )
                             )
                         )
