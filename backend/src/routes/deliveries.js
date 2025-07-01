@@ -50,4 +50,27 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// DELETE delivery
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    console.log('DELETE request for delivery:', req.params.id);
+    
+    // Check if delivery exists
+    const doc = await db.collection(collections.deliveries).doc(req.params.id).get();
+    if (!doc.exists) {
+      console.log('Delivery not found:', req.params.id);
+      return res.status(404).json({ error: 'Delivery not found' });
+    }
+    
+    // Delete the delivery
+    await db.collection(collections.deliveries).doc(req.params.id).delete();
+    console.log('Delivery deleted successfully:', req.params.id);
+    
+    res.json({ message: 'Delivery deleted successfully' });
+  } catch (error) {
+    console.error('DELETE delivery error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
