@@ -8556,11 +8556,105 @@ if (document.getElementById('root')) {
 ReactDOM.render(React.createElement(App), document.getElementById('root'));
         
     </script>
+
+<div id="test-control-panel" style="position:fixed; bottom:80px; right:20px; background:#1f2937; color:white; padding:15px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3); display:none; z-index:9999;">
+    <h3 style="margin:0 0 10px 0; font-size:16px;">🧪 Test Mode Controls</h3>
+    <button onclick="if(confirm('Delete ALL leads?')) { window.testDeleteAll('leads'); }" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Leads</button>
+    <button onclick="if(confirm('Delete ALL inventory?')) { window.testDeleteAll('inventory'); }" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Inventory</button>
+</div>
+<script>
+// Show test control panel if test mode is on and user is super admin
+window.updateTestPanel = function() {
+    const testMode = localStorage.getItem('testMode') === 'true';
+    const user = JSON.parse(localStorage.getItem('crm_user') || '{}');
+    const panel = document.getElementById('test-control-panel');
+    if (testMode && user.role === 'super_admin' && panel) {
+        panel.style.display = 'block';
+    }
+};
+
+// Delete all function
+window.testDeleteAll = async function(type) {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        const response = await fetch(API_URL + '/api/' + type, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'X-Delete-All': 'true',
+                'X-Test-Mode': 'true'
+            }
+        });
+        
+        if (response.ok) {
+            alert('All ' + type + ' deleted successfully!');
+            window.location.reload();
+        } else {
+            alert('Error: ' + response.statusText);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+};
+
+// Check on load
+setTimeout(window.updateTestPanel, 1000);
+</script>
+
 </body>
 </html>
 <!-- Password: Updated: Sun Jun 29 11:38:10 AM UTC 2025 -->
 <!-- Password: LATEST_DEPLOY: 2025-06-29 11:41:06 UTC -->
 <!-- Password: Deployed: Sun Jun 29 12:22:47 PM UTC 2025 -->
+
+<div id="test-control-panel" style="position:fixed; bottom:80px; right:20px; background:#1f2937; color:white; padding:15px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3); display:none; z-index:9999;">
+    <h3 style="margin:0 0 10px 0; font-size:16px;">🧪 Test Mode Controls</h3>
+    <button onclick="if(confirm('Delete ALL leads?')) { window.testDeleteAll('leads'); }" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Leads</button>
+    <button onclick="if(confirm('Delete ALL inventory?')) { window.testDeleteAll('inventory'); }" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Inventory</button>
+</div>
+<script>
+// Show test control panel if test mode is on and user is super admin
+window.updateTestPanel = function() {
+    const testMode = localStorage.getItem('testMode') === 'true';
+    const user = JSON.parse(localStorage.getItem('crm_user') || '{}');
+    const panel = document.getElementById('test-control-panel');
+    if (testMode && user.role === 'super_admin' && panel) {
+        panel.style.display = 'block';
+    }
+};
+
+// Delete all function
+window.testDeleteAll = async function(type) {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        const response = await fetch(API_URL + '/api/' + type, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'X-Delete-All': 'true',
+                'X-Test-Mode': 'true'
+            }
+        });
+        
+        if (response.ok) {
+            alert('All ' + type + ' deleted successfully!');
+            window.location.reload();
+        } else {
+            alert('Error: ' + response.statusText);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+};
+
+// Check on load
+setTimeout(window.updateTestPanel, 1000);
+</script>
+
 </body>
             </html>
 
