@@ -3200,7 +3200,7 @@ case 'myactions':
                         React.createElement('button', {
                             onClick: async () => {
                                 try {
-                                    const response = await apiCall('/roles/initialize', 'POST');
+                                    const response = await apiCall('/roles/initialize', 'POST', {});
                                     console.log('Default roles initialized successfully');
                                     roleState.roles = response.data || [];
                                     setActiveTab('roles'); // Force re-render
