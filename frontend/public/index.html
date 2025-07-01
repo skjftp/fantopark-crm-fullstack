@@ -1547,7 +1547,7 @@ const handleLogin = async (e) => {
             localStorage.setItem('crm_user', JSON.stringify(response.user));
             setUser(response.user);
             debugLog('LOGIN_SUCCESS', { user: response.user });
-        setIsLoggedIn(true);
+                    setIsLoggedIn(true);
             // Clear any cached user management data
             setUsers([]);
             setEmail('');
