@@ -1541,233 +1541,108 @@ const fetchMyActions = async () => {
         console.error('No user object - cannot fetch actions');
         return;
     }
-    // Prevent multiple simultaneous calls
-    if (loading) {
-        console.log('Already fetching, skipping...');
+    
+    if (!user) {
+        console.log('No user logged in');
         return;
     }
-    if (!user) return;
     
     try {
         setLoading(true);
         console.log('Fetching actions for:', user.name, '(' + user.email + ')');
         
         // Fetch all data in parallel
-        const [leadsData, ordersData, deliveriesData, receivablesData] = await Promise.all([
-            apiCall('/leads'),
-            apiCall('/orders'),
-            apiCall('/deliveries'),
-            apiCall('/receivables')
+        const [leadsResponse, ordersResponse, deliveriesResponse, receivablesResponse] = await Promise.all([
+            apiCall('/leads').catch(err => { console.error('Failed to fetch leads:', err); return { data: [] }; }),
+            apiCall('/orders').catch(err => { console.error('Failed to fetch orders:', err); return { data: [] }; }),
+            apiCall('/deliveries').catch(err => { console.error('Failed to fetch deliveries:', err); return { data: [] }; }),
+            apiCall('/receivables').catch(err => { console.error('Failed to fetch receivables:', err); return { data: [] }; })
         ]);
         
+        // Debug: Log all API responses
+        console.log('=== API RESPONSES RECEIVED ===');
+        console.log('Leads response:', leadsResponse);
+        console.log('Number of leads:', leadsResponse?.data?.length || 0);
+        if (leadsResponse?.data?.length > 0) {
+            console.log('First lead full data:', leadsResponse.data[0]);
+            console.log('Lead assignment field:', leadsResponse.data[0].assigned_to || leadsResponse.data[0].assignedTo || 'NOT FOUND');
+        }
+        
         // Filter leads assigned to me
-        if (leadsData && leadsData.data) {
-            const assignedLeads = leadsData.data.filter(lead => {
-                if (!lead.assigned_to) return false;
+        if (leadsResponse && leadsResponse.data) {
+            const assignedLeads = leadsResponse.data.filter(lead => {
+                console.log('\n--- Checking Lead ---');
+                console.log('Lead:', lead);
+                console.log('Lead name:', lead.name);
+                console.log('Lead assigned_to:', lead.assigned_to);
+                console.log('Lead assignedTo:', lead.assignedTo);
+                console.log('My email:', user.email);
                 
-                // Use only email for matching
-                const isAssignedToMe = lead.assigned_to === user.email;
+                const isAssigned = lead.assigned_to === user.email;
+                console.log('Match result:', isAssigned);
                 
-                if (isAssignedToMe) {
-                    console.log('Lead assigned to me:', lead.name);
-                }
-                
-                return isAssignedToMe;
+                return isAssigned;
             });
-            console.log('My leads:', assignedLeads.length);
+            
             console.log('\n=== FILTER RESULTS ===');
             console.log('Total leads:', leadsResponse.data.length);
             console.log('Assigned to me:', assignedLeads.length);
             console.log('Assigned leads:', assignedLeads);
             
             setMyLeads(assignedLeads);
+        } else {
+            setMyLeads([]);
         }
         
         // Filter orders based on role
-        if (ordersData && ordersData.data) {
+        if (ordersResponse && ordersResponse.data) {
             let assignedOrders = [];
             
-            // Supply team sees approved orders assigned to them
             if (user.role === 'supply_manager' || user.role === 'supply_executive') {
-                assignedOrders = ordersData.data.filter(order => {
-                    if (order.status !== 'approved') return false;
-                    // Use only email for matching
-                    return order.assigned_to === user.email;
-                });
-            }
-            
-            // Finance team sees orders pending approval
-            if (user.role === 'finance_manager' || user.role === 'finance_executive') {
-                assignedOrders = ordersData.data.filter(order => 
+                assignedOrders = ordersResponse.data.filter(order => 
+                    order.status === 'approved' && order.assigned_to === user.email
+                );
+            } else if (user.role === 'finance_manager' || user.role === 'finance_executive') {
+                assignedOrders = ordersResponse.data.filter(order => 
                     order.status === 'pending_approval'
                 );
             }
             
             console.log('My orders:', assignedOrders.length);
             setMyOrders(assignedOrders);
+        } else {
+            setMyOrders([]);
         }
         
-        // Filter deliveries assigned to me
-        if (deliveriesData && deliveriesData.data) {
-            const assignedDeliveries = deliveriesData.data.filter(delivery => {
-                // Use only email for matching
-                return delivery.assigned_to === user.email;
-            });
+        // Filter deliveries
+        if (deliveriesResponse && deliveriesResponse.data) {
+            const assignedDeliveries = deliveriesResponse.data.filter(delivery => 
+                delivery.assigned_to === user.email
+            );
             console.log('My deliveries:', assignedDeliveries.length);
             setMyDeliveries(assignedDeliveries);
+        } else {
+            setMyDeliveries([]);
         }
         
-        // Get receivables for finance team or overdue for everyone
-        if (receivablesData && receivablesData.data) {
+        // Get overdue receivables
+        if (receivablesResponse && receivablesResponse.data) {
             const today = new Date();
-            const overdueReceivables = receivablesData.data.filter(rec => {
+            const overdueReceivables = receivablesResponse.data.filter(rec => {
                 if (rec.status === 'paid') return false;
                 const dueDate = new Date(rec.due_date);
                 return dueDate < today;
             });
             console.log('Overdue receivables:', overdueReceivables.length);
             setMyReceivables(overdueReceivables);
+        } else {
+            setMyReceivables([]);
         }
         
         setLoading(false);
     } catch (error) {
-        console.error('Error fetching my actions:', error);
+        console.error('Error in fetchMyActions:', error);
         setLoading(false);
-    }
-    };
-
-const handleUserSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-
-        try {
-            const endpoint = currentUser ? `/users/${currentUser.id}` : '/users';
-            const method = currentUser ? 'PUT' : 'POST';
-            
-            // Prepare user data
-            const userData = { ...userFormData };
-            
-            // For updates, only include password if it was changed
-            if (currentUser && !userData.password) {
-                delete userData.password;
-            }
-            
-            const response = await apiCall(endpoint, {
-                method: method,
-                body: JSON.stringify(userData)
-            });
-
-            if (response.data) {
-                if (currentUser) {
-                    // Update existing user in state
-                    setUsers(prev => 
-                        prev.map(u => 
-                            u.id === currentUser.id 
-                                ? response.data
-                                : u
-                        )
-                    );
-                    alert('User updated successfully!');
-                } else {
-                    // Add new user to state
-                    setUsers(prev => [...prev, response.data]);
-                    alert('User created successfully!');
-                }
-
-                // Refresh users list
-                fetchUsers();
-                closeUserForm();
-            }
-        } catch (error) {
-            alert('Failed to save user: ' + error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const closeUserForm = () => {
-        setShowUserForm(false);
-        setShowUserManagement(false);
-        setCurrentUser(null);
-        setUserFormData({});
-        setShowOrderDetail(false);
-setCurrentOrderDetail(null);
-    };
-
-    const handleDeleteUser = async (userId, userName) => {
-        if (!hasPermission('users', 'delete')) {
-            alert('You do not have permission to delete users');
-            return;
-        }
-        
-        if (!confirm(`Are you sure you want to delete user ${userName}?`)) return;
-
-        setLoading(true);
-        try {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            setUsers(prev => prev.filter(u => u.id !== userId));
-            setLoading(false);
-            alert(`User ${userName} deleted successfully!`);
-        } catch (error) {
-            setLoading(false);
-            alert('Delete failed. Please try again.');
-        }
-    };
-
-    // Status update function with permission check
-   const updateLeadStatus = async (leadId, newStatus) => {
-    if (!hasPermission('leads', 'progress')) {
-        alert('You do not have permission to progress leads');
-        return;
-    }
-    
-    try {
-        setLoading(true);
-        
-        // CRITICAL: Get the full lead object first
-        const currentLead = leads.find(l => l.id === leadId);
-        if (!currentLead) {
-            alert('Lead not found');
-            setLoading(false);
-            return;
-        }
-        
-        // Include ALL fields from current lead
-        const updateData = {
-            ...currentLead,  // This includes EVERYTHING
-            status: newStatus,
-            last_contact_date: new Date().toISOString(),
-            [`${newStatus}_date`]: new Date().toISOString(),
-            updated_date: new Date().toISOString()
-        };
-        
-        console.log('Updating lead with full data:', updateData);
-        
-        // API call to update lead status
-        const response = await apiCall(`/leads/${leadId}`, {
-            method: 'PUT',
-            body: JSON.stringify(updateData)
-        });
-        
-        // Update local state with response from server
-        console.log("Status update response:", response);
-        setLeads(prevLeads => 
-            prevLeads.map(lead => 
-                lead.id === leadId ? response.data : lead
-            )
-        );
-        
-        // Update current lead if in detail view
-        if (showLeadDetail && currentLead?.id === leadId) {
-            setCurrentLead(response.data);
-        }
-        
-        setLoading(false);
-        alert('Lead status updated successfully!');
-    } catch (error) {
-        console.error('Error updating lead status:', error);
-        setLoading(false);
-        alert('Failed to update lead status: ' + error.message);
     }
 };
 
