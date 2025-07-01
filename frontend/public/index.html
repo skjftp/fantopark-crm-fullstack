@@ -1692,10 +1692,10 @@ const handleLogin = async (e) => {
     const fetchFinancialData = async () => {
         try {
             const [salesRes, receivablesRes, payablesRes, expiringRes] = await Promise.all([
-                apiCall('/finance/sales'),
-                apiCall('/finance/receivables'),
+                apiCall('/orders'),
+                apiCall('/invoices'),
                 apiCall('/payables'),
-                apiCall('/finance/expiring-inventory')
+                apiCall('/inventory')
             ]);
             
             setFinancialData({
