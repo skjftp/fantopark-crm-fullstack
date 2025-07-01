@@ -48,6 +48,7 @@
                 console.error('Endpoint:', endpoint);
                 console.error('Response status:', response.status);
                 localStorage.removeItem('crm_auth_token');
+        authToken = null;  // Clear the global authToken variable
                 localStorage.removeItem('crm_user');
                 
                 // Don't reload immediately for login attempts
@@ -1542,6 +1543,7 @@ const handleLogin = async (e) => {
         if (response.token && response.user) {
             authToken = response.token;
             localStorage.setItem('crm_auth_token', response.token);
+            authToken = response.token;  // Update the global authToken variable
             authToken = response.token;
             localStorage.setItem('crm_user', JSON.stringify(response.user));
             setUser(response.user);
@@ -1571,6 +1573,7 @@ const handleLogin = async (e) => {
         try {
             localStorage.removeItem('crm_user');
             localStorage.removeItem('crm_auth_token');
+        authToken = null;  // Clear the global authToken variable
         } catch (e) {
             console.log('Failed to clear auth state:', e);
         }
