@@ -2689,24 +2689,34 @@ const closeForm = () => {
         return React.createElement('div', { className: 'space-y-6' },
             // Header with stats cards
             React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4 mb-6' },
+                // Total Sales Card
                 React.createElement('div', { className: 'bg-green-50 dark:bg-green-900 p-4 rounded-lg' },
                     React.createElement('h3', { className: 'text-sm font-medium text-green-800 dark:text-green-200' }, 'Total Sales'),
-                    React.createElement('p', { className: 'text-2xl font-bold text-green-900 dark:text-green-100' }, 
-                        `₹${financialStats.totalSales.toLocaleString()}`
+                    React.createElement('p', { className: 'text-2xl font-bold text-green-600' }, 
+                        '₹' + ((financialData.sales || []).reduce((sum, sale) => 
+                            sum + parseFloat(sale.amount || sale.total_amount || sale.final_amount || 0), 0
+                        )).toLocaleString()
                     )
                 ),
+                // Total Receivables Card
                 React.createElement('div', { className: 'bg-blue-50 dark:bg-blue-900 p-4 rounded-lg' },
                     React.createElement('h3', { className: 'text-sm font-medium text-blue-800 dark:text-blue-200' }, 'Total Receivables'),
-                    React.createElement('p', { className: 'text-2xl font-bold text-blue-900 dark:text-blue-100' }, 
-                        `₹${financialStats.totalReceivables.toLocaleString()}`
+                    React.createElement('p', { className: 'text-2xl font-bold text-blue-600' }, 
+                        '₹' + ((financialData.receivables || []).reduce((sum, rec) => 
+                            sum + parseFloat(rec.balance_amount || rec.expected_amount || rec.amount || 0), 0
+                        )).toLocaleString()
                     )
                 ),
+                // Total Payables Card
                 React.createElement('div', { className: 'bg-red-50 dark:bg-red-900 p-4 rounded-lg' },
                     React.createElement('h3', { className: 'text-sm font-medium text-red-800 dark:text-red-200' }, 'Total Payables'),
-                    React.createElement('p', { className: 'text-2xl font-bold text-red-900 dark:text-red-100' }, 
-                        `₹${(financialStats.totalPayables || 0).toLocaleString()}`
+                    React.createElement('p', { className: 'text-2xl font-bold text-red-600' }, 
+                        '₹' + ((financialData.payables || []).reduce((sum, pay) => 
+                            sum + parseFloat(pay.amount || 0), 0
+                        )).toLocaleString()
                     )
                 ),
+                // Expiring Inventory Card
                 React.createElement('div', { className: 'bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg' },
                     React.createElement('h3', { className: 'text-sm font-medium text-yellow-800 dark:text-yellow-200' }, 'Expiring Inventory Value'),
                     React.createElement('p', { className: 'text-2xl font-bold text-yellow-900 dark:text-yellow-100' }, 
