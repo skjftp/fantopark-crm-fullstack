@@ -4291,8 +4291,7 @@ const handleFormSubmit = async (e) => {
                 case 'lead':
                     const leadResponse = await apiCall('/leads', {
                         method: 'POST',
-                        console.log('Sending to API:', { assigned_to: formData.assigned_to, assigned_team: formData.assigned_team });
-        body: JSON.stringify({
+                        body: JSON.stringify({
                             ...formData,
                             status: 'unassigned',
                             created_by: user.name,
@@ -4378,11 +4377,6 @@ const handleDeleteInventory = async (inventoryId) => {
     // Assignment with permission check
 const handleAssignLead = async (e) => {
     e.preventDefault();
-        
-        console.log('=== LEAD ASSIGNMENT DEBUG ===');
-        console.log('Form data being sent:', formData);
-        console.log('assigned_to value:', formData.assigned_to);
-        console.log('assigned_team value:', formData.assigned_team);
     setLoading(true);
     
     try {
@@ -4927,7 +4921,7 @@ const handleAssignLead = async (e) => {
     const renderAssignForm = () => {
         if (!showAssignForm || !currentLead) return null;
 
-        const teamMembers = formData.assigned_team === 'supply' ? (users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)) : (users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role));
+        const teamMembers = formData.assigned_team === 'supply' ? (users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)) : (users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role)).map(u => u.name);
 
         return React.createElement('div', { 
             className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
@@ -4964,7 +4958,7 @@ const handleAssignLead = async (e) => {
                         ),
                         React.createElement('select', {
                             value: formData.assigned_to || '',
-                            onChange: (e) => handleInputChange('assigned_to', e.target.value)valuevalue),
+                            onChange: (e) => handleInputChange('assigned_to', e.target.value),
                             className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                             required: true
                         },
