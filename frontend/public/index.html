@@ -994,6 +994,7 @@ const [currentOrderDetail, setCurrentOrderDetail] = useState(null);
     const [showUserForm, setShowUserForm] = useState(false);
     const [roles, setRoles] = useState([]);
     const [showRoleForm, setShowRoleForm] = useState(false);
+    const [rolesInitialized, setRolesInitialized] = useState(false);
     const [editingRole, setEditingRole] = useState(null);
     const [roleFormData, setRoleFormData] = useState({
         name: '',
@@ -3202,15 +3203,14 @@ case 'myactions':
             case 'roles':
                 // Role Management - using React state
 
-                // Fetch roles if not initialized
-                if (!roleState.initialized && user?.role === 'super_admin') {
+                // Fetch roles when roles tab is active
+                if (user?.role === 'super_admin' && !rolesInitialized) {
+                    setRolesInitialized(true);
                     apiCall('/roles').then(response => {
                         setRoles(response.data || []);
-                        // Force re-render
-                        setActiveTab('roles');
                     }).catch(error => {
                         console.error('Failed to fetch roles:', error);
-                        console.log('Failed to fetch roles');
+                        setRolesInitialized(false); // Allow retry on error
                     });
                 }
 
@@ -3220,7 +3220,7 @@ case 'myactions':
                         React.createElement('button', {
                             onClick: () => {
                                 setShowRoleForm(true);
-                                editingRole = null;
+                                setEditingRole(null);
                                 roleFormData = {
                                     name: '',
                                     label: '',
@@ -3235,7 +3235,7 @@ case 'myactions':
                                         users: { read: false, write: false, delete: false, manage_roles: false }
                                     }
                                 };
-                                setActiveTab('roles'); // Force re-render
+                                
                             },
                             className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
                         }, '+ Add New Role')
@@ -3249,8 +3249,8 @@ case 'myactions':
                                 try {
                                     const response = await apiCall('/roles/initialize', { method: 'POST', body: JSON.stringify({}) });
                                     console.log('Default roles initialized successfully');
-                                    roles = response.data || [];
-                                    setActiveTab('roles'); // Force re-render
+                                    setRoles(response.data || []);
+                                    
                                 } catch (error) {
                                     console.error('Failed to initialize roles:', error);
                                     console.log('Failed to initialize default roles');
@@ -3284,7 +3284,7 @@ case 'myactions':
                                             editingRole = role;
                                             roleFormData = JSON.parse(JSON.stringify(role)); // Deep copy
                                             setShowRoleForm(true);
-                                            setActiveTab('roles'); // Force re-render
+                                            
                                         },
                                         className: 'text-blue-600 hover:text-blue-800'
                                     }, 'Edit'),
@@ -3295,7 +3295,7 @@ case 'myactions':
                                                 await apiCall(`/roles/${role._id}`, { method: 'DELETE' });
                                                 console.log('Role deleted successfully');
                                                 roles = roles.filter(r => r._id !== role._id);
-                                                setActiveTab('roles'); // Force re-render
+                                                
                                             } catch (error) {
                                                 console.error('Error deleting role:', error);
                                                 showNotification(error.message || 'Failed to delete role', 'error');
@@ -3350,10 +3350,10 @@ case 'myactions':
                                         
                                         // Refresh roles
                                         const response = await apiCall('/roles');
-                                        roles = response.data || [];
+                                        setRoles(response.data || []);
                                         setShowRoleForm(false);
-                                        editingRole = null;
-                                        setActiveTab('roles'); // Force re-render
+                                        setEditingRole(null);
+                                        
                                     } catch (error) {
                                         console.error('Error saving role:', error);
                                         showNotification(error.message || 'Failed to save role', 'error');
@@ -3368,7 +3368,7 @@ case 'myactions':
                                             value: roleFormData.name,
                                             onChange: (e) => {
                                                 roleFormData.name = e.target.value;
-                                                setActiveTab('roles'); // Force re-render
+                                                
                                             },
                                             className: 'w-full border rounded px-3 py-2',
                                             required: true,
@@ -3382,7 +3382,7 @@ case 'myactions':
                                             value: roleFormData.label,
                                             onChange: (e) => {
                                                 roleFormData.label = e.target.value;
-                                                setActiveTab('roles'); // Force re-render
+                                                
                                             },
                                             className: 'w-full border rounded px-3 py-2',
                                             required: true
@@ -3394,7 +3394,7 @@ case 'myactions':
                                             value: roleFormData.description,
                                             onChange: (e) => {
                                                 roleFormData.description = e.target.value;
-                                                setActiveTab('roles'); // Force re-render
+                                                
                                             },
                                             className: 'w-full border rounded px-3 py-2',
                                             rows: 2
@@ -3419,7 +3419,7 @@ case 'myactions':
                                                                 checked: value,
                                                                 onChange: (e) => {
                                                                     roleFormData.permissions[module][perm] = e.target.checked;
-                                                                    setActiveTab('roles'); // Force re-render
+                                                                    
                                                                 },
                                                                 disabled: editingRole?.is_system && module === 'users' && perm === 'manage_roles'
                                                             }),
@@ -3438,8 +3438,8 @@ case 'myactions':
                                         type: 'button',
                                         onClick: () => {
                                             setShowRoleForm(false);
-                                            editingRole = null;
-                                            setActiveTab('roles'); // Force re-render
+                                            setEditingRole(null);
+                                            
                                         },
                                         className: 'px-4 py-2 border rounded hover:bg-gray-100'
                                     }, 'Cancel'),
