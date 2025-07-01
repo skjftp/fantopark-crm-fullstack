@@ -7399,7 +7399,7 @@ return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:b
         ),
         // Modal forms
         renderForm(),
-CSVUploadModal({
+showCSVUploadModal && React.createElement(CSVUploadModal, {
     isOpen: showCSVUploadModal,
     onClose: () => {
         setShowCSVUploadModal(false);
