@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Authentication</title>
+</head>
+<body>
+    <h1>FanToPark CRM - Auth Test</h1>
+    <button onclick="checkAuth()">Check Auth Status</button>
+    <button onclick="testAPI()">Test API Call</button>
+    <pre id="output"></pre>
+    
+    <script>
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app/api';
+    
+    function checkAuth() {
+        const token = localStorage.getItem('crm_auth_token');
+        const output = document.getElementById('output');
+        output.textContent = `
+Token in localStorage: ${token ? 'Yes' : 'No'}
+Token length: ${token ? token.length : 'N/A'}
+Token preview: ${token ? token.substring(0, 20) + '...' : 'N/A'}
+        `;
+    }
+    
+    function testAPI() {
+        const token = localStorage.getItem('crm_auth_token');
+        fetch(`${API_URL}/users`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(r => {
+            document.getElementById('output').textContent += `\n\nAPI Test: ${r.status} ${r.statusText}`;
+            return r.text();
+        })
+        .then(text => {
+            document.getElementById('output').textContent += `\nResponse: ${text.substring(0, 100)}...`;
+        });
+    }
+    </script>
+</body>
+</html>

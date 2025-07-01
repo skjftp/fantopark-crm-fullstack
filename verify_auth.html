@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head><title>Auth Verification</title></head>
+<body>
+<h1>Quick Auth Test</h1>
+<button onclick="test()">Test Auth</button>
+<pre id="result"></pre>
+<script>
+function test() {
+  const token = localStorage.getItem('crm_auth_token');
+  fetch('https://fantopark-backend-ofkn6rpg3a-uc.a.run.app/api/users', {
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+  })
+  .then(r => r.text())
+  .then(t => document.getElementById('result').textContent = `Status: ${r.status}\n${t}`)
+  .catch(e => document.getElementById('result').textContent = `Error: ${e.message}`);
+}
+</script>
+</body>
+</html>

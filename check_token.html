@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Token Diagnostic</title>
+</head>
+<body>
+    <h1>JWT Token Diagnostic</h1>
+    <button onclick="checkToken()">Check Current Token</button>
+    <pre id="output"></pre>
+    
+    <script>
+    function checkToken() {
+        const token = localStorage.getItem('crm_auth_token');
+        const output = document.getElementById('output');
+        
+        output.textContent = `
+Token exists: ${token ? 'Yes' : 'No'}
+Token length: ${token ? token.length : 'N/A'}
+First 50 chars: ${token ? token.substring(0, 50) + '...' : 'N/A'}
+Has quotes: ${token ? (token.startsWith('"') || token.startsWith("'")) : 'N/A'}
+Token type: ${typeof token}
+
+Raw value: ${token}
+        `;
+        
+        if (token && (token.startsWith('"') || token.startsWith("'"))) {
+            output.textContent += '\n\n⚠️ WARNING: Token has quotes! This will cause authentication to fail.';
+        }
+    }
+    </script>
+</body>
+</html>
