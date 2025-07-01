@@ -2499,7 +2499,7 @@ const closeForm = () => {
                         currentUser ? 'Edit User' : 'Add New User'
                     ),
                     React.createElement('button', {
-                        onClick: () => setShowUserManagement(false),
+                        onClick: () => closeUserForm(),
                         className: 'text-gray-400 hover:text-gray-600 text-2xl'
                     }, '✕')
                 ),
