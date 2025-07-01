@@ -8793,7 +8793,7 @@ window.deleteAllIndividually = async function(type) {
 };
 
 // Working create functions
-window.createTestLead = async function() {
+window.oldCreateTestLead = async function() {
     // Get current date in YYYY-MM-DD format
     const now = new Date();
     const year = now.getFullYear();
@@ -8869,7 +8869,7 @@ window.createTestLead = async function() {
     }
 };
 
-window.createTestInventory = async function() {
+window.oldCreateTestInventory = async function() {
     const categories = ['Stall', 'Equipment', 'Service', 'Package'];
     const testData = {
         name: 'Test Item ' + Math.floor(Math.random() * 1000),
@@ -9210,7 +9210,7 @@ window.deleteAllIndividually = async function(type) {
 };
 
 // Working create functions
-window.createTestLead = async function() {
+window.oldCreateTestLead = async function() {
     const testData = {
         name: 'Test User ' + Math.floor(Math.random() * 1000),
         email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
@@ -9252,7 +9252,7 @@ window.createTestLead = async function() {
     }
 };
 
-window.createTestInventory = async function() {
+window.oldCreateTestInventory = async function() {
     const categories = ['Stall', 'Equipment', 'Service', 'Package'];
     const testData = {
         name: 'Test Item ' + Math.floor(Math.random() * 1000),
@@ -9505,7 +9505,7 @@ window.createMinimalLead = async function() {
 };
 
 // Fixed create test lead based on backend requirements
-window.createTestLead = async function() {
+window.oldCreateTestLead = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
     const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
     
@@ -9601,7 +9601,7 @@ window.createTestLead = async function() {
 
 
 // Create test lead following form business logic
-window.createTestLead = async function() {
+window.oldCreateTestLead = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
     const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
     
@@ -9761,7 +9761,7 @@ window.checkFormOptions = function() {
 
 
 // Create test inventory following form business logic
-window.createTestInventory = async function() {
+window.oldCreateTestInventory = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
     const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
     
@@ -9941,7 +9941,140 @@ window.analyzeInventoryStructure = async function() {
         }
     } catch (error) {
         console.error('Error:', error);
-        return null;
+        re
+
+
+// Test functions with correct field names from your actual forms
+window.createTestInventory = async function() {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        // Using exact field names from inventoryFormFields
+        const testData = {
+            // Required fields
+            event_name: 'Test Cricket Match ' + Math.floor(Math.random() * 1000),
+            event_date: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0], // 30 days from now
+            event_type: ['football', 'cricket', 'tennis', 'formula1', 'olympics', 'basketball', 'badminton', 'hockey'][Math.floor(Math.random() * 8)],
+            sports: ['Cricket', 'Football', 'Tennis', 'Formula 1', 'Olympics', 'Basketball', 'Badminton', 'Hockey', 'Golf', 'Wrestling'][Math.floor(Math.random() * 10)],
+            venue: 'Test Stadium ' + ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata'][Math.floor(Math.random() * 5)],
+            
+            // Ticket details
+            category_of_ticket: ['VIP', 'Premium', 'Gold', 'Silver', 'Bronze', 'General', 'Corporate Box', 'Hospitality'][Math.floor(Math.random() * 8)],
+            total_tickets: Math.floor(Math.random() * 500) + 100,
+            available_tickets: Math.floor(Math.random() * 500) + 100,
+            mrp_of_ticket: Math.floor(Math.random() * 5000) + 1000,
+            buying_price: Math.floor(Math.random() * 4000) + 800,
+            selling_price: Math.floor(Math.random() * 6000) + 1500,
+            
+            // Optional fields
+            day_of_match: 'Not Applicable',
+            stand: 'North Stand',
+            inclusions: 'Snacks, Beverages, Parking',
+            booking_person: 'Test Supplier ' + Math.floor(Math.random() * 100),
+            procurement_type: ['pre_inventory', 'on_demand', 'partnership', 'direct_booking'][Math.floor(Math.random() * 4)],
+            notes: 'Test inventory created via test mode',
+            
+            // Payment fields
+            paymentStatus: 'paid',
+            supplierName: 'Test Supplier Company',
+            
+            // System fields
+            created_by: JSON.parse(localStorage.getItem('crm_user') || '{}').name || 'Test User',
+            created_date: new Date().toISOString()
+        };
+        
+        console.log('Creating inventory with correct fields:', testData);
+        
+        const response = await fetch(API_URL + '/api/inventory', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Test inventory created!\n' +
+                  'Event: ' + testData.event_name + '\n' +
+                  'Sports: ' + testData.sports + '\n' +
+                  'Venue: ' + testData.venue + '\n' +
+                  'Category: ' + testData.category_of_ticket + '\n' +
+                  'Available: ' + testData.available_tickets + ' tickets');
+            window.location.reload();
+        } else {
+            console.error('Failed:', result);
+            alert('Error: ' + (result.error || result.message || 'Failed to create inventory'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+    }
+};
+
+window.createTestLead = async function() {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        // Using exact field names from leadFormFields
+        const testData = {
+            // Basic fields (required)
+            name: 'Test Contact ' + Math.floor(Math.random() * 1000),
+            email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
+            phone: '98' + Math.floor(Math.random() * 90000000 + 10000000),
+            company: 'Test Company ' + Math.floor(Math.random() * 100),
+            business_type: ['B2C', 'B2B'][Math.floor(Math.random() * 2)],
+            
+            // Lead details
+            source: ['Facebook', 'Instagram', 'LinkedIn', 'Friends and Family', 'Through Champion', 
+                     'Website', 'Existing Client', 'Contacted on Social Media', 'Middlemen'][Math.floor(Math.random() * 9)],
+            
+            // Business fields
+            potential_value: Math.floor(Math.random() * 500000) + 50000,
+            notes: 'Test lead interested in event tickets',
+            
+            // System fields
+            status: 'unassigned', // Using lowercase as per your code
+            created_by: JSON.parse(localStorage.getItem('crm_user') || '{}').name || 'Test User',
+            created_date: new Date().toISOString()
+        };
+        
+        console.log('Creating lead with correct fields:', testData);
+        
+        const response = await fetch(API_URL + '/api/leads', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Test lead created!\n' +
+                  'Name: ' + testData.name + '\n' +
+                  'Company: ' + testData.company + '\n' +
+                  'Source: ' + testData.source);
+            window.location.reload();
+        } else {
+            console.error('Failed:', result);
+            alert('Error: ' + (result.error || result.message || 'Failed to create lead'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+    }
+};
+
+console.log('Test functions loaded with correct field names');
+
+turn null;
     }
 };
 
