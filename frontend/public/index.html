@@ -2779,6 +2779,11 @@ const closeForm = () => {
 
     
     const renderMyActionsContent = () => {
+        // Ensure data is fetched when rendering
+        if (!myLeads || myLeads.length === 0) {
+            console.log('No leads data, fetching...');
+            fetchMyActions();
+        }
         const totalOverdueAmount = myReceivables.reduce((sum, rec) => sum + (rec.amount || 0), 0);
         const hasActions = myLeads.length > 0 || myOrders.length > 0 || myDeliveries.length > 0;
         
