@@ -992,6 +992,7 @@ const [currentOrderDetail, setCurrentOrderDetail] = useState(null);
     const [showEditInventoryForm, setShowEditInventoryForm] = useState(false);
     const [showUserManagement, setShowUserManagement] = useState(false);
     const [showUserForm, setShowUserForm] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
     const [showCSVUploadModal, setShowCSVUploadModal] = useState(false);
 const [availableRoles, setAvailableRoles] = useState([]);
 const [csvUploadType, setCSVUploadType] = useState('');
@@ -1569,6 +1570,47 @@ const handleLogin = async (e) => {
             });
         }
         setShowUserForm(true);
+    };
+    
+    const handleUserSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        
+        try {
+            const endpoint = editingUser ? `/users/${editingUser.id}` : '/users';
+            const method = editingUser ? 'PUT' : 'POST';
+            
+            const response = await apiCall(endpoint, {
+                method: method,
+                body: JSON.stringify(userFormData)
+            });
+            
+            if (response.error) {
+                throw new Error(response.error);
+            }
+            
+            console.log(editingUser ? 'User updated successfully' : 'User created successfully');
+            
+            // Refresh users list
+            fetchUsers();
+            
+            // Close form
+            setShowUserForm(false);
+            setEditingUser(null);
+            setUserFormData({
+                name: '',
+                email: '',
+                password: '',
+                role: 'viewer',
+                department: '',
+                payment_status: 'paid'
+            });
+        } catch (error) {
+            console.error('Error saving user:', error);
+            alert(error.message || 'Failed to save user');
+        } finally {
+            setLoading(false);
+        }
     };
 
     
