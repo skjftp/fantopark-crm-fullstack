@@ -911,8 +911,7 @@ const getUploadUrl = async (fileName, fileType, documentType) => {
         const response = await fetch(UPLOAD_URL_FUNCTION, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-            },
+                'Content-Type': 'application/json'},
             body: JSON.stringify({
                 fileName,
                 fileType,
@@ -946,8 +945,7 @@ const uploadFileToGCS = async (file, documentType) => {
         const uploadResponse = await fetch(uploadUrl, {
             method: 'PUT',
             headers: {
-                'Content-Type': file.type,
-            },
+                'Content-Type': file.type},
             body: file
         });
 
@@ -976,8 +974,7 @@ const getFileViewUrl = async (filePath) => {
         const response = await fetch(READ_URL_FUNCTION, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-            },
+                'Content-Type': 'application/json'},
             body: JSON.stringify({ filePath })
         });
 
@@ -1021,6 +1018,7 @@ const [currentOrderDetail, setCurrentOrderDetail] = useState(null);
 
     // Financials state
     const [financialData, setFinancialData] = useState({
+        activeSales: [],
         sales: [],
         receivables: [],
         payables: [],
@@ -2697,7 +2695,7 @@ const closeForm = () => {
                             sum + parseFloat(sale.amount || sale.total_amount || sale.final_amount || 0), 0
                         )).toLocaleString()
                     )
-                ),,
+                ),
                 // Total Active Sales Card
                 React.createElement('div', { className: 'bg-purple-50 dark:bg-purple-900 p-4 rounded-lg' },
                     React.createElement('h3', { className: 'text-sm font-medium text-purple-800 dark:text-purple-200' }, 'Total Active Sales'),
@@ -8202,13 +8200,13 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
 
         if (type === 'leads') {
             csvContent = `Name,Email,Phone,Company,Business Type,Source,Date of Enquiry,First Touch Base Done By,City of Residence,Country of Residence,Lead for Event,Number of People,Has Valid Passport,Visa Available,Attended Sporting Event Before,Annual Income Bracket,Potential Value,Status,Assigned To,Last Quoted Price,Notes
-John Doe,john@example.com,+919876543210,ABC Corp,B2C,Facebook,2025-01-15,Sales Team,Mumbai,India,IPL 2025,2,Yes,Not Required,No,₹25-50 Lakhs,500000,unassigned,,0,Interested in VIP tickets
-Jane Smith,jane@example.com,+919876543211,XYZ Ltd,B2B,WhatsApp,2025-01-16,Marketing Team,Delhi,India,FIFA World Cup 2026,4,Not Sure,Required,Yes,₹50 Lakhs - ₹1 Crore,1000000,unassigned,,0,Family trip planned`;
+John Doe,john@example.com,+919876543210,ABC Corp,B2C,Facebook,2025-01-15,Sales Team,Mumbai,India,IPL 2025,2,Yes,Not Required,No,₹25-50 Lakhs,500000,unassigned,0,Interested in VIP tickets
+Jane Smith,jane@example.com,+919876543211,XYZ Ltd,B2B,WhatsApp,2025-01-16,Marketing Team,Delhi,India,FIFA World Cup 2026,4,Not Sure,Required,Yes,₹50 Lakhs - ₹1 Crore,1000000,unassigned,0,Family trip planned`;
             filename = 'sample_leads.csv';
         } else if (type === 'inventory') {
             csvContent = `Event Name,Event Date,Event Type,Sports,Venue,Day of Match,Category of Ticket,Price per Ticket,Number of Tickets,Total Value of Tickets,Currency,Base Amount INR,GST 18%,Selling Price per Ticket,Payment Due Date,Supplier Name,Ticket Source,Status,Allocated to Order,Notes
-IPL 2025 Final,2025-05-28,cricket,Cricket,Wankhede Stadium,Not Applicable,VIP,15000,10,150000,INR,150000,27000,17700,2025-04-15,Ticket Master,Primary,available,,Premium seats
-FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,Premium,25000,20,500000,USD,2000000,360000,118000,2026-03-01,FIFA Official,Primary,available,,Group stage match`;
+IPL 2025 Final,2025-05-28,cricket,Cricket,Wankhede Stadium,Not Applicable,VIP,15000,10,150000,INR,150000,27000,17700,2025-04-15,Ticket Master,Primary,available,Premium seats
+FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,Premium,25000,20,500000,USD,2000000,360000,118000,2026-03-01,FIFA Official,Primary,available,Group stage match`;
             filename = 'sample_inventory.csv';
         }
 
