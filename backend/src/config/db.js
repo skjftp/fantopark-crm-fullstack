@@ -14,6 +14,8 @@ const collections = {
   deliveries: 'crm_deliveries',
   receivables: 'crm_receivables',
   emailNotifications: 'crm_email_notifications'
+  ,
+  roles: 'crm_roles'
 };
 
 module.exports = { db, collections };

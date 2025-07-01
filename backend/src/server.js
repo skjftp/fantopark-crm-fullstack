@@ -49,6 +49,7 @@ app.use('/api/deliveries', require('./routes/deliveries'));
 app.use('/api/receivables', require('./routes/receivables'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/roles', require('./routes/roles'));
 app.use('/api/setup', require('./routes/setup'));
 
 // Health check
