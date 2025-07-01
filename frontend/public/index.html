@@ -4927,7 +4927,7 @@ const handleAssignLead = async (e) => {
     const renderAssignForm = () => {
         if (!showAssignForm || !currentLead) return null;
 
-        const teamMembers = formData.assigned_team === 'supply' ? (users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)) : (users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role)).map(u => u.name);
+        const teamMembers = formData.assigned_team === 'supply' ? (users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)) : (users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role));
 
         return React.createElement('div', { 
             className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
@@ -4964,7 +4964,7 @@ const handleAssignLead = async (e) => {
                         ),
                         React.createElement('select', {
                             value: formData.assigned_to || '',
-                            onChange: (e) => handleInputChange('assigned_to', e.target.value),
+                            onChange: (e) => handleInputChange('assigned_to', e.target.valuevalue),
                             className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                             required: true
                         },
