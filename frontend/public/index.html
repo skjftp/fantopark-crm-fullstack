@@ -9758,6 +9758,193 @@ window.checkFormOptions = function() {
     });
 };
 
+
+
+// Create test inventory following form business logic
+window.createTestInventory = async function() {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        // First check existing inventory to understand structure
+        console.log('Checking existing inventory structure...');
+        const invResponse = await fetch(API_URL + '/api/inventory?limit=1', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + authToken
+            }
+        });
+        
+        let sampleInventory = null;
+        if (invResponse.ok) {
+            const invResult = await invResponse.json();
+            if (invResult.data && invResult.data.length > 0) {
+                sampleInventory = invResult.data[0];
+                console.log('Sample inventory:', sampleInventory);
+            }
+        }
+        
+        // Define proper business values
+        const categories = ['Stall', 'Equipment', 'Service', 'Package'];
+        const sizes = ['3x3', '6x6', '9x9', '10x10', '12x12', '15x15', '20x20', 'Custom'];
+        const locations = ['Hall A', 'Hall B', 'Hall C', 'Outdoor Area', 'Food Court', 'Main Entrance'];
+        const units = ['Per Day', 'Per Event', 'Per Hour', 'Per Unit'];
+        const statuses = ['available', 'booked', 'maintenance', 'unavailable'];
+        
+        // Generate realistic inventory data
+        const category = categories[Math.floor(Math.random() * categories.length)];
+        const basePrice = category === 'Stall' ? 15000 : 
+                         category === 'Equipment' ? 5000 : 
+                         category === 'Service' ? 10000 : 25000;
+        
+        const quantity = category === 'Service' ? 1 : Math.floor(Math.random() * 20) + 5;
+        
+        const testData = {
+            name: 'Test ' + category + ' ' + Math.floor(Math.random() * 1000),
+            category: category,
+            price: basePrice + Math.floor(Math.random() * 10000),
+            quantity: quantity,
+            available_quantity: quantity, // Initially all available
+            status: 'available', // New inventory is available
+            description: 'High quality ' + category.toLowerCase() + ' suitable for exhibitions and events. ' +
+                        'Includes all standard amenities and facilities.',
+            size: category === 'Stall' ? sizes[Math.floor(Math.random() * sizes.length)] : 'Standard',
+            location: locations[Math.floor(Math.random() * locations.length)],
+            unit: units[Math.floor(Math.random() * units.length)],
+            min_booking_quantity: 1,
+            max_booking_quantity: category === 'Service' ? 1 : Math.min(quantity, 10),
+            features: category === 'Stall' ? 'Power outlet, Lighting, Table, Chairs, Fascia board' :
+                     category === 'Equipment' ? 'Professional grade, Well maintained, Delivery included' :
+                     category === 'Service' ? 'Professional staff, Experienced team, Quality assured' :
+                     'Complete package with all inclusions',
+            terms_conditions: 'Standard rental terms apply. Advance booking required. Cancellation policy applicable.',
+            specifications: category === 'Stall' ? 
+                           JSON.stringify({
+                               power_supply: '15 Amp',
+                               height: '8 feet',
+                               type: 'Octanorm',
+                               flooring: 'Carpet'
+                           }) :
+                           JSON.stringify({
+                               brand: 'Premium',
+                               condition: 'Excellent',
+                               year: '2024'
+                           }),
+            // Ensure no undefined values
+            tickets_available: 0, // Not applicable for inventory
+            booking_start_date: null,
+            booking_end_date: null,
+            images: [],
+            tags: [category.toLowerCase(), 'test', 'available']
+        };
+        
+        // Add created_by from current user
+        const user = JSON.parse(localStorage.getItem('crm_user') || '{}');
+        if (user.id) {
+            testData.created_by = user.id;
+        }
+        
+        // Add timestamps
+        const now = new Date();
+        testData.created_date = now.toISOString();
+        testData.updated_date = now.toISOString();
+        
+        // If sample inventory exists, match any additional fields
+        if (sampleInventory) {
+            // Check for any fields we might have missed
+            Object.keys(sampleInventory).forEach(key => {
+                if (testData[key] === undefined && 
+                    !['id', 'created_at', 'updated_at'].includes(key)) {
+                    // Set appropriate default based on type
+                    if (typeof sampleInventory[key] === 'number') {
+                        testData[key] = 0;
+                    } else if (typeof sampleInventory[key] === 'boolean') {
+                        testData[key] = false;
+                    } else if (typeof sampleInventory[key] === 'string') {
+                        testData[key] = '';
+                    } else if (Array.isArray(sampleInventory[key])) {
+                        testData[key] = [];
+                    } else if (sampleInventory[key] === null) {
+                        testData[key] = null;
+                    }
+                    console.log('Added missing field:', key, 'with default:', testData[key]);
+                }
+            });
+        }
+        
+        console.log('Creating inventory with business logic data:', testData);
+        
+        // Create the inventory
+        const response = await fetch(API_URL + '/api/inventory', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            console.log('Inventory created successfully:', result);
+            alert('Test inventory created successfully!\n' +
+                  'Name: ' + testData.name + '\n' +
+                  'Category: ' + testData.category + '\n' +
+                  'Price: ₹' + testData.price.toLocaleString() + ' ' + testData.unit + '\n' +
+                  'Quantity: ' + testData.quantity + '\n' +
+                  'Location: ' + testData.location);
+            window.location.reload();
+        } else {
+            console.error('Failed to create inventory:', result);
+            alert('Error: ' + (result.error || result.message || 'Failed to create inventory'));
+            
+            // Log which fields might be causing issues
+            if (result.error) {
+                console.log('Error details:', result.error);
+                console.log('Sent data:', testData);
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error creating inventory: ' + error.message);
+    }
+};
+
+// Function to analyze inventory fields
+window.analyzeInventoryStructure = async function() {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        const response = await fetch(API_URL + '/api/inventory', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + authToken
+            }
+        });
+        
+        const result = await response.json();
+        if (result.data && result.data.length > 0) {
+            const item = result.data[0];
+            console.log('Sample inventory item:', item);
+            console.log('Fields:', Object.keys(item));
+            console.log('Field types:');
+            Object.keys(item).forEach(key => {
+                const value = item[key];
+                console.log(`  ${key}: ${typeof value} = ${value === null ? 'null' : value}`);
+            });
+            return item;
+        } else {
+            console.log('No inventory items found');
+            return null;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        return null;
+    }
+};
+
 </script>
 
 </body>
