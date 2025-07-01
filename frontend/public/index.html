@@ -8610,6 +8610,81 @@ window.testDeleteAll = async function(type) {
 setTimeout(window.updateTestPanel, 1000);
 </script>
 
+
+<script>
+// Test data creation functions
+window.fillTestLead = function() {
+    if (confirm('Create a test lead?')) {
+        // Directly create test lead data
+        const testData = {
+            name: 'Test User ' + Math.floor(Math.random() * 1000),
+            email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
+            phone: '98' + Math.floor(Math.random() * 90000000 + 10000000),
+            company: 'Test Company ' + Math.floor(Math.random() * 100),
+            lead_for_event: 'General Inquiry',
+            lead_source: 'Website',
+            notes: 'Test lead created via test mode'
+        };
+        
+        // Call the API directly
+        const authToken = localStorage.getItem('crm_auth_token');
+        const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+        
+        fetch(API_URL + '/api/leads', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert('Test lead created successfully!');
+            window.location.reload();
+        })
+        .catch(error => {
+            alert('Error creating test lead: ' + error.message);
+        });
+    }
+};
+
+window.fillTestInventory = function() {
+    if (confirm('Create a test inventory item?')) {
+        const categories = ['Stall', 'Equipment', 'Service', 'Package'];
+        const testData = {
+            name: 'Test Item ' + Math.floor(Math.random() * 1000),
+            category: categories[Math.floor(Math.random() * categories.length)],
+            price: Math.floor(Math.random() * 90000) + 10000,
+            quantity: Math.floor(Math.random() * 50) + 1,
+            description: 'Test inventory item created via test mode',
+            size: '10x10 ft',
+            location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
+        };
+        
+        const authToken = localStorage.getItem('crm_auth_token');
+        const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+        
+        fetch(API_URL + '/api/inventory', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert('Test inventory item created successfully!');
+            window.location.reload();
+        })
+        .catch(error => {
+            alert('Error creating test inventory: ' + error.message);
+        });
+    }
+};
+</script>
+
 </body>
 </html>
 <!-- Password: Updated: Sun Jun 29 11:38:10 AM UTC 2025 -->
@@ -8660,6 +8735,81 @@ window.testDeleteAll = async function(type) {
 
 // Check on load
 setTimeout(window.updateTestPanel, 1000);
+</script>
+
+
+<script>
+// Test data creation functions
+window.fillTestLead = function() {
+    if (confirm('Create a test lead?')) {
+        // Directly create test lead data
+        const testData = {
+            name: 'Test User ' + Math.floor(Math.random() * 1000),
+            email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
+            phone: '98' + Math.floor(Math.random() * 90000000 + 10000000),
+            company: 'Test Company ' + Math.floor(Math.random() * 100),
+            lead_for_event: 'General Inquiry',
+            lead_source: 'Website',
+            notes: 'Test lead created via test mode'
+        };
+        
+        // Call the API directly
+        const authToken = localStorage.getItem('crm_auth_token');
+        const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+        
+        fetch(API_URL + '/api/leads', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert('Test lead created successfully!');
+            window.location.reload();
+        })
+        .catch(error => {
+            alert('Error creating test lead: ' + error.message);
+        });
+    }
+};
+
+window.fillTestInventory = function() {
+    if (confirm('Create a test inventory item?')) {
+        const categories = ['Stall', 'Equipment', 'Service', 'Package'];
+        const testData = {
+            name: 'Test Item ' + Math.floor(Math.random() * 1000),
+            category: categories[Math.floor(Math.random() * categories.length)],
+            price: Math.floor(Math.random() * 90000) + 10000,
+            quantity: Math.floor(Math.random() * 50) + 1,
+            description: 'Test inventory item created via test mode',
+            size: '10x10 ft',
+            location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
+        };
+        
+        const authToken = localStorage.getItem('crm_auth_token');
+        const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+        
+        fetch(API_URL + '/api/inventory', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert('Test inventory item created successfully!');
+            window.location.reload();
+        })
+        .catch(error => {
+            alert('Error creating test inventory: ' + error.message);
+        });
+    }
+};
 </script>
 
 </body>
