@@ -4291,7 +4291,8 @@ const handleFormSubmit = async (e) => {
                 case 'lead':
                     const leadResponse = await apiCall('/leads', {
                         method: 'POST',
-                        body: JSON.stringify({
+                        console.log('Sending to API:', { assigned_to: formData.assigned_to, assigned_team: formData.assigned_team });
+        body: JSON.stringify({
                             ...formData,
                             status: 'unassigned',
                             created_by: user.name,
@@ -4377,6 +4378,11 @@ const handleDeleteInventory = async (inventoryId) => {
     // Assignment with permission check
 const handleAssignLead = async (e) => {
     e.preventDefault();
+        
+        console.log('=== LEAD ASSIGNMENT DEBUG ===');
+        console.log('Form data being sent:', formData);
+        console.log('assigned_to value:', formData.assigned_to);
+        console.log('assigned_team value:', formData.assigned_team);
     setLoading(true);
     
     try {
