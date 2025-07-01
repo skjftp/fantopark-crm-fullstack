@@ -1029,6 +1029,12 @@ const [currentOrderDetail, setCurrentOrderDetail] = useState(null);
         assignedPerson: '',
         dateFrom: '',
         dateTo: '',
+        status: 'all',
+        expiringDays: 7,
+        clientName: '',
+        assignedPerson: '',
+        dateFrom: '',
+        dateTo: '',
         status: 'all'
     });
     const [activeFinancialTab, setActiveFinancialTab] = useState('sales');
@@ -1729,9 +1735,8 @@ const handleLogin = async (e) => {
             // Process active sales (approved post-service payment orders)
             const activeSalesData = ordersData
                 .filter(order => 
-                    order.status === 'approved' && 
-                    order.lead_status === 'payment_post_service' &&
-                    order.payment_status !== 'paid'
+                    (order.status === 'approved' && order.lead_status === 'payment_post_service') ||
+                    (order.status === 'approved' && order.payment_status === 'pending')
                 )
                 .map(order => ({
                     id: order.id,
@@ -1742,30 +1747,6 @@ const handleLogin = async (e) => {
                     amount: parseFloat(order.total_amount || 0),
                     status: 'active'
                 }));
-
-            // Process completed sales (paid orders)
-            const salesData = ordersData
-                .filter(order => order.status === 'completed' || order.payment_status === 'paid')
-                .map(order => ({
-                    id: order.id,
-                    date: order.created_at || new Date().toISOString(),
-                    invoice_number: order.invoice_number || `INV-${order.id}`,
-                    clientName: order.lead_name || order.client_name || 'N/A',
-                    assignedTo: order.assigned_to || order.sales_person || 'Unassigned',
-                    amount: parseFloat(order.final_amount || order.total_amount || 0),
-                    status: order.payment_status || 'paid'
-                }));
-
-            // Process receivables (only unpaid)
-            const unpaidReceivables = receivablesData.filter(r => r.status !== 'paid');
-            
-            // Process expiring inventory (default 7 days, adjustable)
-            const daysFilter = parseInt(financialFilters?.expiringDays || 7);
-            const expiringInventory = inventoryData.filter(item => {
-                if (!item.event_date || item.allocated) return false;
-                const days = Math.ceil((new Date(item.event_date) - new Date()) / (1000 * 60 * 60 * 24));
-                return days <= daysFilter && days >= 0;
-            });
 
             // Calculate totals
             const totalActiveSales = activeSalesData.reduce((sum, sale) => sum + sale.amount, 0);
