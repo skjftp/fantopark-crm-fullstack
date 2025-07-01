@@ -738,6 +738,8 @@ function App() {
 const [leads, setLeads] = useState([]);
 const [inventory, setInventory] = useState([]);
 const [orders, setOrders] = useState([]);
+    const [orderToAssign, setOrderToAssign] = useState(null);
+    const [showOrderAssignModal, setShowOrderAssignModal] = useState(false);
     
     // Edit order function - in App scope
     const openEditOrderForm = (order) => {
@@ -6054,6 +6056,65 @@ const renderEditOrderForm = () => {
             )
         );
     };
+
+    
+    // Render order assignment modal
+    const renderOrderAssignModal = () => {
+        if (!showOrderAssignModal || !orderToAssign) return null;
+        
+        return React.createElement('div', {
+            className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
+            onClick: (e) => {
+                if (e.target === e.currentTarget) {
+                    setShowOrderAssignModal(false);
+                    setOrderToAssign(null);
+                }
+            }
+        },
+            React.createElement('div', { className: 'bg-white rounded-lg p-6 w-96' },
+                React.createElement('h3', { className: 'text-lg font-bold mb-4' }, 
+                    `Assign Order #${orderToAssign.id}`
+                ),
+                React.createElement('div', { className: 'mb-4' },
+                    React.createElement('p', { className: 'text-sm text-gray-600' }, 
+                        `Client: ${orderToAssign.client_name}`
+                    ),
+                    React.createElement('p', { className: 'text-sm text-gray-600' }, 
+                        `Event: ${orderToAssign.event_name}`
+                    )
+                ),
+                React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 
+                    'Assign to Supply Team Member'
+                ),
+                React.createElement('select', {
+                    className: 'w-full px-3 py-2 border rounded-md mb-4',
+                    onChange: (e) => {
+                        if (e.target.value) {
+                            assignOrderToService(orderToAssign.id, e.target.value);
+                            setShowOrderAssignModal(false);
+                            setOrderToAssign(null);
+                        }
+                    }
+                },
+                    React.createElement('option', { value: '' }, 'Select Team Member'),
+                    (users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(user =>
+                        React.createElement('option', { 
+                            key: user.id || user.email, 
+                            value: user.email 
+                        }, user.name)
+                    )
+                ),
+                React.createElement('button', {
+                    onClick: () => {
+                        setShowOrderAssignModal(false);
+                        setOrderToAssign(null);
+                    },
+                    className: 'px-4 py-2 text-gray-600 hover:text-gray-800'
+                }, 'Cancel')
+            )
+        );
+    };
+
 
     const renderOrderDetail = () => {
     if (!showOrderDetail || !currentOrderDetail) return null;
