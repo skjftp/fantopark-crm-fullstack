@@ -1545,11 +1545,15 @@ const fetchMyActions = async () => {
         if (leadsData && leadsData.data) {
             const assignedLeads = leadsData.data.filter(lead => {
                 if (!lead.assignedTo) return false;
-                const assigned = (lead.assignedTo || '').toLowerCase();
-                const email = (user.email || '').toLowerCase();
-                const name = (user.name || '').toLowerCase();
-                return assigned === email || assigned === name || 
-                       assigned.includes(email) || assigned.includes(name);
+                
+                // Use only email for matching
+                const isAssignedToMe = lead.assignedTo === user.email;
+                
+                if (isAssignedToMe) {
+                    console.log('Lead assigned to me:', lead.name);
+                }
+                
+                return isAssignedToMe;
             });
             console.log('My leads:', assignedLeads.length);
             setMyLeads(assignedLeads);
@@ -1563,11 +1567,8 @@ const fetchMyActions = async () => {
             if (user.role === 'supply_manager' || user.role === 'supply_executive') {
                 assignedOrders = ordersData.data.filter(order => {
                     if (order.status !== 'approved') return false;
-                    const assigned = (order.assignedTo || '').toLowerCase();
-                    const email = (user.email || '').toLowerCase();
-                    const name = (user.name || '').toLowerCase();
-                    return assigned === email || assigned === name || 
-                           assigned.includes(email) || assigned.includes(name);
+                    // Use only email for matching
+                    return order.assignedTo === user.email;
                 });
             }
             
@@ -1585,11 +1586,8 @@ const fetchMyActions = async () => {
         // Filter deliveries assigned to me
         if (deliveriesData && deliveriesData.data) {
             const assignedDeliveries = deliveriesData.data.filter(delivery => {
-                const assigned = (delivery.assignedTo || '').toLowerCase();
-                const email = (user.email || '').toLowerCase();
-                const name = (user.name || '').toLowerCase();
-                return assigned === email || assigned === name || 
-                       assigned.includes(email) || assigned.includes(name);
+                // Use only email for matching
+                return delivery.assignedTo === user.email;
             });
             console.log('My deliveries:', assignedDeliveries.length);
             setMyDeliveries(assignedDeliveries);
@@ -1612,7 +1610,7 @@ const fetchMyActions = async () => {
         console.error('Error fetching my actions:', error);
         setLoading(false);
     }
-};
+    };
 
 const handleUserSubmit = async (e) => {
         e.preventDefault();
