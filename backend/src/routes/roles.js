@@ -1,175 +1,162 @@
-const { authenticateToken, checkPermission } = require('../middleware/auth');
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
-const Role = require('../models/Role');
+const admin = require('firebase-admin');
+const { authenticateToken, checkPermission } = require('../middleware/auth');
+
+const db = admin.firestore();
 
 // Get all roles
-router.get('/', auth, async (req, res) => {
-  try {
-    const roles = await Role.getAll();
-    res.json({ data: roles });
-  } catch (error) {
-    console.error('Error fetching roles:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get single role
-router.get('/:id', auth, async (req, res) => {
-  try {
-    const role = await Role.getById(req.params.id);
-    if (!role) {
-      return res.status(404).json({ error: 'Role not found' });
+router.get('/', authenticateToken, checkPermission('users', 'manage_roles'), async (req, res) => {
+    try {
+        const snapshot = await db.collection('crm_roles').get();
+        const roles = [];
+        
+        snapshot.forEach(doc => {
+            roles.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        
+        res.json({ data: roles });
+    } catch (error) {
+        console.error('Error fetching roles:', error);
+        res.status(500).json({ error: 'Failed to fetch roles' });
     }
-    res.json({ data: role });
-  } catch (error) {
-    console.error('Error fetching role:', error);
-    res.status(500).json({ error: error.message });
-  }
 });
 
 // Initialize default roles
-router.post('/initialize', auth, async (req, res) => {
-  try {
-    // Check if user is super_admin
-    if (req.user.role !== 'super_admin') {
-      return res.status(403).json({ error: 'Only super admins can initialize roles' });
+router.post('/initialize', authenticateToken, checkPermission('users', 'manage_roles'), async (req, res) => {
+    try {
+        const defaultRoles = [
+            {
+                name: 'super_admin',
+                label: 'Super Admin',
+                description: 'Full system access',
+                permissions: {
+                    dashboard: { read: true, write: true, delete: true },
+                    leads: { read: true, write: true, delete: true },
+                    inventory: { read: true, write: true, delete: true },
+                    orders: { read: true, write: true, delete: true },
+                    finance: { read: true, write: true, delete: true },
+                    delivery: { read: true, write: true, delete: true },
+                    users: { read: true, write: true, delete: true, manage_roles: true }
+                },
+                is_system: true
+            },
+            {
+                name: 'admin',
+                label: 'Admin',
+                description: 'Administrative access without role management',
+                permissions: {
+                    dashboard: { read: true, write: true, delete: true },
+                    leads: { read: true, write: true, delete: true },
+                    inventory: { read: true, write: true, delete: true },
+                    orders: { read: true, write: true, delete: true },
+                    finance: { read: true, write: true, delete: true },
+                    delivery: { read: true, write: true, delete: true },
+                    users: { read: true, write: true, delete: true, manage_roles: false }
+                },
+                is_system: true
+            },
+            {
+                name: 'sales_manager',
+                label: 'Sales Manager',
+                description: 'Manages sales team and leads',
+                permissions: {
+                    dashboard: { read: true },
+                    leads: { read: true, write: true, delete: true, assign: true },
+                    inventory: { read: true },
+                    orders: { read: true, write: true },
+                    finance: { read: false },
+                    delivery: { read: true },
+                    users: { read: true }
+                },
+                is_system: true
+            },
+            {
+                name: 'sales_executive',
+                label: 'Sales Executive',
+                description: 'Creates and manages leads',
+                permissions: {
+                    dashboard: { read: true },
+                    leads: { read: true, write: true, progress: true },
+                    inventory: { read: true },
+                    orders: { read: true, write: true },
+                    finance: { read: false },
+                    delivery: { read: true },
+                    users: { read: false }
+                },
+                is_system: true
+            },
+            {
+                name: 'supply_manager',
+                label: 'Supply Manager',
+                description: 'Manages inventory and deliveries',
+                permissions: {
+                    dashboard: { read: true },
+                    leads: { read: true },
+                    inventory: { read: true, write: true, delete: true, allocate: true },
+                    orders: { read: true },
+                    finance: { read: false },
+                    delivery: { read: true, write: true, delete: true },
+                    users: { read: false }
+                },
+                is_system: true
+            },
+            {
+                name: 'finance_manager',
+                label: 'Finance Manager',
+                description: 'Manages financial operations',
+                permissions: {
+                    dashboard: { read: true },
+                    leads: { read: true },
+                    inventory: { read: true },
+                    orders: { read: true, approve: true },
+                    finance: { read: true, write: true, delete: true, approve: true },
+                    delivery: { read: true },
+                    users: { read: false }
+                },
+                is_system: true
+            },
+            {
+                name: 'viewer',
+                label: 'Viewer',
+                description: 'Read-only access',
+                permissions: {
+                    dashboard: { read: true },
+                    leads: { read: true },
+                    inventory: { read: true },
+                    orders: { read: true },
+                    finance: { read: true },
+                    delivery: { read: true },
+                    users: { read: false }
+                },
+                is_system: true
+            }
+        ];
+
+        const batch = db.batch();
+        
+        for (const role of defaultRoles) {
+            const docRef = db.collection('crm_roles').doc(role.name);
+            batch.set(docRef, {
+                ...role,
+                created_at: admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        
+        await batch.commit();
+        
+        res.json({ 
+            success: true, 
+            message: 'Default roles initialized successfully',
+            data: defaultRoles
+        });
+    } catch (error) {
+        console.error('Error initializing roles:', error);
+        res.status(500).json({ error: 'Failed to initialize roles' });
     }
-
-    // Initialize default roles
-    await Role.initializeDefaults();
-    
-    // Fetch all roles to return
-    const roles = await Role.getAll();
-    
-    res.json({
-      message: 'Default roles initialized successfully',
-      data: roles
-    });
-  } catch (error) {
-    console.error('Error initializing roles:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Create new role
-router.post('/', auth, async (req, res) => {
-  try {
-    // Check if user is super_admin
-    if (req.user.role !== 'super_admin') {
-      return res.status(403).json({ error: 'Only super admins can create roles' });
-    }
-
-    const { name, label, description, permissions } = req.body;
-
-    // Validate required fields
-    if (!name || !label || !permissions) {
-      return res.status(400).json({ error: 'Name, label, and permissions are required' });
-    }
-
-    // Check if role already exists
-    const existing = await Role.getByName(name);
-    if (existing) {
-      return res.status(400).json({ error: 'Role with this name already exists' });
-    }
-
-    // Create the role
-    const role = new Role({
-      name,
-      label,
-      description,
-      permissions,
-      is_system: false
-    });
-
-    await role.save();
-    
-    res.json({ 
-      message: 'Role created successfully',
-      data: role.toJSON()
-    });
-  } catch (error) {
-    console.error('Error creating role:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Update role
-router.put('/:id', auth, async (req, res) => {
-  try {
-    // Check if user is super_admin
-    if (req.user.role !== 'super_admin') {
-      return res.status(403).json({ error: 'Only super admins can update roles' });
-    }
-
-    const role = await Role.getById(req.params.id);
-    if (!role) {
-      return res.status(404).json({ error: 'Role not found' });
-    }
-
-    // Prevent modification of system roles (except description and label)
-    const { label, description, permissions } = req.body;
-    
-    if (role.is_system && permissions) {
-      // For system roles, only allow updating label and description
-      role.label = label || role.label;
-      role.description = description || role.description;
-    } else {
-      // For custom roles, allow all updates
-      role.label = label || role.label;
-      role.description = description || role.description;
-      if (permissions) {
-        role.permissions = permissions;
-      }
-    }
-
-    await role.save();
-    
-    res.json({ 
-      message: 'Role updated successfully',
-      data: role.toJSON()
-    });
-  } catch (error) {
-    console.error('Error updating role:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Delete role
-router.delete('/:id', auth, async (req, res) => {
-  try {
-    // Check if user is super_admin
-    if (req.user.role !== 'super_admin') {
-      return res.status(403).json({ error: 'Only super admins can delete roles' });
-    }
-
-    const role = await Role.getById(req.params.id);
-    if (!role) {
-      return res.status(404).json({ error: 'Role not found' });
-    }
-
-    // Prevent deletion of system roles
-    if (role.is_system) {
-      return res.status(400).json({ error: 'Cannot delete system roles' });
-    }
-
-    // Check if any users have this role
-    const User = require('../models/User');
-    const usersWithRole = await User.find({ role: role.name });
-    if (usersWithRole.length > 0) {
-      return res.status(400).json({ 
-        error: `Cannot delete role. ${usersWithRole.length} users are assigned to this role.` 
-      });
-    }
-
-    await role.delete();
-    
-    res.json({ message: 'Role deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting role:', error);
-    res.status(500).json({ error: error.message });
-  }
 });
 
 module.exports = router;
