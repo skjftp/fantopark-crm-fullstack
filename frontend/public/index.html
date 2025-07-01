@@ -3367,8 +3367,10 @@ case 'myactions':
                                             type: 'text',
                                             value: roleFormData.name,
                                             onChange: (e) => {
-                                                roleFormData.name = e.target.value;
-                                                
+                                                setRoleFormData(prev => ({
+                                                    ...prev,
+                                                    name: e.target.value
+                                                }));
                                             },
                                             className: 'w-full border rounded px-3 py-2',
                                             required: true,
@@ -3381,8 +3383,10 @@ case 'myactions':
                                             type: 'text',
                                             value: roleFormData.label,
                                             onChange: (e) => {
-                                                roleFormData.label = e.target.value;
-                                                
+                                                setRoleFormData(prev => ({
+                                                    ...prev,
+                                                    label: e.target.value
+                                                }));
                                             },
                                             className: 'w-full border rounded px-3 py-2',
                                             required: true
@@ -3393,8 +3397,10 @@ case 'myactions':
                                         React.createElement('textarea', {
                                             value: roleFormData.description,
                                             onChange: (e) => {
-                                                roleFormData.description = e.target.value;
-                                                
+                                                setRoleFormData(prev => ({
+                                                    ...prev,
+                                                    description: e.target.value
+                                                }));
                                             },
                                             className: 'w-full border rounded px-3 py-2',
                                             rows: 2
@@ -3418,7 +3424,16 @@ case 'myactions':
                                                                 type: 'checkbox',
                                                                 checked: value,
                                                                 onChange: (e) => {
-                                                                    roleFormData.permissions[module][perm] = e.target.checked;
+                                                                    setRoleFormData(prev => ({
+                                                                        ...prev,
+                                                                        permissions: {
+                                                                            ...prev.permissions,
+                                                                            [module]: {
+                                                                                ...prev.permissions[module],
+                                                                                [perm]: e.target.checked
+                                                                            }
+                                                                        }
+                                                                    }));
                                                                     
                                                                 },
                                                                 disabled: editingRole?.is_system && module === 'users' && perm === 'manage_roles'
