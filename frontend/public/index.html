@@ -3057,7 +3057,7 @@ const renderContent = () => {
             '₹50 Lakhs - ₹1 Crore', '₹1-2 Crores', '₹2-5 Crores', 'Above ₹5 Crores'
         ], required: true, section: 'financial' },
         { name: 'status', label: 'Lead Status', type: 'select', options: Object.keys(LEAD_STATUSES), section: 'sales', editOnly: true },
-        { name: 'assigned_to', label: 'Assigned To', type: 'select', options: [...(users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role)).map(u => u.name), ...(users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(u => u.name)], section: 'sales', editOnly: true },
+        { name: 'assigned_to', label: 'Assigned To', type: 'select', options: [...(users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role)), ...(users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(u => u.name)], section: 'sales', editOnly: true },
         { name: 'last_quoted_price', label: 'Last Quoted Price (₹)', type: 'number', section: 'sales', editOnly: true },
         { name: 'potential_value', label: 'Potential Value (₹)', type: 'number', section: 'business' },
         { name: 'notes', label: 'Additional Notes', type: 'textarea', section: 'business' }
