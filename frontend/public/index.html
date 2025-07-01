@@ -1708,7 +1708,7 @@ const handleLogin = async (e) => {
             // Calculate stats
             const totalSales = (salesRes.data || []).reduce((sum, sale) => sum + sale.amount, 0);
             const totalReceivables = (receivablesRes.data || []).reduce((sum, rec) => sum + rec.amount, 0);
-            const totalPayables = (payablesRes.data || []).reduce((sum, pay) => sum + pay.amount, 0);
+            const totalPayables = (payablesRes?.data || payablesRes || []).reduce((sum, pay) => sum + pay.amount, 0);
             const expiringValue = (expiringRes.data || []).reduce((sum, item) => sum + (item.quantity * item.price), 0);
             
             setFinancialStats({
@@ -2594,7 +2594,7 @@ const closeForm = () => {
                 React.createElement('div', { className: 'bg-red-50 dark:bg-red-900 p-4 rounded-lg' },
                     React.createElement('h3', { className: 'text-sm font-medium text-red-800 dark:text-red-200' }, 'Total Payables'),
                     React.createElement('p', { className: 'text-2xl font-bold text-red-900 dark:text-red-100' }, 
-                        `₹${financialStats.totalPayables.toLocaleString()}`
+                        `₹${(financialStats.totalPayables || 0).toLocaleString()}`
                     )
                 ),
                 React.createElement('div', { className: 'bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg' },
@@ -2799,7 +2799,7 @@ const closeForm = () => {
                     )
                 ),
                 React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
-                    payables.length > 0 ? payables.map(pay =>
+                    financialData.payables && financialData.payables.length > 0 ? financialData.payables.map(pay =>
                         React.createElement('tr', { key: pay.id },
                             React.createElement('td', { className: 'px-4 py-3 text-sm' }, 
                                 new Date(pay.dueDate).toLocaleDateString()
