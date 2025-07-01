@@ -4377,6 +4377,20 @@ const handleDeleteInventory = async (inventoryId) => {
     // Assignment with permission check
 const handleAssignLead = async (e) => {
     e.preventDefault();
+        
+        console.log('\n🔍 === ASSIGNMENT DEBUGGING START ===');
+        console.log('1. Form Data:', formData);
+        console.log('2. TeamMembers array:', teamMembers);
+        console.log('3. Current dropdown value (assigned_to):', formData.assigned_to);
+        
+        // Check what type of value we have
+        if (formData.assigned_to) {
+            if (formData.assigned_to.includes('@')) {
+                console.log('✅ Value contains @ - appears to be an email');
+            } else {
+                console.log('❌ Value does NOT contain @ - appears to be a name');
+            }
+        }
     setLoading(true);
     
     try {
