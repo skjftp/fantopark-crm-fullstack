@@ -873,6 +873,9 @@ useEffect(() => {
         // Fetch My Actions data
         console.log('useEffect triggered - activeTab:', activeTab, 'isLoggedIn:', isLoggedIn);
         if (activeTab === 'myactions') {
+        } else if (activeTab === 'finance') {
+            console.log('Finance tab active, fetching financial data...');
+            fetchFinancialData();
             console.log('My Actions tab is active, calling fetchMyActions...');
             fetchMyActions();
         }
