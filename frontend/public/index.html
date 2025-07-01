@@ -8563,8 +8563,103 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
     <hr style="margin:10px 0; border:none; border-top:1px solid #4b5563;">
     <div style="margin-bottom:10px;">
         <h4 style="margin:5px 0; font-size:14px; color:#f59e0b;">Create Test Data:</h4>
-        <button onclick="window.createTestLead();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🧪 Create Test Lead</button>
-        <button onclick="window.createTestInventory();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🧪 Create Test Inventory</button>
+        <button onclick="(async function() {
+            const authToken = localStorage.getItem('crm_auth_token');
+            const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+            
+            try {
+                const testData = {
+                    name: 'Test Contact ' + Math.floor(Math.random() * 1000),
+                    email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
+                    phone: '98' + (Math.floor(Math.random() * 90000000) + 10000000),
+                    company: 'Test Company ' + Math.floor(Math.random() * 100),
+                    business_type: 'B2B',
+                    source: 'Website',
+                    potential_value: 100000,
+                    notes: 'Test lead interested in events',
+                    status: 'unassigned',
+                    created_by: JSON.parse(localStorage.getItem('crm_user') || '{}').name || 'Test User',
+                    created_date: new Date().toISOString()
+                };
+                
+                console.log('Creating lead:', testData);
+                
+                const response = await fetch(API_URL + '/api/leads', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Test lead created successfully!');
+                    window.location.reload();
+                } else {
+                    console.error('Failed:', result);
+                    alert('Error: ' + (result.error || result.message || 'Failed to create lead'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+            }
+        })();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🧪 Create Test Lead</button>
+        <button onclick="(async function() {
+            const authToken = localStorage.getItem('crm_auth_token');
+            const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+            
+            try {
+                const testData = {
+                    event_name: 'Test Cricket Match ' + Math.floor(Math.random() * 1000),
+                    event_date: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
+                    event_type: 'cricket',
+                    sports: 'Cricket',
+                    venue: 'Test Stadium Mumbai',
+                    category_of_ticket: 'VIP',
+                    total_tickets: 200,
+                    available_tickets: 200,
+                    mrp_of_ticket: 5000,
+                    buying_price: 4000,
+                    selling_price: 6000,
+                    day_of_match: 'Not Applicable',
+                    stand: 'North Stand',
+                    inclusions: 'Snacks, Beverages, Parking',
+                    booking_person: 'Test Supplier',
+                    procurement_type: 'pre_inventory',
+                    notes: 'Test inventory',
+                    paymentStatus: 'paid',
+                    created_by: JSON.parse(localStorage.getItem('crm_user') || '{}').name || 'Test User',
+                    created_date: new Date().toISOString()
+                };
+                
+                console.log('Creating inventory:', testData);
+                
+                const response = await fetch(API_URL + '/api/inventory', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Test inventory created successfully!');
+                    window.location.reload();
+                } else {
+                    console.error('Failed:', result);
+                    alert('Error: ' + (result.error || result.message || 'Failed to create inventory'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+            }
+        })();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🧪 Create Test Inventory</button>
     </div>
     <hr style="margin:10px 0; border:none; border-top:1px solid #4b5563;">
     <div style="margin-bottom:10px;">
