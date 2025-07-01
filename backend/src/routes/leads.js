@@ -57,4 +57,50 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+
+// DELETE all leads (bulk delete for test mode)
+router.delete('/', authenticateToken, async (req, res) => {
+  try {
+    // Check if user is super_admin
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Only super admins can perform bulk delete' });
+    }
+    
+    // Check if bulk delete headers are present
+    if (req.headers['x-delete-all'] !== 'true' || req.headers['x-test-mode'] !== 'true') {
+      return res.status(403).json({ error: 'Bulk delete requires test mode headers' });
+    }
+    
+    console.log('Bulk delete leads requested by:', req.user.email);
+    
+    // Get all leads
+    const snapshot = await db.collection(collections.leads).get();
+    
+    if (snapshot.empty) {
+      return res.json({ message: 'No leads to delete', count: 0 });
+    }
+    
+    // Delete in batches
+    const batch = db.batch();
+    let count = 0;
+    
+    snapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+      count++;
+    });
+    
+    await batch.commit();
+    
+    console.log(`Deleted ${count} leads`);
+    res.json({ 
+      message: `Successfully deleted ${count} leads`,
+      count: count 
+    });
+    
+  } catch (error) {
+    console.error('Bulk delete leads error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
