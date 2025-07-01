@@ -738,8 +738,6 @@ function App() {
 const [leads, setLeads] = useState([]);
 const [inventory, setInventory] = useState([]);
 const [orders, setOrders] = useState([]);
-    const [orderToAssign, setOrderToAssign] = useState(null);
-    const [showOrderAssignModal, setShowOrderAssignModal] = useState(false);
     
     // Edit order function - in App scope
     const openEditOrderForm = (order) => {
@@ -970,8 +968,6 @@ const getFileViewUrl = async (filePath) => {
     }
 };
 const [showOrderDetail, setShowOrderDetail] = useState(false);
-    const [selectedOrderForAssignment, setSelectedOrderForAssignment] = useState(null);
-    const [showOrderAssignmentModal, setShowOrderAssignmentModal] = useState(false);
     const [showEditOrderForm, setShowEditOrderForm] = useState(false);
     const [currentOrderForEdit, setCurrentOrderForEdit] = useState(null);
     const [orderEditData, setOrderEditData] = useState({});
@@ -1216,7 +1212,7 @@ Status: ${order.status}`);
     setLoading(true);
     try {
         const updateData = {
-            assigned_to: assignee, // This will now be an email
+            assigned_to: assignee,
             status: 'service_assigned',
             assigned_date: new Date().toISOString()
         };
@@ -1264,7 +1260,7 @@ Status: ${order.status}`);
                 online_link: '',
                 
                 // Status and metadata
-                assigned_to: assignee, // This will now be an email
+                assigned_to: assignee,
                 status: 'pending',
                 created_date: new Date().toISOString().split('T')[0],
                 created_by: user.name
@@ -1367,55 +1363,7 @@ const renderOrderDetailModal = () => {
             )
         )
     );
-}
-
-const renderOrderAssignmentModal = () => {
-    if (!showOrderAssignmentModal || !selectedOrderForAssignment) return null;
-    
-    const supplyTeamUsers = (users || []).filter(u => 
-        ['supply_executive', 'supply_manager'].includes(u.role)
-    );
-    
-    return React.createElement('div', { 
-        className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
-        onClick: (e) => {
-            if (e.target === e.currentTarget) {
-                setShowOrderAssignmentModal(false);
-                setSelectedOrderForAssignment(null);
-            }
-        }
-    },
-        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full' },
-            React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 
-                'Assign Order to Supply Team'
-            ),
-            React.createElement('div', { className: 'space-y-2' },
-                supplyTeamUsers.map(user =>
-                    React.createElement('button', {
-                        key: user.email,
-                        className: 'w-full text-left px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
-                        onClick: () => {
-                            assignOrderToService(selectedOrderForAssignment.id, user.email);
-                            setShowOrderAssignmentModal(false);
-                            setSelectedOrderForAssignment(null);
-                        }
-                    },
-                        React.createElement('div', { className: 'font-medium' }, user.name),
-                        React.createElement('div', { className: 'text-sm text-gray-500' }, user.role)
-                    )
-                )
-            ),
-            React.createElement('button', {
-                className: 'mt-4 w-full text-center text-gray-500 hover:text-gray-700',
-                onClick: () => {
-                    setShowOrderAssignmentModal(false);
-                    setSelectedOrderForAssignment(null);
-                }
-            }, 'Cancel')
-        )
-    );
 };
-;
 
 const getInventoryDueInDays = (eventDate) => {
     const today = new Date();
@@ -1699,63 +1647,6 @@ const fetchMyActions = async () => {
 };
 
     // Enhanced lead progression function with permission check
-        // Status update function with permission check
-    const updateLeadStatus = async (leadId, newStatus) => {
-        if (!hasPermission('leads', 'progress')) {
-            alert('You do not have permission to progress leads');
-            return;
-        }
-        
-        try {
-            setLoading(true);
-            
-            // CRITICAL: Get the full lead object first
-            const currentLead = leads.find(l => l.id === leadId);
-            if (!currentLead) {
-                alert('Lead not found');
-                setLoading(false);
-                return;
-            }
-            
-            // Include ALL fields from current lead
-            const updateData = {
-                ...currentLead,  // This includes EVERYTHING
-                status: newStatus,
-                last_contact_date: new Date().toISOString(),
-                [`${newStatus}_date`]: new Date().toISOString(),
-                updated_date: new Date().toISOString()
-            };
-            
-            console.log('Updating lead with full data:', updateData);
-            
-            // API call to update lead status
-            const response = await apiCall(`/leads/${leadId}`, {
-                method: 'PUT',
-                body: JSON.stringify(updateData)
-            });
-            
-            // Update local state with response from server
-            console.log("Status update response:", response);
-            setLeads(prevLeads => 
-                prevLeads.map(lead => 
-                    lead.id === leadId ? response.data : lead
-                )
-            );
-            
-            // Update current lead if in detail view
-            if (showLeadDetail && currentLead?.id === leadId) {
-                setCurrentLead(response.data);
-            }
-            
-            setLoading(false);
-            alert('Lead status updated successfully!');
-        } catch (error) {
-            console.error('Error updating lead status:', error);
-            setLoading(false);
-            alert('Failed to update lead status: ' + error.message);
-        }
-    };
-
     const handleLeadProgression = (lead) => {
     if (!hasPermission('leads', 'progress')) {
         alert('You do not have permission to progress leads');
@@ -3166,7 +3057,7 @@ const renderContent = () => {
             '₹50 Lakhs - ₹1 Crore', '₹1-2 Crores', '₹2-5 Crores', 'Above ₹5 Crores'
         ], required: true, section: 'financial' },
         { name: 'status', label: 'Lead Status', type: 'select', options: Object.keys(LEAD_STATUSES), section: 'sales', editOnly: true },
-        { name: 'assigned_to', label: 'Assigned To', type: 'select', options: [...(users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role)), ...(users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(u => u.name)], section: 'sales', editOnly: true },
+        { name: 'assigned_to', label: 'Assigned To', type: 'select', options: [...(users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role)).map(u => u.name), ...(users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(u => u.name)], section: 'sales', editOnly: true },
         { name: 'last_quoted_price', label: 'Last Quoted Price (₹)', type: 'number', section: 'sales', editOnly: true },
         { name: 'potential_value', label: 'Potential Value (₹)', type: 'number', section: 'business' },
         { name: 'notes', label: 'Additional Notes', type: 'textarea', section: 'business' }
@@ -4400,7 +4291,8 @@ const handleFormSubmit = async (e) => {
                 case 'lead':
                     const leadResponse = await apiCall('/leads', {
                         method: 'POST',
-                        body: JSON.stringify({
+                        console.log('Sending to API:', { assigned_to: formData.assigned_to, assigned_team: formData.assigned_team });
+        body: JSON.stringify({
                             ...formData,
                             status: 'unassigned',
                             created_by: user.name,
@@ -4487,19 +4379,10 @@ const handleDeleteInventory = async (inventoryId) => {
 const handleAssignLead = async (e) => {
     e.preventDefault();
         
-        console.log('\n🔍 === ASSIGNMENT DEBUGGING START ===');
-        console.log('1. Form Data:', formData);
-        // console.log('2. TeamMembers array:', teamMembers); // Removed - not in scope
-        console.log('3. Current dropdown value (assigned_to):', formData.assigned_to);
-        
-        // Check what type of value we have
-        if (formData.assigned_to) {
-            if (formData.assigned_to.includes('@')) {
-                console.log('✅ Value contains @ - appears to be an email');
-            } else {
-                console.log('❌ Value does NOT contain @ - appears to be a name');
-            }
-        }
+        console.log('=== LEAD ASSIGNMENT DEBUG ===');
+        console.log('Form data being sent:', formData);
+        console.log('assigned_to value:', formData.assigned_to);
+        console.log('assigned_team value:', formData.assigned_team);
     setLoading(true);
     
     try {
@@ -4789,7 +4672,7 @@ const handleAssignLead = async (e) => {
                                                 React.createElement('option', { value: '' }, 'Select ' + field.label),
                                                 field.options.map(option =>
                                                     React.createElement('option', { key: option, value: option }, 
-                                                        (typeof option === 'string' ? option.charAt(0).toUpperCase() + option.slice(1) : (option.name || option)).replace('_', ' ')
+                                                        option.charAt(0).toUpperCase() + option.slice(1).replace('_', ' ')
                                                     )
                                                 )
                                             ) :
@@ -5081,7 +4964,7 @@ const handleAssignLead = async (e) => {
                         ),
                         React.createElement('select', {
                             value: formData.assigned_to || '',
-                            onChange: (e) => handleInputChange('assigned_to', e.target.value),
+                            onChange: (e) => handleInputChange('assigned_to', e.target.value)valuevalue),
                             className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                             required: true
                         },
@@ -6060,8 +5943,8 @@ const renderEditOrderForm = () => {
                             required: true
                         },
                             React.createElement('option', { value: '' }, 'Select Assignee'),
-                            ...(users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(user =>
-                                React.createElement('option', { key: user.id || user.email, value: user.email }, user.name)
+                            ...(users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(u => u.name).map(member =>
+                                React.createElement('option', { key: member, value: member }, member)
                             )
                         )
                     ),
@@ -6106,65 +5989,6 @@ const renderEditOrderForm = () => {
             )
         );
     };
-
-    
-    // Render order assignment modal
-    const renderOrderAssignModal = () => {
-        if (!showOrderAssignModal || !orderToAssign) return null;
-        
-        return React.createElement('div', {
-            className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
-            onClick: (e) => {
-                if (e.target === e.currentTarget) {
-                    setShowOrderAssignModal(false);
-                    setOrderToAssign(null);
-                }
-            }
-        },
-            React.createElement('div', { className: 'bg-white rounded-lg p-6 w-96' },
-                React.createElement('h3', { className: 'text-lg font-bold mb-4' }, 
-                    `Assign Order #${orderToAssign.id}`
-                ),
-                React.createElement('div', { className: 'mb-4' },
-                    React.createElement('p', { className: 'text-sm text-gray-600' }, 
-                        `Client: ${orderToAssign.client_name}`
-                    ),
-                    React.createElement('p', { className: 'text-sm text-gray-600' }, 
-                        `Event: ${orderToAssign.event_name}`
-                    )
-                ),
-                React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 
-                    'Assign to Supply Team Member'
-                ),
-                React.createElement('select', {
-                    className: 'w-full px-3 py-2 border rounded-md mb-4',
-                    onChange: (e) => {
-                        if (e.target.value) {
-                            assignOrderToService(orderToAssign.id, e.target.value);
-                            setShowOrderAssignModal(false);
-                            setOrderToAssign(null);
-                        }
-                    }
-                },
-                    React.createElement('option', { value: '' }, 'Select Team Member'),
-                    (users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(user =>
-                        React.createElement('option', { 
-                            key: user.id || user.email, 
-                            value: user.email 
-                        }, user.name)
-                    )
-                ),
-                React.createElement('button', {
-                    onClick: () => {
-                        setShowOrderAssignModal(false);
-                        setOrderToAssign(null);
-                    },
-                    className: 'px-4 py-2 text-gray-600 hover:text-gray-800'
-                }, 'Cancel')
-            )
-        );
-    };
-
 
     const renderOrderDetail = () => {
     if (!showOrderDetail || !currentOrderDetail) return null;
@@ -6703,15 +6527,15 @@ order.invoice_number && React.createElement('button', {
     }
 }, '📄 View Invoice'),
                                             // Service assignment
-                                            hasPermission('orders', 'assign') && order.status === 'approved' && !order.assigned_to &&
-    React.createElement('button', {
-        className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
-        onClick: () => {
-            setSelectedOrderForAssignment(order);
-            setShowOrderAssignmentModal(true);
-        },
-        disabled: loading
-    }, '→ Assign'),
+                                            hasPermission('orders', 'assign') && order.status === 'approved' && !order.assigned_to && 
+                                                (users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(u => u.name).map(person =>
+                                                    React.createElement('button', {
+                                                        key: person,
+                                                        className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
+                                                        onClick: () => assignOrderToService(order.id, person),
+                                                        disabled: loading
+                                                    }, `→ ${person}`)
+                                                ),
                                             // Complete order
                                             hasPermission('orders', 'write') && order.status === 'service_assigned' && React.createElement('button', {
                                                 className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
@@ -7173,9 +6997,7 @@ return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:b
         renderUserForm(),
         renderGSTInvoicePreview(),
             renderOrderDetailModal(),
-                renderOrderAssignmentModal(),
             renderOrderDetailModal(),
-                renderOrderAssignmentModal(),
 renderDeliveryForm(),
 renderOrderDetail(),
         renderEditOrderForm(),
