@@ -4921,7 +4921,7 @@ const handleAssignLead = async (e) => {
     const renderAssignForm = () => {
         if (!showAssignForm || !currentLead) return null;
 
-        const teamMembers = formData.assigned_team === 'supply' ? (users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)) : (users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role)).map(u => u.name);
+        const teamMembers = formData.assigned_team === 'supply' ? (users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)) : (users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role));
 
         return React.createElement('div', { 
             className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
