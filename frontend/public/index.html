@@ -751,6 +751,9 @@ function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [testMode, setTestMode] = useState(() => {
         return localStorage.getItem('testMode') === 'true';
+    console.log('Test mode state:', testMode);
+    console.log('Current user:', currentUser);
+    console.log('Is super admin:', currentUser?.role === 'super_admin');
     });
     const [user, setUser] = useState(null);
     const [email, setEmail] = useState('');
