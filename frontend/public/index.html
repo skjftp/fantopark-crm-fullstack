@@ -855,6 +855,11 @@ useEffect(() => {
     if (isLoggedIn) {
         fetchData();
     }
+        
+        // Fetch My Actions data
+        if (activeTab === 'myActions') {
+            fetchMyActions();
+        }
 }, [isLoggedIn]);
     
    
@@ -1516,6 +1521,94 @@ const handleLogin = async (e) => {
             console.error('Failed to fetch users:', error);
         }
     };
+
+const fetchMyActions = async () => {
+    if (!user) return;
+    
+    try {
+        setLoading(true);
+        console.log('Fetching actions for:', user.name, '(' + user.email + ')');
+        
+        // Fetch all data in parallel
+        const [leadsData, ordersData, deliveriesData, receivablesData] = await Promise.all([
+            apiCall('/leads'),
+            apiCall('/orders'),
+            apiCall('/deliveries'),
+            apiCall('/receivables')
+        ]);
+        
+        // Filter leads assigned to me
+        if (leadsData && leadsData.data) {
+            const assignedLeads = leadsData.data.filter(lead => {
+                if (!lead.assignedTo) return false;
+                const assigned = (lead.assignedTo || '').toLowerCase();
+                const email = (user.email || '').toLowerCase();
+                const name = (user.name || '').toLowerCase();
+                return assigned === email || assigned === name || 
+                       assigned.includes(email) || assigned.includes(name);
+            });
+            console.log('My leads:', assignedLeads.length);
+            setMyLeads(assignedLeads);
+        }
+        
+        // Filter orders based on role
+        if (ordersData && ordersData.data) {
+            let assignedOrders = [];
+            
+            // Supply team sees approved orders assigned to them
+            if (user.role === 'supply_manager' || user.role === 'supply_executive') {
+                assignedOrders = ordersData.data.filter(order => {
+                    if (order.status !== 'approved') return false;
+                    const assigned = (order.assignedTo || '').toLowerCase();
+                    const email = (user.email || '').toLowerCase();
+                    const name = (user.name || '').toLowerCase();
+                    return assigned === email || assigned === name || 
+                           assigned.includes(email) || assigned.includes(name);
+                });
+            }
+            
+            // Finance team sees orders pending approval
+            if (user.role === 'finance_manager' || user.role === 'finance_executive') {
+                assignedOrders = ordersData.data.filter(order => 
+                    order.status === 'pending_approval'
+                );
+            }
+            
+            console.log('My orders:', assignedOrders.length);
+            setMyOrders(assignedOrders);
+        }
+        
+        // Filter deliveries assigned to me
+        if (deliveriesData && deliveriesData.data) {
+            const assignedDeliveries = deliveriesData.data.filter(delivery => {
+                const assigned = (delivery.assignedTo || '').toLowerCase();
+                const email = (user.email || '').toLowerCase();
+                const name = (user.name || '').toLowerCase();
+                return assigned === email || assigned === name || 
+                       assigned.includes(email) || assigned.includes(name);
+            });
+            console.log('My deliveries:', assignedDeliveries.length);
+            setMyDeliveries(assignedDeliveries);
+        }
+        
+        // Get receivables for finance team or overdue for everyone
+        if (receivablesData && receivablesData.data) {
+            const today = new Date();
+            const overdueReceivables = receivablesData.data.filter(rec => {
+                if (rec.status === 'paid') return false;
+                const dueDate = new Date(rec.due_date);
+                return dueDate < today;
+            });
+            console.log('Overdue receivables:', overdueReceivables.length);
+            setMyReceivables(overdueReceivables);
+        }
+        
+        setLoading(false);
+    } catch (error) {
+        console.error('Error fetching my actions:', error);
+        setLoading(false);
+    }
+};
 
 const handleUserSubmit = async (e) => {
         e.preventDefault();
@@ -2684,20 +2777,254 @@ const closeForm = () => {
 
     
     const renderMyActionsContent = () => {
+        const totalOverdueAmount = myReceivables.reduce((sum, rec) => sum + (rec.amount || 0), 0);
+        const hasActions = myLeads.length > 0 || myOrders.length > 0 || myDeliveries.length > 0;
+        
         return React.createElement('div', { className: 'space-y-6' },
-            React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'My Actions'),
-            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-6' },
-                React.createElement('p', { className: 'text-gray-600 dark:text-gray-400' }, 
-                    'Your pending actions based on your role will appear here.'
+            React.createElement('div', { className: 'flex justify-between items-center' },
+                React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'My Actions'),
+                React.createElement('button', {
+                    onClick: fetchMyActions,
+                    className: 'text-blue-600 hover:text-blue-700 flex items-center gap-2'
+                }, 
+                    React.createElement('span', null, '↻'),
+                    'Refresh'
+                )
+            ),
+            
+            // Overdue Receivables Alert
+            myReceivables.length > 0 && React.createElement('div', { 
+                className: 'bg-red-50 border-2 border-red-200 rounded-lg p-4 animate-pulse' 
+            },
+                React.createElement('div', { className: 'flex items-center justify-between' },
+                    React.createElement('div', { className: 'flex items-center' },
+                        React.createElement('span', { className: 'text-2xl mr-3' }, '⚠️'),
+                        React.createElement('div', null,
+                            React.createElement('h3', { className: 'text-lg font-semibold text-red-800' }, 
+                                `${myReceivables.length} Overdue Receivables`
+                            ),
+                            React.createElement('p', { className: 'text-red-600' }, 
+                                `Total Amount Due: ₹${totalOverdueAmount.toLocaleString()}`
+                            )
+                        )
+                    ),
+                    React.createElement('button', {
+                        onClick: () => setActiveTab('finance'),
+                        className: 'bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700'
+                    }, 'View Receivables')
+                )
+            ),
+            
+            // User Info
+            React.createElement('div', { className: 'bg-gray-50 dark:bg-gray-900 rounded-lg p-4' },
+                React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 
+                    `Logged in as: ${user?.name} (${user?.email}) - ${user?.role?.replace(/_/g, ' ').toUpperCase()}`
+                )
+            ),
+            
+            loading ? React.createElement('div', { className: 'text-center py-8' }, 'Loading...') :
+            !hasActions ? React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center' },
+                React.createElement('p', { className: 'text-gray-500 text-lg' }, 'No pending actions at the moment.'),
+                React.createElement('p', { className: 'text-gray-400 mt-2' }, 'Actions will appear here when:'),
+                React.createElement('ul', { className: 'mt-4 text-sm text-gray-600 space-y-1' },
+                    React.createElement('li', null, '• Leads are assigned to you'),
+                    React.createElement('li', null, '• Orders need your approval (Finance)'),
+                    React.createElement('li', null, '• Orders need delivery (Supply)'),
+                    React.createElement('li', null, '• Deliveries are assigned to you')
+                )
+            ) : React.createElement('div', { className: 'space-y-6' },
+                
+                // My Leads Section
+                myLeads.length > 0 && React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
+                    React.createElement('div', { className: 'p-4 border-b' },
+                        React.createElement('h2', { className: 'text-xl font-semibold flex items-center gap-2' },
+                            React.createElement('span', { className: 'text-blue-600' }, '📋'),
+                            `My Leads (${myLeads.length})`
+                        )
+                    ),
+                    React.createElement('div', { className: 'overflow-x-auto' },
+                        React.createElement('table', { className: 'w-full' },
+                            React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
+                                React.createElement('tr', null,
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Contact'),
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Company'),
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event'),
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
+                                )
+                            ),
+                            React.createElement('tbody', { className: 'divide-y divide-gray-200' },
+                                myLeads.map(lead => {
+                                    const status = LEAD_STATUSES[lead.status] || { label: lead.status, color: 'bg-gray-100 text-gray-800' };
+                                    return React.createElement('tr', { key: lead.id, className: 'hover:bg-gray-50' },
+                                        React.createElement('td', { className: 'px-4 py-3' },
+                                            React.createElement('div', null,
+                                                React.createElement('div', { className: 'font-medium text-gray-900' }, lead.name),
+                                                React.createElement('div', { className: 'text-sm text-gray-500' }, lead.email)
+                                            )
+                                        ),
+                                        React.createElement('td', { className: 'px-4 py-3 text-sm' }, lead.company || '-'),
+                                        React.createElement('td', { className: 'px-4 py-3 text-sm' }, lead.lead_for_event || '-'),
+                                        React.createElement('td', { className: 'px-4 py-3' },
+                                            React.createElement('span', { 
+                                                className: `px-2 py-1 text-xs rounded-full ${status.color}`
+                                            }, status.label)
+                                        ),
+                                        React.createElement('td', { className: 'px-4 py-3' },
+                                            React.createElement('button', {
+                                                onClick: () => viewLeadDetails(lead),
+                                                className: 'text-blue-600 hover:text-blue-800 text-sm'
+                                            }, 'View Details')
+                                        )
+                                    );
+                                })
+                            )
+                        )
+                    )
                 ),
-                React.createElement('ul', { className: 'mt-4 space-y-2' },
-                    React.createElement('li', null, '• Sales: Leads assigned to you'),
-                    React.createElement('li', null, '• Finance: Orders pending approval'),
-                    React.createElement('li', null, '• Supply: Orders needing delivery')
+                
+                // My Orders Section  
+                myOrders.length > 0 && React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
+                    React.createElement('div', { className: 'p-4 border-b' },
+                        React.createElement('h2', { className: 'text-xl font-semibold flex items-center gap-2' },
+                            React.createElement('span', { className: 'text-green-600' }, '📦'),
+                            `My Orders (${myOrders.length})`
+                        )
+                    ),
+                    React.createElement('div', { className: 'overflow-x-auto' },
+                        React.createElement('table', { className: 'w-full' },
+                            React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
+                                React.createElement('tr', null,
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Order ID'),
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Customer'),
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event'),
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
+                                )
+                            ),
+                            React.createElement('tbody', { className: 'divide-y divide-gray-200' },
+                                myOrders.map(order => 
+                                    React.createElement('tr', { key: order.id, className: 'hover:bg-gray-50' },
+                                        React.createElement('td', { className: 'px-4 py-3 font-medium' }, `#${order.id}`),
+                                        React.createElement('td', { className: 'px-4 py-3' },
+                                            React.createElement('div', null,
+                                                React.createElement('div', { className: 'font-medium' }, order.customer_name),
+                                                React.createElement('div', { className: 'text-sm text-gray-500' }, order.customer_email)
+                                            )
+                                        ),
+                                        React.createElement('td', { className: 'px-4 py-3 text-sm' }, order.event_name || '-'),
+                                        React.createElement('td', { className: 'px-4 py-3 font-medium' }, `₹${(order.total_amount || 0).toLocaleString()}`),
+                                        React.createElement('td', { className: 'px-4 py-3' },
+                                            React.createElement('span', { 
+                                                className: `px-2 py-1 text-xs rounded-full ${
+                                                    order.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
+                                                    order.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                    'bg-gray-100 text-gray-800'
+                                                }`
+                                            }, order.status.replace(/_/g, ' ').toUpperCase())
+                                        ),
+                                        React.createElement('td', { className: 'px-4 py-3' },
+                                            user.role === 'finance_manager' && order.status === 'pending_approval' ?
+                                            React.createElement('button', {
+                                                onClick: () => approveOrder(order.id),
+                                                className: 'bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700'
+                                            }, 'Approve') :
+                                            React.createElement('button', {
+                                                onClick: () => viewOrderDetails(order),
+                                                className: 'text-blue-600 hover:text-blue-800 text-sm'
+                                            }, 'View Details')
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ),
+                
+                // My Deliveries Section
+                myDeliveries.length > 0 && React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
+                    React.createElement('div', { className: 'p-4 border-b' },
+                        React.createElement('h2', { className: 'text-xl font-semibold flex items-center gap-2' },
+                            React.createElement('span', { className: 'text-purple-600' }, '🚚'),
+                            `My Deliveries (${myDeliveries.length})`
+                        )
+                    ),
+                    React.createElement('div', { className: 'overflow-x-auto' },
+                        React.createElement('table', { className: 'w-full' },
+                            React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
+                                React.createElement('tr', null,
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Delivery ID'),
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Order ID'),
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Customer'),
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Delivery Date'),
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
+                                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
+                                )
+                            ),
+                            React.createElement('tbody', { className: 'divide-y divide-gray-200' },
+                                myDeliveries.map(delivery => 
+                                    React.createElement('tr', { key: delivery.id, className: 'hover:bg-gray-50' },
+                                        React.createElement('td', { className: 'px-4 py-3 font-medium' }, `#${delivery.id}`),
+                                        React.createElement('td', { className: 'px-4 py-3' }, `#${delivery.order_id}`),
+                                        React.createElement('td', { className: 'px-4 py-3 text-sm' }, delivery.customer_name || '-'),
+                                        React.createElement('td', { className: 'px-4 py-3 text-sm' }, 
+                                            delivery.scheduled_date ? new Date(delivery.scheduled_date).toLocaleDateString() : '-'
+                                        ),
+                                        React.createElement('td', { className: 'px-4 py-3' },
+                                            React.createElement('span', { 
+                                                className: `px-2 py-1 text-xs rounded-full ${
+                                                    delivery.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                                    delivery.status === 'in_transit' ? 'bg-blue-100 text-blue-800' :
+                                                    'bg-yellow-100 text-yellow-800'
+                                                }`
+                                            }, delivery.status.replace(/_/g, ' ').toUpperCase())
+                                        ),
+                                        React.createElement('td', { className: 'px-4 py-3' },
+                                            React.createElement('button', {
+                                                onClick: () => updateDeliveryStatus(delivery.id),
+                                                className: 'text-blue-600 hover:text-blue-800 text-sm'
+                                            }, 'Update Status')
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
                 )
             )
         );
     };
+
+const updateDeliveryStatus = (deliveryId) => {
+    // Implement delivery status update
+    alert('Delivery status update coming soon!');
+};
+
+const approveOrder = async (orderId) => {
+    if (confirm('Are you sure you want to approve this order?')) {
+        try {
+            await apiCall(`/orders/${orderId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ status: 'approved' })
+            });
+            alert('Order approved successfully!');
+            fetchMyActions();
+        } catch (error) {
+            alert('Failed to approve order: ' + error.message);
+        }
+    }
+};
+
+const viewOrderDetails = (order) => {
+    setCurrentOrderDetail(order);
+    setShowOrderDetail(true);
+};
+
+const viewLeadDetails = (lead) => {
+    setCurrentLead(lead);
+    setShowLeadDetail(true);
+};
 
 const renderContent = () => {
         if (loading && activeTab !== 'leads') {
