@@ -1807,12 +1807,25 @@ const handleLogin = async (e) => {
             });
 
             // Update state
-            setFinancialData({
+            // Calculate totals before setting state
+            const processedData = {
                 sales: salesData,
                 receivables: uniqueReceivables,
                 payables: processedPayables,
                 expiringInventory: expiringInventory
+            };
+            
+            // Log totals for debugging
+            console.log('Setting financial data with totals:', {
+                salesCount: salesData.length,
+                salesTotal: salesData.reduce((sum, s) => sum + (s.amount || 0), 0),
+                receivablesCount: uniqueReceivables.length,
+                receivablesTotal: uniqueReceivables.reduce((sum, r) => sum + (r.balance_amount || r.expected_amount || r.amount || 0), 0),
+                payablesCount: processedPayables.length,
+                payablesTotal: processedPayables.reduce((sum, p) => sum + (p.amount || 0), 0)
             });
+            
+            setFinancialData(processedData);
         } catch (error) {
             console.error('Error fetching financial data:', error);
             alert('Failed to load financial data. Please refresh the page.');
