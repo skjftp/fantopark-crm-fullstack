@@ -3163,7 +3163,7 @@ case 'myactions':
                         setActiveTab('roles');
                     }).catch(error => {
                         console.error('Failed to fetch roles:', error);
-                        showNotification('Failed to fetch roles', 'error');
+                        console.log('Failed to fetch roles');
                     });
                 }
 
@@ -3201,12 +3201,12 @@ case 'myactions':
                             onClick: async () => {
                                 try {
                                     const response = await apiCall('/roles/initialize', 'POST');
-                                    showNotification('Default roles initialized successfully', 'success');
+                                    console.log('Default roles initialized successfully');
                                     roleState.roles = response.data || [];
                                     setActiveTab('roles'); // Force re-render
                                 } catch (error) {
                                     console.error('Failed to initialize roles:', error);
-                                    showNotification('Failed to initialize default roles', 'error');
+                                    console.log('Failed to initialize default roles');
                                 }
                             },
                             className: 'mt-2 bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700'
@@ -3246,7 +3246,7 @@ case 'myactions':
                                             if (!confirm('Are you sure you want to delete this role?')) return;
                                             try {
                                                 await apiCall(`/roles/${role._id}`, 'DELETE');
-                                                showNotification('Role deleted successfully', 'success');
+                                                console.log('Role deleted successfully');
                                                 roleState.roles = roleState.roles.filter(r => r._id !== role._id);
                                                 setActiveTab('roles'); // Force re-render
                                             } catch (error) {
@@ -3295,10 +3295,10 @@ case 'myactions':
                                     try {
                                         if (roleState.editingRole) {
                                             await apiCall(`/roles/${roleState.editingRole._id}`, 'PUT', roleState.roleFormData);
-                                            showNotification('Role updated successfully', 'success');
+                                            console.log('Role updated successfully');
                                         } else {
                                             await apiCall('/roles', 'POST', roleState.roleFormData);
-                                            showNotification('Role created successfully', 'success');
+                                            console.log('Role created successfully');
                                         }
                                         
                                         // Refresh roles
