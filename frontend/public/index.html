@@ -1166,6 +1166,7 @@ const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
             if (savedUser && savedLoginState) {
                 const userData = JSON.parse(savedUser);
                 setUser(userData);
+                setCurrentUser(userData);
                 authToken = savedLoginState;
                 setIsLoggedIn(true);
             // Fetch users for dropdowns
@@ -1608,6 +1609,7 @@ const handleLogin = async (e) => {
     const handleLogout = () => {
         setIsLoggedIn(false);
         setUser(null);
+        setCurrentUser(null);
         setEmail('');
         setPassword('');
         setActiveTab('dashboard');
