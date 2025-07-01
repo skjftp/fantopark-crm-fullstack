@@ -7,6 +7,7 @@ class Lead {
     this.email = data.email;
     this.phone = data.phone;
     this.company = data.company || '';
+    this.business_type = data.business_type || 'B2C';
     
     // Lead Source & Initial Contact
     this.source = data.source || '';

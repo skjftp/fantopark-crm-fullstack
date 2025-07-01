@@ -1881,7 +1881,7 @@ const fetchMyActions = async () => {
         // GST and Legal details
         gstin: '',
         legal_name: lead.name || '',
-        category_of_sale: 'B2C', // B2B/B2C
+        category_of_sale: currentLead.business_type || 'B2C', // B2B/B2C from lead
         type_of_sale: 'Tour', // Tour or Service Fee
         registered_address: '',
         indian_state: 'Haryana',
@@ -7224,7 +7224,7 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
         let filename = '';
 
         if (type === 'leads') {
-            csvContent = `Name,Email,Phone,Company,Source,Date of Enquiry,First Touch Base Done By,City of Residence,Country of Residence,Lead for Event,Number of People,Has Valid Passport,Visa Available,Attended Sporting Event Before,Annual Income Bracket,Potential Value,Status,Assigned To,Last Quoted Price,Notes
+            csvContent = `Name,Email,Phone,Company,Business Type,Source,Date of Enquiry,First Touch Base Done By,City of Residence,Country of Residence,Lead for Event,Number of People,Has Valid Passport,Visa Available,Attended Sporting Event Before,Annual Income Bracket,Potential Value,Status,Assigned To,Last Quoted Price,Notes
 John Doe,john@example.com,+919876543210,ABC Corp,Facebook,2025-01-15,Sales Team,Mumbai,India,IPL 2025,2,Yes,Not Required,No,₹25-50 Lakhs,500000,unassigned,,0,Interested in VIP tickets
 Jane Smith,jane@example.com,+919876543211,XYZ Ltd,WhatsApp,2025-01-16,Marketing Team,Delhi,India,FIFA World Cup 2026,4,Not Sure,Required,Yes,₹50 Lakhs - ₹1 Crore,1000000,unassigned,,0,Family trip planned`;
             filename = 'sample_leads.csv';
