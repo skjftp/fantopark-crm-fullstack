@@ -2713,7 +2713,7 @@ const closeForm = () => {
                                 React.createElement('td', { className: 'px-4 py-3 text-sm' }, sale.clientName),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm' }, sale.assignedTo),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm font-medium' }, 
-                                    `₹${sale.amount.toLocaleString()}`
+                                    `₹${(sale.amount || 0).toLocaleString()}`
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3' },
                                     React.createElement('span', {
