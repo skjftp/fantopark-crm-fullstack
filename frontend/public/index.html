@@ -996,6 +996,28 @@ const [currentOrderDetail, setCurrentOrderDetail] = useState(null);
     const [roles, setRoles] = useState([]);
     const [showRoleForm, setShowRoleForm] = useState(false);
     const [rolesInitialized, setRolesInitialized] = useState(false);
+
+    // Financials state
+    const [financialData, setFinancialData] = useState({
+        sales: [],
+        receivables: [],
+        payables: [],
+        expiringInventory: []
+    });
+    const [financialFilters, setFinancialFilters] = useState({
+        clientName: '',
+        assignedPerson: '',
+        dateFrom: '',
+        dateTo: '',
+        status: 'all'
+    });
+    const [activeFinancialTab, setActiveFinancialTab] = useState('sales');
+    const [financialStats, setFinancialStats] = useState({
+        totalSales: 0,
+        totalReceivables: 0,
+        totalPayables: 0,
+        expiringValue: 0
+    });
     const [editingRole, setEditingRole] = useState(null);
     const [roleFormData, setRoleFormData] = useState({
         name: '',
