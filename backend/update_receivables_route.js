@@ -1,38 +1,14 @@
-const express = require('express');
-const router = express.Router();
-const { db, collections } = require('../config/db');
-const { authenticateToken } = require('../middleware/auth');
+const fs = require('fs');
+const path = require('path');
 
-// GET all receivables
-router.get('/', authenticateToken, async (req, res) => {
-  try {
-    const snapshot = await db.collection(collections.receivables).get();
-    const receivables = [];
-    snapshot.forEach(doc => {
-      receivables.push({ id: doc.id, ...doc.data() });
-    });
-    res.json({ data: receivables });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+const receivablesPath = path.join(__dirname, 'src/routes/receivables.js');
+let content = fs.readFileSync(receivablesPath, 'utf8');
 
-// POST create receivable
-router.post('/', authenticateToken, async (req, res) => {
-  try {
-    const receivableData = {
-      ...req.body,
-      created_date: new Date().toISOString()
-    };
+// Add payment recording endpoint if not exists
+if (!content.includes('router.put(\'/record-payment')) {
+    const routerExports = content.lastIndexOf('module.exports = router;');
     
-    const docRef = await db.collection(collections.receivables).add(receivableData);
-    res.status(201).json({ data: { id: docRef.id, ...receivableData } });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-
+    const paymentEndpoint = `
 // PUT record payment for receivable
 router.put('/record-payment/:id', authenticateToken, async (req, res) => {
     try {
@@ -75,5 +51,9 @@ router.put('/record-payment/:id', authenticateToken, async (req, res) => {
     }
 });
 
-
-module.exports = router;
+`;
+    
+    content = content.slice(0, routerExports) + paymentEndpoint + '\n' + content.slice(routerExports);
+    fs.writeFileSync(receivablesPath, content);
+    console.log('✅ Added payment recording endpoint');
+}

@@ -1712,7 +1712,7 @@ const handleLogin = async (e) => {
                 apiCall('/invoices'),
                 apiCall('/payables'),
                 apiCall('/inventory'),
-                apiCall('/receivables').catch(() => ({ data: [] })) // Fallback if receivables endpoint doesn't exist
+                apiCall('/receivables').catch(() => ({ data: [] }))
             ]);
 
             const ordersData = ordersRes.data || [];
@@ -1720,18 +1720,34 @@ const handleLogin = async (e) => {
             const payablesData = payablesRes.data || [];
             const inventoryData = inventoryRes.data || [];
             const receivablesData = (receivablesRes.data || []).map(r => ({
-        ...r,
-        amount: parseFloat(r.amount || r.expected_amount || 0),
-        balance_amount: parseFloat(r.balance_amount || r.expected_amount || r.amount || 0),
-        client_name: r.client_name || 'Unknown',
-        invoice_number: r.invoice_number || r.invoice_id || 'N/A',
-        due_date: r.due_date || r.expected_payment_date || new Date().toISOString(),
-        assigned_to: r.assigned_to || r.created_by || 'Unassigned'
-    }));
+                ...r,
+                amount: parseFloat(r.amount || r.expected_amount || 0),
+                balance_amount: parseFloat(r.balance_amount || r.expected_amount || r.amount || 0),
+                invoice_number: r.invoice_number || r.invoice_id || 'N/A',
+                due_date: r.due_date || r.expected_payment_date || new Date().toISOString(),
+                is_overdue: new Date(r.due_date || r.expected_payment_date) < new Date()
+            }));
 
-            // Process sales data (completed orders)
+            // Process active sales (approved post-service payment orders)
+            const activeSalesData = ordersData
+                .filter(order => 
+                    order.status === 'approved' && 
+                    order.lead_status === 'payment_post_service' &&
+                    order.payment_status !== 'paid'
+                )
+                .map(order => ({
+                    id: order.id,
+                    date: order.created_at || new Date().toISOString(),
+                    invoice_number: order.invoice_number || `INV-${order.id}`,
+                    clientName: order.lead_name || order.client_name || 'N/A',
+                    assignedTo: order.assigned_to || order.sales_person || 'Unassigned',
+                    amount: parseFloat(order.total_amount || 0),
+                    status: 'active'
+                }));
+
+            // Process completed sales (paid orders)
             const salesData = ordersData
-                .filter(order => order.status === 'completed')
+                .filter(order => order.status === 'completed' || order.payment_status === 'paid')
                 .map(order => ({
                     id: order.id,
                     date: order.created_at || new Date().toISOString(),
@@ -1742,95 +1758,79 @@ const handleLogin = async (e) => {
                     status: order.payment_status || 'paid'
                 }));
 
-            // Process receivables (pending payments + post-service orders)
-            const orderReceivables = ordersData
-                .filter(order => 
-                    (order.payment_status === 'pending' || order.lead_status === 'payment_post_service') 
-                    && order.status !== 'rejected'
-                )
-                .map(order => ({
-                    id: order.id,
-                    order_id: order.id,
-                    due_date: order.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                    invoice_number: order.invoice_number || `INV-${order.id}`,
-                    client_name: order.lead_name || order.client_name || 'N/A',
-                    amount: parseFloat(order.total_amount || 0),
-                    balance_amount: parseFloat(order.total_amount || 0) - parseFloat(order.advance_amount || 0),
-                    assigned_to: order.assigned_to || order.sales_person || 'Unassigned',
-                    status: 'pending',
-                    created_at: order.created_at
-                }));
-
-            // Combine with receivables from API
-            const allReceivables = [...receivablesData, ...orderReceivables];
+            // Process receivables (only unpaid)
+            const unpaidReceivables = receivablesData.filter(r => r.status !== 'paid');
             
-            // Remove duplicates based on order_id
-            const uniqueReceivables = allReceivables.reduce((acc, curr) => {
-                const existing = acc.find(r => r.order_id === curr.order_id);
-                if (!existing) {
-                    acc.push(curr);
-                }
-                return acc;
-            }, []);
-
-            // Process payables
-            const processedPayables = payablesData.map(payable => ({
-                ...payable,
-                amount: parseFloat(payable.amount || 0),
-                vendor_name: payable.vendor_name || 'N/A',
-                due_date: payable.due_date || new Date().toISOString()
-            }));
-
-            // Process expiring inventory
+            // Process expiring inventory (default 7 days, adjustable)
+            const daysFilter = parseInt(financialFilters?.expiringDays || 7);
             const expiringInventory = inventoryData.filter(item => {
-                if (!item.event_date) return false;
-                const daysUntilEvent = Math.ceil((new Date(item.event_date) - new Date()) / (1000 * 60 * 60 * 24));
-                return daysUntilEvent <= 30 && daysUntilEvent >= 0;
+                if (!item.event_date || item.allocated) return false;
+                const days = Math.ceil((new Date(item.event_date) - new Date()) / (1000 * 60 * 60 * 24));
+                return days <= daysFilter && days >= 0;
             });
 
             // Calculate totals
+            const totalActiveSales = activeSalesData.reduce((sum, sale) => sum + sale.amount, 0);
             const totalSales = salesData.reduce((sum, sale) => sum + sale.amount, 0);
-            const totalReceivables = uniqueReceivables.reduce((sum, rec) => 
+            const totalReceivables = unpaidReceivables.reduce((sum, rec) => 
                 sum + (rec.balance_amount || rec.amount || 0), 0
             );
-            const totalPayables = processedPayables.reduce((sum, pay) => sum + pay.amount, 0);
+            const totalPayables = payablesData.reduce((sum, pay) => sum + pay.amount, 0);
             const expiringValue = expiringInventory.reduce((sum, item) => 
                 sum + (parseFloat(item.price || 0) * parseInt(item.quantity || 0)), 0
             );
 
             console.log('Financial data processed:', {
+                activeSales: activeSalesData.length,
                 sales: salesData.length,
-                receivables: uniqueReceivables.length,
-                payables: processedPayables.length,
+                receivables: unpaidReceivables.length,
+                payables: payablesData.length,
                 expiring: expiringInventory.length,
-                totals: { totalSales, totalReceivables, totalPayables, expiringValue }
+                totals: { totalActiveSales, totalSales, totalReceivables, totalPayables, expiringValue }
             });
 
             // Update state
-            // Calculate totals before setting state
-            const processedData = {
+            setFinancialData({
+                activeSales: activeSalesData,
                 sales: salesData,
-                receivables: uniqueReceivables,
-                payables: processedPayables,
+                receivables: unpaidReceivables,
+                payables: payablesData,
                 expiringInventory: expiringInventory
-            };
-            
-            // Log totals for debugging
-            console.log('Setting financial data with totals:', {
-                salesCount: salesData.length,
-                salesTotal: salesData.reduce((sum, s) => sum + (s.amount || 0), 0),
-                receivablesCount: uniqueReceivables.length,
-                receivablesTotal: uniqueReceivables.reduce((sum, r) => sum + (r.balance_amount || r.expected_amount || r.amount || 0), 0),
-                payablesCount: processedPayables.length,
-                payablesTotal: processedPayables.reduce((sum, p) => sum + (p.amount || 0), 0)
             });
-            
-            setFinancialData(processedData);
         } catch (error) {
             console.error('Error fetching financial data:', error);
             alert('Failed to load financial data. Please refresh the page.');
         }
     };
+
+
+    // Record payment for receivable
+    const recordPayment = async (receivableId) => {
+        const paymentAmount = prompt('Enter payment amount:');
+        if (!paymentAmount) return;
+        
+        const paymentMode = prompt('Enter payment mode (bank_transfer/cash/cheque):', 'bank_transfer');
+        const transactionId = prompt('Enter transaction ID (optional):');
+        
+        try {
+            setLoading(true);
+            const response = await apiCall(`/receivables/record-payment/${receivableId}`, 'PUT', {
+                payment_amount: parseFloat(paymentAmount),
+                payment_date: new Date().toISOString(),
+                payment_mode: paymentMode,
+                transaction_id: transactionId
+            });
+            
+            alert('Payment recorded successfully!');
+            fetchFinancialData(); // Refresh data
+        } catch (error) {
+            console.error('Error recording payment:', error);
+            alert('Failed to record payment');
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
 const fetchMyActions = async () => {
     console.log('===== fetchMyActions CALLED =====');
@@ -2697,6 +2697,15 @@ const closeForm = () => {
                             sum + parseFloat(sale.amount || sale.total_amount || sale.final_amount || 0), 0
                         )).toLocaleString()
                     )
+                ),,
+                // Total Active Sales Card
+                React.createElement('div', { className: 'bg-purple-50 dark:bg-purple-900 p-4 rounded-lg' },
+                    React.createElement('h3', { className: 'text-sm font-medium text-purple-800 dark:text-purple-200' }, 'Total Active Sales'),
+                    React.createElement('p', { className: 'text-2xl font-bold text-purple-600' }, 
+                        '₹' + ((financialData.activeSales || []).reduce((sum, sale) => 
+                            sum + parseFloat(sale.amount || 0), 0
+                        )).toLocaleString()
+                    )
                 ),
                 // Total Receivables Card
                 React.createElement('div', { className: 'bg-blue-50 dark:bg-blue-900 p-4 rounded-lg' },
@@ -2772,7 +2781,7 @@ const closeForm = () => {
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
                 React.createElement('div', { className: 'border-b dark:border-gray-700' },
                     React.createElement('div', { className: 'flex space-x-1' },
-                        ['sales', 'receivables', 'payables', 'expiring'].map(tab =>
+                        ['activesales', 'sales', 'receivables', 'payables', 'expiring'].map(tab =>
                             React.createElement('button', {
                                 key: tab,
                                 onClick: () => setActiveFinancialTab(tab),
@@ -2788,6 +2797,7 @@ const closeForm = () => {
 
                 // Tab Content
                 React.createElement('div', { className: 'p-6' },
+                    activeFinancialTab === 'activesales' && renderActiveSalesTab(applyFilters(financialData.activeSales || [])),
                     activeFinancialTab === 'sales' && renderSalesTab(applyFilters(financialData.sales)),
                     activeFinancialTab === 'receivables' && renderReceivablesTab(applyFilters(financialData.receivables)),
                     activeFinancialTab === 'payables' && renderPayablesTab(applyFilters(financialData.payables)),
@@ -2796,6 +2806,57 @@ const closeForm = () => {
             )
         );
     };
+
+    
+    const renderActiveSalesTab = (activeSales) => {
+        return React.createElement('div', { className: 'space-y-4' },
+            React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Active Sales (Post-Service Payment Orders)'),
+            
+            React.createElement('div', { className: 'overflow-x-auto' },
+                React.createElement('table', { className: 'w-full' },
+                    React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
+                        React.createElement('tr', null,
+                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Date'),
+                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Invoice #'),
+                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Client'),
+                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Sales Person'),
+                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
+                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
+                        )
+                    ),
+                    React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
+                        activeSales.length > 0 ?
+                            activeSales.map(sale =>
+                                React.createElement('tr', { key: sale.id },
+                                    React.createElement('td', { className: 'px-4 py-2' }, 
+                                        new Date(sale.date).toLocaleDateString()
+                                    ),
+                                    React.createElement('td', { className: 'px-4 py-2' }, sale.invoice_number),
+                                    React.createElement('td', { className: 'px-4 py-2' }, sale.clientName),
+                                    React.createElement('td', { className: 'px-4 py-2' }, sale.assignedTo),
+                                    React.createElement('td', { className: 'px-4 py-2' }, 
+                                        '₹' + sale.amount.toLocaleString()
+                                    ),
+                                    React.createElement('td', { className: 'px-4 py-2' },
+                                        React.createElement('button', {
+                                            className: 'text-blue-600 hover:text-blue-800',
+                                            onClick: () => recordPayment(receivable.id)
+                                        }, 'Record Payment')
+                                    )
+                                )
+                            )
+                        : React.createElement('tr', null,
+                            React.createElement('td', { 
+                                colSpan: 6, 
+                                className: 'px-4 py-8 text-center text-gray-500' 
+                            }, 'No active sales')
+                        )
+                    )
+                )
+            )
+        );
+    };
+
 
     const renderSalesTab = (sales) => {
         return React.createElement('div', { className: 'space-y-4' },
