@@ -1719,7 +1719,15 @@ const handleLogin = async (e) => {
             const invoicesData = invoicesRes.data || [];
             const payablesData = payablesRes.data || [];
             const inventoryData = inventoryRes.data || [];
-            const receivablesData = receivablesRes.data || [];
+            const receivablesData = (receivablesRes.data || []).map(r => ({
+        ...r,
+        amount: parseFloat(r.amount || r.expected_amount || 0),
+        balance_amount: parseFloat(r.balance_amount || r.expected_amount || r.amount || 0),
+        client_name: r.client_name || 'Unknown',
+        invoice_number: r.invoice_number || r.invoice_id || 'N/A',
+        due_date: r.due_date || r.expected_payment_date || new Date().toISOString(),
+        assigned_to: r.assigned_to || r.created_by || 'Unassigned'
+    }));
 
             // Process sales data (completed orders)
             const salesData = ordersData
