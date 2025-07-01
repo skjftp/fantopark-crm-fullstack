@@ -5207,6 +5207,37 @@ const handleFormSubmit = async (e) => {
                     console.log("Inventory API Response:", invResponse);
                     setInventory(prev => [...prev, invResponse.data]);
                     alert('Inventory added successfully!');
+                    
+                    // Create payable entry if payment is pending or partial
+                    if (formData.paymentStatus === 'pending' || formData.paymentStatus === 'partial') {
+                        try {
+                            const pendingAmount = parseFloat(formData.totalPurchaseAmount || 0) - parseFloat(formData.amountPaid || 0);
+                            
+                            if (pendingAmount > 0) {
+                                const payableData = {
+                                    supplierName: formData.supplierName || 'Unknown Supplier',
+                                    invoiceNumber: formData.supplierInvoice || `INV-${Date.now()}`,
+                                    amount: pendingAmount,
+                                    dueDate: formData.paymentDueDate || new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0], // 30 days from now
+                                    description: `Inventory purchase: ${formData.event_name || 'Event'} - ${formData.category_of_ticket || 'Tickets'}`,
+                                    inventoryId: invResponse.data?.id || invResponse.id,
+                                    status: 'pending'
+                                };
+                                
+                                console.log('Creating payable for inventory:', payableData);
+                                
+                                const payableResponse = await apiCall('/finance/payables', {
+                                    method: 'POST',
+                                    body: JSON.stringify(payableData)
+                                });
+                                
+                                console.log('Payable created:', payableResponse);
+                            }
+                        } catch (payableError) {
+                            console.error('Failed to create payable:', payableError);
+                            // Don't show error to user - payable creation is secondary
+                        }
+                    }
                     break;
                     
                 case 'order':
