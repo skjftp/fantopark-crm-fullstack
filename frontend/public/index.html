@@ -391,7 +391,8 @@ const USER_ROLES = {
     super_admin: {
         label: 'Super Admin',
         permissions: {
-            dashboard: { read: true, write: true, delete: true, manage_users: true },
+            dashboard: { read: true, write: true, delete: true, manage_users: true,
+            finance: { read: true, write: true, delete: true, approve: true }},
             leads: { read: true, write: true, delete: true, assign: true, progress: true },
             inventory: { read: true, write: true, delete: true, allocate: true },
             orders: { read: true, write: true, delete: true, approve: true, assign: true },
@@ -1054,6 +1055,7 @@ const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
 
     // Permission check function
     const hasPermission = (module, action) => {
+        if (user?.role === 'super_admin') return true;
     if (!user || !user.role) {
         console.log('No user or role found');
         return false;
