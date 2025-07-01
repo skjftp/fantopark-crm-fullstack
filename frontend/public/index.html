@@ -3020,6 +3020,14 @@ const closeForm = () => {
                 },
                     React.createElement('span', { className: 'mr-3' }, '👤'),
                     'User Management'
+                ),
+                // Role Management - only for super admin
+                user && user.role === 'super_admin' && React.createElement('button', {
+                    onClick: () => setActiveTab('roles'),
+                    className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 text-gray-700'
+                },
+                    React.createElement('span', { className: 'mr-3' }, '🛡️'),
+                    'Role Management'
                 )
             ),
             React.createElement('div', { className: 'absolute bottom-4 left-4 right-4' },
