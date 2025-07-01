@@ -8568,18 +8568,69 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
             const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
             
             try {
+                // Get today's date in YYYY-MM-DD format
+                const today = new Date().toISOString().split('T')[0];
+                
+                // Get inventory items to pick a random event
+                const invResponse = await fetch(API_URL + '/api/inventory', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                let eventName = 'General Inquiry';
+                if (invResponse.ok) {
+                    const invData = await invResponse.json();
+                    if (invData.data && invData.data.length > 0) {
+                        eventName = invData.data[Math.floor(Math.random() * invData.data.length)].event_name;
+                    }
+                }
+                
+                const cities = ['Mumbai City North East', 'Delhi NCR', 'Bangalore City', 'Chennai Metro', 'Kolkata Central'];
+                const sources = ['LinkedIn', 'Facebook', 'Instagram', 'Website', 'Friends and Family', 'Through Champion'];
+                const salesPeople = ['Ankita', 'Varun', 'Pratik', 'Rahul'];
+                const incomeBrackets = ['₹10-25 Lakhs', '₹25-50 Lakhs', '₹50-100 Lakhs', 'Above ₹1 Crore'];
+                
                 const testData = {
+                    // Basic info
                     name: 'Test Contact ' + Math.floor(Math.random() * 1000),
                     email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
-                    phone: '98' + (Math.floor(Math.random() * 90000000) + 10000000),
-                    company: 'Test Company ' + Math.floor(Math.random() * 100),
-                    business_type: 'B2B',
-                    source: 'Website',
-                    potential_value: 100000,
-                    notes: 'Test lead interested in events',
+                    phone: '8' + Math.floor(Math.random() * 900000000 + 100000000),
+                    company: Math.random() > 0.5 ? 'Test Company ' + Math.floor(Math.random() * 100) : '',
+                    
+                    // Business fields
+                    business_type: Math.random() > 0.5 ? 'B2B' : 'B2C',
+                    source: sources[Math.floor(Math.random() * sources.length)],
+                    
+                    // Required date field
+                    date_of_enquiry: today,
+                    
+                    // Sales fields
+                    first_touch_base_done_by: salesPeople[Math.floor(Math.random() * salesPeople.length)],
+                    
+                    // Location
+                    city_of_residence: cities[Math.floor(Math.random() * cities.length)],
+                    country_of_residence: 'India',
+                    
+                    // Event interest
+                    lead_for_event: eventName,
+                    number_of_people: String(Math.floor(Math.random() * 5) + 1),
+                    
+                    // Travel readiness
+                    has_valid_passport: Math.random() > 0.3 ? 'Yes' : 'No',
+                    visa_available: Math.random() > 0.5 ? 'Yes' : 'No',
+                    attended_sporting_event_before: Math.random() > 0.4 ? 'Yes' : 'No',
+                    
+                    // Financial
+                    annual_income_bracket: incomeBrackets[Math.floor(Math.random() * incomeBrackets.length)],
+                    potential_value: Math.floor(Math.random() * 200000) + 50000,
+                    
+                    // Status fields
                     status: 'unassigned',
-                    created_by: JSON.parse(localStorage.getItem('crm_user') || '{}').name || 'Test User',
-                    created_date: new Date().toISOString()
+                    assigned_to: '',
+                    last_quoted_price: 0,
+                    notes: 'Test lead created via test mode',
+                    
+                    // Timestamps
+                    created_date: new Date().toISOString(),
+                    updated_date: new Date().toISOString()
                 };
                 
                 console.log('Creating lead:', testData);
