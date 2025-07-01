@@ -46,6 +46,8 @@ app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/invoices', require('./routes/invoices'));
 app.use('/api/deliveries', require('./routes/deliveries'));
+app.use('/api/payables', require('./routes/payables'));
+app.use('/api/finance', require('./routes/finance'));
 app.use('/api/receivables', require('./routes/receivables'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/upload', require('./routes/upload'));
