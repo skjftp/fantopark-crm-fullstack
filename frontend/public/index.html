@@ -8557,17 +8557,26 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
         
     </script>
 
-<div id="test-control-panel" style="position:fixed; bottom:80px; right:20px; background:#1f2937; color:white; padding:15px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3); display:none; z-index:9999; max-height:400px; overflow-y:auto;">
-    <h3 style="margin:0 0 10px 0; font-size:16px;">🧪 Test Mode Controls</h3>
-    <p style="margin:5px 0; font-size:12px; color:#10b981;">✅ Working with individual deletes</p>
-    <button onclick="window.deleteAllIndividually('leads')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Leads</button>
-    <button onclick="window.deleteAllIndividually('inventory')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Inventory</button>
-    <button onclick="window.deleteAllIndividually('orders')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Orders</button>
-    <button onclick="window.deleteAllIndividually('deliveries')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Deliveries</button>
+<div id="test-control-panel" style="position:fixed; bottom:80px; left:20px; background:#1f2937; color:white; padding:15px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3); display:none; z-index:9999; max-height:400px; overflow-y:auto; min-width:200px;">
+    <h3 style="margin:0 0 10px 0; font-size:16px; text-align:center;">🧪 Test Mode Controls</h3>
+    <p style="margin:5px 0; font-size:12px; color:#10b981; text-align:center;">✅ Test Mode Active</p>
     <hr style="margin:10px 0; border:none; border-top:1px solid #4b5563;">
-    <button onclick="window.createTestLead();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer;">🧪 Create Test Lead</button>
-    <button onclick="window.createTestInventory();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer;">🧪 Create Test Inventory</button>
-    <button onclick="window.location.reload();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer;">🔄 Refresh Page</button>
+    <div style="margin-bottom:10px;">
+        <h4 style="margin:5px 0; font-size:14px; color:#f59e0b;">Create Test Data:</h4>
+        <button onclick="window.createTestLead();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🧪 Create Test Lead</button>
+        <button onclick="window.createTestInventory();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🧪 Create Test Inventory</button>
+    </div>
+    <hr style="margin:10px 0; border:none; border-top:1px solid #4b5563;">
+    <div style="margin-bottom:10px;">
+        <h4 style="margin:5px 0; font-size:14px; color:#dc2626;">Delete All Data:</h4>
+        <button onclick="window.deleteAllIndividually('leads')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🗑️ Delete All Leads</button>
+        <button onclick="window.deleteAllIndividually('inventory')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🗑️ Delete All Inventory</button>
+        <button onclick="window.deleteAllIndividually('orders')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🗑️ Delete All Orders</button>
+        <button onclick="window.deleteAllIndividually('deliveries')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🗑️ Delete All Deliveries</button>
+    </div>
+    <hr style="margin:10px 0; border:none; border-top:1px solid #4b5563;">
+    <button onclick="window.location.reload();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🔄 Refresh Page</button>
+    <button onclick="document.getElementById('test-control-panel').style.display='none';" style="display:block; width:100%; margin:5px 0; padding:6px; background:#6b7280; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px;">✖ Hide Panel</button>
 </div>
 <script>
 // Show test control panel if test mode is on and user is super admin
@@ -8882,6 +8891,59 @@ window.debugLeads = async function() {
     
     const result = await response.json();
     console.log('All leads:', result);
+    return result;
+};
+
+
+// Add floating button to show test panel if hidden
+setTimeout(() => {
+    if (localStorage.getItem('testMode') === 'true') {
+        const showButton = document.createElement('button');
+        showButton.id = 'show-test-panel';
+        showButton.style.cssText = 'position:fixed;bottom:20px;left:20px;background:#1f2937;color:white;padding:10px;border-radius:50%;width:50px;height:50px;border:none;cursor:pointer;z-index:9998;font-size:20px;box-shadow:0 2px 4px rgba(0,0,0,0.2);';
+        showButton.innerHTML = '🧪';
+        showButton.title = 'Show Test Panel';
+        showButton.onclick = () => {
+            const panel = document.getElementById('test-control-panel');
+            if (panel) {
+                panel.style.display = 'block';
+                showButton.style.display = 'none';
+            }
+        };
+        document.body.appendChild(showButton);
+        
+        // Hide button if panel is visible
+        const checkPanel = setInterval(() => {
+            const panel = document.getElementById('test-control-panel');
+            if (panel && panel.style.display !== 'none') {
+                showButton.style.display = 'none';
+            } else {
+                showButton.style.display = 'block';
+            }
+        }, 500);
+    }
+}, 1000);
+
+
+// Debug function to see inventory structure
+window.checkInventoryFields = async function() {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    const response = await fetch(API_URL + '/api/inventory', {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + authToken
+        }
+    });
+    
+    const result = await response.json();
+    if (result.data && result.data.length > 0) {
+        console.log('Sample inventory structure:', result.data[0]);
+        console.log('Fields:', Object.keys(result.data[0]));
+    } else {
+        console.log('No inventory found');
+    }
     return result;
 };
 
@@ -9212,6 +9274,59 @@ window.debugLeads = async function() {
     
     const result = await response.json();
     console.log('All leads:', result);
+    return result;
+};
+
+
+// Add floating button to show test panel if hidden
+setTimeout(() => {
+    if (localStorage.getItem('testMode') === 'true') {
+        const showButton = document.createElement('button');
+        showButton.id = 'show-test-panel';
+        showButton.style.cssText = 'position:fixed;bottom:20px;left:20px;background:#1f2937;color:white;padding:10px;border-radius:50%;width:50px;height:50px;border:none;cursor:pointer;z-index:9998;font-size:20px;box-shadow:0 2px 4px rgba(0,0,0,0.2);';
+        showButton.innerHTML = '🧪';
+        showButton.title = 'Show Test Panel';
+        showButton.onclick = () => {
+            const panel = document.getElementById('test-control-panel');
+            if (panel) {
+                panel.style.display = 'block';
+                showButton.style.display = 'none';
+            }
+        };
+        document.body.appendChild(showButton);
+        
+        // Hide button if panel is visible
+        const checkPanel = setInterval(() => {
+            const panel = document.getElementById('test-control-panel');
+            if (panel && panel.style.display !== 'none') {
+                showButton.style.display = 'none';
+            } else {
+                showButton.style.display = 'block';
+            }
+        }, 500);
+    }
+}, 1000);
+
+
+// Debug function to see inventory structure
+window.checkInventoryFields = async function() {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    const response = await fetch(API_URL + '/api/inventory', {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + authToken
+        }
+    });
+    
+    const result = await response.json();
+    if (result.data && result.data.length > 0) {
+        console.log('Sample inventory structure:', result.data[0]);
+        console.log('Fields:', Object.keys(result.data[0]));
+    } else {
+        console.log('No inventory found');
+    }
     return result;
 };
 
