@@ -9598,6 +9598,166 @@ window.createTestLead = async function() {
     }
 };
 
+
+
+// Create test lead following form business logic
+window.createTestLead = async function() {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        // First, get the active events (same as form does)
+        console.log('Fetching active events...');
+        const eventsResponse = await fetch(API_URL + '/api/events?status=active', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + authToken
+            }
+        });
+        
+        let activeEvent = null;
+        if (eventsResponse.ok) {
+            const eventsResult = await eventsResponse.json();
+            if (eventsResult.data && eventsResult.data.length > 0) {
+                activeEvent = eventsResult.data[0].name;
+                console.log('Found active event:', activeEvent);
+            }
+        }
+        
+        // Get lead sources and statuses from form options if they exist
+        const leadSources = ['Website', 'Social Media', 'Referral', 'Direct Contact', 'Exhibition', 'Cold Call'];
+        const leadTypes = ['hot', 'warm', 'cold'];
+        const urgencyLevels = ['high', 'medium', 'low'];
+        
+        // Create test data following form structure
+        const testData = {
+            name: 'Test User ' + Math.floor(Math.random() * 1000),
+            email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
+            phone: '98' + Math.floor(Math.random() * 90000000 + 10000000),
+            company: 'Test Company ' + Math.floor(Math.random() * 100),
+            lead_for_event: activeEvent || 'General Inquiry', // Use active event if found
+            lead_source: leadSources[Math.floor(Math.random() * leadSources.length)],
+            lead_type: leadTypes[Math.floor(Math.random() * leadTypes.length)],
+            status: 'unassigned', // Use unassigned as default like the form
+            notes: 'Test lead created via test mode on ' + new Date().toLocaleString(),
+            requirements: 'Looking for ' + Math.floor(Math.random() * 5 + 1) + ' stalls and equipment',
+            budget: Math.floor(Math.random() * 100000) + 25000,
+            urgency: urgencyLevels[Math.floor(Math.random() * urgencyLevels.length)],
+            location: 'Test Location ' + ['Delhi', 'Mumbai', 'Bangalore', 'Chennai'][Math.floor(Math.random() * 4)]
+        };
+        
+        // Add date fields if needed
+        const now = new Date();
+        const dateStr = now.getFullYear() + '-' + 
+                       String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(now.getDate()).padStart(2, '0');
+        
+        // Check if date_of_enquiry is needed by trying to get existing lead structure
+        const leadsCheck = await fetch(API_URL + '/api/leads?limit=1', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + authToken
+            }
+        });
+        
+        if (leadsCheck.ok) {
+            const leadsResult = await leadsCheck.json();
+            if (leadsResult.data && leadsResult.data.length > 0) {
+                const sampleLead = leadsResult.data[0];
+                // If existing leads have date_of_enquiry, add it in the same format
+                if (sampleLead.date_of_enquiry) {
+                    if (typeof sampleLead.date_of_enquiry === 'object') {
+                        // Firestore timestamp format
+                        testData.date_of_enquiry = {
+                            _seconds: Math.floor(now.getTime() / 1000),
+                            _nanoseconds: 0
+                        };
+                    } else {
+                        testData.date_of_enquiry = dateStr;
+                    }
+                }
+                
+                // Copy the created_by format if it exists
+                if (sampleLead.created_by) {
+                    const user = JSON.parse(localStorage.getItem('crm_user') || '{}');
+                    testData.created_by = user.id || user.email || 'admin';
+                }
+            }
+        }
+        
+        console.log('Creating lead with business logic data:', testData);
+        
+        // Create the lead
+        const response = await fetch(API_URL + '/api/leads', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            console.log('Lead created successfully:', result);
+            alert('Test lead created successfully!\n' +
+                  'Name: ' + testData.name + '\n' +
+                  'Event: ' + testData.lead_for_event + '\n' +
+                  'Status: ' + testData.status + '\n' +
+                  'Budget: ₹' + testData.budget.toLocaleString());
+            window.location.reload();
+        } else {
+            console.error('Failed to create lead:', result);
+            
+            // If it's still about date_of_enquiry, try without it
+            if (result.error && result.error.includes('date_of_enquiry')) {
+                delete testData.date_of_enquiry;
+                console.log('Retrying without date_of_enquiry...');
+                
+                const retry = await fetch(API_URL + '/api/leads', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                const retryResult = await retry.json();
+                if (retry.ok) {
+                    alert('Test lead created successfully (without date)!');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (retryResult.error || 'Failed to create lead'));
+                }
+            } else {
+                alert('Error: ' + (result.error || result.message || 'Failed to create lead'));
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error creating lead: ' + error.message);
+    }
+};
+
+// Function to see what status options exist in the form
+window.checkFormOptions = function() {
+    // This would analyze the form to see what options are available
+    console.log('Checking form options...');
+    
+    // Look for select elements and their options
+    const selects = document.querySelectorAll('select');
+    selects.forEach(select => {
+        if (select.options && select.options.length > 0) {
+            console.log('Select field:', select.name || 'unknown');
+            Array.from(select.options).forEach(opt => {
+                console.log('  Option:', opt.value, '-', opt.text);
+            });
+        }
+    });
+};
+
 </script>
 
 </body>
