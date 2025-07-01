@@ -8557,11 +8557,16 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
         
     </script>
 
-<div id="test-control-panel" style="position:fixed; bottom:80px; right:20px; background:#1f2937; color:white; padding:15px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3); display:none; z-index:9999;">
+<div id="test-control-panel" style="position:fixed; bottom:80px; right:20px; background:#1f2937; color:white; padding:15px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3); display:none; z-index:9999; max-height:400px; overflow-y:auto;">
     <h3 style="margin:0 0 10px 0; font-size:16px;">🧪 Test Mode Controls</h3>
-    <p style="margin:5px 0; font-size:12px; color:#fbbf24;">⚠️ Backend updating... (5-10 mins)</p>
+    <p style="margin:5px 0; font-size:12px; color:#fbbf24;">⚠️ Backend may need deployment</p>
     <button onclick="if(confirm('Delete ALL leads?')) { window.testDeleteAll('leads'); }" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Leads</button>
     <button onclick="if(confirm('Delete ALL inventory?')) { window.testDeleteAll('inventory'); }" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Inventory</button>
+    <button onclick="if(confirm('Delete ALL orders?')) { window.testDeleteAll('orders'); }" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Orders</button>
+    <button onclick="if(confirm('Delete ALL deliveries?')) { window.testDeleteAll('deliveries'); }" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Deliveries</button>
+    <hr style="margin:10px 0; border:none; border-top:1px solid #4b5563;">
+    <button onclick="window.fillTestLead();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer;">🧪 Create Test Lead</button>
+    <button onclick="window.fillTestInventory();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer;">🧪 Create Test Inventory</button>
     <button onclick="window.location.reload();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer;">🔄 Refresh Page</button>
 </div>
 <script>
