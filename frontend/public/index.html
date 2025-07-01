@@ -8794,6 +8794,20 @@ window.deleteAllIndividually = async function(type) {
 
 // Working create functions
 window.createTestLead = async function() {
+    // Get current date in YYYY-MM-DD format
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
+    
+    // Create future date for follow up (3 days from now)
+    const futureDate = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
+    const futureYear = futureDate.getFullYear();
+    const futureMonth = String(futureDate.getMonth() + 1).padStart(2, '0');
+    const futureDay = String(futureDate.getDate()).padStart(2, '0');
+    const followUpDate = `${futureYear}-${futureMonth}-${futureDay}`;
+    
     const testData = {
         name: 'Test User ' + Math.floor(Math.random() * 1000),
         email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
@@ -8803,11 +8817,31 @@ window.createTestLead = async function() {
         lead_source: 'Website',
         lead_type: 'warm',
         status: 'new',
-        notes: 'Test lead created via test mode at ' + new Date().toLocaleString()
+        date_of_enquiry: today,
+        follow_up_date: followUpDate,
+        notes: 'Test lead created via test mode',
+        requirements: 'Test requirements for stalls and equipment',
+        budget: Math.floor(Math.random() * 50000) + 10000,
+        event_date: followUpDate,
+        location: 'Test Location',
+        urgency: 'medium'
     };
+    
+    // Add created_by if user is logged in
+    try {
+        const user = JSON.parse(localStorage.getItem('crm_user') || '{}');
+        if (user.id) {
+            testData.created_by = user.id;
+        }
+    } catch (e) {
+        console.log('Could not get user ID');
+    }
     
     const authToken = localStorage.getItem('crm_auth_token');
     const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    console.log('Creating lead with data:', testData);
+    console.log('Date of enquiry:', testData.date_of_enquiry);
     
     try {
         const response = await fetch(API_URL + '/api/leads', {
@@ -8822,12 +8856,12 @@ window.createTestLead = async function() {
         const result = await response.json();
         
         if (response.ok) {
-            console.log('Lead created:', result);
-            alert('Test lead created: ' + testData.name);
+            console.log('Lead created successfully:', result);
+            alert('Test lead created: ' + testData.name + '\nDate: ' + testData.date_of_enquiry);
             window.location.reload();
         } else {
             console.error('Failed to create lead:', result);
-            alert('Error: ' + (result.error || 'Failed to create lead'));
+            alert('Error: ' + (result.error || result.message || 'Failed to create lead'));
         }
     } catch (error) {
         console.error('Create lead error:', error);
@@ -9331,6 +9365,57 @@ window.checkInventoryFields = async function() {
 };
 
 console.log('Test mode functions loaded. Type debugLeads() to see all leads.');
+
+
+// Test date formatting
+window.testDateFormat = function() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
+    
+    console.log('Current date:', now);
+    console.log('Formatted date:', today);
+    console.log('Type:', typeof today);
+    
+    return today;
+};
+
+// Function to manually create a lead with custom data
+window.createCustomLead = async function(leadData) {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    console.log('Creating lead with custom data:', leadData);
+    
+    try {
+        const response = await fetch(API_URL + '/api/leads', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(leadData)
+        });
+        
+        const result = await response.json();
+        console.log('Response:', result);
+        
+        if (response.ok) {
+            alert('Lead created successfully!');
+            return result;
+        } else {
+            alert('Error: ' + (result.error || result.message));
+            return null;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+        return null;
+    }
+};
+
 </script>
 
 </body>
