@@ -992,6 +992,8 @@ const [currentOrderDetail, setCurrentOrderDetail] = useState(null);
     const [showEditInventoryForm, setShowEditInventoryForm] = useState(false);
     const [showUserManagement, setShowUserManagement] = useState(false);
     const [showUserForm, setShowUserForm] = useState(false);
+    const [showCSVUploadModal, setShowCSVUploadModal] = useState(false);
+const [csvUploadType, setCSVUploadType] = useState('');
     const [currentForm, setCurrentForm] = useState('');
     const [currentLead, setCurrentLead] = useState(null);
     const [currentInventory, setCurrentInventory] = useState(null);
@@ -5835,7 +5837,29 @@ const totalPages = Math.ceil(sortedLeads.length / itemsPerPage);
             hasPermission('leads', 'write') && React.createElement('button', { 
                 className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
                 onClick: () => openAddForm('lead')
-            }, '+ Add New Lead')
+            }, '+ Add New Lead'),
+React.createElement('button', {
+    onClick: () => {
+        setCSVUploadType('leads');
+        setShowCSVUploadModal(true);
+    },
+    className: 'bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded flex items-center gap-2'
+}, 
+    React.createElement('svg', {
+        className: 'w-5 h-5',
+        fill: 'none',
+        stroke: 'currentColor',
+        viewBox: '0 0 24 24'
+    },
+        React.createElement('path', {
+            strokeLinecap: 'round',
+            strokeLinejoin: 'round',
+            strokeWidth: 2,
+            d: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12'
+        })
+    ),
+    'Upload CSV'
+)
         ),
         React.createElement('div', { className: 'bg-blue-50 border border-blue-200 rounded-lg p-4' },
             React.createElement('div', { className: 'flex items-center text-sm text-blue-800' },
@@ -6419,7 +6443,29 @@ const totalInventoryPages = Math.ceil(sortedInventory.length / itemsPerPage);
                 hasPermission('inventory', 'write') && React.createElement('button', { 
                     className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
                     onClick: () => openAddForm('inventory')
-                }, '+ Add New Event')
+                }, '+ Add New Event'),
+React.createElement('button', {
+    onClick: () => {
+        setCSVUploadType('inventory');
+        setShowCSVUploadModal(true);
+    },
+    className: 'bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded flex items-center gap-2'
+}, 
+    React.createElement('svg', {
+        className: 'w-5 h-5',
+        fill: 'none',
+        stroke: 'currentColor',
+        viewBox: '0 0 24 24'
+    },
+        React.createElement('path', {
+            strokeLinecap: 'round',
+            strokeLinejoin: 'round',
+            strokeWidth: 2,
+            d: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12'
+        })
+    ),
+    'Upload CSV'
+)
             ),
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border p-4 mb-4' },
     React.createElement('div', { className: 'flex space-x-4' },
@@ -7118,6 +7164,162 @@ order.invoice_number && React.createElement('button', {
         )
     );
 };
+    // CSV Upload Modal Component
+const CSVUploadModal = ({ isOpen, onClose, type }) => {
+    const [file, setFile] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const [uploadResult, setUploadResult] = useState(null);
+
+    const handleFileChange = (e) => {
+        const selectedFile = e.target.files[0];
+        if (selectedFile && selectedFile.type === 'text/csv') {
+            setFile(selectedFile);
+        } else {
+            alert('Please select a valid CSV file');
+        }
+    };
+
+    const handleUpload = async () => {
+        if (!file) {
+            alert('Please select a file first');
+            return;
+        }
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch(`${API_URL}/api/upload/${type}/csv`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: formData
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                setUploadResult(result);
+                // Refresh the data
+                if (type === 'leads') {
+                    const leadsData = await apiCall('/leads');
+                    setLeads(leadsData.data || []);
+                } else if (type === 'inventory') {
+                    const inventoryData = await apiCall('/inventory');
+                    setInventory(inventoryData.data || []);
+                }
+            } else {
+                alert(`Upload failed: ${result.error}`);
+            }
+        } catch (error) {
+            alert(`Upload error: ${error.message}`);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const downloadSampleCSV = () => {
+        let csvContent = '';
+        let filename = '';
+
+        if (type === 'leads') {
+            csvContent = `Name,Email,Phone,Company,Source,Date of Enquiry,First Touch Base Done By,City of Residence,Country of Residence,Lead for Event,Number of People,Has Valid Passport,Visa Available,Attended Sporting Event Before,Annual Income Bracket,Potential Value,Status,Assigned To,Last Quoted Price,Notes
+John Doe,john@example.com,+919876543210,ABC Corp,Facebook,2025-01-15,Sales Team,Mumbai,India,IPL 2025,2,Yes,Not Required,No,₹25-50 Lakhs,500000,unassigned,,0,Interested in VIP tickets
+Jane Smith,jane@example.com,+919876543211,XYZ Ltd,WhatsApp,2025-01-16,Marketing Team,Delhi,India,FIFA World Cup 2026,4,Not Sure,Required,Yes,₹50 Lakhs - ₹1 Crore,1000000,unassigned,,0,Family trip planned`;
+            filename = 'sample_leads.csv';
+        } else if (type === 'inventory') {
+            csvContent = `Event Name,Event Date,Event Type,Sports,Venue,Day of Match,Category of Ticket,Price per Ticket,Number of Tickets,Total Value of Tickets,Currency,Base Amount INR,GST 18%,Selling Price per Ticket,Payment Due Date,Supplier Name,Ticket Source,Status,Allocated to Order,Notes
+IPL 2025 Final,2025-05-28,cricket,Cricket,Wankhede Stadium,Not Applicable,VIP,15000,10,150000,INR,150000,27000,17700,2025-04-15,Ticket Master,Primary,available,,Premium seats
+FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,Premium,25000,20,500000,USD,2000000,360000,118000,2026-03-01,FIFA Official,Primary,available,,Group stage match`;
+            filename = 'sample_inventory.csv';
+        }
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    if (!isOpen) return null;
+
+    return React.createElement('div', {
+        className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
+    },
+        React.createElement('div', {
+            className: 'bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4'
+        },
+            React.createElement('h2', {
+                className: 'text-2xl font-bold mb-4 text-gray-900 dark:text-white'
+            }, `Upload ${type === 'leads' ? 'Leads' : 'Inventory'} CSV`),
+            
+            React.createElement('div', {
+                className: 'mb-6'
+            },
+                React.createElement('p', {
+                    className: 'text-gray-600 dark:text-gray-300 mb-4'
+                }, 'Upload a CSV file to bulk import your data. Make sure your CSV follows the correct format.'),
+                
+                React.createElement('button', {
+                    onClick: downloadSampleCSV,
+                    className: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded mb-4'
+                }, 'Download Sample CSV'),
+                
+                React.createElement('input', {
+                    type: 'file',
+                    accept: '.csv',
+                    onChange: handleFileChange,
+                    className: 'block w-full mb-4 text-gray-900 dark:text-white'
+                }),
+                
+                file && React.createElement('p', {
+                    className: 'text-sm text-gray-600 dark:text-gray-400'
+                }, `Selected file: ${file.name}`),
+                
+                uploadResult && React.createElement('div', {
+                    className: `mt-4 p-4 rounded ${uploadResult.errorCount > 0 ? 'bg-yellow-100' : 'bg-green-100'}`
+                },
+                    React.createElement('p', {
+                        className: 'font-semibold'
+                    }, uploadResult.message),
+                    
+                    uploadResult.errors && uploadResult.errors.length > 0 && React.createElement('div', {
+                        className: 'mt-2'
+                    },
+                        React.createElement('p', {
+                            className: 'text-sm font-semibold'
+                        }, 'Errors:'),
+                        uploadResult.errors.map((error, index) => 
+                            React.createElement('p', {
+                                key: index,
+                                className: 'text-sm text-red-600'
+                            }, `Row ${error.row}: ${error.error}`)
+                        )
+                    )
+                )
+            ),
+            
+            React.createElement('div', {
+                className: 'flex justify-end gap-2'
+            },
+                React.createElement('button', {
+                    onClick: onClose,
+                    className: 'px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400 dark:hover:bg-gray-700'
+                }, 'Cancel'),
+                
+                React.createElement('button', {
+                    onClick: handleUpload,
+                    disabled: !file || uploading,
+                    className: `px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed`
+                }, uploading ? 'Uploading...' : 'Upload CSV')
+            )
+        )
+    );
+};
+    
     // Main application layout
     
     const renderHelpGuide = () => {
@@ -7197,6 +7399,14 @@ return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:b
         ),
         // Modal forms
         renderForm(),
+CSVUploadModal({
+    isOpen: showCSVUploadModal,
+    onClose: () => {
+        setShowCSVUploadModal(false);
+        setCSVUploadType('');
+    },
+    type: csvUploadType
+})
         renderAssignForm(),
         renderPaymentForm(),
         renderLeadDetail(),
