@@ -8507,6 +8507,42 @@ renderPaymentPostServiceForm(),
     );
 }
 
+// Floating Test Mode Button for Super Admin
+if (document.getElementById('root')) {
+    const checkAndAddTestButton = () => {
+        const user = JSON.parse(localStorage.getItem('crm_user') || '{}');
+        const authToken = localStorage.getItem('crm_auth_token');
+        
+        if (user.role === 'super_admin' && authToken && !document.getElementById('test-mode-float')) {
+            const testModeState = localStorage.getItem('testMode') === 'true';
+            const floatDiv = document.createElement('div');
+            floatDiv.id = 'test-mode-float';
+            floatDiv.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;';
+            
+            const button = document.createElement('button');
+            button.style.cssText = 'padding:12px 24px;border-radius:8px;font-weight:bold;color:white;cursor:pointer;box-shadow:0 4px 6px rgba(0,0,0,0.1);' +
+                                 'background-color:' + (testModeState ? '#dc2626' : '#10b981') + ';';
+            button.textContent = testModeState ? '🧪 TEST MODE ON' : '🧪 TEST MODE OFF';
+            button.onclick = () => {
+                const currentState = localStorage.getItem('testMode') === 'true';
+                const newState = !currentState;
+                localStorage.setItem('testMode', String(newState));
+                alert('Test mode ' + (newState ? 'ENABLED' : 'DISABLED') + '. Page will reload.');
+                window.location.reload();
+            };
+            
+            floatDiv.appendChild(button);
+            document.body.appendChild(floatDiv);
+        }
+    };
+    
+    // Check on load and after login
+    setTimeout(checkAndAddTestButton, 1000);
+    window.addEventListener('storage', checkAndAddTestButton);
+}
+
+
+
 // Render the app
 ReactDOM.render(React.createElement(App), document.getElementById('root'));
         
