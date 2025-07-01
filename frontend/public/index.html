@@ -5196,6 +5196,7 @@ const handleFormSubmit = async (e) => {
                     break;
                     
                 case 'inventory':
+                    console.log('Sending inventory data:', invData);
                     const invResponse = await apiCall('/inventory', {
                         method: 'POST',
                         body: JSON.stringify({
