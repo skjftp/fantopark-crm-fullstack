@@ -5937,8 +5937,8 @@ const renderEditOrderForm = () => {
                             required: true
                         },
                             React.createElement('option', { value: '' }, 'Select Assignee'),
-                            ...(users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(u => u.name).map(member =>
-                                React.createElement('option', { key: member, value: member }, member)
+                            ...(users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(user =>
+                                React.createElement('option', { key: user.id || user.email, value: user.email }, user.name)
                             )
                         )
                     ),
