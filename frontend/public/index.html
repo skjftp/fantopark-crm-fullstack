@@ -743,6 +743,9 @@ const formatCurrency = (amount) => {
 function App() {
     // Authentication states
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [testMode, setTestMode] = useState(() => {
+        return localStorage.getItem('testMode') === 'true';
+    });
     const [user, setUser] = useState(null);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -4058,7 +4061,7 @@ case 'myactions':
 
     // Login screen
     if (!isLoggedIn) {
-        return React.createElement('div', { className: 'min-h-screen' + (testMode ? ' border-4 border-red-500' : '') + ' bg-gray-100 flex items-center justify-center'},
+        return React.createElement('div', { className: 'min-h-screen bg-gray-100 flex items-center justify-center'},
             React.createElement('div', { className: 'max-w-md w-full bg-white rounded-lg shadow-md p-6' },
                 React.createElement('div', { className: 'text-center mb-8' },
                     React.createElement('div', { className: 'w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4' },
