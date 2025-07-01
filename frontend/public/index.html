@@ -3200,7 +3200,7 @@ case 'myactions':
                         React.createElement('button', {
                             onClick: async () => {
                                 try {
-                                    const response = await apiCall('/roles/initialize', 'POST', {});
+                                    const response = await apiCall('/roles/initialize', { method: 'POST', body: JSON.stringify({}) });
                                     console.log('Default roles initialized successfully');
                                     roleState.roles = response.data || [];
                                     setActiveTab('roles'); // Force re-render
@@ -3245,7 +3245,7 @@ case 'myactions':
                                         onClick: async () => {
                                             if (!confirm('Are you sure you want to delete this role?')) return;
                                             try {
-                                                await apiCall(`/roles/${role._id}`, 'DELETE');
+                                                await apiCall(`/roles/${role._id}`, { method: 'DELETE' });
                                                 console.log('Role deleted successfully');
                                                 roleState.roles = roleState.roles.filter(r => r._id !== role._id);
                                                 setActiveTab('roles'); // Force re-render
@@ -3294,10 +3294,10 @@ case 'myactions':
                                     e.preventDefault();
                                     try {
                                         if (roleState.editingRole) {
-                                            await apiCall(`/roles/${roleState.editingRole._id}`, 'PUT', roleState.roleFormData);
+                                            await apiCall(`/roles/${roleState.editingRole._id}`, { method: 'PUT', body: JSON.stringify(roleState.roleFormData) });
                                             console.log('Role updated successfully');
                                         } else {
-                                            await apiCall('/roles', 'POST', roleState.roleFormData);
+                                            await apiCall('/roles', { method: 'POST', body: JSON.stringify(roleState.roleFormData) });
                                             console.log('Role created successfully');
                                         }
                                         
