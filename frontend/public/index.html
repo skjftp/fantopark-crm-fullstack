@@ -28,15 +28,15 @@
                 ...options,
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+                    ...(authToken ? { 'Authorization': 'Bearer ' + (authToken) } : {}),
                     ...options.headers
                 }
             };
             
-            const response = await fetch(`${API_URL}${endpoint}`, config);
+            const response = await fetch((API_URL) + (endpoint), config);
             
             console.log('API Request:', {
-                url: `${API_URL}${endpoint}`,
+                url: (API_URL) + (endpoint),
                 method: config.method || 'GET',
                 headers: config.headers
             });
@@ -62,11 +62,11 @@
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('API Error Response:', errorText);
-                throw new Error(`API Error: ${response.statusText} - ${errorText}`);
+                throw new Error('API Error: ' + (response.statusText) + ' - ' + (errorText));
             }
             
             const data = await response.json();
-            console.log(`API Response from ${endpoint}:`, data);
+            console.log('API Response from ' + (endpoint) + ':', data);
             return data;
         }
     </script>
@@ -370,7 +370,7 @@ const debugLog = (key, data) => {
     const logs = JSON.parse(sessionStorage.getItem('debugLogs') || '[]');
     logs.push({ time: new Date().toISOString(), key, data });
     sessionStorage.setItem('debugLogs', JSON.stringify(logs));
-    console.log(`[${key}]`, data);
+    console.log('[' + (key) + ']', data);
 };
 
 // Show previous logs on page load
@@ -378,7 +378,7 @@ window.addEventListener('load', () => {
     const logs = JSON.parse(sessionStorage.getItem('debugLogs') || '[]');
     if (logs.length > 0) {
         console.log('=== Previous Session Logs ===');
-        logs.forEach(log => console.log(`[${log.time}] ${log.key}:`, log.data));
+        logs.forEach(log => console.log('[' + (log.time) + '] ' + (log.key) + ':', log.data));
         console.log('=== End Previous Logs ===');
     }
 });
@@ -805,7 +805,7 @@ const [orders, setOrders] = useState([]);
                 // Generate invoice if needed
                 const order = orders.find(o => o.id === orderId);
                 if (order && (order.requires_gst_invoice || order.gstin)) {
-                    const invoiceNumber = `STTS/INV/${new Date().getFullYear()}/${String(Date.now()).slice(-6)}`;
+                    const invoiceNumber = 'STTS/INV/' + (new Date().getFullYear()) + '/' + (String(Date.now()).slice(-6));
                     updateData.invoice_number = invoiceNumber;
                     updateData.invoice_id = Date.now();
                 }
@@ -819,7 +819,7 @@ const [orders, setOrders] = useState([]);
             }
             
             // Update in backend
-            await apiCall(`/orders/${orderId}`, {
+            await apiCall('/orders/' + (orderId), {
                 method: 'PUT',
                 body: JSON.stringify(updateData)
             });
@@ -833,7 +833,7 @@ const [orders, setOrders] = useState([]);
                 )
             );
             
-            alert(`Order status updated to: ${newStatus}`);
+            alert('Order status updated to: ' + (newStatus));
         } catch (error) {
             console.error('Error updating order status:', error);
             alert('Failed to update order status');
@@ -1122,7 +1122,7 @@ const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
     }
     
     const hasAccess = modulePermissions[action] === true;
-    console.log(`Permission check: ${user.role} -> ${module}.${action} = ${hasAccess}`);
+    console.log('Permission check: ' + (user.role) + ' -> ' + (module) + '.' + (action) + ' = ' + (hasAccess));
     return hasAccess;
 };
 
@@ -1293,7 +1293,7 @@ Status: ${order.status}`);
             assigned_date: new Date().toISOString()
         };
         
-        await apiCall(`/orders/${orderId}`, {
+        await apiCall('/orders/' + (orderId), {
             method: 'PUT',
             body: JSON.stringify(updateData)
         });
@@ -1365,7 +1365,7 @@ Status: ${order.status}`);
             }
         }
         
-        alert(`Order assigned to ${assignee} successfully!`);
+        alert('Order assigned to ' + (assignee) + ' successfully!');
     } catch (error) {
         console.error('Error assigning order:', error);
         alert('Failed to assign order');
@@ -1390,7 +1390,7 @@ const renderOrderDetailModal = () => {
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6' },
             React.createElement('div', { className: 'flex justify-between items-center mb-4' },
                 React.createElement('h2', { className: 'text-2xl font-bold' }, 
-                    `Order Details: ${currentOrderDetail.order_number}`
+                    'Order Details: ' + (currentOrderDetail.order_number)
                 ),
                 React.createElement('button', {
                     onClick: () => setShowOrderDetail(false),
@@ -1409,7 +1409,7 @@ const renderOrderDetailModal = () => {
                         React.createElement('h3', { className: 'font-semibold mb-2' }, 'Order Information'),
                         React.createElement('p', null, React.createElement('strong', null, 'Event: '), currentOrderDetail.event_name || 'N/A'),
                         React.createElement('p', null, React.createElement('strong', null, 'Tickets: '), currentOrderDetail.tickets_allocated || 0),
-                        React.createElement('p', null, React.createElement('strong', null, 'Amount: '), `₹${currentOrderDetail.total_amount || 0}`)
+                        React.createElement('p', null, React.createElement('strong', null, 'Amount: '), '₹' + (currentOrderDetail.total_amount || 0))
                     )
                 ),
                 currentOrderDetail.approval_notes && React.createElement('div', { className: 'bg-gray-100 dark:bg-gray-700 p-4 rounded' },
@@ -1660,7 +1660,7 @@ const handleLogin = async (e) => {
         setLoading(true);
         
         try {
-            const endpoint = editingUser ? `/users/${editingUser.id}` : '/users';
+            const endpoint = editingUser ? '/users/' + (editingUser.id) : '/users';
             const method = editingUser ? 'PUT' : 'POST';
             
             const response = await apiCall(endpoint, {
@@ -1741,7 +1741,7 @@ const handleLogin = async (e) => {
                 .map(order => ({
                     id: order.id,
                     date: order.created_at || new Date().toISOString(),
-                    invoice_number: order.invoice_number || `INV-${order.id}`,
+                    invoice_number: order.invoice_number || 'INV-' + (order.id),
                     clientName: order.lead_name || order.client_name || 'N/A',
                     assignedTo: order.assigned_to || order.sales_person || 'Unassigned',
                     amount: parseFloat(order.total_amount || 0),
@@ -1754,7 +1754,7 @@ const handleLogin = async (e) => {
                 .map(order => ({
                     id: order.id,
                     date: order.created_at || new Date().toISOString(),
-                    invoice_number: order.invoice_number || `INV-${order.id}`,
+                    invoice_number: order.invoice_number || 'INV-' + (order.id),
                     clientName: order.lead_name || order.client_name || 'N/A',
                     assignedTo: order.assigned_to || order.sales_person || 'Unassigned',
                     amount: parseFloat(order.final_amount || order.total_amount || 0),
@@ -1825,7 +1825,7 @@ const handleLogin = async (e) => {
         
         try {
             setLoading(true);
-            const response = await apiCall(`/receivables/record-payment/${receivableId}`, 'PUT', {
+            const response = await apiCall('/receivables/record-payment/' + (receivableId), 'PUT', {
                 payment_amount: parseFloat(paymentAmount),
                 payment_date: new Date().toISOString(),
                 payment_mode: paymentMode,
@@ -1985,14 +1985,14 @@ const fetchMyActions = async () => {
                 ...currentLead,  // This includes EVERYTHING
                 status: newStatus,
                 last_contact_date: new Date().toISOString(),
-                [`${newStatus}_date`]: new Date().toISOString(),
+                [(newStatus) + '_date']: new Date().toISOString(),
                 updated_date: new Date().toISOString()
             };
             
             console.log('Updating lead with full data:', updateData);
             
             // API call to update lead status
-            const response = await apiCall(`/leads/${leadId}`, {
+            const response = await apiCall('/leads/' + (leadId), {
                 method: 'PUT',
                 body: JSON.stringify(updateData)
             });
@@ -2096,7 +2096,7 @@ const fetchMyActions = async () => {
     // Form handlers with permission checks
     const openAddForm = (type) => {
         if (!hasPermission(type === 'lead' ? 'leads' : (type === 'order' ? 'orders' : type), 'write')) {
-            alert(`You do not have permission to create ${type}s`);
+            alert('You do not have permission to create ' + (type) + 's');
             return;
         }
         setCurrentForm(type);
@@ -2249,7 +2249,7 @@ const handlePaymentPostServiceSubmit = async (e) => {
 
     try {
         // Update lead status via API
-        const leadResponse = await apiCall(`/leads/${currentLead.id}`, {
+        const leadResponse = await apiCall('/leads/' + (currentLead.id), {
             method: 'PUT',
             body: JSON.stringify({
                 status: 'payment_post_service',
@@ -2267,7 +2267,7 @@ const handlePaymentPostServiceSubmit = async (e) => {
 
         // Create order with all required fields
         const newOrder = {
-            order_number: `ORD-${Date.now()}`,
+            order_number: 'ORD-' + (Date.now()),
             lead_id: currentLead.id,
             client_name: currentLead.name,
             client_email: currentLead.email,
@@ -2383,7 +2383,7 @@ const handleDeliverySubmit = async (e) => {
 
         // Update delivery in backend
             try {
-                await apiCall(`/deliveries/${currentDelivery.id}`, {
+                await apiCall('/deliveries/' + (currentDelivery.id), {
                     method: 'PUT',
                     body: JSON.stringify({
                         ...currentDelivery,
@@ -2431,7 +2431,7 @@ const deleteDelivery = async (deliveryId) => {
     
     setLoading(true);
     try {
-        await apiCall(`/deliveries/${deliveryId}`, {
+        await apiCall('/deliveries/' + (deliveryId), {
             method: 'DELETE'
         });
         
@@ -2501,11 +2501,11 @@ const closeForm = () => {
         };
         
         if (!hasPermission(modulePermissions[type], 'delete')) {
-            alert(`You do not have permission to delete ${type}`);
+            alert('You do not have permission to delete ' + (type));
             return;
         }
 
-        if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+        if (!confirm('Are you sure you want to delete ' + (name) + '?')) return;
 
         setLoading(true);
         try {
@@ -2515,7 +2515,7 @@ const closeForm = () => {
                 console.log("Deleting order permanently");
                 try {
                     // Actually delete the order
-                    await apiCall(`/${type}/${id}`, {
+                    await apiCall('/' + (type) + '/' + (id), {
                         method: 'DELETE'
                     });
                     
@@ -2532,7 +2532,7 @@ const closeForm = () => {
                     if (deleteError.message && (deleteError.message.includes('404') || deleteError.message.includes('405'))) {
                         console.log("Backend doesn't support DELETE, marking as deleted");
                         try {
-                            await apiCall(`/orders/${id}`, {
+                            await apiCall('/orders/' + (id), {
                                 method: 'PUT',
                                 body: JSON.stringify({
                                     status: 'deleted',
@@ -2559,8 +2559,8 @@ const closeForm = () => {
             } else {
                 // For leads and inventory, try actual DELETE
                 try {
-                    console.log("Making API call to:", `/${type}/${id}`);
-                await apiCall(`/${type}/${id}`, {
+                    console.log("Making API call to:", '/' + (type) + '/' + (id));
+                await apiCall('/' + (type) + '/' + (id), {
                         method: 'DELETE'
                     });
                     
@@ -2575,7 +2575,7 @@ const closeForm = () => {
                     }
                     
                     setLoading(false);
-                    alert(`${type === 'inventory' ? 'Event' : type.slice(0, -1)} deleted successfully!`);
+                    alert((type === 'inventory' ? 'Event' : type.slice(0, -1)) + ' deleted successfully!');
                 } catch (deleteError) {
                     // If DELETE fails, just remove from local state with warning
                     switch (type) {
@@ -2588,12 +2588,12 @@ const closeForm = () => {
                     }
                     
                     setLoading(false);
-                    alert(`${type === 'inventory' ? 'Event' : type.slice(0, -1)} removed locally. May reappear on refresh if server delete is not supported.`);
+                    alert((type === 'inventory' ? 'Event' : type.slice(0, -1)) + ' removed locally. May reappear on refresh if server delete is not supported.');
                 }
             }
         } catch (error) {
             setLoading(false);
-            alert(`Failed to process ${type === 'inventory' ? 'event' : type.slice(0, -1)}: ${error.message}`);
+            alert('Failed to process ' + (type === 'inventory' ? 'event' : type.slice(0, -1)) + ': ' + (error.message));
         }
     };
 
@@ -2740,7 +2740,7 @@ const closeForm = () => {
                 React.createElement('div', { className: 'bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg' },
                     React.createElement('h3', { className: 'text-sm font-medium text-yellow-800 dark:text-yellow-200' }, 'Expiring Inventory Value'),
                     React.createElement('p', { className: 'text-2xl font-bold text-yellow-900 dark:text-yellow-100' }, 
-                        `₹${financialStats.expiringValue.toLocaleString()}`
+                        '₹' + (financialStats.expiringValue.toLocaleString())
                     )
                 )
             ),
@@ -2902,7 +2902,7 @@ const closeForm = () => {
                                 React.createElement('td', { className: 'px-4 py-3 text-sm' }, sale.clientName),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm' }, sale.assignedTo),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm font-medium' }, 
-                                    `₹${(sale.amount || 0).toLocaleString()}`
+                                    '₹' + ((sale.amount || 0).toLocaleString())
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3' },
                                     React.createElement('span', {
@@ -2949,7 +2949,7 @@ const closeForm = () => {
                             React.createElement('td', { className: 'px-4 py-3 text-sm' }, rec.invoiceNumber),
                             React.createElement('td', { className: 'px-4 py-3 text-sm' }, rec.clientName),
                             React.createElement('td', { className: 'px-4 py-3 text-sm font-medium' }, 
-                                `₹${rec.amount.toLocaleString()}`
+                                '₹' + (rec.amount.toLocaleString())
                             ),
                             React.createElement('td', { className: 'px-4 py-3' },
                                 React.createElement('span', {
@@ -2958,7 +2958,7 @@ const closeForm = () => {
                                         daysOverdue > 0 ? 'bg-yellow-100 text-yellow-800' :
                                         'bg-green-100 text-green-800'
                                     }`
-                                }, daysOverdue > 0 ? `${daysOverdue} days` : 'Not due')
+                                }, daysOverdue > 0 ? (daysOverdue) + ' days' : 'Not due')
                             ),
                             React.createElement('td', { className: 'px-4 py-3' },
                                 React.createElement('button', {
@@ -2999,7 +2999,7 @@ const closeForm = () => {
                             React.createElement('td', { className: 'px-4 py-3 text-sm' }, pay.supplierName),
                             React.createElement('td', { className: 'px-4 py-3 text-sm' }, pay.invoiceNumber),
                             React.createElement('td', { className: 'px-4 py-3 text-sm font-medium' }, 
-                                `₹${pay.amount.toLocaleString()}`
+                                '₹' + (pay.amount.toLocaleString())
                             ),
                             React.createElement('td', { className: 'px-4 py-3' },
                                 React.createElement('span', {
@@ -3057,11 +3057,11 @@ const closeForm = () => {
                                         daysUntilExpiry < 90 ? 'bg-yellow-100 text-yellow-800' :
                                         'bg-green-100 text-green-800'
                                     }`
-                                }, `${daysUntilExpiry} days`)
+                                }, (daysUntilExpiry) + ' days')
                             ),
                             React.createElement('td', { className: 'px-4 py-3 text-sm' }, item.quantity),
                             React.createElement('td', { className: 'px-4 py-3 text-sm font-medium' }, 
-                                `₹${(item.quantity * item.price).toLocaleString()}`
+                                '₹' + ((item.quantity * item.price).toLocaleString())
                             ),
                             React.createElement('td', { className: 'px-4 py-3' },
                                 React.createElement('button', {
@@ -3210,7 +3210,7 @@ const closeForm = () => {
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md' },
             React.createElement('div', { className: 'flex justify-between items-center mb-6' },
                 React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
-                    `Progress Lead: ${currentLeadForChoice.name}`
+                    'Progress Lead: ' + (currentLeadForChoice.name)
                 ),
                 React.createElement('button', {
                     onClick: () => setShowChoiceModal(false),
@@ -3219,7 +3219,7 @@ const closeForm = () => {
             ),
             React.createElement('div', { className: 'mb-4' },
                 React.createElement('p', { className: 'text-sm text-gray-600 mb-4' }, 
-                    `Current Status: ${LEAD_STATUSES[currentLeadForChoice.status]?.label}`
+                    'Current Status: ' + (LEAD_STATUSES[currentLeadForChoice.status]?.label)
                 ),
                 React.createElement('p', { className: 'text-sm font-medium text-gray-700 mb-3' }, 
                     isPaymentChoice ? 'Choose payment option:' : 'Choose next status:'
@@ -3294,7 +3294,7 @@ const closeForm = () => {
                     React.createElement('button', {
                         key: item.id,
                         onClick: () => setActiveTab(item.id),
-                        className: `w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 ${activeTab === item.id ? 'bg-blue-50 border-r-2 border-blue-600 text-blue-600' : 'text-gray-700'}`
+                        className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 ' + (activeTab === item.id ? 'bg-blue-50 border-r-2 border-blue-600 text-blue-600' : 'text-gray-700')
                     },
                         React.createElement('span', { className: 'mr-3' }, item.icon),
                         item.label
@@ -3336,7 +3336,7 @@ const closeForm = () => {
             React.createElement('div', null,
                 React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Dashboard'),
                 React.createElement('p', { className: 'text-gray-600 mt-1' }, 
-                    `Welcome back, ${user?.name} (${USER_ROLES[user?.role]?.label})`
+                    'Welcome back, ' + (user?.name) + ' (' + (USER_ROLES[user?.role]?.label) + ')'
                 )
             ),
                 React.createElement('button', {
@@ -3418,7 +3418,7 @@ const closeForm = () => {
                         
                         return React.createElement('div', { 
                             key: receivable.id, 
-                            className: `flex items-center justify-between p-3 rounded ${isOverdue ? 'bg-red-50' : 'bg-gray-50'} hover:bg-gray-100`
+                            className: 'flex items-center justify-between p-3 rounded ' + (isOverdue ? 'bg-red-50' : 'bg-gray-50') + ' hover:bg-gray-100'
                         },
                             React.createElement('div', null,
                                 React.createElement('p', { className: 'font-medium text-gray-900' }, receivable.client_name),
@@ -3426,8 +3426,8 @@ const closeForm = () => {
                                     '₹' + receivable.expected_amount.toLocaleString() + ' • Due: ' + dueDate.toLocaleDateString()
                                 ),
                                 isOverdue ? 
-                                    React.createElement('p', { className: 'text-xs text-red-600' }, `Overdue by ${Math.abs(daysUntilDue)} days`) :
-                                    React.createElement('p', { className: 'text-xs text-blue-600' }, `Due in ${daysUntilDue} days`)
+                                    React.createElement('p', { className: 'text-xs text-red-600' }, 'Overdue by ' + (Math.abs(daysUntilDue)) + ' days') :
+                                    React.createElement('p', { className: 'text-xs text-blue-600' }, 'Due in ' + (daysUntilDue) + ' days')
                             ),
                             React.createElement('button', {
                                 className: 'bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700',
@@ -3452,7 +3452,7 @@ const closeForm = () => {
                                 lead.assigned_to && React.createElement('p', { className: 'text-xs text-blue-600' }, 'Assigned to: ' + lead.assigned_to)
                             ),
                             React.createElement('span', {
-                                className: `px-2 py-1 text-xs rounded ${LEAD_STATUSES[lead.status]?.color || 'bg-gray-100 text-gray-800'}`
+                                className: 'px-2 py-1 text-xs rounded ' + (LEAD_STATUSES[lead.status]?.color || 'bg-gray-100 text-gray-800')
                             }, LEAD_STATUSES[lead.status]?.label || lead.status)
                         )
                     )
@@ -3513,10 +3513,10 @@ const closeForm = () => {
                         React.createElement('span', { className: 'text-2xl mr-3' }, '⚠️'),
                         React.createElement('div', null,
                             React.createElement('h3', { className: 'text-lg font-semibold text-red-800' }, 
-                                `${myReceivables.length} Overdue Receivables`
+                                (myReceivables.length) + ' Overdue Receivables'
                             ),
                             React.createElement('p', { className: 'text-red-600' }, 
-                                `Total Amount Due: ₹${totalOverdueAmount.toLocaleString()}`
+                                'Total Amount Due: ₹' + (totalOverdueAmount.toLocaleString())
                             )
                         )
                     ),
@@ -3530,7 +3530,7 @@ const closeForm = () => {
             // User Info
             React.createElement('div', { className: 'bg-gray-50 dark:bg-gray-900 rounded-lg p-4' },
                 React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 
-                    `Logged in as: ${user?.name} (${user?.email}) - ${user?.role?.replace(/_/g, ' ').toUpperCase()}`
+                    'Logged in as: ' + (user?.name) + ' (' + (user?.email) + ') - ' + (user?.role?.replace(/_/g, ' ').toUpperCase())
                 )
             ),
             
@@ -3551,7 +3551,7 @@ const closeForm = () => {
                     React.createElement('div', { className: 'p-4 border-b' },
                         React.createElement('h2', { className: 'text-xl font-semibold flex items-center gap-2' },
                             React.createElement('span', { className: 'text-blue-600' }, '📋'),
-                            `My Leads (${myLeads.length})`
+                            'My Leads (' + (myLeads.length) + ')'
                         )
                     ),
                     React.createElement('div', { className: 'overflow-x-auto' },
@@ -3579,7 +3579,7 @@ const closeForm = () => {
                                         React.createElement('td', { className: 'px-4 py-3 text-sm' }, lead.lead_for_event || '-'),
                                         React.createElement('td', { className: 'px-4 py-3' },
                                             React.createElement('span', { 
-                                                className: `px-2 py-1 text-xs rounded-full ${status.color}`
+                                                className: 'px-2 py-1 text-xs rounded-full ' + (status.color)
                                             }, status.label)
                                         ),
                                         React.createElement('td', { className: 'px-4 py-3' },
@@ -3600,7 +3600,7 @@ const closeForm = () => {
                     React.createElement('div', { className: 'p-4 border-b' },
                         React.createElement('h2', { className: 'text-xl font-semibold flex items-center gap-2' },
                             React.createElement('span', { className: 'text-green-600' }, '📦'),
-                            `My Orders (${myOrders.length})`
+                            'My Orders (' + (myOrders.length) + ')'
                         )
                     ),
                     React.createElement('div', { className: 'overflow-x-auto' },
@@ -3618,7 +3618,7 @@ const closeForm = () => {
                             React.createElement('tbody', { className: 'divide-y divide-gray-200' },
                                 myOrders.map(order => 
                                     React.createElement('tr', { key: order.id, className: 'hover:bg-gray-50' },
-                                        React.createElement('td', { className: 'px-4 py-3 font-medium' }, `#${order.id}`),
+                                        React.createElement('td', { className: 'px-4 py-3 font-medium' }, '#' + (order.id)),
                                         React.createElement('td', { className: 'px-4 py-3' },
                                             React.createElement('div', null,
                                                 React.createElement('div', { className: 'font-medium' }, order.customer_name),
@@ -3626,7 +3626,7 @@ const closeForm = () => {
                                             )
                                         ),
                                         React.createElement('td', { className: 'px-4 py-3 text-sm' }, order.event_name || '-'),
-                                        React.createElement('td', { className: 'px-4 py-3 font-medium' }, `₹${(order.total_amount || 0).toLocaleString()}`),
+                                        React.createElement('td', { className: 'px-4 py-3 font-medium' }, '₹' + ((order.total_amount || 0).toLocaleString())),
                                         React.createElement('td', { className: 'px-4 py-3' },
                                             React.createElement('span', { 
                                                 className: `px-2 py-1 text-xs rounded-full ${
@@ -3659,7 +3659,7 @@ const closeForm = () => {
                     React.createElement('div', { className: 'p-4 border-b' },
                         React.createElement('h2', { className: 'text-xl font-semibold flex items-center gap-2' },
                             React.createElement('span', { className: 'text-purple-600' }, '🚚'),
-                            `My Deliveries (${myDeliveries.length})`
+                            'My Deliveries (' + (myDeliveries.length) + ')'
                         )
                     ),
                     React.createElement('div', { className: 'overflow-x-auto' },
@@ -3677,8 +3677,8 @@ const closeForm = () => {
                             React.createElement('tbody', { className: 'divide-y divide-gray-200' },
                                 myDeliveries.map(delivery => 
                                     React.createElement('tr', { key: delivery.id, className: 'hover:bg-gray-50' },
-                                        React.createElement('td', { className: 'px-4 py-3 font-medium' }, `#${delivery.id}`),
-                                        React.createElement('td', { className: 'px-4 py-3' }, `#${delivery.order_id}`),
+                                        React.createElement('td', { className: 'px-4 py-3 font-medium' }, '#' + (delivery.id)),
+                                        React.createElement('td', { className: 'px-4 py-3' }, '#' + (delivery.order_id)),
                                         React.createElement('td', { className: 'px-4 py-3 text-sm' }, delivery.customer_name || '-'),
                                         React.createElement('td', { className: 'px-4 py-3 text-sm' }, 
                                             delivery.scheduled_date ? new Date(delivery.scheduled_date).toLocaleDateString() : '-'
@@ -3716,7 +3716,7 @@ const updateDeliveryStatus = (deliveryId) => {
 const approveOrder = async (orderId) => {
     if (confirm('Are you sure you want to approve this order?')) {
         try {
-            await apiCall(`/orders/${orderId}`, {
+            await apiCall('/orders/' + (orderId), {
                 method: 'PUT',
                 body: JSON.stringify({ status: 'approved' })
             });
@@ -3855,9 +3855,9 @@ case 'myactions':
                                             className: 'ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded' 
                                         }, 'System')
                                     ),
-                                    React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, `Name: ${role.name}`),
+                                    React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Name: ' + (role.name)),
                                     React.createElement('p', { className: 'text-gray-600 dark:text-gray-300 mt-1' }, role.description),
-                                    React.createElement('p', { className: 'text-xs text-gray-500 mt-2' }, `Users with this role: ${role.user_count || 0}`)
+                                    React.createElement('p', { className: 'text-xs text-gray-500 mt-2' }, 'Users with this role: ' + (role.user_count || 0))
                                 ),
                                 React.createElement('div', { className: 'flex gap-2' },
                                     !role.is_system && React.createElement('button', {
@@ -3873,7 +3873,7 @@ case 'myactions':
                                         onClick: async () => {
                                             if (!confirm('Are you sure you want to delete this role?')) return;
                                             try {
-                                                await apiCall(`/roles/${role._id}`, { method: 'DELETE' });
+                                                await apiCall('/roles/' + (role._id), { method: 'DELETE' });
                                                 console.log('Role deleted successfully');
                                                 roles = roles.filter(r => r._id !== role._id);
                                                 
@@ -3922,7 +3922,7 @@ case 'myactions':
                                     e.preventDefault();
                                     try {
                                         if (editingRole) {
-                                            await apiCall(`/roles/${editingRole._id}`, { method: 'PUT', body: JSON.stringify(roleFormData) });
+                                            await apiCall('/roles/' + (editingRole._id), { method: 'PUT', body: JSON.stringify(roleFormData) });
                                             console.log('Role updated successfully');
                                         } else {
                                             await apiCall('/roles', { method: 'POST', body: JSON.stringify(roleFormData) });
@@ -4227,7 +4227,7 @@ case 'myactions':
 
             const newOrder = {
                 id: Date.now(),
-                order_number: `ORD-${Date.now()}`,
+                order_number: 'ORD-' + (Date.now()),
                 lead_id: selectedLead.id,
                 client_name: selectedLead.name,
                 client_email: selectedLead.email,
@@ -4316,7 +4316,7 @@ case 'myactions':
 
             const newInvoice = {
                 id: Date.now(),
-                invoice_number: `INV-${Date.now()}`,
+                invoice_number: 'INV-' + (Date.now()),
                 order_id: newOrder.id,
                 order_number: newOrder.order_number,
                 client_name: newOrder.client_name,
@@ -4331,7 +4331,7 @@ case 'myactions':
             setInvoices(prev => [...prev, newInvoice]);
 
             setLoading(false);
-            alert(`Successfully allocated ${allocationData.tickets_allocated} tickets and created order ${newOrder.order_number}`);
+            alert('Successfully allocated ' + (allocationData.tickets_allocated) + ' tickets and created order ' + (newOrder.order_number));
             closeForm();
         } catch (error) {
             setLoading(false);
@@ -4364,7 +4364,7 @@ const handleEnhancedOrderApproval = async (orderId, action, notes = '') => {
                     
                     // Generate GST invoice if approved
                     if (action === 'approve' && order.requires_gst_invoice) {
-                        const invoiceNumber = `STTS/INV/${new Date().getFullYear()}/${String(Date.now()).slice(-6)}`;
+                        const invoiceNumber = 'STTS/INV/' + (new Date().getFullYear()) + '/' + (String(Date.now()).slice(-6));
                         
                         const newInvoice = {
                             id: Date.now(),
@@ -4437,7 +4437,7 @@ const renderGSTInvoicePreview = () => {
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[95vh] overflow-y-auto' },
             React.createElement('div', { className: 'sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center action-buttons' },
                 React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 
-                    `GST Invoice: ${invoice.invoice_number}`
+                    'GST Invoice: ' + (invoice.invoice_number)
                 ),
                 React.createElement('div', { className: 'flex space-x-2' },
                 React.createElement('button', {
@@ -5169,7 +5169,7 @@ const handleOrderApproval = async (orderId, action) => {
         
         // Generate GST invoice if approved
         if (action === 'approve' && (order.requires_gst_invoice || order.gstin)) {
-            invoiceNumber = `STTS/INV/${new Date().getFullYear()}/${String(Date.now()).slice(-6)}`;
+            invoiceNumber = 'STTS/INV/' + (new Date().getFullYear()) + '/' + (String(Date.now()).slice(-6));
             invoiceId = Date.now();
             
             const newInvoice = {
@@ -5220,7 +5220,7 @@ const handleOrderApproval = async (orderId, action) => {
         }
         
         // Send update to backend
-        await apiCall(`/orders/${orderId}`, {
+        await apiCall('/orders/' + (orderId), {
             method: 'PUT',
             body: JSON.stringify(updateData)
         });
@@ -5271,7 +5271,7 @@ const handleOrderApproval = async (orderId, action) => {
        
        // Generate GST invoice if approved
        if (action === 'approve' && order.requires_gst_invoice) {
-           invoiceNumber = `STTS/INV/${new Date().getFullYear()}/${String(Date.now()).slice(-6)}`;
+           invoiceNumber = 'STTS/INV/' + (new Date().getFullYear()) + '/' + (String(Date.now()).slice(-6));
            invoiceId = Date.now();
            
            const newInvoice = {
@@ -5322,7 +5322,7 @@ const handleOrderApproval = async (orderId, action) => {
        }
        
        // Send update to backend
-       await apiCall(`/orders/${orderId}`, {
+       await apiCall('/orders/' + (orderId), {
            method: 'PUT',
            body: JSON.stringify(updateData)
        });
@@ -5359,7 +5359,7 @@ const handleFormSubmit = async (e) => {
     try {
         if (showEditForm) {
             // Update lead via API
-            const response = await apiCall(`/leads/${currentLead.id}`, {
+            const response = await apiCall('/leads/' + (currentLead.id), {
                 method: 'PUT',
                 body: JSON.stringify(formData)
             });
@@ -5370,7 +5370,7 @@ const handleFormSubmit = async (e) => {
             
         } else if (showEditInventoryForm) {
             // Update inventory via API
-            const response = await apiCall(`/inventory/${currentInventory.id}`, {
+            const response = await apiCall('/inventory/' + (currentInventory.id), {
                 method: 'PUT',
                 body: JSON.stringify(formData)
             });
@@ -5418,10 +5418,10 @@ const handleFormSubmit = async (e) => {
                             if (pendingAmount > 0) {
                                 const payableData = {
                                     supplierName: formData.supplierName || 'Unknown Supplier',
-                                    invoiceNumber: formData.supplierInvoice || `INV-${Date.now()}`,
+                                    invoiceNumber: formData.supplierInvoice || 'INV-' + (Date.now()),
                                     amount: pendingAmount,
                                     dueDate: formData.paymentDueDate || new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0], // 30 days from now
-                                    description: `Inventory purchase: ${formData.event_name || 'Event'} - ${formData.category_of_ticket || 'Tickets'}`,
+                                    description: 'Inventory purchase: ' + (formData.event_name || 'Event') + ' - ' + (formData.category_of_ticket || 'Tickets'),
                                     inventoryId: invResponse.data?.id || invResponse.id,
                                     status: 'pending'
                                 };
@@ -5454,7 +5454,7 @@ const handleFormSubmit = async (e) => {
                         method: 'POST',
                         body: JSON.stringify({
                             ...formData,
-                            order_number: `ORD-${Date.now()}`,
+                            order_number: 'ORD-' + (Date.now()),
                             status: 'pending_approval',
             requires_gst_invoice: true,
                             total_amount: formData.tickets_allocated * formData.price_per_ticket,
@@ -5480,7 +5480,7 @@ const handleFormSubmit = async (e) => {
     if (!confirm('Are you sure you want to delete this lead?')) return;
     
     try {
-        await apiCall(`/leads/${leadId}`, { method: 'DELETE' });
+        await apiCall('/leads/' + (leadId), { method: 'DELETE' });
         setLeads(prev => prev.filter(lead => lead.id !== leadId));
         alert('Lead deleted successfully!');
     } catch (error) {
@@ -5492,7 +5492,7 @@ const handleDeleteInventory = async (inventoryId) => {
     if (!confirm('Are you sure you want to delete this event?')) return;
     
     try {
-        await apiCall(`/inventory/${inventoryId}`, { method: 'DELETE' });
+        await apiCall('/inventory/' + (inventoryId), { method: 'DELETE' });
         setInventory(prev => prev.filter(item => item.id !== inventoryId));
         alert('Event deleted successfully!');
     } catch (error) {
@@ -5520,7 +5520,7 @@ const handleAssignLead = async (e) => {
     setLoading(true);
     
     try {
-        const response = await apiCall(`/leads/${currentLead.id}`, {
+        const response = await apiCall('/leads/' + (currentLead.id), {
             method: 'PUT',
             body: JSON.stringify({
                 status: 'assigned',
@@ -5631,7 +5631,7 @@ const handleAssignLead = async (e) => {
         console.log('=== REACHED ORDER CREATION SECTION ===');
         // Create order after successful payment
         const orderData = {
-            order_number: `ORD-${Date.now()}`,
+            order_number: 'ORD-' + (Date.now()),
             lead_id: currentLead.id,
             lead_name: currentLead.name,
             client_name: currentLead.name,  // Add client_name for display
@@ -5724,10 +5724,10 @@ const handleAssignLead = async (e) => {
         
         if (showEditForm) {
             fields = leadFormFields.filter(field => !field.editOnly || showEditForm);
-            title = `Edit Lead: ${currentLead?.name}`;
+            title = 'Edit Lead: ' + (currentLead?.name);
         } else if (showEditInventoryForm) {
             fields = inventoryFormFields;
-            title = `Edit Event: ${currentInventory?.event_name}`;
+            title = 'Edit Event: ' + (currentInventory?.event_name);
         } else {
             switch (currentForm) {
                 case 'lead':
@@ -5786,7 +5786,7 @@ const handleAssignLead = async (e) => {
                                 className: 'text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200' 
                             }, sectionTitles[sectionKey]),
                             React.createElement('div', { 
-                                className: `grid gap-4 ${(currentForm === 'lead' || showEditForm) ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}` 
+                                className: 'grid gap-4 ' + ((currentForm === 'lead' || showEditForm) ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 md:grid-cols-2') 
                             },
                                 sectionFields.map(field =>
                                     React.createElement('div', { 
@@ -5820,7 +5820,7 @@ const handleAssignLead = async (e) => {
                                                 React.createElement('option', { value: '' }, 'Select Event'),
                                                 inventory.map(event =>
                                                     React.createElement('option', { key: event.id, value: event.event_name }, 
-                                                        `${event.event_name} - ${new Date(event.event_date).toLocaleDateString()}`
+                                                        (event.event_name) + ' - ' + (new Date(event.event_date).toLocaleDateString())
                                                     )
                                                 )
                                             ) :
@@ -5881,10 +5881,10 @@ const handleAssignLead = async (e) => {
                         React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, currentLead.name),
                         React.createElement('div', { className: 'flex items-center mt-2 space-x-4' },
                             React.createElement('span', {
-                                className: `px-3 py-1 text-sm rounded-full ${status.color}`
+                                className: 'px-3 py-1 text-sm rounded-full ' + (status.color)
                             }, status.label),
                             currentLead.assigned_to && React.createElement('span', { className: 'text-sm text-blue-600' }, 
-                                `Assigned to: ${currentLead.assigned_to}`
+                                'Assigned to: ' + (currentLead.assigned_to)
                             )
                         )
                     ),
@@ -5939,14 +5939,14 @@ const handleAssignLead = async (e) => {
                                 React.createElement('div', null,
                                     React.createElement('span', { className: 'font-medium text-gray-700' }, 'Email: '),
                                     React.createElement('a', { 
-                                        href: `mailto:${currentLead.email}`,
+                                        href: 'mailto:' + (currentLead.email),
                                         className: 'text-blue-600 hover:underline' 
                                     }, currentLead.email)
                                 ),
                                 currentLead.phone && React.createElement('div', null,
                                     React.createElement('span', { className: 'font-medium text-gray-700' }, 'Phone: '),
                                     React.createElement('a', { 
-                                        href: `tel:${currentLead.phone}`,
+                                        href: 'tel:' + (currentLead.phone),
                                         className: 'text-blue-600 hover:underline' 
                                     }, currentLead.phone)
                                 ),
@@ -5971,7 +5971,7 @@ const handleAssignLead = async (e) => {
                                 React.createElement('div', null,
                                     React.createElement('span', { className: 'font-medium text-gray-700' }, 'Location: '),
                                     React.createElement('span', { className: 'text-gray-900' }, 
-                                        `${currentLead.city_of_residence}, ${currentLead.country_of_residence}`
+                                        (currentLead.city_of_residence) + ', ' + (currentLead.country_of_residence)
                                     )
                                 )
                             )
@@ -6070,7 +6070,7 @@ const handleAssignLead = async (e) => {
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md' },
                 React.createElement('div', { className: 'flex justify-between items-center mb-6' },
                     React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
-                        `Assign Lead: ${currentLead.name}`
+                        'Assign Lead: ' + (currentLead.name)
                     ),
                     React.createElement('button', {
                         onClick: closeForm,
@@ -6141,7 +6141,7 @@ const renderPaymentPostServiceForm = () => {
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[95vh] overflow-y-auto' },
             React.createElement('div', { className: 'flex justify-between items-center mb-6' },
                 React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
-                    `Payment Post Service: ${currentLead.name}`
+                    'Payment Post Service: ' + (currentLead.name)
                 ),
                 React.createElement('button', {
                     onClick: closeForm,
@@ -6274,7 +6274,7 @@ const renderEnhancedPaymentForm = () => {
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[95vh] overflow-y-auto' },
             React.createElement('div', { className: 'flex justify-between items-center mb-6' },
                 React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
-                    `Payment Collection: ${currentLead.name}`
+                    'Payment Collection: ' + (currentLead.name)
                 ),
                 React.createElement('button', {
                     onClick: closeForm,
@@ -6648,15 +6648,15 @@ React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
             ),
             isIntraState ? [
                 React.createElement('div', { key: 'cgst', className: 'flex justify-between' },
-                    React.createElement('span', null, `CGST (${gstRate/2}%):`),
+                    React.createElement('span', null, 'CGST (' + (gstRate/2) + '%):'),
                     React.createElement('span', { className: 'font-medium' }, '₹', formatCurrency(gstCalculation.cgst))
                 ),
                 React.createElement('div', { key: 'sgst', className: 'flex justify-between' },
-                    React.createElement('span', null, `SGST (${gstRate/2}%):`),
+                    React.createElement('span', null, 'SGST (' + (gstRate/2) + '%):'),
                     React.createElement('span', { className: 'font-medium' }, '₹', formatCurrency(gstCalculation.sgst))
                 )
             ] : React.createElement('div', { className: 'flex justify-between' },
-                React.createElement('span', null, `IGST (${gstRate}%):`),
+                React.createElement('span', null, 'IGST (' + (gstRate) + '%):'),
                 React.createElement('span', { className: 'font-medium' }, '₹', formatCurrency(gstCalculation.igst))
             ),
             React.createElement('div', { className: 'flex justify-between border-t pt-2' },
@@ -6720,7 +6720,7 @@ React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md' },
                 React.createElement('div', { className: 'flex justify-between items-center mb-6' },
                     React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
-                        `Allocate: ${currentInventory.event_name}`
+                        'Allocate: ' + (currentInventory.event_name)
                     ),
                     React.createElement('button', {
                         onClick: closeForm,
@@ -6729,10 +6729,10 @@ React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
                 ),
                 React.createElement('div', { className: 'mb-4 p-3 bg-blue-50 rounded' },
                     React.createElement('p', { className: 'text-sm text-blue-800' }, 
-                        `Available Tickets: ${currentInventory.available_tickets}`
+                        'Available Tickets: ' + (currentInventory.available_tickets)
                     ),
                     React.createElement('p', { className: 'text-sm text-blue-800' }, 
-                        `Price per Ticket: ₹${currentInventory.selling_price?.toLocaleString()}`
+                        'Price per Ticket: ₹' + (currentInventory.selling_price?.toLocaleString())
                     )
                 ),
                 React.createElement('form', { onSubmit: handleAllocation },
@@ -6749,7 +6749,7 @@ React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
                             React.createElement('option', { value: '' }, 'Select Lead'),
                             convertedLeads.map(lead =>
                                 React.createElement('option', { key: lead.id, value: lead.id }, 
-                                    `${lead.name} - ${lead.number_of_people} people`
+                                    (lead.name) + ' - ' + (lead.number_of_people) + ' people'
                                 )
                             )
                         )
@@ -6918,7 +6918,7 @@ React.createElement('button', {
                                         lead.number_of_people + ' people'
                                     ),
                                     React.createElement('div', { className: 'text-xs text-gray-500' }, 
-                                        `${lead.city_of_residence}, ${lead.country_of_residence || 'Unknown'}`
+                                        (lead.city_of_residence) + ', ' + (lead.country_of_residence || 'Unknown')
                                     )
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4' },
@@ -6931,12 +6931,12 @@ React.createElement('button', {
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4' },
                                     React.createElement('span', {
-                                        className: `px-2 py-1 text-xs rounded ${status.color}`
+                                        className: 'px-2 py-1 text-xs rounded ' + (status.color)
                                     }, status.label)
                                 ),
                                     lead.status === 'rejected' && lead.rejection_reason && React.createElement('div', {
                                         className: 'mt-1 text-xs text-red-600 italic'
-                                    }, `Reason: ${lead.rejection_reason}`),
+                                    }, 'Reason: ' + (lead.rejection_reason)),
                                 hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
                                     React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, 
                                         '₹' + (lead.potential_value || 0).toLocaleString()
@@ -6991,7 +6991,7 @@ React.createElement('button', {
                 // ADD PAGINATION CONTROLS HERE:
                 sortedLeads.length > itemsPerPage && React.createElement('div', { className: 'flex justify-between items-center px-6 py-3 bg-gray-50 border-t' },
                     React.createElement('div', { className: 'text-sm text-gray-700' },
-                        `Showing ${indexOfFirstItem + 1} to ${Math.min(indexOfLastItem, sortedLeads.length)} of ${sortedLeads.length} leads`
+                        'Showing ' + (indexOfFirstItem + 1) + ' to ' + (Math.min(indexOfLastItem, sortedLeads.length)) + ' of ' + (sortedLeads.length) + ' leads'
                     ),
                     React.createElement('div', { className: 'flex space-x-2' },
                         React.createElement('button', {
@@ -6999,7 +6999,7 @@ React.createElement('button', {
                             disabled: currentLeadsPage === 1,
                             className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
                         }, 'Previous'),
-                        React.createElement('span', { className: 'px-3 py-1' }, `Page ${currentLeadsPage} of ${totalPages}`),
+                        React.createElement('span', { className: 'px-3 py-1' }, 'Page ' + (currentLeadsPage) + ' of ' + (totalPages)),
                         React.createElement('button', {
                             onClick: () => setCurrentLeadsPage(prev => Math.min(prev + 1, totalPages)),
                             disabled: currentLeadsPage === totalPages,
@@ -7040,7 +7040,7 @@ const handleEditOrderSubmit = async (e) => {
             updateData.rejected_by = user.name;
         }
         
-        const response = await apiCall(`/orders/${currentOrderForEdit.id}`, {
+        const response = await apiCall('/orders/' + (currentOrderForEdit.id), {
             method: 'PUT',
             body: JSON.stringify(updateData)
         });
@@ -7162,14 +7162,14 @@ const renderEditOrderForm = () => {
         },
             React.createElement('div', { className: 'bg-white rounded-lg p-6 w-96' },
                 React.createElement('h3', { className: 'text-lg font-bold mb-4' }, 
-                    `Assign Order #${orderToAssign.id}`
+                    'Assign Order #' + (orderToAssign.id)
                 ),
                 React.createElement('div', { className: 'mb-4' },
                     React.createElement('p', { className: 'text-sm text-gray-600' }, 
-                        `Client: ${orderToAssign.client_name}`
+                        'Client: ' + (orderToAssign.client_name)
                     ),
                     React.createElement('p', { className: 'text-sm text-gray-600' }, 
-                        `Event: ${orderToAssign.event_name}`
+                        'Event: ' + (orderToAssign.event_name)
                     )
                 ),
                 React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 
@@ -7215,7 +7215,7 @@ const renderEditOrderForm = () => {
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[95vh] overflow-y-auto' },
             React.createElement('div', { className: 'sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center' },
                 React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 
-                    `Order Details: ${currentOrderDetail.order_number}`
+                    'Order Details: ' + (currentOrderDetail.order_number)
                 ),
                 React.createElement('button', {
                     onClick: () => setShowOrderDetail(false),
@@ -7276,7 +7276,7 @@ const renderEditOrderForm = () => {
                         React.createElement('div', null,
                             React.createElement('span', { className: 'font-medium text-gray-700' }, 'Tickets: '),
                             React.createElement('span', { className: 'text-gray-900' }, 
-                                `${currentOrderDetail.tickets_allocated} - ${currentOrderDetail.ticket_category}`
+                                (currentOrderDetail.tickets_allocated) + ' - ' + (currentOrderDetail.ticket_category)
                             )
                         ),
                         React.createElement('div', null,
@@ -7342,7 +7342,7 @@ const renderEditOrderForm = () => {
                                         onClick: () => {
                                             window.open(currentOrderDetail.gst_certificate.publicUrl, '_blank');
                                         }
-                                    }, `📄 View ${currentOrderDetail.gst_certificate.originalName}`),
+                                    }, '📄 View ' + (currentOrderDetail.gst_certificate.originalName)),
                                     currentOrderDetail.gst_certificate.uploadedAt && React.createElement('div', { className: 'text-xs text-gray-500 mt-1' },
                                         'Uploaded: ' + new Date(currentOrderDetail.gst_certificate.uploadedAt).toLocaleString()
                                     )
@@ -7358,7 +7358,7 @@ const renderEditOrderForm = () => {
                                         onClick: () => {
                                             window.open(currentOrderDetail.pan_card.publicUrl, '_blank');
                                         }
-                                    }, `📄 View ${currentOrderDetail.pan_card.originalName}`),
+                                    }, '📄 View ' + (currentOrderDetail.pan_card.originalName)),
                                     currentOrderDetail.pan_card.uploadedAt && React.createElement('div', { className: 'text-xs text-gray-500 mt-1' },
                                         'Uploaded: ' + new Date(currentOrderDetail.pan_card.uploadedAt).toLocaleString()
                                     )
@@ -7567,7 +7567,7 @@ currentInventoryItems.map(item =>
                     // Pagination controls for inventory
                     sortedInventory.length > itemsPerPage && React.createElement('div', { className: 'flex justify-between items-center px-6 py-3 bg-gray-50 border-t' },
                         React.createElement('div', { className: 'text-sm text-gray-700' },
-                            `Showing ${indexOfFirstInventory + 1} to ${Math.min(indexOfLastInventory, sortedInventory.length)} of ${sortedInventory.length} events`
+                            'Showing ' + (indexOfFirstInventory + 1) + ' to ' + (Math.min(indexOfLastInventory, sortedInventory.length)) + ' of ' + (sortedInventory.length) + ' events'
                         ),
                         React.createElement('div', { className: 'flex space-x-2' },
                             React.createElement('button', {
@@ -7575,7 +7575,7 @@ currentInventoryItems.map(item =>
                                 disabled: currentInventoryPage === 1,
                                 className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
                             }, 'Previous'),
-                            React.createElement('span', { className: 'px-3 py-1' }, `Page ${currentInventoryPage} of ${totalInventoryPages}`),
+                            React.createElement('span', { className: 'px-3 py-1' }, 'Page ' + (currentInventoryPage) + ' of ' + (totalInventoryPages)),
                             React.createElement('button', {
                                 onClick: () => setCurrentInventoryPage(prev => Math.min(prev + 1, totalInventoryPages)),
                                 disabled: currentInventoryPage === totalInventoryPages,
@@ -7637,7 +7637,7 @@ currentInventoryItems.map(item =>
                                     React.createElement('td', { className: 'px-6 py-4' },
                                         React.createElement('div', { className: 'text-sm text-gray-900' }, order.event_name || 'No Event'),
                                         React.createElement('div', { className: 'text-xs text-gray-500' }, 
-                                            `${order.tickets_allocated || 0} tickets - ${order.ticket_category || ""}`
+                                            (order.tickets_allocated || 0) + ' tickets - ' + (order.ticket_category || "")
                                         ),
                                         order.event_date && React.createElement('div', { className: 'text-xs text-blue-600' }, 
                                             new Date(order.event_date).toLocaleDateString()
@@ -7648,12 +7648,12 @@ currentInventoryItems.map(item =>
                                             '₹' + (order.total_amount || 0).toLocaleString()
                                         ),
                                         order.payment_method && React.createElement('div', { className: 'text-xs text-green-600' }, 
-                                            `Paid via ${order.payment_method}`
+                                            'Paid via ' + (order.payment_method)
                                         )
                                     ),
                                     React.createElement('td', { className: 'px-6 py-4' },
                                         React.createElement('span', {
-                                            className: `px-2 py-1 text-xs rounded ${status.color}`
+                                            className: 'px-2 py-1 text-xs rounded ' + (status.color)
                                         }, status.label)
                                     ),
                                     React.createElement('td', { className: 'px-6 py-4' },
@@ -7854,7 +7854,7 @@ order.invoice_number && React.createElement('button', {
                                     React.createElement('div', { className: 'text-sm text-gray-900' }, delivery.order_number),
                                     React.createElement('div', { className: 'text-xs text-gray-500' }, delivery.event_name),
                                     React.createElement('div', { className: 'text-xs text-blue-600' }, 
-                                        `${delivery.tickets_count} tickets`
+                                        (delivery.tickets_count) + ' tickets'
                                     )
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4' },
@@ -7875,7 +7875,7 @@ order.invoice_number && React.createElement('button', {
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4' },
                                     React.createElement('span', {
-                                        className: `px-2 py-1 text-xs rounded ${status.color}`
+                                        className: 'px-2 py-1 text-xs rounded ' + (status.color)
                                     }, status.label)
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4' },
@@ -7923,15 +7923,15 @@ order.invoice_number && React.createElement('button', {
                                             React.createElement('button', {
                                                 className: 'text-gray-600 hover:text-gray-900 text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-50',
                                                 onClick: () => {
-                                                    let details = `Delivery Type: ${delivery.delivery_type}\n`;
+                                                    let details = 'Delivery Type: ' + (delivery.delivery_type) + '\n';
                                                     if (delivery.delivery_type === 'online') {
-                                                        details += `Platform: ${delivery.online_platform}\n`;
-                                                        details += `Link: ${delivery.online_link}`;
+                                                        details += 'Platform: ' + (delivery.online_platform) + '\n';
+                                                        details += 'Link: ' + (delivery.online_link);
                                                     } else {
-                                                        details += `Delivery Location: ${delivery.delivery_location}\n`;
-                                                        details += `Date: ${delivery.delivery_date} ${delivery.delivery_time}`;
+                                                        details += 'Delivery Location: ' + (delivery.delivery_location) + '\n';
+                                                        details += 'Date: ' + (delivery.delivery_date) + ' ' + (delivery.delivery_time);
                                                         if (delivery.pickup_location) {
-                                                            details += `\nPickup: ${delivery.pickup_location}`;
+                                                            details += '\nPickup: ' + (delivery.pickup_location);
                                                         }
                                                     }
                                                     alert(details);
@@ -7960,7 +7960,7 @@ order.invoice_number && React.createElement('button', {
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[95vh] overflow-y-auto' },
             React.createElement('div', { className: 'flex justify-between items-center mb-6' },
                 React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
-                    `Schedule Delivery: ${currentDelivery.order_number}`
+                    'Schedule Delivery: ' + (currentDelivery.order_number)
                 ),
                 React.createElement('button', {
                     onClick: closeForm,
@@ -8178,10 +8178,10 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
         formData.append('file', file);
 
         try {
-            const response = await fetch(`${API_URL}/upload/${type}/csv`, {
+            const response = await fetch((API_URL) + '/upload/' + (type) + '/csv', {
                 method: 'POST',
                 headers: {
-                    'Authorization': authToken ? `Bearer ${authToken}` : undefined
+                    'Authorization': authToken ? 'Bearer ' + (authToken) : undefined
                 },
                 body: formData
             });
@@ -8198,10 +8198,10 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
                     setInventory(inventoryData.data || []);
                 }
             } else {
-                alert(`Upload failed: ${result.error}`);
+                alert('Upload failed: ' + (result.error));
             }
         } catch (error) {
-            alert(`Upload error: ${error.message}`);
+            alert('Upload error: ' + (error.message));
         } finally {
             setUploading(false);
         }
@@ -8242,7 +8242,7 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
         },
             React.createElement('h2', {
                 className: 'text-2xl font-bold mb-4 text-gray-900 dark:text-white'
-            }, `Upload ${type === 'leads' ? 'Leads' : 'Inventory'} CSV`),
+            }, 'Upload ' + (type === 'leads' ? 'Leads' : 'Inventory') + ' CSV'),
             
             React.createElement('div', {
                 className: 'mb-6'
@@ -8265,10 +8265,10 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
                 
                 file && React.createElement('p', {
                     className: 'text-sm text-gray-600 dark:text-gray-400'
-                }, `Selected file: ${file.name}`),
+                }, 'Selected file: ' + (file.name)),
                 
                 uploadResult && React.createElement('div', {
-                    className: `mt-4 p-4 rounded ${uploadResult.errorCount > 0 ? 'bg-yellow-100' : 'bg-green-100'}`
+                    className: 'mt-4 p-4 rounded ' + (uploadResult.errorCount > 0 ? 'bg-yellow-100' : 'bg-green-100')
                 },
                     React.createElement('p', {
                         className: 'font-semibold'
@@ -8284,7 +8284,7 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
                             React.createElement('p', {
                                 key: index,
                                 className: 'text-sm text-red-600'
-                            }, `Row ${error.row}: ${error.error}`)
+                            }, 'Row ' + (error.row) + ': ' + (error.error))
                         )
                     )
                 )
