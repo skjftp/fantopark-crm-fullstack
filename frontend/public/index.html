@@ -8559,14 +8559,14 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
 
 <div id="test-control-panel" style="position:fixed; bottom:80px; right:20px; background:#1f2937; color:white; padding:15px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3); display:none; z-index:9999; max-height:400px; overflow-y:auto;">
     <h3 style="margin:0 0 10px 0; font-size:16px;">🧪 Test Mode Controls</h3>
-    <p style="margin:5px 0; font-size:12px; color:#fbbf24;">⚠️ Backend may need deployment</p>
-    <button onclick="if(confirm('Delete ALL leads?')) { window.testDeleteAll('leads'); }" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Leads</button>
-    <button onclick="if(confirm('Delete ALL inventory?')) { window.testDeleteAll('inventory'); }" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Inventory</button>
-    <button onclick="if(confirm('Delete ALL orders?')) { window.testDeleteAll('orders'); }" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Orders</button>
-    <button onclick="if(confirm('Delete ALL deliveries?')) { window.testDeleteAll('deliveries'); }" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Deliveries</button>
+    <p style="margin:5px 0; font-size:12px; color:#10b981;">✅ Working with individual deletes</p>
+    <button onclick="window.deleteAllIndividually('leads')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Leads</button>
+    <button onclick="window.deleteAllIndividually('inventory')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Inventory</button>
+    <button onclick="window.deleteAllIndividually('orders')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Orders</button>
+    <button onclick="window.deleteAllIndividually('deliveries')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ Delete All Deliveries</button>
     <hr style="margin:10px 0; border:none; border-top:1px solid #4b5563;">
-    <button onclick="window.fillTestLead();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer;">🧪 Create Test Lead</button>
-    <button onclick="window.fillTestInventory();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer;">🧪 Create Test Inventory</button>
+    <button onclick="window.createTestLead();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer;">🧪 Create Test Lead</button>
+    <button onclick="window.createTestInventory();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer;">🧪 Create Test Inventory</button>
     <button onclick="window.location.reload();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer;">🔄 Refresh Page</button>
 </div>
 <script>
@@ -8683,6 +8683,209 @@ window.fillTestInventory = function() {
         });
     }
 };
+</script>
+
+
+<script>
+// Working delete function that deletes individually
+window.deleteAllIndividually = async function(type) {
+    if (!confirm('Delete ALL ' + type + '? This will delete them one by one.')) {
+        return;
+    }
+    
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        // Show loading
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'delete-loading';
+        loadingDiv.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);z-index:10000;';
+        loadingDiv.innerHTML = '<h3>Fetching ' + type + '...</h3>';
+        document.body.appendChild(loadingDiv);
+        
+        // Get all items
+        const response = await fetch(API_URL + '/api/' + type, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch ' + type);
+        }
+        
+        const result = await response.json();
+        const items = result.data || [];
+        
+        if (items.length === 0) {
+            document.body.removeChild(loadingDiv);
+            alert('No ' + type + ' to delete');
+            return;
+        }
+        
+        // Update loading message
+        loadingDiv.innerHTML = '<h3>Deleting ' + type + '...</h3><p>Progress: <span id="delete-progress">0</span> / ' + items.length + '</p>';
+        
+        let deleted = 0;
+        let failed = 0;
+        
+        // Delete each item
+        for (const item of items) {
+            try {
+                const deleteUrl = API_URL + '/api/' + type + '/' + item.id;
+                console.log('Deleting:', deleteUrl);
+                
+                const deleteResponse = await fetch(deleteUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+                
+                if (deleteResponse.ok) {
+                    deleted++;
+                    console.log('Deleted:', item.id);
+                } else {
+                    failed++;
+                    console.log('Failed to delete:', item.id, deleteResponse.status);
+                }
+                
+                document.getElementById('delete-progress').textContent = deleted;
+            } catch (error) {
+                console.error('Delete error:', error);
+                failed++;
+            }
+        }
+        
+        // Remove loading
+        document.body.removeChild(loadingDiv);
+        
+        // Show result
+        if (failed === 0) {
+            alert('Successfully deleted ' + deleted + ' ' + type + '!');
+        } else {
+            alert('Deleted ' + deleted + ' ' + type + ', but ' + failed + ' failed.');
+        }
+        
+        // Reload
+        window.location.reload();
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+        const loadingDiv = document.getElementById('delete-loading');
+        if (loadingDiv) {
+            document.body.removeChild(loadingDiv);
+        }
+    }
+};
+
+// Working create functions
+window.createTestLead = async function() {
+    const testData = {
+        name: 'Test User ' + Math.floor(Math.random() * 1000),
+        email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
+        phone: '98' + Math.floor(Math.random() * 90000000 + 10000000),
+        company: 'Test Company ' + Math.floor(Math.random() * 100),
+        lead_for_event: 'General Inquiry',
+        lead_source: 'Website',
+        lead_type: 'warm',
+        status: 'new',
+        notes: 'Test lead created via test mode at ' + new Date().toLocaleString()
+    };
+    
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        const response = await fetch(API_URL + '/api/leads', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            console.log('Lead created:', result);
+            alert('Test lead created: ' + testData.name);
+            window.location.reload();
+        } else {
+            console.error('Failed to create lead:', result);
+            alert('Error: ' + (result.error || 'Failed to create lead'));
+        }
+    } catch (error) {
+        console.error('Create lead error:', error);
+        alert('Error creating lead: ' + error.message);
+    }
+};
+
+window.createTestInventory = async function() {
+    const categories = ['Stall', 'Equipment', 'Service', 'Package'];
+    const testData = {
+        name: 'Test Item ' + Math.floor(Math.random() * 1000),
+        category: categories[Math.floor(Math.random() * categories.length)],
+        price: Math.floor(Math.random() * 90000) + 10000,
+        quantity: Math.floor(Math.random() * 50) + 1,
+        status: 'available',
+        description: 'Test inventory item created via test mode at ' + new Date().toLocaleString(),
+        size: '10x10 ft',
+        location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
+    };
+    
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        const response = await fetch(API_URL + '/api/inventory', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            console.log('Inventory created:', result);
+            alert('Test inventory created: ' + testData.name);
+            window.location.reload();
+        } else {
+            console.error('Failed to create inventory:', result);
+            alert('Error: ' + (result.error || 'Failed to create inventory'));
+        }
+    } catch (error) {
+        console.error('Create inventory error:', error);
+        alert('Error creating inventory: ' + error.message);
+    }
+};
+
+// Debug function
+window.debugLeads = async function() {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    const response = await fetch(API_URL + '/api/leads', {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + authToken
+        }
+    });
+    
+    const result = await response.json();
+    console.log('All leads:', result);
+    return result;
+};
+
+console.log('Test mode functions loaded. Type debugLeads() to see all leads.');
 </script>
 
 </body>
@@ -8810,6 +9013,209 @@ window.fillTestInventory = function() {
         });
     }
 };
+</script>
+
+
+<script>
+// Working delete function that deletes individually
+window.deleteAllIndividually = async function(type) {
+    if (!confirm('Delete ALL ' + type + '? This will delete them one by one.')) {
+        return;
+    }
+    
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        // Show loading
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'delete-loading';
+        loadingDiv.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);z-index:10000;';
+        loadingDiv.innerHTML = '<h3>Fetching ' + type + '...</h3>';
+        document.body.appendChild(loadingDiv);
+        
+        // Get all items
+        const response = await fetch(API_URL + '/api/' + type, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch ' + type);
+        }
+        
+        const result = await response.json();
+        const items = result.data || [];
+        
+        if (items.length === 0) {
+            document.body.removeChild(loadingDiv);
+            alert('No ' + type + ' to delete');
+            return;
+        }
+        
+        // Update loading message
+        loadingDiv.innerHTML = '<h3>Deleting ' + type + '...</h3><p>Progress: <span id="delete-progress">0</span> / ' + items.length + '</p>';
+        
+        let deleted = 0;
+        let failed = 0;
+        
+        // Delete each item
+        for (const item of items) {
+            try {
+                const deleteUrl = API_URL + '/api/' + type + '/' + item.id;
+                console.log('Deleting:', deleteUrl);
+                
+                const deleteResponse = await fetch(deleteUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+                
+                if (deleteResponse.ok) {
+                    deleted++;
+                    console.log('Deleted:', item.id);
+                } else {
+                    failed++;
+                    console.log('Failed to delete:', item.id, deleteResponse.status);
+                }
+                
+                document.getElementById('delete-progress').textContent = deleted;
+            } catch (error) {
+                console.error('Delete error:', error);
+                failed++;
+            }
+        }
+        
+        // Remove loading
+        document.body.removeChild(loadingDiv);
+        
+        // Show result
+        if (failed === 0) {
+            alert('Successfully deleted ' + deleted + ' ' + type + '!');
+        } else {
+            alert('Deleted ' + deleted + ' ' + type + ', but ' + failed + ' failed.');
+        }
+        
+        // Reload
+        window.location.reload();
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+        const loadingDiv = document.getElementById('delete-loading');
+        if (loadingDiv) {
+            document.body.removeChild(loadingDiv);
+        }
+    }
+};
+
+// Working create functions
+window.createTestLead = async function() {
+    const testData = {
+        name: 'Test User ' + Math.floor(Math.random() * 1000),
+        email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
+        phone: '98' + Math.floor(Math.random() * 90000000 + 10000000),
+        company: 'Test Company ' + Math.floor(Math.random() * 100),
+        lead_for_event: 'General Inquiry',
+        lead_source: 'Website',
+        lead_type: 'warm',
+        status: 'new',
+        notes: 'Test lead created via test mode at ' + new Date().toLocaleString()
+    };
+    
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        const response = await fetch(API_URL + '/api/leads', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            console.log('Lead created:', result);
+            alert('Test lead created: ' + testData.name);
+            window.location.reload();
+        } else {
+            console.error('Failed to create lead:', result);
+            alert('Error: ' + (result.error || 'Failed to create lead'));
+        }
+    } catch (error) {
+        console.error('Create lead error:', error);
+        alert('Error creating lead: ' + error.message);
+    }
+};
+
+window.createTestInventory = async function() {
+    const categories = ['Stall', 'Equipment', 'Service', 'Package'];
+    const testData = {
+        name: 'Test Item ' + Math.floor(Math.random() * 1000),
+        category: categories[Math.floor(Math.random() * categories.length)],
+        price: Math.floor(Math.random() * 90000) + 10000,
+        quantity: Math.floor(Math.random() * 50) + 1,
+        status: 'available',
+        description: 'Test inventory item created via test mode at ' + new Date().toLocaleString(),
+        size: '10x10 ft',
+        location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
+    };
+    
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        const response = await fetch(API_URL + '/api/inventory', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            console.log('Inventory created:', result);
+            alert('Test inventory created: ' + testData.name);
+            window.location.reload();
+        } else {
+            console.error('Failed to create inventory:', result);
+            alert('Error: ' + (result.error || 'Failed to create inventory'));
+        }
+    } catch (error) {
+        console.error('Create inventory error:', error);
+        alert('Error creating inventory: ' + error.message);
+    }
+};
+
+// Debug function
+window.debugLeads = async function() {
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    const response = await fetch(API_URL + '/api/leads', {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + authToken
+        }
+    });
+    
+    const result = await response.json();
+    console.log('All leads:', result);
+    return result;
+};
+
+console.log('Test mode functions loaded. Type debugLeads() to see all leads.');
 </script>
 
 </body>
