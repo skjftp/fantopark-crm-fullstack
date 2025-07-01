@@ -1575,6 +1575,11 @@ const fetchMyActions = async () => {
                 return isAssignedToMe;
             });
             console.log('My leads:', assignedLeads.length);
+            console.log('\n=== FILTER RESULTS ===');
+            console.log('Total leads:', leadsResponse.data.length);
+            console.log('Assigned to me:', assignedLeads.length);
+            console.log('Assigned leads:', assignedLeads);
+            
             setMyLeads(assignedLeads);
         }
         
