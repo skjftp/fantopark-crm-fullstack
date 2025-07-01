@@ -7190,7 +7190,7 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
         formData.append('file', file);
 
         try {
-            const response = await fetch(`${API_URL}/api/upload/${type}/csv`, {
+            const response = await fetch(`${API_URL}/upload/${type}/csv`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${authToken}`
