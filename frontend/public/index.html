@@ -2309,14 +2309,26 @@ const fetchMyActions = async () => {
 };
 
 const handleMarkPaymentFromReceivable = async (receivable) => {
+    console.log('Mark Payment clicked for receivable:', receivable);
+    
+    // Check if receivable has lead_id
+    if (!receivable.lead_id) {
+        alert('This receivable is not associated with a lead. Cannot process payment.');
+        console.error('Receivable missing lead_id:', receivable);
+        return;
+    }
+    
     // First, fetch the lead associated with this receivable
     const lead = leads.find(l => l.id === receivable.lead_id);
+    console.log('Found lead in state:', lead);
     
     if (!lead) {
         // If lead not found in current state, fetch it
         try {
+            console.log('Fetching lead from API:', receivable.lead_id);
             const response = await apiCall('/leads/' + receivable.lead_id);
             const leadData = response.data || response;
+            console.log('Lead fetched from API:', leadData);
             
             // Open payment form with this lead
             setCurrentLead(leadData);
@@ -2329,7 +2341,8 @@ const handleMarkPaymentFromReceivable = async (receivable) => {
                 advance_amount: receivable.balance_amount || receivable.expected_amount || ''
             }));
         } catch (error) {
-            alert('Could not find associated lead');
+            console.error('Error fetching lead:', error);
+            alert('Could not find associated lead: ' + error.message);
             return;
         }
     } else {
