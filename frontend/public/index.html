@@ -6095,6 +6095,9 @@ console.log('Order update response:', updateResponse);
                 console.log('Processing receivable payment...');
                 console.log('Receivable ID:', paymentData.receivable_id);
                 console.log('Original receivable amount:', paymentData.receivable_amount);
+                console.log('Processing receivable payment...');
+                console.log('Receivable ID:', paymentData.receivable_id);
+                console.log('Original receivable amount:', paymentData.receivable_amount);
                 // Calculate the actual invoice amount with GST
                 const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
                 const gstRate = paymentData.type_of_sale === 'Tour' ? 5 : 18;
@@ -6114,6 +6117,10 @@ console.log('Order update response:', updateResponse);
                 // For receivable payments, the advance_amount field contains the actual payment amount
                 const paidAmount = parseFloat(paymentData.advance_amount) || 0;
                 const receivableAmount = parseFloat(paymentData.receivable_amount) || 0;
+                
+                console.log('Payment being collected:', paidAmount);
+                console.log('Original receivable amount:', receivableAmount);
+                console.log('Calculated invoice amount with GST:', finalInvoiceAmount);
                 
                 console.log('Payment being collected:', paidAmount);
                 console.log('Original receivable amount:', receivableAmount);
