@@ -234,3 +234,38 @@ router.delete('/', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
+
+// Update inventory payment and sync with payables
+router.put('/:id/payment-sync', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amountPaid, paymentStatus } = req.body;
+    
+    // Update inventory
+    await db.collection('crm_inventory').doc(id).update({
+      amountPaid: amountPaid,
+      paymentStatus: paymentStatus,
+      updated_date: new Date().toISOString()
+    });
+    
+    // Update related payable if it exists
+    const payablesSnapshot = await db.collection('crm_payables')
+      .where('inventoryId', '==', id)
+      .get();
+    
+    if (!payablesSnapshot.empty) {
+      const batch = db.batch();
+      payablesSnapshot.forEach(doc => {
+        batch.update(doc.ref, {
+          status: paymentStatus === 'paid' ? 'paid' : 'pending',
+          updated_date: new Date().toISOString()
+        });
+      });
+      await batch.commit();
+    }
+    
+    res.json({ success: true, message: 'Payment updated and synced' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
