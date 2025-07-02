@@ -2418,7 +2418,7 @@ const handlePaymentPostServiceSubmit = async (e) => {
             client_phone: currentLead.phone,
             
             // Required order fields for backend
-            event_name: paymentPostServiceData.service_details || 'Payment Post Service',
+            event_name: currentLead?.lead_for_event || 'Post Service Payment',
             event_date: paymentPostServiceData.service_date || new Date().toISOString().split('T')[0],
             tickets_allocated: 1,
             ticket_category: 'Post Service',
