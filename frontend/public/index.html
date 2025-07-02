@@ -5425,13 +5425,18 @@ const renderGSTInvoicePreview = () => {
 
     // Order approval with permission check
     // REPLACE your existing handleOrderApproval function with this:
+// MERGED handleOrderApproval function - includes both GST invoice and receivables creation
 const handleOrderApproval = async (orderId, action) => {
-
-const handleOrderApproval = async (orderId, action) => {
+    if (!hasPermission('orders', 'approve')) {
+        alert('You do not have permission to approve orders');
+        return;
+    }
+    
     setLoading(true);
     
     try {
         const order = orders.find(o => o.id === orderId);
+        console.log('Approving order:', order);
         
         // If rejecting, ask for notes
         let notes = '';
@@ -5474,7 +5479,7 @@ const handleOrderApproval = async (orderId, action) => {
                 base_amount: order.base_amount,
                 gst_calculation: order.gst_calculation,
                 total_tax: order.total_tax,
-                final_amount: order.final_amount,
+                final_amount: order.final_amount || order.total_amount,
                 
                 invoice_date: new Date().toISOString().split('T')[0],
                 due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -5488,9 +5493,10 @@ const handleOrderApproval = async (orderId, action) => {
         // Update order in backend with all necessary fields including invoice info
         const updateData = {
             status: newStatus,
-            approved_date: new Date().toISOString().split('T')[0],
+            approved_date: new Date().toISOString(),
             approval_notes: notes,
-            approved_by: user.name
+            approved_by: user.name,
+            payment_status: order.payment_status || 'pending'
         };
         
         // Add invoice fields if invoice was generated
@@ -5500,136 +5506,105 @@ const handleOrderApproval = async (orderId, action) => {
         }
         
         // Send update to backend
-        await apiCall('/orders/' + (orderId), {
+        await apiCall('/orders/' + orderId, {
             method: 'PUT',
             body: JSON.stringify(updateData)
         });
         
+        // CREATE RECEIVABLES FOR PARTIAL/POST-SERVICE PAYMENTS
+        if (action === 'approve') {
+            console.log('Order approved, checking if receivable needed...');
+            console.log('Order type:', order.order_type);
+            console.log('Payment status:', order.payment_status);
+            
+            // Check if it's a post-service payment or partial payment
+            const isPostService = order.order_type === 'payment_post_service' || 
+                                  order.lead_status === 'payment_post_service';
+            const isPartialPayment = order.payment_status === 'partial' || 
+                                     (order.amount_paid && order.amount_paid < order.total_amount);
+            
+            console.log('Is post service:', isPostService);
+            console.log('Is partial payment:', isPartialPayment);
+            
+            if (isPostService || isPartialPayment) {
+                // Calculate pending amount
+                const paidAmount = parseFloat(order.amount_paid || 0);
+                const totalAmount = parseFloat(order.total_amount || order.final_amount || 0);
+                const pendingAmount = totalAmount - paidAmount;
+                
+                console.log('Total amount:', totalAmount);
+                console.log('Paid amount:', paidAmount);
+                console.log('Pending amount:', pendingAmount);
+                
+                if (pendingAmount > 0) {
+                    // Create receivable entry
+                    const receivableData = {
+                        order_id: orderId,
+                        order_number: order.order_number,
+                        client_name: order.client_name || order.lead_name,
+                        client_email: order.client_email,
+                        client_phone: order.client_phone,
+                        invoice_number: invoiceNumber || order.invoice_number || 'INV-' + orderId,
+                        expected_amount: pendingAmount,
+                        amount_paid: paidAmount,
+                        balance_amount: pendingAmount,
+                        due_date: order.expected_payment_date || 
+                                  new Date(Date.now() + 30*24*60*60*1000).toISOString(),
+                        payment_terms: order.payment_terms || 'Net 30',
+                        assigned_to: order.assigned_to || order.created_by,
+                        status: 'pending',
+                        created_date: new Date().toISOString(),
+                        created_by: user.name,
+                        is_post_service: isPostService,
+                        event_date: order.event_date,
+                        event_name: order.event_name
+                    };
+                    
+                    console.log('Creating receivable with data:', receivableData);
+                    
+                    try {
+                        const receivableResponse = await apiCall('/receivables', {
+                            method: 'POST',
+                            body: JSON.stringify(receivableData)
+                        });
+                        console.log('Receivable created successfully:', receivableResponse);
+                        
+                        // Update local receivables state if it exists
+                        if (typeof setReceivables === 'function') {
+                            setReceivables(prev => [...prev, receivableResponse.data || receivableResponse]);
+                        }
+                    } catch (error) {
+                        console.error('Failed to create receivable:', error);
+                        alert('Order approved but failed to create receivable. Please create it manually.');
+                    }
+                }
+            }
+        }
+        
         // Update local state
         setOrders(prev => 
-            prev.map(order => {
-                if (order.id === orderId) {
-                    return { 
-                        ...order, 
-                        ...updateData
-                    };
-                }
-                return order;
-            })
+            prev.map(o => o.id === orderId ? { ...o, ...updateData } : o)
         );
-
+        
+        // Refresh financial data if user has permission
+        if (hasPermission('finance', 'read')) {
+            await fetchFinancialData();
+        }
+        
         setLoading(false);
-        alert(action === 'approve' 
-            ? (invoiceNumber ? 'Order approved successfully! GST Invoice has been generated.' : 'Order approved successfully!')
-            : 'Order rejected successfully.'
-        );
+        
+        // Custom alert message based on what happened
+        let alertMessage = action === 'approve' ? 'Order approved successfully!' : 'Order rejected successfully.';
+        if (action === 'approve' && invoiceNumber) {
+            alertMessage += ' GST Invoice has been generated.';
+        }
+        alert(alertMessage);
+        
     } catch (error) {
         console.error('Order approval error:', error);
         setLoading(false);
         alert('Failed to update order status');
     }
-};
-
-   setLoading(true);
-   
-   try {
-       const order = orders.find(o => o.id === orderId);
-       
-       // If rejecting, ask for notes
-       let notes = '';
-       if (action === 'reject') {
-           notes = prompt('Please provide rejection reason:');
-           if (!notes) {
-               setLoading(false);
-               return;
-           }
-       }
-       
-       const newStatus = action === 'approve' ? 'approved' : 'rejected';
-       let invoiceNumber = null;
-       let invoiceId = null;
-       
-       // Generate GST invoice if approved
-       if (action === 'approve' && order.requires_gst_invoice) {
-           invoiceNumber = 'STTS/INV/' + (new Date().getFullYear()) + '/' + (String(Date.now()).slice(-6));
-           invoiceId = Date.now();
-           
-           const newInvoice = {
-               id: invoiceId,
-               invoice_number: invoiceNumber,
-               order_id: orderId,
-               order_number: order.order_number,
-               client_name: order.legal_name || order.client_name,
-               client_email: order.client_email,
-               
-               // GST Details
-               gstin: order.gstin,
-               legal_name: order.legal_name,
-               category_of_sale: order.category_of_sale,
-               type_of_sale: order.type_of_sale,
-               registered_address: order.registered_address,
-               indian_state: order.indian_state,
-               is_outside_india: order.is_outside_india,
-               
-               // Invoice calculation
-               invoice_items: order.invoice_items,
-               base_amount: order.base_amount,
-               gst_calculation: order.gst_calculation,
-               total_tax: order.total_tax,
-               final_amount: order.final_amount,
-               
-               invoice_date: new Date().toISOString().split('T')[0],
-               due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-               status: 'generated',
-               generated_by: user.name
-           };
-           
-           setInvoices(prev => [...prev, newInvoice]);
-       }
-       
-       // Update order in backend with all necessary fields including invoice info
-       const updateData = {
-           status: newStatus,
-           approved_date: new Date().toISOString().split('T')[0],
-           approval_notes: notes,
-           approved_by: user.name
-       };
-       
-       // Add invoice fields if invoice was generated
-       if (invoiceNumber && invoiceId) {
-           updateData.invoice_number = invoiceNumber;
-           updateData.invoice_id = invoiceId;
-       }
-       
-       // Send update to backend
-       await apiCall('/orders/' + (orderId), {
-           method: 'PUT',
-           body: JSON.stringify(updateData)
-       });
-       
-       // Update local state
-       setOrders(prev => 
-           prev.map(order => {
-               if (order.id === orderId) {
-                   return { 
-                       ...order, 
-                       ...updateData
-                   };
-               }
-               return order;
-           })
-       );
-
-       setLoading(false);
-       alert(action === 'approve' 
-           ? 'Order approved successfully! GST Invoice has been generated.' 
-           : 'Order rejected successfully.'
-       );
-   } catch (error) {
-       console.error('Order approval error:', error);
-       setLoading(false);
-       alert('Failed to update order status');
-   }
 };
 
 const handleFormSubmit = async (e) => {
