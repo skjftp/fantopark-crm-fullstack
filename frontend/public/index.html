@@ -2308,6 +2308,44 @@ const fetchMyActions = async () => {
     setShowPaymentForm(true);
 };
 
+const handleMarkPaymentFromReceivable = async (receivable) => {
+    // First, fetch the lead associated with this receivable
+    const lead = leads.find(l => l.id === receivable.lead_id);
+    
+    if (!lead) {
+        // If lead not found in current state, fetch it
+        try {
+            const response = await apiCall('/leads/' + receivable.lead_id);
+            const leadData = response.data || response;
+            
+            // Open payment form with this lead
+            setCurrentLead(leadData);
+            openPaymentForm(leadData);
+            
+            // Set payment_post_service flag since this is from receivables
+            setPaymentData(prev => ({
+                ...prev,
+                payment_post_service: true,
+                advance_amount: receivable.balance_amount || receivable.expected_amount || ''
+            }));
+        } catch (error) {
+            alert('Could not find associated lead');
+            return;
+        }
+    } else {
+        // Lead found, open payment form
+        setCurrentLead(lead);
+        openPaymentForm(lead);
+        
+        // Set payment_post_service flag and amount
+        setPaymentData(prev => ({
+            ...prev,
+            payment_post_service: true,
+            advance_amount: receivable.balance_amount || receivable.expected_amount || ''
+        }));
+    }
+};
+    
     const openLeadDetail = (lead) => {
         setCurrentLead(lead);
         setShowLeadDetail(true);
