@@ -71,14 +71,12 @@ router.get('/', authenticateToken, checkPermission('inventory', 'read'), async (
 });
 
 // Update inventory
-router.put('/:id', authenticateToken, checkPermission('inventory', 'update'), async (req, res) => {
   try {
     const { id } = req.params;
     console.log('=== INVENTORY UPDATE DEBUG ===');
     console.log('Inventory ID:', id);
     console.log('Update data:', JSON.stringify(req.body, null, 2));
     
-    const { id } = req.params;
     const updateData = {
       ...req.body,
       updated_date: new Date().toISOString()
