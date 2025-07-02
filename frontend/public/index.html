@@ -5920,6 +5920,15 @@ const handleAssignLead = async (e) => {
         );
 if (existingOrder) {
             // UPDATE existing order
+    // Debug: Log what we're sending
+console.log('Updating order with GST details:', {
+    gstin: paymentData.gstin,
+    legal_name: paymentData.legal_name,
+    registered_address: paymentData.registered_address,
+    category_of_sale: paymentData.category_of_sale,
+    type_of_sale: paymentData.type_of_sale,
+    indian_state: paymentData.indian_state
+});
             const updateResponse = await apiCall('/orders/' + existingOrder.id, {
                 method: 'PUT',
                 body: JSON.stringify({
@@ -5965,6 +5974,8 @@ if (existingOrder) {
     updated_by: user.name
 })
             });
+    // Debug: Log what we received back
+console.log('Order update response:', updateResponse);
             
             setOrders(prev => prev.map(o => 
                 o.id === existingOrder.id ? {...o, ...updateResponse.data} : o
