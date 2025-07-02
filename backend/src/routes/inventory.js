@@ -23,7 +23,7 @@ router.post('/', authenticateToken, checkPermission('inventory', 'create'), asyn
           inventoryId: docRef.id,
           supplierName: inventoryData.supplierName || inventoryData.vendor_name || 'Unknown Supplier',
           eventName: inventoryData.event_name,
-          amount: parseFloat(inventoryData.totalPurchaseAmount) || 0,
+          amount: (parseFloat(inventoryData.totalPurchaseAmount) || 0) - (parseFloat(inventoryData.amountPaid) || 0),
           amountPaid: parseFloat(inventoryData.amountPaid) || 0,
           balance: (parseFloat(inventoryData.totalPurchaseAmount) || 0) - (parseFloat(inventoryData.amountPaid) || 0),
           dueDate: inventoryData.paymentDueDate || null,
@@ -79,7 +79,52 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'update'), as
       updated_date: new Date().toISOString()
     };
     
+    // Check if payment status changed and update related payables
+    const oldDoc = await db.collection('crm_inventory').doc(id).get();
+    const oldData = oldDoc.data();
+    
     await db.collection('crm_inventory').doc(id).update(updateData);
+    
+    // Update related payables if payment info changed
+    if (updateData.paymentStatus || updateData.amountPaid !== undefined || updateData.totalPurchaseAmount !== undefined) {
+        try {
+            const payablesSnapshot = await db.collection('crm_payables')
+                .where('inventoryId', '==', id)
+                .where('status', '!=', 'paid')
+                .get();
+            
+            if (!payablesSnapshot.empty) {
+                const newTotalAmount = updateData.totalPurchaseAmount || oldData.totalPurchaseAmount || 0;
+                const newAmountPaid = updateData.amountPaid !== undefined ? updateData.amountPaid : (oldData.amountPaid || 0);
+                const newBalance = newTotalAmount - newAmountPaid;
+                
+                const batch = db.batch();
+                payablesSnapshot.forEach(doc => {
+                    if (newBalance <= 0 || updateData.paymentStatus === 'paid') {
+                        // Mark payable as paid
+                        batch.update(doc.ref, {
+                            status: 'paid',
+                            paid_date: new Date().toISOString(),
+                            amount: 0,
+                            payment_notes: 'Paid through inventory update'
+                        });
+                    } else {
+                        // Update payable amount
+                        batch.update(doc.ref, {
+                            amount: newBalance,
+                            updated_date: new Date().toISOString(),
+                            payment_notes: `Balance updated to ₹${newBalance} through inventory update`
+                        });
+                    }
+                });
+                await batch.commit();
+                console.log('Related payables updated');
+            }
+        } catch (payableError) {
+            console.error('Error updating related payables:', payableError);
+            // Don't fail the inventory update if payable update fails
+        }
+    }
     
     res.json({ data: { id, ...updateData } });
   } catch (error) {
