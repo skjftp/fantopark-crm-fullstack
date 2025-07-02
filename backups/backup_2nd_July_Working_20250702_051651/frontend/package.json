@@ -1,0 +1,15 @@
+{
+  "name": "fantopark-crm-frontend",
+  "version": "1.0.0",
+  "description": "FanToPark CRM Frontend - v4working",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "node build.js",
+    "deploy": "npm run build && gcloud run deploy fantopark-crm-frontend --source ."
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "http-proxy-middleware": "^3.0.5"
+  }
+}

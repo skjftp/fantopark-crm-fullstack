@@ -1,0 +1,30 @@
+================================
+BACKUP INFORMATION
+================================
+Backup Name: 2nd July Working
+Created: Wed Jul  2 05:16:58 AM UTC 2025
+Description: Full working CRM with all test mode features functional
+
+FEATURES INCLUDED:
+- Complete CRM functionality
+- Test Mode with all delete buttons
+- Create Test Lead (with all fields)
+- Create Test Inventory (with proper names and sports)
+- Delete All Leads
+- Delete All Inventory
+- Delete All Orders
+- Delete All Deliveries
+- Delete All Financials (Payables + Receivables)
+- Fixed receivables DELETE route
+
+DEPLOYMENT INFO:
+- Frontend: https://skjftp.github.io/fantopark-crm-fullstack/
+- Backend: https://fantopark-backend-ofkn6rpg3a-uc.a.run.app
+- Project: enduring-wharf-464005-h7
+
+NOTES:
+- All test mode buttons working
+- Receivables DELETE issue fixed (route was after module.exports)
+- Complete authentication system
+- Role-based access control
+================================
