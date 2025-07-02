@@ -74,6 +74,11 @@ router.get('/', authenticateToken, checkPermission('inventory', 'read'), async (
 router.put('/:id', authenticateToken, checkPermission('inventory', 'update'), async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('=== INVENTORY UPDATE DEBUG ===');
+    console.log('Inventory ID:', id);
+    console.log('Update data:', JSON.stringify(req.body, null, 2));
+    
+    const { id } = req.params;
     const updateData = {
       ...req.body,
       updated_date: new Date().toISOString()
@@ -91,11 +96,18 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'update'), as
         updateData.totalPurchaseAmount !== undefined) {
       try {
         console.log('Inventory payment info changed, updating payables...');
+        console.log('Searching for payables with inventoryId:', id);
         const payablesSnapshot = await db.collection('crm_payables')
           .where('inventoryId', '==', id)
           .where('status', '!=', 'paid')
           .get();
         
+        console.log('Payables query result:', payablesSnapshot.size, 'documents found');
+        if (!payablesSnapshot.empty) {
+            payablesSnapshot.forEach(doc => {
+                console.log('Payable found:', { id: doc.id, data: doc.data() });
+            });
+        }
         if (!payablesSnapshot.empty) {
           console.log(`Found ${payablesSnapshot.size} payables to update`);
           
