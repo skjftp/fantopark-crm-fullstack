@@ -5923,41 +5923,44 @@ if (existingOrder) {
             const updateResponse = await apiCall('/orders/' + existingOrder.id, {
                 method: 'PUT',
                 body: JSON.stringify({
-                    // Keep all existing order data and update with new payment info
-                    ...existingOrder,
-                    
-                    // Payment fields
-                    payment_amount: paymentData.advance_amount,
+    // Start with existing order data
+    ...existingOrder,
+    
+    // Payment fields (will override existing)
+    payment_amount: paymentData.advance_amount,
     payment_method: paymentData.payment_method,
     transaction_id: paymentData.transaction_id,
     payment_date: paymentData.payment_date,
     payment_proof: paymentData.payment_proof,
     payment_status: 'paid',
     
-    // IMPORTANT: Update the display amount field too
-    amount: paymentData.advance_amount,  // This might be what's shown in the table
+    // Amount fields
+    amount: paymentData.advance_amount,
     total_amount: (parseInt(paymentData.invoice_items?.[0]?.quantity || 1) * parseFloat(paymentData.invoice_items?.[0]?.rate || 0)),
     
-    // GST fields (in case they changed)
-    legal_name: paymentData.legal_name || currentLead.legal_name,
-    gstin: paymentData.gstin,
-    registered_address: paymentData.registered_address,
-    category_of_sale: paymentData.category_of_sale,
-    type_of_sale: paymentData.type_of_sale,
-    indian_state: paymentData.indian_state,
+    // GST fields - IMPORTANT: These will override existing values
+    legal_name: paymentData.legal_name || existingOrder.legal_name,
+    gstin: paymentData.gstin || existingOrder.gstin,
+    registered_address: paymentData.registered_address || existingOrder.registered_address,
+    category_of_sale: paymentData.category_of_sale || existingOrder.category_of_sale,
+    type_of_sale: paymentData.type_of_sale || existingOrder.type_of_sale,
+    indian_state: paymentData.indian_state || existingOrder.indian_state,
+    is_outside_india: paymentData.is_outside_india || existingOrder.is_outside_india,
+    gst_certificate: paymentData.gst_certificate || existingOrder.gst_certificate,
+    pan_card: paymentData.pan_card || existingOrder.pan_card,
     
     // Invoice details
-    invoice_items: paymentData.invoice_items,
-    gst_rate: paymentData.gst_rate,
-    service_fee_amount: paymentData.service_fee_amount,
+    invoice_items: paymentData.invoice_items || existingOrder.invoice_items,
+    gst_rate: paymentData.gst_rate || existingOrder.gst_rate,
+    service_fee_amount: paymentData.service_fee_amount || existingOrder.service_fee_amount,
     
-    // Clear any post-service specific fields
+    // Clear post-service fields if this was a post-service order
     expected_amount: null,
     expected_payment_date: null,
-    order_type: 'standard',  // Change from 'payment_post_service' to 'standard'
+    order_type: 'standard',
     
     // Metadata
-    notes: paymentData.notes,
+    notes: paymentData.notes || existingOrder.notes,
     updated_date: new Date().toISOString(),
     updated_by: user.name
 })
