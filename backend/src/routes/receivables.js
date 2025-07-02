@@ -77,3 +77,14 @@ router.put('/record-payment/:id', authenticateToken, async (req, res) => {
 
 
 module.exports = router;
+
+// DELETE receivable
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection(collections.receivables).doc(id).delete();
+    res.json({ message: 'Receivable deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});

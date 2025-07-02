@@ -8720,75 +8720,7 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
         <button onclick="window.deleteAllIndividually('orders')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🗑️ Delete All Orders</button>
         <button onclick="window.deleteAllIndividually('deliveries')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🗑️ Delete All Deliveries</button>
             <button 
-                onclick="if(confirm('Delete all financial records (payables and receivables)?')) {
-                    (async () => {
-                        const authToken = localStorage.getItem('crm_auth_token');
-                        const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
-                        
-                        try {
-                            console.log('Starting to delete all financials...');
-                            
-                            // Get all payables
-                            const payablesResponse = await fetch(`${API_URL}/api/payables`, {
-                                headers: {
-                                    'Authorization': `Bearer ${authToken}`,
-                                    'Content-Type': 'application/json'
-                                }
-                            });
-                            
-                            if (payablesResponse.ok) {
-                                const payablesData = await payablesResponse.json();
-                                const payables = payablesData.data || [];
-                                console.log(`Found ${payables.length} payables to delete`);
-                                
-                                // Delete each payable
-                                for (const payable of payables) {
-                                    await fetch(`${API_URL}/api/payables/${payable.id}`, {
-                                        method: 'DELETE',
-                                        headers: {
-                                            'Authorization': `Bearer ${authToken}`,
-                                            'Content-Type': 'application/json'
-                                        }
-                                    });
-                                    console.log(`Deleted payable: ${payable.id}`);
-                                }
-                            }
-                            
-                            // Get all receivables
-                            const receivablesResponse = await fetch(`${API_URL}/api/receivables`, {
-                                headers: {
-                                    'Authorization': `Bearer ${authToken}`,
-                                    'Content-Type': 'application/json'
-                                }
-                            });
-                            
-                            if (receivablesResponse.ok) {
-                                const receivablesData = await receivablesResponse.json();
-                                const receivables = receivablesData.data || [];
-                                console.log(`Found ${receivables.length} receivables to delete`);
-                                
-                                // Delete each receivable
-                                for (const receivable of receivables) {
-                                    await fetch(`${API_URL}/api/receivables/${receivable.id}`, {
-                                        method: 'DELETE',
-                                        headers: {
-                                            'Authorization': `Bearer ${authToken}`,
-                                            'Content-Type': 'application/json'
-                                        }
-                                    });
-                                    console.log(`Deleted receivable: ${receivable.id}`);
-                                }
-                            }
-                            
-                            alert('All financial records deleted successfully!');
-                            window.location.reload();
-                            
-                        } catch (error) {
-                            console.error('Error deleting financials:', error);
-                            alert('Error deleting financial records: ' + error.message);
-                        }
-                    })();
-                }"
+                onclick="window.deleteAllFinancials()"
                 style="
                     width: 100%;
                     padding: 8px 16px;
@@ -9219,6 +9151,103 @@ window.checkInventoryFields = async function() {
 };
 
 console.log('Test mode functions loaded. Type debugLeads() to see all leads.');
+</script>
+
+<!-- TEMP FINANCIALS DELETE FUNCTION -->
+<script>
+window.deleteAllFinancials = async function() {
+    if (!confirm('Delete all financial records (payables and receivables)?')) return;
+    
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        console.log('Starting to delete all financials...');
+        let deletedPayables = 0;
+        let deletedReceivables = 0;
+        
+        // Delete all payables
+        try {
+            const payablesRes = await fetch(`${API_URL}/api/payables`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (payablesRes.ok) {
+                const payablesData = await payablesRes.json();
+                const payables = payablesData.data || [];
+                console.log(`Found ${payables.length} payables to delete`);
+                
+                for (const payable of payables) {
+                    const delRes = await fetch(`${API_URL}/api/payables/${payable.id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (delRes.ok) {
+                        deletedPayables++;
+                        console.log(`Deleted payable: ${payable.id}`);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Error deleting payables:', e);
+        }
+        
+        // Delete all receivables - FIXED endpoint
+        try {
+            console.log('Fetching receivables...');
+            const receivablesRes = await fetch(`${API_URL}/api/receivables`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log('Receivables response status:', receivablesRes.status);
+            
+            if (receivablesRes.ok) {
+                const receivablesData = await receivablesRes.json();
+                const receivables = receivablesData.data || [];
+                console.log(`Found ${receivables.length} receivables to delete`);
+                
+                // Delete each receivable
+                for (const receivable of receivables) {
+                    console.log(`Deleting receivable: ${receivable.id}`);
+                    const delRes = await fetch(`${API_URL}/api/receivables/${receivable.id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (delRes.ok) {
+                        deletedReceivables++;
+                        console.log(`Successfully deleted receivable: ${receivable.id}`);
+                    } else {
+                        console.error(`Failed to delete receivable ${receivable.id}:`, delRes.status);
+                    }
+                }
+            } else {
+                console.error('Failed to fetch receivables:', receivablesRes.status);
+            }
+        } catch (e) {
+            console.error('Error deleting receivables:', e);
+        }
+        
+        alert(`Financial records deleted!\nPayables: ${deletedPayables}\nReceivables: ${deletedReceivables}`);
+        window.location.reload();
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+    }
+};
 </script>
 
 </body>
@@ -10315,6 +10344,103 @@ turn null;
     }
 };
 
+</script>
+
+<!-- TEMP FINANCIALS DELETE FUNCTION -->
+<script>
+window.deleteAllFinancials = async function() {
+    if (!confirm('Delete all financial records (payables and receivables)?')) return;
+    
+    const authToken = localStorage.getItem('crm_auth_token');
+    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    
+    try {
+        console.log('Starting to delete all financials...');
+        let deletedPayables = 0;
+        let deletedReceivables = 0;
+        
+        // Delete all payables
+        try {
+            const payablesRes = await fetch(`${API_URL}/api/payables`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (payablesRes.ok) {
+                const payablesData = await payablesRes.json();
+                const payables = payablesData.data || [];
+                console.log(`Found ${payables.length} payables to delete`);
+                
+                for (const payable of payables) {
+                    const delRes = await fetch(`${API_URL}/api/payables/${payable.id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (delRes.ok) {
+                        deletedPayables++;
+                        console.log(`Deleted payable: ${payable.id}`);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Error deleting payables:', e);
+        }
+        
+        // Delete all receivables - FIXED endpoint
+        try {
+            console.log('Fetching receivables...');
+            const receivablesRes = await fetch(`${API_URL}/api/receivables`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log('Receivables response status:', receivablesRes.status);
+            
+            if (receivablesRes.ok) {
+                const receivablesData = await receivablesRes.json();
+                const receivables = receivablesData.data || [];
+                console.log(`Found ${receivables.length} receivables to delete`);
+                
+                // Delete each receivable
+                for (const receivable of receivables) {
+                    console.log(`Deleting receivable: ${receivable.id}`);
+                    const delRes = await fetch(`${API_URL}/api/receivables/${receivable.id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (delRes.ok) {
+                        deletedReceivables++;
+                        console.log(`Successfully deleted receivable: ${receivable.id}`);
+                    } else {
+                        console.error(`Failed to delete receivable ${receivable.id}:`, delRes.status);
+                    }
+                }
+            } else {
+                console.error('Failed to fetch receivables:', receivablesRes.status);
+            }
+        } catch (e) {
+            console.error('Error deleting receivables:', e);
+        }
+        
+        alert(`Financial records deleted!\nPayables: ${deletedPayables}\nReceivables: ${deletedReceivables}`);
+        window.location.reload();
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+    }
+};
 </script>
 
 </body>
