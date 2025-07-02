@@ -4,6 +4,8 @@ const { db, collections } = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 
 // GET all payables
+// Test endpoint
+router.get('/test', (req, res) => res.json({ message: 'Payables router is working' }));
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const snapshot = await db.collection('crm_payables').get();
