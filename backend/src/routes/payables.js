@@ -78,31 +78,6 @@ router.delete('/:id', authenticateToken, checkPermission('finance', 'delete'), a
   }
 });
 
-module.exports = router;
-
-// GET payables by inventory ID (for debugging)
-router.get('/by-inventory/:inventoryId', authenticateToken, async (req, res) => {
-  try {
-    const { inventoryId } = req.params;
-    console.log('Searching payables for inventory:', inventoryId);
-    
-    const snapshot = await db.collection('crm_payables')
-      .where('inventoryId', '==', inventoryId)
-      .get();
-    
-    const payables = [];
-    snapshot.forEach(doc => {
-      payables.push({ id: doc.id, ...doc.data() });
-    });
-    
-    console.log(`Found ${payables.length} payables for inventory ${inventoryId}`);
-    res.json({ data: payables });
-  } catch (error) {
-    console.error('Error fetching payables by inventory:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // Diagnostic endpoint to check all payables structure
 router.get('/diagnostic', authenticateToken, async (req, res) => {
   try {
@@ -135,22 +110,49 @@ router.get('/diagnostic', authenticateToken, async (req, res) => {
   }
 });
 
-// Diagnostic endpoint to check all payables structure
-router.get('/diagnostic', authenticateToken, async (req, res) => {
+module.exports = router;
+
+// GET payables by inventory ID (for debugging)
+router.get('/by-inventory/:inventoryId', authenticateToken, async (req, res) => {
   try {
-    const snapshot = await db.collection('crm_payables').get();
-    const payables = [];
+    const { inventoryId } = req.params;
+    console.log('Searching payables for inventory:', inventoryId);
     
+    const snapshot = await db.collection('crm_payables')
+      .where('inventoryId', '==', inventoryId)
+      .get();
+    
+    const payables = [];
     snapshot.forEach(doc => {
-      const data = doc.data();
-      payables.push({
-        id: doc.id,
-        hasInventoryId: !!data.inventoryId,
-        inventoryId: data.inventoryId || 'NOT SET',
-        amount: data.amount,
-        status: data.status,
-        supplierName: data.supplierName
-      });
+      payables.push({ id: doc.id, ...doc.data() });
+    });
+    
+    console.log(`Found ${payables.length} payables for inventory ${inventoryId}`);
+    res.json({ data: payables });
+  } catch (error) {
+    console.error('Error fetching payables by inventory:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+    });
+    
+    const summary = {
+      total: payables.length,
+      withInventoryId: payables.filter(p => p.hasInventoryId).length,
+      withoutInventoryId: payables.filter(p => !p.hasInventoryId).length,
+      payables: payables
+    };
+    
+    console.log('Payables diagnostic:', summary);
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
     });
     
     const summary = {
