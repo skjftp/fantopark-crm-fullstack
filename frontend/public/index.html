@@ -7243,6 +7243,7 @@ React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
         const totalTax = gstCalculation.cgst + gstCalculation.sgst + gstCalculation.igst;
         const finalAmount = baseAmount + totalTax;
         const advanceAmount = parseFloat(paymentData.advance_amount) || 0;
+        const isReceivablePayment = paymentData.from_receivable || paymentData.payment_post_service;
         
         return React.createElement('div', { className: 'space-y-2 text-sm' },
             React.createElement('div', { className: 'flex justify-between' },
@@ -7278,13 +7279,17 @@ React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
                 React.createElement('span', { className: 'font-bold' }, 'Final Invoice Amount:'),
                 React.createElement('span', { className: 'font-bold text-green-600' }, '₹', formatCurrency(finalAmount))
             ),
-            React.createElement('div', { className: 'flex justify-between border-t pt-2' },
+            !isReceivablePayment && React.createElement('div', { className: 'flex justify-between border-t pt-2' },
                 React.createElement('span', { className: 'font-semibold' }, 'Advance Received:'),
                 React.createElement('span', { className: 'font-semibold text-blue-600' }, '₹', formatCurrency(advanceAmount))
             ),
-            React.createElement('div', { className: 'flex justify-between' },
+            !isReceivablePayment && React.createElement('div', { className: 'flex justify-between' },
                 React.createElement('span', { className: 'font-bold' }, 'Balance Due:'),
                 React.createElement('span', { className: 'font-bold text-orange-600' }, '₹', formatCurrency(finalAmount - advanceAmount))
+            ),
+            isReceivablePayment && React.createElement('div', { className: 'flex justify-between border-t pt-2' },
+                React.createElement('span', { className: 'font-bold' }, 'Payment Being Collected:'),
+                React.createElement('span', { className: 'font-bold text-green-600' }, '₹', formatCurrency(advanceAmount))
             )
         );
     })()
