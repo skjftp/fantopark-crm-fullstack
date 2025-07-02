@@ -4582,11 +4582,37 @@ const openInvoicePreview = (invoice) => {
 
 const renderGSTInvoicePreview = () => {
     if (!showInvoicePreview || !currentInvoice) return null;
-
     const invoice = currentInvoice;
     const isIntraState = invoice.indian_state === 'Haryana' && !invoice.is_outside_india;
-
-    return React.createElement('div', { 
+    
+    // Calculate GST values (same logic as payment form)
+    const gstRate = invoice.type_of_sale === 'Tour' ? 5 : 18;
+    
+    const invoiceTotal = invoice.invoice_items?.reduce((sum, item) => 
+        sum + ((item.quantity || 0) * (item.rate || 0)), 0
+    ) || 0;
+    
+    const baseAmount = invoice.type_of_sale === 'Service Fee' 
+        ? (parseFloat(invoice.service_fee_amount) || 0)
+        : invoiceTotal;
+    
+    // Calculate GST amounts
+    const gstAmount = (baseAmount * gstRate) / 100;
+    const cgstAmount = isIntraState ? gstAmount / 2 : 0;
+    const sgstAmount = isIntraState ? gstAmount / 2 : 0;
+    const igstAmount = !isIntraState ? gstAmount : 0;
+    const tcsAmount = 0; // TCS calculation if needed
+    
+    // Update invoice with calculated values
+    invoice.gst_calculation = {
+        cgst: cgstAmount,
+        sgst: sgstAmount,
+        igst: igstAmount
+    };
+    invoice.total_tax = gstAmount;
+    invoice.final_amount = baseAmount + gstAmount;
+    
+    return React.createElement('div', {
         className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-backdrop',
         onClick: (e) => e.target === e.currentTarget && closeForm()
     },
