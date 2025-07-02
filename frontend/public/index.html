@@ -8719,6 +8719,97 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
         <button onclick="window.deleteAllIndividually('inventory')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🗑️ Delete All Inventory</button>
         <button onclick="window.deleteAllIndividually('orders')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🗑️ Delete All Orders</button>
         <button onclick="window.deleteAllIndividually('deliveries')" style="display:block; width:100%; margin:5px 0; padding:8px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🗑️ Delete All Deliveries</button>
+            <button 
+                onclick="if(confirm('Delete all financial records (payables and receivables)?')) {
+                    (async () => {
+                        const authToken = localStorage.getItem('crm_auth_token');
+                        const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+                        
+                        try {
+                            console.log('Starting to delete all financials...');
+                            
+                            // Get all payables
+                            const payablesResponse = await fetch(`${API_URL}/api/payables`, {
+                                headers: {
+                                    'Authorization': `Bearer ${authToken}`,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            
+                            if (payablesResponse.ok) {
+                                const payablesData = await payablesResponse.json();
+                                const payables = payablesData.data || [];
+                                console.log(`Found ${payables.length} payables to delete`);
+                                
+                                // Delete each payable
+                                for (const payable of payables) {
+                                    await fetch(`${API_URL}/api/payables/${payable.id}`, {
+                                        method: 'DELETE',
+                                        headers: {
+                                            'Authorization': `Bearer ${authToken}`,
+                                            'Content-Type': 'application/json'
+                                        }
+                                    });
+                                    console.log(`Deleted payable: ${payable.id}`);
+                                }
+                            }
+                            
+                            // Get all receivables
+                            const receivablesResponse = await fetch(`${API_URL}/api/receivables`, {
+                                headers: {
+                                    'Authorization': `Bearer ${authToken}`,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            
+                            if (receivablesResponse.ok) {
+                                const receivablesData = await receivablesResponse.json();
+                                const receivables = receivablesData.data || [];
+                                console.log(`Found ${receivables.length} receivables to delete`);
+                                
+                                // Delete each receivable
+                                for (const receivable of receivables) {
+                                    await fetch(`${API_URL}/api/receivables/${receivable.id}`, {
+                                        method: 'DELETE',
+                                        headers: {
+                                            'Authorization': `Bearer ${authToken}`,
+                                            'Content-Type': 'application/json'
+                                        }
+                                    });
+                                    console.log(`Deleted receivable: ${receivable.id}`);
+                                }
+                            }
+                            
+                            alert('All financial records deleted successfully!');
+                            window.location.reload();
+                            
+                        } catch (error) {
+                            console.error('Error deleting financials:', error);
+                            alert('Error deleting financial records: ' + error.message);
+                        }
+                    })();
+                }"
+                style="
+                    width: 100%;
+                    padding: 8px 16px;
+                    background-color: #dc2626;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 500;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    transition: background-color 0.2s;
+                "
+                onmouseover="this.style.backgroundColor='#b91c1c'"
+                onmouseout="this.style.backgroundColor='#dc2626'"
+            >
+                🗑️ Delete All Financials
+            </button>
     </div>
     <hr style="margin:10px 0; border:none; border-top:1px solid #4b5563;">
     <button onclick="window.location.reload();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🔄 Refresh Page</button>
