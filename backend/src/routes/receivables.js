@@ -100,3 +100,29 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
 // THIS MUST BE LAST!
 module.exports = router;
+
+// PUT update receivable (for partial payments)
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const receivableRef = db.collection(collections.receivables).doc(id);
+    const receivable = await receivableRef.get();
+    
+    if (!receivable.exists) {
+      return res.status(404).json({ error: 'Receivable not found' });
+    }
+    
+    const updateData = {
+      ...req.body,
+      updated_date: new Date().toISOString(),
+      updated_by: req.user.email
+    };
+    
+    await receivableRef.update(updateData);
+    
+    res.json({ data: { id, ...receivable.data(), ...updateData } });
+  } catch (error) {
+    console.error('Error updating receivable:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
