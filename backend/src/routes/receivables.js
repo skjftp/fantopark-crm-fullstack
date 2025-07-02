@@ -74,6 +74,40 @@ router.put('/record-payment/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// PUT update receivable (for partial payments and general updates)
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const receivableRef = db.collection(collections.receivables).doc(id);
+    const receivable = await receivableRef.get();
+    
+    if (!receivable.exists) {
+      return res.status(404).json({ error: 'Receivable not found' });
+    }
+    
+    // Update with provided data plus metadata
+    const updateData = {
+      ...req.body,
+      updated_date: new Date().toISOString(),
+      updated_by: req.user.email
+    };
+    
+    await receivableRef.update(updateData);
+    
+    // Return updated receivable
+    res.json({ 
+      data: { 
+        id, 
+        ...receivable.data(), 
+        ...updateData 
+      } 
+    });
+  } catch (error) {
+    console.error('Error updating receivable:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // DELETE receivable - THIS MUST BE BEFORE module.exports!
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
