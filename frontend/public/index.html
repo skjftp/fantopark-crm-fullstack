@@ -2562,7 +2562,9 @@ const collectPostServicePayment = (receivable) => {
             ...paymentData,
             advance_amount: receivable.expected_amount,
             payment_post_service: true,
-            receivable_id: receivable.id
+            from_receivable: true,
+            receivable_id: receivable.id,
+            receivable_amount: receivable.expected_amount || receivable.balance_amount || receivable.amount || 0
         });
         setShowPaymentForm(true);
     }
