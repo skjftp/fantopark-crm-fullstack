@@ -6129,7 +6129,7 @@ console.log('Order update response:', updateResponse);
                     // Partial payment - ask user what to do
                     const remainingAmount = finalInvoiceAmount - paidAmount;
                     const userChoice = confirm(
-                        `You are receiving only partial payment of ₹${paidAmount.toFixed(2)} out of ₹${receivableAmount.toFixed(2)}.
+                        `You are receiving only partial payment of ₹${paidAmount.toFixed(2)} out of ₹${finalInvoiceAmount.toFixed(2)} (inclusive of GST).
 
 ` +
                         `Remaining balance: ₹${remainingAmount.toFixed(2)}
