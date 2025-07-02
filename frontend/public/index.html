@@ -5966,6 +5966,11 @@ if (existingOrder) {
                 await updateLeadStatus(currentLead.id, 'payment_received');
             }
             
+            // Update lead status if this is payment collection after service
+            if (paymentData.payment_post_service || currentLead.status === 'payment_post_service') {
+                await updateLeadStatus(currentLead.id, 'payment_received');
+            }
+            
             setLoading(false);
             alert(paymentData.payment_post_service 
                 ? 'Payment collected successfully! Invoice can now be generated.' 
