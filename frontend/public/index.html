@@ -3152,12 +3152,10 @@ const renderReceivablesTab = (receivables) => {
                                         className: isOverdue ? 'text-red-600' : 'text-green-600'
                                     }, isOverdue ? `${Math.abs(daysDiff)} days overdue` : daysDiff === 0 ? 'Due today' : `Not due`)
                                 ),
-                                React.createElement('td', { className: 'px-4 py-3' },
-                                    React.createElement('button', {
-                                        className: 'text-blue-600 hover:text-blue-900 text-sm',
-                                        onClick: () => window.location.href = '#'
-                                    }, 'Mark Payment')
-                                )
+React.createElement('button', {
+    className: 'text-blue-600 hover:text-blue-800',
+    onClick: () => handleMarkPaymentFromReceivable(receivable)
+}, 'Mark Payment')
                             );
                         }) : React.createElement('tr', null,
                             React.createElement('td', { 
