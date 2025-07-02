@@ -2955,6 +2955,27 @@ const closeForm = () => {
                         )).toLocaleString()
                     )
                 ),
+
+            // Diagnostic Button
+            React.createElement('div', { className: 'bg-orange-50 dark:bg-orange-900 p-4 rounded-lg cursor-pointer hover:bg-orange-100' },
+                React.createElement('button', {
+                    onClick: async () => {
+                        try {
+                            const response = await apiCall('/payables/diagnostic');
+                            console.log('=== PAYABLES DIAGNOSTIC ===');
+                            console.log(response);
+                            alert('Payables Diagnostic:\n\nTotal: ' + response.total + '\nWith Inventory ID: ' + response.withInventoryId + '\nWithout Inventory ID: ' + response.withoutInventoryId + '\n\nCheck console for details.');
+                        } catch (error) {
+                            console.error('Diagnostic failed:', error);
+                            alert('Diagnostic failed. Check console for error.');
+                        }
+                    },
+                    className: 'w-full text-left'
+                },
+                    React.createElement('h3', { className: 'text-sm font-medium text-orange-800 dark:text-orange-200' }, '🔍 Diagnostic Tool'),
+                    React.createElement('p', { className: 'text-sm text-orange-600' }, 'Check payables structure')
+                )
+            ),
                 // Expiring Inventory Card
                 React.createElement('div', { className: 'bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg' },
                     React.createElement('h3', { className: 'text-sm font-medium text-yellow-800 dark:text-yellow-200' }, 'Expiring Inventory Value'),
