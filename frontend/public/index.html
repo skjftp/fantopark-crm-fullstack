@@ -2327,7 +2327,11 @@ const handleMarkPaymentFromReceivable = async (receivable) => {
                         ...prev,
                         payment_post_service: true,
                         advance_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || ''
-                    }));
+                    ,
+                from_receivable: true,
+                receivable_id: receivable.id,
+                receivable_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || 0
+            }));
                     return;
                 }
             }
@@ -2353,6 +2357,10 @@ const handleMarkPaymentFromReceivable = async (receivable) => {
                 ...prev,
                 payment_post_service: true,
                 advance_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || ''
+            ,
+                from_receivable: true,
+                receivable_id: receivable.id,
+                receivable_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || 0
             }));
         } catch (error) {
             console.error('Error fetching lead:', error);
@@ -2365,7 +2373,11 @@ const handleMarkPaymentFromReceivable = async (receivable) => {
             ...prev,
             payment_post_service: true,
             advance_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || ''
-        }));
+        ,
+                from_receivable: true,
+                receivable_id: receivable.id,
+                receivable_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || 0
+            }));
     }
 };
     
@@ -6076,6 +6088,106 @@ console.log('Order update response:', updateResponse);
             // Update lead status if this is payment collection after service
             if (paymentData.payment_post_service || currentLead.status === 'payment_post_service') {
                 await updateLeadStatus(currentLead.id, 'payment_received');
+            }
+            
+            // Handle receivable updates/deletion if payment is from receivables
+            if (paymentData.from_receivable && paymentData.receivable_id) {
+                const paidAmount = parseFloat(paymentData.advance_amount) || 0;
+                const receivableAmount = parseFloat(paymentData.receivable_amount) || 0;
+                
+                if (paidAmount >= receivableAmount) {
+                    // Full payment - delete the receivable
+                    try {
+                        await apiCall('/receivables/' + paymentData.receivable_id, {
+                            method: 'DELETE'
+                        });
+                        // Remove from local state
+                        if (typeof setReceivables === 'function') {
+                            setReceivables(prev => prev.filter(r => r.id !== paymentData.receivable_id));
+                        }
+                        console.log('Receivable deleted after full payment');
+                    } catch (error) {
+                        console.error('Failed to delete receivable:', error);
+                    }
+                } else {
+                    // Partial payment - ask user what to do
+                    const remainingAmount = receivableAmount - paidAmount;
+                    const userChoice = confirm(
+                        `You are receiving only partial payment of ₹${paidAmount.toFixed(2)} out of ₹${receivableAmount.toFixed(2)}.
+
+` +
+                        `Remaining balance: ₹${remainingAmount.toFixed(2)}
+
+` +
+                        `Click OK to update this receivable with the balance payment.
+` +
+                        `Click Cancel to mark this receivable as closed and update the order value.`
+                    );
+                    
+                    if (userChoice) {
+                        // Update receivable with remaining amount
+                        try {
+                            await apiCall('/receivables/' + paymentData.receivable_id, {
+                                method: 'PUT',
+                                body: JSON.stringify({
+                                    balance_amount: remainingAmount,
+                                    amount: remainingAmount,
+                                    expected_amount: remainingAmount,
+                                    partial_payment_received: paidAmount,
+                                    last_payment_date: new Date().toISOString(),
+                                    updated_date: new Date().toISOString()
+                                })
+                            });
+                            // Update local state
+                            if (typeof setReceivables === 'function') {
+                                setReceivables(prev => prev.map(r => 
+                                    r.id === paymentData.receivable_id 
+                                        ? { ...r, balance_amount: remainingAmount, amount: remainingAmount }
+                                        : r
+                                ));
+                            }
+                            alert(`Receivable updated with remaining balance of ₹${remainingAmount.toFixed(2)}`);
+                        } catch (error) {
+                            console.error('Failed to update receivable:', error);
+                            alert('Failed to update receivable with remaining balance');
+                        }
+                    } else {
+                        // Close receivable and update order total
+                        try {
+                            // Delete the receivable
+                            await apiCall('/receivables/' + paymentData.receivable_id, {
+                                method: 'DELETE'
+                            });
+                            
+                            // Update the order with the actual paid amount
+                            await apiCall('/orders/' + existingOrderId, {
+                                method: 'PUT',
+                                body: JSON.stringify({
+                                    total_amount: paidAmount,
+                                    original_amount: receivableAmount,
+                                    amount_adjusted: true,
+                                    adjustment_reason: 'Partial payment accepted',
+                                    updated_date: new Date().toISOString()
+                                })
+                            });
+                            
+                            // Update local states
+                            if (typeof setReceivables === 'function') {
+                                setReceivables(prev => prev.filter(r => r.id !== paymentData.receivable_id));
+                            }
+                            setOrders(prev => prev.map(o => 
+                                o.id === existingOrderId 
+                                    ? { ...o, total_amount: paidAmount, amount_adjusted: true }
+                                    : o
+                            ));
+                            
+                            alert(`Receivable closed. Order value updated to ₹${paidAmount.toFixed(2)}`);
+                        } catch (error) {
+                            console.error('Failed to close receivable:', error);
+                            alert('Failed to close receivable');
+                        }
+                    }
+                }
             }
             
             setLoading(false);
