@@ -134,3 +134,35 @@ router.get('/diagnostic', authenticateToken, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Diagnostic endpoint to check all payables structure
+router.get('/diagnostic', authenticateToken, async (req, res) => {
+  try {
+    const snapshot = await db.collection('crm_payables').get();
+    const payables = [];
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      payables.push({
+        id: doc.id,
+        hasInventoryId: !!data.inventoryId,
+        inventoryId: data.inventoryId || 'NOT SET',
+        amount: data.amount,
+        status: data.status,
+        supplierName: data.supplierName
+      });
+    });
+    
+    const summary = {
+      total: payables.length,
+      withInventoryId: payables.filter(p => p.hasInventoryId).length,
+      withoutInventoryId: payables.filter(p => !p.hasInventoryId).length,
+      payables: payables
+    };
+    
+    console.log('Payables diagnostic:', summary);
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
