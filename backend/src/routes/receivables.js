@@ -17,6 +17,19 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+// GET single receivable
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const doc = await db.collection(collections.receivables).doc(req.params.id).get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Receivable not found' });
+    }
+    res.json({ id: doc.id, ...doc.data() });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // POST create receivable
 router.post('/', authenticateToken, async (req, res) => {
   try {
@@ -32,59 +45,88 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
+// PUT update receivable
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = {
+      ...req.body,
+      updated_date: new Date().toISOString()
+    };
+    
+    await db.collection(collections.receivables).doc(id).update(updateData);
+    res.json({ id, ...updateData });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // PUT record payment for receivable
 router.put('/record-payment/:id', authenticateToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { payment_amount, payment_date, payment_mode, transaction_id } = req.body;
-        
-        const receivableRef = db.collection('crm_receivables').doc(id);
-        const receivable = await receivableRef.get();
-        
-        if (!receivable.exists) {
-            return res.status(404).json({ error: 'Receivable not found' });
-        }
-        
-        const data = receivable.data();
-        const updateData = {
-            status: 'paid',
-            payment_amount: payment_amount || data.expected_amount,
-            payment_date: payment_date || new Date().toISOString(),
-            payment_mode: payment_mode || 'bank_transfer',
-            transaction_id: transaction_id || '',
-            updated_at: new Date().toISOString(),
-            updated_by: req.user.email
-        };
-        
-        await receivableRef.update(updateData);
-        
-        // Update the related order if exists
-        if (data.order_id) {
-            await db.collection('crm_orders').doc(data.order_id).update({
-                payment_status: 'paid',
-                status: 'completed',
-                payment_date: updateData.payment_date
-            });
-        }
-        
-        res.json({ id, ...data, ...updateData });
-    } catch (error) {
-        console.error('Error recording payment:', error);
-        res.status(500).json({ error: 'Failed to record payment' });
+  try {
+    const { id } = req.params;
+    const { payment_amount, payment_date, payment_mode, transaction_id } = req.body;
+    
+    const receivableRef = db.collection(collections.receivables).doc(id);
+    const receivable = await receivableRef.get();
+    
+    if (!receivable.exists) {
+      return res.status(404).json({ error: 'Receivable not found' });
     }
+    
+    const data = receivable.data();
+    const updateData = {
+      status: 'paid',
+      payment_amount: payment_amount || data.expected_amount,
+      payment_date: payment_date || new Date().toISOString(),
+      payment_mode: payment_mode || 'bank_transfer',
+      transaction_id: transaction_id || '',
+      updated_at: new Date().toISOString(),
+      updated_by: req.user.email
+    };
+    
+    await receivableRef.update(updateData);
+    
+    // Update the related order if exists
+    if (data.order_id) {
+      await db.collection('crm_orders').doc(data.order_id).update({
+        payment_status: 'paid',
+        status: 'completed',
+        payment_date: updateData.payment_date
+      });
+    }
+    
+    res.json({ id, ...data, ...updateData });
+  } catch (error) {
+    console.error('Error recording payment:', error);
+    res.status(500).json({ error: 'Failed to record payment' });
+  }
 });
-
-
-module.exports = router;
 
 // DELETE receivable
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    await db.collection(collections.receivables).doc(id).delete();
-    res.json({ message: 'Receivable deleted successfully' });
+    console.log(`Attempting to delete receivable: ${id}`);
+    
+    // Check if receivable exists
+    const receivableRef = db.collection(collections.receivables).doc(id);
+    const receivable = await receivableRef.get();
+    
+    if (!receivable.exists) {
+      console.log(`Receivable not found: ${id}`);
+      return res.status(404).json({ error: 'Receivable not found' });
+    }
+    
+    // Delete the receivable
+    await receivableRef.delete();
+    
+    console.log(`Successfully deleted receivable: ${id}`);
+    res.json({ message: 'Receivable deleted successfully', id });
   } catch (error) {
+    console.error('Error deleting receivable:', error);
     res.status(500).json({ error: error.message });
   }
 });
+
+module.exports = router;
