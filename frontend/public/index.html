@@ -2286,7 +2286,7 @@ const fetchMyActions = async () => {
         // GST and Legal details
         gstin: '',
         legal_name: lead.name || '',
-        category_of_sale: currentLead.business_type || 'B2C', // B2B/B2C from lead
+        category_of_sale: currentLead?.business_type || 'B2C', // B2B/B2C from lead
         type_of_sale: 'Tour', // Tour or Service Fee
         registered_address: '',
         indian_state: 'Haryana',
@@ -5918,11 +5918,14 @@ const handleAssignLead = async (e) => {
             order.lead_id === currentLead.id && 
             order.status !== 'rejected'
         );
-        if (existingOrder) {
+if (existingOrder) {
             // UPDATE existing order
             const updateResponse = await apiCall('/orders/' + existingOrder.id, {
                 method: 'PUT',
                 body: JSON.stringify({
+                    // Keep all existing order data and update with new payment info
+                    ...existingOrder,
+                    
                     // Payment fields
                     payment_amount: paymentData.advance_amount,
                     payment_method: paymentData.payment_method,
@@ -5958,8 +5961,16 @@ const handleAssignLead = async (e) => {
                 o.id === existingOrder.id ? {...o, ...updateResponse.data} : o
             ));
             
+            // IMPORTANT: Update lead status for payment_post_service to payment_received
+            if (paymentData.payment_post_service) {
+                await updateLeadStatus(currentLead.id, 'payment_received');
+            }
+            
             setLoading(false);
-            alert('Payment updated successfully!');
+            alert(paymentData.payment_post_service 
+                ? 'Payment collected successfully! Invoice can now be generated.' 
+                : 'Payment updated successfully!'
+            );
             closeForm();
             return; // Exit here, don't create new order
         }
