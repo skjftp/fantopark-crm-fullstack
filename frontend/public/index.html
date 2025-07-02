@@ -13,7 +13,7 @@
     <!-- API Configuration -->
     <script>
         // Configure API endpoint
-        const API_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname.includes("8000")) ? "http://localhost:8080/api" : "https://fantopark-backend-ofkn6rpg3a-uc.a.run.app/api";
+        const API_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname.includes("8000")) ? "http://localhost:8080/api" : "https://fantopark-backend-150582227311.us-central1.run.app/api";
         // Get stored auth token
         let authToken = localStorage.getItem("crm_auth_token");
         
@@ -9171,7 +9171,7 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
         <h4 style="margin:5px 0; font-size:14px; color:#f59e0b;">Create Test Data:</h4>
         <button onclick="(async function() {
             const authToken = localStorage.getItem('crm_auth_token');
-            const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+            const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
             
             try {
                 // Get today's date in YYYY-MM-DD format
@@ -9266,7 +9266,7 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
         })();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🧪 Create Test Lead</button>
         <button onclick="(async function() {
             const authToken = localStorage.getItem('crm_auth_token');
-            const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+            const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
             
             try {
                 const testData = {
@@ -9367,7 +9367,7 @@ window.updateTestPanel = function() {
 // Delete all function
 window.testDeleteAll = async function(type) {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         const response = await fetch(API_URL + '/api/' + type, {
@@ -9412,7 +9412,7 @@ window.fillTestLead = function() {
         
         // Call the API directly
         const authToken = localStorage.getItem('crm_auth_token');
-        const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+        const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
         
         fetch(API_URL + '/api/leads', {
             method: 'POST',
@@ -9447,7 +9447,7 @@ window.fillTestInventory = function() {
         };
         
         const authToken = localStorage.getItem('crm_auth_token');
-        const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+        const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
         
         fetch(API_URL + '/api/inventory', {
             method: 'POST',
@@ -9478,7 +9478,7 @@ window.deleteAllIndividually = async function(type) {
     }
     
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         // Show loading
@@ -9613,7 +9613,7 @@ window.oldCreateTestLead = async function() {
     }
     
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     console.log('Creating lead with data:', testData);
     console.log('Date of enquiry:', testData.date_of_enquiry);
@@ -9658,7 +9658,7 @@ window.oldCreateTestInventory = async function() {
     };
     
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         const response = await fetch(API_URL + '/api/inventory', {
@@ -9689,7 +9689,7 @@ window.oldCreateTestInventory = async function() {
 // Debug function
 window.debugLeads = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     const response = await fetch(API_URL + '/api/leads', {
         method: 'GET',
@@ -9737,7 +9737,7 @@ setTimeout(() => {
 // Debug function to see inventory structure
 window.checkInventoryFields = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     const response = await fetch(API_URL + '/api/inventory', {
         method: 'GET',
@@ -9765,7 +9765,7 @@ window.deleteAllFinancials = async function() {
     if (!confirm('Delete all financial records (payables and receivables)?')) return;
     
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         console.log('Starting to delete all financials...');
@@ -9881,7 +9881,7 @@ window.updateTestPanel = function() {
 // Delete all function
 window.testDeleteAll = async function(type) {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         const response = await fetch(API_URL + '/api/' + type, {
@@ -9926,7 +9926,7 @@ window.fillTestLead = function() {
         
         // Call the API directly
         const authToken = localStorage.getItem('crm_auth_token');
-        const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+        const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
         
         fetch(API_URL + '/api/leads', {
             method: 'POST',
@@ -9961,7 +9961,7 @@ window.fillTestInventory = function() {
         };
         
         const authToken = localStorage.getItem('crm_auth_token');
-        const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+        const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
         
         fetch(API_URL + '/api/inventory', {
             method: 'POST',
@@ -9992,7 +9992,7 @@ window.deleteAllIndividually = async function(type) {
     }
     
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         // Show loading
@@ -10096,7 +10096,7 @@ window.oldCreateTestLead = async function() {
     };
     
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         const response = await fetch(API_URL + '/api/leads', {
@@ -10138,7 +10138,7 @@ window.oldCreateTestInventory = async function() {
     };
     
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         const response = await fetch(API_URL + '/api/inventory', {
@@ -10169,7 +10169,7 @@ window.oldCreateTestInventory = async function() {
 // Debug function
 window.debugLeads = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     const response = await fetch(API_URL + '/api/leads', {
         method: 'GET',
@@ -10217,7 +10217,7 @@ setTimeout(() => {
 // Debug function to see inventory structure
 window.checkInventoryFields = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     const response = await fetch(API_URL + '/api/inventory', {
         method: 'GET',
@@ -10257,7 +10257,7 @@ window.testDateFormat = function() {
 // Function to manually create a lead with custom data
 window.createCustomLead = async function(leadData) {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     console.log('Creating lead with custom data:', leadData);
     
@@ -10293,7 +10293,7 @@ window.createCustomLead = async function(leadData) {
 // Analyze existing lead structure
 window.analyzeLeadStructure = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         // Get existing leads
@@ -10335,7 +10335,7 @@ window.analyzeLeadStructure = async function() {
 // Create lead with minimal required fields
 window.createMinimalLead = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     // Start with absolute minimum fields
     const minimalData = {
@@ -10379,7 +10379,7 @@ window.createMinimalLead = async function() {
 // Fixed create test lead based on backend requirements
 window.oldCreateTestLead = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     // First analyze existing lead to understand structure
     console.log('Analyzing existing lead structure...');
@@ -10475,7 +10475,7 @@ window.oldCreateTestLead = async function() {
 // Create test lead following form business logic
 window.oldCreateTestLead = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         // First, get the active events (same as form does)
@@ -10635,7 +10635,7 @@ window.checkFormOptions = function() {
 // Create test inventory following form business logic
 window.oldCreateTestInventory = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         // First check existing inventory to understand structure
@@ -10786,7 +10786,7 @@ window.oldCreateTestInventory = async function() {
 // Function to analyze inventory fields
 window.analyzeInventoryStructure = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         const response = await fetch(API_URL + '/api/inventory', {
@@ -10819,7 +10819,7 @@ window.analyzeInventoryStructure = async function() {
 // Test functions with correct field names from your actual forms
 window.createTestInventory = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         // Using exact field names from inventoryFormFields
@@ -10889,7 +10889,7 @@ window.createTestInventory = async function() {
 
 window.createTestLead = async function() {
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         // Using exact field names from leadFormFields
@@ -10958,7 +10958,7 @@ window.deleteAllFinancials = async function() {
     if (!confirm('Delete all financial records (payables and receivables)?')) return;
     
     const authToken = localStorage.getItem('crm_auth_token');
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
     
     try {
         console.log('Starting to delete all financials...');
