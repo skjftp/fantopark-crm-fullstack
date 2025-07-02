@@ -5928,33 +5928,39 @@ if (existingOrder) {
                     
                     // Payment fields
                     payment_amount: paymentData.advance_amount,
-                    payment_method: paymentData.payment_method,
-                    transaction_id: paymentData.transaction_id,
-                    payment_date: paymentData.payment_date,
-                    payment_proof: paymentData.payment_proof,
-                    payment_status: 'paid',
-                    
-                    // GST fields (in case they changed)
-                    legal_name: paymentData.legal_name || currentLead.legal_name,
-                    gstin: paymentData.gstin,
-                    registered_address: paymentData.registered_address,
-                    category_of_sale: paymentData.category_of_sale,
-                    type_of_sale: paymentData.type_of_sale,
-                    indian_state: paymentData.indian_state,
-                    
-                    // Invoice details
-                    invoice_items: paymentData.invoice_items,
-                    gst_rate: paymentData.gst_rate,
-                    service_fee_amount: paymentData.service_fee_amount,
-                    
-                    // Update total amount
-                    total_amount: (parseInt(paymentData.invoice_items?.[0]?.quantity || 1) * parseFloat(paymentData.invoice_items?.[0]?.rate || 0)),
-                    
-                    // Metadata
-                    notes: paymentData.notes,
-                    updated_date: new Date().toISOString(),
-                    updated_by: user.name
-                })
+    payment_method: paymentData.payment_method,
+    transaction_id: paymentData.transaction_id,
+    payment_date: paymentData.payment_date,
+    payment_proof: paymentData.payment_proof,
+    payment_status: 'paid',
+    
+    // IMPORTANT: Update the display amount field too
+    amount: paymentData.advance_amount,  // This might be what's shown in the table
+    total_amount: (parseInt(paymentData.invoice_items?.[0]?.quantity || 1) * parseFloat(paymentData.invoice_items?.[0]?.rate || 0)),
+    
+    // GST fields (in case they changed)
+    legal_name: paymentData.legal_name || currentLead.legal_name,
+    gstin: paymentData.gstin,
+    registered_address: paymentData.registered_address,
+    category_of_sale: paymentData.category_of_sale,
+    type_of_sale: paymentData.type_of_sale,
+    indian_state: paymentData.indian_state,
+    
+    // Invoice details
+    invoice_items: paymentData.invoice_items,
+    gst_rate: paymentData.gst_rate,
+    service_fee_amount: paymentData.service_fee_amount,
+    
+    // Clear any post-service specific fields
+    expected_amount: null,
+    expected_payment_date: null,
+    order_type: 'standard',  // Change from 'payment_post_service' to 'standard'
+    
+    // Metadata
+    notes: paymentData.notes,
+    updated_date: new Date().toISOString(),
+    updated_by: user.name
+})
             });
             
             setOrders(prev => prev.map(o => 
