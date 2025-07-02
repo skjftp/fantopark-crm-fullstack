@@ -6046,7 +6046,8 @@ console.log('Updating order with GST details:', {
     
     // Amount fields
     amount: paymentData.advance_amount,
-    total_amount: (parseInt(paymentData.invoice_items?.[0]?.quantity || 1) * parseFloat(paymentData.invoice_items?.[0]?.rate || 0)),
+    total_amount: existingOrder.total_amount || existingOrder.final_amount, // Preserve original GST-inclusive amount
+    final_amount: existingOrder.final_amount || existingOrder.total_amount, // Ensure final_amount is set
     
     // GST fields - IMPORTANT: These will override existing values
     legal_name: paymentData.legal_name || existingOrder.legal_name,
@@ -6061,6 +6062,10 @@ console.log('Updating order with GST details:', {
     
     // Invoice details
     invoice_items: paymentData.invoice_items || existingOrder.invoice_items,
+    base_amount: existingOrder.base_amount,
+    gst_calculation: existingOrder.gst_calculation,
+    total_tax: existingOrder.total_tax,
+    final_amount: existingOrder.final_amount || existingOrder.total_amount,
     gst_rate: paymentData.gst_rate || existingOrder.gst_rate,
     service_fee_amount: paymentData.service_fee_amount || existingOrder.service_fee_amount,
     
