@@ -2925,6 +2925,67 @@ const handleMarkPaymentFromReceivable = async (receivable) => {
         setFormData(inventoryItem);
         setShowEditInventoryForm(true);
     };
+
+    // Add this right after the openEditInventoryForm function
+const handleEditInventory = async (inventoryData) => {
+    try {
+        setLoading(true);
+        
+        console.log('Updating inventory with data:', inventoryData);
+        
+        // Validate payment amounts
+        const totalAmount = parseFloat(inventoryData.totalPurchaseAmount || 0);
+        const amountPaid = parseFloat(inventoryData.amountPaid || 0);
+        
+        if (amountPaid > totalAmount) {
+            alert('Amount paid cannot be greater than total purchase amount.');
+            setLoading(false);
+            return;
+        }
+        
+        // Auto-set payment status
+        if (amountPaid >= totalAmount) {
+            inventoryData.paymentStatus = 'paid';
+        } else if (amountPaid > 0) {
+            inventoryData.paymentStatus = 'partial';
+        } else {
+            inventoryData.paymentStatus = 'pending';
+        }
+        
+        // Update inventory (this will automatically sync payables via backend)
+        const response = await apiCall(`/inventory/${editingInventory.id}`, {
+            method: 'PUT',
+            body: JSON.stringify(inventoryData)
+        });
+
+        if (response.error) {
+            throw new Error(response.error);
+        }
+
+        // Update local state
+        setInventory(prev => prev.map(item => 
+            item.id === editingInventory.id 
+                ? { ...item, ...inventoryData }
+                : item
+        ));
+
+        // Refresh financial data to show updated payables
+        if (hasPermission('finance', 'read')) {
+            await fetchFinancialData();
+        }
+
+        alert(response.message || 'Inventory updated successfully! Payables have been synced automatically.');
+        setShowInventoryForm(false);
+        setEditingInventory(null);
+
+    } catch (error) {
+        console.error('Error updating inventory:', error);
+        alert('Failed to update inventory: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
+};
+    
     const openDeliveryForm = (delivery) => {
     if (!hasPermission('delivery', 'write')) {
         alert('You do not have permission to manage deliveries');
