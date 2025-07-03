@@ -9761,7 +9761,7 @@ Jane Smith,jane@example.com,+919876543211,XYZ Ltd,B2B,WhatsApp,2025-01-16,Market
         filename = 'sample_leads.csv';
     } else if (type === 'inventory') {
         // CORRECTED: Using exact field names that match your form data structure
-        csvContent = `Event Name,Event Date,Event Type,Sports,Venue,Day of Match,Category of Ticket,Stand/Section,Total Tickets,Available Tickets,MRP of Ticket,Buying Price,Selling Price,Inclusions,Booking Person,Procurement Type,Payment Status,Supplier Name,Supplier Invoice,Purchase Price,Total Purchase Amount,Amount Paid,Payment Due Date,Notes
+        csvContent = `event_name,event_date,event_type,sports,venue,day_of_match,category_of_ticket,stand,total_tickets,available_tickets,mrp_of_ticket,buying_price,selling_price,inclusions,booking_person,procurement_type,paymentStatus,supplierName,supplierInvoice,purchasePrice,totalPurchaseAmount,amountPaid,paymentDueDate,notes
 Eng vs Ind 3rd Test Lords,2025-07-10,cricket,Cricket,Lords,Day 1,VIP,Lower Mount,20,20,160000,160000,175000,"Food & Beverages, Visit from legends",Akshay,pre_inventory,pending,Wassermann,INV-2025-001,160000,3200000,0,2025-07-04,Premium test match experience
 FIFA World Cup 2026 Qualifier,2026-03-15,football,Football,Salt Lake Stadium,Not Applicable,Premium,East Block,200,200,15000,12000,14000,"Parking, Merchandise",Kolkata Events,on_demand,pending,Global Sports,INV-2026-002,12000,2400000,1200000,2026-02-15,Group stage qualifying match
 IPL 2025 Playoffs,2025-05-25,cricket,Cricket,Eden Gardens,Not Applicable,Gold,South Pavilion,150,150,12000,9000,11000,"Snacks, Parking",Sports Bengal,partnership,paid,Cricket Events Ltd,INV-2025-003,9000,1350000,1350000,2025-04-20,Playoff match premium seating
