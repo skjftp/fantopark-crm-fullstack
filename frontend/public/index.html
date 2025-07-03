@@ -869,6 +869,8 @@ function App() {
 // Initialize empty, will fetch from API
 const [leads, setLeads] = useState([]);
 const [inventory, setInventory] = useState([]);
+    // Add this line near other useState declarations
+const [editingInventory, setEditingInventory] = useState(null);
 const [orders, setOrders] = useState([]);
     const [orderToAssign, setOrderToAssign] = useState(null);
     const [showOrderAssignModal, setShowOrderAssignModal] = useState(false);
