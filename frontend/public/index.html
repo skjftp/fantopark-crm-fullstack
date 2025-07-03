@@ -1707,42 +1707,40 @@ const calculateDashboardStats = () => {
     updateCharts(filteredLeads);
 };
 
-    const updateCharts = (filteredLeads) => {
-    // Lead Split Chart (Qualified vs Junk)
-    const qualifiedCount = filteredLeads.filter(l => l.status === 'qualified').length;
-    const junkCount = filteredLeads.filter(l => l.status === 'junk').length;
+    // HOW TO FIX THE DUPLICATE FUNCTION ERRORS
+
+// The problem: You have these functions declared TWICE in your code:
+// 1. extractFiltersData
+// 2. updateCharts
+
+// SOLUTION:
+
+// Step 1: Use your text editor's search function (Ctrl+F or Cmd+F)
+// Search for each of these function names:
+
+// Search for: "const extractFiltersData"
+// You'll find 2 occurrences - DELETE ONE OF THEM
+
+// Search for: "const updateCharts" 
+// You'll find 2 occurrences - DELETE ONE OF THEM
+
+// Step 2: Make sure you keep only ONE instance of each function
+// The functions should look like this (KEEP ONLY ONE OF EACH):
+
+// ===== KEEP ONLY ONE extractFiltersData =====
+const extractFiltersData = () => {
+    // Extract unique events from leads
+    const uniqueEvents = [...new Set(leads.map(l => l.lead_for_event).filter(e => e))];
+    setEvents(uniqueEvents);
     
-    // Temperature Count
-    const hotCount = filteredLeads.filter(l => l.status === 'hot').length;
-    const warmCount = filteredLeads.filter(l => l.status === 'warm').length;
-    const coldCount = filteredLeads.filter(l => l.status === 'cold').length;
-    
-    // Temperature Value
-    const hotValue = filteredLeads.filter(l => l.status === 'hot')
-        .reduce((sum, l) => sum + (l.potential_value || 0), 0);
-    const warmValue = filteredLeads.filter(l => l.status === 'warm')
-        .reduce((sum, l) => sum + (l.potential_value || 0), 0);
-    const coldValue = filteredLeads.filter(l => l.status === 'cold')
-        .reduce((sum, l) => sum + (l.potential_value || 0), 0);
-    
-    // Update charts if they exist
-    if (chartInstances.leadSplit) {
-        chartInstances.leadSplit.data.datasets[0].data = [qualifiedCount, junkCount];
-        chartInstances.leadSplit.update();
-    }
-    
-    if (chartInstances.tempCount) {
-        chartInstances.tempCount.data.datasets[0].data = [hotCount, warmCount, coldCount];
-        chartInstances.tempCount.update();
-    }
-    
-    if (chartInstances.tempValue) {
-        chartInstances.tempValue.data.datasets[0].data = [hotValue, warmValue, coldValue];
-        chartInstances.tempValue.update();
-    }
+    // Extract sales people from users
+    const salesUsers = users.filter(u => 
+        u.role === 'sales_executive' || u.role === 'sales_manager'
+    );
+    setSalesPeople(salesUsers);
 };
 
-// Function to update charts
+// ===== KEEP ONLY ONE updateCharts =====
 const updateCharts = (filteredLeads) => {
     // Lead Split Chart (Qualified vs Junk)
     const qualifiedCount = filteredLeads.filter(l => l.status === 'qualified').length;
@@ -1779,8 +1777,8 @@ const updateCharts = (filteredLeads) => {
 };
 
 // Function to initialize charts
-const initializeCharts = () => {const initializeCharts = () => {
-    // Destroy existing charts PROPERLY
+const initializeCharts = () => {
+    // Destroy existing charts
     if (chartInstances.leadSplit) {
         chartInstances.leadSplit.destroy();
         chartInstances.leadSplit = null;
@@ -1794,103 +1792,31 @@ const initializeCharts = () => {const initializeCharts = () => {
         chartInstances.tempValue = null;
     }
     
-    // Lead Split Chart
+    // Create charts with DIRECT ASSIGNMENT
     const ctx1 = document.getElementById('leadSplitChart');
     if (ctx1) {
+        // Use direct assignment, NOT setChartInstances
         chartInstances.leadSplit = new Chart(ctx1, {
-            type: 'pie',
-            data: {
-                labels: ['Qualified', 'Junk'],
-                datasets: [{
-                    data: [0, 0],
-                    backgroundColor: ['#10b981', '#ef4444'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 10,
-                            font: { size: 12 }
-                        }
-                    }
-                }
-            }
+            // ... chart configuration
         });
     }
     
-    // Temperature Count Chart
+    // Same for other charts - use direct assignment
     const ctx2 = document.getElementById('tempCountChart');
     if (ctx2) {
         chartInstances.tempCount = new Chart(ctx2, {
-            type: 'pie',
-            data: {
-                labels: ['Hot', 'Warm', 'Cold'],
-                datasets: [{
-                    data: [0, 0, 0],
-                    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 10,
-                            font: { size: 12 }
-                        }
-                    }
-                }
-            }
+            // ... chart configuration
         });
     }
     
-    // Temperature Value Chart
     const ctx3 = document.getElementById('tempValueChart');
     if (ctx3) {
         chartInstances.tempValue = new Chart(ctx3, {
-            type: 'pie',
-            data: {
-                labels: ['Hot', 'Warm', 'Cold'],
-                datasets: [{
-                    data: [0, 0, 0],
-                    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 10,
-                            font: { size: 12 }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed || 0;
-                                return label + ': ₹' + value.toLocaleString();
-                            }
-                        }
-                    }
-                }
-            }
+            // ... chart configuration
         });
     }
     
-    // Immediately update with current data
+    // Update with current data
     calculateDashboardStats();
 };
 
