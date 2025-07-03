@@ -8173,13 +8173,27 @@ const handleInventoryFormSubmit = async (e) => {
     try {
         setLoading(true);
         
-        console.log('Updating inventory with data:', formData);
+        // Enhanced debug logging
+        console.log('=== FRONTEND INVENTORY UPDATE DEBUG ===');
+        console.log('Inventory ID being updated:', editingInventory.id);
+        console.log('Complete form data being sent:', formData);
+        console.log('Payment fields specifically:', {
+            totalPurchaseAmount: formData.totalPurchaseAmount,
+            amountPaid: formData.amountPaid,
+            paymentStatus: formData.paymentStatus,
+            supplierName: formData.supplierName,
+            supplierInvoice: formData.supplierInvoice
+        });
+        console.log('Is from payables?', editingInventory._payableContext?.fromPayables);
+        console.log('Payable amount:', editingInventory._payableContext?.payableAmount);
         
         // Update inventory
         const response = await apiCall(`/inventory/${editingInventory.id}`, {
             method: 'PUT',
             body: JSON.stringify(formData)
         });
+
+        console.log('Backend response:', response);
 
         if (response.error) {
             throw new Error(response.error);
