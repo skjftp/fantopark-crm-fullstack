@@ -1310,6 +1310,20 @@ useEffect(() => {
     }
 }, [leads, users]);
 
+const getFilteredLeads = () => {
+    let filteredLeads = [...leads];
+    
+    if (dashboardFilter === 'salesperson' && selectedSalesPerson) {
+        filteredLeads = filteredLeads.filter(lead => lead.assigned_to === selectedSalesPerson);
+    }
+    
+    if (dashboardFilter === 'event' && selectedEvent) {
+        filteredLeads = filteredLeads.filter(lead => lead.lead_for_event === selectedEvent);
+    }
+    
+    return filteredLeads;
+};    
+    
 // Update stats when filter changes
 useEffect(() => {
     if (leads.length > 0) {
@@ -1317,27 +1331,68 @@ useEffect(() => {
     }
 }, [dashboardFilter, selectedSalesPerson, selectedEvent, leads]);
 
-// Add useEffect to initialize charts when dashboard is active
 useEffect(() => {
+    console.log('Chart initialization useEffect triggered', {
+        activeTab,
+        leadsCount: leads.length,
+        chartExists: typeof Chart !== 'undefined'
+    });
+    
     if (activeTab === 'dashboard' && leads.length > 0 && typeof Chart !== 'undefined') {
-        // Use a flag to prevent multiple initializations
+        // Wait a bit longer for DOM to be ready and add additional checks
         const timeoutId = setTimeout(() => {
-            initializeCharts();
-        }, 100);
+            console.log('Attempting to initialize charts...');
+            
+            // Check if canvas elements exist
+            const canvas1 = document.getElementById('leadSplitChart');
+            const canvas2 = document.getElementById('tempCountChart');  
+            const canvas3 = document.getElementById('tempValueChart');
+            
+            console.log('Canvas elements found:', {
+                leadSplit: !!canvas1,
+                tempCount: !!canvas2,
+                tempValue: !!canvas3
+            });
+            
+            if (canvas1 && canvas2 && canvas3) {
+                initializeCharts();
+                
+                // Then update with current data
+                setTimeout(() => {
+                    const filteredLeads = getFilteredLeads();
+                    updateCharts(filteredLeads);
+                }, 100);
+            } else {
+                console.log('Canvas elements not ready yet, retrying...');
+                // Retry after another delay
+                setTimeout(() => {
+                    initializeCharts();
+                    const filteredLeads = getFilteredLeads();
+                    updateCharts(filteredLeads);
+                }, 500);
+            }
+        }, 200); // Increased delay
         
-        // Cleanup function to clear timeout if component unmounts or dependencies change
         return () => clearTimeout(timeoutId);
     }
     
-    // Cleanup function to destroy charts when leaving dashboard
-    return () => {
-        if (activeTab !== 'dashboard') {
-            if (chartInstances.leadSplit) chartInstances.leadSplit.destroy();
-            if (chartInstances.tempCount) chartInstances.tempCount.destroy();
-            if (chartInstances.tempValue) chartInstances.tempValue.destroy();
+    // Cleanup when leaving dashboard
+    if (activeTab !== 'dashboard') {
+        if (chartInstances.leadSplit) {
+            chartInstances.leadSplit.destroy();
+            chartInstances.leadSplit = null;
         }
-    };
-}, [activeTab]); // Remove 'leads' from dependencies to prevent re-initialization
+        if (chartInstances.tempCount) {
+            chartInstances.tempCount.destroy();
+            chartInstances.tempCount = null;
+        }
+        if (chartInstances.tempValue) {
+            chartInstances.tempValue.destroy();
+            chartInstances.tempValue = null;
+        }
+    }
+}, [activeTab, leads.length]); // Include leads.length to ensure data is available
+
 
 // Add useEffect to update stats when filter changes
 useEffect(() => {
@@ -1786,134 +1841,143 @@ const updateCharts = (filteredLeads) => {
 const initializeCharts = () => {
     console.log('Initializing charts...');
     
-    // Destroy existing charts
-    if (chartInstances.leadSplit) {
-        chartInstances.leadSplit.destroy();
-        chartInstances.leadSplit = null;
-    }
-    if (chartInstances.tempCount) {
-        chartInstances.tempCount.destroy();
-        chartInstances.tempCount = null;
-    }
-    if (chartInstances.tempValue) {
-        chartInstances.tempValue.destroy();
-        chartInstances.tempValue = null;
-    }
+    // Destroy existing charts first
+    Object.keys(chartInstances).forEach(key => {
+        if (chartInstances[key]) {
+            chartInstances[key].destroy();
+            chartInstances[key] = null;
+        }
+    });
     
     // Lead Split Chart
     const ctx1 = document.getElementById('leadSplitChart');
-    console.log('Lead Split canvas:', ctx1);
+    console.log('Lead Split canvas element:', ctx1);
     
     if (ctx1) {
-        chartInstances.leadSplit = new Chart(ctx1, {
-            type: 'pie',
-            data: {
-                labels: ['Qualified', 'Junk'],
-                datasets: [{
-                    data: [0, 0],
-                    backgroundColor: ['#10b981', '#ef4444'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 10,
-                            font: { size: 12 }
-                        }
-                    }
-                }
-            }
-        });
-        console.log('Lead Split chart created');
-    }
-    
-    // Temperature Count Chart
-    const ctx2 = document.getElementById('tempCountChart');
-    console.log('Temp Count canvas:', ctx2);
-    
-    if (ctx2) {
-        chartInstances.tempCount = new Chart(ctx2, {
-            type: 'pie',
-            data: {
-                labels: ['Hot', 'Warm', 'Cold'],
-                datasets: [{
-                    data: [0, 0, 0],
-                    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 10,
-                            font: { size: 12 }
-                        }
-                    }
-                }
-            }
-        });
-        console.log('Temp Count chart created');
-    }
-    
-    // Temperature Value Chart
-    const ctx3 = document.getElementById('tempValueChart');
-    console.log('Temp Value canvas:', ctx3);
-    
-    if (ctx3) {
-        chartInstances.tempValue = new Chart(ctx3, {
-            type: 'pie',
-            data: {
-                labels: ['Hot', 'Warm', 'Cold'],
-                datasets: [{
-                    data: [0, 0, 0],
-                    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 10,
-                            font: { size: 12 }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed || 0;
-                                return label + ': ₹' + value.toLocaleString();
+        try {
+            chartInstances.leadSplit = new Chart(ctx1, {
+                type: 'pie',
+                data: {
+                    labels: ['Qualified', 'Junk'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 10,
+                                font: { size: 12 }
                             }
                         }
                     }
                 }
-            }
-        });
-        console.log('Temp Value chart created');
+            });
+            console.log('Lead Split chart created successfully');
+        } catch (error) {
+            console.error('Error creating Lead Split chart:', error);
+        }
+    } else {
+        console.error('Lead Split canvas element not found!');
     }
     
-    // Log the final state
-    console.log('All charts initialized:', {
+    // Temperature Count Chart
+    const ctx2 = document.getElementById('tempCountChart');
+    console.log('Temp Count canvas element:', ctx2);
+    
+    if (ctx2) {
+        try {
+            chartInstances.tempCount = new Chart(ctx2, {
+                type: 'pie',
+                data: {
+                    labels: ['Hot', 'Warm', 'Cold'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 10,
+                                font: { size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+            console.log('Temp Count chart created successfully');
+        } catch (error) {
+            console.error('Error creating Temp Count chart:', error);
+        }
+    } else {
+        console.error('Temp Count canvas element not found!');
+    }
+    
+    // Temperature Value Chart
+    const ctx3 = document.getElementById('tempValueChart');
+    console.log('Temp Value canvas element:', ctx3);
+    
+    if (ctx3) {
+        try {
+            chartInstances.tempValue = new Chart(ctx3, {
+                type: 'pie',
+                data: {
+                    labels: ['Hot', 'Warm', 'Cold'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 10,
+                                font: { size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    return label + ': ₹' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            console.log('Temp Value chart created successfully');
+        } catch (error) {
+            console.error('Error creating Temp Value chart:', error);
+        }
+    } else {
+        console.error('Temp Value canvas element not found!');
+    }
+    
+    // Final status
+    console.log('Chart initialization complete:', {
         leadSplit: !!chartInstances.leadSplit,
         tempCount: !!chartInstances.tempCount,
         tempValue: !!chartInstances.tempValue
     });
-    
-    // Immediately update with current data
-    calculateDashboardStats();
 };
 
     // Authentication
@@ -2377,6 +2441,28 @@ window.forceInitCharts = () => {
     initializeCharts();
 };    
 
+    window.debugDashboard = () => {
+    console.log('=== Dashboard Debug ===');
+    console.log('Active tab:', activeTab);
+    console.log('Leads count:', leads.length);
+    console.log('Chart.js loaded:', typeof Chart !== 'undefined');
+    console.log('Canvas elements in DOM:', {
+        leadSplit: !!document.getElementById('leadSplitChart'),
+        tempCount: !!document.getElementById('tempCountChart'),
+        tempValue: !!document.getElementById('tempValueChart')
+    });
+    console.log('Chart instances:', {
+        leadSplit: !!chartInstances.leadSplit,
+        tempCount: !!chartInstances.tempCount,
+        tempValue: !!chartInstances.tempValue
+    });
+    
+    // Try to reinitialize
+    if (activeTab === 'dashboard') {
+        console.log('Attempting manual chart initialization...');
+        initializeCharts();
+    }
+};
     
     // Enhanced lead progression function with permission check
         // Status update function with permission check
