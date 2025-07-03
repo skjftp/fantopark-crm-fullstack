@@ -2146,29 +2146,53 @@ const handleLogin = async (e) => {
         }
         
         setCurrentUser(editUser);
-        if (editUser) {
-            // Editing existing user
-            setUserFormData({
-                name: editUser.name || '',
-                email: editUser.email || '',
-                password: '', // Never show existing password
-                role: editUser.role || 'viewer',
-                department: editUser.department || '',
-                status: editUser.status || 'active'
-            });
-        } else {
-            // Creating new user - reset form completely
-            setUserFormData({
-                name: '',
-                email: '',
-                password: '',
-                role: 'viewer',
-                department: '',
-                status: 'active'
-            });
-        }
-        setShowUserForm(true);
+if (editUser) {
+    // Editing existing user
+    setUserFormData({
+        name: editUser.name,
+        email: editUser.email,
+        role: editUser.role,
+        status: editUser.status || 'active'
+    });
+} else {
+    // Creating new user
+    setUserFormData({
+        name: '',
+        email: '',
+        role: '',
+        password: '',
+        status: 'active'
+    });
+}
+setShowUserForm(true);
     };
+
+    const handleDeleteUser = async (userId, userName) => {
+        if (!hasPermission('users', 'delete')) {
+            alert('You do not have permission to delete users');
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+            return;
+        }
+        
+        setLoading(true);
+        try {
+            await apiCall(`/users/${userId}`, { method: 'DELETE' });
+            console.log('User deleted successfully');
+            
+            // Remove user from the list
+            setUsers(prev => prev.filter(u => u.id !== userId));
+            showNotification('User deleted successfully', 'success');
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            showNotification(error.message || 'Failed to delete user', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+    
 
     const closeUserForm = () => {
         setShowUserForm(false);
@@ -3437,7 +3461,7 @@ const closeForm = () => {
                     React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 'User Management'),
                     React.createElement('div', { className: 'flex space-x-2' },
                         hasPermission('users', 'write') && React.createElement('button', {
-                            onClick: () => openUserForm(),
+                            onClick: () => openUserForm(user),
                             className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
                         }, '+ Add User'),
                         React.createElement('button', {
@@ -4010,6 +4034,7 @@ React.createElement('td', { className: 'px-4 py-3' },
                             ),
                             React.createElement('input', {
                                 type: 'password',
+                                autoComplete: 'current-password',
                                 value: userFormData.password || '',
                                 onChange: (e) => handleUserInputChange('password', e.target.value),
                                 className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
@@ -4946,6 +4971,7 @@ case 'myactions':
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Password'),
                         React.createElement('input', {
                             type: 'password',
+                            autoComplete: 'current-password',
                             value: password,
                             onChange: (e) => setPassword(e.target.value),
                             className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
