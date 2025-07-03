@@ -556,12 +556,12 @@ const USER_ROLES = {
     supply_sales_service_manager: {
         label: 'Supply Sales Service Manager',
         permissions: {
-            dashboard: { read: true, write: false, delete: false, manage_users: false },
-            leads: { read: true, write: false, delete: false, assign: false, progress: false },
+            dashboard: { read: true, write: true, delete: true, manage_users: false },
+            leads: { read: true, write: true, delete: true, assign: true, progress: true },
             inventory: { read: true, write: true, delete: true, allocate: true },
-            orders: { read: true, write: true, delete: false, approve: false, assign: false },
-            finance: { read: true, write: false, delete: false, approve: false },
-            delivery: { read: true, write: true, delete: false },
+            orders: { read: true, write: true, delete: true, approve: true, assign: true },
+            finance: { read: true, write: true, delete: true, approve: true },
+            delivery: { read: true, write: true, delete: true },
             users: { read: false, write: false, delete: false, manage_roles: false }
         }
     },
