@@ -1742,20 +1742,6 @@ const calculateDashboardStats = () => {
     }
 };
 
-
-    // Function to extract unique events and sales people
-const extractFiltersData = () => {
-    // Extract unique events from leads
-    const uniqueEvents = [...new Set(leads.map(l => l.lead_for_event).filter(e => e))];
-    setEvents(uniqueEvents);
-    
-    // Extract sales people from users
-    const salesUsers = users.filter(u => 
-        u.role === 'sales_executive' || u.role === 'sales_manager'
-    );
-    setSalesPeople(salesUsers);
-};
-
 // Function to update charts
 const updateCharts = (filteredLeads) => {
     // Lead Split Chart (Qualified vs Junk)
@@ -1793,7 +1779,7 @@ const updateCharts = (filteredLeads) => {
 };
 
 // Function to initialize charts
-const initializeCharts = () => {
+const initializeCharts = () => {const initializeCharts = () => {
     // Destroy existing charts PROPERLY
     if (chartInstances.leadSplit) {
         chartInstances.leadSplit.destroy();
@@ -1811,7 +1797,7 @@ const initializeCharts = () => {
     // Lead Split Chart
     const ctx1 = document.getElementById('leadSplitChart');
     if (ctx1) {
-        const leadSplitChart = new Chart(ctx1, {
+        chartInstances.leadSplit = new Chart(ctx1, {
             type: 'pie',
             data: {
                 labels: ['Qualified', 'Junk'],
@@ -1835,13 +1821,12 @@ const initializeCharts = () => {
                 }
             }
         });
-        chartInstances.leadSplit = leadSplitChart;
     }
     
     // Temperature Count Chart
     const ctx2 = document.getElementById('tempCountChart');
     if (ctx2) {
-        const tempCountChart = new Chart(ctx2, {
+        chartInstances.tempCount = new Chart(ctx2, {
             type: 'pie',
             data: {
                 labels: ['Hot', 'Warm', 'Cold'],
@@ -1865,13 +1850,12 @@ const initializeCharts = () => {
                 }
             }
         });
-        chartInstances.tempCount = tempCountChart;
     }
     
     // Temperature Value Chart
     const ctx3 = document.getElementById('tempValueChart');
     if (ctx3) {
-        const tempValueChart = new Chart(ctx3, {
+        chartInstances.tempValue = new Chart(ctx3, {
             type: 'pie',
             data: {
                 labels: ['Hot', 'Warm', 'Cold'],
@@ -1904,7 +1888,6 @@ const initializeCharts = () => {
                 }
             }
         });
-        chartInstances.tempValue = tempValueChart;
     }
     
     // Immediately update with current data
