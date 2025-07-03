@@ -1672,17 +1672,6 @@ const getInventoryDueInDays = (eventDate) => {
     return diffDays;
 };
 
-const extractFiltersData = () => {
-    // Extract unique events from leads
-    const uniqueEvents = [...new Set(leads.map(l => l.lead_for_event).filter(e => e))];
-    setEvents(uniqueEvents);
-    
-    // Extract sales people from users
-    const salesUsers = users.filter(u => 
-        u.role === 'sales_executive' || u.role === 'sales_manager'
-    );
-    setSalesPeople(salesUsers);
-};    
 
 const calculateDashboardStats = () => {
     let filteredLeads = leads;
@@ -11098,7 +11087,7 @@ window.createTestLead = async function() {
 
 console.log('Test functions loaded with correct field names');
 
-turn null;
+return null;
     }
 };
 
