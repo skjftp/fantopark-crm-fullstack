@@ -2284,24 +2284,19 @@ const currentTotal = parseFloat(inventoryItem.totalPurchaseAmount || 0);
 const currentPaid = parseFloat(inventoryItem.amountPaid || 0);
 const pendingBalance = parseFloat(payable.amount || 0); // What we owe
 
-// Calculate new payment amounts
-const newAmountPaid = currentPaid + pendingBalance; // Add balance to current paid
-const finalTotal = Math.max(currentTotal, newAmountPaid); // Ensure total >= paid
-
-console.log('Payable payment calculation:', {
+console.log('Payable form pre-fill calculation:', {
     currentTotal,
     currentPaid,
     pendingBalance,
-    newAmountPaid,
-    finalTotal,
-    willBeFullyPaid: newAmountPaid >= finalTotal
+    action: 'Setting form to mark as fully paid'
 });
 
+// Pre-fill form to mark as FULLY PAID by default
 setFormData({
     ...inventoryItem,
-    totalPurchaseAmount: finalTotal,
-    amountPaid: newAmountPaid,
-    paymentStatus: newAmountPaid >= finalTotal ? 'paid' : 'partial'
+    totalPurchaseAmount: currentTotal, // Keep original total
+    amountPaid: currentTotal, // Set paid amount = total amount (fully paid)
+    paymentStatus: 'paid' // Mark as paid by default
 });
 
 setShowInventoryForm(true);
@@ -8080,19 +8075,19 @@ const renderInventoryForm = () => {
                 }, '✕')
             ),
             
-            // Payment context info
+            // Payment context info - Updated with correct messaging
             isFromPayables && React.createElement('div', { 
                 className: 'mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg'
             },
                 React.createElement('h3', { className: 'font-semibold text-blue-800 mb-2' }, '💳 Payment Update'),
                 React.createElement('p', { className: 'text-sm text-blue-700' }, 
-    'Paying off pending balance: ₹' + payableAmount.toLocaleString()
-),
-React.createElement('p', { className: 'text-sm text-blue-600 mt-1' }, 
-    'This will be added to the current amount paid and the payable will be marked as paid.'
-),
+                    `Outstanding balance: ₹${payableAmount.toLocaleString()}`
+                ),
                 React.createElement('p', { className: 'text-sm text-blue-600 mt-1' }, 
-                    'The payment status will be automatically updated when you save.'
+                    'Form is pre-filled to mark as fully paid. Adjust the "Amount Paid" field if partial payment.'
+                ),
+                React.createElement('p', { className: 'text-sm text-blue-500 mt-1 font-medium' }, 
+                    'Payable will be updated based on: Total Amount - Amount Paid'
                 )
             ),
 
