@@ -9340,9 +9340,23 @@ currentInventoryItems.map(item =>
                                         }, item.available_tickets + ' tickets')
                                     ),
                                     hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
-                                        React.createElement('div', { className: 'text-sm text-gray-900' }, 
-                                            '₹' + ((item.selling_price || item.price_per_ticket || 0) - (item.buying_price || 0)).toLocaleString()
-                                        ),
+    React.createElement('div', { className: 'text-sm text-gray-900' }, 
+        (() => {
+            const buyingPrice = item.buying_price || 0;
+            const sellingPrice = item.selling_price || item.price_per_ticket || 0;
+            const marginAmount = sellingPrice - buyingPrice;
+            
+            // Calculate margin percentage: (Selling Price - Buying Price) / Buying Price * 100
+            const marginPercentage = buyingPrice > 0 ? ((marginAmount / buyingPrice) * 100) : 0;
+            
+            return '₹' + marginAmount.toLocaleString() + ' (' + marginPercentage.toFixed(1) + '%)';
+        })()
+    ),
+    React.createElement('div', { className: 'text-xs text-gray-500' },
+        'Buy: ₹' + (item.buying_price || 0).toLocaleString() + 
+        ' | Sell: ₹' + (item.selling_price || item.price_per_ticket || 0).toLocaleString()
+    )
+),
                                         React.createElement('div', { className: 'text-xs text-gray-500' },
                                             'Buy: ₹' + (item.buying_price || 0).toLocaleString() + 
                                             ' | Sell: ₹' + (item.selling_price || item.price_per_ticket || 0).toLocaleString()
