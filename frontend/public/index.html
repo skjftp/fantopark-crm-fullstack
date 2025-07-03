@@ -1359,6 +1359,11 @@ const [chartInstances, setChartInstances] = useState({
         }
     }, []);
 
+    useEffect(() => {
+    localStorage.setItem('crm_active_tab', activeTab);
+}, [activeTab]);
+
+    
     // Calculate dashboard stats
     // Initialize dashboard stats
 useEffect(() => {
