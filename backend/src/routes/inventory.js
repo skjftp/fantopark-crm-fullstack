@@ -233,39 +233,117 @@ router.delete('/', authenticateToken, async (req, res) => {
   }
 });
 
+// Enhanced PUT route with payables sync
 module.exports = router;
-
-// Update inventory payment and sync with payables
-router.put('/:id/payment-sync', authenticateToken, async (req, res) => {
+// Enhanced PUT route with payables sync
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { amountPaid, paymentStatus } = req.body;
     
-    // Update inventory
-    await db.collection('crm_inventory').doc(id).update({
-      amountPaid: amountPaid,
-      paymentStatus: paymentStatus,
+    // Get old data first
+    const oldDoc = await db.collection('crm_inventory').doc(id).get();
+    if (!oldDoc.exists) {
+      return res.status(404).json({ error: 'Inventory not found' });
+    }
+    const oldData = oldDoc.data();
+    
+    const updateData = {
+      ...req.body,
       updated_date: new Date().toISOString()
-    });
+    };
     
-    // Update related payable if it exists
-    const payablesSnapshot = await db.collection('crm_payables')
-      .where('inventoryId', '==', id)
-      .get();
+    // Validate payment amounts
+    const totalAmount = parseFloat(updateData.totalPurchaseAmount || oldData.totalPurchaseAmount || 0);
+    const amountPaid = parseFloat(updateData.amountPaid || oldData.amountPaid || 0);
     
-    if (!payablesSnapshot.empty) {
-      const batch = db.batch();
-      payablesSnapshot.forEach(doc => {
-        batch.update(doc.ref, {
-          status: paymentStatus === 'paid' ? 'paid' : 'pending',
-          updated_date: new Date().toISOString()
-        });
+    if (amountPaid > totalAmount) {
+      return res.status(400).json({ 
+        error: 'Amount paid cannot exceed total purchase amount',
+        details: { total: totalAmount, paid: amountPaid }
       });
-      await batch.commit();
     }
     
-    res.json({ success: true, message: 'Payment updated and synced' });
+    // Auto-set payment status
+    if (amountPaid >= totalAmount) {
+      updateData.paymentStatus = 'paid';
+    } else if (amountPaid > 0) {
+      updateData.paymentStatus = 'partial';
+    } else {
+      updateData.paymentStatus = 'pending';
+    }
+    
+    // Update inventory
+    await db.collection('crm_inventory').doc(id).update(updateData);
+    
+    // Check if payment-related fields changed
+    const paymentFieldsChanged = 
+      updateData.paymentStatus !== undefined || 
+      updateData.amountPaid !== undefined || 
+      updateData.totalPurchaseAmount !== undefined;
+    
+    if (paymentFieldsChanged) {
+      console.log('Payment fields changed, syncing payables...');
+      
+      try {
+        // Find related payables
+        const payablesSnapshot = await db.collection('crm_payables')
+          .where('inventoryId', '==', id)
+          .get();
+        
+        if (!payablesSnapshot.empty) {
+          const newTotalAmount = parseFloat(updateData.totalPurchaseAmount !== undefined ? 
+            updateData.totalPurchaseAmount : oldData.totalPurchaseAmount) || 0;
+          const newAmountPaid = parseFloat(updateData.amountPaid !== undefined ? 
+            updateData.amountPaid : oldData.amountPaid) || 0;
+          const newBalance = newTotalAmount - newAmountPaid;
+          
+          console.log('Payable sync calculation:', {
+            total: newTotalAmount,
+            paid: newAmountPaid,
+            balance: newBalance,
+            paymentStatus: updateData.paymentStatus
+          });
+          
+          const batch = db.batch();
+          
+          payablesSnapshot.forEach(doc => {
+            const payableUpdate = {
+              updated_date: new Date().toISOString(),
+              updated_by: req.user?.email || 'system'
+            };
+            
+            if (newBalance <= 0 || updateData.paymentStatus === 'paid') {
+              payableUpdate.status = 'paid';
+              payableUpdate.amount = 0;
+              payableUpdate.paid_date = new Date().toISOString();
+              payableUpdate.payment_notes = `Paid via inventory update. Total: ₹${newTotalAmount}, Paid: ₹${newAmountPaid}`;
+            } else {
+              payableUpdate.status = 'pending';
+              payableUpdate.amount = newBalance;
+              payableUpdate.payment_notes = `Balance updated: ₹${newBalance.toFixed(2)} (Total: ₹${newTotalAmount} - Paid: ₹${newAmountPaid})`;
+            }
+            
+            batch.update(doc.ref, payableUpdate);
+          });
+          
+          await batch.commit();
+          console.log(`Updated ${payablesSnapshot.size} related payables`);
+        }
+      } catch (payableError) {
+        console.error('Error syncing payables:', payableError);
+      }
+    }
+    
+    res.json({ 
+      data: { id, ...updateData },
+      message: paymentFieldsChanged ? 'Inventory updated and payables synced' : 'Inventory updated'
+    });
+    
   } catch (error) {
+    console.error('Error updating inventory:', error);
     res.status(500).json({ error: error.message });
   }
 });
+
+// Update inventory payment and sync with payables
+// This will be replaced by the enhanced version

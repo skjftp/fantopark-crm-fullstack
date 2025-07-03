@@ -93,6 +93,8 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT update payable
+
+// Enhanced PUT route with inventory sync
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -103,47 +105,62 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Payable not found' });
     }
     
+    const payableData = payable.data();
     const updateData = {
       ...req.body,
       updated_date: new Date().toISOString(),
-      updated_by: req.user.email
+      updated_by: req.user?.email || 'system'
     };
     
+    // Update payable
     await payableRef.update(updateData);
     
-    // If marking as paid and has inventoryId, update the related inventory
-    if (updateData.status === 'paid' && payable.data().inventoryId) {
+    // Sync back to inventory if this payable is linked to inventory
+    if (payableData.inventoryId && updateData.status === 'paid') {
       try {
-        const inventoryRef = db.collection('crm_inventory').doc(payable.data().inventoryId);
+        console.log('Payable marked as paid, updating inventory:', payableData.inventoryId);
+        
+        const inventoryRef = db.collection('crm_inventory').doc(payableData.inventoryId);
         const inventory = await inventoryRef.get();
         
         if (inventory.exists) {
           const inventoryData = inventory.data();
           const currentPaid = parseFloat(inventoryData.amountPaid || 0);
-          const paymentAmount = parseFloat(updateData.paymentAmount || payable.data().amount || 0);
-          const newAmountPaid = currentPaid + paymentAmount;
+          const paymentAmount = parseFloat(updateData.paymentAmount || payableData.amount || 0);
           const totalAmount = parseFloat(inventoryData.totalPurchaseAmount || 0);
+          
+          const newAmountPaid = Math.min(currentPaid + paymentAmount, totalAmount);
+          const newPaymentStatus = newAmountPaid >= totalAmount ? 'paid' : 
+            newAmountPaid > 0 ? 'partial' : 'pending';
           
           await inventoryRef.update({
             amountPaid: newAmountPaid,
-            paymentStatus: newAmountPaid >= totalAmount ? 'paid' : 'pending',
+            paymentStatus: newPaymentStatus,
+            lastPaymentDate: new Date().toISOString(),
             updated_date: new Date().toISOString()
           });
           
-          console.log(`Updated inventory ${payable.data().inventoryId} - Amount paid: ${newAmountPaid}`);
+          console.log('Inventory payment status updated:', {
+            inventoryId: payableData.inventoryId,
+            newAmountPaid,
+            newPaymentStatus
+          });
         }
-      } catch (invError) {
-        console.error('Error updating related inventory:', invError);
+      } catch (inventoryError) {
+        console.error('Error updating inventory from payable:', inventoryError);
       }
     }
     
-    res.json({ data: { id, ...payable.data(), ...updateData } });
+    res.json({ 
+      data: { id, ...updateData },
+      message: payableData.inventoryId ? 'Payable updated and inventory synced' : 'Payable updated'
+    });
+    
   } catch (error) {
     console.error('Error updating payable:', error);
     res.status(500).json({ error: error.message });
   }
 });
-
 // DELETE payable
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
