@@ -156,86 +156,74 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
           }
         });
 
-        // Find existing payables for this inventory (including paid ones)
+        console.log('Searching for payables with inventoryId:', id);
         const payablesSnapshot = await db.collection('crm_payables')
           .where('inventoryId', '==', id)
+          .where('status', '!=', 'paid')
           .get();
         
         console.log('Payables query result:', payablesSnapshot.size, 'documents found');
+        if (!payablesSnapshot.empty) {
+            payablesSnapshot.forEach(doc => {
+                console.log('Payable found:', { id: doc.id, data: doc.data() });
+            });
+        }
         
         if (!payablesSnapshot.empty) {
-          // UPDATE EXISTING PAYABLES
-          console.log('Updating existing payables...');
-          const batch = db.batch();
+          console.log(`Found ${payablesSnapshot.size} payables to update`);
           
+          const batch = db.batch();
           payablesSnapshot.forEach(doc => {
-            const payableData = doc.data();
-            console.log('Updating payable:', { 
-              id: doc.id, 
-              currentAmount: payableData.amount,
-              currentStatus: payableData.status
-            });
-            
             if (newBalance <= 0 || updateData.paymentStatus === 'paid') {
-              // Fully paid - set amount to 0 but keep record
               batch.update(doc.ref, {
-                amount: 0,
                 status: 'paid',
                 paid_date: new Date().toISOString(),
-                updated_date: new Date().toISOString(),
-                payment_notes: `Paid through inventory update - Total: ₹${newTotalAmount}, Paid: ₹${newAmountPaid}`
+                amount: 0,
+                payment_notes: 'Paid through inventory update'
               });
-              console.log('Marking payable as paid with amount 0');
             } else {
-              // Partial payment - update balance
               batch.update(doc.ref, {
                 amount: newBalance,
-                status: 'pending',
                 updated_date: new Date().toISOString(),
                 payment_notes: `Balance updated to ₹${newBalance.toFixed(2)} (Total: ₹${newTotalAmount} - Paid: ₹${newAmountPaid})`
               });
-              console.log('Updating payable balance to:', newBalance);
             }
           });
-          
           await batch.commit();
-          console.log('Existing payables updated successfully');
-          
-        } else if (newBalance > 0) {
-          // CREATE NEW PAYABLE if balance exists and no payable record found
-          console.log('No existing payables found. Creating new payable for pending balance:', newBalance);
-          
-          const payableData = {
-            inventoryId: id,
-            supplierName: updateData.supplierName || oldData.supplierName || 'Unknown Supplier',
-            eventName: updateData.event_name || oldData.event_name,
-            invoiceNumber: updateData.supplierInvoice || oldData.supplierInvoice || 'INV-' + Date.now(),
-            amount: newBalance,
-            dueDate: updateData.paymentDueDate || oldData.paymentDueDate || null,
-            status: 'pending',
-            created_date: new Date().toISOString(),
-            updated_date: new Date().toISOString(),
-            description: `Payment for inventory: ${updateData.event_name || oldData.event_name}`,
-            payment_notes: `Created from inventory update - Balance: ₹${newBalance.toFixed(2)} (Total: ₹${newTotalAmount} - Paid: ₹${newAmountPaid})`
-          };
-          
-          const payableRef = await db.collection('crm_payables').add(payableData);
-          console.log('New payable created with ID:', payableRef.id, 'Amount:', newBalance);
-          
+          console.log('Payables updated successfully');
         } else {
-          console.log('No balance remaining and no existing payables - no action needed');
+          // CREATE NEW PAYABLE IF NONE EXISTS AND BALANCE > 0
+          if (newBalance > 0 && updateData.paymentStatus !== 'paid') {
+            console.log(`No existing payables found. Creating new payable for pending balance: ${newBalance}`);
+            
+            const newPayable = {
+              inventoryId: id,
+              amount: newBalance,
+              status: 'pending',
+              supplierName: updateData.supplierName || oldData.supplierName || 'Unknown Supplier',
+              event_name: updateData.event_name || oldData.event_name || 'Unknown Event',
+              event_date: updateData.event_date || oldData.event_date || null,
+              totalPurchaseAmount: newTotalAmount,
+              amountPaid: newAmountPaid,
+              created_date: new Date().toISOString(),
+              payment_notes: `Created from inventory update - Balance: ₹${newBalance.toFixed(2)} (Total: ₹${newTotalAmount} - Paid: ₹${newAmountPaid})`,
+              priority: 'medium',
+              dueDate: null
+            };
+            
+            const docRef = await db.collection('crm_payables').add(newPayable);
+            console.log(`✅ New payable created with ID: ${docRef.id} Amount: ${newBalance}`);
+          } else {
+            console.log('No payable needed - balance is 0 or item is fully paid');
+          }
         }
-        
       } catch (payableError) {
         console.error('Error updating payables:', payableError);
       }
-    } else {
-      console.log('No payment-related fields changed, skipping payable sync');
     }
     
     res.json({ data: { id, ...updateData } });
   } catch (error) {
-    console.error('Error updating inventory:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -379,9 +367,25 @@ router.put('/:id/payment', authenticateToken, checkPermission('finance', 'write'
     
     await db.collection('crm_inventory').doc(id).update(updateData);
     
+    // Update related payable if it exists
+    const payablesSnapshot = await db.collection('crm_payables')
+      .where('inventoryId', '==', id)
+      .get();
+    
+    if (!payablesSnapshot.empty) {
+      const batch = db.batch();
+      payablesSnapshot.forEach(doc => {
+        batch.update(doc.ref, {
+          status: paymentStatus === 'paid' ? 'paid' : 'pending',
+          updated_date: new Date().toISOString()
+        });
+      });
+      await batch.commit();
+    }
+    
     res.json({ 
       success: true, 
-      message: 'Payment updated successfully',
+      message: 'Payment updated and synced',
       data: { id, ...updateData }
     });
   } catch (error) {
