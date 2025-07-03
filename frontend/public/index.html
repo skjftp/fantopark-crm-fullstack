@@ -715,12 +715,27 @@ const LEAD_STATUSES = {
     assigned: { 
         label: 'Assigned', 
         color: 'bg-blue-100 text-blue-800', 
-        next: ['contacted'] 
+        next: ['contacted', 'attempt_1', 'attempt_2', 'attempt_3'] 
     },
     contacted: { 
         label: 'Contacted', 
         color: 'bg-yellow-100 text-yellow-800', 
         next: ['qualified', 'junk'] 
+    },
+    attempt_1: { 
+        label: 'Attempt 1', 
+        color: 'bg-yellow-50 text-yellow-700', 
+        next: ['contacted', 'attempt_2', 'junk'] 
+    },
+    attempt_2: { 
+        label: 'Attempt 2', 
+        color: 'bg-orange-50 text-orange-700', 
+        next: ['contacted', 'attempt_3', 'junk'] 
+    },
+    attempt_3: { 
+        label: 'Attempt 3', 
+        color: 'bg-red-50 text-red-700', 
+        next: ['contacted', 'junk'] 
     },
     qualified: { 
         label: 'Qualified', 
@@ -735,17 +750,26 @@ const LEAD_STATUSES = {
     hot: { 
         label: 'Hot Lead', 
         color: 'bg-red-100 text-red-800', 
-        next: ['converted', 'dropped'] 
+        next: ['quote_requested', 'converted', 'dropped'],
+        temperature: 'hot'
     },
     warm: { 
         label: 'Warm Lead', 
         color: 'bg-orange-100 text-orange-800', 
-        next: ['converted', 'dropped'] 
+        next: ['quote_requested', 'converted', 'dropped'],
+        temperature: 'warm'
     },
     cold: { 
         label: 'Cold Lead', 
         color: 'bg-blue-100 text-blue-800', 
-        next: ['converted', 'dropped'] 
+        next: ['quote_requested', 'converted', 'dropped'],
+        temperature: 'cold'
+    },
+    quote_requested: {
+        label: 'Quote Requested',
+        color: 'bg-purple-100 text-purple-800',
+        next: ['converted', 'dropped'],
+        parallel: true // This indicates it's a parallel stage
     },
     converted: { 
         label: 'Converted', 
@@ -848,7 +872,39 @@ const formatCurrency = (amount) => {
         return '₹' + num.toLocaleString('en-IN');
     };
 
+// Helper function to get lead temperature (preserves temperature through parallel stages)
+const getLeadTemperature = (lead) => {
+    // If current status has temperature, use it
+    if (LEAD_STATUSES[lead.status]?.temperature) {
+        return LEAD_STATUSES[lead.status].temperature;
+    }
+    
+    // If it's a parallel stage, get temperature from lead data
+    if (lead.temperature) {
+        return lead.temperature;
+    }
+    
+    // Fallback to status if it's a temperature status
+    if (['hot', 'warm', 'cold'].includes(lead.status)) {
+        return lead.status;
+    }
+    
+    return null;
+};
 
+// Helper function to get display temperature for dashboard
+const getDisplayTemperature = (lead) => {
+    const temp = getLeadTemperature(lead);
+    if (temp && ['hot', 'warm', 'cold'].includes(temp)) {
+        return temp;
+    }
+    // For quote_requested, check if it was previously hot/warm/cold
+    if (lead.status === 'quote_requested' && lead.temperature) {
+        return lead.temperature;
+    }
+    return null;
+};
+        
 function App() {
     // Authentication states
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -1802,18 +1858,20 @@ const updateCharts = (filteredLeads) => {
     console.log('Lead Split:', { qualified: qualifiedCount, junk: junkCount });
     
     // Temperature Count
-    const hotCount = filteredLeads.filter(l => l.status === 'hot').length;
-    const warmCount = filteredLeads.filter(l => l.status === 'warm').length;
-    const coldCount = filteredLeads.filter(l => l.status === 'cold').length;
+// Temperature Count (including parallel stages)
+const hotCount = filteredLeads.filter(l => getDisplayTemperature(l) === 'hot').length;
+const warmCount = filteredLeads.filter(l => getDisplayTemperature(l) === 'warm').length;
+const coldCount = filteredLeads.filter(l => getDisplayTemperature(l) === 'cold').length;
     console.log('Temperature Count:', { hot: hotCount, warm: warmCount, cold: coldCount });
     
     // Temperature Value
-    const hotValue = filteredLeads.filter(l => l.status === 'hot')
-        .reduce((sum, l) => sum + (l.potential_value || 0), 0);
-    const warmValue = filteredLeads.filter(l => l.status === 'warm')
-        .reduce((sum, l) => sum + (l.potential_value || 0), 0);
-    const coldValue = filteredLeads.filter(l => l.status === 'cold')
-        .reduce((sum, l) => sum + (l.potential_value || 0), 0);
+    // Temperature Value (including parallel stages)
+const hotValue = filteredLeads.filter(l => getDisplayTemperature(l) === 'hot')
+    .reduce((sum, l) => sum + (l.potential_value || 0), 0);
+const warmValue = filteredLeads.filter(l => getDisplayTemperature(l) === 'warm')
+    .reduce((sum, l) => sum + (l.potential_value || 0), 0);
+const coldValue = filteredLeads.filter(l => getDisplayTemperature(l) === 'cold')
+    .reduce((sum, l) => sum + (l.potential_value || 0), 0);
     console.log('Temperature Value:', { hot: hotValue, warm: warmValue, cold: coldValue });
     
     // Update charts if they exist
@@ -2782,6 +2840,51 @@ window.forceInitCharts = () => {
     }
 };
 
+    const handleQuoteRequestStage = async (lead, newStatus) => {
+    try {
+        setLoading(true);
+        
+        // Preserve temperature when moving to quote_requested
+        const currentTemperature = getLeadTemperature(lead);
+        
+        const updateData = {
+            ...lead,
+            status: newStatus,
+            temperature: currentTemperature, // Preserve the temperature
+            quote_requested_date: new Date().toISOString(),
+            last_contact_date: new Date().toISOString(),
+            updated_date: new Date().toISOString(),
+            // Dual assignment: keep original assignee and add sales service manager
+            quote_assigned_to: 'sales.service@fantopark.com', // Auto-assign to sales service manager
+            dual_assignment: true
+        };
+        
+        const response = await apiCall(`/leads/${lead.id}`, {
+            method: 'PUT',
+            body: JSON.stringify(updateData)
+        });
+        
+        // Update local state
+        setLeads(prevLeads => 
+            prevLeads.map(l => 
+                l.id === lead.id ? response.data : l
+            )
+        );
+        
+        // Update current lead if in detail view
+        if (showLeadDetail && currentLead?.id === lead.id) {
+            setCurrentLead(response.data);
+        }
+        
+        setLoading(false);
+        alert('Lead moved to Quote Requested stage and assigned to Sales Service Manager!');
+    } catch (error) {
+        console.error('Error updating lead to quote requested:', error);
+        setLoading(false);
+        alert('Failed to update lead status: ' + error.message);
+    }
+};
+
     // Handle choice selection from modal
     const handleChoiceSelection = (selectedStatus) => {
     if (currentLeadForChoice) {
@@ -2799,11 +2902,16 @@ window.forceInitCharts = () => {
             setChoiceOptions([]);
             openPaymentPostServiceForm(currentLeadForChoice);
         } else {
-            updateLeadStatus(currentLeadForChoice.id, statusValue);
-            setShowChoiceModal(false);
-            setCurrentLeadForChoice(null);
-            setChoiceOptions([]);
-        }
+    // Handle quote_requested stage with dual assignment
+    if (statusValue === 'quote_requested') {
+        handleQuoteRequestStage(currentLeadForChoice, statusValue);
+    } else {
+        updateLeadStatus(currentLeadForChoice.id, statusValue);
+    }
+    setShowChoiceModal(false);
+    setCurrentLeadForChoice(null);
+    setChoiceOptions([]);
+}
     }
 };
 
