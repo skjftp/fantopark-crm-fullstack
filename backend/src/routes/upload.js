@@ -155,6 +155,10 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
 });
 
 // POST bulk upload inventory from CSV - FIXED VERSION
+// DIRECT FIX: Replace the inventory CSV upload section in backend/src/routes/upload.js
+// This bypasses the Inventory model and saves directly to the database
+
+// POST bulk upload inventory from CSV - DIRECT DATABASE SAVE
 router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -183,9 +187,8 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
           try {
             console.log(`\n🚀 Processing row ${index + 1}:`);
             console.log('Raw row keys:', Object.keys(row));
-            console.log('Raw row values:', Object.values(row));
             
-            // EXACT field mapping based on your form data structure
+            // DIRECT field mapping - exactly what we see in logs
             const inventoryData = {
               // Basic Event Information
               event_name: row.event_name || row['Event Name'] || '',
@@ -212,21 +215,29 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
               procurement_type: row.procurement_type || row['Procurement Type'] || 'pre_inventory',
               notes: row.notes || row['Notes'] || '',
               
-              // PAYMENT INFORMATION - EXACT FIELD NAMES
-              paymentStatus: row.paymentStatus || row['Payment Status'] || row.payment_status || 'pending',
-              supplierName: row.supplierName || row['Supplier Name'] || row.supplier_name || '',
-              supplierInvoice: row.supplierInvoice || row['Supplier Invoice'] || row.supplier_invoice || '',
-              purchasePrice: parseFloat(row.purchasePrice || row['Purchase Price'] || row.purchase_price || '0'),
-              totalPurchaseAmount: parseFloat(row.totalPurchaseAmount || row['Total Purchase Amount'] || row.total_purchase_amount || '0'),
-              amountPaid: parseFloat(row.amountPaid || row['Amount Paid'] || row.amount_paid || '0'),
-              paymentDueDate: row.paymentDueDate || row['Payment Due Date'] || row.payment_due_date || '',
+              // PAYMENT INFORMATION - DIRECT MAPPING
+              paymentStatus: row.paymentStatus || row['Payment Status'] || 'pending',
+              supplierName: row.supplierName || row['Supplier Name'] || '',
+              supplierInvoice: row.supplierInvoice || row['Supplier Invoice'] || '',
+              purchasePrice: parseFloat(row.purchasePrice || row['Purchase Price'] || '0'),
+              totalPurchaseAmount: parseFloat(row.totalPurchaseAmount || row['Total Purchase Amount'] || '0'),
+              amountPaid: parseFloat(row.amountPaid || row['Amount Paid'] || '0'),
+              paymentDueDate: row.paymentDueDate || row['Payment Due Date'] || '',
               
               // Legacy fields for compatibility
               vendor_name: row.vendor_name || row['Vendor Name'] || row.supplierName || row['Supplier Name'] || '',
               price_per_ticket: parseFloat(row.price_per_ticket || row['Price per Ticket'] || row.selling_price || '0'),
               number_of_tickets: parseInt(row.number_of_tickets || row['Number of Tickets'] || row.total_tickets || '0'),
+              total_value_of_tickets: parseFloat(row.total_value_of_tickets || row['Total Value of Tickets'] || '0'),
               currency: row.currency || row.Currency || 'INR',
+              base_amount_inr: parseFloat(row.base_amount_inr || row['Base Amount INR'] || '0'),
+              gst_18_percent: parseFloat(row.gst_18_percent || row['GST 18%'] || '0'),
+              selling_price_per_ticket: parseFloat(row.selling_price_per_ticket || row['Selling Price per Ticket'] || row.selling_price || '0'),
+              payment_due_date: row.payment_due_date || row['Payment Due Date'] || row.paymentDueDate || '',
+              supplier_name: row.supplier_name || row['Supplier Name'] || row.supplierName || '',
+              ticket_source: row.ticket_source || row['Ticket Source'] || 'Primary',
               status: row.status || row.Status || 'available',
+              allocated_to_order: row.allocated_to_order || row['Allocated to Order'] || '',
               
               // System fields
               created_date: new Date().toISOString(),
@@ -234,24 +245,16 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
               created_by: req.user.name || 'CSV Import'
             };
 
-            console.log('💰 Payment fields extracted:');
+            console.log('💰 Payment fields before save:');
             console.log('  paymentStatus:', inventoryData.paymentStatus);
             console.log('  supplierName:', inventoryData.supplierName);
             console.log('  supplierInvoice:', inventoryData.supplierInvoice);
-            console.log('  purchasePrice:', inventoryData.purchasePrice);
             console.log('  totalPurchaseAmount:', inventoryData.totalPurchaseAmount);
-            console.log('  amountPaid:', inventoryData.amountPaid);
-            console.log('  paymentDueDate:', inventoryData.paymentDueDate);
 
             // Auto-calculate missing values
-            if (!inventoryData.totalPurchaseAmount && inventoryData.purchasePrice && inventoryData.total_tickets) {
-              inventoryData.totalPurchaseAmount = inventoryData.purchasePrice * inventoryData.total_tickets;
-              console.log('🧮 Auto-calculated totalPurchaseAmount:', inventoryData.totalPurchaseAmount);
-            }
-
             if (!inventoryData.totalPurchaseAmount && inventoryData.buying_price && inventoryData.total_tickets) {
               inventoryData.totalPurchaseAmount = inventoryData.buying_price * inventoryData.total_tickets;
-              console.log('🧮 Auto-calculated totalPurchaseAmount from buying_price:', inventoryData.totalPurchaseAmount);
+              console.log('🧮 Auto-calculated totalPurchaseAmount:', inventoryData.totalPurchaseAmount);
             }
 
             // Ensure available tickets don't exceed total tickets
@@ -269,18 +272,63 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
               continue;
             }
 
-            console.log('💾 Final inventory data to save:');
-            console.log(JSON.stringify(inventoryData, null, 2));
+            console.log('💾 About to save directly to database...');
+            console.log('Final data structure:');
+            console.log('Payment Status:', inventoryData.paymentStatus);
+            console.log('Supplier Name:', inventoryData.supplierName);
+            console.log('Total Purchase Amount:', inventoryData.totalPurchaseAmount);
 
-            // USE THE INVENTORY MODEL TO SAVE
-            const inventory = new Inventory(inventoryData);
-            const savedInventory = await inventory.save();
+            // SAVE DIRECTLY TO DATABASE - BYPASS MODEL
+            const { db } = require('../config/db');
+            const docRef = await db.collection('crm_inventory').add(inventoryData);
             
-            console.log('✅ Successfully saved inventory with ID:', savedInventory.id);
-            console.log('✅ Payment fields in saved data:');
-            console.log('  paymentStatus:', savedInventory.paymentStatus);
-            console.log('  supplierName:', savedInventory.supplierName);
-            console.log('  totalPurchaseAmount:', savedInventory.totalPurchaseAmount);
+            // Retrieve the saved document to verify
+            const savedDoc = await db.collection('crm_inventory').doc(docRef.id).get();
+            const savedData = savedDoc.data();
+            
+            console.log('✅ Successfully saved inventory with ID:', docRef.id);
+            console.log('✅ Payment fields in ACTUALLY saved data:');
+            console.log('  paymentStatus:', savedData.paymentStatus);
+            console.log('  supplierName:', savedData.supplierName);
+            console.log('  totalPurchaseAmount:', savedData.totalPurchaseAmount);
+            console.log('  amountPaid:', savedData.amountPaid);
+            
+            // Create payable if payment is pending or partial
+            if ((savedData.paymentStatus === 'pending' || savedData.paymentStatus === 'partial') && savedData.totalPurchaseAmount > 0) {
+              try {
+                const totalAmount = parseFloat(savedData.totalPurchaseAmount) || 0;
+                const amountPaid = parseFloat(savedData.amountPaid) || 0;
+                const pendingBalance = totalAmount - amountPaid;
+                
+                console.log('💳 Creating payable:', {
+                  totalAmount,
+                  amountPaid,
+                  pendingBalance
+                });
+                
+                if (pendingBalance > 0) {
+                  const payableData = {
+                    inventoryId: docRef.id,
+                    supplierName: savedData.supplierName || 'Unknown Supplier',
+                    eventName: savedData.event_name,
+                    invoiceNumber: savedData.supplierInvoice || 'INV-' + Date.now(),
+                    amount: pendingBalance,
+                    dueDate: savedData.paymentDueDate || null,
+                    status: 'pending',
+                    created_date: new Date().toISOString(),
+                    updated_date: new Date().toISOString(),
+                    createdBy: req.user.id,
+                    description: `Payment for inventory: ${savedData.event_name}`,
+                    payment_notes: `Created from CSV import - Balance: ₹${pendingBalance.toFixed(2)}`
+                  };
+                  
+                  const payableRef = await db.collection('crm_payables').add(payableData);
+                  console.log('💳 Payable created with ID:', payableRef.id, 'Amount:', pendingBalance);
+                }
+              } catch (payableError) {
+                console.error('Error creating payable:', payableError);
+              }
+            }
             
             successCount++;
           } catch (error) {
