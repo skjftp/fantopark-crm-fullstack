@@ -6383,17 +6383,31 @@ const handleFormSubmit = async (e) => {
             alert('Lead updated successfully!');
             
         } else if (showEditInventoryForm) {
-            // Update inventory via API
-            const response = await apiCall('/inventory/' + (currentInventory.id), {
-                method: 'PUT',
-                body: JSON.stringify(formData)
-            });
-            setInventory(prev => prev.map(item => 
-                item.id === currentInventory.id ? response.data : item
-            ));
-            alert('Inventory updated successfully!');
-            
-        } else {
+    // Add debug logging
+    console.log('=== FRONTEND INVENTORY UPDATE DEBUG (Regular Form) ===');
+    console.log('Inventory ID being updated:', currentInventory.id);
+    console.log('Complete form data being sent:', formData);
+    console.log('Payment fields specifically:', {
+        totalPurchaseAmount: formData.totalPurchaseAmount,
+        amountPaid: formData.amountPaid,
+        paymentStatus: formData.paymentStatus,
+        supplierName: formData.supplierName,
+        supplierInvoice: formData.supplierInvoice
+    });
+    
+    // Update inventory via API
+    const response = await apiCall('/inventory/' + (currentInventory.id), {
+        method: 'PUT',
+        body: JSON.stringify(formData)
+    });
+    
+    console.log('Backend response:', response);
+    
+    setInventory(prev => prev.map(item => 
+        item.id === currentInventory.id ? response.data : item
+    ));
+    alert('Inventory updated successfully!');
+} else {
             // Create new items
             switch (currentForm) {
                 case 'lead':
