@@ -154,6 +154,8 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
 });
 
 // POST bulk upload inventory from CSV
+// Updated inventory CSV upload route in backend/src/routes/upload.js
+// POST bulk upload inventory from CSV
 router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -175,35 +177,77 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
 
         for (const [index, row] of results.entries()) {
           try {
-            // Map CSV columns to inventory fields
+            // Map CSV columns to updated inventory fields
             const inventoryData = {
+              // Basic Event Information
               event_name: row.event_name || row['Event Name'] || '',
               event_date: row.event_date || row['Event Date'] || '',
               event_type: row.event_type || row['Event Type'] || '',
               sports: row.sports || row.Sports || '',
               venue: row.venue || row.Venue || '',
               day_of_match: row.day_of_match || row['Day of Match'] || 'Not Applicable',
+              
+              // Ticket Details
               category_of_ticket: row.category_of_ticket || row['Category of Ticket'] || '',
-              price_per_ticket: parseFloat(row.price_per_ticket || row['Price per Ticket'] || '0'),
-              number_of_tickets: parseInt(row.number_of_tickets || row['Number of Tickets'] || '0'),
-              total_value_of_tickets: parseFloat(row.total_value_of_tickets || row['Total Value of Tickets'] || '0'),
-              currency: row.currency || row.Currency || 'INR',
-              base_amount_inr: parseFloat(row.base_amount_inr || row['Base Amount INR'] || '0'),
-              gst_18_percent: parseFloat(row.gst_18_percent || row['GST 18%'] || '0'),
-              selling_price_per_ticket: parseFloat(row.selling_price_per_ticket || row['Selling Price per Ticket'] || '0'),
-              payment_due_date: row.payment_due_date || row['Payment Due Date'] || '',
-              supplier_name: row.supplier_name || row['Supplier Name'] || '',
-              ticket_source: row.ticket_source || row['Ticket Source'] || '',
-              status: row.status || row.Status || 'available',
-              allocated_to_order: row.allocated_to_order || row['Allocated to Order'] || '',
-              notes: row.notes || row.Notes || ''
+              stand: row.stand || row['Stand/Section'] || '',
+              total_tickets: parseInt(row.total_tickets || row['Total Tickets'] || '0'),
+              available_tickets: parseInt(row.available_tickets || row['Available Tickets'] || '0'),
+              
+              // Pricing Information
+              mrp_of_ticket: parseFloat(row.mrp_of_ticket || row['MRP of Ticket'] || '0'),
+              buying_price: parseFloat(row.buying_price || row['Buying Price'] || '0'),
+              selling_price: parseFloat(row.selling_price || row['Selling Price'] || '0'),
+              
+              // Additional Information
+              inclusions: row.inclusions || row['Inclusions'] || '',
+              booking_person: row.booking_person || row['Booking Person'] || '',
+              procurement_type: row.procurement_type || row['Procurement Type'] || 'pre_inventory',
+              notes: row.notes || row['Notes'] || '',
+              
+              // Payment Information - New Fields
+              paymentStatus: row.paymentStatus || row['Payment Status'] || 'pending',
+              supplierName: row.supplierName || row['Supplier Name'] || '',
+              supplierInvoice: row.supplierInvoice || row['Supplier Invoice'] || '',
+              purchasePrice: parseFloat(row.purchasePrice || row['Purchase Price'] || '0'),
+              totalPurchaseAmount: parseFloat(row.totalPurchaseAmount || row['Total Purchase Amount'] || '0'),
+              amountPaid: parseFloat(row.amountPaid || row['Amount Paid'] || '0'),
+              paymentDueDate: row.paymentDueDate || row['Payment Due Date'] || '',
+              
+              // System fields
+              created_date: new Date().toISOString(),
+              updated_date: new Date().toISOString()
             };
 
             // Validate required fields
             if (!inventoryData.event_name || !inventoryData.event_date || !inventoryData.venue) {
               errors.push({
                 row: index + 2,
-                error: 'Missing required fields (event_name, event_date, or venue)'
+                error: 'Missing required fields (Event Name, Event Date, or Venue)'
+              });
+              errorCount++;
+              continue;
+            }
+
+            // Validate ticket quantities
+            if (inventoryData.total_tickets <= 0) {
+              errors.push({
+                row: index + 2,
+                error: 'Total tickets must be greater than 0'
+              });
+              errorCount++;
+              continue;
+            }
+
+            // Validate available tickets doesn't exceed total
+            if (inventoryData.available_tickets > inventoryData.total_tickets) {
+              inventoryData.available_tickets = inventoryData.total_tickets;
+            }
+
+            // Validate pricing
+            if (inventoryData.mrp_of_ticket <= 0 || inventoryData.buying_price <= 0 || inventoryData.selling_price <= 0) {
+              errors.push({
+                row: index + 2,
+                error: 'MRP, Buying Price, and Selling Price must be greater than 0'
               });
               errorCount++;
               continue;
@@ -227,7 +271,7 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
           totalProcessed: results.length,
           successCount,
           errorCount,
-          errors: errors.slice(0, 10)
+          errors: errors.slice(0, 10) // Return first 10 errors
         });
       })
       .on('error', (error) => {
