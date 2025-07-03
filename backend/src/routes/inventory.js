@@ -133,20 +133,22 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
         console.log('Inventory payment info changed, updating payables...');
         
 console.log('DEBUG: Basic variables check...');
-console.log('updateData type:', typeof updateData);
-console.log('oldData type:', typeof oldData);
-console.log('updateData keys:', Object.keys(updateData || {}));
-console.log('oldData keys:', Object.keys(oldData || {}));
+console.log('updateData exists:', !!updateData);
+console.log('oldData exists:', !!oldData);
 
-console.log('DEBUG: Checking individual values...');
-console.log('updateData.totalPurchaseAmount:', updateData.totalPurchaseAmount);
-console.log('updateData.amountPaid:', updateData.amountPaid);
-console.log('oldData.totalPurchaseAmount:', oldData.totalPurchaseAmount);
-console.log('oldData.amountPaid:', oldData.amountPaid);
+if (updateData) {
+  console.log('updateData.totalPurchaseAmount:', updateData.totalPurchaseAmount);
+  console.log('updateData.amountPaid:', updateData.amountPaid);
+  console.log('updateData.paymentStatus:', updateData.paymentStatus);
+}
 
-console.log('DEBUG: About to start parseFloat operations...');
+if (oldData) {
+  console.log('oldData.totalPurchaseAmount:', oldData.totalPurchaseAmount);  
+  console.log('oldData.amountPaid:', oldData.amountPaid);
+  console.log('oldData.paymentStatus:', oldData.paymentStatus);
+}
 
-console.log('DEBUG: Step A - Starting calculations...');
+console.log('DEBUG: About to start calculations...');
 // Calculate new values with proper fallbacks
 const newTotalAmount = parseFloat(updateData.totalPurchaseAmount !== undefined ? updateData.totalPurchaseAmount : oldData.totalPurchaseAmount) || 0;
 const newAmountPaid = parseFloat(updateData.amountPaid !== undefined ? updateData.amountPaid : oldData.amountPaid) || 0;
