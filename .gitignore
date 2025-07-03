@@ -32,3 +32,46 @@ dist/
 *.tmp
 *.temp
 .cache/
+
+# === Backup Files ===
+*.backup
+*.backup.*
+*.bak
+*.orig
+*.tmp
+*~
+*.swp
+*.swo
+
+# Date-stamped backup files
+*202[0-9]*backup*
+*backup*202[0-9]*
+*.backup-202[0-9]*
+*.backup-[0-9]*
+
+# Specific backup patterns
+*syntax-error-backup*
+*broken-*backup*
+*.backup-before-*
+*.backup-after-*
+*.backup-jwt-fix
+*.backup-finance*
+*.backup-sales-fix
+*.backup-auth-fix
+*.backup-syntax-fix
+*.backup-duplicates
+*.backup-direct-fix
+
+# Python cache and temp files
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
