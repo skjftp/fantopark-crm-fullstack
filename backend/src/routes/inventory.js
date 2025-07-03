@@ -159,7 +159,6 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
         console.log('Searching for payables with inventoryId:', id);
         const payablesSnapshot = await db.collection('crm_payables')
           .where('inventoryId', '==', id)
-          .where('status', '!=', 'paid')
           .get();
         
         console.log('Payables query result:', payablesSnapshot.size, 'documents found');
