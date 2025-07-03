@@ -23,6 +23,12 @@ router.post('/', authenticateToken, checkPermission('inventory', 'create'), asyn
         const amountPaid = parseFloat(inventoryData.amountPaid) || 0;
         const pendingBalance = totalAmount - amountPaid;
         
+        console.log('Creating payable on inventory creation:', {
+          totalAmount,
+          amountPaid,
+          pendingBalance
+        });
+        
         if (pendingBalance > 0) {
           const payableData = {
             inventoryId: docRef.id,
@@ -40,7 +46,7 @@ router.post('/', authenticateToken, checkPermission('inventory', 'create'), asyn
           };
           
           const payableRef = await db.collection('crm_payables').add(payableData);
-          console.log('Payable created with ID:', payableRef.id);
+          console.log('Payable created with ID:', payableRef.id, 'Amount:', pendingBalance);
         }
       } catch (payableError) {
         console.error('Error creating payable:', payableError);
@@ -96,7 +102,7 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
     const { id } = req.params;
     console.log('=== INVENTORY UPDATE DEBUG ===');
     console.log('Inventory ID:', id);
-    console.log('Update data:', JSON.stringify(req.body, null, 2));
+    console.log('Update data received:', JSON.stringify(req.body, null, 2));
     
     const updateData = {
       ...req.body,
@@ -110,6 +116,12 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
     }
     const oldData = oldDoc.data();
     
+    console.log('Old inventory data:', {
+      totalPurchaseAmount: oldData.totalPurchaseAmount,
+      amountPaid: oldData.amountPaid,
+      paymentStatus: oldData.paymentStatus
+    });
+    
     // Update inventory first
     await db.collection('crm_inventory').doc(id).update(updateData);
     
@@ -119,18 +131,29 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
         updateData.totalPurchaseAmount !== undefined) {
       try {
         console.log('Inventory payment info changed, updating payables...');
-        console.log('Searching for payables with inventoryId:', id);
         
+        // Calculate new values with proper fallbacks
         const newTotalAmount = parseFloat(updateData.totalPurchaseAmount !== undefined ? updateData.totalPurchaseAmount : oldData.totalPurchaseAmount) || 0;
         const newAmountPaid = parseFloat(updateData.amountPaid !== undefined ? updateData.amountPaid : oldData.amountPaid) || 0;
-        const newBalance = newTotalAmount - newAmountPaid;
+        let newBalance = newTotalAmount - newAmountPaid;
+        
+        // Ensure we don't have negative balances
+        if (newBalance < 0) {
+          console.warn('Warning: Amount paid exceeds total amount! Setting balance to 0');
+          newBalance = 0;
+        }
         
         console.log('Payment calculation:', { 
           oldTotal: oldData.totalPurchaseAmount,
           oldPaid: oldData.amountPaid,
           newTotal: newTotalAmount, 
           newPaid: newAmountPaid, 
-          newBalance: newBalance 
+          newBalance: newBalance,
+          updateDataReceived: {
+            totalPurchaseAmount: updateData.totalPurchaseAmount,
+            amountPaid: updateData.amountPaid,
+            paymentStatus: updateData.paymentStatus
+          }
         });
 
         // Find existing payables for this inventory (including paid ones)
@@ -147,7 +170,11 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
           
           payablesSnapshot.forEach(doc => {
             const payableData = doc.data();
-            console.log('Updating payable:', { id: doc.id, currentData: payableData });
+            console.log('Updating payable:', { 
+              id: doc.id, 
+              currentAmount: payableData.amount,
+              currentStatus: payableData.status
+            });
             
             if (newBalance <= 0 || updateData.paymentStatus === 'paid') {
               // Fully paid - set amount to 0 but keep record
@@ -156,7 +183,7 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
                 status: 'paid',
                 paid_date: new Date().toISOString(),
                 updated_date: new Date().toISOString(),
-                payment_notes: 'Paid through inventory update'
+                payment_notes: `Paid through inventory update - Total: ₹${newTotalAmount}, Paid: ₹${newAmountPaid}`
               });
               console.log('Marking payable as paid with amount 0');
             } else {
@@ -176,7 +203,7 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
           
         } else if (newBalance > 0) {
           // CREATE NEW PAYABLE if balance exists and no payable record found
-          console.log('Creating new payable for pending balance:', newBalance);
+          console.log('No existing payables found. Creating new payable for pending balance:', newBalance);
           
           const payableData = {
             inventoryId: id,
@@ -189,11 +216,11 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
             created_date: new Date().toISOString(),
             updated_date: new Date().toISOString(),
             description: `Payment for inventory: ${updateData.event_name || oldData.event_name}`,
-            payment_notes: `Created from inventory update - Balance: ₹${newBalance.toFixed(2)}`
+            payment_notes: `Created from inventory update - Balance: ₹${newBalance.toFixed(2)} (Total: ₹${newTotalAmount} - Paid: ₹${newAmountPaid})`
           };
           
           const payableRef = await db.collection('crm_payables').add(payableData);
-          console.log('New payable created with ID:', payableRef.id);
+          console.log('New payable created with ID:', payableRef.id, 'Amount:', newBalance);
           
         } else {
           console.log('No balance remaining and no existing payables - no action needed');
@@ -202,6 +229,8 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
       } catch (payableError) {
         console.error('Error updating payables:', payableError);
       }
+    } else {
+      console.log('No payment-related fields changed, skipping payable sync');
     }
     
     res.json({ data: { id, ...updateData } });
@@ -328,6 +357,10 @@ router.put('/:id/payment', authenticateToken, checkPermission('finance', 'write'
     const { id } = req.params;
     const { amountPaid, paymentStatus, totalPurchaseAmount } = req.body;
     
+    console.log('=== PAYMENT ENDPOINT CALLED ===');
+    console.log('Inventory ID:', id);
+    console.log('Payment data:', { amountPaid, paymentStatus, totalPurchaseAmount });
+    
     const updateData = {
       amountPaid: parseFloat(amountPaid) || 0,
       paymentStatus: paymentStatus,
@@ -386,6 +419,7 @@ router.delete('/', authenticateToken, async (req, res) => {
     });
     
     // Delete payables in batches
+    let payablesDeleted = 0;
     for (const inventoryId of inventoryIds) {
       const payablesSnapshot = await db.collection('crm_payables')
         .where('inventoryId', '==', inventoryId)
@@ -395,6 +429,7 @@ router.delete('/', authenticateToken, async (req, res) => {
         const batch = db.batch();
         payablesSnapshot.forEach(doc => {
           batch.delete(doc.ref);
+          payablesDeleted++;
         });
         await batch.commit();
       }
@@ -411,10 +446,11 @@ router.delete('/', authenticateToken, async (req, res) => {
     
     await batch.commit();
     
-    console.log(`Deleted ${count} inventory items and related payables`);
+    console.log(`Deleted ${count} inventory items and ${payablesDeleted} related payables`);
     res.json({ 
-      message: `Successfully deleted ${count} inventory items and related payables`,
-      count: count 
+      message: `Successfully deleted ${count} inventory items and ${payablesDeleted} related payables`,
+      count: count,
+      payablesDeleted: payablesDeleted
     });
     
   } catch (error) {
