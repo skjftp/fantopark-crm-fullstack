@@ -1308,6 +1308,13 @@ useEffect(() => {
     }
 }, [leads, users]);
 
+// Update stats when filter changes
+useEffect(() => {
+    if (leads.length > 0) {
+        calculateDashboardStats();
+    }
+}, [dashboardFilter, selectedSalesPerson, selectedEvent, leads]);
+
 // Add useEffect to initialize charts when dashboard is active
 useEffect(() => {
     if (activeTab === 'dashboard' && leads.length > 0 && typeof Chart !== 'undefined') {
@@ -1665,6 +1672,18 @@ const getInventoryDueInDays = (eventDate) => {
     return diffDays;
 };
 
+const extractFiltersData = () => {
+    // Extract unique events from leads
+    const uniqueEvents = [...new Set(leads.map(l => l.lead_for_event).filter(e => e))];
+    setEvents(uniqueEvents);
+    
+    // Extract sales people from users
+    const salesUsers = users.filter(u => 
+        u.role === 'sales_executive' || u.role === 'sales_manager'
+    );
+    setSalesPeople(salesUsers);
+};    
+
 const calculateDashboardStats = () => {
     let filteredLeads = leads;
     
@@ -1687,6 +1706,42 @@ const calculateDashboardStats = () => {
     // Update charts with filtered data
     updateCharts(filteredLeads);
 };
+
+    const updateCharts = (filteredLeads) => {
+    // Lead Split Chart (Qualified vs Junk)
+    const qualifiedCount = filteredLeads.filter(l => l.status === 'qualified').length;
+    const junkCount = filteredLeads.filter(l => l.status === 'junk').length;
+    
+    // Temperature Count
+    const hotCount = filteredLeads.filter(l => l.status === 'hot').length;
+    const warmCount = filteredLeads.filter(l => l.status === 'warm').length;
+    const coldCount = filteredLeads.filter(l => l.status === 'cold').length;
+    
+    // Temperature Value
+    const hotValue = filteredLeads.filter(l => l.status === 'hot')
+        .reduce((sum, l) => sum + (l.potential_value || 0), 0);
+    const warmValue = filteredLeads.filter(l => l.status === 'warm')
+        .reduce((sum, l) => sum + (l.potential_value || 0), 0);
+    const coldValue = filteredLeads.filter(l => l.status === 'cold')
+        .reduce((sum, l) => sum + (l.potential_value || 0), 0);
+    
+    // Update charts if they exist
+    if (chartInstances.leadSplit) {
+        chartInstances.leadSplit.data.datasets[0].data = [qualifiedCount, junkCount];
+        chartInstances.leadSplit.update();
+    }
+    
+    if (chartInstances.tempCount) {
+        chartInstances.tempCount.data.datasets[0].data = [hotCount, warmCount, coldCount];
+        chartInstances.tempCount.update();
+    }
+    
+    if (chartInstances.tempValue) {
+        chartInstances.tempValue.data.datasets[0].data = [hotValue, warmValue, coldValue];
+        chartInstances.tempValue.update();
+    }
+};
+
 
     // Function to extract unique events and sales people
 const extractFiltersData = () => {
