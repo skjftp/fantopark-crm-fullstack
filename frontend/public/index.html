@@ -1355,7 +1355,7 @@ useEffect(() => {
             });
             
             if (canvas1 && canvas2 && canvas3) {
-                initializeCharts();
+                initializeChartsAdvanced();
                 
                 // Then update with current data
                 setTimeout(() => {
@@ -1366,7 +1366,7 @@ useEffect(() => {
                 console.log('Canvas elements not ready yet, retrying...');
                 // Retry after another delay
                 setTimeout(() => {
-                    initializeCharts();
+                    initializeChartsAdvanced();
                     const filteredLeads = getFilteredLeads();
                     updateCharts(filteredLeads);
                 }, 500);
@@ -2517,7 +2517,7 @@ window.debugCharts = () => {
 // 5. Function to manually initialize charts:
 window.forceInitCharts = () => {
     console.log('Force initializing charts...');
-    initializeCharts();
+    initializeChartsAdvanced();
 };    
 
     window.debugDashboard = () => {
@@ -2539,7 +2539,7 @@ window.forceInitCharts = () => {
     // Try to reinitialize
     if (activeTab === 'dashboard') {
         console.log('Attempting manual chart initialization...');
-        initializeCharts();
+        initializeChartsAdvanced();
     }
 };
     
