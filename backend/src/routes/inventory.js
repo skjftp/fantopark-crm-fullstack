@@ -129,47 +129,10 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
     if (updateData.paymentStatus !== undefined || 
         updateData.amountPaid !== undefined || 
         updateData.totalPurchaseAmount !== undefined) {
+      
       try {
         console.log('Inventory payment info changed, updating payables...');
         
-console.log('DEBUG: Basic variables check...');
-console.log('updateData exists:', !!updateData);
-console.log('oldData exists:', !!oldData);
-
-if (updateData) {
-  console.log('updateData.totalPurchaseAmount:', updateData.totalPurchaseAmount);
-  console.log('updateData.amountPaid:', updateData.amountPaid);
-  console.log('updateData.paymentStatus:', updateData.paymentStatus);
-}
-
-if (oldData) {
-  console.log('oldData.totalPurchaseAmount:', oldData.totalPurchaseAmount);  
-  console.log('oldData.amountPaid:', oldData.amountPaid);
-  console.log('oldData.paymentStatus:', oldData.paymentStatus);
-}
-
-console.log('DEBUG: About to start calculations...');
-// Calculate new values with proper fallbacks
-const newTotalAmount = parseFloat(updateData.totalPurchaseAmount !== undefined ? updateData.totalPurchaseAmount : oldData.totalPurchaseAmount) || 0;
-const newAmountPaid = parseFloat(updateData.amountPaid !== undefined ? updateData.amountPaid : oldData.amountPaid) || 0;
-let newBalance = newTotalAmount - newAmountPaid;
-
-console.log('DEBUG: Step B - Calculations completed:', { newTotalAmount, newAmountPaid, newBalance });
-
-// Ensure we don't have negative balances
-if (newBalance < 0) {
-  console.warn('Warning: Amount paid exceeds total amount! Setting balance to 0');
-  newBalance = 0;
-}
-
-console.log('DEBUG: Step C - About to query payables...');
-console.log('Searching for payables with inventoryId:', id);
-const payablesSnapshot = await db.collection('crm_payables')
-  .where('inventoryId', '==', id)
-  .get();
-
-console.log('DEBUG: Step D - Payables query completed');
-console.log('Payables query result:', payablesSnapshot.size, 'documents found');
         // Calculate new values with proper fallbacks
         const newTotalAmount = parseFloat(updateData.totalPurchaseAmount !== undefined ? updateData.totalPurchaseAmount : oldData.totalPurchaseAmount) || 0;
         const newAmountPaid = parseFloat(updateData.amountPaid !== undefined ? updateData.amountPaid : oldData.amountPaid) || 0;
@@ -182,31 +145,21 @@ console.log('Payables query result:', payablesSnapshot.size, 'documents found');
         }
         
         console.log('Payment calculation:', { 
-          oldTotal: oldData.totalPurchaseAmount,
-          oldPaid: oldData.amountPaid,
           newTotal: newTotalAmount, 
           newPaid: newAmountPaid, 
-          newBalance: newBalance,
-          updateDataReceived: {
-            totalPurchaseAmount: updateData.totalPurchaseAmount,
-            amountPaid: updateData.amountPaid,
-            paymentStatus: updateData.paymentStatus
-          }
+          newBalance: newBalance 
         });
 
+        // Find existing payables for this inventory
         console.log('Searching for payables with inventoryId:', id);
         const payablesSnapshot = await db.collection('crm_payables')
           .where('inventoryId', '==', id)
           .get();
         
         console.log('Payables query result:', payablesSnapshot.size, 'documents found');
-        if (!payablesSnapshot.empty) {
-            payablesSnapshot.forEach(doc => {
-                console.log('Payable found:', { id: doc.id, data: doc.data() });
-            });
-        }
         
         if (!payablesSnapshot.empty) {
+          // UPDATE EXISTING PAYABLES
           console.log(`Found ${payablesSnapshot.size} payables to update`);
           
           const batch = db.batch();
@@ -227,40 +180,12 @@ console.log('Payables query result:', payablesSnapshot.size, 'documents found');
             }
           });
           await batch.commit();
-          console.log('Payables updated successfully');
+          console.log('Existing payables updated successfully');
+          
         } else {
           // CREATE NEW PAYABLE IF NONE EXISTS AND BALANCE > 0
           if (newBalance > 0 && updateData.paymentStatus !== 'paid') {
             console.log(`No existing payables found. Creating new payable for pending balance: ${newBalance}`);
-
-try {
-  console.log('Step 1: Preparing payable data...');
-  const newPayable = {
-    inventoryId: id,
-    amount: newBalance,
-    status: 'pending',
-    supplierName: updateData.supplierName || oldData.supplierName || 'Unknown Supplier',
-    event_name: updateData.event_name || oldData.event_name || 'Unknown Event',
-    event_date: updateData.event_date || oldData.event_date || null,
-    totalPurchaseAmount: newTotalAmount,
-    amountPaid: newAmountPaid,
-    created_date: new Date().toISOString(),
-    payment_notes: `Created from inventory update - Balance: ₹${newBalance.toFixed(2)}`,
-    priority: 'medium',
-    dueDate: null
-  };
-  
-  console.log('Step 2: Payable data prepared:', JSON.stringify(newPayable, null, 2));
-  
-  console.log('Step 3: About to call db.collection...');
-  const docRef = await db.collection('crm_payables').add(newPayable);
-  console.log('Step 4: Database call completed successfully');
-  
-  console.log(`✅ New payable created with ID: ${docRef.id} Amount: ${newBalance}`);
-} catch (payableCreateError) {
-  console.error('PAYABLE CREATION ERROR:', payableCreateError);
-  console.error('Error stack:', payableCreateError.stack);
-}
             
             const newPayable = {
               inventoryId: id,
@@ -277,19 +202,25 @@ try {
               dueDate: null
             };
             
+            console.log('About to create payable with data:', JSON.stringify(newPayable, null, 2));
             const docRef = await db.collection('crm_payables').add(newPayable);
             console.log(`✅ New payable created with ID: ${docRef.id} Amount: ${newBalance}`);
           } else {
             console.log('No payable needed - balance is 0 or item is fully paid');
           }
         }
+        
       } catch (payableError) {
-        console.error('Error updating payables:', payableError);
+        console.error('Error in payables logic:', payableError);
+        console.error('Error stack:', payableError.stack);
       }
+    } else {
+      console.log('No payment-related fields changed, skipping payable sync');
     }
     
     res.json({ data: { id, ...updateData } });
   } catch (error) {
+    console.error('Error updating inventory:', error);
     res.status(500).json({ error: error.message });
   }
 });
