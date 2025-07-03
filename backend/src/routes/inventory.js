@@ -134,9 +134,15 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
         console.log('Inventory payment info changed, updating payables...');
         
         // Calculate new values with proper fallbacks
-        const newTotalAmount = parseFloat(updateData.totalPurchaseAmount !== undefined ? updateData.totalPurchaseAmount : oldData.totalPurchaseAmount) || 0;
-        const newAmountPaid = parseFloat(updateData.amountPaid !== undefined ? updateData.amountPaid : oldData.amountPaid) || 0;
+// Calculate new values with proper fallbacks and safety checks
+        console.log('DEBUG: About to calculate values...');
+        const newTotalAmount = parseFloat((updateData && updateData.totalPurchaseAmount !== undefined) ? updateData.totalPurchaseAmount : (oldData && oldData.totalPurchaseAmount)) || 0;
+        console.log('DEBUG: newTotalAmount calculated:', newTotalAmount);
+        const newAmountPaid = parseFloat((updateData && updateData.amountPaid !== undefined) ? updateData.amountPaid : (oldData && oldData.amountPaid)) || 0;
+        console.log('DEBUG: newAmountPaid calculated:', newAmountPaid);
         let newBalance = newTotalAmount - newAmountPaid;
+        console.log('DEBUG: newBalance calculated:', newBalance);        
+       
         
         // Ensure we don't have negative balances
         if (newBalance < 0) {
