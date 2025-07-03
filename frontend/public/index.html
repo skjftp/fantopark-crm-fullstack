@@ -3167,6 +3167,54 @@ const handleEditInventory = async (inventoryData) => {
         setLoading(false);
     }
 };
+
+    const handleCopyInventory = async (item) => {
+    try {
+        // Create a copy of the inventory item with modified fields
+        const copiedData = {
+            ...item,
+            // Remove ID and system fields that shouldn't be copied
+            id: undefined,
+            created_date: undefined,
+            updated_date: undefined,
+            
+            // Modify the event name to indicate it's a copy
+            event_name: item.event_name + ' (Copy)',
+            
+            // Reset availability to match total tickets (fresh inventory)
+            available_tickets: item.total_tickets,
+            
+            // Clear payment-related fields for fresh start
+            paymentStatus: 'pending',
+            amountPaid: 0,
+            supplierInvoice: '',
+            
+            // Update creation info
+            created_by: JSON.parse(localStorage.getItem('crm_user') || '{}').name || 'Unknown User',
+            notes: (item.notes || '') + (item.notes ? '\n\n' : '') + 'Copied from original inventory on ' + new Date().toLocaleDateString()
+        };
+
+        // Call API to create the copied inventory
+        const response = await apiCall('/inventory', {
+            method: 'POST',
+            body: JSON.stringify(copiedData)
+        });
+
+        if (response.error) {
+            throw new Error(response.error);
+        }
+
+        // Update local state
+        await fetchInventory();
+        
+        alert(`✅ Inventory copied successfully!\n\nNew event: "${copiedData.event_name}"\nTotal tickets: ${copiedData.total_tickets}\nAvailable tickets: ${copiedData.available_tickets}`);
+        
+    } catch (error) {
+        console.error('Error copying inventory:', error);
+        alert('❌ Failed to copy inventory: ' + error.message);
+    }
+};
+
     
     const openDeliveryForm = (delivery) => {
     if (!hasPermission('delivery', 'write')) {
@@ -9297,11 +9345,18 @@ currentInventoryItems.map(item =>
             className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
             onClick: () => openEditInventoryForm(item)
         }, '✏️ Edit'),
+        
+        // ADD THIS NEW COPY BUTTON RIGHT AFTER THE EDIT BUTTON:
+        hasPermission('inventory', 'write') && React.createElement('button', { 
+            className: 'text-indigo-600 hover:text-indigo-900 text-xs px-2 py-1 rounded border border-indigo-200 hover:bg-indigo-50',
+            onClick: () => handleCopyInventory(item),
+            title: 'Create a copy of this inventory item'
+        }, '📋 Copy'),
+        
         hasPermission('inventory', 'allocate') && item.available_tickets > 0 && React.createElement('button', { 
             className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
             onClick: () => openAllocationForm(item)
         }, '🎫 Allocate'),
-        // ADD THIS NEW BUTTON:
         hasPermission('inventory', 'read') && React.createElement('button', { 
             className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
             onClick: () => openAllocationManagement(item)
@@ -9310,7 +9365,7 @@ currentInventoryItems.map(item =>
             className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
             onClick: () => handleDelete('inventory', item.id, item.event_name),
             disabled: loading
-        }, loading ? '...' : '🗑️ Delete')
+        }, loading ? 'Deleting...' : '🗑️ Delete')
     )
 )
                                 )
