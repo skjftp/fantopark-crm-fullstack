@@ -2278,11 +2278,27 @@ const inventoryWithContext = {
 setEditingInventory(inventoryWithContext);
 
 // Pre-fill form data for payment
+// Calculate correct payment amounts
+const currentTotal = parseFloat(inventoryItem.totalPurchaseAmount || 0);
+const currentPaid = parseFloat(inventoryItem.amountPaid || 0);
+const payableAmount = parseFloat(payable.amount || 0);
+
+// The new amount paid should be: current paid + payable amount
+const newAmountPaid = currentPaid + payableAmount;
+
+console.log('Payment calculation:', {
+    currentTotal,
+    currentPaid,
+    payableAmount,
+    newAmountPaid,
+    willBePaid: newAmountPaid >= currentTotal
+});
+
 setFormData({
     ...inventoryItem,
-    totalPurchaseAmount: inventoryItem.totalPurchaseAmount || payable.amount,
-    amountPaid: payable.amount, // Set to payable amount for payment
-    paymentStatus: 'paid' // Mark as paid since we're updating payment
+    totalPurchaseAmount: currentTotal || payableAmount, // Use existing or payable as total
+    amountPaid: newAmountPaid, // Add payable amount to existing paid amount
+    paymentStatus: newAmountPaid >= currentTotal ? 'paid' : 'partial'
 });
 
 setShowInventoryForm(true);
@@ -8067,8 +8083,11 @@ const renderInventoryForm = () => {
             },
                 React.createElement('h3', { className: 'font-semibold text-blue-800 mb-2' }, '💳 Payment Update'),
                 React.createElement('p', { className: 'text-sm text-blue-700' }, 
-                    'Updating payment for payable amount: ₹' + payableAmount.toLocaleString()
-                ),
+    'Paying off pending balance: ₹' + payableAmount.toLocaleString()
+),
+React.createElement('p', { className: 'text-sm text-blue-600 mt-1' }, 
+    'This will be added to the current amount paid and the payable will be marked as paid.'
+),
                 React.createElement('p', { className: 'text-sm text-blue-600 mt-1' }, 
                     'The payment status will be automatically updated when you save.'
                 )
