@@ -9747,8 +9747,8 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
         }
     };
 
-    // Updated CSV template generator for inventory in frontend/public/index.html
-// Replace the existing downloadSampleCSV function for inventory
+// Updated CSV template generator for frontend/public/index.html
+// Replace the existing downloadSampleCSV function in the CSVUploadModal component
 
 const downloadSampleCSV = () => {
     let csvContent = '';
@@ -9760,7 +9760,7 @@ John Doe,john@example.com,+919876543210,ABC Corp,B2C,Facebook,2025-01-15,Sales T
 Jane Smith,jane@example.com,+919876543211,XYZ Ltd,B2B,WhatsApp,2025-01-16,Marketing Team,Delhi,India,FIFA World Cup 2026,4,Not Sure,Required,Yes,₹50 Lakhs - ₹1 Crore,1000000,unassigned,0,Family trip planned`;
         filename = 'sample_leads.csv';
     } else if (type === 'inventory') {
-        // Updated inventory CSV template with new fields
+        // FIXED: Updated inventory CSV template with correct new field names
         csvContent = `Event Name,Event Date,Event Type,Sports,Venue,Day of Match,Category of Ticket,Stand/Section,Total Tickets,Available Tickets,MRP of Ticket,Buying Price,Selling Price,Inclusions,Booking Person,Procurement Type,Payment Status,Supplier Name,Supplier Invoice,Purchase Price,Total Purchase Amount,Amount Paid,Payment Due Date,Notes
 IPL 2025 Final,2025-05-28,cricket,Cricket,Wankhede Stadium,Not Applicable,VIP,North Stand,100,100,20000,15000,18000,"Food, Beverages, Parking",Mumbai Sports Ltd,pre_inventory,paid,Premium Tickets Co,INV-2025-001,15000,1500000,1500000,2025-04-15,Premium VIP experience with all amenities
 FIFA World Cup 2026 Qualifier,2026-03-15,football,Football,Salt Lake Stadium,Not Applicable,Premium,East Block,200,180,15000,12000,14000,"Parking, Merchandise",Kolkata Events,on_demand,pending,Global Sports,INV-2026-002,12000,2400000,1200000,2026-02-15,Group stage qualifying match
