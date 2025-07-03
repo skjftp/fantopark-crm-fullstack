@@ -96,6 +96,7 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
               email: row.email || row.Email || '',
               phone: row.phone || row.Phone || '',
               company: row.company || row.Company || '',
+              business_type: row.business_type || row['Business Type'] || '',
               source: row.source || row.Source || '',
               date_of_enquiry: row.date_of_enquiry || row['Date of Enquiry'] || new Date().toISOString(),
               first_touch_base_done_by: row.first_touch_base_done_by || row['First Touch Base Done By'] || '',
@@ -153,10 +154,7 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
   }
 });
 
-// DEBUGGING STEPS - Add this to your backend upload handler temporarily
-
-// In backend/src/routes/upload.js, replace the inventory CSV section with this debugging version:
-
+// POST bulk upload inventory from CSV - FIXED VERSION
 router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -232,7 +230,8 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
               
               // System fields
               created_date: new Date().toISOString(),
-              updated_date: new Date().toISOString()
+              updated_date: new Date().toISOString(),
+              created_by: req.user.name || 'CSV Import'
             };
 
             console.log('💰 Payment fields extracted:');
@@ -250,6 +249,16 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
               console.log('🧮 Auto-calculated totalPurchaseAmount:', inventoryData.totalPurchaseAmount);
             }
 
+            if (!inventoryData.totalPurchaseAmount && inventoryData.buying_price && inventoryData.total_tickets) {
+              inventoryData.totalPurchaseAmount = inventoryData.buying_price * inventoryData.total_tickets;
+              console.log('🧮 Auto-calculated totalPurchaseAmount from buying_price:', inventoryData.totalPurchaseAmount);
+            }
+
+            // Ensure available tickets don't exceed total tickets
+            if (inventoryData.available_tickets > inventoryData.total_tickets) {
+              inventoryData.available_tickets = inventoryData.total_tickets;
+            }
+
             // Validate required fields
             if (!inventoryData.event_name || !inventoryData.event_date || !inventoryData.venue) {
               errors.push({
@@ -263,6 +272,7 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
             console.log('💾 Final inventory data to save:');
             console.log(JSON.stringify(inventoryData, null, 2));
 
+            // USE THE INVENTORY MODEL TO SAVE
             const inventory = new Inventory(inventoryData);
             const savedInventory = await inventory.save();
             
@@ -302,4 +312,5 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
     res.status(500).json({ error: error.message });
   }
 });
+
 module.exports = router;
