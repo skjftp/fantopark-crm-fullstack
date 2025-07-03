@@ -153,22 +153,17 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
   }
 });
 
-// POST bulk upload inventory from CSV
-// Updated inventory CSV upload route in backend/src/routes/upload.js
-// POST bulk upload inventory from CSV
-// Updated inventory CSV upload handler in backend/src/routes/upload.js
-// Replace the existing inventory CSV upload section
+// DEBUGGING STEPS - Add this to your backend upload handler temporarily
 
-// POST bulk upload inventory from CSV
-// CORRECTED inventory CSV upload handler in backend/src/routes/upload.js
-// Replace the existing inventory CSV upload section
+// In backend/src/routes/upload.js, replace the inventory CSV section with this debugging version:
 
-// POST bulk upload inventory from CSV
 router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
+
+    console.log('📁 CSV file received:', req.file.originalname, 'Size:', req.file.size);
 
     const results = [];
     const errors = [];
@@ -177,17 +172,22 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
     stream
       .pipe(csv())
       .on('data', (row) => {
+        console.log('🔍 Raw CSV row data:', row);
         results.push(row);
       })
       .on('end', async () => {
+        console.log(`📊 Total rows parsed: ${results.length}`);
+        
         let successCount = 0;
         let errorCount = 0;
 
         for (const [index, row] of results.entries()) {
           try {
-            console.log(`Processing CSV row ${index + 1}:`, row);
+            console.log(`\n🚀 Processing row ${index + 1}:`);
+            console.log('Raw row keys:', Object.keys(row));
+            console.log('Raw row values:', Object.values(row));
             
-            // Map CSV columns to EXACT inventory field names from your form data
+            // EXACT field mapping based on your form data structure
             const inventoryData = {
               // Basic Event Information
               event_name: row.event_name || row['Event Name'] || '',
@@ -199,7 +199,7 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
               
               // Ticket Details
               category_of_ticket: row.category_of_ticket || row['Category of Ticket'] || '',
-              stand: row.stand || row['Stand/Section'] || '',
+              stand: row.stand || row['Stand/Section'] || row['Stand'] || '',
               total_tickets: parseInt(row.total_tickets || row['Total Tickets'] || '0'),
               available_tickets: parseInt(row.available_tickets || row['Available Tickets'] || '0'),
               
@@ -214,82 +214,41 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
               procurement_type: row.procurement_type || row['Procurement Type'] || 'pre_inventory',
               notes: row.notes || row['Notes'] || '',
               
-              // Payment Information - EXACT FIELD NAMES FROM YOUR FORM
-              paymentStatus: row.paymentStatus || row['Payment Status'] || 'pending',
-              supplierName: row.supplierName || row['Supplier Name'] || '',
-              supplierInvoice: row.supplierInvoice || row['Supplier Invoice'] || '',
-              purchasePrice: parseFloat(row.purchasePrice || row['Purchase Price'] || '0'),
-              totalPurchaseAmount: parseFloat(row.totalPurchaseAmount || row['Total Purchase Amount'] || '0'),
-              amountPaid: parseFloat(row.amountPaid || row['Amount Paid'] || '0'),
-              paymentDueDate: row.paymentDueDate || row['Payment Due Date'] || '',
+              // PAYMENT INFORMATION - EXACT FIELD NAMES
+              paymentStatus: row.paymentStatus || row['Payment Status'] || row.payment_status || 'pending',
+              supplierName: row.supplierName || row['Supplier Name'] || row.supplier_name || '',
+              supplierInvoice: row.supplierInvoice || row['Supplier Invoice'] || row.supplier_invoice || '',
+              purchasePrice: parseFloat(row.purchasePrice || row['Purchase Price'] || row.purchase_price || '0'),
+              totalPurchaseAmount: parseFloat(row.totalPurchaseAmount || row['Total Purchase Amount'] || row.total_purchase_amount || '0'),
+              amountPaid: parseFloat(row.amountPaid || row['Amount Paid'] || row.amount_paid || '0'),
+              paymentDueDate: row.paymentDueDate || row['Payment Due Date'] || row.payment_due_date || '',
               
-              // Legacy/Calculated fields (keeping for compatibility)
+              // Legacy fields for compatibility
               vendor_name: row.vendor_name || row['Vendor Name'] || row.supplierName || row['Supplier Name'] || '',
-              price_per_ticket: parseFloat(row.price_per_ticket || row['Price per Ticket'] || row.selling_price || row['Selling Price'] || '0'),
-              number_of_tickets: parseInt(row.number_of_tickets || row['Number of Tickets'] || row.total_tickets || row['Total Tickets'] || '0'),
-              total_value_of_tickets: parseFloat(row.total_value_of_tickets || row['Total Value of Tickets'] || '0'),
+              price_per_ticket: parseFloat(row.price_per_ticket || row['Price per Ticket'] || row.selling_price || '0'),
+              number_of_tickets: parseInt(row.number_of_tickets || row['Number of Tickets'] || row.total_tickets || '0'),
               currency: row.currency || row.Currency || 'INR',
-              base_amount_inr: parseFloat(row.base_amount_inr || row['Base Amount INR'] || '0'),
-              gst_18_percent: parseFloat(row.gst_18_percent || row['GST 18%'] || '0'),
-              selling_price_per_ticket: parseFloat(row.selling_price_per_ticket || row['Selling Price per Ticket'] || row.selling_price || row['Selling Price'] || '0'),
-              payment_due_date: row.payment_due_date || row['Payment Due Date'] || row.paymentDueDate || '',
-              supplier_name: row.supplier_name || row['Supplier Name'] || row.supplierName || '',
-              ticket_source: row.ticket_source || row['Ticket Source'] || 'Primary',
               status: row.status || row.Status || 'available',
-              allocated_to_order: row.allocated_to_order || row['Allocated to Order'] || '',
               
               // System fields
               created_date: new Date().toISOString(),
               updated_date: new Date().toISOString()
             };
 
-            // Auto-calculate missing values based on your form logic
-            if (!inventoryData.totalPurchaseAmount && inventoryData.buying_price && inventoryData.total_tickets) {
-              inventoryData.totalPurchaseAmount = inventoryData.buying_price * inventoryData.total_tickets;
-            }
+            console.log('💰 Payment fields extracted:');
+            console.log('  paymentStatus:', inventoryData.paymentStatus);
+            console.log('  supplierName:', inventoryData.supplierName);
+            console.log('  supplierInvoice:', inventoryData.supplierInvoice);
+            console.log('  purchasePrice:', inventoryData.purchasePrice);
+            console.log('  totalPurchaseAmount:', inventoryData.totalPurchaseAmount);
+            console.log('  amountPaid:', inventoryData.amountPaid);
+            console.log('  paymentDueDate:', inventoryData.paymentDueDate);
 
-            if (!inventoryData.total_value_of_tickets && inventoryData.selling_price && inventoryData.total_tickets) {
-              inventoryData.total_value_of_tickets = inventoryData.selling_price * inventoryData.total_tickets;
+            // Auto-calculate missing values
+            if (!inventoryData.totalPurchaseAmount && inventoryData.purchasePrice && inventoryData.total_tickets) {
+              inventoryData.totalPurchaseAmount = inventoryData.purchasePrice * inventoryData.total_tickets;
+              console.log('🧮 Auto-calculated totalPurchaseAmount:', inventoryData.totalPurchaseAmount);
             }
-
-            if (!inventoryData.purchasePrice && inventoryData.buying_price) {
-              inventoryData.purchasePrice = inventoryData.buying_price;
-            }
-
-            // Sync legacy fields with new ones
-            if (!inventoryData.vendor_name && inventoryData.supplierName) {
-              inventoryData.vendor_name = inventoryData.supplierName;
-            }
-            if (!inventoryData.supplier_name && inventoryData.supplierName) {
-              inventoryData.supplier_name = inventoryData.supplierName;
-            }
-            if (!inventoryData.payment_due_date && inventoryData.paymentDueDate) {
-              inventoryData.payment_due_date = inventoryData.paymentDueDate;
-            }
-            if (!inventoryData.price_per_ticket && inventoryData.selling_price) {
-              inventoryData.price_per_ticket = inventoryData.selling_price;
-            }
-            if (!inventoryData.selling_price_per_ticket && inventoryData.selling_price) {
-              inventoryData.selling_price_per_ticket = inventoryData.selling_price;
-            }
-            if (!inventoryData.number_of_tickets && inventoryData.total_tickets) {
-              inventoryData.number_of_tickets = inventoryData.total_tickets;
-            }
-
-            // Ensure available tickets don't exceed total tickets
-            if (inventoryData.available_tickets > inventoryData.total_tickets) {
-              inventoryData.available_tickets = inventoryData.total_tickets;
-            }
-
-            console.log(`Processed inventory data for row ${index + 1}:`, {
-              event_name: inventoryData.event_name,
-              paymentStatus: inventoryData.paymentStatus,
-              supplierName: inventoryData.supplierName,
-              supplierInvoice: inventoryData.supplierInvoice,
-              totalPurchaseAmount: inventoryData.totalPurchaseAmount,
-              amountPaid: inventoryData.amountPaid,
-              paymentDueDate: inventoryData.paymentDueDate
-            });
 
             // Validate required fields
             if (!inventoryData.event_name || !inventoryData.event_date || !inventoryData.venue) {
@@ -301,36 +260,18 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
               continue;
             }
 
-            // Validate ticket quantities
-            if (inventoryData.total_tickets <= 0) {
-              errors.push({
-                row: index + 2,
-                error: 'Total tickets must be greater than 0'
-              });
-              errorCount++;
-              continue;
-            }
-
-            // Validate pricing - only check if they are provided
-            if ((inventoryData.mrp_of_ticket && inventoryData.mrp_of_ticket <= 0) || 
-                (inventoryData.buying_price && inventoryData.buying_price <= 0) || 
-                (inventoryData.selling_price && inventoryData.selling_price <= 0)) {
-              errors.push({
-                row: index + 2,
-                error: 'Pricing values must be greater than 0 when provided'
-              });
-              errorCount++;
-              continue;
-            }
+            console.log('💾 Final inventory data to save:');
+            console.log(JSON.stringify(inventoryData, null, 2));
 
             const inventory = new Inventory(inventoryData);
             const savedInventory = await inventory.save();
-            console.log(`✅ Successfully saved inventory with ID: ${savedInventory.id}`);
-            console.log(`Payment info saved:`, {
-              paymentStatus: savedInventory.paymentStatus,
-              supplierName: savedInventory.supplierName,
-              totalPurchaseAmount: savedInventory.totalPurchaseAmount
-            });
+            
+            console.log('✅ Successfully saved inventory with ID:', savedInventory.id);
+            console.log('✅ Payment fields in saved data:');
+            console.log('  paymentStatus:', savedInventory.paymentStatus);
+            console.log('  supplierName:', savedInventory.supplierName);
+            console.log('  totalPurchaseAmount:', savedInventory.totalPurchaseAmount);
+            
             successCount++;
           } catch (error) {
             console.error(`❌ Error processing row ${index + 2}:`, error);
@@ -349,7 +290,7 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
           totalProcessed: results.length,
           successCount,
           errorCount,
-          errors: errors.slice(0, 10) // Return first 10 errors
+          errors: errors.slice(0, 10)
         });
       })
       .on('error', (error) => {
