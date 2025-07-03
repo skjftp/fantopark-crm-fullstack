@@ -25,4 +25,20 @@ router.get('/payables', authenticateToken, checkPermission('finance', 'read'), a
   }
 });
 
+// Create payable
+router.post('/payables', authenticateToken, checkPermission('finance', 'create'), async (req, res) => {
+  try {
+    const payableData = {
+      ...req.body,
+      created_date: new Date().toISOString(),
+      status: req.body.status || 'pending'
+    };
+    
+    const docRef = await db.collection('crm_payables').add(payableData);
+    res.status(201).json({ data: { id: docRef.id, ...payableData } });
+  } catch (error) {
+    console.error('Error creating payable:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 module.exports = router;
