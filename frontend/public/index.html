@@ -2650,13 +2650,11 @@ const fetchMyActions = async () => {
             console.log('Assigned leads:', assignedLeads);
             console.log('Quote requested leads:', quoteRequestedLeads);
             
-            setMyLeads(assignedLeads);
+                        setMyLeads(assignedLeads);
             setMyQuoteRequested(quoteRequestedLeads);
         } else {
             setMyLeads([]);
             setMyQuoteRequested([]);
-        } else {
-            setMyLeads([]);
         }
         
         // Filter orders based on role
