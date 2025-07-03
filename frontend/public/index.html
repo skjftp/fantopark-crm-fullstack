@@ -7170,13 +7170,12 @@ console.log('Order update response:', updateResponse);
                                     setTimeout(() => openAssignForm(currentLead), 100);
                                 }
                             }, '👤 Assign'),
-                        hasPermission('leads', 'progress') && nextActions.length > 0 && React.createElement('button', {
-                            className: 'bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700',
-                            onClick: () => {
-                                closeForm();
-                                setTimeout(() => handleLeadProgression(currentLead), 100);
-                            }
-                        }, '→ Progress Lead'),
+hasPermission('leads', 'progress') && nextActions.length > 0 && React.createElement('button', {
+    className: 'bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700',
+    onClick: () => {
+        handleLeadProgression(currentLead);
+    }
+}, '→ Progress Lead'),
                         hasPermission('leads', 'write') && currentLead.status === 'converted' &&
                             React.createElement('button', { 
                                 className: 'bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700',
