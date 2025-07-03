@@ -7333,19 +7333,38 @@ console.log('Order update response:', updateResponse);
                                                 )
                                             ) :
                                         field.type === 'inventory_select' ?
-                                            React.createElement('select', {
-                                                value: formData[field.name] || '',
-                                                onChange: (e) => handleInputChange(field.name, e.target.value),
-                                                className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-                                                required: field.required
-                                            },
-                                                React.createElement('option', { value: '' }, 'Select Event'),
-                                                inventory.map(event =>
-                                                    React.createElement('option', { key: event.id, value: event.event_name }, 
-                                                        (event.event_name) + ' - ' + (new Date(event.event_date).toLocaleDateString())
-                                                    )
-                                                )
-                                            ) :
+    React.createElement('select', {
+        value: formData[field.name] || '',
+        onChange: (e) => handleInputChange(field.name, e.target.value),
+        className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+        required: field.required
+    },
+        React.createElement('option', { value: '' }, 'Select Event'),
+        
+        // ✅ NEW CODE - Shows unique events only:
+        (() => {
+            const uniqueEvents = [];
+            const seen = new Set();
+            
+            inventory.forEach(event => {
+                const key = `${event.event_name}_${event.event_date}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueEvents.push(event);
+                }
+            });
+            
+            return uniqueEvents.map(event =>
+                React.createElement('option', { 
+                    key: event.id, 
+                    value: event.event_name 
+                }, 
+                    `${event.event_name} - ${new Date(event.event_date).toLocaleDateString()}`
+                )
+            );
+        })()
+        
+    ) :
                                         field.type === 'textarea' ?
                                             React.createElement('textarea', {
                                                 value: formData[field.name] || '',
