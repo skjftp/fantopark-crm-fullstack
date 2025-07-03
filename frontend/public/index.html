@@ -2279,26 +2279,29 @@ setEditingInventory(inventoryWithContext);
 
 // Pre-fill form data for payment
 // Calculate correct payment amounts
+// When coming from payables, we're paying off the pending balance
 const currentTotal = parseFloat(inventoryItem.totalPurchaseAmount || 0);
 const currentPaid = parseFloat(inventoryItem.amountPaid || 0);
-const payableAmount = parseFloat(payable.amount || 0);
+const pendingBalance = parseFloat(payable.amount || 0); // What we owe
 
-// The new amount paid should be: current paid + payable amount
-const newAmountPaid = currentPaid + payableAmount;
+// Calculate new payment amounts
+const newAmountPaid = currentPaid + pendingBalance; // Add balance to current paid
+const finalTotal = Math.max(currentTotal, newAmountPaid); // Ensure total >= paid
 
-console.log('Payment calculation:', {
+console.log('Payable payment calculation:', {
     currentTotal,
     currentPaid,
-    payableAmount,
+    pendingBalance,
     newAmountPaid,
-    willBePaid: newAmountPaid >= currentTotal
+    finalTotal,
+    willBeFullyPaid: newAmountPaid >= finalTotal
 });
 
 setFormData({
     ...inventoryItem,
-    totalPurchaseAmount: currentTotal || payableAmount, // Use existing or payable as total
-    amountPaid: newAmountPaid, // Add payable amount to existing paid amount
-    paymentStatus: newAmountPaid >= currentTotal ? 'paid' : 'partial'
+    totalPurchaseAmount: finalTotal,
+    amountPaid: newAmountPaid,
+    paymentStatus: newAmountPaid >= finalTotal ? 'paid' : 'partial'
 });
 
 setShowInventoryForm(true);
