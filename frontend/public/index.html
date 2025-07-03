@@ -875,6 +875,9 @@ const [editingInventory, setEditingInventory] = useState(null);
 const [orders, setOrders] = useState([]);
     const [orderToAssign, setOrderToAssign] = useState(null);
     const [showOrderAssignModal, setShowOrderAssignModal] = useState(false);
+    const [showAllocationManagement, setShowAllocationManagement] = React.useState(false);
+const [currentAllocations, setCurrentAllocations] = React.useState([]);
+const [allocationManagementInventory, setAllocationManagementInventory] = React.useState(null);
     
     // Edit order function - in App scope
     const openEditOrderForm = (order) => {
@@ -5053,151 +5056,130 @@ case 'myactions':
     ];
 
     // Enhanced allocation handling with permission check
-    const handleAllocation = async (e) => {
-        e.preventDefault();
-        if (!hasPermission('inventory', 'allocate')) {
-            alert('You do not have permission to allocate inventory');
-            return;
+// Enhanced allocation handling with permission check
+const handleAllocation = async (e) => {
+    e.preventDefault();
+    if (!hasPermission('inventory', 'allocate')) {
+        alert('You do not have permission to allocate inventory');
+        return;
+    }
+    
+    setLoading(true);
+
+    try {
+        // FIX: Don't use parseInt for lead ID comparison
+        const selectedLead = leads.find(lead => lead.id === allocationData.lead_id);
+        
+        if (!selectedLead) {
+            throw new Error('Lead not found');
+        }
+
+        if (selectedLead.status !== 'converted') {
+            throw new Error('Lead must be in converted status to allocate inventory');
+        }
+
+        if (allocationData.tickets_allocated > currentInventory.available_tickets) {
+            throw new Error('Not enough tickets available');
+        }
+
+        // Call the fixed backend endpoint
+        const response = await apiCall(`/inventory/${currentInventory.id}/allocate`, {
+            method: 'POST',
+            body: JSON.stringify({
+                lead_id: allocationData.lead_id,
+                tickets_allocated: parseInt(allocationData.tickets_allocated),
+                allocation_date: allocationData.allocation_date,
+                notes: allocationData.notes
+            })
+        });
+
+        if (response.error) {
+            throw new Error(response.error);
+        }
+
+        // Update local inventory state
+        setInventory(prev => 
+            prev.map(item => 
+                item.id === currentInventory.id 
+                    ? { ...item, available_tickets: response.remaining_tickets }
+                    : item
+            )
+        );
+
+        alert(`Successfully allocated ${allocationData.tickets_allocated} tickets to ${selectedLead.name}`);
+        setShowAllocationForm(false);
+        setAllocationData({ lead_id: '', tickets_allocated: 1, allocation_date: '', notes: '' });
+
+    } catch (error) {
+        console.error('Error allocating inventory:', error);
+        alert('Error allocating inventory: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
+};
+
+    // Function to open allocation management
+const openAllocationManagement = async (inventoryItem) => {
+    try {
+        setLoading(true);
+        setAllocationManagementInventory(inventoryItem);
+        
+        // Fetch allocations for this inventory
+        const response = await apiCall(`/inventory/${inventoryItem.id}/allocations`);
+        
+        if (response.error) {
+            throw new Error(response.error);
         }
         
+        setCurrentAllocations(response.data.allocations);
+        setShowAllocationManagement(true);
+        
+    } catch (error) {
+        console.error('Error fetching allocations:', error);
+        alert('Error fetching allocations: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
+};
+
+// Function to unallocate tickets
+const handleUnallocate = async (allocationId, ticketsToReturn) => {
+    if (!confirm(`Are you sure you want to unallocate ${ticketsToReturn} tickets?`)) {
+        return;
+    }
+    
+    try {
         setLoading(true);
-
-        try {
-            const selectedLead = leads.find(lead => lead.id === parseInt(allocationData.lead_id));
-            
-            if (!selectedLead) {
-                throw new Error('Lead not found');
-            }
-
-            if (selectedLead.status !== 'converted') {
-                throw new Error('Lead must be in converted status to allocate inventory');
-            }
-
-            if (allocationData.tickets_allocated > currentInventory.available_tickets) {
-                throw new Error('Not enough tickets available');
-            }
-
-            setInventory(prev => 
-                prev.map(item => 
-                    item.id === currentInventory.id 
-                        ? { ...item, available_tickets: item.available_tickets - allocationData.tickets_allocated }
-                        : item
-                )
-            );
-
-            const newOrder = {
-                id: Date.now(),
-                order_number: 'ORD-' + (Date.now()),
-                lead_id: selectedLead.id,
-                client_name: selectedLead.name,
-                client_email: selectedLead.email,
-                client_phone: selectedLead.phone,
-                event_name: currentInventory.event_name || currentInventory.match_name || "Event",
-                event_date: currentInventory.event_date,
-                tickets_allocated: allocationData.tickets_allocated,
-                ticket_category: currentInventory.category_of_ticket,
-                price_per_ticket: currentInventory.selling_price,
-                total_amount: currentInventory.selling_price * allocationData.tickets_allocated,
-                payment_amount: selectedLead.payment_details?.payment_amount || 0,
-                payment_method: selectedLead.payment_details?.payment_method || '',
-                transaction_id: selectedLead.payment_details?.transaction_id || '',
-                status: 'pending_approval',
-            requires_gst_invoice: true,
-                created_date: new Date().toISOString().split('T')[0],
-                allocation_notes: allocationData.notes,
-                assigned_to: null
-            };
-
-            // Create order in backend first
-
-
-            try {
-
-
-                console.log('Creating order with data:', JSON.stringify(orderData, null, 2));
-        console.log('Key fields:', {
-            event_name: orderData.event_name,
-            tickets_allocated: orderData.tickets_allocated,
-            ticket_category: orderData.ticket_category,
-            total_amount: orderData.total_amount
+        
+        const response = await apiCall(`/inventory/${allocationManagementInventory.id}/allocations/${allocationId}`, {
+            method: 'DELETE'
         });
-        const orderResponse = await apiCall('/orders', {
-
-
-                    method: 'POST',
-
-
-                    body: JSON.stringify(newOrder)
-
-
-                });
-
-
-                console.log('Order created in backend (Service Assignment):', orderResponse);
-
-
-                setOrders(prev => [...prev, orderResponse]);
-
-
-            } catch (orderError) {
-
-
-                console.error('Failed to create order in backend:', orderError);
-
-
-                // Create order in backend first
-                try {
-                    console.log('Creating order with data:', JSON.stringify(orderData, null, 2));
-        console.log('Key fields:', {
-            event_name: orderData.event_name,
-            tickets_allocated: orderData.tickets_allocated,
-            ticket_category: orderData.ticket_category,
-            total_amount: orderData.total_amount
-        });
-        const orderResponse = await apiCall('/orders', {
-                        method: 'POST',
-                        body: JSON.stringify(newOrder)
-                    });
-                    console.log('Order created in backend:', orderResponse);
-                    setOrders(prev => [...prev, orderResponse]);
-                } catch (orderError) {
-                    console.error("Failed to create order in backend:", orderError);
-                    setOrders(prev => [...prev, newOrder]);
-                }
-            }
-
-            setLeads(prev => 
-                prev.map(lead => 
-                    lead.id === selectedLead.id 
-                        ? { ...lead, status: 'service_assigned', order_id: newOrder.id }
-                        : lead
-                )
-            );
-
-            const newInvoice = {
-                id: Date.now(),
-                invoice_number: 'INV-' + (Date.now()),
-                order_id: newOrder.id,
-                order_number: newOrder.order_number,
-                client_name: newOrder.client_name,
-                event_name: newOrder.event_name,
-                quantity: newOrder.tickets_allocated,
-                amount: newOrder.total_amount,
-                invoice_date: new Date().toISOString().split('T')[0],
-                due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                status: 'generated'
-            };
-
-            setInvoices(prev => [...prev, newInvoice]);
-
-            setLoading(false);
-            alert('Successfully allocated ' + (allocationData.tickets_allocated) + ' tickets and created order ' + (newOrder.order_number));
-            closeForm();
-        } catch (error) {
-            setLoading(false);
-            alert('Allocation failed: ' + error.message);
+        
+        if (response.error) {
+            throw new Error(response.error);
         }
-    };
+        
+        // Refresh allocations
+        await openAllocationManagement(allocationManagementInventory);
+        
+        // Update inventory in main list
+        setInventory(prev => 
+            prev.map(item => 
+                item.id === allocationManagementInventory.id 
+                    ? { ...item, available_tickets: response.new_available_tickets }
+                    : item
+            )
+        );
+        
+        alert(`Successfully unallocated ${ticketsToReturn} tickets`);
+        
+    } catch (error) {
+        console.error('Error unallocating tickets:', error);
+        alert('Error unallocating tickets: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
+};
 
     // ADD this enhanced order approval function
 const handleEnhancedOrderApproval = async (orderId, action, notes = '') => {
@@ -8061,6 +8043,91 @@ React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
         );
     };
 
+    // Allocation Management Modal
+const renderAllocationManagement = () => {
+    if (!showAllocationManagement || !allocationManagementInventory) return null;
+    
+    return React.createElement('div', { 
+        className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
+    },
+        React.createElement('div', { 
+            className: 'bg-white p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto'
+        },
+            React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+                React.createElement('h2', { className: 'text-xl font-bold' }, 
+                    'Allocations for ' + allocationManagementInventory.event_name
+                ),
+                React.createElement('button', {
+                    onClick: () => setShowAllocationManagement(false),
+                    className: 'text-gray-500 hover:text-gray-700'
+                }, '✕')
+            ),
+            
+            React.createElement('div', { className: 'mb-4 p-4 bg-gray-50 rounded' },
+                React.createElement('h3', { className: 'font-semibold' }, 'Inventory Details'),
+                React.createElement('p', null, 'Total Tickets: ' + (allocationManagementInventory.total_tickets || 'N/A')),
+                React.createElement('p', null, 'Available Tickets: ' + (allocationManagementInventory.available_tickets || 0)),
+                React.createElement('p', null, 'Allocated Tickets: ' + ((allocationManagementInventory.total_tickets || 0) - (allocationManagementInventory.available_tickets || 0)))
+            ),
+            
+            currentAllocations.length === 0 ? 
+                React.createElement('div', { className: 'text-center py-8 text-gray-500' },
+                    'No allocations found for this inventory item.'
+                ) :
+                React.createElement('div', { className: 'overflow-x-auto' },
+                    React.createElement('table', { className: 'min-w-full bg-white border border-gray-300' },
+                        React.createElement('thead', { className: 'bg-gray-50' },
+                            React.createElement('tr', null,
+                                React.createElement('th', { className: 'px-4 py-2 border text-left' }, 'Lead Name'),
+                                React.createElement('th', { className: 'px-4 py-2 border text-left' }, 'Email'),
+                                React.createElement('th', { className: 'px-4 py-2 border text-left' }, 'Tickets Allocated'),
+                                React.createElement('th', { className: 'px-4 py-2 border text-left' }, 'Allocation Date'),
+                                React.createElement('th', { className: 'px-4 py-2 border text-left' }, 'Notes'),
+                                React.createElement('th', { className: 'px-4 py-2 border text-left' }, 'Actions')
+                            )
+                        ),
+                        React.createElement('tbody', null,
+                            currentAllocations.map(allocation =>
+                                React.createElement('tr', { key: allocation.id, className: 'hover:bg-gray-50' },
+                                    React.createElement('td', { className: 'px-4 py-2 border' },
+                                        allocation.lead_details ? allocation.lead_details.name : (allocation.lead_name || 'Unknown')
+                                    ),
+                                    React.createElement('td', { className: 'px-4 py-2 border' },
+                                        allocation.lead_details ? allocation.lead_details.email : (allocation.lead_email || 'N/A')
+                                    ),
+                                    React.createElement('td', { className: 'px-4 py-2 border' }, allocation.tickets_allocated),
+                                    React.createElement('td', { className: 'px-4 py-2 border' },
+                                        new Date(allocation.allocation_date).toLocaleDateString()
+                                    ),
+                                    React.createElement('td', { className: 'px-4 py-2 border' }, allocation.notes || 'No notes'),
+                                    React.createElement('td', { className: 'px-4 py-2 border' },
+                                        React.createElement('button', {
+                                            onClick: () => handleUnallocate(allocation.id, allocation.tickets_allocated),
+                                            className: 'bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600',
+                                            disabled: loading
+                                        }, 'Unallocate')
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ),
+            
+            React.createElement('div', { className: 'mt-6 flex justify-between' },
+                React.createElement('button', {
+                    onClick: () => openAllocationForm(allocationManagementInventory),
+                    className: 'bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600',
+                    disabled: allocationManagementInventory.available_tickets <= 0
+                }, 'Add New Allocation'),
+                React.createElement('button', {
+                    onClick: () => setShowAllocationManagement(false),
+                    className: 'bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600'
+                }, 'Close')
+            )
+        )
+    );
+};
+
     // New inventory form specifically for payables integration
 // Updated renderInventoryForm function (replace the entire function)
 const renderInventoryForm = () => {
@@ -9012,22 +9079,27 @@ currentInventoryItems.map(item =>
                                         )
                                     ),
                                     React.createElement('td', { className: 'px-6 py-4 text-sm' },
-                                        React.createElement('div', { className: 'flex flex-wrap gap-1' },
-                                            hasPermission('inventory', 'write') && React.createElement('button', { 
-                                                className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
-                                                onClick: () => openEditInventoryForm(item)
-                                            }, '✏️ Edit'),
-                                            hasPermission('inventory', 'allocate') && item.available_tickets > 0 && React.createElement('button', { 
-                                                className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
-                                                onClick: () => openAllocationForm(item)
-                                            }, '🎫 Allocate'),
-                                            hasPermission('inventory', 'delete') && React.createElement('button', { 
-                                                className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
-                                                onClick: () => handleDelete('inventory', item.id, item.event_name),
-                                                disabled: loading
-                                            }, loading ? '...' : '🗑️ Delete')
-                                        )
-                                    )
+    React.createElement('div', { className: 'flex flex-wrap gap-1' },
+        hasPermission('inventory', 'write') && React.createElement('button', { 
+            className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
+            onClick: () => openEditInventoryForm(item)
+        }, '✏️ Edit'),
+        hasPermission('inventory', 'allocate') && item.available_tickets > 0 && React.createElement('button', { 
+            className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
+            onClick: () => openAllocationForm(item)
+        }, '🎫 Allocate'),
+        // ADD THIS NEW BUTTON:
+        hasPermission('inventory', 'read') && React.createElement('button', { 
+            className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
+            onClick: () => openAllocationManagement(item)
+        }, '👁️ View Allocations'),
+        hasPermission('inventory', 'delete') && React.createElement('button', { 
+            className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
+            onClick: () => handleDelete('inventory', item.id, item.event_name),
+            disabled: loading
+        }, loading ? '...' : '🗑️ Delete')
+    )
+)
                                 )
                             )
                             )
@@ -9900,6 +9972,7 @@ showCSVUploadModal && React.createElement(CSVUploadModal, {
         renderPaymentForm(),
         renderLeadDetail(),
         renderAllocationForm(),
+        renderAllocationManagement(),
         renderInventoryForm(),                   
         renderChoiceModal(),
         renderUserManagement(),
