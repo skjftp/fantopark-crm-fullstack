@@ -2230,6 +2230,83 @@ const handleLogin = async (e) => {
         }
     };
 
+    // Enhanced handleMarkAsPaid function with inventory integration
+const handleMarkAsPaid = async (payableId) => {
+    try {
+        console.log('handleMarkAsPaid called with payableId:', payableId);
+        
+        const payable = financialData.payables?.find(p => p.id === payableId);
+        
+        if (!payable) {
+            console.error('Payable not found:', payableId);
+            alert('Payable not found.');
+            return;
+        }
+        
+        console.log('Found payable:', payable);
+        
+        // If linked to inventory, open inventory edit form
+        if (payable.inventoryId) {
+            console.log('Payable is linked to inventory:', payable.inventoryId);
+            
+            const inventoryItem = inventory.find(inv => inv.id === payable.inventoryId);
+            
+            if (!inventoryItem) {
+                console.error('Related inventory item not found:', payable.inventoryId);
+                alert('Related inventory item not found. Please refresh and try again.');
+                await fetchInventory();
+                return;
+            }
+            
+            console.log('Found inventory item:', inventoryItem);
+            console.log('Opening inventory edit form for payable payment...');
+            
+            // Set up for editing with payment focus
+            setEditingInventory({
+                ...inventoryItem,
+                _payableContext: {
+                    payableId: payable.id,
+                    payableAmount: payable.amount,
+                    fromPayables: true
+                }
+            });
+            setShowInventoryForm(true);
+            
+            return;
+        }
+        
+        // For non-inventory payables, use traditional mark as paid
+        console.log('Processing non-inventory payable...');
+        const confirmPaid = confirm(`Mark payable of ₹${payable.amount} as paid?`);
+        if (!confirmPaid) return;
+        
+        setLoading(true);
+        
+        const response = await apiCall(`/finance/payables/${payableId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                status: 'paid',
+                paid_date: new Date().toISOString(),
+                payment_notes: 'Marked as paid manually'
+            })
+        });
+
+        if (response.error) {
+            throw new Error(response.error);
+        }
+
+        console.log('Payable marked as paid successfully');
+        alert('Payable marked as paid!');
+        await fetchFinancialData();
+        
+    } catch (error) {
+        console.error('Error handling mark as paid:', error);
+        alert('Failed to process payment: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
+};
+
 const fetchFinancialData = async () => {
     try {
         console.log('Fetching financial data...');
