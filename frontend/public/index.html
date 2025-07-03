@@ -2265,15 +2265,27 @@ const handleMarkAsPaid = async (payableId) => {
             console.log('Opening inventory edit form for payable payment...');
             
             // Set up for editing with payment focus
-            setEditingInventory({
-                ...inventoryItem,
-                _payableContext: {
-                    payableId: payable.id,
-                    payableAmount: payable.amount,
-                    fromPayables: true
-                }
-            });
-            setShowInventoryForm(true);
+           // Pre-fill form data with payment context
+const inventoryWithContext = {
+    ...inventoryItem,
+    _payableContext: {
+        payableId: payable.id,
+        payableAmount: payable.amount,
+        fromPayables: true
+    }
+};
+
+setEditingInventory(inventoryWithContext);
+
+// Pre-fill form data for payment
+setFormData({
+    ...inventoryItem,
+    totalPurchaseAmount: inventoryItem.totalPurchaseAmount || payable.amount,
+    amountPaid: payable.amount, // Set to payable amount for payment
+    paymentStatus: 'paid' // Mark as paid since we're updating payment
+});
+
+setShowInventoryForm(true);
             
             return;
         }
@@ -8022,25 +8034,13 @@ React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
     };
 
     // New inventory form specifically for payables integration
+// Updated renderInventoryForm function (replace the entire function)
 const renderInventoryForm = () => {
     if (!showInventoryForm || !editingInventory) return null;
 
     // Check if opened from payables (payment context)
     const isFromPayables = editingInventory._payableContext?.fromPayables;
     const payableAmount = editingInventory._payableContext?.payableAmount || 0;
-
-    // Initialize form data with inventory item
-    React.useEffect(() => {
-        if (editingInventory && !formData.event_name) {
-            setFormData({
-                ...editingInventory,
-                // Pre-fill payment fields if from payables
-                totalPurchaseAmount: editingInventory.totalPurchaseAmount || payableAmount,
-                amountPaid: isFromPayables ? payableAmount : editingInventory.amountPaid || 0,
-                paymentStatus: isFromPayables ? 'paid' : editingInventory.paymentStatus || 'pending'
-            });
-        }
-    }, [editingInventory]);
 
     const title = isFromPayables 
         ? '💰 Update Payment Status - ' + (editingInventory.event_name || 'Event')
