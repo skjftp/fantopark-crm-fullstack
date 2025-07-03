@@ -194,6 +194,35 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
           // CREATE NEW PAYABLE IF NONE EXISTS AND BALANCE > 0
           if (newBalance > 0 && updateData.paymentStatus !== 'paid') {
             console.log(`No existing payables found. Creating new payable for pending balance: ${newBalance}`);
+
+try {
+  console.log('Step 1: Preparing payable data...');
+  const newPayable = {
+    inventoryId: id,
+    amount: newBalance,
+    status: 'pending',
+    supplierName: updateData.supplierName || oldData.supplierName || 'Unknown Supplier',
+    event_name: updateData.event_name || oldData.event_name || 'Unknown Event',
+    event_date: updateData.event_date || oldData.event_date || null,
+    totalPurchaseAmount: newTotalAmount,
+    amountPaid: newAmountPaid,
+    created_date: new Date().toISOString(),
+    payment_notes: `Created from inventory update - Balance: ₹${newBalance.toFixed(2)}`,
+    priority: 'medium',
+    dueDate: null
+  };
+  
+  console.log('Step 2: Payable data prepared:', JSON.stringify(newPayable, null, 2));
+  
+  console.log('Step 3: About to call db.collection...');
+  const docRef = await db.collection('crm_payables').add(newPayable);
+  console.log('Step 4: Database call completed successfully');
+  
+  console.log(`✅ New payable created with ID: ${docRef.id} Amount: ${newBalance}`);
+} catch (payableCreateError) {
+  console.error('PAYABLE CREATION ERROR:', payableCreateError);
+  console.error('Error stack:', payableCreateError.stack);
+}
             
             const newPayable = {
               inventoryId: id,
