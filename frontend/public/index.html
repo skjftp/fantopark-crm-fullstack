@@ -1224,6 +1224,9 @@ const [chartInstances, setChartInstances] = useState({
     tempCount: null,
     tempValue: null
 });
+window.chartInstances = chartInstances;
+window.calculateDashboardStats = calculateDashboardStats;
+    
     // Permission check function
     const hasPermission = (module, action) => {
         if (user?.role === 'super_admin') return true;
@@ -1730,15 +1733,19 @@ const extractFiltersData = () => {
 };
 
 // ===== KEEP ONLY ONE updateCharts =====
-const updateCharts = (filteredLeads) => {
+onst updateCharts = (filteredLeads) => {
+    console.log('Updating charts with', filteredLeads.length, 'leads');
+    
     // Lead Split Chart (Qualified vs Junk)
     const qualifiedCount = filteredLeads.filter(l => l.status === 'qualified').length;
     const junkCount = filteredLeads.filter(l => l.status === 'junk').length;
+    console.log('Lead Split:', { qualified: qualifiedCount, junk: junkCount });
     
     // Temperature Count
     const hotCount = filteredLeads.filter(l => l.status === 'hot').length;
     const warmCount = filteredLeads.filter(l => l.status === 'warm').length;
     const coldCount = filteredLeads.filter(l => l.status === 'cold').length;
+    console.log('Temperature Count:', { hot: hotCount, warm: warmCount, cold: coldCount });
     
     // Temperature Value
     const hotValue = filteredLeads.filter(l => l.status === 'hot')
@@ -1747,26 +1754,56 @@ const updateCharts = (filteredLeads) => {
         .reduce((sum, l) => sum + (l.potential_value || 0), 0);
     const coldValue = filteredLeads.filter(l => l.status === 'cold')
         .reduce((sum, l) => sum + (l.potential_value || 0), 0);
+    console.log('Temperature Value:', { hot: hotValue, warm: warmValue, cold: coldValue });
     
     // Update charts if they exist
     if (chartInstances.leadSplit) {
         chartInstances.leadSplit.data.datasets[0].data = [qualifiedCount, junkCount];
         chartInstances.leadSplit.update();
+        console.log('Lead Split chart updated');
+    } else {
+        console.log('Lead Split chart not found!');
     }
     
     if (chartInstances.tempCount) {
         chartInstances.tempCount.data.datasets[0].data = [hotCount, warmCount, coldCount];
         chartInstances.tempCount.update();
+        console.log('Temp Count chart updated');
+    } else {
+        console.log('Temp Count chart not found!');
     }
     
     if (chartInstances.tempValue) {
         chartInstances.tempValue.data.datasets[0].data = [hotValue, warmValue, coldValue];
         chartInstances.tempValue.update();
+        console.log('Temp Value chart updated');
+    } else {
+        console.log('Temp Value chart not found!');
     }
 };
 
+window.debugCharts = () => {
+    console.log('=== Chart Debug Info ===');
+    console.log('Canvas elements:', {
+        leadSplit: document.getElementById('leadSplitChart'),
+        tempCount: document.getElementById('tempCountChart'),
+        tempValue: document.getElementById('tempValueChart')
+    });
+    console.log('Chart instances:', window.chartInstances);
+    console.log('Current leads:', leads);
+    console.log('Lead statuses:', leads.map(l => ({ name: l.name, status: l.status })));
+};
+
+// 5. Function to manually initialize charts:
+window.forceInitCharts = () => {
+    console.log('Force initializing charts...');
+    initializeCharts();
+};    
+
 // Function to initialize charts
 const initializeCharts = () => {
+    console.log('Initializing charts...');
+    
     // Destroy existing charts
     if (chartInstances.leadSplit) {
         chartInstances.leadSplit.destroy();
@@ -1781,31 +1818,119 @@ const initializeCharts = () => {
         chartInstances.tempValue = null;
     }
     
-    // Create charts with DIRECT ASSIGNMENT
+    // Lead Split Chart
     const ctx1 = document.getElementById('leadSplitChart');
+    console.log('Lead Split canvas:', ctx1);
+    
     if (ctx1) {
-        // Use direct assignment, NOT setChartInstances
         chartInstances.leadSplit = new Chart(ctx1, {
-            // ... chart configuration
+            type: 'pie',
+            data: {
+                labels: ['Qualified', 'Junk'],
+                datasets: [{
+                    data: [0, 0],
+                    backgroundColor: ['#10b981', '#ef4444'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 10,
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
         });
+        console.log('Lead Split chart created');
     }
     
-    // Same for other charts - use direct assignment
+    // Temperature Count Chart
     const ctx2 = document.getElementById('tempCountChart');
+    console.log('Temp Count canvas:', ctx2);
+    
     if (ctx2) {
         chartInstances.tempCount = new Chart(ctx2, {
-            // ... chart configuration
+            type: 'pie',
+            data: {
+                labels: ['Hot', 'Warm', 'Cold'],
+                datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 10,
+                            font: { size: 12 }
+                        }
+                    }
+                }
+            }
         });
+        console.log('Temp Count chart created');
     }
     
+    // Temperature Value Chart
     const ctx3 = document.getElementById('tempValueChart');
+    console.log('Temp Value canvas:', ctx3);
+    
     if (ctx3) {
         chartInstances.tempValue = new Chart(ctx3, {
-            // ... chart configuration
+            type: 'pie',
+            data: {
+                labels: ['Hot', 'Warm', 'Cold'],
+                datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 10,
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                return label + ': ₹' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
         });
+        console.log('Temp Value chart created');
     }
     
-    // Update with current data
+    // Log the final state
+    console.log('All charts initialized:', {
+        leadSplit: !!chartInstances.leadSplit,
+        tempCount: !!chartInstances.tempCount,
+        tempValue: !!chartInstances.tempValue
+    });
+    
+    // Immediately update with current data
     calculateDashboardStats();
 };
 
