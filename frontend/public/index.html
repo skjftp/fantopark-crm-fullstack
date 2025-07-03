@@ -935,6 +935,7 @@ const [orders, setOrders] = useState([]);
 const [currentAllocations, setCurrentAllocations] = React.useState([]);
 const [allocationManagementInventory, setAllocationManagementInventory] = React.useState(null);
     
+    
     // Edit order function - in App scope
     const openEditOrderForm = (order) => {
         if (!order) {
@@ -1023,6 +1024,7 @@ const [emailNotifications, setEmailNotifications] = useState([]);
 const [allUsers, setAllUsers] = useState([]);
     const [users, setUsers] = useState([]);
     const [myLeads, setMyLeads] = useState([]);
+    const [myQuoteRequested, setMyQuoteRequested] = useState([]);
     const [myOrders, setMyOrders] = useState([]);
     const [myDeliveries, setMyDeliveries] = useState([]);
     const [myReceivables, setMyReceivables] = useState([]);
@@ -2614,6 +2616,7 @@ const fetchMyActions = async () => {
         }
         
         // Filter leads assigned to me
+        // Filter leads assigned to me
         if (leadsResponse && leadsResponse.data) {
             const assignedLeads = leadsResponse.data.filter(lead => {
                 console.log('\n--- Checking Lead ---');
@@ -2629,12 +2632,29 @@ const fetchMyActions = async () => {
                 return isAssigned;
             });
             
+            // Filter quote requested leads for supply managers and supply sales service managers
+            const quoteRequestedLeads = leadsResponse.data.filter(lead => {
+                if (lead.status === 'quote_requested') {
+                    // Check if user is supply_manager or has supply_sales_service role
+                    return (user.role === 'supply_manager' || 
+                            user.role === 'supply_sales_service_manager' ||
+                            lead.quote_assigned_to === user.email);
+                }
+                return false;
+            });
+            
             console.log('\n=== FILTER RESULTS ===');
             console.log('Total leads:', leadsResponse.data.length);
             console.log('Assigned to me:', assignedLeads.length);
+            console.log('Quote requested for me:', quoteRequestedLeads.length);
             console.log('Assigned leads:', assignedLeads);
+            console.log('Quote requested leads:', quoteRequestedLeads);
             
             setMyLeads(assignedLeads);
+            setMyQuoteRequested(quoteRequestedLeads);
+        } else {
+            setMyLeads([]);
+            setMyQuoteRequested([]);
         } else {
             setMyLeads([]);
         }
@@ -2855,7 +2875,7 @@ window.forceInitCharts = () => {
             last_contact_date: new Date().toISOString(),
             updated_date: new Date().toISOString(),
             // Dual assignment: keep original assignee and add sales service manager
-            quote_assigned_to: 'sales.service@fantopark.com', // Auto-assign to sales service manager
+            quote_assigned_to: user.role === 'supply_manager' ? user.email : 'supply.service@fantopark.com', // Auto-assign based on role
             dual_assignment: true
         };
         
@@ -4650,6 +4670,88 @@ const renderDashboardContent = () => {
                         )
                     )
                 ),
+                                    // Add this new section after the existing "My Leads" section
+(user.role === 'supply_manager' || user.role === 'supply_sales_service_manager') && 
+React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow mb-6' },
+    React.createElement('div', { className: 'p-6' },
+        React.createElement('div', { className: 'flex items-center justify-between mb-4' },
+            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white flex items-center' },
+                React.createElement('span', { className: 'text-purple-500 mr-2' }, '📋'),
+                'My Quote Requested (',
+                myQuoteRequested.length,
+                ')'
+            )
+        ),
+        myQuoteRequested.length === 0 ? 
+            React.createElement('p', { className: 'text-gray-500 dark:text-gray-400 text-center py-8' }, 
+                'No quote requests assigned to you'
+            ) :
+            React.createElement('div', { className: 'overflow-x-auto' },
+                React.createElement('table', { className: 'min-w-full' },
+                    React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
+                        React.createElement('tr', null,
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider' }, 'Lead'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider' }, 'Company'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider' }, 'Temperature'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider' }, 'Value'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider' }, 'Original Assignee'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider' }, 'Quote Date'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider' }, 'Actions')
+                        )
+                    ),
+                    React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700' },
+                        myQuoteRequested.map(lead => 
+                            React.createElement('tr', { key: lead.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
+                                React.createElement('td', { className: 'px-6 py-4' },
+                                    React.createElement('div', null,
+                                        React.createElement('div', { className: 'text-sm font-medium text-gray-900 dark:text-white' }, lead.name),
+                                        React.createElement('div', { className: 'text-sm text-gray-500 dark:text-gray-400' }, lead.email)
+                                    )
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' }, lead.company || '-'),
+                                React.createElement('td', { className: 'px-6 py-4' },
+                                    React.createElement('span', { 
+                                        className: `px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                            getDisplayTemperature(lead) === 'hot' ? 'bg-red-100 text-red-800' :
+                                            getDisplayTemperature(lead) === 'warm' ? 'bg-orange-100 text-orange-800' :
+                                            getDisplayTemperature(lead) === 'cold' ? 'bg-blue-100 text-blue-800' :
+                                            'bg-gray-100 text-gray-800'
+                                        }`
+                                    }, 
+                                    getDisplayTemperature(lead)?.toUpperCase() || 'N/A'
+                                    )
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' }, 
+                                    lead.potential_value ? '₹' + lead.potential_value.toLocaleString() : '-'
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' }, 
+                                    lead.assigned_to || '-'
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-500 dark:text-gray-400' }, 
+                                    lead.quote_requested_date ? new Date(lead.quote_requested_date).toLocaleDateString() : '-'
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4' },
+                                    React.createElement('div', { className: 'flex space-x-2' },
+                                        React.createElement('button', {
+                                            onClick: () => {
+                                                setCurrentLead(lead);
+                                                setShowLeadDetail(true);
+                                            },
+                                            className: 'text-blue-600 hover:text-blue-800 text-sm'
+                                        }, 'View Details'),
+                                        React.createElement('button', {
+                                            onClick: () => handleLeadProgression(lead),
+                                            className: 'text-purple-600 hover:text-purple-800 text-sm'
+                                        }, 'Progress')
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+    )
+),
                 
                 // My Deliveries Section
                 myDeliveries.length > 0 && React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
