@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FanToPark CRM Environments</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 50px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container { background: rgba(255,255,255,0.1); padding: 40px; border-radius: 15px; display: inline-block; }
+        .env-link { 
+            display: inline-block; 
+            margin: 20px; 
+            padding: 30px; 
+            border: 2px solid rgba(255,255,255,0.3); 
+            border-radius: 15px; 
+            text-decoration: none; 
+            color: white; 
+            transition: all 0.3s ease;
+            min-width: 200px;
+        }
+        .env-link:hover { transform: translateY(-5px); border-color: white; background: rgba(255,255,255,0.1); }
+        .prod { border-color: #28a745; } 
+        .dev { border-color: #ffc107; }
+        h1 { font-size: 3em; margin-bottom: 10px; }
+        h3 { margin: 10px 0; font-size: 1.5em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 FanToPark CRM</h1>
+        <p style="font-size: 1.2em; margin-bottom: 40px;">Choose your environment:</p>
+        
+        <a href="main/" class="env-link prod">
+            <h3>🏭 Production</h3>
+            <p>Live customer environment</p>
+            <small>Real data & transactions</small>
+        </a>
+        
+        <a href="dev/" class="env-link dev">
+            <h3>🧪 Development</h3>
+            <p>Testing environment</p>
+            <small>Safe for experimentation</small>
+        </a>
+        
+        <div style="margin-top: 40px; font-size: 0.9em; opacity: 0.8;">
+            <p>🔗 Backends:</p>
+            <p>Production: fantopark-backend-*.run.app</p>
+            <p>Development: fantopark-backend-dev-*.run.app</p>
+        </div>
+    </div>
+</body>
+</html>
