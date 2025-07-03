@@ -3168,8 +3168,10 @@ const handleEditInventory = async (inventoryData) => {
     }
 };
 
-    const handleCopyInventory = async (item) => {
+   const handleCopyInventory = async (item) => {
     try {
+        setLoading(true);
+        
         // Create a copy of the inventory item with modified fields
         const copiedData = {
             ...item,
@@ -3194,6 +3196,8 @@ const handleEditInventory = async (inventoryData) => {
             notes: (item.notes || '') + (item.notes ? '\n\n' : '') + 'Copied from original inventory on ' + new Date().toLocaleDateString()
         };
 
+        console.log('Creating copy of inventory:', copiedData);
+
         // Call API to create the copied inventory
         const response = await apiCall('/inventory', {
             method: 'POST',
@@ -3204,16 +3208,21 @@ const handleEditInventory = async (inventoryData) => {
             throw new Error(response.error);
         }
 
-        // Update local state
-        await fetchInventory();
+        console.log('Copy created successfully:', response.data);
+
+        // Update local state by adding the new item to the inventory array
+        setInventory(prev => [...prev, response.data]);
         
         alert(`✅ Inventory copied successfully!\n\nNew event: "${copiedData.event_name}"\nTotal tickets: ${copiedData.total_tickets}\nAvailable tickets: ${copiedData.available_tickets}`);
         
     } catch (error) {
         console.error('Error copying inventory:', error);
         alert('❌ Failed to copy inventory: ' + error.message);
+    } finally {
+        setLoading(false);
     }
 };
+
 
     
     const openDeliveryForm = (delivery) => {
@@ -9339,7 +9348,7 @@ currentInventoryItems.map(item =>
                                             ' | Sell: ₹' + (item.selling_price || item.price_per_ticket || 0).toLocaleString()
                                         )
                                     ),
-                                    React.createElement('td', { className: 'px-6 py-4 text-sm' },
+                                   React.createElement('td', { className: 'px-6 py-4 text-sm' },
     React.createElement('div', { className: 'flex flex-wrap gap-1' },
         hasPermission('inventory', 'write') && React.createElement('button', { 
             className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
@@ -9350,8 +9359,9 @@ currentInventoryItems.map(item =>
         hasPermission('inventory', 'write') && React.createElement('button', { 
             className: 'text-indigo-600 hover:text-indigo-900 text-xs px-2 py-1 rounded border border-indigo-200 hover:bg-indigo-50',
             onClick: () => handleCopyInventory(item),
-            title: 'Create a copy of this inventory item'
-        }, '📋 Copy'),
+            title: 'Create a copy of this inventory item',
+            disabled: loading
+        }, loading ? '⏳' : '📋 Copy'),
         
         hasPermission('inventory', 'allocate') && item.available_tickets > 0 && React.createElement('button', { 
             className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
