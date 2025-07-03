@@ -1838,8 +1838,8 @@ const updateCharts = (filteredLeads) => {
 
 
 // Function to initialize charts
-const initializeCharts = () => {
-    console.log('Initializing charts...');
+const initializeChartsAdvanced = () => {
+    console.log('Initializing advanced charts...');
     
     // Destroy existing charts first
     Object.keys(chartInstances).forEach(key => {
@@ -1849,10 +1849,8 @@ const initializeCharts = () => {
         }
     });
     
-    // Lead Split Chart
+    // Lead Split Chart 
     const ctx1 = document.getElementById('leadSplitChart');
-    console.log('Lead Split canvas element:', ctx1);
-    
     if (ctx1) {
         try {
             chartInstances.leadSplit = new Chart(ctx1, {
@@ -1862,7 +1860,8 @@ const initializeCharts = () => {
                     datasets: [{
                         data: [0, 0],
                         backgroundColor: ['#10b981', '#ef4444'],
-                        borderWidth: 0
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
                     }]
                 },
                 options: {
@@ -1872,25 +1871,47 @@ const initializeCharts = () => {
                         legend: {
                             position: 'bottom',
                             labels: {
-                                padding: 10,
-                                font: { size: 12 }
+                                padding: 15,
+                                font: { size: 12, weight: 'bold' },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#ffffff',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Lead Split Analysis';
+                                },
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return [
+                                        `Status: ${label}`,
+                                        `Count: ${value} leads`,
+                                        `Percentage: ${percentage}%`
+                                    ];
+                                }
                             }
                         }
                     }
                 }
             });
-            console.log('Lead Split chart created successfully');
         } catch (error) {
-            console.error('Error creating Lead Split chart:', error);
+            console.error('Error creating advanced Lead Split chart:', error);
         }
-    } else {
-        console.error('Lead Split canvas element not found!');
     }
     
     // Temperature Count Chart
     const ctx2 = document.getElementById('tempCountChart');
-    console.log('Temp Count canvas element:', ctx2);
-    
     if (ctx2) {
         try {
             chartInstances.tempCount = new Chart(ctx2, {
@@ -1900,7 +1921,8 @@ const initializeCharts = () => {
                     datasets: [{
                         data: [0, 0, 0],
                         backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
-                        borderWidth: 0
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
                     }]
                 },
                 options: {
@@ -1910,25 +1932,47 @@ const initializeCharts = () => {
                         legend: {
                             position: 'bottom',
                             labels: {
-                                padding: 10,
-                                font: { size: 12 }
+                                padding: 15,
+                                font: { size: 12, weight: 'bold' },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#ffffff',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Lead Temperature Count';
+                                },
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return [
+                                        `Temperature: ${label}`,
+                                        `Count: ${value} leads`,
+                                        `Percentage: ${percentage}%`
+                                    ];
+                                }
                             }
                         }
                     }
                 }
             });
-            console.log('Temp Count chart created successfully');
         } catch (error) {
-            console.error('Error creating Temp Count chart:', error);
+            console.error('Error creating advanced Temp Count chart:', error);
         }
-    } else {
-        console.error('Temp Count canvas element not found!');
     }
     
     // Temperature Value Chart
     const ctx3 = document.getElementById('tempValueChart');
-    console.log('Temp Value canvas element:', ctx3);
-    
     if (ctx3) {
         try {
             chartInstances.tempValue = new Chart(ctx3, {
@@ -1938,7 +1982,8 @@ const initializeCharts = () => {
                     datasets: [{
                         data: [0, 0, 0],
                         backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
-                        borderWidth: 0
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
                     }]
                 },
                 options: {
@@ -1948,37 +1993,71 @@ const initializeCharts = () => {
                         legend: {
                             position: 'bottom',
                             labels: {
-                                padding: 10,
-                                font: { size: 12 }
+                                padding: 15,
+                                font: { size: 12, weight: 'bold' },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
                             }
                         },
                         tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#ffffff',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            displayColors: true,
                             callbacks: {
+                                title: function(context) {
+                                    return 'Lead Temperature Value';
+                                },
                                 label: function(context) {
                                     const label = context.label || '';
                                     const value = context.parsed || 0;
-                                    return label + ': ₹' + value.toLocaleString();
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    
+                                    // Format value in Lacs with better formatting
+                                    let formattedValue;
+                                    if (value >= 10000000) { // 1 Crore
+                                        formattedValue = (value / 10000000).toFixed(2) + ' Cr';
+                                    } else if (value >= 100000) { // 1 Lac
+                                        formattedValue = (value / 100000).toFixed(2) + ' L';
+                                    } else if (value >= 1000) { // 1 Thousand
+                                        formattedValue = (value / 1000).toFixed(1) + ' K';
+                                    } else {
+                                        formattedValue = value.toString();
+                                    }
+                                    
+                                    return [
+                                        `Temperature: ${label}`,
+                                        `Value: ₹${formattedValue}`,
+                                        `Percentage: ${percentage}%`
+                                    ];
                                 }
                             }
                         }
                     }
                 }
             });
-            console.log('Temp Value chart created successfully');
         } catch (error) {
-            console.error('Error creating Temp Value chart:', error);
+            console.error('Error creating advanced Temp Value chart:', error);
         }
-    } else {
-        console.error('Temp Value canvas element not found!');
     }
     
-    // Final status
-    console.log('Chart initialization complete:', {
-        leadSplit: !!chartInstances.leadSplit,
-        tempCount: !!chartInstances.tempCount,
-        tempValue: !!chartInstances.tempValue
-    });
+    console.log('Advanced chart initialization complete');
 };
+
+    const formatValueInLacs = (value) => {
+    if (value >= 100000) {
+        return (value / 100000).toFixed(2) + 'L';
+    } else if (value >= 1000) {
+        return (value / 1000).toFixed(1) + 'K';
+    } else {
+        return value.toString();
+    }
+};
+
 
     // Authentication
 const handleLogin = async (e) => {
