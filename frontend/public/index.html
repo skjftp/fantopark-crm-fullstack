@@ -1224,8 +1224,7 @@ const [chartInstances, setChartInstances] = useState({
     tempCount: null,
     tempValue: null
 });
-window.chartInstances = chartInstances;
-window.calculateDashboardStats = calculateDashboardStats;
+
     
     // Permission check function
     const hasPermission = (module, action) => {
@@ -1782,23 +1781,6 @@ const updateCharts = (filteredLeads) => {
     }
 };
 
-window.debugCharts = () => {
-    console.log('=== Chart Debug Info ===');
-    console.log('Canvas elements:', {
-        leadSplit: document.getElementById('leadSplitChart'),
-        tempCount: document.getElementById('tempCountChart'),
-        tempValue: document.getElementById('tempValueChart')
-    });
-    console.log('Chart instances:', window.chartInstances);
-    console.log('Current leads:', leads);
-    console.log('Lead statuses:', leads.map(l => ({ name: l.name, status: l.status })));
-};
-
-// 5. Function to manually initialize charts:
-window.forceInitCharts = () => {
-    console.log('Force initializing charts...');
-    initializeCharts();
-};    
 
 // Function to initialize charts
 const initializeCharts = () => {
@@ -2375,6 +2357,27 @@ const fetchMyActions = async () => {
     }
 };
 
+window.chartInstances = chartInstances;
+window.calculateDashboardStats = calculateDashboardStats;
+window.debugCharts = () => {
+    console.log('=== Chart Debug Info ===');
+    console.log('Canvas elements:', {
+        leadSplit: document.getElementById('leadSplitChart'),
+        tempCount: document.getElementById('tempCountChart'),
+        tempValue: document.getElementById('tempValueChart')
+    });
+    console.log('Chart instances:', window.chartInstances);
+    console.log('Current leads:', leads);
+    console.log('Lead statuses:', leads.map(l => ({ name: l.name, status: l.status })));
+};
+
+// 5. Function to manually initialize charts:
+window.forceInitCharts = () => {
+    console.log('Force initializing charts...');
+    initializeCharts();
+};    
+
+    
     // Enhanced lead progression function with permission check
         // Status update function with permission check
     const updateLeadStatus = async (leadId, newStatus) => {
