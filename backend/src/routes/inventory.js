@@ -132,6 +132,28 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
       try {
         console.log('Inventory payment info changed, updating payables...');
         
+console.log('DEBUG: Step A - Starting calculations...');
+// Calculate new values with proper fallbacks
+const newTotalAmount = parseFloat(updateData.totalPurchaseAmount !== undefined ? updateData.totalPurchaseAmount : oldData.totalPurchaseAmount) || 0;
+const newAmountPaid = parseFloat(updateData.amountPaid !== undefined ? updateData.amountPaid : oldData.amountPaid) || 0;
+let newBalance = newTotalAmount - newAmountPaid;
+
+console.log('DEBUG: Step B - Calculations completed:', { newTotalAmount, newAmountPaid, newBalance });
+
+// Ensure we don't have negative balances
+if (newBalance < 0) {
+  console.warn('Warning: Amount paid exceeds total amount! Setting balance to 0');
+  newBalance = 0;
+}
+
+console.log('DEBUG: Step C - About to query payables...');
+console.log('Searching for payables with inventoryId:', id);
+const payablesSnapshot = await db.collection('crm_payables')
+  .where('inventoryId', '==', id)
+  .get();
+
+console.log('DEBUG: Step D - Payables query completed');
+console.log('Payables query result:', payablesSnapshot.size, 'documents found');
         // Calculate new values with proper fallbacks
         const newTotalAmount = parseFloat(updateData.totalPurchaseAmount !== undefined ? updateData.totalPurchaseAmount : oldData.totalPurchaseAmount) || 0;
         const newAmountPaid = parseFloat(updateData.amountPaid !== undefined ? updateData.amountPaid : oldData.amountPaid) || 0;
