@@ -1311,12 +1311,24 @@ useEffect(() => {
 // Add useEffect to initialize charts when dashboard is active
 useEffect(() => {
     if (activeTab === 'dashboard' && leads.length > 0 && typeof Chart !== 'undefined') {
-        setTimeout(() => {
+        // Use a flag to prevent multiple initializations
+        const timeoutId = setTimeout(() => {
             initializeCharts();
-            calculateDashboardStats();
         }, 100);
+        
+        // Cleanup function to clear timeout if component unmounts or dependencies change
+        return () => clearTimeout(timeoutId);
     }
-}, [activeTab, leads]);
+    
+    // Cleanup function to destroy charts when leaving dashboard
+    return () => {
+        if (activeTab !== 'dashboard') {
+            if (chartInstances.leadSplit) chartInstances.leadSplit.destroy();
+            if (chartInstances.tempCount) chartInstances.tempCount.destroy();
+            if (chartInstances.tempValue) chartInstances.tempValue.destroy();
+        }
+    };
+}, [activeTab]); // Remove 'leads' from dependencies to prevent re-initialization
 
 // Add useEffect to update stats when filter changes
 useEffect(() => {
@@ -1727,10 +1739,19 @@ const updateCharts = (filteredLeads) => {
 
 // Function to initialize charts
 const initializeCharts = () => {
-    // Destroy existing charts
-    Object.values(chartInstances).forEach(chart => {
-        if (chart) chart.destroy();
-    });
+    // Destroy existing charts PROPERLY
+    if (chartInstances.leadSplit) {
+        chartInstances.leadSplit.destroy();
+        chartInstances.leadSplit = null;
+    }
+    if (chartInstances.tempCount) {
+        chartInstances.tempCount.destroy();
+        chartInstances.tempCount = null;
+    }
+    if (chartInstances.tempValue) {
+        chartInstances.tempValue.destroy();
+        chartInstances.tempValue = null;
+    }
     
     // Lead Split Chart
     const ctx1 = document.getElementById('leadSplitChart');
@@ -1759,7 +1780,7 @@ const initializeCharts = () => {
                 }
             }
         });
-        setChartInstances(prev => ({ ...prev, leadSplit: leadSplitChart }));
+        chartInstances.leadSplit = leadSplitChart;
     }
     
     // Temperature Count Chart
@@ -1789,7 +1810,7 @@ const initializeCharts = () => {
                 }
             }
         });
-        setChartInstances(prev => ({ ...prev, tempCount: tempCountChart }));
+        chartInstances.tempCount = tempCountChart;
     }
     
     // Temperature Value Chart
@@ -1828,8 +1849,11 @@ const initializeCharts = () => {
                 }
             }
         });
-        setChartInstances(prev => ({ ...prev, tempValue: tempValueChart }));
+        chartInstances.tempValue = tempValueChart;
     }
+    
+    // Immediately update with current data
+    calculateDashboardStats();
 };
 
     // Authentication
@@ -3804,19 +3828,25 @@ const renderDashboardContent = () => {
             )
         ),
         
-        // Pie Charts Section - Top Half
+        // Pie Charts Section - Top Half with FIXED HEIGHT
         React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-6 mb-8' },
             React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow' },
                 React.createElement('h3', { className: 'text-lg font-medium mb-4' }, 'Lead Split'),
-                React.createElement('canvas', { id: 'leadSplitChart', style: { height: '200px' } })
+                React.createElement('div', { style: { height: '200px', position: 'relative' } },
+                    React.createElement('canvas', { id: 'leadSplitChart' })
+                )
             ),
             React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow' },
                 React.createElement('h3', { className: 'text-lg font-medium mb-4' }, 'Lead Temperature (Count)'),
-                React.createElement('canvas', { id: 'tempCountChart', style: { height: '200px' } })
+                React.createElement('div', { style: { height: '200px', position: 'relative' } },
+                    React.createElement('canvas', { id: 'tempCountChart' })
+                )
             ),
             React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow' },
                 React.createElement('h3', { className: 'text-lg font-medium mb-4' }, 'Lead Temperature (Value)'),
-                React.createElement('canvas', { id: 'tempValueChart', style: { height: '200px' } })
+                React.createElement('div', { style: { height: '200px', position: 'relative' } },
+                    React.createElement('canvas', { id: 'tempValueChart' })
+                )
             )
         ),
         
@@ -3890,6 +3920,7 @@ const renderDashboardContent = () => {
         )
     );
 };
+
 
     // I'll continue with the rest of the rendering functions but with permission checks integrated
     // For brevity, I'm including the main structure. The full implementation would include all the original functions
