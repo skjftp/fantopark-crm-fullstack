@@ -9347,7 +9347,7 @@ currentInventoryItems.map(item =>
             const marginAmount = sellingPrice - buyingPrice;
             
             // Calculate margin percentage: (Selling Price - Buying Price) / Buying Price * 100
-            const marginPercentage = buyingPrice > 0 ? ((marginAmount / buyingPrice) * 100) : 0;
+            const marginPercentage = buyingPrice > 0 ? ((marginAmount / sellingPrice) * 100) : 0;
             
             return '₹' + marginAmount.toLocaleString() + ' (' + marginPercentage.toFixed(1) + '%)';
         })()
