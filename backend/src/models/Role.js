@@ -144,8 +144,8 @@ class Role {
         }
       },
       {
-        name: 'supply_manager',
-        label: 'Supply Manager',
+        name: 'supply_sales_service_manager',
+        label: 'Supply Sales Service Manager',
         description: 'Manage inventory and deliveries',
         is_system: true,
         permissions: {

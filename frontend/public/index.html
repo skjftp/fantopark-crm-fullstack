@@ -553,8 +553,8 @@ const USER_ROLES = {
         users: { read: false, write: false, delete: false, manage_roles: false }
     }
 },
-    supply_manager: {
-        label: 'Supply Manager',
+    supply_sales_service_manager: {
+        label: 'Supply Sales Service Manager',
         permissions: {
             dashboard: { read: true, write: false, delete: false, manage_users: false },
             leads: { read: true, write: false, delete: false, assign: false, progress: false },
@@ -668,7 +668,7 @@ const DEFAULT_USERS = [
         name: 'Akshay Singh',
         email: 'akshay@fantopark.com',
         password: 'supply123',
-        role: 'supply_manager',
+        role: 'supply_sales_service_manager',
         department: 'Supply Chain',
         status: 'active',
         created_date: '2024-01-20'
@@ -678,7 +678,7 @@ const DEFAULT_USERS = [
         name: 'Shafeeq',
         email: 'shafeeq@fantopark.com',
         password: 'supply123',
-        role: 'supply_manager',
+        role: 'supply_sales_service_manager',
         department: 'Supply Chain',
         status: 'active',
         created_date: '2024-01-20'
@@ -688,7 +688,7 @@ const DEFAULT_USERS = [
         name: 'Ankit',
         email: 'ankit@fantopark.com',
         password: 'supply123',
-        role: 'supply_manager',
+        role: 'supply_sales_service_manager',
         department: 'Supply Chain',
         status: 'active',
         created_date: '2024-01-20'
@@ -1683,7 +1683,7 @@ const renderOrderAssignmentModal = () => {
     if (!showOrderAssignmentModal || !selectedOrderForAssignment) return null;
     
     const supplyTeamUsers = (users || []).filter(u => 
-        ['supply_executive', 'supply_manager'].includes(u.role)
+        ['supply_executive', 'supply_sales_service_manager'].includes(u.role)
     );
     
     return React.createElement('div', { 
@@ -2561,7 +2561,7 @@ const fetchMyActions = async () => {
         if (ordersResponse && ordersResponse.data) {
             let assignedOrders = [];
             
-            if (user.role === 'supply_manager' || user.role === 'supply_executive') {
+            if (user.role === 'supply_sales_service_manager' || user.role === 'supply_executive') {
                 assignedOrders = ordersResponse.data.filter(order => 
                     order.status === 'approved' && order.assigned_to === user.email
                 );
@@ -5005,7 +5005,7 @@ case 'myactions':
             '₹50 Lakhs - ₹1 Crore', '₹1-2 Crores', '₹2-5 Crores', 'Above ₹5 Crores'
         ], required: true, section: 'financial' },
         { name: 'status', label: 'Lead Status', type: 'select', options: Object.keys(LEAD_STATUSES), section: 'sales', editOnly: true },
-        { name: 'assigned_to', label: 'Assigned To', type: 'select', options: [...(users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role)), ...(users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(u => u.name)], section: 'sales', editOnly: true },
+        { name: 'assigned_to', label: 'Assigned To', type: 'select', options: [...(users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role)), ...(users || []).filter(u => ['supply_executive', 'supply_sales_service_manager'].includes(u.role)).map(u => u.name)], section: 'sales', editOnly: true },
         { name: 'last_quoted_price', label: 'Last Quoted Price (₹)', type: 'number', section: 'sales', editOnly: true },
         { name: 'potential_value', label: 'Potential Value (₹)', type: 'number', section: 'business' },
         { name: 'notes', label: 'Additional Notes', type: 'textarea', section: 'business' }
@@ -7294,7 +7294,7 @@ console.log('Order update response:', updateResponse);
     const renderAssignForm = () => {
         if (!showAssignForm || !currentLead) return null;
 
-        const teamMembers = formData.assigned_team === 'supply' ? (users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)) : (users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role));
+        const teamMembers = formData.assigned_team === 'supply' ? (users || []).filter(u => ['supply_executive', 'supply_sales_service_manager'].includes(u.role)) : (users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role));
 
         return React.createElement('div', { 
             className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
@@ -8601,7 +8601,7 @@ const renderEditOrderForm = () => {
                             required: true
                         },
                             React.createElement('option', { value: '' }, 'Select Assignee'),
-                            ...(users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(user =>
+                            ...(users || []).filter(u => ['supply_executive', 'supply_sales_service_manager'].includes(u.role)).map(user =>
                                 React.createElement('option', { key: user.id || user.email, value: user.email }, user.name)
                             )
                         )
@@ -8688,7 +8688,7 @@ const renderEditOrderForm = () => {
                     }
                 },
                     React.createElement('option', { value: '' }, 'Select Team Member'),
-                    (users || []).filter(u => ['supply_executive', 'supply_manager'].includes(u.role)).map(user =>
+                    (users || []).filter(u => ['supply_executive', 'supply_sales_service_manager'].includes(u.role)).map(user =>
                         React.createElement('option', { 
                             key: user.id || user.email, 
                             value: user.email 

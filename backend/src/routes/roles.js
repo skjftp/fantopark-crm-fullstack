@@ -90,8 +90,8 @@ router.post('/initialize', authenticateToken, checkPermission('users', 'manage_r
                 is_system: true
             },
             {
-                name: 'supply_manager',
-                label: 'Supply Manager',
+                name: 'supply_sales_service_manager',
+                label: 'Supply Sales Service Manager',
                 description: 'Manages inventory and deliveries',
                 permissions: {
                     dashboard: { read: true },
