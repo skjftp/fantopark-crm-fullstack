@@ -4019,31 +4019,6 @@ React.createElement('td', { className: 'px-4 py-3' },
         );
     };
 
-    // Dashboard content with role-based stats
-// FIND this section in your renderDashboardContent function:
-
-const renderDashboardContent = () => {
-    return React.createElement('div', { className: 'space-y-6' },
-        // Welcome Header - REMOVE THIS ENTIRE SECTION
-        React.createElement('div', { className: 'mb-6' },
-            React.createElement('h1', { className: 'text-3xl font-bold' }, 
-                `Welcome, ${user?.name || 'User'}`
-            ),
-            React.createElement('p', { className: 'text-gray-600' }, 
-                `${user?.role ? USER_ROLES[user.role]?.label : ''} • ${new Date().toLocaleDateString()}`
-            )
-        ),
-        
-        // REPLACE WITH just starting from the filters:
-        
-        // Filters for pie charts
-        React.createElement('div', { className: 'bg-white p-4 rounded-lg shadow mb-6' },
-            // ... rest of the content
-        ),
-
-
-// UPDATED renderDashboardContent function (REPLACE the entire function):
-
 const renderDashboardContent = () => {
     return React.createElement('div', { className: 'space-y-6' },
         // Filters for pie charts (removed duplicate welcome header)
@@ -11500,4 +11475,3 @@ window.deleteAllFinancials = async function() {
 
 </body>
             </html>
-
