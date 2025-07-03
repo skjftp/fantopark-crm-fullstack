@@ -232,10 +232,24 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
 });
 
 // POST allocate inventory
+// POST allocate inventory (REPLACE EXISTING)
 router.post('/:id/allocate', authenticateToken, checkPermission('inventory', 'write'), async (req, res) => {
   try {
     const { id } = req.params;
     const { tickets_allocated, lead_id, allocation_date, notes } = req.body;
+    
+    console.log('Allocation request:', { id, tickets_allocated, lead_id, allocation_date, notes });
+    
+    // Verify lead exists and is converted
+    const leadDoc = await db.collection('crm_leads').doc(lead_id).get();
+    if (!leadDoc.exists) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+    
+    const leadData = leadDoc.data();
+    if (leadData.status !== 'converted') {
+      return res.status(400).json({ error: 'Lead must be in converted status to allocate inventory' });
+    }
     
     const inventoryDoc = await db.collection('crm_inventory').doc(id).get();
     if (!inventoryDoc.exists) {
@@ -257,26 +271,129 @@ router.post('/:id/allocate', authenticateToken, checkPermission('inventory', 'wr
       updated_date: new Date().toISOString()
     });
     
-    // Create allocation record (optional - if you want to track allocations)
+    // Create allocation record
     const allocationData = {
       inventory_id: id,
       lead_id: lead_id,
       tickets_allocated: allocatedTickets,
-      allocation_date: allocation_date,
+      allocation_date: allocation_date || new Date().toISOString().split('T')[0],
       notes: notes || '',
       created_date: new Date().toISOString(),
-      created_by: req.user.id
+      created_by: req.user.id,
+      lead_name: leadData.name,
+      lead_email: leadData.email,
+      inventory_event: inventoryData.event_name
     };
     
-    await db.collection('crm_allocations').add(allocationData);
+    const allocationRef = await db.collection('crm_allocations').add(allocationData);
+    
+    console.log(`Successfully allocated ${allocatedTickets} tickets to lead ${leadData.name}`);
     
     res.json({ 
       success: true, 
-      message: `Successfully allocated ${allocatedTickets} tickets`,
+      message: `Successfully allocated ${allocatedTickets} tickets to ${leadData.name}`,
+      allocation_id: allocationRef.id,
       remaining_tickets: newAvailableTickets
     });
   } catch (error) {
     console.error('Error allocating inventory:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get allocations for a specific inventory item
+router.get('/:id/allocations', authenticateToken, checkPermission('inventory', 'read'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Get allocations for this inventory
+    const allocationsSnapshot = await db.collection('crm_allocations')
+      .where('inventory_id', '==', id)
+      .get();
+    
+    const allocations = [];
+    for (const doc of allocationsSnapshot.docs) {
+      const allocationData = doc.data();
+      
+      // Get lead details
+      let leadDetails = null;
+      if (allocationData.lead_id) {
+        try {
+          const leadDoc = await db.collection('crm_leads').doc(allocationData.lead_id).get();
+          if (leadDoc.exists) {
+            leadDetails = { id: leadDoc.id, ...leadDoc.data() };
+          }
+        } catch (leadError) {
+          console.error('Error fetching lead details:', leadError);
+        }
+      }
+      
+      allocations.push({
+        id: doc.id,
+        ...allocationData,
+        lead_details: leadDetails
+      });
+    }
+    
+    // Get inventory details
+    const inventoryDoc = await db.collection('crm_inventory').doc(id).get();
+    const inventoryData = inventoryDoc.exists ? inventoryDoc.data() : null;
+    
+    res.json({ 
+      data: {
+        inventory: { id, ...inventoryData },
+        allocations: allocations
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching allocations:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Unallocate tickets (remove allocation)
+router.delete('/:id/allocations/:allocationId', authenticateToken, checkPermission('inventory', 'write'), async (req, res) => {
+  try {
+    const { id, allocationId } = req.params;
+    
+    // Get allocation details
+    const allocationDoc = await db.collection('crm_allocations').doc(allocationId).get();
+    if (!allocationDoc.exists) {
+      return res.status(404).json({ error: 'Allocation not found' });
+    }
+    
+    const allocationData = allocationDoc.data();
+    const ticketsToReturn = parseInt(allocationData.tickets_allocated) || 0;
+    
+    // Get current inventory
+    const inventoryDoc = await db.collection('crm_inventory').doc(id).get();
+    if (!inventoryDoc.exists) {
+      return res.status(404).json({ error: 'Inventory item not found' });
+    }
+    
+    const inventoryData = inventoryDoc.data();
+    const currentAvailable = parseInt(inventoryData.available_tickets) || 0;
+    const newAvailable = currentAvailable + ticketsToReturn;
+    
+    // Update inventory (add tickets back)
+    await db.collection('crm_inventory').doc(id).update({
+      available_tickets: newAvailable,
+      updated_date: new Date().toISOString()
+    });
+    
+    // Delete allocation record
+    await db.collection('crm_allocations').doc(allocationId).delete();
+    
+    console.log(`Unallocated ${ticketsToReturn} tickets from inventory ${id}`);
+    
+    res.json({ 
+      success: true, 
+      message: `Successfully unallocated ${ticketsToReturn} tickets`,
+      tickets_returned: ticketsToReturn,
+      new_available_tickets: newAvailable
+    });
+  } catch (error) {
+    console.error('Error unallocating tickets:', error);
     res.status(500).json({ error: error.message });
   }
 });
