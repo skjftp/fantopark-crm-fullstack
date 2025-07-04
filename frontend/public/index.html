@@ -592,11 +592,12 @@ const USER_ROLES = {
 };
 
 // Helper function to display user names instead of emails
-    const getUserDisplayName = (email) => {
-        if (!email || !users) return email || 'Unassigned';
-        const user = users.find(u => u.email === email);
-        return user ? user.name : email;
-    };
+    // Helper function to display user names instead of emails
+const getUserDisplayName = (email, usersList) => {
+    if (!email || !usersList) return email || 'Unassigned';
+    const user = usersList.find(u => u.email === email);
+    return user ? user.name : email;
+};
         
 // Default users (in production, this would come from a database)
 const DEFAULT_USERS = [
@@ -4514,7 +4515,7 @@ const renderDashboardContent = () => {
                                     ),
                                     lead.assigned_to && React.createElement('p', { 
                                         className: 'text-xs text-gray-500' 
-                                    }, `Assigned to: ${getUserDisplayName(lead.assigned_to)}`)
+                                    }, `Assigned to: ${getUserDisplayName(lead.assigned_to, users)}`)
                                 ),
                                 React.createElement('span', { 
                                     className: 'px-2 py-1 text-xs rounded ' + 
@@ -4783,7 +4784,7 @@ React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg sh
                                     lead.potential_value ? '₹' + lead.potential_value.toLocaleString() : '-'
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' }, 
-                                    getUserDisplayName(lead.assigned_to)
+                                    getUserDisplayName(lead.assigned_to, users)
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-500 dark:text-gray-400' }, 
                                     lead.quote_requested_date ? new Date(lead.quote_requested_date).toLocaleDateString() : '-'
@@ -7455,7 +7456,7 @@ React.createElement('select', {
                                 className: 'px-3 py-1 text-sm rounded-full ' + (status.color)
                             }, status.label),
                             currentLead.assigned_to && React.createElement('span', { className: 'text-sm text-blue-600' }, 
-                                'Assigned to: ' + getUserDisplayName(currentLead.assigned_to)
+                                'Assigned to: ' + getUserDisplayName(currentLead.assigned_to, users)
                             )
                         )
                     ),
@@ -8981,7 +8982,7 @@ React.createElement('button', {
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4' },
                                     lead.assigned_to ? React.createElement('div', null,
-                                        React.createElement('div', { className: 'text-sm font-medium text-blue-600' }, getUserDisplayName(lead.assigned_to)),
+                                        React.createElement('div', { className: 'text-sm font-medium text-blue-600' }, getUserDisplayName(lead.assigned_to, users)),
                                         React.createElement('div', { className: 'text-xs text-gray-500' }, 
                                             lead.assigned_team === 'supply' ? 'Supply Team' : 'Sales Team'
                                         )
