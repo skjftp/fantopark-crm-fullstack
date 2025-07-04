@@ -5354,7 +5354,7 @@ const handleAllocation = async (e) => {
     }
     
     setLoading(true);
-
+    
     try {
         // FIX: Don't use parseInt for lead ID comparison
         const selectedLead = leads.find(lead => lead.id === allocationData.lead_id);
@@ -5363,10 +5363,16 @@ const handleAllocation = async (e) => {
             throw new Error('Lead not found');
         }
 
-        const allowedStages = ['converted', 'payment', 'payment_post_service', 'payment_received'];
-if (!allowedStages.includes(selectedLead.status)) {
-    throw new Error('Lead must be in converted status or later to allocate inventory');
-}
+        // Define the validation function
+        const isConvertedOrLater = (status) => {
+            const postConvertedStages = ['converted', 'payment', 'payment_post_service', 'payment_received'];
+            return postConvertedStages.includes(status);
+        };
+
+        // Use it in the validation
+        if (!isConvertedOrLater(selectedLead.status)) {
+            throw new Error('Lead must be in converted status or later to allocate inventory');
+        }
 
         if (allocationData.tickets_allocated > currentInventory.available_tickets) {
             throw new Error('Not enough tickets available');
@@ -5396,13 +5402,13 @@ if (!allowedStages.includes(selectedLead.status)) {
             )
         );
 
-        alert(`Successfully allocated ${allocationData.tickets_allocated} tickets to ${selectedLead.name}`);
+        // Close the allocation form and show success
         setShowAllocationForm(false);
-        setAllocationData({ lead_id: '', tickets_allocated: 1, allocation_date: '', notes: '' });
-
+        alert('Inventory allocated successfully!');
+        
     } catch (error) {
-        console.error('Error allocating inventory:', error);
-        alert('Error allocating inventory: ' + error.message);
+        console.error('Allocation error:', error);
+        alert('Error: ' + error.message);
     } finally {
         setLoading(false);
     }
