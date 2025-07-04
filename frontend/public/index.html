@@ -598,6 +598,84 @@ const getUserDisplayName = (email, usersList) => {
     const user = usersList.find(u => u.email === email);
     return user ? user.name : email;
 };
+
+       const formatDateForInput = (dateValue) => {
+    if (!dateValue) return '';
+    
+    try {
+        // Handle different date formats
+        let date;
+        
+        // If it's already a Date object
+        if (dateValue instanceof Date) {
+            date = dateValue;
+        }
+        // If it's an ISO string (from CSV upload)
+        else if (typeof dateValue === 'string' && dateValue.includes('T')) {
+            date = new Date(dateValue);
+        }
+        // If it's a simple date string (YYYY-MM-DD)
+        else if (typeof dateValue === 'string') {
+            date = new Date(dateValue);
+        }
+        // If it's a Firestore timestamp object
+        else if (typeof dateValue === 'object' && dateValue._seconds) {
+            date = new Date(dateValue._seconds * 1000);
+        }
+        else {
+            return '';
+        }
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            return '';
+        }
+        
+        // Convert to YYYY-MM-DD format for HTML input
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}`;
+    } catch (error) {
+        console.error('Date formatting error:', error);
+        return '';
+    }
+};
+
+// Helper function to format date for display (DD/MM/YYYY)
+const formatDateForDisplay = (dateValue) => {
+    if (!dateValue) return 'Not Set';
+    
+    try {
+        let date;
+        
+        if (dateValue instanceof Date) {
+            date = dateValue;
+        } else if (typeof dateValue === 'string' && dateValue.includes('T')) {
+            date = new Date(dateValue);
+        } else if (typeof dateValue === 'string') {
+            date = new Date(dateValue);
+        } else if (typeof dateValue === 'object' && dateValue._seconds) {
+            date = new Date(dateValue._seconds * 1000);
+        } else {
+            return 'Invalid Date';
+        }
+        
+        if (isNaN(date.getTime())) {
+            return 'Invalid Date';
+        }
+        
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        
+        return `${day}/${month}/${year}`;
+    } catch (error) {
+        return 'Error';
+    }
+};
+ 
         
 // Default users (in production, this would come from a database)
 const DEFAULT_USERS = [
@@ -7330,7 +7408,7 @@ console.log('Order update response:', updateResponse);
 };
 
     // Generic form renderer with all sections
-    const renderForm = () => {
+   const renderForm = () => {
     if (!showAddForm && !showEditForm && !showEditInventoryForm) return null;
 
     let fields = [];
@@ -7486,7 +7564,7 @@ React.createElement('select', {
                                         }) :
                                         React.createElement('input', {
                                             type: field.type,
-                                            value: formData[field.name] || '',
+                                            value: field.type === 'date' ? formatDateForInput(formData[field.name]) : (formData[field.name] || ''),
                                             onChange: (e) => handleInputChange(field.name, e.target.value),
                                             className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                                             required: field.required,
