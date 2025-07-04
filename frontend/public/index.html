@@ -5363,9 +5363,10 @@ const handleAllocation = async (e) => {
             throw new Error('Lead not found');
         }
 
-        if (selectedLead.status !== 'converted') {
-            throw new Error('Lead must be in converted status to allocate inventory');
-        }
+        const allowedStages = ['converted', 'payment', 'payment_post_service', 'payment_received'];
+if (!allowedStages.includes(selectedLead.status)) {
+    throw new Error('Lead must be in converted status or later to allocate inventory');
+}
 
         if (allocationData.tickets_allocated > currentInventory.available_tickets) {
             throw new Error('Not enough tickets available');
