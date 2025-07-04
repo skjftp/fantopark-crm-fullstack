@@ -10256,7 +10256,7 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
     const [uploading, setUploading] = useState(false);
     const [uploadResult, setUploadResult] = useState(null);
 
-    // UPDATED: Enhanced file validation for both CSV and Excel
+    // Enhanced file validation for both CSV and Excel
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
         const allowedTypes = [
@@ -10317,45 +10317,8 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
         }
     };
 
-// CORRECTED CSV template generator for frontend/public/index.html
-// Replace the existing downloadSampleCSV function in the CSVUploadModal component
-
-const downloadSampleCSV = async () => {
-        try {
-            // Download from the new backend endpoint that generates Excel files
-            const response = await fetch((API_URL) + '/upload/sample/' + (type), {
-                method: 'GET',
-                headers: {
-                    'Authorization': authToken ? 'Bearer ' + (authToken) : undefined
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to download sample file');
-            }
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'sample_' + (type) + '_with_validation.xlsx'; // UPDATED: .xlsx extension
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            
-            // UPDATED: Success message
-            alert('Sample ' + (type) + ' Excel file with dropdown validation downloaded successfully!');
-            
-        } catch (error) {
-            console.error('Download error:', error);
-            // Fallback to the old method if the new endpoint fails
-            downloadFallbackCSV();
-        }
-    };
-
-    // Fallback function (your existing logic)
-    const downloadFallbackCSV = () => {
+    // Download sample CSV (fallback)
+    const downloadSampleCSV = () => {
         let csvContent = '';
         let filename = '';
 
@@ -10380,80 +10343,229 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
         document.body.removeChild(link);
     };
 
+    // Download Excel with working validation (Method 1)
+    const downloadSampleExcel = async () => {
+        try {
+            console.log('Downloading Excel with validation...');
+            
+            const response = await fetch(`${API_URL}/upload/leads/sample-excel`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'leads_with_working_validation.xlsx';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            window.URL.revokeObjectURL(url);
+            console.log('Excel file downloaded successfully!');
+            
+        } catch (error) {
+            console.error('Error downloading Excel:', error);
+            alert('Failed to download Excel file: ' + error.message);
+        }
+    };
+
+    // Download Excel with cell-level validation (Method 2)
+    const downloadSampleExcelV2 = async () => {
+        try {
+            console.log('Downloading Excel with cell-level validation...');
+            
+            const response = await fetch(`${API_URL}/upload/leads/sample-excel-v2`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'leads_with_cell_validation.xlsx';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            window.URL.revokeObjectURL(url);
+            console.log('Excel file with cell validation downloaded successfully!');
+            
+        } catch (error) {
+            console.error('Error downloading Excel:', error);
+            alert('Failed to download Excel file: ' + error.message);
+        }
+    };
+
     if (!isOpen) return null;
 
     return React.createElement('div', {
         className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
     },
         React.createElement('div', {
-            className: 'bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4'
+            className: 'bg-white dark:bg-gray-800 rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto'
         },
-            // UPDATED: Modal title
-            React.createElement('h2', {
-                className: 'text-2xl font-bold mb-4 text-gray-900 dark:text-white'
-            }, 'Upload ' + (type === 'leads' ? 'Leads' : 'Inventory') + ' (CSV/Excel)'),
-            
+            // Modal Header
             React.createElement('div', {
-                className: 'mb-6'
+                className: 'flex items-center justify-between mb-4'
             },
-                // UPDATED: Description
-                React.createElement('p', {
-                    className: 'text-gray-600 dark:text-gray-300 mb-4'
-                }, 'Upload a CSV or Excel file to bulk import your data. Excel files will have built-in dropdown validation.'),
+                React.createElement('h2', {
+                    className: 'text-2xl font-bold text-gray-900 dark:text-white'
+                }, `Upload ${type === 'leads' ? 'Leads' : 'Inventory'} (CSV/Excel)`),
                 
-                // UPDATED: Download button text
                 React.createElement('button', {
-                    onClick: downloadSampleCSV,
-                    className: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded mb-4'
-                }, 'Download Sample Excel with Validation'),
+                    onClick: onClose,
+                    className: 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                }, '✕')
+            ),
+            
+            // Instructions
+            React.createElement('div', {
+                className: 'mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg'
+            },
+                React.createElement('p', {
+                    className: 'text-blue-800 dark:text-blue-200 mb-2'
+                }, '📋 Upload a CSV or Excel file to bulk import your data.'),
+                React.createElement('p', {
+                    className: 'text-blue-700 dark:text-blue-300 text-sm'
+                }, '💡 Excel files include built-in dropdown validation for easier data entry!')
+            ),
+            
+            // Download Templates Section
+            React.createElement('div', {
+                className: 'mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg'
+            },
+                React.createElement('h3', {
+                    className: 'font-semibold mb-3 text-gray-900 dark:text-white'
+                }, '📥 Download Sample Templates:'),
                 
-                // UPDATED: File input with Excel support
+                React.createElement('div', {
+                    className: 'grid grid-cols-1 md:grid-cols-3 gap-2'
+                },
+                    // CSV Download
+                    React.createElement('button', {
+                        onClick: downloadSampleCSV,
+                        className: 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors'
+                    }, '📄 CSV Template'),
+                    
+                    // Excel Method 1
+                    type === 'leads' && React.createElement('button', {
+                        onClick: downloadSampleExcel,
+                        className: 'bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors'
+                    }, '📊 Excel (Column Validation)'),
+                    
+                    // Excel Method 2
+                    type === 'leads' && React.createElement('button', {
+                        onClick: downloadSampleExcelV2,
+                        className: 'bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors'
+                    }, '📋 Excel (Cell Validation)')
+                ),
+                
+                type === 'leads' && React.createElement('p', {
+                    className: 'text-xs text-gray-600 dark:text-gray-400 mt-3 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border-l-4 border-yellow-400'
+                }, '⚡ Try both Excel methods - one may work better in your Excel version!')
+            ),
+            
+            // File Upload Section
+            React.createElement('div', {
+                className: 'mb-6 p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg'
+            },
+                React.createElement('h3', {
+                    className: 'font-semibold mb-3 text-gray-900 dark:text-white'
+                }, '📤 Upload Your File:'),
+                
                 React.createElement('input', {
                     type: 'file',
                     accept: '.csv,.xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                     onChange: handleFileChange,
-                    className: 'block w-full mb-4 text-gray-900 dark:text-white'
+                    className: 'block w-full mb-3 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100'
                 }),
                 
-                file && React.createElement('p', {
-                    className: 'text-sm text-gray-600 dark:text-gray-400'
-                }, 'Selected file: ' + (file.name)),
+                file && React.createElement('div', {
+                    className: 'flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-green-50 dark:bg-green-900/20 p-2 rounded'
+                },
+                    React.createElement('span', null, '✅'),
+                    React.createElement('span', null, `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`)
+                )
+            ),
+            
+            // Upload Results
+            uploadResult && React.createElement('div', {
+                className: `mb-6 p-4 rounded-lg ${
+                    uploadResult.errorCount > 0 
+                        ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700' 
+                        : 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700'
+                }`
+            },
+                React.createElement('div', {
+                    className: 'flex items-center gap-2 mb-2'
+                },
+                    React.createElement('span', {
+                        className: 'text-lg'
+                    }, uploadResult.errorCount > 0 ? '⚠️' : '✅'),
+                    React.createElement('p', {
+                        className: `font-semibold ${
+                            uploadResult.errorCount > 0 
+                                ? 'text-yellow-800 dark:text-yellow-200' 
+                                : 'text-green-800 dark:text-green-200'
+                        }`
+                    }, uploadResult.message)
+                ),
                 
-                uploadResult && React.createElement('div', {
-                    className: 'mt-4 p-4 rounded ' + (uploadResult.errorCount > 0 ? 'bg-yellow-100' : 'bg-green-100')
+                uploadResult.successCount > 0 && React.createElement('p', {
+                    className: 'text-sm text-green-700 dark:text-green-300'
+                }, `✅ Successfully imported: ${uploadResult.successCount} records`),
+                
+                uploadResult.errors && uploadResult.errors.length > 0 && React.createElement('div', {
+                    className: 'mt-3'
                 },
                     React.createElement('p', {
-                        className: 'font-semibold'
-                    }, uploadResult.message),
-                    
-                    uploadResult.errors && uploadResult.errors.length > 0 && React.createElement('div', {
-                        className: 'mt-2'
+                        className: 'text-sm font-semibold text-red-700 dark:text-red-300 mb-2'
+                    }, `❌ Errors found (${uploadResult.errors.length}):`),
+                    React.createElement('div', {
+                        className: 'max-h-32 overflow-y-auto bg-white dark:bg-gray-800 p-2 rounded border'
                     },
-                        React.createElement('p', {
-                            className: 'text-sm font-semibold'
-                        }, 'Errors:'),
                         uploadResult.errors.map((error, index) => 
                             React.createElement('p', {
                                 key: index,
-                                className: 'text-sm text-red-600'
-                            }, 'Row ' + (error.row) + ': ' + (error.error))
+                                className: 'text-xs text-red-600 dark:text-red-400 mb-1'
+                            }, `Row ${error.row}: ${error.error}`)
                         )
                     )
                 )
             ),
             
+            // Action Buttons
             React.createElement('div', {
-                className: 'flex justify-end gap-2'
+                className: 'flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-600'
             },
                 React.createElement('button', {
                     onClick: onClose,
-                    className: 'px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400 dark:hover:bg-gray-700'
+                    className: 'px-6 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-700 transition-colors'
                 }, 'Cancel'),
                 
                 React.createElement('button', {
                     onClick: handleUpload,
                     disabled: !file || uploading,
-                    className: `px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed`
+                    className: `px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors ${
+                        uploading ? 'animate-pulse' : ''
+                    }`
                 }, uploading ? 'Uploading...' : 'Upload File')
             )
         )
