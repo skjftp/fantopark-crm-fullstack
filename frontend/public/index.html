@@ -6710,8 +6710,11 @@ const deletePayable = async (payableId) => {
             method: 'DELETE'
         });
 
-        // Update local state - remove the deleted payable
-        setPayables(prev => prev.filter(p => p.id !== payableId));
+        // Update financialData state instead of separate payables state
+        setFinancialData(prev => ({
+            ...prev,
+            payables: prev.payables ? prev.payables.filter(p => p.id !== payableId) : []
+        }));
         
         // Update analytics by recalculating totals
         await fetchData(); // This will refresh all data including analytics
@@ -6724,6 +6727,7 @@ const deletePayable = async (payableId) => {
     } finally {
         setLoading(false);
     }
+};
 };
     
 const handleFormSubmit = async (e) => {
