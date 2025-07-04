@@ -1059,54 +1059,57 @@ setShowEditOrderForm(true);
 };
 
 
-const handleBulkAssignSubmit = async () => {
-if (Object.keys(bulkAssignSelections).length === 0) {
-alert('Please select at least one lead to assign.');
-return;
-}
+const handleBulkAssignSubmitSimple = async () => {
+    if (Object.keys(bulkAssignSelections).length === 0) {
+        alert('Please select at least one lead to assign.');
+        return;
+    }
 
-setBulkAssignLoading(true);
-let successCount = 0;
-let errorCount = 0;
+    setBulkAssignLoading(true);
+    let successCount = 0;
+    let errorCount = 0;
 
-try {
-for (const [leadId, assigneeEmail] of Object.entries(bulkAssignSelections)) {
-try {
-const response = await apiCall(`/leads/${leadId}`, {
-method: 'PUT',
-body: JSON.stringify({
-    assigned_to: assigneeEmail,
-    status: 'assigned'
-})
-});
+    try {
+        for (const [leadId, assigneeEmail] of Object.entries(bulkAssignSelections)) {
+            try {
+                const response = await apiCall(`/leads/${leadId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        assigned_to: assigneeEmail,
+                        status: 'assigned'
+                    })
+                });
 
-if (response.error) {
-console.error(`Failed to assign lead ${leadId}:`, response.error);
-errorCount++;
-} else {
-successCount++;
-}
-} catch (error) {
-console.error(`Error assigning lead ${leadId}:`, error);
-errorCount++;
-}
-}
+                if (response.error) {
+                    console.error(`Failed to assign lead ${leadId}:`, response.error);
+                    errorCount++;
+                } else {
+                    successCount++;
+                }
+            } catch (error) {
+                console.error(`Error assigning lead ${leadId}:`, error);
+                errorCount++;
+            }
+        }
 
-alert(`Bulk assignment completed!\n✅ ${successCount} leads assigned successfully\n❌ ${errorCount} failed`);
-
-// Refresh leads data
-await fetchLeads();
-
-// Close modal and reset selections
-setShowBulkAssignModal(false);
-setBulkAssignSelections({});
-
-} catch (error) {
-console.error('Bulk assignment error:', error);
-alert('Error during bulk assignment: ' + error.message);
-} finally {
-setBulkAssignLoading(false);
-}
+        // Show results
+        alert(`Bulk assignment completed!\n✅ ${successCount} leads assigned successfully\n❌ ${errorCount} failed`);
+        
+        // Close modal first
+        setShowBulkAssignModal(false);
+        setBulkAssignSelections({});
+        
+        // Reload page to refresh data (simple but effective)
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Bulk assignment error:', error);
+        alert('Error during bulk assignment: ' + error.message);
+    } finally {
+        setBulkAssignLoading(false);
+    }
 };
 
 // Helper function to update order status
