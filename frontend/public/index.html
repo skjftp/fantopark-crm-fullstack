@@ -935,6 +935,7 @@ const [orders, setOrders] = useState([]);
     const [showInventoryDetail, setShowInventoryDetail] = useState(false);
 const [currentInventoryDetail, setCurrentInventoryDetail] = useState(null);
 const [currentAllocations, setCurrentAllocations] = React.useState([]);
+    const [showOrderForm, setShowOrderForm] = useState(false);
 const [allocationManagementInventory, setAllocationManagementInventory] = React.useState(null);
     
     
@@ -1608,7 +1609,11 @@ Status: ${order.status}`);
                     : order
             )
         );
-        
+
+        const openOrderForm = () => {
+    setShowOrderForm(true);
+    // Initialize any form data if needed
+};
         
         // Create delivery entry when assigning to supply team
         const order = orders.find(o => o.id === orderId);
@@ -4523,7 +4528,7 @@ const renderDashboardContent = () => {
                 React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-4' }, 'Quick Actions'),
                 React.createElement('div', { className: 'space-y-3' },
                     hasPermission('leads', 'write') && React.createElement('button', {
-                        onClick: () => setShowLeadForm(true),
+                        onClick: () => setShowAddForm(true),
                         className: 'w-full flex items-center px-4 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors'
                     },
                         React.createElement('span', { className: 'mr-3' }, '+'),
