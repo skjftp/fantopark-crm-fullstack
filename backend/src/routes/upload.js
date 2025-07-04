@@ -69,6 +69,7 @@ router.post('/', authenticateToken, upload.single('file'), async (req, res) => {
 });
 
 // POST bulk upload leads from CSV
+// POST bulk upload leads from CSV - FIXED VERSION
 router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -90,13 +91,15 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
 
         for (const [index, row] of results.entries()) {
           try {
+            // Get the assigned_to value and handle empty/invalid assignments
+            const assignedToValue = row.assigned_to || row['Assigned To'] || '';
+            
             // Map CSV columns to lead fields
             const leadData = {
               name: row.name || row.Name || '',
               email: row.email || row.Email || '',
               phone: row.phone || row.Phone || '',
               company: row.company || row.Company || '',
-              business_type: row.business_type || row['Business Type'] || '',
               source: row.source || row.Source || '',
               date_of_enquiry: row.date_of_enquiry || row['Date of Enquiry'] || new Date().toISOString(),
               first_touch_base_done_by: row.first_touch_base_done_by || row['First Touch Base Done By'] || '',
@@ -109,8 +112,11 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
               attended_sporting_event_before: row.attended_sporting_event_before || row['Attended Sporting Event Before'] || 'No',
               annual_income_bracket: row.annual_income_bracket || row['Annual Income Bracket'] || '',
               potential_value: parseFloat(row.potential_value || row['Potential Value'] || '0'),
-              status: row.status || row.Status || 'unassigned',
-              assigned_to: row.assigned_to || row['Assigned To'] || '',
+              
+              // FIX: Properly handle assignment status
+              status: assignedToValue.trim() === '' || assignedToValue === '0' ? 'unassigned' : 'assigned',
+              assigned_to: assignedToValue.trim() === '' || assignedToValue === '0' ? null : assignedToValue,
+              
               last_quoted_price: parseFloat(row.last_quoted_price || row['Last Quoted Price'] || '0'),
               notes: row.notes || row.Notes || ''
             };
@@ -118,8 +124,18 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
             // Validate required fields
             if (!leadData.name || !leadData.email || !leadData.phone) {
               errors.push({
-                row: index + 2, // +2 because CSV has header row and arrays are 0-indexed
+                row: index + 2,
                 error: 'Missing required fields (name, email, or phone)'
+              });
+              errorCount++;
+              continue;
+            }
+
+            // Additional validation: Check if assigned_to is a valid email when provided
+            if (leadData.assigned_to && !leadData.assigned_to.includes('@')) {
+              errors.push({
+                row: index + 2,
+                error: 'Assigned To must be a valid email address'
               });
               errorCount++;
               continue;
@@ -143,7 +159,7 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
           totalProcessed: results.length,
           successCount,
           errorCount,
-          errors: errors.slice(0, 10) // Return first 10 errors
+          errors: errors.slice(0, 10)
         });
       })
       .on('error', (error) => {
