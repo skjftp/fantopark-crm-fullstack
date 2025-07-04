@@ -147,24 +147,23 @@ const parseUploadedFile = (fileBuffer, filename) => {
     try {
       if (filename.endsWith('.csv')) {
         console.log('📄 Parsing CSV file...');
-        // Parse CSV with enhanced options
+        
+        // FIXED: Parse CSV with proper configuration
         const results = [];
         const stream = Readable.from(fileBuffer.toString());
         
         stream
           .pipe(csv({
+            // Ensure headers are properly parsed
+            mapHeaders: ({ header, index }) => {
+              // Clean header names and map them properly
+              return header.trim().toLowerCase().replace(/\s+/g, '_');
+            },
             skipEmptyLines: true,
-            headers: true,
-            // Remove transform that might be causing issues
+            skipLinesWithError: false
           }))
           .on('data', (row) => {
-            // Log date fields for debugging
-            const dateFields = ['Date of Enquiry', 'date_of_enquiry'];
-            dateFields.forEach(field => {
-              if (row[field]) {
-                console.log(`🔍 Found date field "${field}":`, row[field], typeof row[field]);
-              }
-            });
+            console.log('📝 Raw CSV row:', Object.keys(row)); // Debug headers
             results.push(row);
           })
           .on('end', () => {
@@ -181,22 +180,20 @@ const parseUploadedFile = (fileBuffer, filename) => {
           
       } else if (filename.endsWith('.xlsx') || filename.endsWith('.xls')) {
         console.log('📊 Parsing Excel file...');
+        
         // Parse Excel with proper date handling
         const workbook = XLSX.read(fileBuffer, { 
           type: 'buffer',
           cellDates: true,
           cellNF: true,
-          cellText: false,
-          dateNF: 'yyyy-mm-dd'
+          cellText: false
         });
-        
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        
         const jsonData = XLSX.utils.sheet_to_json(worksheet, {
           raw: false,
           dateNF: 'yyyy-mm-dd',
-          defval: ''
+          defval: '' // Default value for empty cells
         });
         
         console.log('✅ Excel parsing completed, rows:', jsonData.length);
@@ -285,33 +282,79 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
         
         // Map columns to lead fields with ENHANCED DATE HANDLING
         const leadData = {
-          name: row.name || row.Name || '',
-          email: row.email || row.Email || '',
-          phone: String(row.phone || row.Phone || ''),
-          company: row.company || row.Company || '',
-          business_type: row.business_type || row['Business Type'] || 'B2C',
-          source: row.source || row.Source || '',
+          // Try multiple possible header variations
+          name: row.name || row.Name || row.NAME || 
+                row['Name'] || row['name'] || '',
+                
+          email: row.email || row.Email || row.EMAIL || 
+                 row['Email'] || row['email'] || '',
+                 
+          phone: String(row.phone || row.Phone || row.PHONE || 
+                 row['Phone'] || row['phone'] || 
+                 row['Phone Number'] || row.mobile || ''),
+                 
+          company: row.company || row.Company || row.COMPANY || 
+                   row['Company'] || row['company'] || '',
+                   
+          business_type: row.business_type || row['Business Type'] || 
+                         row.businesstype || row['business type'] || 'B2C',
+                         
+          source: row.source || row.Source || row.SOURCE || 
+                  row['Source'] || row['source'] || 'Website',
           
           // ENHANCED: Use the parsed date
           date_of_enquiry: parsedDate,
           
-          first_touch_base_done_by: row.first_touch_base_done_by || row['First Touch Base Done By'] || '',
-          city_of_residence: row.city_of_residence || row['City of Residence'] || '',
-          country_of_residence: row.country_of_residence || row['Country of Residence'] || 'India',
-          lead_for_event: row.lead_for_event || row['Lead for Event'] || '',
-          number_of_people: parseInt(row.number_of_people || row['Number of People'] || '1'),
-          has_valid_passport: row.has_valid_passport || row['Has Valid Passport'] || 'Not Sure',
-          visa_available: row.visa_available || row['Visa Available'] || 'Not Required',
-          attended_sporting_event_before: row.attended_sporting_event_before || row['Attended Sporting Event Before'] || 'No',
-          annual_income_bracket: row.annual_income_bracket || row['Annual Income Bracket'] || '',
-          potential_value: parseFloat(row.potential_value || row['Potential Value'] || '0'),
+          first_touch_base_done_by: row.first_touch_base_done_by || 
+                                   row['First Touch Base Done By'] || 
+                                   row.touchbase || '',
+                                   
+          city_of_residence: row.city_of_residence || 
+                            row['City of Residence'] || 
+                            row.city || '',
+                            
+          country_of_residence: row.country_of_residence || 
+                               row['Country of Residence'] || 
+                               row.country || 'India',
+                               
+          lead_for_event: row.lead_for_event || 
+                         row['Lead for Event'] || 
+                         row.event || '',
+                         
+          number_of_people: parseInt(row.number_of_people || 
+                                    row['Number of People'] || 
+                                    row.people || '1'),
+                                    
+          has_valid_passport: row.has_valid_passport || 
+                             row['Has Valid Passport'] || 
+                             (row.passport === 'Yes' ? 'Yes' : 'No'),
+                             
+          visa_available: row.visa_available || 
+                         row['Visa Available'] || 
+                         (row.visa === 'Yes' ? 'Yes' : 'No'),
+                         
+          attended_sporting_event_before: row.attended_sporting_event_before || 
+                                         row['Attended Sporting Event Before'] || 
+                                         (row.attended === 'Yes' ? 'Yes' : 'No'),
+                                         
+          annual_income_bracket: row.annual_income_bracket || 
+                                row['Annual Income Bracket'] || 
+                                row.income || '',
+                                
+          potential_value: parseFloat(row.potential_value || 
+                                     row['Potential Value'] || 
+                                     row.value || '0'),
           
           // FIX: Properly handle assignment status
           status: assignedToValue.trim() === '' || assignedToValue === '0' ? 'unassigned' : 'assigned',
           assigned_to: assignedToValue.trim() === '' || assignedToValue === '0' ? '' : assignedToValue,
           
-          last_quoted_price: parseFloat(row.last_quoted_price || row['Last Quoted Price'] || '0'),
-          notes: row.notes || row.Notes || ''
+          last_quoted_price: parseFloat(row.last_quoted_price || 
+                                       row['Last Quoted Price'] || 
+                                       row.price || '0'),
+                                       
+          notes: row.notes || row.Notes || row.NOTES || 
+                 row['Notes'] || row['notes'] || ''
         };
 
         console.log(`💾 Final leadData for ${leadData.name}:`, {
@@ -699,6 +742,62 @@ router.get('/leads/sample-excel-with-validation', authenticateToken, async (req,
   } catch (error) {
     console.error('Excel validation error:', error);
     res.status(500).json({ error: 'Failed to create Excel with validation: ' + error.message });
+  }
+});
+
+// Add missing Excel download routes that frontend expects
+router.get('/leads/sample-excel-fixed', authenticateToken, async (req, res) => {
+  try {
+    // Redirect to the existing route or create a simple response
+    res.redirect('/api/upload/leads/sample-excel-with-validation');
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/leads/sample-excel-simple', authenticateToken, async (req, res) => {
+  try {
+    const XLSX = require('xlsx');
+    
+    // Create a simple Excel template
+    const wb = XLSX.utils.book_new();
+    
+    const headers = [
+      'Name', 'Email', 'Phone', 'Company', 'Business Type', 'Source', 
+      'Date of Enquiry', 'First Touch Base Done By', 'City of Residence', 
+      'Country of Residence', 'Lead for Event', 'Number of People', 
+      'Has Valid Passport', 'Visa Available', 'Attended Sporting Event Before', 
+      'Annual Income Bracket', 'Potential Value', 'Status', 'Assigned To', 
+      'Last Quoted Price', 'Notes'
+    ];
+    
+    const sampleData = [
+      [
+        'John Doe', 'john@example.com', '+919876543210', 'ABC Corp', 
+        'B2B', 'Facebook', '2025-01-15', 'Sales Team', 'Mumbai', 
+        'India', 'IPL 2025', '2', 'Yes', 'Not Required', 'No', 
+        '₹25-50 Lakhs', '500000', 'unassigned', '', '0', 'Interested in VIP tickets'
+      ]
+    ];
+    
+    const data = [headers, ...sampleData];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    
+    // Set column widths
+    ws['!cols'] = headers.map(() => ({ wch: 15 }));
+    
+    XLSX.utils.book_append_sheet(wb, ws, 'Leads Template');
+    
+    const workbookOut = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    
+    res.setHeader('Content-Disposition', 'attachment; filename="leads_template_simple.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    
+    res.send(workbookOut);
+    
+  } catch (error) {
+    console.error('Excel simple error:', error);
+    res.status(500).json({ error: 'Failed to create simple Excel template: ' + error.message });
   }
 });
 
