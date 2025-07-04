@@ -10256,12 +10256,24 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
     const [uploading, setUploading] = useState(false);
     const [uploadResult, setUploadResult] = useState(null);
 
+    // UPDATED: Enhanced file validation for both CSV and Excel
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
-        if (selectedFile && selectedFile.type === 'text/csv') {
+        const allowedTypes = [
+            'text/csv',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        ];
+        
+        const isValidFile = allowedTypes.includes(selectedFile.type) || 
+                           selectedFile.name.endsWith('.csv') || 
+                           selectedFile.name.endsWith('.xlsx') || 
+                           selectedFile.name.endsWith('.xls');
+        
+        if (selectedFile && isValidFile) {
             setFile(selectedFile);
         } else {
-            alert('Please select a valid CSV file');
+            alert('Please select a valid CSV or Excel file (.csv, .xlsx, .xls)');
         }
     };
 
@@ -10310,7 +10322,7 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
 
 const downloadSampleCSV = async () => {
         try {
-            // Download from the new backend endpoint with validation
+            // Download from the new backend endpoint that generates Excel files
             const response = await fetch((API_URL) + '/upload/sample/' + (type), {
                 method: 'GET',
                 headers: {
@@ -10319,21 +10331,21 @@ const downloadSampleCSV = async () => {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to download sample CSV');
+                throw new Error('Failed to download sample file');
             }
 
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'sample_' + (type) + '_with_validation.csv';
+            link.download = 'sample_' + (type) + '_with_validation.xlsx'; // UPDATED: .xlsx extension
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
             
-            // Show success message
-            alert('Sample ' + (type) + ' CSV with dropdown validation downloaded successfully!');
+            // UPDATED: Success message
+            alert('Sample ' + (type) + ' Excel file with dropdown validation downloaded successfully!');
             
         } catch (error) {
             console.error('Download error:', error);
@@ -10376,25 +10388,29 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
         React.createElement('div', {
             className: 'bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4'
         },
+            // UPDATED: Modal title
             React.createElement('h2', {
                 className: 'text-2xl font-bold mb-4 text-gray-900 dark:text-white'
-            }, 'Upload ' + (type === 'leads' ? 'Leads' : 'Inventory') + ' CSV'),
+            }, 'Upload ' + (type === 'leads' ? 'Leads' : 'Inventory') + ' (CSV/Excel)'),
             
             React.createElement('div', {
                 className: 'mb-6'
             },
+                // UPDATED: Description
                 React.createElement('p', {
                     className: 'text-gray-600 dark:text-gray-300 mb-4'
-                }, 'Upload a CSV file to bulk import your data. Make sure your CSV follows the correct format.'),
+                }, 'Upload a CSV or Excel file to bulk import your data. Excel files will have built-in dropdown validation.'),
                 
+                // UPDATED: Download button text
                 React.createElement('button', {
                     onClick: downloadSampleCSV,
                     className: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded mb-4'
-                }, 'Download Sample CSV'),
+                }, 'Download Sample Excel with Validation'),
                 
+                // UPDATED: File input with Excel support
                 React.createElement('input', {
                     type: 'file',
-                    accept: '.csv',
+                    accept: '.csv,.xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                     onChange: handleFileChange,
                     className: 'block w-full mb-4 text-gray-900 dark:text-white'
                 }),
@@ -10438,13 +10454,12 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
                     onClick: handleUpload,
                     disabled: !file || uploading,
                     className: `px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed`
-                }, uploading ? 'Uploading...' : 'Upload CSV')
+                }, uploading ? 'Uploading...' : 'Upload File')
             )
         )
     );
 };
-    
-    // Main application layout
+      // Main application layout
     
     const renderHelpGuide = () => {
         if (!showHelpGuide) return null;
