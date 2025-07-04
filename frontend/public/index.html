@@ -10308,33 +10308,65 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
 // CORRECTED CSV template generator for frontend/public/index.html
 // Replace the existing downloadSampleCSV function in the CSVUploadModal component
 
-const downloadSampleCSV = () => {
-    let csvContent = '';
-    let filename = '';
+const downloadSampleCSV = async () => {
+        try {
+            // Download from the new backend endpoint with validation
+            const response = await fetch((API_URL) + '/upload/sample/' + (type), {
+                method: 'GET',
+                headers: {
+                    'Authorization': authToken ? 'Bearer ' + (authToken) : undefined
+                }
+            });
 
-    if (type === 'leads') {
-        csvContent = `Name,Email,Phone,Company,Business Type,Source,Date of Enquiry,First Touch Base Done By,City of Residence,Country of Residence,Lead for Event,Number of People,Has Valid Passport,Visa Available,Attended Sporting Event Before,Annual Income Bracket,Potential Value,Status,Assigned To,Last Quoted Price,Notes
-John Doe,john@example.com,+919876543210,ABC Corp,B2C,Facebook,2025-01-15,Sales Team,Mumbai,India,IPL 2025,2,Yes,Not Required,No,₹25-50 Lakhs,500000,unassigned,0,Interested in VIP tickets
-Jane Smith,jane@example.com,+919876543211,XYZ Ltd,B2B,WhatsApp,2025-01-16,Marketing Team,Delhi,India,FIFA World Cup 2026,4,Not Sure,Required,Yes,₹50 Lakhs - ₹1 Crore,1000000,unassigned,0,Family trip planned`;
-        filename = 'sample_leads.csv';
-    } else if (type === 'inventory') {
-        // CORRECTED: Using exact field names that match your form data structure
-        csvContent = `event_name,event_date,event_type,sports,venue,day_of_match,category_of_ticket,stand,total_tickets,available_tickets,mrp_of_ticket,buying_price,selling_price,inclusions,booking_person,procurement_type,paymentStatus,supplierName,supplierInvoice,purchasePrice,totalPurchaseAmount,amountPaid,paymentDueDate,notes
-Eng vs Ind 3rd Test Lords,2025-07-10,cricket,Cricket,Lords,Day 1,VIP,Lower Mount,20,20,160000,160000,175000,"Food & Beverages, Visit from legends",Akshay,pre_inventory,pending,Wassermann,INV-2025-001,160000,3200000,0,2025-07-04,Premium test match experience
-FIFA World Cup 2026 Qualifier,2026-03-15,football,Football,Salt Lake Stadium,Not Applicable,Premium,East Block,200,200,15000,12000,14000,"Parking, Merchandise",Kolkata Events,on_demand,pending,Global Sports,INV-2026-002,12000,2400000,1200000,2026-02-15,Group stage qualifying match
-IPL 2025 Playoffs,2025-05-25,cricket,Cricket,Eden Gardens,Not Applicable,Gold,South Pavilion,150,150,12000,9000,11000,"Snacks, Parking",Sports Bengal,partnership,paid,Cricket Events Ltd,INV-2025-003,9000,1350000,1350000,2025-04-20,Playoff match premium seating
-Tennis Masters,2025-12-10,tennis,Tennis,RK Khanna Stadium,Day 2,Corporate Box,Center Court Box,50,50,25000,20000,23000,"Lunch, Beverages, Meet & Greet",Elite Sports,direct_booking,partial,Tennis India,INV-2025-004,20000,1000000,500000,2025-11-15,Corporate hospitality package`;
-        filename = 'sample_inventory.csv';
-    }
+            if (!response.ok) {
+                throw new Error('Failed to download sample CSV');
+            }
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'sample_' + (type) + '_with_validation.csv';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            // Show success message
+            alert('Sample ' + (type) + ' CSV with dropdown validation downloaded successfully!');
+            
+        } catch (error) {
+            console.error('Download error:', error);
+            // Fallback to the old method if the new endpoint fails
+            downloadFallbackCSV();
+        }
+    };
+
+    // Fallback function (your existing logic)
+    const downloadFallbackCSV = () => {
+        let csvContent = '';
+        let filename = '';
+
+        if (type === 'leads') {
+            csvContent = `Name,Email,Phone,Company,Business Type,Source,Date of Enquiry,First Touch Base Done By,City of Residence,Country of Residence,Lead for Event,Number of People,Has Valid Passport,Visa Available,Attended Sporting Event Before,Annual Income Bracket,Potential Value,Status,Assigned To,Last Quoted Price,Notes
+John Doe,john@example.com,+919876543210,ABC Corp,B2C,Facebook,2025-01-15,Sales Team,Mumbai,India,IPL 2025,2,Yes,Not Required,No,₹25-50 Lakhs,500000,unassigned,,0,Interested in VIP tickets
+Jane Smith,jane@example.com,+919876543211,XYZ Ltd,B2B,WhatsApp,2025-01-16,Marketing Team,Delhi,India,FIFA World Cup 2026,4,Not Sure,Required,Yes,₹50 Lakhs - ₹1 Crore,1000000,unassigned,,0,Family trip planned`;
+            filename = 'sample_leads.csv';
+        } else if (type === 'inventory') {
+            csvContent = `Event Name,Event Date,Event Type,Sports,Venue,Day of Match,Category of Ticket,Price per Ticket,Number of Tickets,Total Value of Tickets,Currency,Base Amount INR,GST 18%,Selling Price per Ticket,Payment Due Date,Supplier Name,Ticket Source,Status,Allocated to Order,Notes
+IPL 2025 Final,2025-05-28,cricket,Cricket,Wankhede Stadium,Not Applicable,VIP,15000,10,150000,INR,150000,27000,17700,2025-04-15,Ticket Master,Primary,available,,Premium seats
+FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,Premium,25000,20,500000,USD,2000000,360000,118000,2026-03-01,FIFA Official,Primary,available,,Group stage match`;
+            filename = 'sample_inventory.csv';
+        }
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     if (!isOpen) return null;
 
