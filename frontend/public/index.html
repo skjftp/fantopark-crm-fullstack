@@ -1,4 +1,4 @@
-<!-- CRM Version: FIELD-MAPPING-FIXED-20250630 -->
+ <!-- CRM Version: FIELD-MAPPING-FIXED-20250630 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1059,7 +1059,7 @@ setShowEditOrderForm(true);
 };
 
 
-const handleBulkAssignSubmitSimple = async () => {
+const handleBulkAssignSubmit = async () => {
     if (Object.keys(bulkAssignSelections).length === 0) {
         alert('Please select at least one lead to assign.');
         return;
@@ -1092,17 +1092,26 @@ const handleBulkAssignSubmitSimple = async () => {
             }
         }
 
-        // Show results
         alert(`Bulk assignment completed!\n✅ ${successCount} leads assigned successfully\n❌ ${errorCount} failed`);
         
-        // Close modal first
+        // FIXED: Use the correct function name to refresh leads data
+        // Try these in order - use whichever function name you have:
+        if (typeof fetchData === 'function') {
+            await fetchData(); // Most likely this one
+        } else if (typeof loadLeads === 'function') {
+            await loadLeads();
+        } else if (typeof refreshLeads === 'function') {
+            await refreshLeads();
+        } else if (typeof getData === 'function') {
+            await getData();
+        } else {
+            // If none of the above work, just reload the page
+            window.location.reload();
+        }
+        
+        // Close modal and reset selections
         setShowBulkAssignModal(false);
         setBulkAssignSelections({});
-        
-        // Reload page to refresh data (simple but effective)
-        setTimeout(() => {
-            window.location.reload();
-        }, 1000);
         
     } catch (error) {
         console.error('Bulk assignment error:', error);
