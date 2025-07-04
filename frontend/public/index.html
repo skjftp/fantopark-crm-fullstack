@@ -8225,26 +8225,26 @@ React.createElement('div', { className: 'mb-6 p-4 bg-yellow-50 rounded-lg' },
                 type: 'file',
                 accept: '.pdf,.jpg,.jpeg,.png',
                 onChange: async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        if (file.size > 5 * 1024 * 1024) {
-                            alert('File size must be less than 5MB');
-                            e.target.value = '';
-                            return;
-                        }
-                        
-                        setLoading(true);
-                        try {
-                            const uploadResult = await uploadFileToGCS(file, 'gst');
-                            handlePaymentInputChange('gst_certificate', uploadResult);
-                            alert('GST Certificate uploaded successfully!');
-                        } catch (error) {
-                            alert('Failed to upload GST Certificate: ' + error.message);
-                            e.target.value = '';
-                        }
-                        setLoading(false);
-                    }
-                },
+    const file = e.target.files[0];
+    if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            e.target.value = '';
+            return;
+        }
+        
+        setLoading(true);
+        try {
+            const uploadResult = await uploadFileToGCS(file, 'gst');
+            handlePaymentInputChange('gst_certificate', uploadResult);
+            alert('GST Certificate uploaded successfully!');
+        } catch (error) {
+            alert('Failed to upload GST Certificate: ' + error.message);
+            e.target.value = '';
+        }
+        setLoading(false);
+    }
+},
                 className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                 disabled: loading
             }),
@@ -8267,40 +8267,31 @@ React.createElement('div', { className: 'mb-6 p-4 bg-yellow-50 rounded-lg' },
             React.createElement('input', {
                 type: 'file',
                 accept: '.pdf,.jpg,.jpeg,.png',
-                onChange: async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        console.log('=== FILE UPLOAD START ===');
-                        console.log('Uploading file:', file.name);
-                        if (file.size > 5 * 1024 * 1024) {
-                            alert('File size must be less than 5MB');
-                            e.target.value = '';
-                            return;
-                        }
-                        
-                        setLoading(true);
-                        try {
-                            const uploadResult = await uploadFileToGCS(file, 'pan');
+               onChange: async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        console.log('=== FILE UPLOAD START ===');
+        console.log('Uploading file:', file.name);
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            e.target.value = '';
+            return;
+        }
+        
+        setLoading(true);
+        try {
+            const uploadResult = await uploadFileToGCS(file, 'pan');
             console.log('Upload result:', uploadResult);
             handlePaymentInputChange('pan_card', uploadResult);
             console.log('Payment data after update:', paymentData);
             alert('PAN Card uploaded successfully!');
         } catch (error) {
-                            alert('Failed to upload PAN Card: ' + error.message);
-                            e.target.value = '';
-                        }
-        if (currentLead?.id === leadId) {
-            setCurrentLead(response.data);
+            alert('Failed to upload PAN Card: ' + error.message);
+            e.target.value = '';
         }
-        if (currentLead?.id === leadId) {
-            setCurrentLead(response.data);
-        }
-        if (currentLead?.id === leadId) {
-            setCurrentLead(response.data);
-        }
-                        setLoading(false);
-                    }
-                },
+        setLoading(false);
+    }
+},
                 className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                 disabled: loading
             }),
