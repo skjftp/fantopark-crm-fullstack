@@ -49,6 +49,42 @@ const csvUpload = multer({
   }
 });
 
+// FIXED: Helper function to properly parse dates from Excel/CSV
+const parseDate = (dateValue) => {
+  if (!dateValue) return new Date().toISOString();
+  
+  // If it's already a Date object, convert to ISO string
+  if (dateValue instanceof Date) {
+    return dateValue.toISOString();
+  }
+  
+  // If it's a string, try to parse it
+  if (typeof dateValue === 'string') {
+    // Handle YYYY-MM-DD format
+    if (dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return new Date(dateValue + 'T00:00:00Z').toISOString();
+    }
+    
+    // Handle other date formats
+    const parsed = new Date(dateValue);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString();
+    }
+  }
+  
+  // If it's a number (Excel serial date), convert it
+  if (typeof dateValue === 'number') {
+    // Excel date serial number (days since 1900-01-01)
+    const excelEpoch = new Date(1900, 0, 1);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const date = new Date(excelEpoch.getTime() + (dateValue - 2) * msPerDay);
+    return date.toISOString();
+  }
+  
+  // Default to current date if parsing fails
+  return new Date().toISOString();
+};
+
 // Helper function to parse both CSV and Excel files
 const parseUploadedFile = (fileBuffer, filename) => {
   return new Promise((resolve, reject) => {
@@ -63,11 +99,19 @@ const parseUploadedFile = (fileBuffer, filename) => {
           .on('end', () => resolve(results))
           .on('error', reject);
       } else if (filename.endsWith('.xlsx') || filename.endsWith('.xls')) {
-        // Parse Excel
-        const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+        // Parse Excel with proper date handling
+        const workbook = XLSX.read(fileBuffer, { 
+          type: 'buffer',
+          cellDates: true,
+          cellNF: true,
+          cellText: false
+        });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+          raw: false,
+          dateNF: 'yyyy-mm-dd'
+        });
         resolve(jsonData);
       } else {
         reject(new Error('Unsupported file format'));
@@ -109,7 +153,7 @@ router.post('/', authenticateToken, upload.single('file'), async (req, res) => {
   }
 });
 
-// POST bulk upload leads from CSV/Excel - ENHANCED VERSION
+// POST bulk upload leads from CSV/Excel - ENHANCED VERSION WITH DATE FIX AND BULK ASSIGNMENT
 router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -125,20 +169,25 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
     const errors = [];
     let successCount = 0;
     let errorCount = 0;
+    const uploadedLeads = []; // Store successfully uploaded leads for bulk assignment
 
     for (const [index, row] of results.entries()) {
       try {
         // Get the assigned_to value and handle empty/invalid assignments
         const assignedToValue = row.assigned_to || row['Assigned To'] || '';
         
-        // Map columns to lead fields
+        // Map columns to lead fields with FIXED DATE HANDLING
         const leadData = {
           name: row.name || row.Name || '',
           email: row.email || row.Email || '',
-          phone: row.phone || row.Phone || '',
+          phone: String(row.phone || row.Phone || ''),
           company: row.company || row.Company || '',
+          business_type: row.business_type || row['Business Type'] || 'B2C',
           source: row.source || row.Source || '',
-          date_of_enquiry: row.date_of_enquiry || row['Date of Enquiry'] || new Date().toISOString(),
+          
+          // FIXED: Proper date handling using the parseDate function
+          date_of_enquiry: parseDate(row.date_of_enquiry || row['Date of Enquiry']),
+          
           first_touch_base_done_by: row.first_touch_base_done_by || row['First Touch Base Done By'] || '',
           city_of_residence: row.city_of_residence || row['City of Residence'] || '',
           country_of_residence: row.country_of_residence || row['Country of Residence'] || 'India',
@@ -152,7 +201,7 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
           
           // FIX: Properly handle assignment status
           status: assignedToValue.trim() === '' || assignedToValue === '0' ? 'unassigned' : 'assigned',
-          assigned_to: assignedToValue.trim() === '' || assignedToValue === '0' ? null : assignedToValue,
+          assigned_to: assignedToValue.trim() === '' || assignedToValue === '0' ? '' : assignedToValue,
           
           last_quoted_price: parseFloat(row.last_quoted_price || row['Last Quoted Price'] || '0'),
           notes: row.notes || row.Notes || ''
@@ -162,33 +211,54 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
         if (!leadData.name || !leadData.email || !leadData.phone) {
           errors.push({
             row: index + 2,
-            error: 'Missing required fields (name, email, or phone)'
+            error: 'Missing required fields (name, email, or phone)',
+            data: leadData
           });
           errorCount++;
           continue;
         }
 
         // Additional validation: Check if assigned_to is a valid email when provided
-        if (leadData.assigned_to && !leadData.assigned_to.includes('@')) {
+        if (leadData.assigned_to && leadData.assigned_to !== '' && !leadData.assigned_to.includes('@')) {
           errors.push({
             row: index + 2,
-            error: 'Assigned To must be a valid email address'
+            error: 'Assigned To must be a valid email address',
+            data: leadData
           });
           errorCount++;
           continue;
         }
 
         const lead = new Lead(leadData);
-        await lead.save();
+        const savedLead = await lead.save();
+        
+        // Store for bulk assignment UI
+        uploadedLeads.push({
+          id: savedLead.id,
+          name: leadData.name,
+          email: leadData.email,
+          company: leadData.company,
+          source: leadData.source,
+          date_of_enquiry: leadData.date_of_enquiry,
+          status: leadData.status,
+          assigned_to: leadData.assigned_to,
+          business_type: leadData.business_type,
+          phone: leadData.phone
+        });
+        
         successCount++;
       } catch (error) {
         errors.push({
           row: index + 2,
-          error: error.message
+          error: error.message,
+          data: row
         });
         errorCount++;
       }
     }
+
+    // Store upload session for bulk assignment
+    const uploadSessionId = `upload_${Date.now()}_${req.user.email}`;
 
     res.json({
       success: true,
@@ -196,9 +266,13 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
       totalProcessed: results.length,
       successCount,
       errorCount,
-      errors: errors.slice(0, 10)
+      errors: errors.slice(0, 10),
+      uploadSessionId,
+      uploadedLeads, // Include uploaded leads for bulk assignment UI
+      fileName: req.file.originalname
     });
   } catch (error) {
+    console.error('Upload error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -329,16 +403,6 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
     res.status(500).json({ error: error.message });
   }
 });
-
-// GET endpoint to generate Excel files with actual dropdown validation
-// REPLACE the entire sample endpoint with this working version:
-
-// Add this route to your upload.js file
-// WORKING SOLUTION: Add this to your upload.js file
-// This uses a more compatible approach for Excel validation
-
-// WORKING SOLUTION: Replace your existing Excel routes with this approach
-// Add this to your backend/src/routes/upload.js
 
 // This creates a proper Excel file with working dropdown validation
 router.get('/leads/sample-excel-with-validation', authenticateToken, async (req, res) => {
