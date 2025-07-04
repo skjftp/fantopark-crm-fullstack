@@ -10317,7 +10317,7 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
         }
     };
 
-    // Download sample CSV (fallback)
+   // Download sample CSV (fallback)
     const downloadSampleCSV = () => {
         let csvContent = '';
         let filename = '';
@@ -10343,12 +10343,12 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
         document.body.removeChild(link);
     };
 
-    // Download Excel with working validation (Method 1)
+    // Download Excel with FIXED validation (Method 1) - UPDATED ENDPOINT
     const downloadSampleExcel = async () => {
         try {
-            console.log('Downloading Excel with validation...');
+            console.log('Downloading Excel with fixed validation...');
             
-            const response = await fetch(`${API_URL}/upload/leads/sample-excel`, {
+            const response = await fetch(`${API_URL}/upload/leads/sample-excel-fixed`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${authToken}`
@@ -10364,26 +10364,26 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
             
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'leads_with_working_validation.xlsx';
+            link.download = 'leads_with_fixed_validation.xlsx';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             
             window.URL.revokeObjectURL(url);
-            console.log('Excel file downloaded successfully!');
+            alert('✅ Excel file with improved validation downloaded successfully!');
             
         } catch (error) {
             console.error('Error downloading Excel:', error);
-            alert('Failed to download Excel file: ' + error.message);
+            alert('❌ Failed to download Excel file: ' + error.message);
         }
     };
 
-    // Download Excel with cell-level validation (Method 2)
+    // Download Excel with SIMPLE instructions (Method 2) - UPDATED ENDPOINT
     const downloadSampleExcelV2 = async () => {
         try {
-            console.log('Downloading Excel with cell-level validation...');
+            console.log('Downloading Excel template with instructions...');
             
-            const response = await fetch(`${API_URL}/upload/leads/sample-excel-v2`, {
+            const response = await fetch(`${API_URL}/upload/leads/sample-excel-simple`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${authToken}`
@@ -10399,17 +10399,17 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
             
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'leads_with_cell_validation.xlsx';
+            link.download = 'leads_template_with_instructions.xlsx';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             
             window.URL.revokeObjectURL(url);
-            console.log('Excel file with cell validation downloaded successfully!');
+            alert('✅ Excel template with clear instructions downloaded successfully!');
             
         } catch (error) {
             console.error('Error downloading Excel:', error);
-            alert('Failed to download Excel file: ' + error.message);
+            alert('❌ Failed to download Excel file: ' + error.message);
         }
     };
 
@@ -10444,7 +10444,7 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
                 }, '📋 Upload a CSV or Excel file to bulk import your data.'),
                 React.createElement('p', {
                     className: 'text-blue-700 dark:text-blue-300 text-sm'
-                }, '💡 Excel files include built-in dropdown validation for easier data entry!')
+                }, '💡 Excel files include validation guidance and clear instructions!')
             ),
             
             // Download Templates Section
@@ -10464,22 +10464,22 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
                         className: 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors'
                     }, '📄 CSV Template'),
                     
-                    // Excel Method 1
+                    // Excel Method 1 - UPDATED LABEL
                     type === 'leads' && React.createElement('button', {
                         onClick: downloadSampleExcel,
                         className: 'bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors'
-                    }, '📊 Excel (Column Validation)'),
+                    }, '📊 Excel (Advanced)'),
                     
-                    // Excel Method 2
+                    // Excel Method 2 - UPDATED LABEL
                     type === 'leads' && React.createElement('button', {
                         onClick: downloadSampleExcelV2,
                         className: 'bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors'
-                    }, '📋 Excel (Cell Validation)')
+                    }, '📋 Excel (Instructions)')
                 ),
                 
                 type === 'leads' && React.createElement('p', {
                     className: 'text-xs text-gray-600 dark:text-gray-400 mt-3 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border-l-4 border-yellow-400'
-                }, '⚡ Try both Excel methods - one may work better in your Excel version!')
+                }, '🎯 Try "Excel (Instructions)" for the clearest guidance - includes validation options and examples!')
             ),
             
             // File Upload Section
@@ -10570,7 +10570,6 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
             )
         )
     );
-};
       // Main application layout
     
     const renderHelpGuide = () => {
