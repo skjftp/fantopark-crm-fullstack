@@ -333,155 +333,245 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
 // GET endpoint to generate Excel files with actual dropdown validation
 // REPLACE the entire sample endpoint with this working version:
 
-router.get('/sample/:type', authenticateToken, async (req, res) => {
+// Add this route to your upload.js file
+router.get('/leads/sample-excel', authenticateToken, async (req, res) => {
   try {
-    const { type } = req.params;
+    const XLSX = require('xlsx');
     
-    if (type === 'leads') {
-      const XLSX = require('xlsx');
-      
-      // Create workbook
-      const wb = XLSX.utils.book_new();
-      
-      // Create validation data first
-      const validationData = [
-        ['BusinessTypes', 'Sources', 'Countries', 'PassportStatus', 'VisaStatus', 'LeadStatus'],
-        ['B2B', 'Facebook', 'India', 'Yes', 'Required', 'unassigned'],
-        ['B2C', 'WhatsApp', 'USA', 'No', 'Not Required', 'assigned'],
-        ['', 'Instagram', 'UK', 'Not Sure', 'Processing', 'contacted'],
-        ['', 'LinkedIn', 'Canada', '', 'Not Sure', 'qualified'],
-        ['', 'Referral', 'Australia', '', '', 'converted'],
-        ['', 'Website', 'UAE', '', '', 'dropped'],
-        ['', 'Other', 'Singapore', '', '', ''],
-        ['', '', 'Other', '', '', '']
-      ];
-      
-      // Create validation worksheet
-      const validationWs = XLSX.utils.aoa_to_sheet(validationData);
-      XLSX.utils.book_append_sheet(wb, validationWs, 'ValidationData');
-      
-      // Main data
-      const mainData = [
-        [
-          'Name', 'Email', 'Phone', 'Company', 'Business Type', 'Source', 
-          'Date of Enquiry', 'First Touch Base Done By', 'City of Residence', 
-          'Country of Residence', 'Lead for Event', 'Number of People',
-          'Has Valid Passport', 'Visa Available', 'Attended Sporting Event Before',
-          'Annual Income Bracket', 'Potential Value', 'Status', 'Assigned To',
-          'Last Quoted Price', 'Notes'
-        ],
-        [
-          'John Doe', 'john@example.com', '+919876543210', 'ABC Corp', 'B2B', 'Facebook',
-          '2025-01-15', 'Sales Team', 'Mumbai', 'India', 'IPL 2025', 2,
-          'Yes', 'Not Required', 'No', '₹25-50 Lakhs', 500000, 'unassigned', '',
-          0, 'Interested in VIP tickets'
-        ],
-        [
-          'Jane Smith', 'jane@example.com', '+919876543211', 'XYZ Ltd', 'B2C', 'WhatsApp',
-          '2025-01-16', 'Marketing Team', 'Delhi', 'India', 'FIFA World Cup 2026', 4,
-          'Not Sure', 'Required', 'Yes', '₹50 Lakhs - ₹1 Crore', 1000000, 'unassigned', '',
-          0, 'Family trip planned'
-        ]
-      ];
-      
-      // Create main worksheet
-      const ws = XLSX.utils.aoa_to_sheet(mainData);
-      
-      // Set column widths
-      ws['!cols'] = Array(21).fill({ width: 15 });
-      
-      // WORKING VALIDATION METHOD - Using named ranges
-      const validations = {
-        // Business Type (Column E, rows 3-1000)
-        'E3:E1000': {
-          type: 'list',
-          allowBlank: false,
-          formula1: 'ValidationData!$A$2:$A$3', // References validation sheet
-          showInputMessage: true,
-          promptTitle: 'Business Type',
-          prompt: 'Select B2B or B2C only',
-          showErrorMessage: true,
-          errorTitle: 'Invalid Entry',
-          error: 'Must select from dropdown list'
-        },
-        
-        // Source (Column F)
-        'F3:F1000': {
-          type: 'list',
-          allowBlank: false,
-          formula1: 'ValidationData!$B$2:$B$8',
-          showInputMessage: true,
-          promptTitle: 'Lead Source',
-          prompt: 'Select lead source from list'
-        },
-        
-        // Country (Column J)
-        'J3:J1000': {
-          type: 'list',
-          allowBlank: false,
-          formula1: 'ValidationData!$C$2:$C$9'
-        },
-        
-        // Has Valid Passport (Column M)
-        'M3:M1000': {
-          type: 'list',
-          allowBlank: false,
-          formula1: 'ValidationData!$D$2:$D$4'
-        },
-        
-        // Visa Available (Column N)
-        'N3:N1000': {
-          type: 'list',
-          allowBlank: false,
-          formula1: 'ValidationData!$E$2:$E$5'
-        },
-        
-        // Status (Column R)
-        'R3:R1000': {
-          type: 'list',
-          allowBlank: false,
-          formula1: 'ValidationData!$F$2:$F$7'
-        }
-      };
-      
-      // Apply validation
-      ws['!dataValidation'] = validations;
-      
-      // Add main worksheet
-      XLSX.utils.book_append_sheet(wb, ws, 'Leads');
-      
-      // Generate Excel with compatibility options
-      const buffer = XLSX.write(wb, { 
-        type: 'buffer', 
-        bookType: 'xlsx',
-        compression: true,
-        Props: {
-          Title: 'Lead Sample with Validation',
-          Subject: 'CRM Lead Import Template',
-          CreatedDate: new Date()
-        }
-      });
-      
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=leads_with_working_validation.xlsx');
-      res.send(buffer);
-
-    } else if (type === 'inventory') {
-      // Simple inventory version
-      const csvContent = `Event Name,Event Date,Event Type,Sports,Venue
-IPL 2025 Final,2025-05-28,cricket,Cricket,Wankhede Stadium
-FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium`;
-
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=sample_inventory.csv');
-      res.send(csvContent);
-
-    } else {
-      res.status(400).json({ error: 'Invalid type. Use "leads" or "inventory"' });
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Create validation data first
+    const validationData = [
+      ['BusinessTypes', 'Sources', 'Countries', 'PassportStatus', 'VisaStatus', 'LeadStatus'],
+      ['B2B', 'Facebook', 'India', 'Yes', 'Required', 'unassigned'],
+      ['B2C', 'WhatsApp', 'USA', 'No', 'Not Required', 'assigned'],
+      ['', 'Instagram', 'UK', 'Not Sure', 'Processing', 'contacted'],
+      ['', 'LinkedIn', 'Canada', '', 'Not Sure', 'qualified'],
+      ['', 'Referral', 'Australia', '', '', 'converted'],
+      ['', 'Website', 'UAE', '', '', 'dropped'],
+      ['', 'Other', 'Singapore', '', '', 'junk'],
+      ['', '', 'Other', '', '', '']
+    ];
+    
+    const validationWs = XLSX.utils.aoa_to_sheet(validationData);
+    XLSX.utils.book_append_sheet(wb, validationWs, 'ValidationData');
+    
+    // Create leads data with headers and sample rows
+    const leadsHeaders = [
+      'Name', 'Email', 'Phone', 'Company', 'Business Type', 'Source', 
+      'Date of Enquiry', 'First Touch Base Done By', 'City of Residence', 
+      'Country of Residence', 'Lead for Event', 'Number of People', 
+      'Has Valid Passport', 'Visa Available', 'Attended Sporting Event Before', 
+      'Annual Income Bracket', 'Potential Value', 'Status', 'Assigned To', 
+      'Last Quoted Price', 'Notes'
+    ];
+    
+    const leadsData = [
+      leadsHeaders,
+      [
+        'John Doe', 'john@example.com', '+919876543210', 'ABC Corp', 
+        'B2B', 'Facebook', '2025-01-15', 'Sales Team', 'Mumbai', 
+        'India', 'IPL 2025', '2', 'Yes', 'Not Required', 'No', 
+        '₹25-50 Lakhs', '500000', 'unassigned', '', '0', ''
+      ],
+      [
+        'Jane Smith', 'jane@example.com', '+919876543211', 'XYZ Ltd', 
+        'B2C', 'WhatsApp', '2025-01-16', 'Marketing Team', 'Delhi', 
+        'India', 'FIFA World Cup 2026', '4', 'Not Sure', 'Required', 'Yes', 
+        '₹50 Lakhs - ₹1 Crore', '1000000', 'unassigned', '', '0', ''
+      ]
+    ];
+    
+    const leadsWs = XLSX.utils.aoa_to_sheet(leadsData);
+    
+    // Apply data validation using worksheet operations (more reliable)
+    if (!leadsWs['!dataValidation']) {
+      leadsWs['!dataValidation'] = {};
     }
+    
+    // Business Type validation (Column E)
+    leadsWs['!dataValidation']['E:E'] = {
+      type: 'list',
+      allowBlank: true,
+      formula1: 'ValidationData!$A$2:$A$3',
+      showInputMessage: true,
+      promptTitle: 'Business Type',
+      prompt: 'Select B2B or B2C'
+    };
+    
+    // Source validation (Column F) 
+    leadsWs['!dataValidation']['F:F'] = {
+      type: 'list',
+      allowBlank: true,
+      formula1: 'ValidationData!$B$2:$B$8',
+      showInputMessage: true,
+      promptTitle: 'Source',
+      prompt: 'Select lead source'
+    };
+    
+    // Country validation (Column J)
+    leadsWs['!dataValidation']['J:J'] = {
+      type: 'list',
+      allowBlank: true,
+      formula1: 'ValidationData!$C$2:$C$9',
+      showInputMessage: true,
+      promptTitle: 'Country',
+      prompt: 'Select country'
+    };
+    
+    // Passport validation (Column M)
+    leadsWs['!dataValidation']['M:M'] = {
+      type: 'list',
+      allowBlank: true,
+      formula1: 'ValidationData!$D$2:$D$4',
+      showInputMessage: true,
+      promptTitle: 'Passport',
+      prompt: 'Has valid passport?'
+    };
+    
+    // Visa validation (Column N)
+    leadsWs['!dataValidation']['N:N'] = {
+      type: 'list',
+      allowBlank: true,
+      formula1: 'ValidationData!$E$2:$E$5',
+      showInputMessage: true,
+      promptTitle: 'Visa',
+      prompt: 'Visa status'
+    };
+    
+    // Status validation (Column R)
+    leadsWs['!dataValidation']['R:R'] = {
+      type: 'list',
+      allowBlank: true,
+      formula1: 'ValidationData!$F$2:$F$7',
+      showInputMessage: true,
+      promptTitle: 'Status',
+      prompt: 'Lead status'
+    };
+    
+    // Set column widths for better readability
+    leadsWs['!cols'] = [
+      { wch: 15 }, // Name
+      { wch: 25 }, // Email
+      { wch: 15 }, // Phone
+      { wch: 20 }, // Company
+      { wch: 15 }, // Business Type
+      { wch: 12 }, // Source
+      { wch: 15 }, // Date of Enquiry
+      { wch: 20 }, // First Touch Base Done By
+      { wch: 15 }, // City of Residence
+      { wch: 18 }, // Country of Residence
+      { wch: 20 }, // Lead for Event
+      { wch: 12 }, // Number of People
+      { wch: 18 }, // Has Valid Passport
+      { wch: 15 }, // Visa Available
+      { wch: 25 }, // Attended Sporting Event Before
+      { wch: 20 }, // Annual Income Bracket
+      { wch: 15 }, // Potential Value
+      { wch: 12 }, // Status
+      { wch: 15 }, // Assigned To
+      { wch: 18 }, // Last Quoted Price
+      { wch: 25 }  // Notes
+    ];
+    
+    XLSX.utils.book_append_sheet(wb, leadsWs, 'Leads');
+    
+    // Generate Excel file buffer
+    const excelBuffer = XLSX.write(wb, { 
+      type: 'buffer', 
+      bookType: 'xlsx',
+      compression: true
+    });
+    
+    // Set response headers
+    res.setHeader('Content-Disposition', 'attachment; filename="leads_with_working_validation.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Length', excelBuffer.length);
+    
+    // Send file
+    res.send(excelBuffer);
+    
   } catch (error) {
-    console.error('Sample generation error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Excel generation error:', error);
+    res.status(500).json({ error: 'Failed to generate Excel file: ' + error.message });
+  }
+});
+
+// Alternative approach using cell-level validation
+router.get('/leads/sample-excel-v2', authenticateToken, async (req, res) => {
+  try {
+    const XLSX = require('xlsx');
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Create validation data sheet
+    const validationData = [
+      ['BusinessTypes', 'Sources', 'Countries', 'PassportStatus', 'VisaStatus', 'LeadStatus'],
+      ['B2B', 'Facebook', 'India', 'Yes', 'Required', 'unassigned'],
+      ['B2C', 'WhatsApp', 'USA', 'No', 'Not Required', 'assigned'],
+      ['', 'Instagram', 'UK', 'Not Sure', 'Processing', 'contacted'],
+      ['', 'LinkedIn', 'Canada', '', 'Not Sure', 'qualified'],
+      ['', 'Referral', 'Australia', '', '', 'converted'],
+      ['', 'Website', 'UAE', '', '', 'dropped'],
+      ['', 'Other', 'Singapore', '', '', 'junk']
+    ];
+    
+    const validationWs = XLSX.utils.aoa_to_sheet(validationData);
+    XLSX.utils.book_append_sheet(wb, validationWs, 'ValidationData');
+    
+    // Create the leads worksheet
+    const leadsHeaders = [
+      'Name', 'Email', 'Phone', 'Company', 'Business Type', 'Source', 
+      'Date of Enquiry', 'First Touch Base Done By', 'City of Residence', 
+      'Country of Residence', 'Lead for Event', 'Number of People', 
+      'Has Valid Passport', 'Visa Available', 'Attended Sporting Event Before', 
+      'Annual Income Bracket', 'Potential Value', 'Status', 'Assigned To', 
+      'Last Quoted Price', 'Notes'
+    ];
+    
+    // Create empty worksheet with just headers
+    const leadsWs = XLSX.utils.aoa_to_sheet([leadsHeaders]);
+    
+    // Add empty rows for data entry
+    for (let i = 2; i <= 102; i++) { // Add 100 empty rows
+      // Add validation to specific cells in each row
+      const businessTypeCell = `E${i}`;
+      const sourceCell = `F${i}`;
+      const countryCell = `J${i}`;
+      const passportCell = `M${i}`;
+      const visaCell = `N${i}`;
+      const statusCell = `R${i}`;
+      
+      // Initialize cells with validation
+      leadsWs[businessTypeCell] = { t: 's', v: '', dv: { type: 'list', formula1: 'ValidationData!$A$2:$A$3' } };
+      leadsWs[sourceCell] = { t: 's', v: '', dv: { type: 'list', formula1: 'ValidationData!$B$2:$B$8' } };
+      leadsWs[countryCell] = { t: 's', v: '', dv: { type: 'list', formula1: 'ValidationData!$C$2:$C$9' } };
+      leadsWs[passportCell] = { t: 's', v: '', dv: { type: 'list', formula1: 'ValidationData!$D$2:$D$4' } };
+      leadsWs[visaCell] = { t: 's', v: '', dv: { type: 'list', formula1: 'ValidationData!$E$2:$E$5' } };
+      leadsWs[statusCell] = { t: 's', v: '', dv: { type: 'list', formula1: 'ValidationData!$F$2:$F$7' } };
+    }
+    
+    // Update range to include all rows
+    leadsWs['!ref'] = `A1:U102`;
+    
+    XLSX.utils.book_append_sheet(wb, leadsWs, 'Leads');
+    
+    // Generate Excel file
+    const excelBuffer = XLSX.write(wb, { 
+      type: 'buffer', 
+      bookType: 'xlsx'
+    });
+    
+    res.setHeader('Content-Disposition', 'attachment; filename="leads_with_cell_validation.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    
+    res.send(excelBuffer);
+    
+  } catch (error) {
+    console.error('Excel generation error:', error);
+    res.status(500).json({ error: 'Failed to generate Excel file: ' + error.message });
   }
 });
 
