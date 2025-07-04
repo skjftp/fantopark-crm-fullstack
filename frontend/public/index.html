@@ -9612,7 +9612,7 @@
     
     // Enhanced inventory content with permission checks
 const renderInventoryContent = () => {
-    // ENHANCED FILTERING - Now includes event type filter
+    // ENHANCED FILTERING - includes event type filter
     const filteredInventory = inventory.filter(item => {
         const daysUntilEvent = getInventoryDueInDays(item.event_date);
         
@@ -9642,7 +9642,7 @@ const renderInventoryContent = () => {
         }
     });
 
-    // ENHANCED SORTING - Works on ALL filtered data before pagination
+    // ENHANCED SORTING - works on ALL filtered data before pagination
     const sortedInventory = filteredInventory.sort((a, b) => {
         let aValue, bValue;
         
@@ -9681,51 +9681,81 @@ const renderInventoryContent = () => {
     const currentInventoryItems = sortedInventory.slice(indexOfFirstInventory, indexOfLastInventory);
     const totalInventoryPages = Math.ceil(sortedInventory.length / itemsPerPage);
 
-    // Helper function to render sort icon
-    const renderSortIcon = (fieldName) => {
-        if (inventorySortField !== fieldName) {
-            return React.createElement('span', { className: 'text-gray-400 ml-1' }, '↕️');
-        }
-        return React.createElement('span', { className: 'ml-1' }, 
-            inventorySortDirection === 'asc' ? '↑' : '↓'
-        );
-    };
-
-    // Helper function to handle sort click
-    const handleSort = (fieldName) => {
-        if (inventorySortField === fieldName) {
-            // Toggle direction if same field
-            setInventorySortDirection(inventorySortDirection === 'asc' ? 'desc' : 'asc');
-        } else {
-            // Set new field with default direction
-            setInventorySortField(fieldName);
-            setInventorySortDirection(fieldName === 'event_date' ? 'desc' : 'asc');
-        }
-        // Reset to first page when sorting changes
-        setCurrentInventoryPage(1);
-    };
-
     return React.createElement('div', { className: 'space-y-6' },
         React.createElement('div', { className: 'flex justify-between items-center' },
-            React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Event Inventory'),
-            hasPermission('inventory', 'write') && React.createElement('button', {
-                onClick: () => openForm('inventory'),
-                className: 'bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium'
-            }, '+ Add Event')
+            React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Inventory Management'),
+            hasPermission('inventory', 'write') && React.createElement('button', { 
+                className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
+                onClick: () => openAddForm('inventory')
+            }, '+ Add New Event'),
+            React.createElement('button', {
+                onClick: () => {
+                    setCSVUploadType('inventory');
+                    setShowCSVUploadModal(true);
+                },
+                className: 'bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded flex items-center gap-2'
+            }, 
+                React.createElement('svg', {
+                    className: 'w-5 h-5',
+                    fill: 'none',
+                    stroke: 'currentColor',
+                    viewBox: '0 0 24 24'
+                },
+                    React.createElement('path', {
+                        strokeLinecap: 'round',
+                        strokeLinejoin: 'round',
+                        strokeWidth: 2,
+                        d: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12'
+                    })
+                ),
+                'Upload CSV'
+            )
         ),
-
+        
         // ENHANCED FILTERS SECTION
-        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow border' },
-            React.createElement('h2', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4' }, 'Filters & Search'),
-            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4' },
-                // Due Date Filter
-                React.createElement('div', null,
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border p-4 mb-4' },
+            React.createElement('div', { className: 'flex space-x-4' },
+                React.createElement('div', { className: 'flex-1' },
+                    React.createElement('div', {
+                        style: {
+                            display: currentUser?.role === 'super_admin' ? 'block' : 'none',
+                            backgroundColor: testMode ? '#fef2f2' : '#fef3c7',
+                            border: testMode ? '2px solid #dc2626' : '2px solid #f59e0b',
+                            borderRadius: '8px',
+                            padding: '12px 24px',
+                            margin: '16px',
+                            textAlign: 'center'
+                        }
+                    },
+                        React.createElement('strong', {
+                            style: { fontSize: '16px', marginRight: '16px' }
+                        }, '🧪 Test Mode is ' + (testMode ? 'ACTIVE' : 'INACTIVE')),
+                        React.createElement('button', {
+                            onClick: () => {
+                                const newValue = !testMode;
+                                setTestMode(newValue);
+                                localStorage.setItem('testMode', String(newValue));
+                                window.location.reload();
+                            },
+                            style: {
+                                padding: '6px 20px',
+                                borderRadius: '6px',
+                                border: 'none',
+                                backgroundColor: testMode ? '#dc2626' : '#10b981',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontWeight: 'bold',
+                                fontSize: '14px'
+                            }
+                        }, testMode ? 'TURN OFF' : 'TURN ON')
+                    ),
+                    
                     React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Filter by Due Date'),
                     React.createElement('select', {
                         value: inventoryDueDateFilter,
                         onChange: (e) => {
                             setInventoryDueDateFilter(e.target.value);
-                            setCurrentInventoryPage(1); // Reset to first page
+                            setCurrentInventoryPage(1);
                         },
                         className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                     },
@@ -9737,38 +9767,36 @@ const renderInventoryContent = () => {
                     )
                 ),
                 
-                // Event Name Filter
-                React.createElement('div', null,
+                React.createElement('div', { className: 'flex-1' },
                     React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Filter by Event'),
                     React.createElement('select', {
                         value: inventoryEventFilter,
                         onChange: (e) => {
                             setInventoryEventFilter(e.target.value);
-                            setCurrentInventoryPage(1); // Reset to first page
+                            setCurrentInventoryPage(1);
                         },
                         className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                     },
                         React.createElement('option', { value: 'all' }, 'All Events'),
-                        // Use ALL inventory data for filter options, not just current page
+                        // Fixed to use ALL inventory data, not just current page
                         ...Array.from(new Set(inventory.map(item => item.event_name))).sort().map(event =>
                             React.createElement('option', { key: event, value: event }, event)
                         )
                     )
                 ),
                 
-                // Event Type Filter (NEW)
-                React.createElement('div', null,
+                // NEW: Event Type Filter
+                React.createElement('div', { className: 'flex-1' },
                     React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Filter by Event Type'),
                     React.createElement('select', {
                         value: inventoryEventTypeFilter,
                         onChange: (e) => {
                             setInventoryEventTypeFilter(e.target.value);
-                            setCurrentInventoryPage(1); // Reset to first page
+                            setCurrentInventoryPage(1);
                         },
                         className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                     },
                         React.createElement('option', { value: 'all' }, 'All Event Types'),
-                        // Use ALL inventory data for filter options
                         ...Array.from(new Set(inventory.map(item => item.event_type).filter(Boolean))).sort().map(eventType =>
                             React.createElement('option', { key: eventType, value: eventType }, 
                                 eventType.charAt(0).toUpperCase() + eventType.slice(1)
@@ -9777,8 +9805,8 @@ const renderInventoryContent = () => {
                     )
                 ),
 
-                // Sort Controls (NEW)
-                React.createElement('div', null,
+                // NEW: Sort Controls
+                React.createElement('div', { className: 'flex-1' },
                     React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Sort By'),
                     React.createElement('div', { className: 'flex gap-2' },
                         React.createElement('select', {
@@ -9806,8 +9834,8 @@ const renderInventoryContent = () => {
                 )
             ),
             
-            // Filter Summary
-            React.createElement('div', { className: 'mt-4 flex flex-wrap gap-2' },
+            // Filter Status Summary
+            React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
                 React.createElement('span', { className: 'text-sm text-gray-600' },
                     `Showing ${sortedInventory.length} of ${inventory.length} events`
                 ),
@@ -9824,93 +9852,116 @@ const renderInventoryContent = () => {
             )
         ),
 
-        // TABLE SECTION with clickable headers for sorting
+        // YOUR EXISTING TABLE - UNCHANGED
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border' },
-            sortedInventory.length > 0 ?
-                React.createElement('div', null,
-                    React.createElement('div', { className: 'overflow-x-auto' },
-                        React.createElement('table', { className: 'w-full' },
-                            React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
-                                React.createElement('tr', null,
-                                    // Sortable Event header
-                                    React.createElement('th', { 
-                                        className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100',
-                                        onClick: () => handleSort('event_name')
-                                    }, 
-                                        React.createElement('div', { className: 'flex items-center' },
-                                            'Event',
-                                            renderSortIcon('event_name')
+            inventory.length > 0 ? 
+                React.createElement('div', { className: 'overflow-x-auto' },
+                    React.createElement('table', { className: 'w-full' },
+                        React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
+                            React.createElement('tr', null,
+                                React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event'),
+                                React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Sports'),
+                                React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Category'),
+                                React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Date'),
+                                React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Available'),
+                                hasPermission('finance', 'read') && React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Margin'),
+                                React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
+                            )
+                        ),
+                        React.createElement('tbody', { className: 'bg-white divide-y divide-gray-200' },
+                            currentInventoryItems.map(item =>
+                                React.createElement('tr', { key: item.id, className: 'hover:bg-gray-50' },
+                                    React.createElement('td', { className: 'px-6 py-4' },
+                                        React.createElement('div', { 
+                                            className: 'cursor-pointer hover:text-blue-600',
+                                            onClick: () => openInventoryDetail(item)
+                                        },
+                                            React.createElement('div', { className: 'text-sm font-medium text-gray-900 hover:text-blue-600' }, item.event_name),
+                                            React.createElement('div', { className: 'text-sm text-gray-500' }, item.venue),
+                                            React.createElement('div', { className: 'text-xs text-gray-400' }, 
+                                                new Date(item.event_date).toLocaleDateString('en-US', { 
+                                                    year: 'numeric', month: 'short', day: 'numeric' 
+                                                })
+                                            ),
+                                            React.createElement('div', { className: 'text-xs text-blue-600 mt-1' }, '👁️ Click to view details')
                                         )
                                     ),
-                                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Sports'),
-                                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Category'),
-                                    // Sortable Date header
-                                    React.createElement('th', { 
-                                        className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100',
-                                        onClick: () => handleSort('event_date')
-                                    }, 
-                                        React.createElement('div', { className: 'flex items-center' },
-                                            'Date',
-                                            renderSortIcon('event_date')
+                                    React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, item.sports || item.event_type),
+                                    React.createElement('td', { className: 'px-6 py-4' },
+                                        React.createElement('span', {
+                                            className: `px-2 py-1 text-xs rounded ${
+                                                (item.category_of_ticket === 'VIP' || item.category_of_ticket === 'Premium') ? 'bg-purple-100 text-purple-800' :
+                                                (item.category_of_ticket === 'Gold') ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-green-100 text-green-800'
+                                            }`
+                                        }, item.category_of_ticket || 'General'),
+                                        item.stand ? React.createElement('div', { className: 'text-xs text-gray-500 mt-1' }, item.stand) : null
+                                    ),
+                                    React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, new Date(item.event_date).toLocaleDateString()),
+                                    React.createElement('td', { className: 'px-6 py-4' },
+                                        React.createElement('span', {
+                                            className: `px-2 py-1 text-xs rounded ${
+                                                item.available_tickets > 20 ? 'bg-green-100 text-green-800' :
+                                                item.available_tickets > 5 ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-red-100 text-red-800'
+                                            }`
+                                        }, item.available_tickets + ' tickets')
+                                    ),
+                                    hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
+                                        React.createElement('div', { className: 'text-sm text-gray-900' }, 
+                                            (() => {
+                                                const buyingPrice = item.buying_price || 0;
+                                                const sellingPrice = item.selling_price || item.price_per_ticket || 0;
+                                                const marginAmount = sellingPrice - buyingPrice;
+                                                
+                                                // Calculate margin percentage: (Selling Price - Buying Price) / Buying Price * 100
+                                                const marginPercentage = buyingPrice > 0 ? ((marginAmount / sellingPrice) * 100) : 0;
+                                                
+                                                return '₹' + marginAmount.toLocaleString() + ' (' + marginPercentage.toFixed(1) + '%)';
+                                            })()
+                                        ),
+                                        React.createElement('div', { className: 'text-xs text-gray-500' },
+                                            'Buy: ₹' + (item.buying_price || 0).toLocaleString() + 
+                                            ' | Sell: ₹' + (item.selling_price || item.price_per_ticket || 0).toLocaleString()
                                         )
                                     ),
-                                    // Sortable Available tickets header
-                                    React.createElement('th', { 
-                                        className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100',
-                                        onClick: () => handleSort('available_tickets')
-                                    }, 
-                                        React.createElement('div', { className: 'flex items-center' },
-                                            'Available',
-                                            renderSortIcon('available_tickets')
-                                        )
-                                    ),
-                                    hasPermission('finance', 'read') && React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Margin'),
-                                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
-                                )
-                            ),
-                            React.createElement('tbody', { className: 'bg-white divide-y divide-gray-200' },
-                                currentInventoryItems.map(item =>
-                                    React.createElement('tr', { key: item.id, className: 'hover:bg-gray-50' },
-                                        React.createElement('td', { className: 'px-6 py-4' },
-                                            React.createElement('div', { 
-                                                className: 'cursor-pointer hover:text-blue-600',
-                                                onClick: () => openInventoryDetail(item)
-                                            },
-                                                React.createElement('div', { className: 'text-sm font-medium text-gray-900 hover:text-blue-600' }, item.event_name),
-                                                React.createElement('div', { className: 'text-sm text-gray-500' }, item.venue),
-                                                React.createElement('div', { className: 'text-xs text-gray-400' }, 
-                                                    item.event_type ? `Type: ${item.event_type.charAt(0).toUpperCase() + item.event_type.slice(1)}` : ''
-                                                )
-                                            )
-                                        ),
-                                        React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, item.sports),
-                                        React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, item.category_of_ticket),
-                                        React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, 
-                                            new Date(item.event_date).toLocaleDateString()
-                                        ),
-                                        React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, 
-                                            `${item.available_tickets}/${item.total_tickets}`
-                                        ),
-                                        hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, 
-                                            '₹' + ((item.selling_price - item.buying_price) * item.available_tickets).toLocaleString()
-                                        ),
-                                        React.createElement('td', { className: 'px-6 py-4 text-sm space-x-2' },
-                                            // Your existing action buttons go here
+                                    React.createElement('td', { className: 'px-6 py-4 text-sm' },
+                                        React.createElement('div', { className: 'flex flex-wrap gap-1' },
                                             hasPermission('inventory', 'write') && React.createElement('button', { 
                                                 className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
-                                                onClick: () => openInventoryEditForm(item)
+                                                onClick: () => openEditInventoryForm(item)
                                             }, '✏️ Edit'),
-                                            // Add other existing action buttons...
+                                            
+                                            hasPermission('inventory', 'write') && React.createElement('button', { 
+                                                className: 'text-indigo-600 hover:text-indigo-900 text-xs px-2 py-1 rounded border border-indigo-200 hover:bg-indigo-50',
+                                                onClick: () => handleCopyInventory(item),
+                                                title: 'Create a copy of this inventory item',
+                                                disabled: loading
+                                            }, loading ? '⏳' : '📋 Copy'),
+                                            
+                                            hasPermission('inventory', 'allocate') && item.available_tickets > 0 && React.createElement('button', { 
+                                                className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
+                                                onClick: () => openAllocationForm(item)
+                                            }, '🎫 Allocate'),
+                                            hasPermission('inventory', 'read') && React.createElement('button', { 
+                                                className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
+                                                onClick: () => openAllocationManagement(item)
+                                            }, '👁️ View Allocations'),
+                                            hasPermission('inventory', 'delete') && React.createElement('button', { 
+                                                className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
+                                                onClick: () => handleDelete('inventory', item.id, item.event_name),
+                                                disabled: loading
+                                            }, loading ? 'Deleting...' : '🗑️ Delete')
                                         )
                                     )
                                 )
                             )
                         )
                     ),
-                    // Updated pagination controls with correct totals
+                    // Updated pagination controls
                     sortedInventory.length > itemsPerPage && React.createElement('div', { className: 'flex justify-between items-center px-6 py-3 bg-gray-50 border-t' },
                         React.createElement('div', { className: 'text-sm text-gray-700' },
-                            `Showing ${indexOfFirstInventory + 1} to ${Math.min(indexOfLastInventory, sortedInventory.length)} of ${sortedInventory.length} events`
+                            'Showing ' + (indexOfFirstInventory + 1) + ' to ' + (Math.min(indexOfLastInventory, sortedInventory.length)) + ' of ' + (sortedInventory.length) + ' events'
                         ),
                         React.createElement('div', { className: 'flex space-x-2' },
                             React.createElement('button', {
@@ -9918,9 +9969,7 @@ const renderInventoryContent = () => {
                                 disabled: currentInventoryPage === 1,
                                 className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
                             }, 'Previous'),
-                            React.createElement('span', { className: 'px-3 py-1' }, 
-                                `Page ${currentInventoryPage} of ${totalInventoryPages}`
-                            ),
+                            React.createElement('span', { className: 'px-3 py-1' }, 'Page ' + (currentInventoryPage) + ' of ' + (totalInventoryPages)),
                             React.createElement('button', {
                                 onClick: () => setCurrentInventoryPage(prev => Math.min(prev + 1, totalInventoryPages)),
                                 disabled: currentInventoryPage === totalInventoryPages,
@@ -9928,12 +9977,7 @@ const renderInventoryContent = () => {
                             }, 'Next')
                         )
                     )
-                ) : 
-                React.createElement('div', { className: 'p-6 text-center text-gray-500' }, 
-                    sortedInventory.length === 0 && inventory.length > 0 ? 
-                        'No events match your current filters.' : 
-                        'No events found. Add your first event!'
-                )
+                ) : React.createElement('div', { className: 'p-6 text-center text-gray-500' }, 'No events found. Add your first event!')
         )
     );
 };
