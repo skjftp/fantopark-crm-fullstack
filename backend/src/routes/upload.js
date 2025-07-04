@@ -336,19 +336,20 @@ router.get('/sample/:type', authenticateToken, async (req, res) => {
     const { type } = req.params;
     
     if (type === 'leads') {
-      // Fetch active sales users
+      // Fetch active sales users for dropdown
       const users = await User.find({ status: 'active' });
       const salesUsers = users.filter(u => ['sales_executive', 'sales_manager'].includes(u.role));
       const validAssignees = salesUsers.map(u => u.email);
       
-      // Create workbook
+      // Create workbook with XLSX
+      const XLSX = require('xlsx');
       const wb = XLSX.utils.book_new();
       
-      // Sample data
+      // Sample data with proper structure
       const sampleData = [
         {
           'Name': 'John Doe',
-          'Email': 'john@example.com',
+          'Email': 'john@example.com', 
           'Phone': '+919876543210',
           'Company': 'ABC Corp',
           'Business Type': 'B2B',
@@ -372,7 +373,7 @@ router.get('/sample/:type', authenticateToken, async (req, res) => {
         {
           'Name': 'Jane Smith',
           'Email': 'jane@example.com',
-          'Phone': '+919876543211',
+          'Phone': '+919876543211', 
           'Company': 'XYZ Ltd',
           'Business Type': 'B2C',
           'Source': 'WhatsApp',
@@ -397,44 +398,44 @@ router.get('/sample/:type', authenticateToken, async (req, res) => {
       // Create worksheet
       const ws = XLSX.utils.json_to_sheet(sampleData);
       
-      // Add data validation for dropdown columns
+      // CRITICAL: Add data validation for dropdown columns
       const validations = {
-        'E3:E1000': { // Business Type column
+        'E3:E1000': { // Business Type column (E)
           type: 'list',
           allowBlank: false,
           formula1: '"B2B,B2C"'
         },
-        'F3:F1000': { // Source column
+        'F3:F1000': { // Source column (F)  
           type: 'list',
           allowBlank: false,
           formula1: '"Facebook,WhatsApp,Instagram,LinkedIn,Referral,Website,Other"'
         },
-        'J3:J1000': { // Country of Residence
-          type: 'list',
+        'J3:J1000': { // Country of Residence (J)
+          type: 'list', 
           allowBlank: false,
           formula1: '"India,USA,UK,Canada,Australia,UAE,Singapore,Other"'
         },
-        'M3:M1000': { // Has Valid Passport
+        'M3:M1000': { // Has Valid Passport (M)
           type: 'list',
-          allowBlank: false,
+          allowBlank: false, 
           formula1: '"Yes,No,Not Sure"'
         },
-        'N3:N1000': { // Visa Available
+        'N3:N1000': { // Visa Available (N)
           type: 'list',
           allowBlank: false,
           formula1: '"Required,Not Required,Processing,Not Sure"'
         },
-        'O3:O1000': { // Attended Sporting Event Before
+        'O3:O1000': { // Attended Sporting Event Before (O)
           type: 'list',
           allowBlank: false,
           formula1: '"Yes,No,Not Sure"'
         },
-        'P3:P1000': { // Annual Income Bracket
+        'P3:P1000': { // Annual Income Bracket (P)
           type: 'list',
           allowBlank: false,
           formula1: '"₹5-15 Lakhs,₹15-25 Lakhs,₹25-50 Lakhs,₹50 Lakhs - ₹1 Crore,₹1+ Crore"'
         },
-        'R3:R1000': { // Status
+        'R3:R1000': { // Status (R)
           type: 'list',
           allowBlank: false,
           formula1: '"unassigned,assigned,contacted,qualified,converted,dropped"'
@@ -443,17 +444,17 @@ router.get('/sample/:type', authenticateToken, async (req, res) => {
       
       // Add validation for Assigned To if we have users
       if (validAssignees.length > 0) {
-        validations['S3:S1000'] = {
+        validations['S3:S1000'] = { // Assigned To (S)
           type: 'list',
           allowBlank: true,
           formula1: `"${validAssignees.join(',')}"`
         };
       }
       
-      // Apply data validation
+      // APPLY the data validation - this is crucial!
       ws['!dataValidation'] = validations;
       
-      // Set column widths
+      // Set column widths for better display
       ws['!cols'] = [
         { width: 15 }, // Name
         { width: 25 }, // Email
@@ -478,17 +479,20 @@ router.get('/sample/:type', authenticateToken, async (req, res) => {
         { width: 30 }  // Notes
       ];
       
+      // Add worksheet to workbook
       XLSX.utils.book_append_sheet(wb, ws, 'Leads');
       
-      // Generate buffer
+      // Generate Excel buffer
       const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
       
+      // Send Excel file with proper headers
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename=sample_leads_with_validation.xlsx');
       res.send(buffer);
 
     } else if (type === 'inventory') {
-      // Create inventory Excel with validation
+      // Similar Excel generation for inventory...
+      const XLSX = require('xlsx');
       const wb = XLSX.utils.book_new();
       
       const sampleData = [
@@ -498,47 +502,27 @@ router.get('/sample/:type', authenticateToken, async (req, res) => {
           'Event Type': 'cricket',
           'Sports': 'Cricket',
           'Venue': 'Wankhede Stadium',
-          'Day of Match': 'Match Day',
           'Category of Ticket': 'VIP',
-          'Stand': 'Upper Tier',
           'Total Tickets': 100,
-          'Available Tickets': 100,
-          'MRP of Ticket': 20000,
-          'Buying Price': 15000,
-          'Selling Price': 18000,
-          'Inclusions': 'Food and Beverage',
-          'Booking Person': 'John Doe',
-          'Procurement Type': 'pre_inventory',
-          'Payment Status': 'pending',
-          'Supplier Name': 'BookMyShow',
-          'Supplier Invoice': 'INV-001',
-          'Total Purchase Amount': 1500000,
-          'Amount Paid': 500000,
-          'Payment Due Date': '2025-04-15',
-          'Notes': 'Premium seats with hospitality'
+          'Payment Status': 'pending'
         }
       ];
       
       const ws = XLSX.utils.json_to_sheet(sampleData);
       
-      // Add data validation for inventory
+      // Add validation for inventory fields
       const validations = {
         'C3:C1000': { // Event Type
           type: 'list',
           allowBlank: false,
-          formula1: '"cricket,football,tennis,basketball,hockey,formula1,other"'
+          formula1: '"cricket,football,tennis,basketball,hockey,other"'
         },
         'D3:D1000': { // Sports
-          type: 'list',
+          type: 'list', 
           allowBlank: false,
-          formula1: '"Cricket,Football,Tennis,Basketball,Hockey,Formula 1,Other"'
+          formula1: '"Cricket,Football,Tennis,Basketball,Hockey,Other"'
         },
-        'P3:P1000': { // Procurement Type
-          type: 'list',
-          allowBlank: false,
-          formula1: '"pre_inventory,on_demand"'
-        },
-        'Q3:Q1000': { // Payment Status
+        'H3:H1000': { // Payment Status
           type: 'list',
           allowBlank: false,
           formula1: '"pending,partial,paid,overdue"'
@@ -546,10 +530,6 @@ router.get('/sample/:type', authenticateToken, async (req, res) => {
       };
       
       ws['!dataValidation'] = validations;
-      
-      // Set column widths for inventory
-      ws['!cols'] = Array(23).fill({ width: 15 });
-      
       XLSX.utils.book_append_sheet(wb, ws, 'Inventory');
       
       const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
@@ -562,6 +542,7 @@ router.get('/sample/:type', authenticateToken, async (req, res) => {
       res.status(400).json({ error: 'Invalid type. Use "leads" or "inventory"' });
     }
   } catch (error) {
+    console.error('Sample generation error:', error);
     res.status(500).json({ error: error.message });
   }
 });
