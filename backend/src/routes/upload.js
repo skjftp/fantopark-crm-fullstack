@@ -49,39 +49,95 @@ const csvUpload = multer({
   }
 });
 
-// FIXED: Helper function to properly parse dates from Excel/CSV
+// ENHANCED: Helper function to properly parse dates from Excel/CSV
 const parseDate = (dateValue) => {
-  if (!dateValue) return new Date().toISOString();
+  console.log('🗓️ Parsing date value:', dateValue, 'Type:', typeof dateValue);
+  
+  if (!dateValue || dateValue === '' || dateValue === null || dateValue === undefined) {
+    console.log('⚠️ No date value provided, using current date');
+    return new Date().toISOString();
+  }
   
   // If it's already a Date object, convert to ISO string
   if (dateValue instanceof Date) {
+    console.log('✅ Date object found, converting to ISO');
     return dateValue.toISOString();
   }
   
   // If it's a string, try to parse it
   if (typeof dateValue === 'string') {
-    // Handle YYYY-MM-DD format
-    if (dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      return new Date(dateValue + 'T00:00:00Z').toISOString();
+    const trimmedValue = dateValue.trim();
+    
+    if (trimmedValue === '') {
+      console.log('⚠️ Empty string date, using current date');
+      return new Date().toISOString();
     }
     
-    // Handle other date formats
-    const parsed = new Date(dateValue);
+    // Handle YYYY-MM-DD format (most common CSV format)
+    if (trimmedValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      console.log('✅ YYYY-MM-DD format detected');
+      return new Date(trimmedValue + 'T00:00:00Z').toISOString();
+    }
+    
+    // Handle DD/MM/YYYY format
+    if (trimmedValue.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+      console.log('✅ DD/MM/YYYY format detected');
+      const [day, month, year] = trimmedValue.split('/');
+      const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00Z`;
+      console.log('✅ Converted to:', formattedDate);
+      return new Date(formattedDate).toISOString();
+    }
+    
+    // Handle MM/DD/YYYY format (American style)
+    if (trimmedValue.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/) && trimmedValue.indexOf('/') !== -1) {
+      console.log('✅ Attempting MM/DD/YYYY format');
+      const [month, day, year] = trimmedValue.split('/');
+      const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00Z`;
+      console.log('✅ Converted to:', formattedDate);
+      return new Date(formattedDate).toISOString();
+    }
+    
+    // Handle DD-MM-YYYY format
+    if (trimmedValue.match(/^\d{1,2}-\d{1,2}-\d{4}$/)) {
+      console.log('✅ DD-MM-YYYY format detected');
+      const [day, month, year] = trimmedValue.split('-');
+      const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00Z`;
+      console.log('✅ Converted to:', formattedDate);
+      return new Date(formattedDate).toISOString();
+    }
+    
+    // Handle ISO format with time
+    if (trimmedValue.includes('T') || trimmedValue.includes('Z')) {
+      console.log('✅ ISO format detected');
+      const parsed = new Date(trimmedValue);
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toISOString();
+      }
+    }
+    
+    // Try general Date parsing as fallback
+    const parsed = new Date(trimmedValue);
     if (!isNaN(parsed.getTime())) {
+      console.log('✅ Successfully parsed with Date constructor');
       return parsed.toISOString();
     }
+    
+    console.log('⚠️ String date parsing failed for:', trimmedValue, 'using current date');
   }
   
   // If it's a number (Excel serial date), convert it
-  if (typeof dateValue === 'number') {
+  if (typeof dateValue === 'number' && dateValue > 0) {
+    console.log('✅ Excel serial number detected:', dateValue);
     // Excel date serial number (days since 1900-01-01)
     const excelEpoch = new Date(1900, 0, 1);
     const msPerDay = 24 * 60 * 60 * 1000;
     const date = new Date(excelEpoch.getTime() + (dateValue - 2) * msPerDay);
+    console.log('✅ Excel date converted to:', date.toISOString());
     return date.toISOString();
   }
   
   // Default to current date if parsing fails
+  console.log('⚠️ All parsing methods failed, using current date');
   return new Date().toISOString();
 };
 
@@ -90,33 +146,69 @@ const parseUploadedFile = (fileBuffer, filename) => {
   return new Promise((resolve, reject) => {
     try {
       if (filename.endsWith('.csv')) {
-        // Parse CSV
+        console.log('📄 Parsing CSV file...');
+        // Parse CSV with enhanced options
         const results = [];
         const stream = Readable.from(fileBuffer.toString());
+        
         stream
-          .pipe(csv())
-          .on('data', (row) => results.push(row))
-          .on('end', () => resolve(results))
-          .on('error', reject);
+          .pipe(csv({
+            skipEmptyLines: true,
+            headers: true,
+            // Remove transform that might be causing issues
+          }))
+          .on('data', (row) => {
+            // Log date fields for debugging
+            const dateFields = ['Date of Enquiry', 'date_of_enquiry'];
+            dateFields.forEach(field => {
+              if (row[field]) {
+                console.log(`🔍 Found date field "${field}":`, row[field], typeof row[field]);
+              }
+            });
+            results.push(row);
+          })
+          .on('end', () => {
+            console.log('✅ CSV parsing completed, rows:', results.length);
+            if (results.length > 0) {
+              console.log('📋 First row sample:', Object.keys(results[0]));
+            }
+            resolve(results);
+          })
+          .on('error', (error) => {
+            console.error('❌ CSV parsing error:', error);
+            reject(error);
+          });
+          
       } else if (filename.endsWith('.xlsx') || filename.endsWith('.xls')) {
+        console.log('📊 Parsing Excel file...');
         // Parse Excel with proper date handling
         const workbook = XLSX.read(fileBuffer, { 
           type: 'buffer',
           cellDates: true,
           cellNF: true,
-          cellText: false
-        });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-          raw: false,
+          cellText: false,
           dateNF: 'yyyy-mm-dd'
         });
+        
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+          raw: false,
+          dateNF: 'yyyy-mm-dd',
+          defval: ''
+        });
+        
+        console.log('✅ Excel parsing completed, rows:', jsonData.length);
+        if (jsonData.length > 0) {
+          console.log('📋 First row sample:', Object.keys(jsonData[0]));
+        }
         resolve(jsonData);
       } else {
         reject(new Error('Unsupported file format'));
       }
     } catch (error) {
+      console.error('❌ File parsing error:', error);
       reject(error);
     }
   });
@@ -153,7 +245,7 @@ router.post('/', authenticateToken, upload.single('file'), async (req, res) => {
   }
 });
 
-// POST bulk upload leads from CSV/Excel - ENHANCED VERSION WITH DATE FIX AND BULK ASSIGNMENT
+// POST bulk upload leads from CSV/Excel - ENHANCED VERSION WITH IMPROVED DATE HANDLING
 router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -176,7 +268,22 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
         // Get the assigned_to value and handle empty/invalid assignments
         const assignedToValue = row.assigned_to || row['Assigned To'] || '';
         
-        // Map columns to lead fields with FIXED DATE HANDLING
+        // ENHANCED: Get date value with multiple possible column names
+        const rawDateValue = row.date_of_enquiry || 
+                            row['Date of Enquiry'] || 
+                            row['date_of_enquiry'] || 
+                            row['Date of enquiry'] ||
+                            row['DATE OF ENQUIRY'] ||
+                            row['enquiry_date'] ||
+                            row['Enquiry Date'];
+
+        console.log(`🔍 Processing lead ${index + 1}: ${row.name || row.Name}`);
+        console.log(`📅 Raw date value found:`, rawDateValue, `(Type: ${typeof rawDateValue})`);
+        
+        const parsedDate = parseDate(rawDateValue);
+        console.log(`✅ Final parsed date:`, parsedDate);
+        
+        // Map columns to lead fields with ENHANCED DATE HANDLING
         const leadData = {
           name: row.name || row.Name || '',
           email: row.email || row.Email || '',
@@ -185,8 +292,8 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
           business_type: row.business_type || row['Business Type'] || 'B2C',
           source: row.source || row.Source || '',
           
-          // FIXED: Proper date handling using the parseDate function
-          date_of_enquiry: parseDate(row.date_of_enquiry || row['Date of Enquiry']),
+          // ENHANCED: Use the parsed date
+          date_of_enquiry: parsedDate,
           
           first_touch_base_done_by: row.first_touch_base_done_by || row['First Touch Base Done By'] || '',
           city_of_residence: row.city_of_residence || row['City of Residence'] || '',
@@ -206,6 +313,12 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
           last_quoted_price: parseFloat(row.last_quoted_price || row['Last Quoted Price'] || '0'),
           notes: row.notes || row.Notes || ''
         };
+
+        console.log(`💾 Final leadData for ${leadData.name}:`, {
+          name: leadData.name,
+          email: leadData.email,
+          date_of_enquiry: leadData.date_of_enquiry
+        });
 
         // Validate required fields
         if (!leadData.name || !leadData.email || !leadData.phone) {
@@ -232,6 +345,8 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
         const lead = new Lead(leadData);
         const savedLead = await lead.save();
         
+        console.log(`✅ Successfully saved lead: ${leadData.name} with date: ${leadData.date_of_enquiry}`);
+        
         // Store for bulk assignment UI
         uploadedLeads.push({
           id: savedLead.id,
@@ -248,6 +363,7 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
         
         successCount++;
       } catch (error) {
+        console.error(`❌ Error processing row ${index + 2}:`, error);
         errors.push({
           row: index + 2,
           error: error.message,
@@ -259,6 +375,8 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
 
     // Store upload session for bulk assignment
     const uploadSessionId = `upload_${Date.now()}_${req.user.email}`;
+
+    console.log(`📊 Upload completed: ${successCount} successful, ${errorCount} failed`);
 
     res.json({
       success: true,
@@ -296,11 +414,11 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
 
     for (const [index, row] of results.entries()) {
       try {
-        // DIRECT field mapping
+        // DIRECT field mapping with date parsing
         const inventoryData = {
           // Basic Event Information
           event_name: row.event_name || row['Event Name'] || '',
-          event_date: row.event_date || row['Event Date'] || '',
+          event_date: parseDate(row.event_date || row['Event Date']),
           event_type: row.event_type || row['Event Type'] || '',
           sports: row.sports || row.Sports || '',
           venue: row.venue || row.Venue || '',
@@ -323,14 +441,14 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
           procurement_type: row.procurement_type || row['Procurement Type'] || 'pre_inventory',
           notes: row.notes || row['Notes'] || '',
           
-          // PAYMENT INFORMATION
+          // PAYMENT INFORMATION with date parsing
           paymentStatus: row.paymentStatus || row['Payment Status'] || 'pending',
           supplierName: row.supplierName || row['Supplier Name'] || '',
           supplierInvoice: row.supplierInvoice || row['Supplier Invoice'] || '',
           purchasePrice: parseFloat(row.purchasePrice || row['Purchase Price'] || '0'),
           totalPurchaseAmount: parseFloat(row.totalPurchaseAmount || row['Total Purchase Amount'] || '0'),
           amountPaid: parseFloat(row.amountPaid || row['Amount Paid'] || '0'),
-          paymentDueDate: row.paymentDueDate || row['Payment Due Date'] || '',
+          paymentDueDate: parseDate(row.paymentDueDate || row['Payment Due Date']),
           
           // System fields
           created_date: new Date().toISOString(),
@@ -404,7 +522,92 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
   }
 });
 
-// This creates a proper Excel file with working dropdown validation
+// GET endpoint to generate sample CSV with dropdown validation
+router.get('/sample/:type', authenticateToken, async (req, res) => {
+  try {
+    const { type } = req.params;
+    
+    if (type === 'leads') {
+      // Fetch all users for assignment dropdown validation
+      const users = await User.find({ status: 'active' });
+      const salesUsers = users.filter(u => ['sales_executive', 'sales_manager', 'supply_executive', 'supply_sales_service_manager'].includes(u.role));
+      const validAssignees = salesUsers.map(u => u.email).join('|'); // For Excel validation
+      
+      // Define dropdown options
+      const dropdownValues = {
+        business_type: 'B2B|B2C',
+        source: 'Facebook|WhatsApp|Instagram|LinkedIn|Referral|Website|Email Campaign|Cold Call|Exhibition|Other',
+        country_of_residence: 'India|USA|UK|Canada|Australia|UAE|Singapore|Germany|France|Italy|Spain|Netherlands|Switzerland|Japan|South Korea|Other',
+        has_valid_passport: 'Yes|No|Not Sure',
+        visa_available: 'Required|Not Required|Processing|In Process|Not Sure',
+        attended_sporting_event_before: 'Yes|No|Not Sure',
+        annual_income_bracket: 'Below ₹5 Lakhs|₹5-10 Lakhs|₹10-25 Lakhs|₹25-50 Lakhs|₹50 Lakhs - ₹1 Crore|₹1-2 Crores|₹2-5 Crores|Above ₹5 Crores',
+        status: 'unassigned|assigned|contacted|qualified|converted|dropped|junk',
+        assigned_to: validAssignees || 'user1@company.com|user2@company.com'
+      };
+
+      // Create CSV content with validation notes
+      const csvContent = `Name,Email,Phone,Company,Business Type,Source,Date of Enquiry,First Touch Base Done By,City of Residence,Country of Residence,Lead for Event,Number of People,Has Valid Passport,Visa Available,Attended Sporting Event Before,Annual Income Bracket,Potential Value,Status,Assigned To,Last Quoted Price,Notes
+John Doe,john@example.com,+919876543210,ABC Corp,B2B,Facebook,2025-01-15,Sales Team,Mumbai,India,IPL 2025,2,Yes,Not Required,No,₹25-50 Lakhs,500000,unassigned,,0,Interested in VIP tickets
+Jane Smith,jane@example.com,+919876543211,XYZ Ltd,B2C,WhatsApp,2025-01-16,Marketing Team,Delhi,India,FIFA World Cup 2026,4,Not Sure,Required,Yes,₹50 Lakhs - ₹1 Crore,1000000,unassigned,,0,Family trip planned
+
+VALIDATION RULES:
+Business Type: ${dropdownValues.business_type}
+Source: ${dropdownValues.source}
+Country of Residence: ${dropdownValues.country_of_residence}
+Has Valid Passport: ${dropdownValues.has_valid_passport}
+Visa Available: ${dropdownValues.visa_available}
+Attended Sporting Event Before: ${dropdownValues.attended_sporting_event_before}
+Annual Income Bracket: ${dropdownValues.annual_income_bracket}
+Status: ${dropdownValues.status}
+Assigned To: ${dropdownValues.assigned_to}
+
+NOTES:
+- Date of Enquiry format: YYYY-MM-DD (e.g., 2025-01-15)
+- Leave Assigned To blank for unassigned leads
+- Assigned To must be a valid email from the active user list
+- Status will auto-update to 'assigned' when Assigned To is provided
+- Number of People must be a positive integer
+- Potential Value and Last Quoted Price must be numeric
+- Phone format: +CountryCode followed by number`;
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=sample_leads_with_validation.csv');
+      res.send(csvContent);
+
+    } else if (type === 'inventory') {
+      const csvContent = `Event Name,Event Date,Event Type,Sports,Venue,Day of Match,Category of Ticket,Stand,Total Tickets,Available Tickets,MRP of Ticket,Buying Price,Selling Price,Inclusions,Booking Person,Procurement Type,Payment Status,Supplier Name,Supplier Invoice,Purchase Price,Total Purchase Amount,Amount Paid,Payment Due Date,Notes
+IPL 2025 Final,2025-05-28,cricket,Cricket,Wankhede Stadium,Not Applicable,VIP,Premium Box,10,10,15000,12000,17700,Food & Beverages,John Doe,pre_inventory,pending,Ticket Master,INV-2025-001,120000,120000,60000,2025-04-15,Premium seats with hospitality
+FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,Premium,Section A,20,20,25000,20000,29500,VIP Access,Jane Smith,pre_inventory,pending,FIFA Official,FIFA-2026-001,400000,400000,200000,2026-03-01,Group stage match
+
+VALIDATION RULES:
+Event Type: cricket|football|tennis|basketball|hockey|other
+Sports: Cricket|Football|Tennis|Basketball|Hockey|Formula 1|Golf|Other
+Procurement Type: pre_inventory|on_demand|partner
+Payment Status: pending|partial|paid
+Day of Match: Not Applicable|Match Day|Day Before|Day After
+
+NOTES:
+- Event Date format: YYYY-MM-DD (e.g., 2025-05-28)
+- Payment Due Date format: YYYY-MM-DD
+- All price fields must be numeric
+- Total Purchase Amount = Buying Price × Total Tickets (if not provided)
+- Available Tickets should not exceed Total Tickets
+- Leave Amount Paid as 0 if no payment made yet`;
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=sample_inventory_with_validation.csv');
+      res.send(csvContent);
+
+    } else {
+      res.status(400).json({ error: 'Invalid type. Use "leads" or "inventory"' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Enhanced Excel sample generation with real validation
 router.get('/leads/sample-excel-with-validation', authenticateToken, async (req, res) => {
   try {
     const XLSX = require('xlsx');
@@ -418,18 +621,16 @@ router.get('/leads/sample-excel-with-validation', authenticateToken, async (req,
       ['B2B', 'Facebook', 'India', 'Yes', 'Required', 'unassigned'],
       ['B2C', 'WhatsApp', 'USA', 'No', 'Not Required', 'assigned'],
       ['', 'Instagram', 'UK', 'Not Sure', 'Processing', 'contacted'],
-      ['', 'LinkedIn', 'Canada', '', 'Not Sure', 'qualified'],
-      ['', 'Referral', 'Australia', '', '', 'converted'],
+      ['', 'LinkedIn', 'Canada', '', 'In Process', 'qualified'],
+      ['', 'Referral', 'Australia', '', 'Not Sure', 'converted'],
       ['', 'Website', 'UAE', '', '', 'dropped'],
-      ['', 'Other', 'Singapore', '', '', 'junk'],
-      ['', 'Email Campaign', 'Germany', '', '', ''],
-      ['', 'Cold Call', 'France', '', '', ''],
-      ['', '', 'Other', '', '', '']
+      ['', 'Email Campaign', 'Singapore', '', '', 'junk'],
+      ['', 'Cold Call', 'Germany', '', '', ''],
+      ['', 'Exhibition', 'France', '', '', ''],
+      ['', 'Other', 'Other', '', '', '']
     ];
     
     const validationWs = XLSX.utils.aoa_to_sheet(validationData);
-    
-    // Set column widths for validation sheet
     validationWs['!cols'] = [
       { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
     ];
@@ -450,8 +651,8 @@ router.get('/leads/sample-excel-with-validation', authenticateToken, async (req,
     const mainData = [
       headers,
       [
-        'INSTRUCTIONS →', '← Click the Lists tab to see all valid options', '← Use the dropdowns in columns E, F, J, M, N, R', '', 
-        '← Select from dropdown', '← Select from dropdown', 'YYYY-MM-DD format', 'Team member name', 'City name',
+        'INSTRUCTIONS →', '← Use dropdowns for highlighted columns', '← Phone with country code', 'Company name', 
+        '← Select from dropdown', '← Select from dropdown', '← Use format: 2025-01-15', 'Team member name', 'City name',
         '← Select from dropdown', 'Event name', 'Number 1-10', '← Select from dropdown', '← Select from dropdown', 'Yes or No',
         'Income range', 'Number value', '← Select from dropdown', 'Team member email', 'Number value', 'Additional notes'
       ],
@@ -459,117 +660,17 @@ router.get('/leads/sample-excel-with-validation', authenticateToken, async (req,
         'John Doe', 'john@example.com', '+919876543210', 'ABC Corp', 
         'B2B', 'Facebook', '2025-01-15', 'Sales Team', 'Mumbai', 
         'India', 'IPL 2025', '2', 'Yes', 'Not Required', 'No', 
-        '₹25-50 Lakhs', '500000', 'unassigned', 'sales@fantopark.com', '0', 'Interested in VIP tickets'
+        '₹25-50 Lakhs', '500000', 'unassigned', '', '0', 'Interested in VIP tickets'
       ],
       [
         'Jane Smith', 'jane@example.com', '+919876543211', 'XYZ Ltd', 
         'B2C', 'WhatsApp', '2025-01-16', 'Marketing Team', 'Delhi', 
         'India', 'FIFA World Cup 2026', '4', 'Not Sure', 'Required', 'Yes', 
-        '₹50 Lakhs - ₹1 Crore', '1000000', 'unassigned', 'sales@fantopark.com', '0', 'Family trip planned'
+        '₹50 Lakhs - ₹1 Crore', '1000000', 'unassigned', '', '0', 'Family trip planned'
       ]
     ];
     
     const mainWs = XLSX.utils.aoa_to_sheet(mainData);
-    
-    // === APPLY VALIDATION USING EXCEL FORMULAS ===
-    // This is the key - we need to write the validation in Excel's XML format
-    
-    // Create validation rules that Excel will recognize
-    const validationRules = {};
-    
-    // Business Type validation (Column E) - starts from row 3 (after header and instruction)
-    for (let row = 3; row <= 1000; row++) {
-      const cellAddress = `E${row}`;
-      validationRules[cellAddress] = {
-        type: 'list',
-        allowBlank: true,
-        formula1: 'Lists!$A$2:$A$3', // B2B, B2C
-        showInputMessage: true,
-        promptTitle: 'Business Type',
-        prompt: 'Select B2B or B2C from the dropdown'
-      };
-    }
-    
-    // Source validation (Column F)
-    for (let row = 3; row <= 1000; row++) {
-      const cellAddress = `F${row}`;
-      validationRules[cellAddress] = {
-        type: 'list',
-        allowBlank: true,
-        formula1: 'Lists!$B$2:$B$10', // All sources
-        showInputMessage: true,
-        promptTitle: 'Lead Source',
-        prompt: 'Select the source of this lead'
-      };
-    }
-    
-    // Country validation (Column J)
-    for (let row = 3; row <= 1000; row++) {
-      const cellAddress = `J${row}`;
-      validationRules[cellAddress] = {
-        type: 'list',
-        allowBlank: true,
-        formula1: 'Lists!$C$2:$C$11', // All countries
-        showInputMessage: true,
-        promptTitle: 'Country',
-        prompt: 'Select country of residence'
-      };
-    }
-    
-    // Passport validation (Column M)
-    for (let row = 3; row <= 1000; row++) {
-      const cellAddress = `M${row}`;
-      validationRules[cellAddress] = {
-        type: 'list',
-        allowBlank: true,
-        formula1: 'Lists!$D$2:$D$4', // Yes, No, Not Sure
-        showInputMessage: true,
-        promptTitle: 'Passport',
-        prompt: 'Does the person have a valid passport?'
-      };
-    }
-    
-    // Visa validation (Column N)
-    for (let row = 3; row <= 1000; row++) {
-      const cellAddress = `N${row}`;
-      validationRules[cellAddress] = {
-        type: 'list',
-        allowBlank: true,
-        formula1: 'Lists!$E$2:$E$5', // Visa options
-        showInputMessage: true,
-        promptTitle: 'Visa',
-        prompt: 'What is the visa status?'
-      };
-    }
-    
-    // Status validation (Column R)
-    for (let row = 3; row <= 1000; row++) {
-      const cellAddress = `R${row}`;
-      validationRules[cellAddress] = {
-        type: 'list',
-        allowBlank: true,
-        formula1: 'Lists!$F$2:$F$7', // Status options
-        showInputMessage: true,
-        promptTitle: 'Status',
-        prompt: 'Select the current status of this lead'
-      };
-    }
-    
-    // Apply all validation rules to the worksheet
-    mainWs['!dataValidation'] = validationRules;
-    
-    // Style the instruction row (row 2)
-    for (let col = 0; col < headers.length; col++) {
-      const cellAddr = XLSX.utils.encode_cell({ r: 1, c: col });
-      if (!mainWs[cellAddr]) continue;
-      
-      // Add cell styling for instructions
-      mainWs[cellAddr].s = {
-        fill: { fgColor: { rgb: 'FFFFCC' } },
-        font: { italic: true, color: { rgb: '666666' }, sz: 9 },
-        alignment: { wrapText: true }
-      };
-    }
     
     // Set column widths
     mainWs['!cols'] = [
@@ -579,12 +680,9 @@ router.get('/leads/sample-excel-with-validation', authenticateToken, async (req,
       { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 30 }
     ];
     
-    // Set the range to include validation rows
-    mainWs['!ref'] = 'A1:U1000';
-    
     XLSX.utils.book_append_sheet(wb, mainWs, 'Leads');
     
-    // Write workbook with specific options for Excel compatibility
+    // Write workbook
     const workbookOut = XLSX.write(wb, {
       type: 'buffer',
       bookType: 'xlsx',
@@ -592,7 +690,7 @@ router.get('/leads/sample-excel-with-validation', authenticateToken, async (req,
     });
     
     // Set headers
-    res.setHeader('Content-Disposition', 'attachment; filename="leads_with_real_validation.xlsx"');
+    res.setHeader('Content-Disposition', 'attachment; filename="leads_with_validation.xlsx"');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Length', workbookOut.length);
     
@@ -601,102 +699,6 @@ router.get('/leads/sample-excel-with-validation', authenticateToken, async (req,
   } catch (error) {
     console.error('Excel validation error:', error);
     res.status(500).json({ error: 'Failed to create Excel with validation: ' + error.message });
-  }
-});
-
-// ALTERNATIVE: Create Excel with clear visual indicators for dropdown columns
-router.get('/leads/sample-excel-visual', authenticateToken, async (req, res) => {
-  try {
-    const XLSX = require('xlsx');
-    
-    const wb = XLSX.utils.book_new();
-    
-    // Create data with clear visual indicators
-    const headers = [
-      'Name', 'Email', 'Phone', 'Company', 
-      '⬇️ Business Type ⬇️', '⬇️ Source ⬇️', 
-      'Date of Enquiry', 'First Touch Base Done By', 'City of Residence', 
-      '⬇️ Country ⬇️', 'Lead for Event', 'Number of People', 
-      '⬇️ Passport ⬇️', '⬇️ Visa ⬇️', 'Attended Event Before', 
-      'Annual Income Bracket', 'Potential Value', '⬇️ Status ⬇️', 
-      'Assigned To', 'Last Quoted Price', 'Notes'
-    ];
-    
-    const validationOptions = [
-      'Valid Options →', 'Standard email format', 'Phone with country code', 'Company name',
-      'B2B | B2C', 'Facebook | WhatsApp | Instagram | LinkedIn | Referral | Website | Other',
-      'YYYY-MM-DD', 'Team member name', 'City name',
-      'India | USA | UK | Canada | Australia | UAE | Singapore | Other',
-      'Event name', '1-10', 'Yes | No | Not Sure', 'Required | Not Required | Processing | Not Sure',
-      'Yes | No', 'Income bracket', 'Numeric value', 
-      'unassigned | assigned | contacted | qualified | converted | dropped | junk',
-      'Team member email', 'Numeric value', 'Free text'
-    ];
-    
-    const sampleData1 = [
-      'John Doe', 'john@example.com', '+919876543210', 'ABC Corp',
-      'B2B', 'Facebook', '2025-01-15', 'Sales Team', 'Mumbai',
-      'India', 'IPL 2025', '2', 'Yes', 'Not Required', 'No',
-      '₹25-50 Lakhs', '500000', 'unassigned', 'sales@fantopark.com', '0', 'Interested in VIP tickets'
-    ];
-    
-    const sampleData2 = [
-      'Jane Smith', 'jane@example.com', '+919876543211', 'XYZ Ltd',
-      'B2C', 'WhatsApp', '2025-01-16', 'Marketing Team', 'Delhi',
-      'India', 'FIFA World Cup 2026', '4', 'Not Sure', 'Required', 'Yes',
-      '₹50 Lakhs - ₹1 Crore', '1000000', 'unassigned', 'sales@fantopark.com', '0', 'Family trip planned'
-    ];
-    
-    const data = [headers, validationOptions, sampleData1, sampleData2];
-    
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    
-    // Style dropdown columns with background color
-    const dropdownColumns = [4, 5, 9, 12, 13, 17]; // E, F, J, M, N, R (0-indexed)
-    
-    dropdownColumns.forEach(col => {
-      for (let row = 0; row < 100; row++) {
-        const cellAddr = XLSX.utils.encode_cell({ r: row, c: col });
-        if (!ws[cellAddr]) {
-          ws[cellAddr] = { t: 's', v: '' };
-        }
-        ws[cellAddr].s = {
-          fill: { fgColor: { rgb: 'E6F3FF' } }, // Light blue background
-          border: {
-            top: { style: 'thin', color: { rgb: '4A90E2' } },
-            bottom: { style: 'thin', color: { rgb: '4A90E2' } },
-            left: { style: 'thin', color: { rgb: '4A90E2' } },
-            right: { style: 'thin', color: { rgb: '4A90E2' } }
-          }
-        };
-      }
-    });
-    
-    // Style the validation options row
-    for (let col = 0; col < headers.length; col++) {
-      const cellAddr = XLSX.utils.encode_cell({ r: 1, c: col });
-      if (!ws[cellAddr]) continue;
-      ws[cellAddr].s = {
-        fill: { fgColor: { rgb: 'FFFFCC' } },
-        font: { italic: true, sz: 9 },
-        alignment: { wrapText: true }
-      };
-    }
-    
-    ws['!cols'] = headers.map(() => ({ wch: 18 }));
-    
-    XLSX.utils.book_append_sheet(wb, ws, 'Leads with Visual Cues');
-    
-    const workbookOut = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    
-    res.setHeader('Content-Disposition', 'attachment; filename="leads_visual_validation.xlsx"');
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    
-    res.send(workbookOut);
-    
-  } catch (error) {
-    console.error('Excel visual error:', error);
-    res.status(500).json({ error: 'Failed to create visual Excel: ' + error.message });
   }
 });
 
