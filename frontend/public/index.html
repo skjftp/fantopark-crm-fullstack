@@ -591,6 +591,27 @@ users: { read: false, write: false, delete: false, manage_roles: false }
 }
 };
 
+const stadiumFormFields = [
+    { name: 'name', label: 'Stadium Name', type: 'text', required: true, placeholder: 'e.g., Wankhede Stadium' },
+    { name: 'city', label: 'City', type: 'text', required: true, placeholder: 'e.g., Mumbai' },
+    { name: 'state', label: 'State/Province', type: 'text', required: false, placeholder: 'e.g., Maharashtra' },
+    { name: 'country', label: 'Country', type: 'select', required: true, options: [
+        'India', 'United States', 'United Kingdom', 'Australia', 'Canada', 'South Africa',
+        'New Zealand', 'West Indies', 'Sri Lanka', 'Bangladesh', 'Pakistan', 'Afghanistan',
+        'Spain', 'Germany', 'France', 'Italy', 'Brazil', 'Argentina', 'Japan', 'China', 'Other'
+    ]},
+    { name: 'sport_type', label: 'Primary Sport', type: 'select', required: true, options: [
+        'Cricket', 'Football', 'Basketball', 'Tennis', 'Hockey', 'Baseball', 
+        'Rugby', 'Athletics', 'Formula 1', 'Multi-Sport', 'Other'
+    ]},
+    { name: 'capacity', label: 'Seating Capacity', type: 'number', required: false, placeholder: 'e.g., 33000' },
+    { name: 'opened_year', label: 'Year Opened', type: 'number', required: false, placeholder: 'e.g., 1974' },
+    { name: 'nickname', label: 'Nickname/Alternative Name', type: 'text', required: false, placeholder: 'e.g., Home of Cricket' },
+    { name: 'website', label: 'Official Website', type: 'url', required: false, placeholder: 'https://...' },
+    { name: 'notes', label: 'Additional Notes', type: 'textarea', required: false, placeholder: 'Famous matches, renovations, etc.' }
+];
+ 
+
 // Helper function to display user names instead of emails
 // Helper function to display user names instead of emails
 const getUserDisplayName = (email, usersList) => {
@@ -1038,6 +1059,14 @@ const [bulkAssignLoading, setBulkAssignLoading] = useState(false);
 const [selectedStatusFilters, setSelectedStatusFilters] = useState([]);
 const [showStatusFilterDropdown, setShowStatusFilterDropdown] = useState(false);
 const statusDropdownRef = React.useRef(null);
+const [stadiums, setStadiums] = useState([]);
+const [showStadiumForm, setShowStadiumForm] = useState(false);
+const [editingStadium, setEditingStadium] = useState(null);
+const [stadiumFormData, setStadiumFormData] = useState({});
+const [stadiumSortField, setStadiumSortField] = useState('name');
+const [stadiumSortDirection, setStadiumSortDirection] = useState('asc');
+const [stadiumSearchQuery, setStadiumSearchQuery] = useState('');
+const [stadiumSportFilter, setStadiumSportFilter] = useState('all');
 
 
 // Edit order function - in App scope
@@ -1161,6 +1190,96 @@ const getStatusFilterDisplayText = () => {
 }; 
 // Helper function to update order status
 
+
+const fetchStadiums = async () => {
+    try {
+        const response = await apiCall('/stadiums');
+        setStadiums(response.data || []);
+        console.log('✅ Loaded', response.data?.length || 0, 'stadiums');
+    } catch (error) {
+        console.error('❌ Error fetching stadiums:', error);
+        setStadiums([]);
+    }
+};
+
+// Stadium form submission
+const handleStadiumFormSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+        const stadiumData = {
+            ...stadiumFormData,
+            created_by: user.name,
+            created_date: new Date().toISOString(),
+            updated_date: new Date().toISOString()
+        };
+
+        if (editingStadium) {
+            // Update existing stadium
+            const response = await apiCall(`/stadiums/${editingStadium.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ ...stadiumData, id: editingStadium.id })
+            });
+            
+            setStadiums(prev => prev.map(stadium => 
+                stadium.id === editingStadium.id ? response.data : stadium
+            ));
+            alert('✅ Stadium updated successfully!');
+        } else {
+            // Create new stadium
+            const response = await apiCall('/stadiums', {
+                method: 'POST',
+                body: JSON.stringify(stadiumData)
+            });
+            
+            setStadiums(prev => [...prev, response.data]);
+            alert('✅ Stadium added successfully!');
+        }
+
+        closeStadiumForm();
+    } catch (error) {
+        console.error('❌ Error saving stadium:', error);
+        alert('❌ Error saving stadium: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
+};
+
+// Delete stadium
+const handleDeleteStadium = async (stadiumId, stadiumName) => {
+    if (!confirm(`Are you sure you want to delete "${stadiumName}"?`)) return;
+
+    try {
+        await apiCall(`/stadiums/${stadiumId}`, { method: 'DELETE' });
+        setStadiums(prev => prev.filter(stadium => stadium.id !== stadiumId));
+        alert('✅ Stadium deleted successfully!');
+    } catch (error) {
+        console.error('❌ Error deleting stadium:', error);
+        alert('❌ Error deleting stadium: ' + error.message);
+    }
+};
+
+// Form helpers
+const openStadiumForm = (stadium = null) => {
+    setEditingStadium(stadium);
+    setStadiumFormData(stadium || {});
+    setShowStadiumForm(true);
+};
+
+const closeStadiumForm = () => {
+    setShowStadiumForm(false);
+    setEditingStadium(null);
+    setStadiumFormData({});
+};
+
+const handleStadiumInputChange = (name, value) => {
+    setStadiumFormData(prev => ({
+        ...prev,
+        [name]: value
+    }));
+};
+ 
 
 const updateOrderStatus = async (orderId, newStatus, rejectionReason = '') => {
 setLoading(true);
@@ -1539,6 +1658,13 @@ if (currentUser && currentUser.role === 'super_admin') {
 console.log('Super admin logged in - test mode toggle should be visible');
 }
 }, [testMode, currentUser]);
+
+React.useEffect(() => {
+if (isLoggedIn) {
+fetchData();
+fetchStadiums(); // Add this line
+}
+}, [isLoggedIn]); 
 
 // Persist authentication state
 useEffect(() => {
@@ -4583,13 +4709,14 @@ disabled: loading
 // Enhanced sidebar with user access control
 const renderSidebar = () => {
 const menuItems = [
-{ id: 'dashboard', label: 'Dashboard', icon: '📊' },
-{ id: 'leads', label: 'Leads', icon: '👥' },
-{ id: 'inventory', label: 'Inventory', icon: '🎫' },
-{ id: 'orders', label: 'Orders', icon: '📋' },
-{ id: 'delivery', label: 'Delivery', icon: '🚚' },
-{ id: 'finance', label: 'Financials', icon: '💰' },
-{ id: 'myactions', label: 'My Actions', icon: '📌' }
+    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'leads', label: 'Leads', icon: '👥' },
+    { id: 'inventory', label: 'Inventory', icon: '🎫' },
+    { id: 'orders', label: 'Orders', icon: '📋' },
+    { id: 'delivery', label: 'Delivery', icon: '🚚' },
+    { id: 'finance', label: 'Financials', icon: '💰' },
+    { id: 'stadiums', label: 'Stadiums', icon: '🏟️' }, // NEW LINE
+    { id: 'myactions', label: 'My Actions', icon: '📌' }
 ];
 
 return React.createElement('div', { className: 'w-64 bg-white shadow-lg' },
@@ -5157,6 +5284,14 @@ return hasPermission('users', 'read') ? renderUserManagement() :
 React.createElement('div', { className: 'text-center py-12' },
     React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view users.')
 );
+
+case 'stadiums':
+return hasPermission('users', 'read') ? renderStadiumsContent() : 
+React.createElement('div', { className: 'text-center py-12' },
+    React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view users.')
+);
+  
+  
 case 'myactions':
 return renderMyActionsContent();
 case 'roles':
@@ -9072,6 +9207,303 @@ className: 'bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600'
 );
 };
 
+const renderStadiumForm = () => {
+    if (!showStadiumForm) return null;
+
+    return React.createElement('div', {
+        className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
+    },
+        React.createElement('div', {
+            className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto'
+        },
+            React.createElement('div', { className: 'flex justify-between items-center mb-6' },
+                React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' },
+                    editingStadium ? `Edit Stadium: ${editingStadium.name}` : 'Add New Stadium'
+                ),
+                React.createElement('button', {
+                    onClick: closeStadiumForm,
+                    className: 'text-gray-400 hover:text-gray-600 text-2xl'
+                }, '✕')
+            ),
+
+            React.createElement('form', { onSubmit: handleStadiumFormSubmit },
+                React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+                    stadiumFormFields.map(field =>
+                        React.createElement('div', {
+                            key: field.name,
+                            className: field.type === 'textarea' ? 'md:col-span-2' : ''
+                        },
+                            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' },
+                                field.label + (field.required ? ' *' : '')
+                            ),
+                            field.type === 'select' ?
+                                React.createElement('select', {
+                                    value: stadiumFormData[field.name] || '',
+                                    onChange: (e) => handleStadiumInputChange(field.name, e.target.value),
+                                    className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                                    required: field.required
+                                },
+                                    React.createElement('option', { value: '' }, `Select ${field.label}`),
+                                    field.options.map(option =>
+                                        React.createElement('option', { key: option, value: option }, option)
+                                    )
+                                ) :
+                            field.type === 'textarea' ?
+                                React.createElement('textarea', {
+                                    value: stadiumFormData[field.name] || '',
+                                    onChange: (e) => handleStadiumInputChange(field.name, e.target.value),
+                                    className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                                    rows: 3,
+                                    placeholder: field.placeholder,
+                                    required: field.required
+                                }) :
+                                React.createElement('input', {
+                                    type: field.type,
+                                    value: stadiumFormData[field.name] || '',
+                                    onChange: (e) => handleStadiumInputChange(field.name, e.target.value),
+                                    className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                                    required: field.required,
+                                    placeholder: field.placeholder,
+                                    min: field.type === 'number' ? 0 : undefined
+                                })
+                        )
+                    )
+                ),
+
+                React.createElement('div', { className: 'flex space-x-4 mt-6 pt-4 border-t border-gray-200' },
+                    React.createElement('button', {
+                        type: 'button',
+                        onClick: closeStadiumForm,
+                        className: 'flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700'
+                    }, 'Cancel'),
+                    React.createElement('button', {
+                        type: 'submit',
+                        disabled: loading,
+                        className: 'flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50'
+                    }, loading ? 'Saving...' : (editingStadium ? 'Update Stadium' : 'Add Stadium'))
+                )
+            )
+        )
+    );
+};
+
+const populateDefaultStadiums = async () => {
+    if (!confirm('This will add popular stadiums to your database. Continue?')) return;
+
+    const defaultStadiums = [
+        // Cricket Stadiums - India
+        { 
+            name: 'Wankhede Stadium', 
+            city: 'Mumbai', 
+            state: 'Maharashtra', 
+            country: 'India', 
+            sport_type: 'Cricket', 
+            capacity: 33000, 
+            opened_year: 1974,
+            nickname: 'Home of Indian Cricket',
+            notes: 'Famous for hosting Cricket World Cup finals'
+        },
+        { 
+            name: 'Eden Gardens', 
+            city: 'Kolkata', 
+            state: 'West Bengal', 
+            country: 'India', 
+            sport_type: 'Cricket', 
+            capacity: 66000, 
+            opened_year: 1864,
+            nickname: 'Cricket\'s Colosseum',
+            notes: 'One of the oldest and largest cricket stadiums'
+        },
+        { 
+            name: 'M. Chinnaswamy Stadium', 
+            city: 'Bangalore', 
+            state: 'Karnataka', 
+            country: 'India', 
+            sport_type: 'Cricket', 
+            capacity: 40000, 
+            opened_year: 1969,
+            notes: 'Known for high-scoring matches and IPL games'
+        },
+        { 
+            name: 'Feroz Shah Kotla Ground', 
+            city: 'Delhi', 
+            state: 'Delhi', 
+            country: 'India', 
+            sport_type: 'Cricket', 
+            capacity: 41000, 
+            opened_year: 1883,
+            notes: 'One of the oldest cricket grounds in India'
+        },
+        { 
+            name: 'MA Chidambaram Stadium', 
+            city: 'Chennai', 
+            state: 'Tamil Nadu', 
+            country: 'India', 
+            sport_type: 'Cricket', 
+            capacity: 50000, 
+            opened_year: 1916,
+            nickname: 'Chepauk Stadium',
+            notes: 'Known for its spinning pitches'
+        },
+        { 
+            name: 'Narendra Modi Stadium', 
+            city: 'Ahmedabad', 
+            state: 'Gujarat', 
+            country: 'India', 
+            sport_type: 'Cricket', 
+            capacity: 132000, 
+            opened_year: 2020,
+            nickname: 'Motera Stadium',
+            notes: 'World\'s largest cricket stadium'
+        },
+        
+        // Cricket Stadiums - International
+        { 
+            name: 'Lord\'s Cricket Ground', 
+            city: 'London', 
+            country: 'United Kingdom', 
+            sport_type: 'Cricket', 
+            capacity: 31000, 
+            opened_year: 1814, 
+            nickname: 'Home of Cricket',
+            notes: 'Most famous cricket ground in the world'
+        },
+        { 
+            name: 'Melbourne Cricket Ground', 
+            city: 'Melbourne', 
+            state: 'Victoria',
+            country: 'Australia', 
+            sport_type: 'Cricket', 
+            capacity: 100024, 
+            opened_year: 1853, 
+            nickname: 'MCG',
+            notes: 'Largest cricket stadium in the Southern Hemisphere'
+        },
+        { 
+            name: 'The Oval', 
+            city: 'London', 
+            country: 'United Kingdom', 
+            sport_type: 'Cricket', 
+            capacity: 23500, 
+            opened_year: 1845,
+            notes: 'Famous for hosting the final Test of English summer'
+        },
+        { 
+            name: 'Sydney Cricket Ground', 
+            city: 'Sydney', 
+            state: 'New South Wales',
+            country: 'Australia', 
+            sport_type: 'Cricket', 
+            capacity: 48000, 
+            opened_year: 1848, 
+            nickname: 'SCG',
+            notes: 'Hosts New Year Test matches'
+        },
+        
+        // Football Stadiums - International
+        { 
+            name: 'Camp Nou', 
+            city: 'Barcelona', 
+            country: 'Spain', 
+            sport_type: 'Football', 
+            capacity: 99354, 
+            opened_year: 1957,
+            notes: 'Home of FC Barcelona, largest stadium in Europe'
+        },
+        { 
+            name: 'Wembley Stadium', 
+            city: 'London', 
+            country: 'United Kingdom', 
+            sport_type: 'Football', 
+            capacity: 90000, 
+            opened_year: 2007,
+            nickname: 'The Home of Football',
+            notes: 'England national team home, hosts FA Cup finals'
+        },
+        { 
+            name: 'Old Trafford', 
+            city: 'Manchester', 
+            country: 'United Kingdom', 
+            sport_type: 'Football', 
+            capacity: 74140, 
+            opened_year: 1910, 
+            nickname: 'Theatre of Dreams',
+            notes: 'Home of Manchester United'
+        },
+        { 
+            name: 'Santiago Bernabéu', 
+            city: 'Madrid', 
+            country: 'Spain', 
+            sport_type: 'Football', 
+            capacity: 81044, 
+            opened_year: 1947,
+            notes: 'Home of Real Madrid, hosts Champions League finals'
+        },
+        { 
+            name: 'Allianz Arena', 
+            city: 'Munich', 
+            country: 'Germany', 
+            sport_type: 'Football', 
+            capacity: 75000, 
+            opened_year: 2005,
+            notes: 'Famous for its color-changing exterior'
+        },
+        
+        // Multi-Sport & Other Venues
+        { 
+            name: 'Madison Square Garden', 
+            city: 'New York', 
+            state: 'New York',
+            country: 'United States', 
+            sport_type: 'Multi-Sport', 
+            capacity: 20000, 
+            opened_year: 1968, 
+            nickname: 'The Garden',
+            notes: 'Famous for basketball, hockey, and concerts'
+        },
+        { 
+            name: 'Maracanã Stadium', 
+            city: 'Rio de Janeiro', 
+            country: 'Brazil', 
+            sport_type: 'Football', 
+            capacity: 78838, 
+            opened_year: 1950,
+            notes: 'Hosted 2014 FIFA World Cup final'
+        },
+        { 
+            name: 'Wimbledon', 
+            city: 'London', 
+            country: 'United Kingdom', 
+            sport_type: 'Tennis', 
+            capacity: 15000, 
+            opened_year: 1877,
+            nickname: 'All England Club',
+            notes: 'Most prestigious tennis tournament venue'
+        }
+    ];
+
+    try {
+        setLoading(true);
+        console.log(`🏟️ Adding ${defaultStadiums.length} popular stadiums...`);
+        
+        const response = await apiCall('/stadiums/bulk', {
+            method: 'POST',
+            body: JSON.stringify({ stadiums: defaultStadiums })
+        });
+        
+        // Refresh stadiums list
+        await fetchStadiums();
+        
+        alert(`✅ Successfully added ${response.success || defaultStadiums.length} popular stadiums!${response.errors > 0 ? ` (${response.errors} duplicates skipped)` : ''}`);
+        
+    } catch (error) {
+        console.error('❌ Error adding default stadiums:', error);
+        alert('❌ Error adding stadiums: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
+}; 
+ 
 // New inventory form specifically for payables integration
 // Updated renderInventoryForm function (replace the entire function)
 const renderInventoryForm = () => {
@@ -10155,6 +10587,216 @@ React.createElement('button', {
 );
 };
 
+
+const renderStadiumsContent = () => {
+    // Filter and sort stadiums
+    const filteredStadiums = stadiums.filter(stadium => {
+        const matchesSearch = stadiumSearchQuery === '' || 
+            stadium.name.toLowerCase().includes(stadiumSearchQuery.toLowerCase()) ||
+            stadium.city.toLowerCase().includes(stadiumSearchQuery.toLowerCase()) ||
+            stadium.country.toLowerCase().includes(stadiumSearchQuery.toLowerCase());
+        
+        const matchesSport = stadiumSportFilter === 'all' || stadium.sport_type === stadiumSportFilter;
+        
+        return matchesSearch && matchesSport;
+    });
+
+    const sortedStadiums = filteredStadiums.sort((a, b) => {
+        let aValue = a[stadiumSortField] || '';
+        let bValue = b[stadiumSortField] || '';
+        
+        if (typeof aValue === 'string') {
+            aValue = aValue.toLowerCase();
+            bValue = bValue.toLowerCase();
+        }
+        
+        if (stadiumSortDirection === 'asc') {
+            return aValue > bValue ? 1 : -1;
+        } else {
+            return aValue < bValue ? 1 : -1;
+        }
+    });
+
+    return React.createElement('div', { className: 'space-y-6' },
+        // Header
+        React.createElement('div', { className: 'flex justify-between items-center' },
+            React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Stadium Management'),
+            React.createElement('div', { className: 'flex gap-2' },
+                hasPermission('admin', 'write') && React.createElement('button', {
+                    onClick: () => openStadiumForm(),
+                    className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
+                }, '+ Add Stadium'),
+                
+                React.createElement('button', {
+                    onClick: populateDefaultStadiums,
+                    className: 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700'
+                }, '🏟️ Add Popular Stadiums')
+            )
+        ),
+
+        // Stats Cards
+        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
+            React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
+                React.createElement('h3', { className: 'text-sm font-medium text-gray-500' }, 'Total Stadiums'),
+                React.createElement('p', { className: 'text-2xl font-bold text-blue-600' }, stadiums.length)
+            ),
+            React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
+                React.createElement('h3', { className: 'text-sm font-medium text-gray-500' }, 'Cricket Stadiums'),
+                React.createElement('p', { className: 'text-2xl font-bold text-green-600' }, 
+                    stadiums.filter(s => s.sport_type === 'Cricket').length
+                )
+            ),
+            React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
+                React.createElement('h3', { className: 'text-sm font-medium text-gray-500' }, 'Football Stadiums'),
+                React.createElement('p', { className: 'text-2xl font-bold text-orange-600' }, 
+                    stadiums.filter(s => s.sport_type === 'Football').length
+                )
+            ),
+            React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
+                React.createElement('h3', { className: 'text-sm font-medium text-gray-500' }, 'Countries'),
+                React.createElement('p', { className: 'text-2xl font-bold text-purple-600' }, 
+                    new Set(stadiums.map(s => s.country)).size
+                )
+            )
+        ),
+
+        // Filters
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border p-4' },
+            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
+                // Search
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Search'),
+                    React.createElement('input', {
+                        type: 'text',
+                        placeholder: 'Search stadiums...',
+                        value: stadiumSearchQuery,
+                        onChange: (e) => setStadiumSearchQuery(e.target.value),
+                        className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+                    })
+                ),
+                
+                // Sport filter
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Sport'),
+                    React.createElement('select', {
+                        value: stadiumSportFilter,
+                        onChange: (e) => setStadiumSportFilter(e.target.value),
+                        className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+                    },
+                        React.createElement('option', { value: 'all' }, 'All Sports'),
+                        ['Cricket', 'Football', 'Basketball', 'Tennis', 'Hockey', 'Formula 1', 'Multi-Sport', 'Other'].map(sport =>
+                            React.createElement('option', { key: sport, value: sport }, sport)
+                        )
+                    )
+                ),
+                
+                // Sort field
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Sort By'),
+                    React.createElement('select', {
+                        value: stadiumSortField,
+                        onChange: (e) => setStadiumSortField(e.target.value),
+                        className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+                    },
+                        React.createElement('option', { value: 'name' }, 'Name'),
+                        React.createElement('option', { value: 'city' }, 'City'),
+                        React.createElement('option', { value: 'country' }, 'Country'),
+                        React.createElement('option', { value: 'sport_type' }, 'Sport'),
+                        React.createElement('option', { value: 'capacity' }, 'Capacity')
+                    )
+                ),
+                
+                // Sort direction
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Order'),
+                    React.createElement('button', {
+                        onClick: () => setStadiumSortDirection(prev => prev === 'asc' ? 'desc' : 'asc'),
+                        className: 'w-full px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500',
+                        title: stadiumSortDirection === 'asc' ? 'Sort Descending' : 'Sort Ascending'
+                    }, stadiumSortDirection === 'asc' ? '↑ Ascending' : '↓ Descending')
+                )
+            ),
+            
+            React.createElement('div', { className: 'mt-4 text-sm text-gray-600' },
+                `Showing ${sortedStadiums.length} of ${stadiums.length} stadiums`
+            )
+        ),
+
+        // Stadiums Table
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border' },
+            sortedStadiums.length > 0 ? React.createElement('div', { className: 'overflow-x-auto' },
+                React.createElement('table', { className: 'w-full' },
+                    React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
+                        React.createElement('tr', null,
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Stadium'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Location'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Sport'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Capacity'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
+                        )
+                    ),
+                    React.createElement('tbody', { className: 'bg-white dark:bg-gray-700 divide-y divide-gray-200' },
+                        sortedStadiums.map(stadium =>
+                            React.createElement('tr', { key: stadium.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-600' },
+                                React.createElement('td', { className: 'px-6 py-4' },
+                                    React.createElement('div', null,
+                                        React.createElement('div', { className: 'text-sm font-medium text-gray-900 dark:text-white' }, stadium.name),
+                                        stadium.nickname && React.createElement('div', { className: 'text-xs text-gray-500 dark:text-gray-400' }, `"${stadium.nickname}"`),
+                                        stadium.opened_year && React.createElement('div', { className: 'text-xs text-gray-400' }, `Est. ${stadium.opened_year}`)
+                                    )
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4' },
+                                    React.createElement('div', { className: 'text-sm text-gray-900 dark:text-white' }, 
+                                        `${stadium.city}${stadium.state ? ', ' + stadium.state : ''}`
+                                    ),
+                                    React.createElement('div', { className: 'text-xs text-gray-500 dark:text-gray-400' }, stadium.country)
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4' },
+                                    React.createElement('span', {
+                                        className: `px-2 py-1 text-xs rounded-full ${
+                                            stadium.sport_type === 'Cricket' ? 'bg-green-100 text-green-800' :
+                                            stadium.sport_type === 'Football' ? 'bg-blue-100 text-blue-800' :
+                                            stadium.sport_type === 'Multi-Sport' ? 'bg-purple-100 text-purple-800' :
+                                            'bg-gray-100 text-gray-800'
+                                        }`
+                                    }, stadium.sport_type)
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' },
+                                    stadium.capacity ? stadium.capacity.toLocaleString() : 'N/A'
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4' },
+                                    React.createElement('div', { className: 'flex gap-2' },
+                                        hasPermission('admin', 'write') && React.createElement('button', {
+                                            onClick: () => openStadiumForm(stadium),
+                                            className: 'text-blue-600 hover:text-blue-900 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50'
+                                        }, '✏️'),
+                                        hasPermission('admin', 'delete') && React.createElement('button', {
+                                            onClick: () => handleDeleteStadium(stadium.id, stadium.name),
+                                            className: 'text-red-600 hover:text-red-900 text-sm px-2 py-1 rounded border border-red-200 hover:bg-red-50'
+                                        }, '🗑️'),
+                                        stadium.website && React.createElement('a', {
+                                            href: stadium.website,
+                                            target: '_blank',
+                                            className: 'text-green-600 hover:text-green-900 text-sm px-2 py-1 rounded border border-green-200 hover:bg-green-50'
+                                        }, '🌐')
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            ) : React.createElement('div', { className: 'p-8 text-center text-gray-500' },
+                React.createElement('p', { className: 'text-lg mb-4' }, 'No stadiums found'),
+                React.createElement('button', {
+                    onClick: populateDefaultStadiums,
+                    className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
+                }, 'Add Popular Stadiums to Get Started')
+            )
+        )
+    );
+};
+ 
+ 
 // Enhanced inventory content with permission checks
 const renderInventoryContent = () => {
 // ENHANCED FILTERING - includes event type filter
@@ -11539,7 +12181,8 @@ renderLeadDetail(),
 showInventoryDetail && renderInventoryDetail(),                   
 renderAllocationForm(),
 renderAllocationManagement(),
-renderInventoryForm(),                   
+renderInventoryForm(),
+renderStadiumForm(),                           
 renderChoiceModal(),
 renderUserManagement(),
 renderUserForm(),
