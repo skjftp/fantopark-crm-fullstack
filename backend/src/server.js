@@ -54,9 +54,11 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/roles', require('./routes/roles'));
 app.use('/api/setup', require('./routes/setup'));
-app.use('/api/stadiums', require('./routes/stadiums')); // 🏟️ NEW: Stadium routes
+app.use('/api/stadiums', require('./routes/stadiums'));
 app.use('/api/clients', require('./routes/clients'));
 app.use('/api/reminders', require('./routes/reminders'));
+// 🎯 NEW: Assignment Rules API
+app.use('/api/assignment-rules', require('./routes/assignmentRules'));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -67,7 +69,8 @@ app.get('/health', (req, res) => {
       'auth', 'users', 'leads', 'inventory', 'orders', 
       'invoices', 'deliveries', 'payables', 'finance', 
       'receivables', 'dashboard', 'upload', 'roles', 
-      'setup', 'stadiums' // 🏟️ Stadium routes now available
+      'setup', 'stadiums', 'clients', 'reminders',
+      'assignment-rules' // 🎯 Assignment rules now available
     ]
   });
 });
@@ -80,6 +83,9 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🎯 Assignment Rules API available at /api/assignment-rules`);
   console.log(`🏟️ Stadium API available at /api/stadiums`);
   console.log(`🔍 Health check available at /health`);
 });
+
+module.exports = app;
