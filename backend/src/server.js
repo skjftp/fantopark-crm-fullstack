@@ -57,6 +57,7 @@ app.use('/api/setup', require('./routes/setup'));
 app.use('/api/stadiums', require('./routes/stadiums')); // 🏟️ NEW: Stadium routes
 app.use('/api/clients', require('./routes/clients'));
 app.use('/api/reminders', require('./routes/reminders'));
+app.use('/api/assignment-rules', require('./routes/assignmentRules'));
 
 // Health check
 app.get('/health', (req, res) => {

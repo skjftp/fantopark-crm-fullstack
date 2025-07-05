@@ -379,7 +379,6 @@ class Lead {
     try {
       const existingLeads = await db.collection(collections.leads)
         .where('client_id', '==', clientId)
-        .orderBy('created_date', 'asc')
         .get();
       
       if (existingLeads.empty) {
