@@ -55,6 +55,7 @@ app.use('/api/upload', require('./routes/upload'));
 app.use('/api/roles', require('./routes/roles'));
 app.use('/api/setup', require('./routes/setup'));
 app.use('/api/stadiums', require('./routes/stadiums')); // 🏟️ NEW: Stadium routes
+app.use('/api/clients', require('./routes/clients'));
 
 // Health check
 app.get('/health', (req, res) => {
