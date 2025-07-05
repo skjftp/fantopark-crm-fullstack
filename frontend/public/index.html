@@ -7991,15 +7991,38 @@ const renderForm = () => {
                                 phoneCheckLoading && React.createElement('span', { className: 'ml-2 text-blue-600' }, '🔍')
                             ),
                             React.createElement('input', {
-                                type: 'tel',
-                                value: formData.phone || '',
-                                onChange: (e) => handlePhoneChange(e.target.value), // Enhanced with client detection
-                                className: `w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                    showClientSuggestion ? 'border-yellow-400 bg-yellow-50' : ''
-                                }`,
-                                required: true,
-                                placeholder: 'Enter phone number'
-                            }),
+    type: 'tel',
+    value: formData.phone || '',
+    onChange: (e) => {
+        const value = e.target.value;
+        // Update form data immediately for responsive typing
+        setFormData(prev => ({ ...prev, phone: value }));
+        
+        // Clear existing timeout
+        if (phoneCheckTimeout) {
+            clearTimeout(phoneCheckTimeout);
+        }
+        
+        // Only check for clients if phone has enough digits
+        if (value && value.length >= 10) {
+            // Set new timeout for phone check (debounce)
+            const newTimeout = setTimeout(() => {
+                checkPhoneForClient(value);
+            }, 1000); // Check after 1 second of no typing
+            
+            setPhoneCheckTimeout(newTimeout);
+        } else {
+            // Clear suggestions if phone is too short
+            setClientSuggestion(null);
+            setShowClientSuggestion(false);
+        }
+    },
+    className: `w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+        showClientSuggestion ? 'border-yellow-400 bg-yellow-50' : ''
+    }`,
+    required: true,
+    placeholder: 'Enter phone number'
+}),
                             React.createElement('div', { className: 'text-xs text-gray-500 mt-1' }, 
                                 'Phone numbers help detect existing clients and suggest smart assignments'
                             )
