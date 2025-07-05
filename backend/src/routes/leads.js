@@ -1,4 +1,4 @@
-// Enhanced backend/src/routes/leads.js - FULLY BACKWARD COMPATIBLE
+// Enhanced backend/src/routes/leads.js - FULLY BACKWARD COMPATIBLE + AUTO-REMINDERS
 const express = require('express');
 const router = express.Router();
 const Lead = require('../models/Lead');
@@ -7,7 +7,7 @@ const { authenticateToken } = require('../middleware/auth');
 // Import db for bulk operations (you already had this)
 const { db, collections } = require('../config/db');
 
-// Helper function to get user name by email (NEW - for suggestions)
+// Helper function to get user name by email (for suggestions)
 async function getUserName(email) {
   try {
     const snapshot = await db.collection('crm_users')
@@ -49,14 +49,45 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT update lead - SAME AS YOUR ORIGINAL (with optional client metadata update)
+// PUT update lead - ENHANCED WITH AUTO-REMINDERS
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
-    // Your existing update logic works exactly the same
-    const updatedLead = await Lead.update(req.params.id, req.body);
+    const leadId = req.params.id;
+    const updates = req.body;
     
-    // NEW: Optional client metadata update (only if client_id exists)
-    // This doesn't affect existing functionality - it's additive only
+    // Get current lead to compare status changes
+    const currentLead = await Lead.getById(leadId);
+    if (!currentLead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+
+    const oldStatus = currentLead.status;
+    const newStatus = updates.status;
+    
+    console.log(`🔄 Updating lead ${leadId}: ${oldStatus} → ${newStatus || 'no status change'}`);
+
+    // UPDATE: Enhanced update with auto-reminder support
+    const updatedLead = await Lead.update(leadId, updates);
+    
+    // NEW: Auto-reminder logic for status changes
+    if (newStatus && newStatus !== oldStatus) {
+      try {
+        console.log(`📱 Creating auto-reminder for status change: ${oldStatus} → ${newStatus}`);
+        const Reminder = require('../models/Reminder');
+        
+        // Cancel old pending reminders for this lead
+        await Lead.cancelOldReminders(leadId, newStatus);
+        
+        // Create new reminder for new status
+        await Lead.createAutoReminder(leadId, updatedLead);
+        
+      } catch (reminderError) {
+        console.error('⚠️ Auto-reminder creation failed (non-critical):', reminderError.message);
+        // Don't fail the update if reminder creation fails
+      }
+    }
+    
+    // Optional client metadata update (only if client_id exists)
     try {
       if (updatedLead.client_id) {
         await Lead.updateClientMetadata(updatedLead.client_id, {
@@ -64,12 +95,12 @@ router.put('/:id', authenticateToken, async (req, res) => {
         });
       }
     } catch (clientError) {
-      // If client update fails, we still return the successful lead update
       console.log('Client metadata update failed (non-critical):', clientError.message);
     }
     
     res.json({ data: updatedLead });
   } catch (error) {
+    console.error('Error updating lead:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -77,7 +108,17 @@ router.put('/:id', authenticateToken, async (req, res) => {
 // DELETE lead - SAME AS YOUR ORIGINAL
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
-    await Lead.delete(req.params.id);
+    const leadId = req.params.id;
+    
+    // NEW: Cancel any pending reminders for this lead before deletion
+    try {
+      await Lead.cancelOldReminders(leadId, 'deleted');
+      console.log(`✅ Cancelled reminders for deleted lead: ${leadId}`);
+    } catch (reminderError) {
+      console.error('⚠️ Failed to cancel reminders for deleted lead:', reminderError.message);
+    }
+    
+    await Lead.delete(leadId);
     res.json({ data: { message: 'Lead deleted successfully' } });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -116,6 +157,21 @@ router.delete('/', authenticateToken, async (req, res) => {
       return res.json({ message: 'No leads to delete', count: 0 });
     }
     
+    // NEW: Also delete all reminders when bulk deleting leads
+    try {
+      const reminderSnapshot = await db.collection('crm_reminders').get();
+      if (!reminderSnapshot.empty) {
+        const reminderBatch = db.batch();
+        reminderSnapshot.docs.forEach((doc) => {
+          reminderBatch.delete(doc.ref);
+        });
+        await reminderBatch.commit();
+        console.log(`Deleted ${reminderSnapshot.size} reminders`);
+      }
+    } catch (reminderError) {
+      console.error('Failed to delete reminders during bulk delete:', reminderError.message);
+    }
+    
     // Delete in batches of 500 (Firestore limit)
     const batchSize = 500;
     let deleted = 0;
@@ -151,7 +207,6 @@ router.delete('/', authenticateToken, async (req, res) => {
 // ===== NEW ROUTES FOR CLIENT MANAGEMENT (ADDITIVE ONLY) =====
 
 // NEW: Check if phone number exists (for frontend suggestions)
-// This is a NEW endpoint - doesn't affect existing functionality
 router.get('/check-phone/:phone', authenticateToken, async (req, res) => {
   try {
     const phone = req.params.phone;
@@ -179,12 +234,14 @@ router.get('/check-phone/:phone', authenticateToken, async (req, res) => {
   }
 });
 
-// POST create lead - ENHANCED but FULLY BACKWARD COMPATIBLE
+// POST create lead - ENHANCED WITH AUTO-REMINDERS + CLIENT MANAGEMENT
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const newLeadData = req.body;
     
-    // NEW: Client detection logic (only if phone is provided)
+    console.log(`🆕 Creating new lead: ${newLeadData.name} (${newLeadData.phone}) with status: ${newLeadData.status || 'new'}`);
+    
+    // Client detection logic (only if phone is provided)
     if (newLeadData.phone) {
       console.log('Creating lead with client detection:', newLeadData.name, newLeadData.phone);
       
@@ -217,7 +274,9 @@ router.post('/', authenticateToken, async (req, res) => {
             client_last_activity: new Date().toISOString()
           });
           
-          const savedLead = await new Lead(newLeadData).save();
+          // Create lead with auto-reminder support
+          const lead = new Lead(newLeadData);
+          const savedLead = await lead.save(); // This will trigger auto-reminder creation
           
           // Return enhanced response with suggestion info
           res.status(201).json({ 
@@ -227,7 +286,7 @@ router.post('/', authenticateToken, async (req, res) => {
               suggested_reason: `This client has ${clientInfo.total_leads + 1} total leads`,
               client_history: clientInfo.leads
             },
-            message: `Lead created and linked to existing client`
+            message: `Lead created and linked to existing client with auto-reminder`
           });
           return;
         } else {
@@ -246,12 +305,64 @@ router.post('/', authenticateToken, async (req, res) => {
       }
     }
     
-    // Your existing lead creation logic - EXACTLY THE SAME
+    // Create lead with auto-reminder support
     const lead = new Lead(newLeadData);
-    const savedLead = await lead.save();
+    const savedLead = await lead.save(); // This will trigger auto-reminder creation in the Lead model
+    
+    console.log(`✅ Lead created successfully: ${savedLead.id}`);
     res.status(201).json({ data: savedLead });
     
   } catch (error) {
+    console.error('Error creating lead:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== NEW ROUTES FOR REMINDER MANAGEMENT =====
+
+// NEW: Get reminders for a specific lead
+router.get('/:id/reminders', authenticateToken, async (req, res) => {
+  try {
+    const leadId = req.params.id;
+    const Reminder = require('../models/Reminder');
+    
+    const reminders = await Reminder.getByLead(leadId);
+    res.json({ data: reminders });
+  } catch (error) {
+    console.error('Error fetching lead reminders:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// NEW: Manually create reminder for a lead
+router.post('/:id/reminders', authenticateToken, async (req, res) => {
+  try {
+    const leadId = req.params.id;
+    const reminderData = req.body;
+    
+    // Verify lead exists
+    const lead = await Lead.getById(leadId);
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+    
+    const Reminder = require('../models/Reminder');
+    
+    // Create manual reminder
+    const newReminderData = {
+      ...reminderData,
+      lead_id: leadId,
+      auto_generated: false,
+      created_by: req.user.email
+    };
+    
+    const reminder = new Reminder(newReminderData);
+    const savedReminder = await reminder.save();
+    
+    console.log(`📝 Manual reminder created: ${savedReminder.id} for lead: ${leadId}`);
+    res.status(201).json({ data: savedReminder });
+  } catch (error) {
+    console.error('Error creating manual reminder:', error);
     res.status(500).json({ error: error.message });
   }
 });
