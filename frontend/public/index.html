@@ -2183,11 +2183,12 @@ setLoading(false);
 }
 };
 
- const fetchReminders = async () => {
+const fetchReminders = async () => {
   if (!isLoggedIn) return;
   
   try {
-    const response = await apiCall('/api/reminders');
+    // ✅ FIX: Remove /api/ prefix
+    const response = await apiCall('/reminders');
     if (response.data) {
       const userReminders = response.data.filter(r => 
         r.assigned_to === user.email || 
@@ -2217,29 +2218,20 @@ setLoading(false);
   }
 };
 
-// Complete a reminder
+// ✅ These are already correct (no /api/ prefix)
 const completeReminder = async (reminderId, notes = '') => {
   try {
     await apiCall(`/reminders/${reminderId}/complete`, {
       method: 'POST',
       body: JSON.stringify({ notes })
     });
-    
-    setReminders(prev => prev.map(r => 
-      r.id === reminderId 
-        ? { ...r, status: 'completed', completed_date: new Date().toISOString() }
-        : r
-    ));
-    
-    alert('✅ Reminder completed successfully!');
-    await fetchReminders();
+    // ... rest of function
   } catch (error) {
     console.error('Error completing reminder:', error);
     alert('❌ Failed to complete reminder');
   }
 };
 
-// Snooze a reminder
 const snoozeReminder = async (reminderId, hours = 24) => {
   try {
     const snoozeUntil = new Date();
