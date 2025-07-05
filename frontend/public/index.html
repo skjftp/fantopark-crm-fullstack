@@ -2187,8 +2187,7 @@ const fetchReminders = async () => {
   if (!isLoggedIn) return;
   
   try {
-    // ✅ FIX: Remove /api/ prefix
-    const response = await apiCall('/reminders');
+    const response = await apiCall('/reminders'); // ✅ Consistent with other calls
     if (response.data) {
       const userReminders = response.data.filter(r => 
         r.assigned_to === user.email || 
