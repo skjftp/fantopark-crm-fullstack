@@ -664,6 +664,22 @@ return '';
 }
 };
 
+ // Helper function to get proper role display label
+const getRoleDisplayLabel = (roleName) => {
+    // Map of role names to display labels
+    const roleLabels = {
+        'super_admin': 'Super Admin',
+        'admin': 'Admin', 
+        'sales_manager': 'Sales Manager',
+        'sales_executive': 'Sales Executive',
+        'supply_manager': 'Supply Manager', // Legacy
+        'supply_sales_service_manager': 'Supply Sales Service Manager', // Updated
+        'finance_manager': 'Finance Manager',
+        'viewer': 'Viewer'
+    };
+    
+    return roleLabels[roleName] || roleName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
  
 // Helper function to format date for display (DD/MM/YYYY)
 const formatDateForDisplay = (dateValue) => {
@@ -4041,7 +4057,7 @@ React.createElement('div', { className: 'overflow-x-auto' },
                                 user.role.includes('manager') ? 'bg-green-100 text-green-800' :
                                 'bg-gray-100 text-gray-800'
                             }`
-                        }, USER_ROLES[user.role]?.label || user.role)
+                        }, getRoleDisplayLabel(user.role))
                     ),
                     React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, user.department),
                     React.createElement('td', { className: 'px-6 py-4' },
