@@ -35,6 +35,7 @@ app.use(cors({
   },
   credentials: true
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -53,10 +54,20 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/roles', require('./routes/roles'));
 app.use('/api/setup', require('./routes/setup'));
+app.use('/api/stadiums', require('./routes/stadiums')); // 🏟️ NEW: Stadium routes
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date() });
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date(),
+    routes: [
+      'auth', 'users', 'leads', 'inventory', 'orders', 
+      'invoices', 'deliveries', 'payables', 'finance', 
+      'receivables', 'dashboard', 'upload', 'roles', 
+      'setup', 'stadiums' // 🏟️ Stadium routes now available
+    ]
+  });
 });
 
 // Error handling
@@ -66,5 +77,7 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🏟️ Stadium API available at /api/stadiums`);
+  console.log(`🔍 Health check available at /health`);
 });
