@@ -49,6 +49,19 @@ class Lead {
     this.client_first_contact = data.client_first_contact || this.created_date;
     this.client_last_activity = data.client_last_activity || this.created_date;
     this.manual_assignment_override = data.manual_assignment_override || false;
+
+    // ===== NEW: ASSIGNMENT METADATA FIELDS =====
+    this.auto_assigned = data.auto_assigned || false;
+    this.assignment_reason = data.assignment_reason || '';
+    this.assignment_rule_used = data.assignment_rule_used || '';
+    this.assignment_rule_id = data.assignment_rule_id || '';
+    this.assignment_date = data.assignment_date || null;
+  }
+
+  // Generate consistent client ID from phone number
+  generateClientId(phone) {
+    if (!phone) return null;
+    return 'client_' + phone.replace(/\D/g, ''); // Remove non-digits
   }
 
   // ===== YOUR EXISTING METHODS (UNCHANGED) =====
@@ -78,10 +91,36 @@ class Lead {
     return { id: doc.id, ...doc.data() };
   }
 
-  // ENHANCED: Save method with auto-reminder support
+  // ENHANCED: Save method with auto-assignment and auto-reminder support
   async save() {
     try {
       const isNew = !this.id;
+      
+      // NEW: Auto-assignment logic for new leads
+      if (isNew && !this.assigned_to) {
+        console.log('🎯 Attempting auto-assignment for new lead...');
+        try {
+          const AssignmentRule = require('./AssignmentRule');
+          const assignment = await AssignmentRule.testAssignment(this);
+          
+          if (assignment) {
+            this.assigned_to = assignment.assigned_to;
+            this.auto_assigned = true;
+            this.assignment_reason = assignment.assignment_reason;
+            this.assignment_rule_used = assignment.rule_matched;
+            this.assignment_rule_id = assignment.rule_id;
+            this.assignment_date = new Date().toISOString();
+            this.status = 'assigned'; // Update status to assigned
+            
+            console.log(`✅ Auto-assigned lead to: ${this.assigned_to} via rule: ${this.assignment_rule_used}`);
+          } else {
+            console.log('⚠️ No assignment rules matched - lead remains unassigned');
+          }
+        } catch (assignmentError) {
+          console.error('⚠️ Auto-assignment failed (non-critical):', assignmentError.message);
+          // Don't fail the lead creation if auto-assignment fails
+        }
+      }
       
       // Save the lead
       const docRef = await db.collection(collections.leads).add({...this});
@@ -118,29 +157,31 @@ class Lead {
       const newStatus = data.status;
       
       // Update the lead
-      const updateData = { ...data, updated_date: new Date().toISOString() };
+      const updateData = { 
+        ...data, 
+        updated_date: new Date().toISOString() 
+      };
+
       await db.collection(collections.leads).doc(id).update(updateData);
       
-      // Fetch the updated lead
-      const updatedLead = await Lead.getById(id);
-      
-      // NEW: Auto-reminder logic for status changes
-      if (newStatus && newStatus !== oldStatus) {
-        console.log(`📝 Lead status changed: ${id} from ${oldStatus} to ${newStatus}`);
+      // NEW: Handle status change reminders
+      if (oldStatus !== newStatus && newStatus) {
+        console.log(`📈 Lead status changed: ${oldStatus} → ${newStatus}`);
         
+        // Cancel old reminders and create new ones
         try {
-          // Cancel old reminders
           await Lead.cancelOldReminders(id, newStatus);
           
-          // Create new reminder for new status
+          // Get updated lead data for reminder creation
+          const updatedLead = await Lead.getById(id);
           await Lead.createAutoReminder(id, updatedLead);
         } catch (reminderError) {
-          console.error('⚠️ Auto-reminder update failed (non-critical):', reminderError.message);
-          // Don't fail the lead update if reminder fails
+          console.error('⚠️ Reminder management failed (non-critical):', reminderError.message);
         }
       }
 
-      return updatedLead;
+      // Return updated lead
+      return await Lead.getById(id);
     } catch (error) {
       console.error('Error updating lead:', error);
       throw error;
@@ -149,123 +190,96 @@ class Lead {
 
   static async delete(id) {
     await db.collection(collections.leads).doc(id).delete();
-    return { success: true };
+    return true;
   }
 
-  // ===== NEW AUTO-REMINDER METHODS =====
-
-  // Create automatic reminder when lead status changes
+  // ===== AUTO-REMINDER LOGIC =====
+  
+  // Create automatic reminders based on lead status
   static async createAutoReminder(leadId, leadData, reminderType = 'follow_up') {
-    // Dynamically import Reminder to avoid circular dependency
-    const Reminder = require('./Reminder');
+    console.log(`🔔 Creating auto-reminder for lead ${leadId} with status: ${leadData.status}`);
     
-    // Define reminder rules based on lead status
+    // Define enhanced reminder rules
     const reminderRules = {
       'unassigned': { 
-        days: 0, 
-        hours: 1, 
-        priority: 'high', 
-        title: 'Assign this lead',
-        description: 'This lead needs to be assigned to a sales person'
+        days: 0, hours: 0, 
+        priority: 'urgent', 
+        title: 'URGENT: Unassigned Lead',
+        description: 'This lead needs immediate assignment' 
       },
       'assigned': { 
-        days: 1, 
-        hours: 0, 
-        priority: 'medium', 
-        title: 'Initial contact required',
-        description: 'Make first contact with this lead'
+        days: 0, hours: 2, 
+        priority: 'high', 
+        title: 'First Contact Required',
+        description: 'Make first contact with this newly assigned lead' 
       },
       'contacted': { 
-        days: 2, 
-        hours: 0, 
+        days: 2, hours: 0, 
         priority: 'medium', 
         title: 'Follow up on initial contact',
-        description: 'Follow up on the initial conversation'
+        description: 'Check back with lead after initial conversation' 
       },
       'attempt_1': { 
-        days: 1, 
-        hours: 0, 
+        days: 1, hours: 0, 
         priority: 'medium', 
         title: 'Second contact attempt',
-        description: 'Make second contact attempt'
+        description: 'Continue follow-up sequence' 
       },
       'attempt_2': { 
-        days: 1, 
-        hours: 0, 
+        days: 1, hours: 0, 
         priority: 'high', 
         title: 'Third contact attempt',
-        description: 'Make third contact attempt - lead getting cold'
+        description: 'Important: Multiple contact attempts needed' 
       },
       'attempt_3': { 
-        days: 2, 
-        hours: 0, 
+        days: 2, hours: 0, 
         priority: 'high', 
         title: 'Final contact attempt',
-        description: 'Last attempt before marking lead as cold'
-      },
-      'hot': { 
-        days: 1, 
-        hours: 0, 
-        priority: 'urgent', 
-        title: 'Priority follow-up - Hot lead',
-        description: 'This is a hot lead - follow up immediately'
-      },
-      'warm': { 
-        days: 2, 
-        hours: 0, 
-        priority: 'high', 
-        title: 'Follow up warm lead',
-        description: 'Follow up with this warm lead'
-      },
-      'cold': { 
-        days: 7, 
-        hours: 0, 
-        priority: 'low', 
-        title: 'Check in with cold lead',
-        description: 'Periodic check-in with cold lead'
-      },
-      'quote_requested': { 
-        days: 1, 
-        hours: 0, 
-        priority: 'urgent', 
-        title: 'Provide quote',
-        description: 'Customer has requested a quote - respond urgently'
+        description: 'Last chance to engage this lead' 
       },
       'qualified': { 
-        days: 3, 
-        hours: 0, 
+        days: 3, hours: 0, 
         priority: 'medium', 
         title: 'Nurture qualified lead',
-        description: 'Continue nurturing this qualified lead'
+        description: 'Qualified lead needs continued engagement' 
       },
-      'new': { 
-        days: 1, 
-        hours: 0, 
-        priority: 'medium', 
-        title: 'Process new lead',
-        description: 'Review and assign this new lead'
+      'hot': { 
+        days: 1, hours: 0, 
+        priority: 'urgent', 
+        title: 'HOT LEAD - Priority follow-up',
+        description: 'High priority lead - immediate attention required' 
+      },
+      'warm': { 
+        days: 2, hours: 0, 
+        priority: 'high', 
+        title: 'Warm lead follow-up',
+        description: 'Engaged lead needs regular follow-up' 
+      },
+      'cold': { 
+        days: 7, hours: 0, 
+        priority: 'low', 
+        title: 'Cold lead check-in',
+        description: 'Periodic check-in with cold lead' 
+      },
+      'quote_requested': { 
+        days: 1, hours: 0, 
+        priority: 'urgent', 
+        title: 'URGENT: Quote Request',
+        description: 'Customer has requested a quote - respond immediately' 
       }
     };
-    
+
     const rule = reminderRules[leadData.status];
     if (!rule) {
-      console.log(`No reminder rule for status: ${leadData.status}`);
+      console.log(`⚠️ No reminder rule for status: ${leadData.status}`);
       return null;
     }
 
-    // Don't create reminders for completed statuses
-    const completedStatuses = ['converted', 'payment_received', 'closed', 'cancelled', 'won', 'lost'];
-    if (completedStatuses.includes(leadData.status)) {
-      console.log(`No reminder needed for completed status: ${leadData.status}`);
+    if (!leadData.assigned_to) {
+      console.log(`⚠️ No assignee for reminder - lead: ${leadId}`);
       return null;
     }
 
-    // Don't create reminder if no one is assigned (except for unassigned status)
-    if (leadData.status !== 'unassigned' && !leadData.assigned_to) {
-      console.log('No reminder created - no assigned user');
-      return null;
-    }
-    
     // Calculate due date
     const dueDate = new Date();
     if (rule.days > 0) {
@@ -293,6 +307,7 @@ class Lead {
     };
     
     try {
+      const Reminder = require('./Reminder');
       const reminder = new Reminder(reminderData);
       const savedReminder = await reminder.save();
       console.log(`✅ Auto-reminder created: ${savedReminder.id} for lead: ${leadId} (${leadData.status})`);
@@ -333,136 +348,107 @@ class Lead {
     }
   }
 
-  // ===== YOUR EXISTING CLIENT MANAGEMENT METHODS (UNCHANGED) =====
+  // ===== YOUR EXISTING CLIENT MANAGEMENT METHODS =====
 
-  // Generate consistent client ID from phone number
-  generateClientId(phone) {
-    if (!phone) return `client_unknown_${Date.now()}`;
-    
-    const cleanPhone = this.normalizePhone(phone);
-    return `client_${cleanPhone}`;
-  }
-
-  // Normalize phone number for consistent matching
-  normalizePhone(phone) {
-    if (!phone) return '';
-    
-    // Remove all non-numeric characters
-    let cleaned = phone.replace(/\D/g, '');
-    
-    // Handle Indian numbers (+91, 0, or direct 10 digits)
-    if (cleaned.startsWith('91') && cleaned.length === 12) {
-      cleaned = cleaned.substring(2); // Remove country code
-    }
-    if (cleaned.startsWith('0') && cleaned.length === 11) {
-      cleaned = cleaned.substring(1); // Remove leading 0
-    }
-    
-    return cleaned; // Should be 10 digits for Indian numbers
-  }
-
-  // Check if two phone numbers are the same
-  static phoneMatches(phone1, phone2) {
-    const lead = new Lead({ phone: phone1 });
-    const normalized1 = lead.normalizePhone(phone1);
-    const normalized2 = lead.normalizePhone(phone2);
-    return normalized1 === normalized2 && normalized1.length >= 10;
-  }
-
-  // Find existing client by phone number
-  static async findClientByPhone(phone) {
-    if (!phone) return { exists: false };
-
-    const lead = new Lead({ phone });
-    const clientId = lead.generateClientId(phone);
+  // Get client info by phone for deduplication
+  static async getClientByPhone(phone) {
+    if (!phone) return null;
     
     try {
-      const existingLeads = await db.collection(collections.leads)
-        .where('client_id', '==', clientId)
+      const cleanPhone = phone.replace(/\D/g, '');
+      
+      // Search for existing leads with this phone number
+      const snapshot = await db.collection(collections.leads)
+        .where('phone', '==', phone)
         .orderBy('created_date', 'asc')
+        .limit(50)
         .get();
-      
-      if (existingLeads.empty) {
-        return { exists: false };
+
+      if (snapshot.empty) {
+        console.log('No existing client found for phone:', phone);
+        return null;
       }
-      
-      const leads = existingLeads.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Analyze the leads to build client profile
+      const leads = [];
+      snapshot.forEach(doc => {
+        leads.push({ id: doc.id, ...doc.data() });
+      });
+
+      // Find the primary lead (usually the first one)
       const primaryLead = leads.find(l => l.is_primary_lead) || leads[0];
       
-      return {
-        exists: true,
-        client_id: clientId,
-        total_leads: leads.length,
+      // Calculate client metadata
+      const totalValue = leads.reduce((sum, lead) => sum + (lead.potential_value || 0), 0);
+      const events = [...new Set(leads.map(l => l.lead_for_event).filter(Boolean))];
+      const lastActivity = leads.reduce((latest, lead) => {
+        const leadDate = new Date(lead.client_last_activity || lead.updated_date || lead.created_date);
+        return leadDate > latest ? leadDate : latest;
+      }, new Date(0));
+
+      const clientInfo = {
+        client_id: primaryLead.client_id,
+        phone: phone,
+        name: primaryLead.name,
+        email: primaryLead.email,
         primary_assigned_to: primaryLead.assigned_to,
+        total_leads: leads.length,
+        total_value: totalValue,
+        events: events,
         first_contact: primaryLead.created_date,
-        events: [...new Set(leads.map(l => l.lead_for_event))],
+        last_activity: lastActivity.toISOString(),
         leads: leads.map(l => ({
           id: l.id,
           event: l.lead_for_event,
           status: l.status,
-          created_date: l.created_date,
-          potential_value: l.potential_value
+          value: l.potential_value,
+          date: l.created_date
         }))
       };
-    } catch (error) {
-      console.error('Error finding client by phone:', error);
-      return { exists: false, error: error.message };
-    }
-  }
 
-  // Update client metadata for all leads of this client
-  static async updateClientMetadata(clientId, updates) {
-    try {
-      const snapshot = await db.collection(collections.leads)
-        .where('client_id', '==', clientId)
-        .get();
-      
-      const batch = db.batch();
-      snapshot.forEach(doc => {
-        batch.update(doc.ref, {
-          ...updates,
-          updated_date: new Date().toISOString()
-        });
-      });
-      
-      await batch.commit();
-      return { success: true, updated_count: snapshot.size };
+      console.log(`Found existing client: ${clientInfo.name} with ${leads.length} leads`);
+      return clientInfo;
     } catch (error) {
-      console.error('Error updating client metadata:', error);
-      return { success: false, error: error.message };
+      console.error('Error searching for existing client:', error);
+      return null;
     }
   }
 
   // Get all clients (grouped leads)
   static async getAllClients() {
     try {
-      const snapshot = await db.collection(collections.leads).get();
-      const clientMap = {};
-      
+      const snapshot = await db.collection(collections.leads)
+        .orderBy('created_date', 'desc')
+        .get();
+
+      const leadsData = [];
       snapshot.forEach(doc => {
-        const lead = { id: doc.id, ...doc.data() };
-        const clientId = lead.client_id || `client_${lead.phone || 'unknown'}`;
+        leadsData.push({ id: doc.id, ...doc.data() });
+      });
+
+      // Group by client_id
+      const clientsMap = new Map();
+      
+      leadsData.forEach(lead => {
+        const clientId = lead.client_id || `single_${lead.id}`;
         
-        if (!clientMap[clientId]) {
-          clientMap[clientId] = {
+        if (!clientsMap.has(clientId)) {
+          clientsMap.set(clientId, {
             client_id: clientId,
-            phone: lead.phone,
             name: lead.name,
             email: lead.email,
-            company: lead.company,
+            phone: lead.phone,
             assigned_to: lead.assigned_to,
-            first_contact: lead.client_first_contact || lead.created_date,
-            last_activity: lead.client_last_activity || lead.updated_date,
             total_leads: 0,
             total_value: 0,
             events: [],
-            statuses: [],
-            sources: [],
-            leads: []
-          };
+            leads: [],
+            first_contact: lead.created_date,
+            last_activity: lead.client_last_activity || lead.updated_date
+          });
         }
         
-        const client = clientMap[clientId];
+        const client = clientsMap.get(clientId);
         client.total_leads++;
         client.total_value += (lead.potential_value || 0);
         
@@ -470,78 +456,50 @@ class Lead {
           client.events.push(lead.lead_for_event);
         }
         
-        if (!client.statuses.includes(lead.status)) {
-          client.statuses.push(lead.status);
-        }
-        
-        if (lead.source && !client.sources.includes(lead.source)) {
-          client.sources.push(lead.source);
-        }
-        
         client.leads.push({
           id: lead.id,
           event: lead.lead_for_event,
           status: lead.status,
-          potential_value: lead.potential_value,
-          source: lead.source,
-          created_date: lead.created_date,
-          updated_date: lead.updated_date
+          value: lead.potential_value,
+          date: lead.created_date
         });
         
         // Update last activity
-        if (new Date(lead.updated_date) > new Date(client.last_activity)) {
-          client.last_activity = lead.updated_date;
+        const leadActivity = new Date(lead.client_last_activity || lead.updated_date || lead.created_date);
+        const currentActivity = new Date(client.last_activity);
+        if (leadActivity > currentActivity) {
+          client.last_activity = leadActivity.toISOString();
         }
       });
-      
-      // Sort leads within each client by date (newest first)
-      Object.values(clientMap).forEach(client => {
-        client.leads.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
-      });
-      
-      return Object.values(clientMap);
+
+      return Array.from(clientsMap.values())
+        .sort((a, b) => new Date(b.last_activity) - new Date(a.last_activity));
     } catch (error) {
       console.error('Error getting all clients:', error);
-      return [];
+      throw error;
     }
   }
 
-  // Get single client details
-  static async getClientById(clientId) {
+  // Update client metadata across all leads
+  static async updateClientMetadata(clientId, metadata) {
     try {
       const snapshot = await db.collection(collections.leads)
         .where('client_id', '==', clientId)
-        .orderBy('created_date', 'desc')
         .get();
-      
-      if (snapshot.empty) {
-        return null;
-      }
-      
-      const leads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const primaryLead = leads.find(l => l.is_primary_lead) || leads[0];
-      
-      const clientDetails = {
-        client_id: clientId,
-        phone: primaryLead.phone,
-        name: primaryLead.name,
-        email: primaryLead.email,
-        company: primaryLead.company,
-        assigned_to: primaryLead.assigned_to,
-        first_contact: primaryLead.client_first_contact || primaryLead.created_date,
-        last_activity: Math.max(...leads.map(l => new Date(l.updated_date))),
-        total_leads: leads.length,
-        total_value: leads.reduce((sum, lead) => sum + (lead.potential_value || 0), 0),
-        events: [...new Set(leads.map(l => l.lead_for_event))],
-        sources: [...new Set(leads.map(l => l.source))],
-        statuses: [...new Set(leads.map(l => l.status))],
-        leads: leads
-      };
-      
-      return clientDetails;
+
+      const batch = db.batch();
+      snapshot.forEach(doc => {
+        batch.update(doc.ref, {
+          ...metadata,
+          updated_date: new Date().toISOString()
+        });
+      });
+
+      await batch.commit();
+      console.log(`Updated client metadata for ${snapshot.size} leads`);
     } catch (error) {
-      console.error('Error getting client by ID:', error);
-      return null;
+      console.error('Error updating client metadata:', error);
+      throw error;
     }
   }
 }
