@@ -643,40 +643,6 @@ return '';
 }
 };
 
-const handleStatusFilterToggle = (status) => {
-    setSelectedStatusFilters(prev => {
-        if (prev.includes(status)) {
-            return prev.filter(s => s !== status);
-        } else {
-            return [...prev, status];
-        }
-    });
-};
-
-const handleSelectAllStatuses = () => {
-    if (selectedStatusFilters.length === Object.keys(LEAD_STATUSES).length) {
-        setSelectedStatusFilters([]);
-    } else {
-        setSelectedStatusFilters(Object.keys(LEAD_STATUSES));
-    }
-};
-
-const handleClearAllStatuses = () => {
-    setSelectedStatusFilters([]);
-};
-
-const getStatusFilterDisplayText = () => {
-    if (selectedStatusFilters.length === 0) {
-        return 'All Statuses';
-    } else if (selectedStatusFilters.length === 1) {
-        return LEAD_STATUSES[selectedStatusFilters[0]].label;
-    } else if (selectedStatusFilters.length === Object.keys(LEAD_STATUSES).length) {
-        return 'All Statuses';
-    } else {
-        return `${selectedStatusFilters.length} statuses selected`;
-    }
-};
-
  
 // Helper function to format date for display (DD/MM/YYYY)
 const formatDateForDisplay = (dateValue) => {
@@ -1159,6 +1125,40 @@ const handleBulkAssignSubmit = async () => {
     }
 };
 
+
+const handleStatusFilterToggle = (status) => {
+    setSelectedStatusFilters(prev => {
+        if (prev.includes(status)) {
+            return prev.filter(s => s !== status);
+        } else {
+            return [...prev, status];
+        }
+    });
+};
+
+const handleSelectAllStatuses = () => {
+    if (selectedStatusFilters.length === Object.keys(LEAD_STATUSES).length) {
+        setSelectedStatusFilters([]);
+    } else {
+        setSelectedStatusFilters(Object.keys(LEAD_STATUSES));
+    }
+};
+
+const handleClearAllStatuses = () => {
+    setSelectedStatusFilters([]);
+};
+
+const getStatusFilterDisplayText = () => {
+    if (selectedStatusFilters.length === 0) {
+        return 'All Statuses';
+    } else if (selectedStatusFilters.length === 1) {
+        return LEAD_STATUSES[selectedStatusFilters[0]].label;
+    } else if (selectedStatusFilters.length === Object.keys(LEAD_STATUSES).length) {
+        return 'All Statuses';
+    } else {
+        return `${selectedStatusFilters.length} statuses selected`;
+    }
+}; 
 // Helper function to update order status
 
 
@@ -9619,13 +9619,15 @@ const renderLeadsContent = () => {
                  leadsBusinessTypeFilter !== 'all' || leadsEventFilter !== 'all') &&
                 React.createElement('button', {
                     onClick: () => {
-                        setSearchQuery('');
-                        setStatusFilter('all');
-                        setSelectedStatusFilters([]);
-                        setLeadsSourceFilter('all');
-                        setLeadsBusinessTypeFilter('all');
-                        setLeadsEventFilter('all');
-                        setCurrentLeadsPage(1);
+                     onClick: () => {
+                                    setSearchQuery('');
+                                    setStatusFilter('all');
+                                    setSelectedStatusFilters([]); // Add this line
+                                    setLeadsSourceFilter('all');
+                                    setLeadsBusinessTypeFilter('all');
+                                    setLeadsEventFilter('all');
+                                    setCurrentLeadsPage(1);
+                                    }
                     },
                     className: 'text-sm text-blue-600 hover:text-blue-800 underline'
                 }, 'Clear All Filters')
