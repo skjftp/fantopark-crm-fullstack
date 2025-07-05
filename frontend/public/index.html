@@ -5419,15 +5419,14 @@ React.createElement('div', { className: 'grid gap-4' },
                 React.createElement('p', { className: 'text-xs text-gray-500 mt-2' }, 'Users with this role: ' + (role.user_count || 0))
             ),
             React.createElement('div', { className: 'flex gap-2' },
-                !role.is_system && React.createElement('button', {
-                    onClick: () => {
-                        editingRole = role;
-                        roleFormData = JSON.parse(JSON.stringify(role)); // Deep copy
-                        setShowRoleForm(true);
-                        
-                    },
-                    className: 'text-blue-600 hover:text-blue-800'
-                }, 'Edit'),
+            !role.is_system && React.createElement('button', {
+            onClick: () => {
+            setEditingRole(role);                              // ← FIX 1: Use setter
+            setRoleFormData(JSON.parse(JSON.stringify(role))); // ← FIX 2: Use setter
+            setShowRoleForm(true);
+            },
+            className: 'text-blue-600 hover:text-blue-800'
+            }, 'Edit'),
                 !role.is_system && React.createElement('button', {
                     onClick: async () => {
                         if (!confirm('Are you sure you want to delete this role?')) return;
