@@ -188,3 +188,5 @@ class Reminder {
     return { updated: updatedCount };
   }
 }
+
+module.exports = Reminder;
