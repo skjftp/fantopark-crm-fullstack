@@ -5765,12 +5765,33 @@ React.createElement('div', { className: 'text-center py-12' },
     React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view users.')
 );
 case 'reminders':
-return hasPermission('leads', 'read') ? renderRemindersTab() : 
-React.createElement('div', { className: 'text-center py-12' },
-    React.createElement('p', { className: 'text-red-500 text-lg' }, 
+  if (hasPermission('leads', 'read')) {
+    // Just show the reminder dashboard directly
+    return React.createElement('div', null,
+      React.createElement('div', {
+        className: 'p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg mb-4'
+      },
+        React.createElement('h2', {
+          className: 'text-xl font-bold text-gray-900 dark:text-white mb-2'
+        }, '🔔 Smart Follow-up Reminders'),
+        React.createElement('p', {
+          className: 'text-gray-600 dark:text-gray-400'
+        }, `You have ${reminders.length} total reminders - ${reminderStats.pending} pending, ${reminderStats.overdue} overdue`)
+      ),
+      React.createElement('button', {
+        onClick: () => setShowReminderDashboard(true),
+        className: 'w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-lg font-semibold'
+      }, '📊 Open Reminder Dashboard'),
+      // Show the actual dashboard too
+      ReminderDashboard()
+    );
+  } else {
+    return React.createElement('div', { className: 'text-center py-12' },
+      React.createElement('p', { className: 'text-red-500 text-lg' }, 
         'Access Denied: You do not have permission to view reminders.'
-    )
-); 
+      )
+    );
+  }
   
 case 'myactions':
 return renderMyActionsContent();
