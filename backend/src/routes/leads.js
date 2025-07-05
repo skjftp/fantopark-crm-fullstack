@@ -1,7 +1,8 @@
-// Enhanced backend/src/routes/leads.js - FULLY BACKWARD COMPATIBLE + AUTO-REMINDERS
+// Enhanced backend/src/routes/leads.js - FULLY BACKWARD COMPATIBLE + AUTO-REMINDERS + ASSIGNMENT RULES
 const express = require('express');
 const router = express.Router();
 const Lead = require('../models/Lead');
+const AssignmentRule = require('../models/AssignmentRule');
 const { authenticateToken } = require('../middleware/auth');
 
 // Import db for bulk operations (you already had this)
@@ -234,7 +235,7 @@ router.get('/check-phone/:phone', authenticateToken, async (req, res) => {
   }
 });
 
-// POST create lead - ENHANCED WITH AUTO-REMINDERS + CLIENT MANAGEMENT
+// POST create lead - ENHANCED WITH AUTO-REMINDERS + CLIENT MANAGEMENT + ASSIGNMENT RULES
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const newLeadData = req.body;
@@ -305,12 +306,51 @@ router.post('/', authenticateToken, async (req, res) => {
       }
     }
     
+    // 🚀 NEW: AUTOMATED ASSIGNMENT RULES INTEGRATION
+    if (!newLeadData.assigned_to || newLeadData.assigned_to === '') {
+      try {
+        console.log('🤖 Evaluating auto-assignment for new lead:', newLeadData.name);
+        const assignment = await AssignmentRule.evaluateLeadAssignment(newLeadData);
+        
+        if (assignment.assigned_to) {
+          newLeadData.assigned_to = assignment.assigned_to;
+          newLeadData.assignment_rule_used = assignment.assignment_rule_used;
+          newLeadData.assignment_reason = assignment.assignment_reason;
+          newLeadData.auto_assigned = true;
+          console.log(`✅ Auto-assigned to: ${assignment.assigned_to} via ${assignment.assignment_reason}`);
+        } else {
+          console.log('⚠️ No assignment could be determined');
+        }
+      } catch (assignmentError) {
+        console.error('❌ Auto-assignment failed (non-critical):', assignmentError);
+        // Don't fail the lead creation if assignment fails
+      }
+    }
+    
     // Create lead with auto-reminder support
     const lead = new Lead(newLeadData);
     const savedLead = await lead.save(); // This will trigger auto-reminder creation in the Lead model
     
     console.log(`✅ Lead created successfully: ${savedLead.id}`);
-    res.status(201).json({ data: savedLead });
+    
+    // Enhanced response includes assignment info
+    const response = { 
+      data: savedLead,
+      message: 'Lead created successfully'
+    };
+    
+    // Add assignment info to response if auto-assigned
+    if (savedLead.auto_assigned) {
+      response.assignment_info = {
+        auto_assigned: true,
+        assigned_to: savedLead.assigned_to,
+        assignment_reason: savedLead.assignment_reason,
+        rule_used: savedLead.assignment_rule_used
+      };
+      response.message += ' with auto-assignment';
+    }
+    
+    res.status(201).json(response);
     
   } catch (error) {
     console.error('Error creating lead:', error);
