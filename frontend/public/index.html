@@ -1275,7 +1275,7 @@ const checkPhoneForClient = async (phone) => {
 
 // Add this function to handle phone input changes with debouncing
 const handlePhoneChange = (value) => {
-    setLeadFormData(prev => ({ ...prev, phone: value }));
+    setFormData(prev => ({ ...prev, phone: value }));
     
     // Clear existing timeout
     if (phoneCheckTimeout) {
@@ -1293,7 +1293,7 @@ const handlePhoneChange = (value) => {
 // Add this function to apply client suggestions
 const applyClientSuggestion = () => {
     if (clientSuggestion) {
-        setLeadFormData(prev => ({
+        setFormData(prev => ({
             ...prev,
             assigned_to: clientSuggestion.suggested_assigned_to,
             company: clientSuggestion.client_history[0]?.company || prev.company,
@@ -7919,7 +7919,7 @@ const renderForm = () => {
                                         // Open client detail for this client
                                         fetchClients().then(() => {
                                             const client = clients.find(c => 
-                                                c.leads.some(l => l.phone === leadFormData.phone)
+                                                c.leads.some(l => l.phone === formData.phone)
                                             );
                                             if (client) {
                                                 setSelectedClient(client);
@@ -7961,8 +7961,8 @@ const renderForm = () => {
                             ),
                             React.createElement('input', {
                                 type: 'text',
-                                value: leadFormData.name || '',
-                                onChange: (e) => setLeadFormData(prev => ({ ...prev, name: e.target.value })),
+                                value: formData.name || '',
+                                onChange: (e) => setFormData(prev => ({ ...prev, name: e.target.value })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                                 required: true,
                                 placeholder: 'Enter full name'
@@ -7976,8 +7976,8 @@ const renderForm = () => {
                             ),
                             React.createElement('input', {
                                 type: 'email',
-                                value: leadFormData.email || '',
-                                onChange: (e) => setLeadFormData(prev => ({ ...prev, email: e.target.value })),
+                                value: formData.email || '',
+                                onChange: (e) => setFormData(prev => ({ ...prev, email: e.target.value })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                                 required: true,
                                 placeholder: 'Enter email address'
@@ -7992,7 +7992,7 @@ const renderForm = () => {
                             ),
                             React.createElement('input', {
                                 type: 'tel',
-                                value: leadFormData.phone || '',
+                                value: formData.phone || '',
                                 onChange: (e) => handlePhoneChange(e.target.value), // Enhanced with client detection
                                 className: `w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                                     showClientSuggestion ? 'border-yellow-400 bg-yellow-50' : ''
@@ -8011,8 +8011,8 @@ const renderForm = () => {
                             ),
                             React.createElement('input', {
                                 type: 'text',
-                                value: leadFormData.company || '',
-                                onChange: (e) => setLeadFormData(prev => ({ ...prev, company: e.target.value })),
+                                value: formData.company || '',
+                                onChange: (e) => setFormData(prev => ({ ...prev, company: e.target.value })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                                 placeholder: 'Enter company name'
                             })
@@ -8024,8 +8024,8 @@ const renderForm = () => {
                                 'Business Type'
                             ),
                             React.createElement('select', {
-                                value: leadFormData.business_type || 'B2C',
-                                onChange: (e) => setLeadFormData(prev => ({ ...prev, business_type: e.target.value })),
+                                value: formData.business_type || 'B2C',
+                                onChange: (e) => setFormData(prev => ({ ...prev, business_type: e.target.value })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                             },
                                 React.createElement('option', { value: 'B2C' }, 'B2C (Business to Consumer)'),
@@ -8046,8 +8046,8 @@ const renderForm = () => {
                                 'Event/Service Interested In'
                             ),
                             React.createElement('select', {
-                                value: leadFormData.lead_for_event || '',
-                                onChange: (e) => setLeadFormData(prev => ({ ...prev, lead_for_event: e.target.value })),
+                                value: formData.lead_for_event || '',
+                                onChange: (e) => setFormData(prev => ({ ...prev, lead_for_event: e.target.value })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                             },
                                 React.createElement('option', { value: '' }, 'Select an event or service'),
@@ -8065,8 +8065,8 @@ const renderForm = () => {
                             React.createElement('input', {
                                 type: 'number',
                                 min: '1',
-                                value: leadFormData.number_of_people || 1,
-                                onChange: (e) => setLeadFormData(prev => ({ ...prev, number_of_people: parseInt(e.target.value) || 1 })),
+                                value: formData.number_of_people || 1,
+                                onChange: (e) => setFormData(prev => ({ ...prev, number_of_people: parseInt(e.target.value) || 1 })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                             })
                         ),
@@ -8080,10 +8080,10 @@ const renderForm = () => {
                                 )
                             ),
                             React.createElement('select', {
-                                value: leadFormData.assigned_to || '',
-                                onChange: (e) => setLeadFormData(prev => ({ ...prev, assigned_to: e.target.value })),
+                                value: formData.assigned_to || '',
+                                onChange: (e) => setFormData(prev => ({ ...prev, assigned_to: e.target.value })),
                                 className: `w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                    clientSuggestion && leadFormData.assigned_to === clientSuggestion.suggested_assigned_to ? 'bg-blue-50 border-blue-400' : ''
+                                    clientSuggestion && formData.assigned_to === clientSuggestion.suggested_assigned_to ? 'bg-blue-50 border-blue-400' : ''
                                 }`
                             },
                                 React.createElement('option', { value: '' }, 'Select sales person'),
@@ -8096,7 +8096,7 @@ const renderForm = () => {
                                         }, user.name || user.email)
                                     )
                             ),
-                            clientSuggestion && leadFormData.assigned_to === clientSuggestion.suggested_assigned_to &&
+                            clientSuggestion && formData.assigned_to === clientSuggestion.suggested_assigned_to &&
                             React.createElement('div', { className: 'text-xs text-blue-600 mt-1' }, 
                                 '✓ Smart suggestion applied - keeping client with same sales person'
                             )
@@ -8108,8 +8108,8 @@ const renderForm = () => {
                                 'Lead Source'
                             ),
                             React.createElement('select', {
-                                value: leadFormData.source || '',
-                                onChange: (e) => setLeadFormData(prev => ({ ...prev, source: e.target.value })),
+                                value: formData.source || '',
+                                onChange: (e) => setFormData(prev => ({ ...prev, source: e.target.value })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                             },
                                 React.createElement('option', { value: '' }, 'Select source'),
@@ -8126,8 +8126,8 @@ const renderForm = () => {
                             ),
                             React.createElement('input', {
                                 type: 'date',
-                                value: leadFormData.date_of_enquiry || '',
-                                onChange: (e) => setLeadFormData(prev => ({ ...prev, date_of_enquiry: e.target.value })),
+                                value: formData.date_of_enquiry || '',
+                                onChange: (e) => setFormData(prev => ({ ...prev, date_of_enquiry: e.target.value })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                             })
                         )
@@ -8148,8 +8148,8 @@ const renderForm = () => {
                                 ),
                                 React.createElement('input', {
                                     type: 'text',
-                                    value: leadFormData.city_of_residence || '',
-                                    onChange: (e) => setLeadFormData(prev => ({ ...prev, city_of_residence: e.target.value })),
+                                    value: formData.city_of_residence || '',
+                                    onChange: (e) => setFormData(prev => ({ ...prev, city_of_residence: e.target.value })),
                                     className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                                     placeholder: 'Enter city'
                                 })
@@ -8160,8 +8160,8 @@ const renderForm = () => {
                                 ),
                                 React.createElement('input', {
                                     type: 'text',
-                                    value: leadFormData.country_of_residence || 'India',
-                                    onChange: (e) => setLeadFormData(prev => ({ ...prev, country_of_residence: e.target.value })),
+                                    value: formData.country_of_residence || 'India',
+                                    onChange: (e) => setFormData(prev => ({ ...prev, country_of_residence: e.target.value })),
                                     className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                                 })
                             ),
@@ -8172,8 +8172,8 @@ const renderForm = () => {
                                     'Annual Income Bracket'
                                 ),
                                 React.createElement('select', {
-                                    value: leadFormData.annual_income_bracket || '',
-                                    onChange: (e) => setLeadFormData(prev => ({ ...prev, annual_income_bracket: e.target.value })),
+                                    value: formData.annual_income_bracket || '',
+                                    onChange: (e) => setFormData(prev => ({ ...prev, annual_income_bracket: e.target.value })),
                                     className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                                 },
                                     React.createElement('option', { value: '' }, 'Select income bracket'),
@@ -8189,8 +8189,8 @@ const renderForm = () => {
                                 React.createElement('input', {
                                     type: 'number',
                                     min: '0',
-                                    value: leadFormData.potential_value || 0,
-                                    onChange: (e) => setLeadFormData(prev => ({ ...prev, potential_value: parseInt(e.target.value) || 0 })),
+                                    value: formData.potential_value || 0,
+                                    onChange: (e) => setFormData(prev => ({ ...prev, potential_value: parseInt(e.target.value) || 0 })),
                                     className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                                     placeholder: 'Estimated deal value'
                                 })
@@ -8205,8 +8205,8 @@ const renderForm = () => {
                         'Notes'
                     ),
                     React.createElement('textarea', {
-                        value: leadFormData.notes || '',
-                        onChange: (e) => setLeadFormData(prev => ({ ...prev, notes: e.target.value })),
+                        value: formData.notes || '',
+                        onChange: (e) => setFormData(prev => ({ ...prev, notes: e.target.value })),
                         className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                         rows: 3,
                         placeholder: 'Add any additional notes or comments...'
@@ -8228,7 +8228,7 @@ const renderForm = () => {
                     }, 'Cancel'),
                     React.createElement('button', {
                         onClick: handleSubmit,
-                        disabled: loading || !leadFormData.name || !leadFormData.email,
+                        disabled: loading || !formData.name || !formData.email,
                         className: 'px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
                     }, loading ? 'Saving...' : (isEdit ? 'Update Lead' : 'Create Lead'))
                 )
@@ -8504,7 +8504,7 @@ const renderClientDetailModal = () => {
                                 setShowClientDetail(false);
                                 setSelectedClient(null);
                                 // Pre-fill lead form with client data
-                                setLeadFormData({
+                                setFormData({
                                     name: primaryLead.name,
                                     email: primaryLead.email,
                                     phone: primaryLead.phone,
