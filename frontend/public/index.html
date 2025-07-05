@@ -2187,7 +2187,7 @@ setLoading(false);
   if (!isLoggedIn) return;
   
   try {
-    const response = await apiCall('/reminders');
+    const response = await apiCall('/api/reminders');
     if (response.data) {
       const userReminders = response.data.filter(r => 
         r.assigned_to === user.email || 

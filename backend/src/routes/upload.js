@@ -802,3 +802,59 @@ router.get('/leads/sample-excel-simple', authenticateToken, async (req, res) => 
 });
 
 module.exports = router;
+
+// Add missing Excel download routes that frontend expects
+router.get('/leads/sample-excel-fixed', authenticateToken, async (req, res) => {
+  try {
+    // Redirect to the existing route or create a simple response
+    res.redirect('/api/upload/leads/sample-excel-with-validation');
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/leads/sample-excel-simple', authenticateToken, async (req, res) => {
+  try {
+    const XLSX = require('xlsx');
+    
+    // Create a simple Excel template
+    const wb = XLSX.utils.book_new();
+    
+    const headers = [
+      'Name', 'Email', 'Phone', 'Company', 'Business Type', 'Source', 
+      'Date of Enquiry', 'First Touch Base Done By', 'City of Residence', 
+      'Country of Residence', 'Lead for Event', 'Number of People', 
+      'Has Valid Passport', 'Visa Available', 'Attended Sporting Event Before', 
+      'Annual Income Bracket', 'Potential Value', 'Status', 'Assigned To', 
+      'Last Quoted Price', 'Notes'
+    ];
+    
+    const sampleData = [
+      [
+        'John Doe', 'john@example.com', '+919876543210', 'ABC Corp', 
+        'B2B', 'Facebook', '2025-01-15', 'Sales Team', 'Mumbai', 
+        'India', 'IPL 2025', '2', 'Yes', 'Not Required', 'No', 
+        '₹25-50 Lakhs', '500000', 'unassigned', '', '0', 'Interested in VIP tickets'
+      ]
+    ];
+    
+    const data = [headers, ...sampleData];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    
+    // Set column widths
+    ws['!cols'] = headers.map(() => ({ wch: 15 }));
+    
+    XLSX.utils.book_append_sheet(wb, ws, 'Leads Template');
+    
+    const workbookOut = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    
+    res.setHeader('Content-Disposition', 'attachment; filename="leads_template_simple.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    
+    res.send(workbookOut);
+    
+  } catch (error) {
+    console.error('Excel simple error:', error);
+    res.status(500).json({ error: 'Failed to create simple Excel template: ' + error.message });
+  }
+});

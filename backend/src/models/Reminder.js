@@ -81,7 +81,7 @@ class Reminder {
     return { id: doc.id, ...doc.data() };
   }
 
-  static async getByLeadId(leadId) {
+  static async getByLead(leadId) {
     const snapshot = await db.collection('crm_reminders')
       .where('lead_id', '==', leadId)
       .orderBy('due_date', 'asc')
