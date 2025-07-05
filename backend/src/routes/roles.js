@@ -25,6 +25,68 @@ router.get('/', authenticateToken, checkPermission('users', 'manage_roles'), asy
     }
 });
 
+// DELETE role by ID
+router.delete('/:id', authenticateToken, checkPermission('users', 'manage_roles'), async (req, res) => {
+    try {
+        const roleId = req.params.id;
+        console.log(`DELETE request for role: ${roleId}`);
+        
+        // Check if role exists
+        const roleDoc = await db.collection('crm_roles').doc(roleId).get();
+        if (!roleDoc.exists) {
+            console.log(`Role not found: ${roleId}`);
+            return res.status(404).json({ error: 'Role not found' });
+        }
+        
+        const roleData = roleDoc.data();
+        console.log(`Role data:`, roleData);
+        
+        // Check if any users have this role
+        const usersSnapshot = await db.collection('crm_users')
+            .where('role', '==', roleData.name)
+            .limit(1)
+            .get();
+        
+        if (!usersSnapshot.empty) {
+            console.log(`Cannot delete role ${roleData.name} - users are assigned to it`);
+            return res.status(400).json({ 
+                error: 'Cannot delete role that is assigned to users',
+                details: `Role "${roleData.label}" is currently assigned to one or more users`
+            });
+        }
+        
+        // Allow deletion of system roles only for super_admin (for cleanup purposes)
+        if (roleData.is_system && req.user.role !== 'super_admin') {
+            console.log(`Non-super_admin attempting to delete system role: ${roleData.name}`);
+            return res.status(403).json({ 
+                error: 'Only super admins can delete system roles',
+                details: `Role "${roleData.label}" is a system role`
+            });
+        }
+        
+        // Delete the role
+        await db.collection('crm_roles').doc(roleId).delete();
+        console.log(`Role deleted successfully: ${roleId}`);
+        
+        res.json({ 
+            success: true,
+            message: 'Role deleted successfully',
+            deleted_role: {
+                id: roleId,
+                name: roleData.name,
+                label: roleData.label
+            }
+        });
+        
+    } catch (error) {
+        console.error('DELETE role error:', error);
+        res.status(500).json({ 
+            error: 'Failed to delete role',
+            details: error.message 
+        });
+    }
+});
+
 // Initialize default roles
 router.post('/initialize', authenticateToken, checkPermission('users', 'manage_roles'), async (req, res) => {
     try {
