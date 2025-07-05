@@ -643,6 +643,41 @@ return '';
 }
 };
 
+const handleStatusFilterToggle = (status) => {
+    setSelectedStatusFilters(prev => {
+        if (prev.includes(status)) {
+            return prev.filter(s => s !== status);
+        } else {
+            return [...prev, status];
+        }
+    });
+};
+
+const handleSelectAllStatuses = () => {
+    if (selectedStatusFilters.length === Object.keys(LEAD_STATUSES).length) {
+        setSelectedStatusFilters([]);
+    } else {
+        setSelectedStatusFilters(Object.keys(LEAD_STATUSES));
+    }
+};
+
+const handleClearAllStatuses = () => {
+    setSelectedStatusFilters([]);
+};
+
+const getStatusFilterDisplayText = () => {
+    if (selectedStatusFilters.length === 0) {
+        return 'All Statuses';
+    } else if (selectedStatusFilters.length === 1) {
+        return LEAD_STATUSES[selectedStatusFilters[0]].label;
+    } else if (selectedStatusFilters.length === Object.keys(LEAD_STATUSES).length) {
+        return 'All Statuses';
+    } else {
+        return `${selectedStatusFilters.length} statuses selected`;
+    }
+};
+
+ 
 // Helper function to format date for display (DD/MM/YYYY)
 const formatDateForDisplay = (dateValue) => {
 if (!dateValue) return 'Not Set';
@@ -1034,6 +1069,9 @@ const [leadsSortDirection, setLeadsSortDirection] = useState('desc');
 const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
 const [bulkAssignSelections, setBulkAssignSelections] = useState({});
 const [bulkAssignLoading, setBulkAssignLoading] = useState(false);
+const [selectedStatusFilters, setSelectedStatusFilters] = useState([]);
+const [showStatusFilterDropdown, setShowStatusFilterDropdown] = useState(false);
+const statusDropdownRef = useRef(null);
 
 
 // Edit order function - in App scope
@@ -1536,6 +1574,16 @@ if (isLoggedIn) {
 calculateDashboardStats();
 }
 }, [isLoggedIn]);
+
+useEffect(() => {
+    const handleClickOutside = (event) => {
+        if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
+            setShowStatusFilterDropdown(false);
+        }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+}, []);
 
 // Add useEffect to extract filter data when leads or users change
 useEffect(() => {
@@ -9206,8 +9254,16 @@ const renderLeadsContent = () => {
             (lead.company && lead.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
             (lead.phone && lead.phone.includes(searchQuery));
 
-        // Status filter
-        const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
+        // Updated status filter - support both old single filter and new multi-select
+        let matchesStatus = true;
+        
+        if (selectedStatusFilters.length > 0) {
+            // Use new multi-select filter
+            matchesStatus = selectedStatusFilters.includes(lead.status);
+        } else if (statusFilter !== 'all') {
+            // Fallback to old single filter for backward compatibility
+            matchesStatus = lead.status === statusFilter;
+        }
         
         // Source filter (NEW)
         const matchesSource = leadsSourceFilter === 'all' || lead.source === leadsSourceFilter;
@@ -9324,24 +9380,151 @@ const renderLeadsContent = () => {
                     })
                 ),
                 
-                // Status Filter (Enhanced)
+                // Multi-Select Status Filter (NEW)
                 React.createElement('div', null,
                     React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Status'),
-                    React.createElement('select', {
-                        value: statusFilter,
-                        onChange: (e) => {
-                            setStatusFilter(e.target.value);
-                            setCurrentLeadsPage(1);
+                    React.createElement('div', { className: 'relative', ref: statusDropdownRef },
+                        React.createElement('button', {
+                            onClick: () => setShowStatusFilterDropdown(!showStatusFilterDropdown),
+                            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white flex items-center justify-between text-left'
                         },
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-                    },
-                        React.createElement('option', { value: 'all' }, 'All Status'),
-                        Object.keys(LEAD_STATUSES).map(status =>
-                            React.createElement('option', { key: status, value: status }, 
-                                LEAD_STATUSES[status].label
+                            React.createElement('span', { className: 'truncate' }, getStatusFilterDisplayText()),
+                            React.createElement('svg', {
+                                className: `w-5 h-5 transition-transform ${showStatusFilterDropdown ? 'rotate-180' : ''}`,
+                                fill: 'none',
+                                stroke: 'currentColor',
+                                viewBox: '0 0 24 24'
+                            },
+                                React.createElement('path', {
+                                    strokeLinecap: 'round',
+                                    strokeLinejoin: 'round',
+                                    strokeWidth: 2,
+                                    d: 'M19 9l-7 7-7-7'
+                                })
+                            )
+                        ),
+
+                        showStatusFilterDropdown && React.createElement('div', {
+                            className: 'absolute z-10 w-80 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-y-auto'
+                        },
+                            // Select/Deselect All Controls
+                            React.createElement('div', { className: 'border-b border-gray-200 p-3 bg-gray-50' },
+                                React.createElement('div', { className: 'flex justify-between' },
+                                    React.createElement('button', {
+                                        onClick: handleSelectAllStatuses,
+                                        className: 'text-sm text-blue-600 hover:text-blue-800 font-medium'
+                                    }, selectedStatusFilters.length === Object.keys(LEAD_STATUSES).length ? 'Deselect All' : 'Select All'),
+                                    React.createElement('button', {
+                                        onClick: handleClearAllStatuses,
+                                        className: 'text-sm text-red-600 hover:text-red-800 font-medium'
+                                    }, 'Clear All')
+                                )
+                            ),
+
+                            // Status Options Grouped
+                            React.createElement('div', { className: 'py-1' },
+                                // Initial Contact Group
+                                React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Initial Contact'),
+                                ['unassigned', 'assigned', 'contacted', 'attempt_1', 'attempt_2', 'attempt_3'].map(status =>
+                                    LEAD_STATUSES[status] && React.createElement('label', {
+                                        key: status,
+                                        className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
+                                    },
+                                        React.createElement('input', {
+                                            type: 'checkbox',
+                                            checked: selectedStatusFilters.includes(status),
+                                            onChange: () => handleStatusFilterToggle(status),
+                                            className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                                        }),
+                                        React.createElement('span', {
+                                            className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${LEAD_STATUSES[status].color}`
+                                        }, LEAD_STATUSES[status].label)
+                                    )
+                                ),
+                                
+                                // Qualification Group
+                                React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Qualification'),
+                                ['qualified', 'junk'].map(status =>
+                                    LEAD_STATUSES[status] && React.createElement('label', {
+                                        key: status,
+                                        className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
+                                    },
+                                        React.createElement('input', {
+                                            type: 'checkbox',
+                                            checked: selectedStatusFilters.includes(status),
+                                            onChange: () => handleStatusFilterToggle(status),
+                                            className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                                        }),
+                                        React.createElement('span', {
+                                            className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${LEAD_STATUSES[status].color}`
+                                        }, LEAD_STATUSES[status].label)
+                                    )
+                                ),
+                                
+                                // Temperature Group
+                                React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Temperature'),
+                                ['hot', 'warm', 'cold'].map(status =>
+                                    LEAD_STATUSES[status] && React.createElement('label', {
+                                        key: status,
+                                        className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
+                                    },
+                                        React.createElement('input', {
+                                            type: 'checkbox',
+                                            checked: selectedStatusFilters.includes(status),
+                                            onChange: () => handleStatusFilterToggle(status),
+                                            className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                                        }),
+                                        React.createElement('span', {
+                                            className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${LEAD_STATUSES[status].color}`
+                                        }, LEAD_STATUSES[status].label)
+                                    )
+                                ),
+                                
+                                // Sales Process Group
+                                React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Sales Process'),
+                                ['quote_requested', 'converted', 'dropped'].map(status =>
+                                    LEAD_STATUSES[status] && React.createElement('label', {
+                                        key: status,
+                                        className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
+                                    },
+                                        React.createElement('input', {
+                                            type: 'checkbox',
+                                            checked: selectedStatusFilters.includes(status),
+                                            onChange: () => handleStatusFilterToggle(status),
+                                            className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                                        }),
+                                        React.createElement('span', {
+                                            className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${LEAD_STATUSES[status].color}`
+                                        }, LEAD_STATUSES[status].label)
+                                    )
+                                ),
+                                
+                                // Payment Group
+                                React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Payment'),
+                                ['payment', 'payment_post_service', 'payment_received'].map(status =>
+                                    LEAD_STATUSES[status] && React.createElement('label', {
+                                        key: status,
+                                        className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
+                                    },
+                                        React.createElement('input', {
+                                            type: 'checkbox',
+                                            checked: selectedStatusFilters.includes(status),
+                                            onChange: () => handleStatusFilterToggle(status),
+                                            className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                                        }),
+                                        React.createElement('span', {
+                                            className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${LEAD_STATUSES[status].color}`
+                                        }, LEAD_STATUSES[status].label)
+                                    )
+                                )
                             )
                         )
-                    )
+                    ),
+                    
+                    // Filter indicator
+                    selectedStatusFilters.length > 0 && React.createElement('div', {
+                        className: 'mt-1 text-xs text-blue-600 font-medium'
+                    }, `Filtering by ${selectedStatusFilters.length} status${selectedStatusFilters.length !== 1 ? 'es' : ''}`)
                 ),
                 
                 // NEW: Source Filter
@@ -9432,12 +9615,13 @@ const renderLeadsContent = () => {
                 React.createElement('span', { className: 'text-sm text-gray-600' },
                     `Showing ${sortedLeads.length} of ${leads.length} leads`
                 ),
-                (searchQuery !== '' || statusFilter !== 'all' || leadsSourceFilter !== 'all' || 
+                (searchQuery !== '' || selectedStatusFilters.length > 0 || statusFilter !== 'all' || leadsSourceFilter !== 'all' || 
                  leadsBusinessTypeFilter !== 'all' || leadsEventFilter !== 'all') &&
                 React.createElement('button', {
                     onClick: () => {
                         setSearchQuery('');
                         setStatusFilter('all');
+                        setSelectedStatusFilters([]);
                         setLeadsSourceFilter('all');
                         setLeadsBusinessTypeFilter('all');
                         setLeadsEventFilter('all');
