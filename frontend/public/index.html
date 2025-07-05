@@ -8303,16 +8303,32 @@ const renderForm = () => {
                                 onChange: (e) => setFormData(prev => ({ ...prev, status: e.target.value })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                             },
+                                // Initial Contact Statuses
                                 React.createElement('option', { value: 'unassigned' }, 'Unassigned'),
                                 React.createElement('option', { value: 'assigned' }, 'Assigned'),
                                 React.createElement('option', { value: 'contacted' }, 'Contacted'),
+                                React.createElement('option', { value: 'attempt_1' }, 'Attempt 1'),
+                                React.createElement('option', { value: 'attempt_2' }, 'Attempt 2'),
+                                React.createElement('option', { value: 'attempt_3' }, 'Attempt 3'),
+                                
+                                // Qualification Statuses
                                 React.createElement('option', { value: 'qualified' }, 'Qualified'),
+                                React.createElement('option', { value: 'junk' }, 'Junk'),
+                                
+                                // Temperature Statuses
                                 React.createElement('option', { value: 'hot' }, 'Hot'),
                                 React.createElement('option', { value: 'warm' }, 'Warm'),
                                 React.createElement('option', { value: 'cold' }, 'Cold'),
+                                
+                                // Sales Process Statuses
+                                React.createElement('option', { value: 'quote_requested' }, 'Quote Requested'),
                                 React.createElement('option', { value: 'converted' }, 'Converted'),
                                 React.createElement('option', { value: 'dropped' }, 'Dropped'),
-                                React.createElement('option', { value: 'junk' }, 'Junk')
+                                
+                                // Payment Statuses
+                                React.createElement('option', { value: 'payment' }, 'Payment'),
+                                React.createElement('option', { value: 'payment_post_service' }, 'Payment Post Service'),
+                                React.createElement('option', { value: 'payment_received' }, 'Payment Received')
                             )
                         ),
                         React.createElement('div', null,
@@ -8359,7 +8375,7 @@ const renderForm = () => {
                         className: 'px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50'
                     }, 'Cancel'),
                     React.createElement('button', {
-                        onClick: handleFormSubmit,
+                        onClick: handleSubmit,
                         disabled: loading || !formData.name || !formData.email,
                         className: 'px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
                     }, loading ? 'Saving...' : (isEdit ? 'Update Lead' : 'Create Lead'))
