@@ -7814,7 +7814,7 @@ alert('Payment submission failed. Please try again.');
 
 // Generic form renderer with all sections
 const renderForm = () => {
-    if (!showLeadForm && !showEditForm) return null;
+    if (!showAddForm && !showEditForm) return null;
 
     const isEdit = showEditForm;
     const title = isEdit ? 'Edit Lead' : 'Create New Lead';
