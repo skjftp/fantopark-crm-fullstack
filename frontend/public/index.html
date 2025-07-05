@@ -1071,7 +1071,7 @@ const [bulkAssignSelections, setBulkAssignSelections] = useState({});
 const [bulkAssignLoading, setBulkAssignLoading] = useState(false);
 const [selectedStatusFilters, setSelectedStatusFilters] = useState([]);
 const [showStatusFilterDropdown, setShowStatusFilterDropdown] = useState(false);
-const statusDropdownRef = useRef(null);
+const statusDropdownRef = React.useRef(null);
 
 
 // Edit order function - in App scope
