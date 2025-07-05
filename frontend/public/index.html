@@ -1083,6 +1083,8 @@ const [stadiumSortField, setStadiumSortField] = useState('name');
 const [stadiumSortDirection, setStadiumSortDirection] = useState('asc');
 const [stadiumSearchQuery, setStadiumSearchQuery] = useState('');
 const [stadiumSportFilter, setStadiumSportFilter] = useState('all');
+const [dynamicRoles, setDynamicRoles] = useState({});
+const [rolesLoaded, setRolesLoaded] = useState(false);
 
 
 // Edit order function - in App scope
@@ -1170,6 +1172,28 @@ const handleBulkAssignSubmit = async () => {
     }
 };
 
+ const fetchUserRoles = async () => {
+  try {
+    const response = await apiCall('/roles');
+    const roleMap = {};
+    
+    // Convert API roles to permission format
+    response.data.forEach(role => {
+      roleMap[role.name] = {
+        label: role.label,
+        permissions: role.permissions
+      };
+    });
+    
+    setDynamicRoles(roleMap);
+    setRolesLoaded(true);
+  } catch (error) {
+    console.error('Failed to fetch roles:', error);
+    // Fallback to hardcoded roles if API fails
+    setDynamicRoles(USER_ROLES);
+    setRolesLoaded(true);
+  }
+};
 
 const handleStatusFilterToggle = (status) => {
     setSelectedStatusFilters(prev => {
@@ -1629,28 +1653,33 @@ tempValue: null
 
 
 // Permission check function
+// Updated Permission check function with dynamic roles
 const hasPermission = (module, action) => {
-if (user?.role === 'super_admin') return true;
-if (!user || !user.role) {
-console.log('No user or role found');
-return false;
-}
+  if (user?.role === 'super_admin') return true;
+  if (!user || !user.role) {
+    console.log('No user or role found');
+    return false;
+  }
 
-const userRole = USER_ROLES[user.role];
-if (!userRole) {
-console.log('Role not found:', user.role);
-return false;
-}
+  // Use dynamic roles if loaded, otherwise fallback to hardcoded
+  const availableRoles = rolesLoaded ? dynamicRoles : USER_ROLES;
+  const userRole = availableRoles[user.role];
+  
+  if (!userRole) {
+    console.log('Role not found in available roles:', user.role);
+    console.log('Available roles:', Object.keys(availableRoles));
+    return false;
+  }
 
-const modulePermissions = userRole.permissions[module];
-if (!modulePermissions) {
-console.log('Module permissions not found:', module);
-return false;
-}
+  const modulePermissions = userRole.permissions[module];
+  if (!modulePermissions) {
+    console.log('Module permissions not found:', module);
+    return false;
+  }
 
-const hasAccess = modulePermissions[action] === true;
-console.log('Permission check: ' + (user.role) + ' -> ' + (module) + '.' + (action) + ' = ' + (hasAccess));
-return hasAccess;
+  const hasAccess = modulePermissions[action] === true;
+  console.log(`Permission check: ${user.role} -> ${module}.${action} = ${hasAccess}`);
+  return hasAccess;
 };
 
 // Check if user can access a tab
@@ -2518,6 +2547,7 @@ localStorage.setItem('crm_user', JSON.stringify(response.user));
 setUser(response.user);
 debugLog('LOGIN_SUCCESS', { user: response.user });
 setIsLoggedIn(true);
+  await fetchUserRoles();
 // Clear any cached user management data
 setUsers([]);
 setEmail('');
