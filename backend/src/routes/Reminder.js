@@ -327,4 +327,6 @@ static async createAutoReminder(leadId, leadData, reminderType = 'follow_up') {
     console.error('Failed to create auto-reminder:', error);
     return null;
   }
-}
+};
+
+module.exports = router;
