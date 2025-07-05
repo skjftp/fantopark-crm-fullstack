@@ -1275,7 +1275,7 @@ const checkPhoneForClient = async (phone) => {
 
 // Add this function to handle phone input changes with debouncing
 const handlePhoneChange = (value) => {
-    setFormData(prev => ({ ...prev, phone: value }));
+    setLeadFormData(prev => ({ ...prev, phone: value }));
     
     // Clear existing timeout
     if (phoneCheckTimeout) {
@@ -1293,7 +1293,7 @@ const handlePhoneChange = (value) => {
 // Add this function to apply client suggestions
 const applyClientSuggestion = () => {
     if (clientSuggestion) {
-        setFormData(prev => ({
+        setLeadFormData(prev => ({
             ...prev,
             assigned_to: clientSuggestion.suggested_assigned_to,
             company: clientSuggestion.client_history[0]?.company || prev.company,
@@ -7814,7 +7814,7 @@ alert('Payment submission failed. Please try again.');
 
 // Generic form renderer with all sections
 const renderForm = () => {
-    if (!showAddForm && !showEditForm) return null;
+    if (!showLeadForm && !showEditForm) return null;
 
     const isEdit = showEditForm;
     const title = isEdit ? 'Edit Lead' : 'Create New Lead';
@@ -7919,7 +7919,7 @@ const renderForm = () => {
                                         // Open client detail for this client
                                         fetchClients().then(() => {
                                             const client = clients.find(c => 
-                                                c.leads.some(l => l.phone === formData.phone)
+                                                c.leads.some(l => l.phone === leadFormData.phone)
                                             );
                                             if (client) {
                                                 setSelectedClient(client);
@@ -7945,7 +7945,7 @@ const renderForm = () => {
                     )
                 ),
 
-                // Your Existing Form Fields (Enhanced)
+                // Complete Form Fields (All Your Original Fields + Smart Detection)
                 React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-6' },
                     
                     // Basic Information Section
@@ -7957,12 +7957,12 @@ const renderForm = () => {
                         // Name Field
                         React.createElement('div', null,
                             React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                                'Name *'
+                                'Contact Name *'
                             ),
                             React.createElement('input', {
                                 type: 'text',
-                                value: formData.name || '',
-                                onChange: (e) => setFormData(prev => ({ ...prev, name: e.target.value })),
+                                value: leadFormData.name || '',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, name: e.target.value })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                                 required: true,
                                 placeholder: 'Enter full name'
@@ -7976,8 +7976,8 @@ const renderForm = () => {
                             ),
                             React.createElement('input', {
                                 type: 'email',
-                                value: formData.email || '',
-                                onChange: (e) => setFormData(prev => ({ ...prev, email: e.target.value })),
+                                value: leadFormData.email || '',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, email: e.target.value })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                                 required: true,
                                 placeholder: 'Enter email address'
@@ -7987,16 +7987,17 @@ const renderForm = () => {
                         // Phone Field with Smart Detection (Enhanced)
                         React.createElement('div', null,
                             React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                                'Phone Number',
+                                'Phone *',
                                 phoneCheckLoading && React.createElement('span', { className: 'ml-2 text-blue-600' }, '🔍')
                             ),
                             React.createElement('input', {
                                 type: 'tel',
-                                value: formData.phone || '',
+                                value: leadFormData.phone || '',
                                 onChange: (e) => handlePhoneChange(e.target.value), // Enhanced with client detection
                                 className: `w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                                     showClientSuggestion ? 'border-yellow-400 bg-yellow-50' : ''
                                 }`,
+                                required: true,
                                 placeholder: 'Enter phone number'
                             }),
                             React.createElement('div', { className: 'text-xs text-gray-500 mt-1' }, 
@@ -8011,8 +8012,8 @@ const renderForm = () => {
                             ),
                             React.createElement('input', {
                                 type: 'text',
-                                value: formData.company || '',
-                                onChange: (e) => setFormData(prev => ({ ...prev, company: e.target.value })),
+                                value: leadFormData.company || '',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, company: e.target.value })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                                 placeholder: 'Enter company name'
                             })
@@ -8021,12 +8022,13 @@ const renderForm = () => {
                         // Business Type
                         React.createElement('div', null,
                             React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                                'Business Type'
+                                'Business Type *'
                             ),
                             React.createElement('select', {
-                                value: formData.business_type || 'B2C',
-                                onChange: (e) => setFormData(prev => ({ ...prev, business_type: e.target.value })),
-                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                value: leadFormData.business_type || 'B2C',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, business_type: e.target.value })),
+                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                                required: true
                             },
                                 React.createElement('option', { value: 'B2C' }, 'B2C (Business to Consumer)'),
                                 React.createElement('option', { value: 'B2B' }, 'B2B (Business to Business)')
@@ -8034,23 +8036,143 @@ const renderForm = () => {
                         )
                     ),
                     
-                    // Event & Assignment Section
+                    // Source & Initial Contact Section
                     React.createElement('div', { className: 'space-y-4' },
                         React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 border-b pb-2' }, 
-                            '🎫 Event & Assignment'
+                            '📱 Source & Initial Contact'
                         ),
                         
+                        // Source Field - Extended Options
+                        React.createElement('div', null,
+                            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                                'Source of Lead *'
+                            ),
+                            React.createElement('select', {
+                                value: leadFormData.source || '',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, source: e.target.value })),
+                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                                required: true
+                            },
+                                React.createElement('option', { value: '' }, 'Select source'),
+                                ['Facebook', 'Instagram', 'LinkedIn', 'Friends and Family', 'Through Champion', 
+                                 'Website', 'Existing Client', 'Contacted on Social Media', 'Middlemen', 
+                                 'Wealth Management Firm', 'Media Agency', 'Concierge Desk', 
+                                 'Travel Partner', 'Travel OTA', 'WhatsApp', 'Email Campaign', 'Cold Call', 'Exhibition', 'Other'].map(source =>
+                                    React.createElement('option', { key: source, value: source }, source)
+                                )
+                            )
+                        ),
+                        
+                        // Date of Enquiry
+                        React.createElement('div', null,
+                            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                                'Date of Enquiry *'
+                            ),
+                            React.createElement('input', {
+                                type: 'date',
+                                value: leadFormData.date_of_enquiry || '',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, date_of_enquiry: e.target.value })),
+                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                                required: true
+                            })
+                        ),
+                        
+                        // First Touch Base Done By
+                        React.createElement('div', null,
+                            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                                'First Touch Base Done By'
+                            ),
+                            React.createElement('input', {
+                                type: 'text',
+                                value: leadFormData.first_touch_base_done_by || '',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, first_touch_base_done_by: e.target.value })),
+                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                                placeholder: 'Who made first contact'
+                            })
+                        ),
+                        
+                        // Assignment Field (Enhanced with Client Suggestion)
+                        React.createElement('div', null,
+                            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                                'Assign To',
+                                clientSuggestion && React.createElement('span', { className: 'ml-2 text-blue-600 text-xs' }, 
+                                    '(Suggested based on client history)'
+                                )
+                            ),
+                            React.createElement('select', {
+                                value: leadFormData.assigned_to || '',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, assigned_to: e.target.value })),
+                                className: `w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                    clientSuggestion && leadFormData.assigned_to === clientSuggestion.suggested_assigned_to ? 'bg-blue-50 border-blue-400' : ''
+                                }`
+                            },
+                                React.createElement('option', { value: '' }, 'Select sales person'),
+                                users.filter(u => u.role && ['sales_executive', 'sales_manager', 'admin', 'super_admin'].includes(u.role))
+                                    .map(user =>
+                                        React.createElement('option', { 
+                                            key: user.email, 
+                                            value: user.email,
+                                            selected: clientSuggestion && user.email === clientSuggestion.suggested_assigned_to
+                                        }, user.name || user.email)
+                                    )
+                            ),
+                            clientSuggestion && leadFormData.assigned_to === clientSuggestion.suggested_assigned_to &&
+                            React.createElement('div', { className: 'text-xs text-blue-600 mt-1' }, 
+                                '✓ Smart suggestion applied - keeping client with same sales person'
+                            )
+                        )
+                    )
+                ),
+                
+                // Location Information Section
+                React.createElement('div', { className: 'mt-6' },
+                    React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 border-b pb-2 mb-4' }, 
+                        '📍 Location Information'
+                    ),
+                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+                        React.createElement('div', null,
+                            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                                'City of Residence'
+                            ),
+                            React.createElement('input', {
+                                type: 'text',
+                                value: leadFormData.city_of_residence || '',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, city_of_residence: e.target.value })),
+                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                                placeholder: 'Enter city'
+                            })
+                        ),
+                        React.createElement('div', null,
+                            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                                'Country of Residence'
+                            ),
+                            React.createElement('input', {
+                                type: 'text',
+                                value: leadFormData.country_of_residence || 'India',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, country_of_residence: e.target.value })),
+                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            })
+                        )
+                    )
+                ),
+                
+                // Event & Travel Details Section
+                React.createElement('div', { className: 'mt-6' },
+                    React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 border-b pb-2 mb-4' }, 
+                        '🎫 Event & Travel Details'
+                    ),
+                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
                         // Event Field
                         React.createElement('div', null,
                             React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                                'Event/Service Interested In'
+                                'Lead for Event'
                             ),
                             React.createElement('select', {
-                                value: formData.lead_for_event || '',
-                                onChange: (e) => setFormData(prev => ({ ...prev, lead_for_event: e.target.value })),
+                                value: leadFormData.lead_for_event || '',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, lead_for_event: e.target.value })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                             },
-                                React.createElement('option', { value: '' }, 'Select an event or service'),
+                                React.createElement('option', { value: '' }, 'Select an event'),
                                 events.map(event =>
                                     React.createElement('option', { key: event, value: event }, event)
                                 )
@@ -8065,136 +8187,146 @@ const renderForm = () => {
                             React.createElement('input', {
                                 type: 'number',
                                 min: '1',
-                                value: formData.number_of_people || 1,
-                                onChange: (e) => setFormData(prev => ({ ...prev, number_of_people: parseInt(e.target.value) || 1 })),
+                                value: leadFormData.number_of_people || 1,
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, number_of_people: parseInt(e.target.value) || 1 })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                             })
                         ),
                         
-                        // Assignment Field (Enhanced with Client Suggestion)
+                        // Has Valid Passport
                         React.createElement('div', null,
                             React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                                'Assign To',
-                                clientSuggestion && React.createElement('span', { className: 'ml-2 text-blue-600 text-xs' }, 
-                                    '(Suggested based on client history)'
-                                )
+                                'Has Valid Passport'
                             ),
                             React.createElement('select', {
-                                value: formData.assigned_to || '',
-                                onChange: (e) => setFormData(prev => ({ ...prev, assigned_to: e.target.value })),
-                                className: `w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                    clientSuggestion && formData.assigned_to === clientSuggestion.suggested_assigned_to ? 'bg-blue-50 border-blue-400' : ''
-                                }`
-                            },
-                                React.createElement('option', { value: '' }, 'Select sales person'),
-                                users.filter(u => u.role && ['sales_executive', 'sales_manager', 'admin', 'super_admin'].includes(u.role))
-                                    .map(user =>
-                                        React.createElement('option', { 
-                                            key: user.email, 
-                                            value: user.email,
-                                            selected: clientSuggestion && user.email === clientSuggestion.suggested_assigned_to
-                                        }, user.name || user.email)
-                                    )
-                            ),
-                            clientSuggestion && formData.assigned_to === clientSuggestion.suggested_assigned_to &&
-                            React.createElement('div', { className: 'text-xs text-blue-600 mt-1' }, 
-                                '✓ Smart suggestion applied - keeping client with same sales person'
-                            )
-                        ),
-                        
-                        // Source Field
-                        React.createElement('div', null,
-                            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                                'Lead Source'
-                            ),
-                            React.createElement('select', {
-                                value: formData.source || '',
-                                onChange: (e) => setFormData(prev => ({ ...prev, source: e.target.value })),
+                                value: leadFormData.has_valid_passport || 'Not Sure',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, has_valid_passport: e.target.value })),
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                             },
-                                React.createElement('option', { value: '' }, 'Select source'),
-                                ['Facebook', 'WhatsApp', 'Instagram', 'LinkedIn', 'Referral', 'Website', 'Email Campaign', 'Cold Call', 'Exhibition', 'Other'].map(source =>
-                                    React.createElement('option', { key: source, value: source }, source)
-                                )
+                                React.createElement('option', { value: 'Yes' }, 'Yes'),
+                                React.createElement('option', { value: 'No' }, 'No'),
+                                React.createElement('option', { value: 'Not Sure' }, 'Not Sure')
                             )
                         ),
                         
-                        // Date of Enquiry
+                        // Visa Available
                         React.createElement('div', null,
                             React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                                'Date of Enquiry'
+                                'Visa Available'
+                            ),
+                            React.createElement('select', {
+                                value: leadFormData.visa_available || 'Not Required',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, visa_available: e.target.value })),
+                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            },
+                                React.createElement('option', { value: 'Required' }, 'Required'),
+                                React.createElement('option', { value: 'Not Required' }, 'Not Required'),
+                                React.createElement('option', { value: 'Processing' }, 'Processing'),
+                                React.createElement('option', { value: 'In Process' }, 'In Process'),
+                                React.createElement('option', { value: 'Not Sure' }, 'Not Sure')
+                            )
+                        )
+                    )
+                ),
+                
+                // Experience & Background Section
+                React.createElement('div', { className: 'mt-6' },
+                    React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 border-b pb-2 mb-4' }, 
+                        '🏆 Experience & Background'
+                    ),
+                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+                        React.createElement('div', null,
+                            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                                'Attended Sporting Event Before'
+                            ),
+                            React.createElement('select', {
+                                value: leadFormData.attended_sporting_event_before || 'No',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, attended_sporting_event_before: e.target.value })),
+                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            },
+                                React.createElement('option', { value: 'Yes' }, 'Yes'),
+                                React.createElement('option', { value: 'No' }, 'No')
+                            )
+                        )
+                    )
+                ),
+                
+                // Business & Financial Information Section  
+                React.createElement('div', { className: 'mt-6' },
+                    React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 border-b pb-2 mb-4' }, 
+                        '💰 Business & Financial Information'
+                    ),
+                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+                        React.createElement('div', null,
+                            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                                'Annual Income Bracket'
+                            ),
+                            React.createElement('select', {
+                                value: leadFormData.annual_income_bracket || '',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, annual_income_bracket: e.target.value })),
+                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            },
+                                React.createElement('option', { value: '' }, 'Select income bracket'),
+                                ['₹10-25 Lakhs', '₹25-50 Lakhs', '₹50-100 Lakhs', 'Above ₹1 Crore'].map(bracket =>
+                                    React.createElement('option', { key: bracket, value: bracket }, bracket)
+                                )
+                            )
+                        ),
+                        React.createElement('div', null,
+                            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                                'Potential Value (₹)'
                             ),
                             React.createElement('input', {
-                                type: 'date',
-                                value: formData.date_of_enquiry || '',
-                                onChange: (e) => setFormData(prev => ({ ...prev, date_of_enquiry: e.target.value })),
-                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                type: 'number',
+                                min: '0',
+                                value: leadFormData.potential_value || 0,
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, potential_value: parseInt(e.target.value) || 0 })),
+                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                                placeholder: 'Estimated deal value'
                             })
                         )
                     )
                 ),
                 
-                // Additional Information (Collapsible)
+                // Sales Information Section
                 React.createElement('div', { className: 'mt-6' },
-                    React.createElement('details', { className: 'border border-gray-200 rounded-lg' },
-                        React.createElement('summary', { className: 'bg-gray-50 px-4 py-3 cursor-pointer font-medium text-gray-700 hover:bg-gray-100' },
-                            '📝 Additional Information (Optional)'
-                        ),
-                        React.createElement('div', { className: 'p-4 grid grid-cols-1 md:grid-cols-2 gap-4' },
-                            // Location Fields
-                            React.createElement('div', null,
-                                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                                    'City of Residence'
-                                ),
-                                React.createElement('input', {
-                                    type: 'text',
-                                    value: formData.city_of_residence || '',
-                                    onChange: (e) => setFormData(prev => ({ ...prev, city_of_residence: e.target.value })),
-                                    className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
-                                    placeholder: 'Enter city'
-                                })
+                    React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 border-b pb-2 mb-4' }, 
+                        '💼 Sales Information'
+                    ),
+                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+                        React.createElement('div', null,
+                            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                                'Status'
                             ),
-                            React.createElement('div', null,
-                                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                                    'Country of Residence'
-                                ),
-                                React.createElement('input', {
-                                    type: 'text',
-                                    value: formData.country_of_residence || 'India',
-                                    onChange: (e) => setFormData(prev => ({ ...prev, country_of_residence: e.target.value })),
-                                    className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                })
-                            ),
-                            
-                            // Financial Information
-                            React.createElement('div', null,
-                                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                                    'Annual Income Bracket'
-                                ),
-                                React.createElement('select', {
-                                    value: formData.annual_income_bracket || '',
-                                    onChange: (e) => setFormData(prev => ({ ...prev, annual_income_bracket: e.target.value })),
-                                    className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                },
-                                    React.createElement('option', { value: '' }, 'Select income bracket'),
-                                    ['₹10-25 Lakhs', '₹25-50 Lakhs', '₹50-100 Lakhs', 'Above ₹1 Crore'].map(bracket =>
-                                        React.createElement('option', { key: bracket, value: bracket }, bracket)
-                                    )
-                                )
-                            ),
-                            React.createElement('div', null,
-                                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                                    'Potential Value (₹)'
-                                ),
-                                React.createElement('input', {
-                                    type: 'number',
-                                    min: '0',
-                                    value: formData.potential_value || 0,
-                                    onChange: (e) => setFormData(prev => ({ ...prev, potential_value: parseInt(e.target.value) || 0 })),
-                                    className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
-                                    placeholder: 'Estimated deal value'
-                                })
+                            React.createElement('select', {
+                                value: leadFormData.status || 'unassigned',
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, status: e.target.value })),
+                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            },
+                                React.createElement('option', { value: 'unassigned' }, 'Unassigned'),
+                                React.createElement('option', { value: 'assigned' }, 'Assigned'),
+                                React.createElement('option', { value: 'contacted' }, 'Contacted'),
+                                React.createElement('option', { value: 'qualified' }, 'Qualified'),
+                                React.createElement('option', { value: 'hot' }, 'Hot'),
+                                React.createElement('option', { value: 'warm' }, 'Warm'),
+                                React.createElement('option', { value: 'cold' }, 'Cold'),
+                                React.createElement('option', { value: 'converted' }, 'Converted'),
+                                React.createElement('option', { value: 'dropped' }, 'Dropped'),
+                                React.createElement('option', { value: 'junk' }, 'Junk')
                             )
+                        ),
+                        React.createElement('div', null,
+                            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                                'Last Quoted Price (₹)'
+                            ),
+                            React.createElement('input', {
+                                type: 'number',
+                                min: '0',
+                                value: leadFormData.last_quoted_price || 0,
+                                onChange: (e) => setLeadFormData(prev => ({ ...prev, last_quoted_price: parseInt(e.target.value) || 0 })),
+                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                                placeholder: 'Last quoted amount'
+                            })
                         )
                     )
                 ),
@@ -8205,8 +8337,8 @@ const renderForm = () => {
                         'Notes'
                     ),
                     React.createElement('textarea', {
-                        value: formData.notes || '',
-                        onChange: (e) => setFormData(prev => ({ ...prev, notes: e.target.value })),
+                        value: leadFormData.notes || '',
+                        onChange: (e) => setLeadFormData(prev => ({ ...prev, notes: e.target.value })),
                         className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                         rows: 3,
                         placeholder: 'Add any additional notes or comments...'
@@ -8227,8 +8359,8 @@ const renderForm = () => {
                         className: 'px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50'
                     }, 'Cancel'),
                     React.createElement('button', {
-                        onClick: handleFormSubmit,
-                        disabled: loading || !formData.name || !formData.email,
+                        onClick: handleSubmit,
+                        disabled: loading || !leadFormData.name || !leadFormData.email,
                         className: 'px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
                     }, loading ? 'Saving...' : (isEdit ? 'Update Lead' : 'Create Lead'))
                 )
