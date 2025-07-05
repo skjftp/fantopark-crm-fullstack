@@ -4605,9 +4605,9 @@ React.createElement('div', { className: 'space-y-4' },
             className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
             required: true
         },
-            Object.entries(USER_ROLES).map(([key, role]) =>
-                React.createElement('option', { key: key, value: key }, role.label)
-            )
+            roles.map(role =>
+    React.createElement('option', { key: role.name, value: role.name }, role.label)
+)
         )
     ),
     React.createElement('div', null,
