@@ -8173,9 +8173,20 @@ const renderForm = () => {
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                             },
                                 React.createElement('option', { value: '' }, 'Select an event'),
-                                events.map(event =>
-                                    React.createElement('option', { key: event, value: event }, event)
-                                )
+                                // Get events from inventory dynamically
+                                inventory && inventory.length > 0 ? 
+                                    Array.from(new Set(inventory.map(item => item.event_name).filter(Boolean))).sort().map(event =>
+                                        React.createElement('option', { key: event, value: event }, event)
+                                    ) :
+                                    // Fallback events if inventory not loaded
+                                    events && events.length > 0 ? events.map(event =>
+                                        React.createElement('option', { key: event, value: event }, event)
+                                    ) : [
+                                        React.createElement('option', { key: 'general', value: 'General Inquiry' }, 'General Inquiry'),
+                                        React.createElement('option', { key: 'cricket', value: 'Cricket Events' }, 'Cricket Events'),
+                                        React.createElement('option', { key: 'football', value: 'Football Events' }, 'Football Events'),
+                                        React.createElement('option', { key: 'tennis', value: 'Tennis Events' }, 'Tennis Events')
+                                    ]
                             )
                         ),
                         
@@ -8267,9 +8278,15 @@ const renderForm = () => {
                                 className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                             },
                                 React.createElement('option', { value: '' }, 'Select income bracket'),
-                                ['₹10-25 Lakhs', '₹25-50 Lakhs', '₹50-100 Lakhs', 'Above ₹1 Crore'].map(bracket =>
-                                    React.createElement('option', { key: bracket, value: bracket }, bracket)
-                                )
+                                React.createElement('option', { value: '₹5-10 Lakhs' }, '₹5-10 Lakhs'),
+                                React.createElement('option', { value: '₹10-25 Lakhs' }, '₹10-25 Lakhs'),
+                                React.createElement('option', { value: '₹25-50 Lakhs' }, '₹25-50 Lakhs'),
+                                React.createElement('option', { value: '₹50-100 Lakhs' }, '₹50-100 Lakhs'),
+                                React.createElement('option', { value: '₹1-2 Crores' }, '₹1-2 Crores'),
+                                React.createElement('option', { value: '₹2-5 Crores' }, '₹2-5 Crores'),
+                                React.createElement('option', { value: 'Above ₹5 Crores' }, 'Above ₹5 Crores'),
+                                React.createElement('option', { value: 'Above ₹1 Crore' }, 'Above ₹1 Crore'),
+                                React.createElement('option', { value: 'Prefer not to say' }, 'Prefer not to say')
                             )
                         ),
                         React.createElement('div', null,
