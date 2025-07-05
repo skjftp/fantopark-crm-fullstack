@@ -41,7 +41,7 @@ class Lead {
     this.created_date = data.created_date || new Date().toISOString();
     this.updated_date = new Date().toISOString();
 
-    // ===== NEW CLIENT MANAGEMENT FIELDS =====
+    // ===== CLIENT MANAGEMENT FIELDS (YOUR EXISTING) =====
     this.client_id = data.client_id || this.generateClientId(data.phone);
     this.is_primary_lead = data.is_primary_lead || false;
     this.client_total_leads = data.client_total_leads || 1;
@@ -78,18 +78,73 @@ class Lead {
     return { id: doc.id, ...doc.data() };
   }
 
+  // ENHANCED: Save method with auto-reminder support
   async save() {
-    const docRef = await db.collection(collections.leads).add({...this});
-    return { id: docRef.id, ...this };
+    try {
+      const isNew = !this.id;
+      
+      // Save the lead
+      const docRef = await db.collection(collections.leads).add({...this});
+      const savedLead = { id: docRef.id, ...this };
+      
+      // NEW: Auto-reminder logic for new leads
+      if (isNew) {
+        console.log(`🆕 New lead created: ${docRef.id} with status: ${this.status}`);
+        try {
+          await Lead.createAutoReminder(docRef.id, savedLead);
+        } catch (reminderError) {
+          console.error('⚠️ Auto-reminder creation failed (non-critical):', reminderError.message);
+          // Don't fail the lead creation if reminder fails
+        }
+      }
+
+      return savedLead;
+    } catch (error) {
+      console.error('Error saving lead:', error);
+      throw error;
+    }
   }
 
+  // ENHANCED: Update method with auto-reminder support
   static async update(id, data) {
-    const updateData = { ...data, updated_date: new Date().toISOString() };
-    await db.collection(collections.leads).doc(id).update(updateData);
-    
-    // Fetch and return the complete updated lead
-    const doc = await db.collection(collections.leads).doc(id).get();
-    return { id: doc.id, ...doc.data() };
+    try {
+      // Get current lead to compare status changes
+      const currentLead = await Lead.getById(id);
+      if (!currentLead) {
+        throw new Error('Lead not found');
+      }
+
+      const oldStatus = currentLead.status;
+      const newStatus = data.status;
+      
+      // Update the lead
+      const updateData = { ...data, updated_date: new Date().toISOString() };
+      await db.collection(collections.leads).doc(id).update(updateData);
+      
+      // Fetch the updated lead
+      const updatedLead = await Lead.getById(id);
+      
+      // NEW: Auto-reminder logic for status changes
+      if (newStatus && newStatus !== oldStatus) {
+        console.log(`📝 Lead status changed: ${id} from ${oldStatus} to ${newStatus}`);
+        
+        try {
+          // Cancel old reminders
+          await Lead.cancelOldReminders(id, newStatus);
+          
+          // Create new reminder for new status
+          await Lead.createAutoReminder(id, updatedLead);
+        } catch (reminderError) {
+          console.error('⚠️ Auto-reminder update failed (non-critical):', reminderError.message);
+          // Don't fail the lead update if reminder fails
+        }
+      }
+
+      return updatedLead;
+    } catch (error) {
+      console.error('Error updating lead:', error);
+      throw error;
+    }
   }
 
   static async delete(id) {
@@ -97,7 +152,188 @@ class Lead {
     return { success: true };
   }
 
-  // ===== NEW CLIENT MANAGEMENT METHODS =====
+  // ===== NEW AUTO-REMINDER METHODS =====
+
+  // Create automatic reminder when lead status changes
+  static async createAutoReminder(leadId, leadData, reminderType = 'follow_up') {
+    // Dynamically import Reminder to avoid circular dependency
+    const Reminder = require('./Reminder');
+    
+    // Define reminder rules based on lead status
+    const reminderRules = {
+      'unassigned': { 
+        days: 0, 
+        hours: 1, 
+        priority: 'high', 
+        title: 'Assign this lead',
+        description: 'This lead needs to be assigned to a sales person'
+      },
+      'assigned': { 
+        days: 1, 
+        hours: 0, 
+        priority: 'medium', 
+        title: 'Initial contact required',
+        description: 'Make first contact with this lead'
+      },
+      'contacted': { 
+        days: 2, 
+        hours: 0, 
+        priority: 'medium', 
+        title: 'Follow up on initial contact',
+        description: 'Follow up on the initial conversation'
+      },
+      'attempt_1': { 
+        days: 1, 
+        hours: 0, 
+        priority: 'medium', 
+        title: 'Second contact attempt',
+        description: 'Make second contact attempt'
+      },
+      'attempt_2': { 
+        days: 1, 
+        hours: 0, 
+        priority: 'high', 
+        title: 'Third contact attempt',
+        description: 'Make third contact attempt - lead getting cold'
+      },
+      'attempt_3': { 
+        days: 2, 
+        hours: 0, 
+        priority: 'high', 
+        title: 'Final contact attempt',
+        description: 'Last attempt before marking lead as cold'
+      },
+      'hot': { 
+        days: 1, 
+        hours: 0, 
+        priority: 'urgent', 
+        title: 'Priority follow-up - Hot lead',
+        description: 'This is a hot lead - follow up immediately'
+      },
+      'warm': { 
+        days: 2, 
+        hours: 0, 
+        priority: 'high', 
+        title: 'Follow up warm lead',
+        description: 'Follow up with this warm lead'
+      },
+      'cold': { 
+        days: 7, 
+        hours: 0, 
+        priority: 'low', 
+        title: 'Check in with cold lead',
+        description: 'Periodic check-in with cold lead'
+      },
+      'quote_requested': { 
+        days: 1, 
+        hours: 0, 
+        priority: 'urgent', 
+        title: 'Provide quote',
+        description: 'Customer has requested a quote - respond urgently'
+      },
+      'qualified': { 
+        days: 3, 
+        hours: 0, 
+        priority: 'medium', 
+        title: 'Nurture qualified lead',
+        description: 'Continue nurturing this qualified lead'
+      },
+      'new': { 
+        days: 1, 
+        hours: 0, 
+        priority: 'medium', 
+        title: 'Process new lead',
+        description: 'Review and assign this new lead'
+      }
+    };
+    
+    const rule = reminderRules[leadData.status];
+    if (!rule) {
+      console.log(`No reminder rule for status: ${leadData.status}`);
+      return null;
+    }
+
+    // Don't create reminders for completed statuses
+    const completedStatuses = ['converted', 'payment_received', 'closed', 'cancelled', 'won', 'lost'];
+    if (completedStatuses.includes(leadData.status)) {
+      console.log(`No reminder needed for completed status: ${leadData.status}`);
+      return null;
+    }
+
+    // Don't create reminder if no one is assigned (except for unassigned status)
+    if (leadData.status !== 'unassigned' && !leadData.assigned_to) {
+      console.log('No reminder created - no assigned user');
+      return null;
+    }
+    
+    // Calculate due date
+    const dueDate = new Date();
+    if (rule.days > 0) {
+      dueDate.setDate(dueDate.getDate() + rule.days);
+    }
+    if (rule.hours > 0) {
+      dueDate.setHours(dueDate.getHours() + rule.hours);
+    }
+    
+    // Create reminder data
+    const reminderData = {
+      lead_id: leadId,
+      assigned_to: leadData.assigned_to || 'unassigned',
+      type: reminderType,
+      title: rule.title,
+      description: rule.description + ` - Lead: ${leadData.name} (${leadData.email || leadData.phone})`,
+      due_date: dueDate.toISOString(),
+      priority: rule.priority,
+      status: 'pending',
+      auto_generated: true,
+      lead_status_when_created: leadData.status,
+      reminder_rule: rule,
+      created_by: 'system',
+      notes: `Auto-generated reminder for lead status: ${leadData.status}`
+    };
+    
+    try {
+      const reminder = new Reminder(reminderData);
+      const savedReminder = await reminder.save();
+      console.log(`✅ Auto-reminder created: ${savedReminder.id} for lead: ${leadId} (${leadData.status})`);
+      return savedReminder;
+    } catch (error) {
+      console.error('❌ Failed to create auto-reminder:', error);
+      return null;
+    }
+  }
+
+  // Cancel old reminders when lead status changes
+  static async cancelOldReminders(leadId, newStatus) {
+    try {
+      // Dynamically import Reminder to avoid circular dependency
+      const Reminder = require('./Reminder');
+      
+      // Get all pending reminders for this lead
+      const reminders = await Reminder.getByLead(leadId);
+      const pendingReminders = reminders.filter(r => r.status === 'pending');
+      
+      if (pendingReminders.length === 0) {
+        return;
+      }
+
+      // Cancel all pending reminders
+      for (const reminder of pendingReminders) {
+        await Reminder.update(reminder.id, {
+          status: 'cancelled',
+          cancelled_date: new Date().toISOString(),
+          cancelled_reason: `Lead status changed to: ${newStatus}`,
+          notes: (reminder.notes || '') + ` | Cancelled due to status change to: ${newStatus}`
+        });
+      }
+      
+      console.log(`✅ Cancelled ${pendingReminders.length} old reminders for lead: ${leadId}`);
+    } catch (error) {
+      console.error('❌ Failed to cancel old reminders:', error);
+    }
+  }
+
+  // ===== YOUR EXISTING CLIENT MANAGEMENT METHODS (UNCHANGED) =====
 
   // Generate consistent client ID from phone number
   generateClientId(phone) {
