@@ -221,4 +221,66 @@ router.post('/initialize', authenticateToken, checkPermission('users', 'manage_r
     }
 });
 
+router.post('/', authenticateToken, checkPermission('users', 'manage_roles'), async (req, res) => {
+    try {
+        const { name, label, description, permissions } = req.body;
+        console.log('POST request to create role:', { name, label });
+        
+        // Validate required fields
+        if (!name || !label) {
+            return res.status(400).json({ 
+                error: 'Missing required fields',
+                details: 'Role name and label are required'
+            });
+        }
+        
+        // Check if role name already exists
+        const existingRole = await db.collection('crm_roles')
+            .where('name', '==', name)
+            .limit(1)
+            .get();
+        
+        if (!existingRole.empty) {
+            return res.status(400).json({ 
+                error: 'Role name already exists',
+                details: `A role with name "${name}" already exists`
+            });
+        }
+        
+        // Create the new role
+        const newRole = {
+            name: name.trim(),
+            label: label.trim(),
+            description: description ? description.trim() : '',
+            permissions: permissions || {},
+            is_system: false, // Custom roles are not system roles
+            created_date: new Date().toISOString(),
+            updated_date: new Date().toISOString()
+        };
+        
+        // Add to database
+        const docRef = await db.collection('crm_roles').add(newRole);
+        console.log(`Role created successfully: ${docRef.id}`);
+        
+        // Return the created role with ID
+        const createdRole = {
+            id: docRef.id,
+            ...newRole
+        };
+        
+        res.status(201).json({ 
+            success: true,
+            message: 'Role created successfully',
+            data: createdRole
+        });
+        
+    } catch (error) {
+        console.error('POST role error:', error);
+        res.status(500).json({ 
+            error: 'Failed to create role',
+            details: error.message 
+        });
+    }
+});
+
 module.exports = router;
