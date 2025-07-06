@@ -993,6 +993,195 @@ const INDIAN_STATES = [
 };
  
 // Replace existing calculateGST function
+
+// Helper function to get lead temperature (preserves temperature through parallel stages)
+const getLeadTemperature = (lead) => {
+// If current status has temperature, use it
+if (LEAD_STATUSES[lead.status]?.temperature) {
+return LEAD_STATUSES[lead.status].temperature;
+}
+
+// If it's a parallel stage, get temperature from lead data
+if (lead.temperature) {
+return lead.temperature;
+}
+
+// Fallback to status if it's a temperature status
+if (['hot', 'warm', 'cold'].includes(lead.status)) {
+return lead.status;
+}
+
+return null;
+};
+
+// Helper function to get display temperature for dashboard
+const getDisplayTemperature = (lead) => {
+const temp = getLeadTemperature(lead);
+if (temp && ['hot', 'warm', 'cold'].includes(temp)) {
+return temp;
+}
+// For quote_requested, check if it was previously hot/warm/cold
+if (lead.status === 'quote_requested' && lead.temperature) {
+return lead.temperature;
+}
+return null;
+};
+
+function App() {
+// Authentication states
+const [isLoggedIn, setIsLoggedIn] = useState(false);
+const [testMode, setTestMode] = useState(() => {
+return localStorage.getItem('testMode') === 'true';
+});
+const [user, setUser] = useState(null);
+const [email, setEmail] = useState('');
+const [password, setPassword] = useState('');
+const [activeTab, setActiveTab] = useState(() => {
+const savedTab = localStorage.getItem('crm_active_tab');
+return savedTab || 'dashboard';
+});
+const [loading, setLoading] = useState(false);
+
+// Users management
+
+// Initialize empty, will fetch from API
+const [leads, setLeads] = useState([]);
+const [inventory, setInventory] = useState([]);
+// Add this line near other useState declarations
+const [editingInventory, setEditingInventory] = useState(null);
+const [showInventoryForm, setShowInventoryForm] = useState(false);
+const [orders, setOrders] = useState([]);
+const [orderToAssign, setOrderToAssign] = useState(null);
+const [reminders, setReminders] = useState([]);
+const [showReminderDashboard, setShowReminderDashboard] = useState(false);
+const [reminderStats, setReminderStats] = useState({
+  total: 0,
+  overdue: 0,
+  due_today: 0,
+  pending: 0
+}); 
+const [showOrderAssignModal, setShowOrderAssignModal] = useState(false);
+const [showAllocationManagement, setShowAllocationManagement] = React.useState(false);
+const [showInventoryDetail, setShowInventoryDetail] = useState(false);
+const [currentInventoryDetail, setCurrentInventoryDetail] = useState(null);
+const [currentAllocations, setCurrentAllocations] = React.useState([]);
+const [showOrderForm, setShowOrderForm] = useState(false);
+const [inventoryEventTypeFilter, setInventoryEventTypeFilter] = useState('all');
+const [inventorySortField, setInventorySortField] = useState('event_date');
+const [inventorySortDirection, setInventorySortDirection] = useState('desc'); // 'asc' or 'desc'
+const [allocationManagementInventory, setAllocationManagementInventory] = React.useState(null);
+const [leadsSourceFilter, setLeadsSourceFilter] = useState('all');
+const [leadsBusinessTypeFilter, setLeadsBusinessTypeFilter] = useState('all');
+const [leadsEventFilter, setLeadsEventFilter] = useState('all');
+const [leadsSortField, setLeadsSortField] = useState('date_of_enquiry');
+const [leadsSortDirection, setLeadsSortDirection] = useState('desc');
+const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
+const [bulkAssignSelections, setBulkAssignSelections] = useState({});
+const [bulkAssignLoading, setBulkAssignLoading] = useState(false);
+const [selectedStatusFilters, setSelectedStatusFilters] = useState([]);
+const [showStatusFilterDropdown, setShowStatusFilterDropdown] = useState(false);
+const statusDropdownRef = React.useRef(null);
+const [stadiums, setStadiums] = useState([]);
+const [showStadiumForm, setShowStadiumForm] = useState(false);
+const [editingStadium, setEditingStadium] = useState(null);
+const [stadiumFormData, setStadiumFormData] = useState({});
+const [stadiumSortField, setStadiumSortField] = useState('name');
+const [stadiumSortDirection, setStadiumSortDirection] = useState('asc');
+const [stadiumSearchQuery, setStadiumSearchQuery] = useState('');
+const [stadiumSportFilter, setStadiumSportFilter] = useState('all');
+const [dynamicRoles, setDynamicRoles] = useState({});
+const [rolesLoaded, setRolesLoaded] = useState(false);
+const [viewMode, setViewMode] = useState('leads'); // 'leads' or 'clients'
+const [clients, setClients] = useState([]);
+const [clientsLoading, setClientsLoading] = useState(false);
+const [selectedClient, setSelectedClient] = useState(null);
+const [showClientDetail, setShowClientDetail] = useState(false);
+const [phoneCheckLoading, setPhoneCheckLoading] = useState(false);
+const [clientSuggestion, setClientSuggestion] = useState(null);
+const [showClientSuggestion, setShowClientSuggestion] = useState(false);
+const [phoneCheckTimeout, setPhoneCheckTimeout] = useState(null);
+const [showStatusProgressModal, setShowStatusProgressModal] = useState(false);
+const [statusProgressOptions, setStatusProgressOptions] = useState([]);
+const [selectedStatus, setSelectedStatus] = useState('');
+const [followUpDate, setFollowUpDate] = useState('');
+const [followUpNotes, setFollowUpNotes] = useState('');
+ 
+ 
+// 1. Enhanced Customer Type Classification
+const [paymentData, setPaymentData] = useState({
+  legal_name: '',
+  gstin: '',
+  registered_address: '',
+  category_of_sale: 'Corporate',
+  type_of_sale: 'Tour',
+  indian_state: 'Haryana',
+  is_outside_india: false,
+  
+  // NEW: Enhanced customer classification
+  customer_type: 'indian', // 'indian', 'nri', 'foreigner'
+  event_location: 'india', // 'india', 'outside_india'
+  payment_currency: 'INR', // 'INR', 'USD', 'EUR', 'GBP'
+  
+  advance_amount: '',
+  payment_method: 'bank_transfer',
+  transaction_id: '',
+  payment_date: new Date().toISOString().split('T')[0],
+  payment_proof: '',
+  notes: '',
+  gst_certificate: '',
+  pan_card: '',
+  
+  invoice_items: [
+    {
+      description: '',
+      additional_info: '',
+      quantity: 1,
+      rate: 0
+    }
+  ],
+  
+  service_fee_amount: '',
+  gst_rate: 5,
+  
+  // NEW: TCS fields
+  tcs_applicable: false,
+  tcs_rate: 5,
+  tcs_amount: 0,
+});
+
+const addInvoiceItem = () => {
+  const newItems = [...(paymentData.invoice_items || [])];
+  newItems.push({
+    description: '',
+    additional_info: '',
+    quantity: 1,
+    rate: 0
+  });
+  handlePaymentInputChange('invoice_items', newItems);
+};
+
+const removeInvoiceItem = (index) => {
+  if (paymentData.invoice_items.length <= 1) {
+    alert('At least one invoice item is required');
+    return;
+  }
+  const newItems = paymentData.invoice_items.filter((_, i) => i !== index);
+  handlePaymentInputChange('invoice_items', newItems);
+};
+
+// Fixed version for post-deployment input issues
+const updateInvoiceItem = (index, field, value) => {
+  // Create a completely new array to ensure React detects the change
+  const newItems = JSON.parse(JSON.stringify(paymentData.invoice_items || []));
+  newItems[index][field] = value;
+  
+  // Force a state update with new reference
+  setPaymentData(prevData => ({
+    ...prevData,
+    invoice_items: newItems
+  }));
+}; 
+
 // Enhanced GST and TCS Calculation Function
 const calculateGSTAndTCS = (baseAmount, paymentData) => {
   const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
@@ -1101,157 +1290,43 @@ return num.toLocaleString('en-IN');
 const safeFormatCurrency = (value) => {
 const num = parseFloat(value) || 0;
 return '₹' + num.toLocaleString('en-IN');
-};
+}; 
 
-// Helper function to get lead temperature (preserves temperature through parallel stages)
-const getLeadTemperature = (lead) => {
-// If current status has temperature, use it
-if (LEAD_STATUSES[lead.status]?.temperature) {
-return LEAD_STATUSES[lead.status].temperature;
-}
-
-// If it's a parallel stage, get temperature from lead data
-if (lead.temperature) {
-return lead.temperature;
-}
-
-// Fallback to status if it's a temperature status
-if (['hot', 'warm', 'cold'].includes(lead.status)) {
-return lead.status;
-}
-
-return null;
-};
-
-// Helper function to get display temperature for dashboard
-const getDisplayTemperature = (lead) => {
-const temp = getLeadTemperature(lead);
-if (temp && ['hot', 'warm', 'cold'].includes(temp)) {
-return temp;
-}
-// For quote_requested, check if it was previously hot/warm/cold
-if (lead.status === 'quote_requested' && lead.temperature) {
-return lead.temperature;
-}
-return null;
-};
-
-
-const addInvoiceItem = () => {
-  const newItems = [...(paymentData.invoice_items || [])];
-  newItems.push({
-    description: '',
-    additional_info: '',
-    quantity: 1,
-    rate: 0
+const handlePaymentInputChange = (field, value) => {
+  setPaymentData(prev => {
+    const updated = { ...prev, [field]: value };
+    
+    // Auto-update GST rate based on type_of_sale
+    if (field === 'type_of_sale') {
+      if (value === 'Service Fee') {
+        updated.gst_rate = 18;
+      } else if (value === 'Tour') {
+        updated.gst_rate = 5;
+      } else {
+        updated.gst_rate = 18;
+      }
+    }
+    
+    // NEW: Auto-determine TCS applicability when customer type or currency changes
+    if (['customer_type', 'event_location', 'payment_currency'].includes(field)) {
+      const invoiceTotal = updated.invoice_items?.reduce((sum, item) => 
+        sum + ((item.quantity || 0) * (item.rate || 0)), 0
+      ) || 0;
+      
+      const baseAmount = updated.type_of_sale === 'Service Fee' 
+        ? (parseFloat(updated.service_fee_amount) || 0)
+        : invoiceTotal;
+      
+      const calculation = calculateGSTAndTCS(baseAmount, updated);
+      updated.tcs_applicable = calculation.tcs.applicable;
+      updated.tcs_rate = calculation.tcs.rate;
+      updated.tcs_amount = calculation.tcs.amount;
+    }
+    
+    return updated;
   });
-  handlePaymentInputChange('invoice_items', newItems);
-};
-
-const removeInvoiceItem = (index) => {
-  if (paymentData.invoice_items.length <= 1) {
-    alert('At least one invoice item is required');
-    return;
-  }
-  const newItems = paymentData.invoice_items.filter((_, i) => i !== index);
-  handlePaymentInputChange('invoice_items', newItems);
-};
-
-// Fixed version for post-deployment input issues
-const updateInvoiceItem = (index, field, value) => {
-  // Create a completely new array to ensure React detects the change
-  const newItems = JSON.parse(JSON.stringify(paymentData.invoice_items || []));
-  newItems[index][field] = value;
-  
-  // Force a state update with new reference
-  setPaymentData(prevData => ({
-    ...prevData,
-    invoice_items: newItems
-  }));
-};
-
-function App() {
-// Authentication states
-const [isLoggedIn, setIsLoggedIn] = useState(false);
-const [testMode, setTestMode] = useState(() => {
-return localStorage.getItem('testMode') === 'true';
-});
-const [user, setUser] = useState(null);
-const [email, setEmail] = useState('');
-const [password, setPassword] = useState('');
-const [activeTab, setActiveTab] = useState(() => {
-const savedTab = localStorage.getItem('crm_active_tab');
-return savedTab || 'dashboard';
-});
-const [loading, setLoading] = useState(false);
-
-// Users management
-
-// Initialize empty, will fetch from API
-const [leads, setLeads] = useState([]);
-const [inventory, setInventory] = useState([]);
-// Add this line near other useState declarations
-const [editingInventory, setEditingInventory] = useState(null);
-const [showInventoryForm, setShowInventoryForm] = useState(false);
-const [orders, setOrders] = useState([]);
-const [orderToAssign, setOrderToAssign] = useState(null);
-const [reminders, setReminders] = useState([]);
-const [showReminderDashboard, setShowReminderDashboard] = useState(false);
-const [reminderStats, setReminderStats] = useState({
-  total: 0,
-  overdue: 0,
-  due_today: 0,
-  pending: 0
-}); 
-const [showOrderAssignModal, setShowOrderAssignModal] = useState(false);
-const [showAllocationManagement, setShowAllocationManagement] = React.useState(false);
-const [showInventoryDetail, setShowInventoryDetail] = useState(false);
-const [currentInventoryDetail, setCurrentInventoryDetail] = useState(null);
-const [currentAllocations, setCurrentAllocations] = React.useState([]);
-const [showOrderForm, setShowOrderForm] = useState(false);
-const [inventoryEventTypeFilter, setInventoryEventTypeFilter] = useState('all');
-const [inventorySortField, setInventorySortField] = useState('event_date');
-const [inventorySortDirection, setInventorySortDirection] = useState('desc'); // 'asc' or 'desc'
-const [allocationManagementInventory, setAllocationManagementInventory] = React.useState(null);
-const [leadsSourceFilter, setLeadsSourceFilter] = useState('all');
-const [leadsBusinessTypeFilter, setLeadsBusinessTypeFilter] = useState('all');
-const [leadsEventFilter, setLeadsEventFilter] = useState('all');
-const [leadsSortField, setLeadsSortField] = useState('date_of_enquiry');
-const [leadsSortDirection, setLeadsSortDirection] = useState('desc');
-const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
-const [bulkAssignSelections, setBulkAssignSelections] = useState({});
-const [bulkAssignLoading, setBulkAssignLoading] = useState(false);
-const [selectedStatusFilters, setSelectedStatusFilters] = useState([]);
-const [showStatusFilterDropdown, setShowStatusFilterDropdown] = useState(false);
-const statusDropdownRef = React.useRef(null);
-const [stadiums, setStadiums] = useState([]);
-const [showStadiumForm, setShowStadiumForm] = useState(false);
-const [editingStadium, setEditingStadium] = useState(null);
-const [stadiumFormData, setStadiumFormData] = useState({});
-const [stadiumSortField, setStadiumSortField] = useState('name');
-const [stadiumSortDirection, setStadiumSortDirection] = useState('asc');
-const [stadiumSearchQuery, setStadiumSearchQuery] = useState('');
-const [stadiumSportFilter, setStadiumSportFilter] = useState('all');
-const [dynamicRoles, setDynamicRoles] = useState({});
-const [rolesLoaded, setRolesLoaded] = useState(false);
-const [viewMode, setViewMode] = useState('leads'); // 'leads' or 'clients'
-const [clients, setClients] = useState([]);
-const [clientsLoading, setClientsLoading] = useState(false);
-const [selectedClient, setSelectedClient] = useState(null);
-const [showClientDetail, setShowClientDetail] = useState(false);
-const [phoneCheckLoading, setPhoneCheckLoading] = useState(false);
-const [clientSuggestion, setClientSuggestion] = useState(null);
-const [showClientSuggestion, setShowClientSuggestion] = useState(false);
-const [phoneCheckTimeout, setPhoneCheckTimeout] = useState(null);
-const [showStatusProgressModal, setShowStatusProgressModal] = useState(false);
-const [statusProgressOptions, setStatusProgressOptions] = useState([]);
-const [selectedStatus, setSelectedStatus] = useState('');
-const [followUpDate, setFollowUpDate] = useState('');
-const [followUpNotes, setFollowUpNotes] = useState('');
+}; 
  
- 
-
-
 // Edit order function - in App scope
 const openEditOrderForm = (order) => {
 if (!order) {
@@ -1876,7 +1951,6 @@ return localStorage.getItem('crm_dark_mode') === 'true';
 });
 const [currentUser, setCurrentUser] = useState(null);
 const [formData, setFormData] = useState({});
-const [paymentData, setPaymentData] = useState({});
 const [allocationData, setAllocationData] = useState({});
 const [userFormData, setUserFormData] = useState({});
 const [showInvoicePreview, setShowInvoicePreview] = useState(false);
@@ -4604,41 +4678,6 @@ const handleInputChange = (field, value, itemIndex = null, itemField = null) => 
 
 const handleUserInputChange = (field, value) => {
 setUserFormData(prev => ({ ...prev, [field]: value }));
-};
-
-const handlePaymentInputChange = (field, value) => {
-  setPaymentData(prev => {
-    const updated = { ...prev, [field]: value };
-    
-    // Auto-update GST rate based on type_of_sale
-    if (field === 'type_of_sale') {
-      if (value === 'Service Fee') {
-        updated.gst_rate = 18;
-      } else if (value === 'Tour') {
-        updated.gst_rate = 5;
-      } else {
-        updated.gst_rate = 18;
-      }
-    }
-    
-    // NEW: Auto-determine TCS applicability when customer type or currency changes
-    if (['customer_type', 'event_location', 'payment_currency'].includes(field)) {
-      const invoiceTotal = updated.invoice_items?.reduce((sum, item) => 
-        sum + ((item.quantity || 0) * (item.rate || 0)), 0
-      ) || 0;
-      
-      const baseAmount = updated.type_of_sale === 'Service Fee' 
-        ? (parseFloat(updated.service_fee_amount) || 0)
-        : invoiceTotal;
-      
-      const calculation = calculateGSTAndTCS(baseAmount, updated);
-      updated.tcs_applicable = calculation.tcs.applicable;
-      updated.tcs_rate = calculation.tcs.rate;
-      updated.tcs_amount = calculation.tcs.amount;
-    }
-    
-    return updated;
-  });
 };
 
 const handleAllocationInputChange = (field, value) => {
