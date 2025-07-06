@@ -147,7 +147,7 @@ class Lead {
 
       const primaryLead = leads.find(l => l.is_primary_lead) || leads[0];
       
-      const totalValue = leads.reduce((sum, lead) => sum + (lead.potential_value || 0), 0);
+      const totalValue = leads.reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
       const events = [...new Set(leads.map(l => l.lead_for_event).filter(Boolean))];
 
       return {
