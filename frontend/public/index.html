@@ -620,6 +620,15 @@ const user = usersList.find(u => u.email === email);
 return user ? user.name : email;
 };
 
+const getBaseAmount = (data) => {
+  if (data.type_of_sale === 'Service Fee') {
+    return parseFloat(data.service_fee_amount) || 0;
+  }
+  return data.invoice_items?.reduce((sum, item) => 
+    sum + ((item.quantity || 0) * (item.rate || 0)), 0
+  ) || 0;
+}; 
+ 
 const formatDateForInput = (dateValue) => {
 if (!dateValue) return '';
 
@@ -1287,11 +1296,6 @@ const num = parseFloat(value) || 0;
 return num.toLocaleString('en-IN');
 };
 
-const safeFormatCurrency = (value) => {
-const num = parseFloat(value) || 0;
-return '₹' + num.toLocaleString('en-IN');
-}; 
-
 const handlePaymentInputChange = (field, value) => {
   setPaymentData(prev => {
     const updated = { ...prev, [field]: value };
@@ -1309,14 +1313,7 @@ const handlePaymentInputChange = (field, value) => {
     
     // NEW: Auto-determine TCS applicability when customer type or currency changes
     if (['customer_type', 'event_location', 'payment_currency'].includes(field)) {
-      const invoiceTotal = updated.invoice_items?.reduce((sum, item) => 
-        sum + ((item.quantity || 0) * (item.rate || 0)), 0
-      ) || 0;
-      
-      const baseAmount = updated.type_of_sale === 'Service Fee' 
-        ? (parseFloat(updated.service_fee_amount) || 0)
-        : invoiceTotal;
-      
+      const baseAmount = getBaseAmount(updated);
       const calculation = calculateGSTAndTCS(baseAmount, updated);
       updated.tcs_applicable = calculation.tcs.applicable;
       updated.tcs_rate = calculation.tcs.rate;
@@ -7827,14 +7824,7 @@ setShowInvoicePreview(true);
 
 // Enhanced GST and TCS Calculation Preview Function
 const renderEnhancedGSTCalculationPreview = () => {
-  const invoiceTotal = paymentData.invoice_items?.reduce((sum, item) => 
-    sum + ((item.quantity || 0) * (item.rate || 0)), 0
-  ) || 0;
-  
-  const baseAmount = paymentData.type_of_sale === 'Service Fee' 
-    ? (parseFloat(paymentData.service_fee_amount) || 0)
-    : invoiceTotal;
-  
+  const baseAmount = getBaseAmount(paymentData);
   const calculation = calculateGSTAndTCS(baseAmount, paymentData);
   const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
   const advanceAmount = parseFloat(paymentData.advance_amount) || 0;
@@ -7999,16 +7989,9 @@ const invoice = currentInvoice;
 const isIntraState = invoice.indian_state === 'Haryana' && !invoice.is_outside_india;
 
 // Enhanced GST rate calculation - Service Fee always 18%
-const gstRate = invoice.type_of_sale === 'Service Fee' ? 18 : // Always 18% for service fee
-               invoice.type_of_sale === 'Tour' ? 5 : 18; // 5% for tour, 18% for others
-
-const invoiceTotal = invoice.invoice_items?.reduce((sum, item) => 
-sum + ((item.quantity || 0) * (item.rate || 0)), 0
-) || 0;
-
-const baseAmount = invoice.type_of_sale === 'Service Fee' 
-? (parseFloat(invoice.service_fee_amount) || 0)
-: invoiceTotal;
+const calculation = calculateGSTAndTCS(baseAmount, invoice);
+const gstRate = calculation.gst.rate;
+const baseAmount = getBaseAmount(invoice);
 
 // Calculate GST amounts
 const gstAmount = (baseAmount * gstRate) / 100;
@@ -9633,13 +9616,7 @@ console.log('Original receivable amount:', paymentData.receivable_amount);
 const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
 const gstRate = paymentData.type_of_sale === 'Tour' ? 5 : 18;
 
-const invoiceTotal = paymentData.invoice_items?.reduce((sum, item) => 
-sum + ((item.quantity || 0) * (item.rate || 0)), 0
-) || 0;
-
-const baseAmount = paymentData.type_of_sale === 'Service Fee' 
-? (parseFloat(paymentData.service_fee_amount) || 0)
-: invoiceTotal;
+const baseAmount = getBaseAmount(paymentData);
 
 // Calculate GST
 const gstAmount = (baseAmount * gstRate) / 100;
