@@ -3572,13 +3572,32 @@ setShowAddForm(true);
 };
 
 const openEditForm = (lead) => {
-if (!hasPermission('leads', 'write')) {
-alert('You do not have permission to edit leads');
-return;
-}
-setCurrentLead(lead);
-setFormData(lead);
-setShowEditForm(true);
+    if (!hasPermission('leads', 'write')) {
+        alert('You do not have permission to edit leads');
+        return;
+    }
+    
+    setCurrentLead(lead);
+    
+    // ✅ FIXED: Convert date format for HTML date input
+    const processedLead = { ...lead };
+    if (processedLead.date_of_enquiry) {
+        try {
+            const date = new Date(processedLead.date_of_enquiry);
+            if (!isNaN(date.getTime())) {
+                // Convert to YYYY-MM-DD format for HTML date input
+                processedLead.date_of_enquiry = date.toISOString().split('T')[0];
+            }
+        } catch (error) {
+            console.warn('Could not parse date:', processedLead.date_of_enquiry);
+            // Set to current date as fallback
+            const now = new Date();
+            processedLead.date_of_enquiry = now.toISOString().split('T')[0];
+        }
+    }
+    
+    setFormData(processedLead);
+    setShowEditForm(true);
 };
 
 const openAssignForm = (lead) => {
