@@ -5333,13 +5333,16 @@ const CommunicationTimeline = ({ leadId, leadName }) => {
 // COMPLETE FIXED AssignmentRulesManager component
 // Replace your entire AssignmentRulesManager component with this:
 
+// FIXED: AssignmentRulesManager with correct apiCall format
+// Replace your AssignmentRulesManager component with this corrected version:
+
 const AssignmentRulesManager = ({ currentUser }) => {
     const [rules, setRules] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingRule, setEditingRule] = useState(null);
     const [testingRule, setTestingRule] = useState(false);
-    const [availableUsers, setAvailableUsers] = useState([]); // Fixed: renamed from users to availableUsers
+    const [availableUsers, setAvailableUsers] = useState([]);
     const [ruleFormData, setRuleFormData] = useState({
         name: '',
         description: '',
@@ -5357,9 +5360,9 @@ const AssignmentRulesManager = ({ currentUser }) => {
 
     useEffect(() => {
         loadRules();
-        loadAvailableUsers(); // Fixed: renamed function
+        loadAvailableUsers();
         
-        // ✅ Make loadRules function globally accessible for refreshing
+        // Make loadRules function globally accessible for refreshing
         window.refreshAssignmentRules = loadRules;
         
         // Cleanup function to remove global reference on unmount
@@ -5383,7 +5386,6 @@ const AssignmentRulesManager = ({ currentUser }) => {
         }
     };
 
-    // Fixed: renamed function from loadUsers to loadAvailableUsers
     const loadAvailableUsers = async () => {
         try {
             // Use the existing users data if available, or fetch fresh
@@ -5401,7 +5403,11 @@ const AssignmentRulesManager = ({ currentUser }) => {
 
     const toggleRule = async (ruleId, currentStatus) => {
         try {
-            await apiCall(`/assignment-rules/${ruleId}`, 'PUT', { is_active: !currentStatus });
+            // FIXED: Use correct apiCall format that matches your existing code
+            await apiCall(`/assignment-rules/${ruleId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ is_active: !currentStatus })
+            });
             loadRules(); // Refresh rules after toggle
         } catch (error) {
             alert('Error updating rule: ' + error.message);
@@ -5412,7 +5418,10 @@ const AssignmentRulesManager = ({ currentUser }) => {
         if (!confirm('Are you sure you want to delete this assignment rule?')) return;
         
         try {
-            await apiCall(`/assignment-rules/${ruleId}`, 'DELETE');
+            // FIXED: Use correct apiCall format
+            await apiCall(`/assignment-rules/${ruleId}`, { 
+                method: 'DELETE' 
+            });
             loadRules(); // Refresh rules after delete
         } catch (error) {
             alert('Error deleting rule: ' + error.message);
@@ -5430,15 +5439,26 @@ const AssignmentRulesManager = ({ currentUser }) => {
                 created_by: currentUser?.email
             };
 
+            console.log('Submitting rule data:', ruleData); // Debug log
+
             if (editingRule) {
-                await apiCall(`/assignment-rules/${editingRule.id}`, 'PUT', ruleData);
+                // FIXED: Use correct apiCall format for PUT
+                await apiCall(`/assignment-rules/${editingRule.id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(ruleData)
+                });
             } else {
-                await apiCall('/assignment-rules', 'POST', ruleData);
+                // FIXED: Use correct apiCall format for POST
+                await apiCall('/assignment-rules', {
+                    method: 'POST',
+                    body: JSON.stringify(ruleData)
+                });
             }
             
             resetForm();
             loadRules(); // Refresh rules after save
         } catch (error) {
+            console.error('Error saving rule:', error); // Debug log
             alert('Error saving rule: ' + error.message);
         }
     };
@@ -5557,7 +5577,11 @@ const AssignmentRulesManager = ({ currentUser }) => {
                 lead_source: 'Website'
             };
             
-            const response = await apiCall('/assignment-rules/test', 'POST', testLead);
+            // FIXED: Use correct apiCall format for POST
+            const response = await apiCall('/assignment-rules/test', {
+                method: 'POST',
+                body: JSON.stringify(testLead)
+            });
             
             if (response.success) {
                 alert(`Test Result: ${response.message}`);
@@ -5575,7 +5599,10 @@ const AssignmentRulesManager = ({ currentUser }) => {
         if (!confirm('This will create default assignment rules. Continue?')) return;
         
         try {
-            await apiCall('/assignment-rules/initialize-defaults', 'POST');
+            // FIXED: Use correct apiCall format for POST
+            await apiCall('/assignment-rules/initialize-defaults', {
+                method: 'POST'
+            });
             alert('Default assignment rules created successfully!');
             loadRules();
         } catch (error) {
@@ -5720,7 +5747,7 @@ const AssignmentRulesManager = ({ currentUser }) => {
             )
         ),
 
-        // Rule Form Modal
+        // Rule Form Modal (keeping the same form as before, just fixed the submit function)
         showForm && React.createElement('div', { 
             className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4',
             onClick: resetForm
@@ -5868,7 +5895,7 @@ const AssignmentRulesManager = ({ currentUser }) => {
                                         required: true
                                     },
                                         React.createElement('option', { value: '' }, 'Select user...'),
-                                        availableUsers.map(user => // Fixed: use availableUsers instead of users
+                                        availableUsers.map(user =>
                                             React.createElement('option', { key: user.id, value: user.email }, 
                                                 `${user.name} (${user.email})`
                                             )
