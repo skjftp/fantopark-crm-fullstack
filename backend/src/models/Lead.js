@@ -126,6 +126,7 @@ class Lead {
   }
 
   // Client management methods
+  
   static async getClientByPhone(phone) {
     if (!phone) return null;
     
