@@ -25,7 +25,7 @@ async function getUserName(email) {
   }
 }
 
-// 🔧 **COMPLETE: Enhanced Auto-Assignment Function**
+// 🔧 **FIXED: Enhanced Auto-Assignment Function**
 async function performEnhancedAutoAssignment(leadData) {
   console.log('🎯 === ENHANCED AUTO-ASSIGNMENT START ===');
   console.log('Lead name:', leadData.name);
@@ -33,22 +33,34 @@ async function performEnhancedAutoAssignment(leadData) {
   console.log('Business type:', leadData.business_type);
   
   try {
-    // Use direct database query to ensure it works
-    const snapshot = await db.collection('crm_assignment_rules')
-      .where('is_active', '==', true)
-      .orderBy('priority', 'asc')
-      .get();
+    // 🔧 FIXED: Query for both 'active' and 'is_active' fields to handle database inconsistency
+    const snapshot = await db.collection('crm_assignment_rules').get();
     
-    console.log(`📋 Found ${snapshot.size} active assignment rules`);
+    console.log(`📋 Found ${snapshot.size} total assignment rules`);
     
     if (snapshot.empty) {
+      console.log('⚠️ No assignment rules found');
+      return null;
+    }
+    
+    // Filter active rules and sort by priority
+    const allRules = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const activeRules = allRules.filter(rule => {
+      // Handle both 'active' and 'is_active' fields
+      const isActive = rule.active === true || rule.is_active === true || 
+                      (rule.active === undefined && rule.is_active === undefined);
+      return isActive;
+    }).sort((a, b) => (a.priority || 99) - (b.priority || 99));
+    
+    console.log(`📋 Found ${activeRules.length} active assignment rules`);
+    
+    if (activeRules.length === 0) {
       console.log('⚠️ No active assignment rules found');
       return null;
     }
     
     // Evaluate each rule
-    for (const doc of snapshot.docs) {
-      const rule = { id: doc.id, ...doc.data() };
+    for (const rule of activeRules) {
       console.log(`\n🧪 Testing rule: ${rule.name} (Priority: ${rule.priority})`);
       console.log('   Conditions:', rule.conditions);
       
@@ -106,7 +118,37 @@ function evaluateRuleConditions(leadData, conditions) {
   console.log('     Lead potential_value:', leadData.potential_value);
   console.log('     Lead business_type:', leadData.business_type);
   
-  for (const [field, condition] of Object.entries(conditions)) {
+  // 🔧 FIXED: Handle both object and array condition formats
+  let conditionsToCheck = conditions;
+  
+  // If conditions is an array, convert to object format
+  if (Array.isArray(conditions)) {
+    console.log('   📝 Converting array conditions to object format');
+    conditionsToCheck = {};
+    conditions.forEach(condition => {
+      if (condition.field && condition.operator && condition.value !== undefined) {
+        const field = condition.field;
+        const operator = condition.operator;
+        const value = condition.value;
+        
+        if (operator === '>=') {
+          conditionsToCheck[field] = { gte: value };
+        } else if (operator === '>') {
+          conditionsToCheck[field] = { gt: value };
+        } else if (operator === '<=') {
+          conditionsToCheck[field] = { lte: value };
+        } else if (operator === '<') {
+          conditionsToCheck[field] = { lt: value };
+        } else if (operator === '==' || operator === '=') {
+          conditionsToCheck[field] = value;
+        } else if (operator === '!=') {
+          conditionsToCheck[field] = { neq: value };
+        }
+      }
+    });
+  }
+  
+  for (const [field, condition] of Object.entries(conditionsToCheck)) {
     const leadValue = leadData[field];
     console.log(`   🧪 Checking field "${field}": ${leadValue} vs`, condition);
     
@@ -135,6 +177,11 @@ function evaluateRuleConditions(leadData, conditions) {
       if (condition.eq !== undefined) {
         const passes = leadValue === condition.eq;
         console.log(`     ${passes ? '✅' : '❌'} ${leadValue} === ${condition.eq}: ${passes}`);
+        if (!passes) return false;
+      }
+      if (condition.neq !== undefined) {
+        const passes = leadValue !== condition.neq;
+        console.log(`     ${passes ? '✅' : '❌'} ${leadValue} !== ${condition.neq}: ${passes}`);
         if (!passes) return false;
       }
       if (condition.in !== undefined && Array.isArray(condition.in)) {
@@ -167,18 +214,27 @@ function selectWeightedAssignee(rule) {
   let assignees = rule.assignees;
   
   // If assignees is array of objects with email and weight
-  if (assignees[0] && typeof assignees[0] === 'object' && assignees[0].email) {
+  if (assignees[0] && typeof assignees[0] === 'object') {
+    // Handle both 'email' and 'user_email' fields
+    const validAssignees = assignees.filter(assignee => assignee.email || assignee.user_email);
+    
+    if (validAssignees.length === 0) {
+      console.log('   ❌ No valid assignees with email found');
+      return null;
+    }
+    
     // For weighted round robin, create a pool based on weights
     const weightedPool = [];
-    assignees.forEach(assignee => {
+    validAssignees.forEach(assignee => {
+      const email = assignee.email || assignee.user_email;
       const weight = assignee.weight || 50; // Default weight 50
       for (let i = 0; i < weight; i++) {
-        weightedPool.push(assignee.email);
+        weightedPool.push(email);
       }
     });
     
     if (weightedPool.length === 0) {
-      return assignees[0].email; // Fallback to first assignee
+      return validAssignees[0].email || validAssignees[0].user_email; // Fallback to first assignee
     }
     
     // Use round-robin with weights
@@ -202,7 +258,7 @@ function selectWeightedAssignee(rule) {
   }
   
   // Final fallback: just pick the first assignee
-  const fallback = assignees[0]?.email || assignees[0];
+  const fallback = assignees[0]?.email || assignees[0]?.user_email || assignees[0];
   console.log(`   ⚠️ Fallback selection: ${fallback}`);
   return fallback;
 }
