@@ -1767,10 +1767,10 @@ const [formData, setFormData] = useState({});
 const [paymentData, setPaymentData] = useState({});
 const [allocationData, setAllocationData] = useState({});
 const [userFormData, setUserFormData] = useState({});
-// Add these two lines with your other state variables
 const [showInvoicePreview, setShowInvoicePreview] = useState(false);
-
-
+const [selectedStatus, setSelectedStatus] = useState('');
+const [followUpDate, setFollowUpDate] = useState('');
+const [followUpNotes, setFollowUpNotes] = useState('');
 const [currentInvoice, setCurrentInvoice] = useState(null);
 const [showDeliveryForm, setShowDeliveryForm] = useState(false);
 const [currentDelivery, setCurrentDelivery] = useState(null);
@@ -1778,8 +1778,6 @@ const [deliveryFormData, setDeliveryFormData] = useState({});
 const [showPaymentPostServiceForm, setShowPaymentPostServiceForm] = useState(false);
 const [showHelpGuide, setShowHelpGuide] = useState(false);
 const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
-
-// Choice modal states for lead progression
 const [showChoiceModal, setShowChoiceModal] = useState(false);
 const [currentLeadForChoice, setCurrentLeadForChoice] = useState(null);
 const [choiceOptions, setChoiceOptions] = useState([]);
@@ -3473,16 +3471,6 @@ alert('Failed to update lead status: ' + error.message);
 }
 };
 
-// 1. ADD THESE STATE VARIABLES AT THE TOP LEVEL (where you have other useState declarations)
-// Find where you have: const [showStatusProgressModal, setShowStatusProgressModal] = useState(false);
-// And add these three lines right after it:
-
-const [showStatusProgressModal, setShowStatusProgressModal] = useState(false);
-const [statusProgressOptions, setStatusProgressOptions] = useState([]);
-// ADD THESE THREE NEW LINES:
-const [selectedStatus, setSelectedStatus] = useState('');
-const [followUpDate, setFollowUpDate] = useState('');
-const [followUpNotes, setFollowUpNotes] = useState('');
 
 // 2. REPLACE your renderStatusProgressModal function with this corrected version:
 
