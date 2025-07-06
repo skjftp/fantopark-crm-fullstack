@@ -832,95 +832,102 @@ created_date: '2024-01-10'
 
 // Lead and Order statuses (unchanged)
 const LEAD_STATUSES = {
-unassigned: { 
-label: 'Unassigned', 
-color: 'bg-gray-100 text-gray-800', 
-next: ['assigned'] 
-},
-assigned: { 
-label: 'Assigned', 
-color: 'bg-blue-100 text-blue-800', 
-next: ['contacted', 'attempt_1', 'attempt_2', 'attempt_3'] 
-},
-contacted: { 
-label: 'Contacted', 
-color: 'bg-yellow-100 text-yellow-800', 
-next: ['qualified', 'junk'] 
-},
-attempt_1: { 
-label: 'Attempt 1', 
-color: 'bg-yellow-50 text-yellow-700', 
-next: ['contacted', 'attempt_2', 'junk'] 
-},
-attempt_2: { 
-label: 'Attempt 2', 
-color: 'bg-orange-50 text-orange-700', 
-next: ['contacted', 'attempt_3', 'junk'] 
-},
-attempt_3: { 
-label: 'Attempt 3', 
-color: 'bg-red-50 text-red-700', 
-next: ['contacted', 'junk'] 
-},
-qualified: { 
-label: 'Qualified', 
-color: 'bg-green-100 text-green-800', 
-next: ['hot', 'warm', 'cold'] 
-},
-junk: { 
-label: 'Junk', 
-color: 'bg-red-100 text-red-800', 
-next: [] 
-},
-hot: { 
-label: 'Hot Lead', 
-color: 'bg-red-100 text-red-800', 
-next: ['quote_requested', 'converted', 'dropped'],
-temperature: 'hot'
-},
-warm: { 
-label: 'Warm Lead', 
-color: 'bg-orange-100 text-orange-800', 
-next: ['quote_requested', 'converted', 'dropped'],
-temperature: 'warm'
-},
-cold: { 
-label: 'Cold Lead', 
-color: 'bg-blue-100 text-blue-800', 
-next: ['quote_requested', 'converted', 'dropped'],
-temperature: 'cold'
-},
-quote_requested: {
-label: 'Quote Requested',
-color: 'bg-purple-100 text-purple-800',
-next: ['converted', 'dropped'],
-parallel: true // This indicates it's a parallel stage
-},
-converted: { 
-label: 'Converted', 
-color: 'bg-green-100 text-green-800', 
-next: ['payment', 'payment_post_service', 'payment_received'] 
-},
-payment_received: { 
-label: 'Payment Received', 
-color: 'bg-green-100 text-green-800', 
-next: [] 
-},
-dropped: { 
-label: 'Dropped', 
-color: 'bg-gray-100 text-gray-800', 
-next: [] 
-},
-payment: { 
-label: 'Payment Received',
-color: 'bg-emerald-100 text-emerald-800', 
-next: [] 
-},
-payment_post_service: {
-label: 'Payment Post Service',
-color: 'bg-purple-100 text-purple-800',
-next: ['payment']
-}
+  unassigned: { 
+    label: 'Unassigned', 
+    color: 'bg-gray-100 text-gray-800', 
+    next: ['assigned', 'attempt_1', 'attempt_2', 'attempt_3'] 
+  },
+  assigned: { 
+    label: 'Assigned', 
+    color: 'bg-blue-100 text-blue-800', 
+    next: ['contacted', 'attempt_1', 'attempt_2', 'attempt_3'] 
+  },
+  contacted: { 
+    label: 'Contacted', 
+    color: 'bg-yellow-100 text-yellow-800', 
+    next: ['qualified', 'junk', 'pickup_later'] // Added pickup_later
+  },
+  attempt_1: { 
+    label: 'Attempt 1', 
+    color: 'bg-yellow-50 text-yellow-700', 
+    next: ['contacted', 'attempt_2', 'junk', 'pickup_later'] // Added pickup_later
+  },
+  attempt_2: { 
+    label: 'Attempt 2', 
+    color: 'bg-orange-50 text-orange-700', 
+    next: ['contacted', 'attempt_3', 'junk', 'pickup_later'] // Added pickup_later
+  },
+  attempt_3: { 
+    label: 'Attempt 3', 
+    color: 'bg-red-50 text-red-700', 
+    next: ['contacted', 'junk', 'pickup_later'] // Added pickup_later
+  },
+  qualified: { 
+    label: 'Qualified', 
+    color: 'bg-green-100 text-green-800', 
+    next: ['hot', 'warm', 'cold', 'pickup_later'] // Added pickup_later
+  },
+  junk: { 
+    label: 'Junk', 
+    color: 'bg-red-100 text-red-800', 
+    next: [] 
+  },
+  hot: { 
+    label: 'Hot Lead', 
+    color: 'bg-red-100 text-red-800', 
+    next: ['quote_requested', 'converted', 'dropped', 'pickup_later'], // Added pickup_later
+    temperature: 'hot'
+  },
+  warm: { 
+    label: 'Warm Lead', 
+    color: 'bg-orange-100 text-orange-800', 
+    next: ['quote_requested', 'converted', 'dropped', 'pickup_later'], // Added pickup_later
+    temperature: 'warm'
+  },
+  cold: { 
+    label: 'Cold Lead', 
+    color: 'bg-blue-100 text-blue-800', 
+    next: ['quote_requested', 'converted', 'dropped', 'pickup_later'], // Added pickup_later
+    temperature: 'cold'
+  },
+  quote_requested: {
+    label: 'Quote Requested',
+    color: 'bg-purple-100 text-purple-800',
+    next: ['converted', 'dropped', 'pickup_later'], // Added pickup_later
+    parallel: true
+  },
+  converted: { 
+    label: 'Converted', 
+    color: 'bg-green-100 text-green-800', 
+    next: ['payment', 'payment_post_service', 'payment_received', 'pickup_later'] // Added pickup_later
+  },
+  payment_received: { 
+    label: 'Payment Received', 
+    color: 'bg-green-100 text-green-800', 
+    next: [] 
+  },
+  dropped: { 
+    label: 'Dropped', 
+    color: 'bg-gray-100 text-gray-800', 
+    next: ['pickup_later'] // Added pickup_later
+  },
+  payment: { 
+    label: 'Payment Received',
+    color: 'bg-emerald-100 text-emerald-800', 
+    next: [] 
+  },
+  payment_post_service: {
+    label: 'Payment Post Service',
+    color: 'bg-purple-100 text-purple-800',
+    next: ['payment']
+  },
+  // NEW: Pick Up Later status
+  pickup_later: {
+    label: 'Pick Up Later',
+    color: 'bg-indigo-100 text-indigo-800',
+    next: ['contacted', 'qualified', 'hot', 'warm', 'cold', 'quote_requested', 'converted', 'dropped'],
+    requires_followup_date: true
+  }
 };
 
 const ORDER_STATUSES = {
@@ -964,6 +971,28 @@ const INDIAN_STATES = [
 
 // Team configurations removed - now using dynamic users from database
 
+ const getStatusIcon = (status) => {
+  const statusIcons = {
+    'qualified': '✅',
+    'junk': '🗑️',
+    'hot': '🔥',
+    'warm': '🌤️',
+    'cold': '❄️',
+    'quote_requested': '📋',
+    'converted': '💰',
+    'dropped': '❌',
+    'pickup_later': '⏰',
+    'contacted': '📞',
+    'attempt_1': '📞¹',
+    'attempt_2': '📞²',
+    'attempt_3': '📞³',
+    'payment': '💳',
+    'payment_post_service': '📅',
+    'payment_received': '✅'
+  };
+  return statusIcons[status] || '📝';
+};
+ 
 // Add these helper functions after (users || []).filter(u => ['finance_manager', 'finance_executive'].includes(u.role)).map(u => u.name)
 // Replace the calculateGST function (around line 90)
 const calculateGST = (amount, isIntraState, gstRate = 18) => {
@@ -1103,6 +1132,9 @@ const [phoneCheckLoading, setPhoneCheckLoading] = useState(false);
 const [clientSuggestion, setClientSuggestion] = useState(null);
 const [showClientSuggestion, setShowClientSuggestion] = useState(false);
 const [phoneCheckTimeout, setPhoneCheckTimeout] = useState(null);
+const [showStatusProgressModal, setShowStatusProgressModal] = useState(false);
+const [statusProgressOptions, setStatusProgressOptions] = useState([]);
+ 
  
 
 
@@ -3439,52 +3471,289 @@ alert('Failed to update lead status: ' + error.message);
 }
 };
 
+const renderStatusProgressModal = () => {
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [followUpDate, setFollowUpDate] = useState('');
+  const [followUpNotes, setFollowUpNotes] = useState('');
+
+  const handleStatusUpdate = async () => {
+    if (!selectedStatus) {
+      alert('Please select a status');
+      return;
+    }
+
+    const selectedStatusConfig = LEAD_STATUSES[selectedStatus];
+    
+    // Check if follow-up date is required
+    if (selectedStatusConfig.requires_followup_date && !followUpDate) {
+      alert('Follow-up date is required for this status');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Handle payment status specially
+      if (selectedStatus === 'payment') {
+        setShowStatusProgressModal(false);
+        openPaymentForm(currentLead);
+        setLoading(false);
+        return;
+      }
+
+      if (selectedStatus === 'payment_post_service') {
+        setShowStatusProgressModal(false);
+        openPaymentPostServiceForm(currentLead);
+        setLoading(false);
+        return;
+      }
+
+      // Prepare update data
+      const updateData = {
+        ...currentLead,
+        status: selectedStatus,
+        last_contact_date: new Date().toISOString(),
+        [(selectedStatus) + '_date']: new Date().toISOString(),
+        updated_date: new Date().toISOString()
+      };
+
+      // Add follow-up specific fields if applicable
+      if (selectedStatusConfig.requires_followup_date && followUpDate) {
+        updateData.next_follow_up_date = followUpDate;
+        updateData.follow_up_notes = followUpNotes;
+        updateData.follow_up_reason = selectedStatus === 'pickup_later' ? 'Pick up later' : 'Follow up required';
+        
+        // Store previous status for pickup_later
+        if (selectedStatus === 'pickup_later') {
+          updateData.previous_status = currentLead.status;
+        }
+      }
+
+      // Update lead status
+      const response = await apiCall('/leads/' + currentLead.id, {
+        method: 'PUT',
+        body: JSON.stringify(updateData)
+      });
+
+      // Update local state
+      setLeads(prevLeads => 
+        prevLeads.map(lead => 
+          lead.id === currentLead.id ? response.data : lead
+        )
+      );
+
+      // Update current lead if in detail view
+      if (showLeadDetail && currentLead?.id === currentLead.id) {
+        setCurrentLead(response.data);
+      }
+
+      setLoading(false);
+      setShowStatusProgressModal(false);
+      
+      // Show success message with follow-up info
+      if (selectedStatusConfig.requires_followup_date && followUpDate) {
+        alert(`Lead status updated successfully! Follow-up scheduled for ${new Date(followUpDate).toLocaleString()}`);
+      } else {
+        alert('Lead status updated successfully!');
+      }
+    } catch (error) {
+      console.error('Error updating lead status:', error);
+      setLoading(false);
+      alert('Failed to update lead status: ' + error.message);
+    }
+  };
+
+  if (!showStatusProgressModal) return null;
+
+  return React.createElement('div', { 
+    className: 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50' 
+  },
+    React.createElement('div', { 
+      className: 'bg-white rounded-lg p-6 w-full max-w-md max-h-screen overflow-y-auto' 
+    },
+      React.createElement('h3', { 
+        className: 'text-lg font-medium text-gray-900 mb-4' 
+      }, 'Progress Lead: ' + (currentLead?.name || '')),
+      
+      React.createElement('p', { 
+        className: 'text-sm text-gray-600 mb-4' 
+      }, 'Current Status: ' + LEAD_STATUSES[currentLead?.status]?.label),
+      
+      // Status selection
+      React.createElement('div', { className: 'mb-4' },
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Select New Status:'),
+        React.createElement('select', {
+          value: selectedStatus,
+          onChange: (e) => setSelectedStatus(e.target.value),
+          className: 'w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500'
+        },
+          React.createElement('option', { value: '' }, 'Choose status...'),
+          statusProgressOptions.map(option =>
+            React.createElement('option', { 
+              key: option.value, 
+              value: option.value 
+            }, `${option.icon || ''} ${option.label}`)
+          )
+        )
+      ),
+      
+      // Follow-up date field (shown when required)
+      selectedStatus && LEAD_STATUSES[selectedStatus]?.requires_followup_date && 
+      React.createElement('div', { className: 'mb-4' },
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 
+          '📅 Follow-up Date: *'
+        ),
+        React.createElement('input', {
+          type: 'datetime-local',
+          value: followUpDate,
+          onChange: (e) => setFollowUpDate(e.target.value),
+          className: 'w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
+          min: new Date().toISOString().slice(0, 16) // Prevent past dates
+        }),
+        React.createElement('p', { className: 'text-xs text-gray-500 mt-1' },
+          'This will create an automatic reminder for follow-up'
+        )
+      ),
+      
+      // Follow-up notes field (shown when follow-up date is required)
+      selectedStatus && LEAD_STATUSES[selectedStatus]?.requires_followup_date && 
+      React.createElement('div', { className: 'mb-4' },
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 
+          '📝 Follow-up Notes:'
+        ),
+        React.createElement('textarea', {
+          value: followUpNotes,
+          onChange: (e) => setFollowUpNotes(e.target.value),
+          placeholder: selectedStatus === 'pickup_later' 
+            ? 'Why are we picking this up later? Add context for future reference...'
+            : 'Add notes for the follow-up...',
+          rows: 3,
+          className: 'w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500'
+        })
+      ),
+      
+      // Action buttons
+      React.createElement('div', { className: 'flex justify-end space-x-3 mt-6' },
+        React.createElement('button', {
+          type: 'button',
+          onClick: () => setShowStatusProgressModal(false),
+          className: 'px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-blue-500'
+        }, 'Cancel'),
+        React.createElement('button', {
+          type: 'button',
+          onClick: handleStatusUpdate,
+          disabled: loading,
+          className: 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 focus:ring-2 focus:ring-blue-500'
+        }, loading ? 'Updating...' : 'Update Status')
+      )
+    )
+  );
+};
+ 
 const handleLeadProgression = (lead) => {
-if (!hasPermission('leads', 'progress')) {
-alert('You do not have permission to progress leads');
-return;
-}
+  if (!hasPermission('leads', 'progress')) {
+    alert('You do not have permission to progress leads');
+    return;
+  }
 
-const currentStatus = lead.status;
-const nextOptions = LEAD_STATUSES[currentStatus]?.next || [];
+  const currentStatus = lead.status;
+  const nextOptions = LEAD_STATUSES[currentStatus]?.next || [];
 
-if (nextOptions.length === 0) {
-alert('This lead is already at the final stage.');
-return;
-}
+  if (nextOptions.length === 0) {
+    alert('This lead is already at the final stage.');
+    return;
+  }
 
-if (nextOptions.length === 1) {
-const nextStatus = nextOptions[0];
-if (nextStatus === 'payment') {
-if (currentStatus === 'payment_post_service') {
-// Coming from payment_post_service, collect payment
-const receivable = receivables.find(r => r.lead_id === lead.id && r.status === 'pending');
-if (receivable) {
-collectPostServicePayment(receivable);
-} else {
-openPaymentForm(lead);
-}
-} else {
-openPaymentForm(lead);
-}
-} else {
-updateLeadStatus(lead.id, nextStatus);
-}
-} else {
-// Handle special case for converted status with payment options
-if (currentStatus === 'converted' && nextOptions.includes('payment') && nextOptions.includes('payment_post_service')) {
-setCurrentLeadForChoice(lead);
-setChoiceOptions([
-{ value: 'payment', label: 'Collect Payment Now', icon: '💳' },
-{ value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' }
-]);
-setShowChoiceModal(true);
-} else {
-setCurrentLeadForChoice(lead);
-setChoiceOptions(nextOptions);
-setShowChoiceModal(true);
-}
-}
+  // Check if any of the next options require follow-up date (like pickup_later)
+  const hasFollowUpOptions = nextOptions.some(status => 
+    LEAD_STATUSES[status]?.requires_followup_date
+  );
+
+  if (nextOptions.length === 1) {
+    const nextStatus = nextOptions[0];
+    
+    // Handle pickup_later status (requires follow-up date)
+    if (nextStatus === 'pickup_later') {
+      setCurrentLead(lead);
+      setShowStatusProgressModal(true);
+      setStatusProgressOptions([{
+        value: 'pickup_later',
+        label: LEAD_STATUSES['pickup_later'].label,
+        color: LEAD_STATUSES['pickup_later'].color,
+        requires_followup_date: true
+      }]);
+      return;
+    }
+    
+    // Handle payment status (existing logic)
+    if (nextStatus === 'payment') {
+      if (currentStatus === 'payment_post_service') {
+        // Coming from payment_post_service, collect payment
+        const receivable = receivables.find(r => r.lead_id === lead.id && r.status === 'pending');
+        if (receivable) {
+          collectPostServicePayment(receivable);
+        } else {
+          openPaymentForm(lead);
+        }
+      } else {
+        openPaymentForm(lead);
+      }
+      return;
+    }
+    
+    // For other single status transitions (including attempts)
+    updateLeadStatus(lead.id, nextStatus);
+  } else {
+    // Multiple options available - need to show choice modal
+
+    // Handle special case for converted status with payment options (existing logic)
+    if (currentStatus === 'converted' && 
+        nextOptions.includes('payment') && 
+        nextOptions.includes('payment_post_service')) {
+      
+      // Check if pickup_later is also an option
+      if (nextOptions.includes('pickup_later')) {
+        // Show enhanced choice modal with pickup_later option
+        setCurrentLeadForChoice(lead);
+        setChoiceOptions([
+          { value: 'payment', label: 'Collect Payment Now', icon: '💳' },
+          { value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' },
+          { value: 'pickup_later', label: 'Pick Up Later', icon: '⏰', requires_followup_date: true }
+        ]);
+        setShowChoiceModal(true);
+      } else {
+        // Original logic for payment choices
+        setCurrentLeadForChoice(lead);
+        setChoiceOptions([
+          { value: 'payment', label: 'Collect Payment Now', icon: '💳' },
+          { value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' }
+        ]);
+        setShowChoiceModal(true);
+      }
+    } 
+    // If any option requires follow-up date, use the enhanced modal
+    else if (hasFollowUpOptions) {
+      setCurrentLead(lead);
+      setShowStatusProgressModal(true);
+      setStatusProgressOptions(nextOptions.map(status => ({
+        value: status,
+        label: LEAD_STATUSES[status].label,
+        color: LEAD_STATUSES[status].color,
+        requires_followup_date: LEAD_STATUSES[status].requires_followup_date,
+        icon: getStatusIcon(status) // Helper function for icons
+      })));
+    } 
+    // Otherwise use the existing choice modal (this handles attempts and all other flows)
+    else {
+      setCurrentLeadForChoice(lead);
+      setChoiceOptions(nextOptions.map(status => ({
+        value: status,
+        label: LEAD_STATUSES[status].label,
+        icon: getStatusIcon(status)
+      })));
+      setShowChoiceModal(true);
+    }
+  }
 };
 
 const handleQuoteRequestStage = async (lead, newStatus) => {
@@ -3532,35 +3801,52 @@ alert('Failed to update lead status: ' + error.message);
 }
 };
 
-// Handle choice selection from modal
-const handleChoiceSelection = (selectedStatus) => {
-if (currentLeadForChoice) {
-// Handle object-based choices (for payment options)
-const statusValue = selectedStatus.value || selectedStatus;
+// Enhanced Choice Modal Handler to support pickup_later
+const handleChoiceSelection = async (choice) => {
+  try {
+    setLoading(true);
+    
+    // If choice requires follow-up date, switch to the enhanced modal
+    if (choice.requires_followup_date) {
+      setShowChoiceModal(false);
+      setCurrentLead(currentLeadForChoice);
+      setShowStatusProgressModal(true);
+      setStatusProgressOptions([{
+        value: choice.value,
+        label: choice.label,
+        color: LEAD_STATUSES[choice.value]?.color || 'bg-gray-100 text-gray-800',
+        requires_followup_date: true
+      }]);
+      setLoading(false);
+      return;
+    }
 
-if (statusValue === 'payment') {
-setShowChoiceModal(false);
-setCurrentLeadForChoice(null);
-setChoiceOptions([]);
-openPaymentForm(currentLeadForChoice);
-} else if (statusValue === 'payment_post_service') {
-setShowChoiceModal(false);
-setCurrentLeadForChoice(null);
-setChoiceOptions([]);
-openPaymentPostServiceForm(currentLeadForChoice);
-} else {
-// Handle quote_requested stage with dual assignment
-if (statusValue === 'quote_requested') {
-handleQuoteRequestStage(currentLeadForChoice, statusValue);
-} else {
-updateLeadStatus(currentLeadForChoice.id, statusValue);
-}
-setShowChoiceModal(false);
-setCurrentLeadForChoice(null);
-setChoiceOptions([]);
-}
-}
+    // Handle payment choices (existing logic)
+    if (choice.value === 'payment') {
+      setShowChoiceModal(false);
+      openPaymentForm(currentLeadForChoice);
+      setLoading(false);
+      return;
+    }
+
+    if (choice.value === 'payment_post_service') {
+      setShowChoiceModal(false);
+      openPaymentPostServiceForm(currentLeadForChoice);
+      setLoading(false);
+      return;
+    }
+
+    // For regular status updates
+    await updateLeadStatus(currentLeadForChoice.id, choice.value);
+    setShowChoiceModal(false);
+    setLoading(false);
+  } catch (error) {
+    console.error('Error handling choice selection:', error);
+    setLoading(false);
+    alert('Failed to update lead status: ' + error.message);
+  }
 };
+
 
 
 // Form handlers with permission checks
@@ -5146,68 +5432,50 @@ React.createElement('div', { className: 'flex space-x-4 mt-6 pt-4 border-t' },
 // [I'll include the key rendering functions with permission checks integrated]
 
 const renderChoiceModal = () => {
-if (!showChoiceModal || !currentLeadForChoice) return null;
+  if (!showChoiceModal) return null;
 
-const isPaymentChoice = choiceOptions.some(opt => typeof opt === 'object' && opt.value);
-
-return React.createElement('div', { 
-className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
-onClick: (e) => e.target === e.currentTarget && setShowChoiceModal(false)
-},
-React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md' },
-React.createElement('div', { className: 'flex justify-between items-center mb-6' },
-React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
-'Progress Lead: ' + (currentLeadForChoice.name)
-),
-React.createElement('button', {
-onClick: () => setShowChoiceModal(false),
-className: 'text-gray-400 hover:text-gray-600 text-2xl'
-}, '✕')
-),
-React.createElement('div', { className: 'mb-4' },
-React.createElement('p', { className: 'text-sm text-gray-600 mb-4' }, 
-'Current Status: ' + (LEAD_STATUSES[currentLeadForChoice.status]?.label)
-),
-React.createElement('p', { className: 'text-sm font-medium text-gray-700 mb-3' }, 
-isPaymentChoice ? 'Choose payment option:' : 'Choose next status:'
-)
-),
-React.createElement('div', { className: 'space-y-2 mb-6' },
-choiceOptions.map(option => {
-const optionValue = option.value || option;
-const optionLabel = option.label || (LEAD_STATUSES[option]?.label || option);
-const optionIcon = option.icon || '';
-
-return React.createElement('button', {
-    key: optionValue,
-    onClick: () => handleChoiceSelection(option),
-    className: `w-full p-3 text-left rounded-lg border-2 hover:border-blue-500 hover:bg-blue-50 ${
-        optionValue === 'junk' || optionValue === 'dropped' ? 'border-red-200 bg-red-50' :
-        optionValue === 'hot' ? 'border-red-200 bg-red-50' :
-        optionValue === 'warm' ? 'border-orange-200 bg-orange-50' :
-        optionValue === 'cold' ? 'border-blue-200 bg-blue-50' :
-        optionValue === 'payment_post_service' ? 'border-purple-200 bg-purple-50' :
-        'border-gray-200 bg-gray-50'
-    }`,
-    disabled: loading
-},
-    React.createElement('div', { className: 'flex items-center justify-between' },
-        React.createElement('div', { className: 'flex items-center' },
-            optionIcon && React.createElement('span', { className: 'mr-2 text-lg' }, optionIcon),
-            React.createElement('span', { className: 'font-medium' }, optionLabel)
-        ),
-        React.createElement('span', { className: 'text-sm text-gray-500' }, '→')
+  return React.createElement('div', { 
+    className: 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50' 
+  },
+    React.createElement('div', { 
+      className: 'bg-white rounded-lg p-6 w-full max-w-md' 
+    },
+      React.createElement('h3', { 
+        className: 'text-lg font-medium text-gray-900 mb-4' 
+      }, 'Choose Next Step for: ' + (currentLeadForChoice?.name || '')),
+      
+      React.createElement('div', { className: 'space-y-2' },
+        choiceOptions.map((option, index) =>
+          React.createElement('button', {
+            key: index,
+            onClick: () => handleChoiceSelection(option),
+            disabled: loading,
+            className: `w-full p-3 text-left border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 ${
+              option.requires_followup_date ? 'border-indigo-300 bg-indigo-50' : ''
+            }`
+          },
+            React.createElement('div', { className: 'flex items-center justify-between' },
+              React.createElement('span', { className: 'flex items-center' },
+                React.createElement('span', { className: 'text-lg mr-2' }, option.icon || '📝'),
+                React.createElement('span', { className: 'font-medium' }, option.label)
+              ),
+              option.requires_followup_date && 
+              React.createElement('span', { 
+                className: 'text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded' 
+              }, 'Requires Follow-up Date')
+            )
+          )
+        )
+      ),
+      
+      React.createElement('div', { className: 'mt-6 flex justify-end' },
+        React.createElement('button', {
+          onClick: () => setShowChoiceModal(false),
+          className: 'px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50'
+        }, 'Cancel')
+      )
     )
-);
-})
-),
-React.createElement('button', {
-onClick: () => setShowChoiceModal(false),
-className: 'w-full px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50',
-disabled: loading
-}, 'Cancel')
-)
-);
+  );
 };
 
  // ===== COMMUNICATION COMPONENTS - INSERT THIS BLOCK =====
