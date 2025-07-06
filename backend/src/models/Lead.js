@@ -168,9 +168,69 @@ class Lead {
     }
   }
 
-  static async getAllClients() {
-    return [];
+static async getAllClients() {
+  try {
+    console.log('🔍 Getting all leads to group into clients...');
+    
+    // Get all leads from Firestore
+    const snapshot = await db.collection(collections.leads)
+      .orderBy('created_date', 'desc')
+      .get();
+
+    if (snapshot.empty) {
+      console.log('No leads found');
+      return [];
+    }
+
+    // Group leads by client_id
+    const clientGroups = {};
+    
+    snapshot.forEach(doc => {
+      const lead = { id: doc.id, ...doc.data() };
+      const clientId = lead.client_id;
+      
+      if (!clientId) return; // Skip leads without client_id
+      
+      if (!clientGroups[clientId]) {
+        clientGroups[clientId] = [];
+      }
+      clientGroups[clientId].push(lead);
+    });
+
+    // Convert grouped leads into client objects
+    const clients = Object.entries(clientGroups).map(([clientId, leads]) => {
+      const primaryLead = leads.find(l => l.is_primary_lead) || leads[0];
+      const totalValue = leads.reduce((sum, lead) => sum + (lead.potential_value || 0), 0);
+      const events = [...new Set(leads.map(l => l.lead_for_event).filter(Boolean))];
+      const lastActivity = leads.reduce((latest, lead) => {
+        const leadDate = new Date(lead.updated_date || lead.created_date);
+        return leadDate > latest ? leadDate : latest;
+      }, new Date(0));
+
+      return {
+        client_id: clientId,
+        phone: primaryLead.phone,
+        name: primaryLead.name,
+        email: primaryLead.email,
+        company: primaryLead.company,
+        assigned_to: primaryLead.assigned_to,
+        total_leads: leads.length,
+        total_value: totalValue,
+        events: events,
+        first_contact: primaryLead.created_date,
+        last_activity: lastActivity.toISOString(),
+        leads: leads
+      };
+    });
+
+    console.log(`✅ Found ${clients.length} clients from ${snapshot.size} leads`);
+    return clients;
+    
+  } catch (error) {
+    console.error('Error getting all clients:', error);
+    throw error;
   }
+}
 
   static async updateClientMetadata(clientId, metadata) {
     return true;
