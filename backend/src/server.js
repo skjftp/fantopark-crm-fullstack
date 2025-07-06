@@ -61,6 +61,7 @@ app.use('/api/reminders', require('./routes/reminders'));
 // 🎯 NEW: Assignment Rules API
 app.use('/api/assignment-rules', require('./routes/assignmentRules'));
 
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
@@ -70,13 +71,12 @@ app.get('/health', (req, res) => {
       'auth', 'users', 'leads', 'inventory', 'orders', 
       'invoices', 'deliveries', 'payables', 'finance', 
       'receivables', 'dashboard', 'upload', 'roles', 
-      'setup', 'stadiums', 'clients', 'reminders',
-      'assignment-rules' // 🎯 Assignment rules now available
+      'setup', 'stadiums', 'clients', 'reminders', 'assignment-rules'
     ]
   });
 });
-
 // Error handling
+
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
