@@ -11942,7 +11942,11 @@ React.createElement('div', { className: 'md:col-span-2' },
   React.createElement('input', {
     type: 'text',
     value: item.description || '',
-    onChange: (e) => updateInvoiceItem(index, 'description', e.target.value),
+    onChange: (e) => {
+  const newItems = JSON.parse(JSON.stringify(paymentData.invoice_items || []));
+  newItems[index].description = e.target.value;
+  handlePaymentInputChange('invoice_items', newItems);
+},
     className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
     required: true,
     placeholder: 'e.g., Match Tickets (RCB vs RR- 24th April, 2025)'
@@ -11957,7 +11961,11 @@ React.createElement('div', null,
   React.createElement('input', {
     type: 'number',
     value: item.quantity || '',
-    onChange: (e) => updateInvoiceItem(index, 'quantity', parseFloat(e.target.value) || 0),
+    onChange: (e) => {
+  const newItems = JSON.parse(JSON.stringify(paymentData.invoice_items || []));
+  newItems[index].quantity = parseFloat(e.target.value) || 0;
+  handlePaymentInputChange('invoice_items', newItems);
+},
     className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
     required: true,
     min: 0,
@@ -11973,7 +11981,11 @@ React.createElement('div', null,
   React.createElement('input', {
     type: 'number',
     value: item.rate || '',
-    onChange: (e) => updateInvoiceItem(index, 'rate', parseFloat(e.target.value) || 0),
+    onChange: (e) => {
+  const newItems = JSON.parse(JSON.stringify(paymentData.invoice_items || []));
+  newItems[index].rate = parseFloat(e.target.value) || 0;
+  handlePaymentInputChange('invoice_items', newItems);
+},
     className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
     required: true,
     min: 0,
@@ -11993,7 +12005,11 @@ React.createElement('div', { className: 'mt-3' },
   React.createElement('input', {
     type: 'text',
     value: item.additional_info || '',
-    onChange: (e) => updateInvoiceItem(index, 'additional_info', e.target.value),
+    onChange: (e) => {
+  const newItems = JSON.parse(JSON.stringify(paymentData.invoice_items || []));
+  newItems[index].additional_info = e.target.value;
+  handlePaymentInputChange('invoice_items', newItems);
+},
     className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
     placeholder: 'e.g., Qatar Airways Rahul Dravid Platinum Lounge- VIP'
   })
