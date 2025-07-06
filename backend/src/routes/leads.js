@@ -1,9 +1,10 @@
-// Enhanced backend/src/routes/leads.js - FULLY BACKWARD COMPATIBLE + AUTO-REMINDERS + ASSIGNMENT RULES
+// Enhanced backend/src/routes/leads.js - FULLY BACKWARD COMPATIBLE + AUTO-REMINDERS + ASSIGNMENT RULES + COMMUNICATION TRACKING
 const express = require('express');
 const router = express.Router();
 const Lead = require('../models/Lead');
 const AssignmentRule = require('../models/AssignmentRule');
 const { authenticateToken } = require('../middleware/auth');
+const Communication = require('../models/Communication');
 
 // Import db for bulk operations (you already had this)
 const { db, collections } = require('../config/db');
@@ -303,7 +304,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT update lead - ENHANCED WITH AUTO-REMINDERS
+// PUT update lead - ENHANCED WITH AUTO-REMINDERS + COMMUNICATION TRACKING
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const leadId = req.params.id;
@@ -317,6 +318,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     const oldStatus = currentLead.status;
     const newStatus = updates.status;
+    const oldAssignment = currentLead.assigned_to;
+    const newAssignment = updates.assigned_to;
+    const oldTemperature = currentLead.temperature;
+    const newTemperature = updates.temperature;
     
     console.log(`🔄 Updating lead ${leadId}: ${oldStatus} → ${newStatus || 'no status change'}`);
 
@@ -339,6 +344,39 @@ router.put('/:id', authenticateToken, async (req, res) => {
         console.error('⚠️ Auto-reminder creation failed (non-critical):', reminderError.message);
         // Don't fail the update if reminder creation fails
       }
+    }
+
+    // 📞 **NEW: AUTO-LOG SIGNIFICANT CHANGES**
+    try {
+      if (newStatus && newStatus !== oldStatus) {
+        await Communication.autoLog(leadId, updatedLead, 'status_change', {
+          oldStatus: oldStatus,
+          newStatus: newStatus,
+          message: `Status changed from ${oldStatus} to ${newStatus}`
+        });
+        console.log('📝 Auto-logged status change communication');
+      }
+      
+      if (newAssignment && newAssignment !== oldAssignment) {
+        await Communication.autoLog(leadId, updatedLead, 'assignment_change', {
+          oldAssignment: oldAssignment,
+          newAssignment: newAssignment,
+          message: `Lead reassigned from ${oldAssignment || 'unassigned'} to ${newAssignment}`
+        });
+        console.log('📝 Auto-logged assignment change communication');
+      }
+      
+      if (newTemperature && newTemperature !== oldTemperature) {
+        await Communication.autoLog(leadId, updatedLead, 'temperature_change', {
+          oldTemperature: oldTemperature,
+          newTemperature: newTemperature,
+          message: `Temperature changed from ${oldTemperature} to ${newTemperature}`
+        });
+        console.log('📝 Auto-logged temperature change communication');
+      }
+    } catch (commError) {
+      console.error('⚠️ Failed to auto-log change communications (non-critical):', commError);
+      // Don't fail the lead update if communication logging fails
     }
     
     // Optional client metadata update (only if client_id exists)
@@ -411,7 +449,7 @@ router.delete('/', authenticateToken, async (req, res) => {
       return res.json({ message: 'No leads to delete', count: 0 });
     }
     
-    // NEW: Also delete all reminders when bulk deleting leads
+    // NEW: Also delete all reminders and communications when bulk deleting leads
     try {
       const reminderSnapshot = await db.collection('crm_reminders').get();
       if (!reminderSnapshot.empty) {
@@ -424,6 +462,20 @@ router.delete('/', authenticateToken, async (req, res) => {
       }
     } catch (reminderError) {
       console.error('Failed to delete reminders during bulk delete:', reminderError.message);
+    }
+
+    try {
+      const commSnapshot = await db.collection('crm_communications').get();
+      if (!commSnapshot.empty) {
+        const commBatch = db.batch();
+        commSnapshot.docs.forEach((doc) => {
+          commBatch.delete(doc.ref);
+        });
+        await commBatch.commit();
+        console.log(`Deleted ${commSnapshot.size} communications`);
+      }
+    } catch (commError) {
+      console.error('Failed to delete communications during bulk delete:', commError.message);
     }
     
     // Delete in batches of 500 (Firestore limit)
@@ -488,7 +540,7 @@ router.get('/check-phone/:phone', authenticateToken, async (req, res) => {
   }
 });
 
-// 🔧 **FIXED: POST create lead - ENHANCED WITH WORKING AUTO-ASSIGNMENT**
+// 🔧 **ENHANCED: POST create lead - WITH AUTO-ASSIGNMENT + COMMUNICATION TRACKING**
 router.post('/', authenticateToken, async (req, res) => {
   try {
     let newLeadData = { ...req.body };
@@ -594,6 +646,27 @@ router.post('/', authenticateToken, async (req, res) => {
     
     console.log(`✅ Lead created successfully: ${savedLead.id}`);
     
+    // 📞 **NEW: AUTO-LOG LEAD CREATION COMMUNICATION**
+    try {
+      const communicationDetails = {
+        message: `Lead created from ${savedLead.source || 'unknown source'}`,
+        ruleName: savedLead.assignment_rule_used
+      };
+
+      if (savedLead.auto_assigned) {
+        // Auto-log assignment communication
+        await Communication.autoLog(savedLead.id, savedLead, 'auto_assignment', communicationDetails);
+        console.log('📝 Auto-logged assignment communication');
+      } else {
+        // Auto-log general lead creation
+        await Communication.autoLog(savedLead.id, savedLead, 'lead_creation', communicationDetails);
+        console.log('📝 Auto-logged lead creation communication');
+      }
+    } catch (commError) {
+      console.error('⚠️ Failed to auto-log communication (non-critical):', commError);
+      // Don't fail the lead creation if communication logging fails
+    }
+    
     // Enhanced response includes assignment info
     const response = { 
       data: savedLead,
@@ -665,6 +738,69 @@ router.post('/:id/reminders', authenticateToken, async (req, res) => {
     res.status(201).json({ data: savedReminder });
   } catch (error) {
     console.error('Error creating manual reminder:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 📞 **NEW: Get communications for a specific lead**
+router.get('/:id/communications', authenticateToken, async (req, res) => {
+  try {
+    const leadId = req.params.id;
+    const { limit = 50 } = req.query;
+    
+    // Verify lead exists
+    const lead = await Lead.getById(leadId);
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+    
+    const communications = await Communication.getByLeadId(leadId, parseInt(limit));
+    
+    console.log(`Found ${communications.length} communications for lead: ${leadId}`);
+    res.json({ 
+      data: communications,
+      lead: {
+        id: leadId,
+        name: lead.name,
+        email: lead.email,
+        status: lead.status
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching communications for lead:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 📞 **NEW: Add communication to a specific lead**
+router.post('/:id/communications', authenticateToken, async (req, res) => {
+  try {
+    const leadId = req.params.id;
+    const communicationData = req.body;
+    
+    // Verify lead exists
+    const lead = await Lead.getById(leadId);
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+    
+    // Enrich communication data
+    communicationData.lead_id = leadId;
+    communicationData.lead_name = lead.name;
+    communicationData.created_by = req.user.email;
+    communicationData.created_by_name = req.user.name || req.user.email;
+    
+    // Create communication
+    const communication = new Communication(communicationData);
+    const savedCommunication = await communication.save();
+    
+    console.log(`Communication added to lead ${leadId}: ${savedCommunication.id}`);
+    res.status(201).json({ 
+      data: savedCommunication,
+      message: 'Communication logged successfully' 
+    });
+  } catch (error) {
+    console.error('Error adding communication to lead:', error);
     res.status(500).json({ error: error.message });
   }
 });
