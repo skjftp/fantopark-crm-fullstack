@@ -9440,388 +9440,351 @@ const handleAssignLead = async (e) => {
 
 // Payment submission with permission check
 const handlePaymentSubmit = async (e) => {
-e.preventDefault();
+  e.preventDefault();
 
-// ADD THESE DEBUG LINES
-console.log('=== PAYMENT SUBMIT DEBUG ===');
-console.log('Full paymentData:', paymentData);
-console.log('GST Certificate:', paymentData.gst_certificate);
-console.log('PAN Card:', paymentData.pan_card);
+  // ADD THESE DEBUG LINES
+  console.log('=== PAYMENT SUBMIT DEBUG ===');
+  console.log('Full paymentData:', paymentData);
+  console.log('GST Certificate:', paymentData.gst_certificate);
+  console.log('PAN Card:', paymentData.pan_card);
 
-if (!hasPermission('leads', 'write')) {
-alert('You do not have permission to manage payments');
-return;
-}
+  if (!hasPermission('leads', 'write')) {
+    alert('You do not have permission to manage payments');
+    return;
+  }
 
-setLoading(true);
+  setLoading(true);
 
-try {
-await new Promise(resolve => setTimeout(resolve, 1000));
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-// Check if this is a post-service payment
-if (paymentData.payment_post_service && paymentData.receivable_id) {
-// Update receivable status
-setReceivables(prev => 
-prev.map(r => 
-r.id === paymentData.receivable_id 
-    ? { ...r, status: 'paid', paid_date: new Date().toISOString().split('T')[0] }
-    : r
-)
-);
+    // Check if this is a post-service payment
+    if (paymentData.payment_post_service && paymentData.receivable_id) {
+      // Update receivable status
+      setReceivables(prev => 
+        prev.map(r => 
+          r.id === paymentData.receivable_id 
+            ? { ...r, status: 'paid', paid_date: new Date().toISOString().split('T')[0] }
+            : r
+        )
+      );
 
-// Update order payment status
-const order = orders.find(o => o.lead_id === currentLead.id && o.payment_type === 'post_service');
-if (order) {
-setOrders(prev => 
-prev.map(o => 
-    o.id === order.id 
-        ? { ...o, payment_received: true, payment_date: new Date().toISOString().split('T')[0] }
-        : o
-)
-);
-}
-}
+      // Update order payment status
+      const order = orders.find(o => o.lead_id === currentLead.id && o.payment_type === 'post_service');
+      if (order) {
+        setOrders(prev => 
+          prev.map(o => 
+            o.id === order.id 
+              ? { ...o, payment_received: true, payment_date: new Date().toISOString().split('T')[0] }
+              : o
+          )
+        );
+      }
+    }
 
-// Calculate GST amounts based on invoice items total
-const invoiceTotal = paymentData.invoice_items.reduce((sum, item) => 
-sum + (item.quantity * item.rate), 0
-) || 0;
+    // FIXED: Use helper function and correct GST calculation
+    const baseAmount = getBaseAmount(paymentData);
+    const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
+    
+    // FIXED: Use the correct calculateGSTAndTCS function
+    const calculation = calculateGSTAndTCS(baseAmount, paymentData);
+    const totalTax = calculation.gst.total;
+    const finalAmount = calculation.finalAmount;
 
-const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
-const gstRate = paymentData.type_of_sale === 'Tour' ? 5 : 18;
-
-const baseAmount = paymentData.type_of_sale === 'Service Fee' 
-? (parseFloat(paymentData.service_fee_amount) || 0)
-: invoiceTotal;
-
-const gstCalculation = calculateGST(baseAmount, isIntraState, gstRate);
-const totalTax = gstCalculation.cgst + gstCalculation.sgst + gstCalculation.igst;
-const finalAmount = baseAmount + totalTax;
-
-// Update lead with payment details
-const updatedLead = {
-...currentLead,
-payment_details: {
+    // Update lead with payment details
+    const updatedLead = {
+      ...currentLead,
+      payment_details: {
         ...paymentData,
         advance_amount: parseFloat(paymentData.advance_amount) || 0,
-        invoice_total: invoiceTotal,
         base_amount: baseAmount,
-        gst_calculation: gstCalculation,
+        gst_calculation: calculation.gst,
+        tcs_calculation: calculation.tcs,
         total_tax: totalTax,
         final_amount: finalAmount
-    },
-payment_received_date: new Date().toISOString().split('T')[0]
-};
+      },
+      payment_received_date: new Date().toISOString().split('T')[0]
+    };
 
-// Update local state with payment details
-setLeads(prev => 
-prev.map(lead => 
-lead.id === currentLead.id ? updatedLead : lead
-)
-);
+    // Update local state with payment details
+    setLeads(prev => 
+      prev.map(lead => 
+        lead.id === currentLead.id ? updatedLead : lead
+      )
+    );
 
-console.log('=== REACHED ORDER CREATION SECTION ===');
-// Check if order already exists for this lead
-const existingOrder = orders.find(order => 
-order.lead_id === currentLead.id && 
-order.status !== 'rejected'
-);
-if (existingOrder) {
-// UPDATE existing order
-// Debug: Log what we're sending
-console.log('Updating order with GST details:', {
-gstin: paymentData.gstin,
-legal_name: paymentData.legal_name,
-registered_address: paymentData.registered_address,
-category_of_sale: paymentData.category_of_sale,
-type_of_sale: paymentData.type_of_sale,
-indian_state: paymentData.indian_state
-});
-const updateResponse = await apiCall('/orders/' + existingOrder.id, {
-method: 'PUT',
-body: JSON.stringify({
-// Start with existing order data
-...existingOrder,
+    console.log('=== REACHED ORDER CREATION SECTION ===');
+    
+    // Check if order already exists for this lead
+    const existingOrder = orders.find(order => 
+      order.lead_id === currentLead.id && 
+      order.status !== 'rejected'
+    );
 
-// Payment fields (will override existing)
-payment_amount: paymentData.advance_amount,
-payment_method: paymentData.payment_method,
-transaction_id: paymentData.transaction_id,
-payment_date: paymentData.payment_date,
-payment_proof: paymentData.payment_proof,
-payment_status: 'paid',
+    if (existingOrder) {
+      // UPDATE existing order
+      console.log('Updating order with GST details:', {
+        gstin: paymentData.gstin,
+        legal_name: paymentData.legal_name,
+        registered_address: paymentData.registered_address,
+        category_of_sale: paymentData.category_of_sale,
+        type_of_sale: paymentData.type_of_sale,
+        indian_state: paymentData.indian_state
+      });
 
-// Amount fields
-amount: paymentData.advance_amount,
-total_amount: existingOrder.total_amount || existingOrder.final_amount, // Preserve original GST-inclusive amount
-final_amount: existingOrder.final_amount || existingOrder.total_amount, // Ensure final_amount is set
+      // FIXED: Correct API call format
+      const updateResponse = await apiCall(`/orders/${existingOrder.id}`, 'PUT', {
+        // Start with existing order data
+        ...existingOrder,
 
-// GST fields - IMPORTANT: These will override existing values
-legal_name: paymentData.legal_name || existingOrder.legal_name,
-gstin: paymentData.gstin || existingOrder.gstin,
-registered_address: paymentData.registered_address || existingOrder.registered_address,
-category_of_sale: paymentData.category_of_sale || existingOrder.category_of_sale,
-type_of_sale: paymentData.type_of_sale || existingOrder.type_of_sale,
-indian_state: paymentData.indian_state || existingOrder.indian_state,
-is_outside_india: paymentData.is_outside_india || existingOrder.is_outside_india,
-gst_certificate: paymentData.gst_certificate || existingOrder.gst_certificate,
-pan_card: paymentData.pan_card || existingOrder.pan_card,
+        // Payment fields (will override existing)
+        payment_amount: paymentData.advance_amount,
+        payment_method: paymentData.payment_method,
+        transaction_id: paymentData.transaction_id,
+        payment_date: paymentData.payment_date,
+        payment_proof: paymentData.payment_proof,
+        payment_status: 'paid',
 
-// Invoice details
-invoice_items: paymentData.invoice_items || existingOrder.invoice_items,
-base_amount: existingOrder.base_amount,
-gst_calculation: existingOrder.gst_calculation,
-total_tax: existingOrder.total_tax,
-final_amount: existingOrder.final_amount || existingOrder.total_amount,
-gst_rate: paymentData.gst_rate || existingOrder.gst_rate,
-service_fee_amount: paymentData.service_fee_amount || existingOrder.service_fee_amount,
+        // Amount fields
+        amount: paymentData.advance_amount,
+        total_amount: existingOrder.total_amount || existingOrder.final_amount,
+        final_amount: existingOrder.final_amount || existingOrder.total_amount,
 
-// Clear post-service fields if this was a post-service order
-expected_amount: null,
-expected_payment_date: null,
-order_type: 'standard',
+        // GST fields - IMPORTANT: These will override existing values
+        legal_name: paymentData.legal_name || existingOrder.legal_name,
+        gstin: paymentData.gstin || existingOrder.gstin,
+        registered_address: paymentData.registered_address || existingOrder.registered_address,
+        category_of_sale: paymentData.category_of_sale || existingOrder.category_of_sale,
+        type_of_sale: paymentData.type_of_sale || existingOrder.type_of_sale,
+        indian_state: paymentData.indian_state || existingOrder.indian_state,
+        is_outside_india: paymentData.is_outside_india || existingOrder.is_outside_india,
+        gst_certificate: paymentData.gst_certificate || existingOrder.gst_certificate,
+        pan_card: paymentData.pan_card || existingOrder.pan_card,
 
-// Metadata
-notes: paymentData.notes || existingOrder.notes,
-updated_date: new Date().toISOString(),
-updated_by: user.name
-})
-});
-// Debug: Log what we received back
-console.log('Order update response:', updateResponse);
+        // Invoice details
+        invoice_items: paymentData.invoice_items || existingOrder.invoice_items,
+        base_amount: baseAmount,
+        gst_calculation: calculation.gst,
+        tcs_calculation: calculation.tcs,
+        total_tax: totalTax,
+        final_amount: finalAmount,
+        gst_rate: calculation.gst.rate,
+        service_fee_amount: paymentData.service_fee_amount || existingOrder.service_fee_amount,
 
-setOrders(prev => prev.map(o => 
-o.id === existingOrder.id ? {...o, ...updateResponse.data} : o
-));
+        // Clear post-service fields if this was a post-service order
+        expected_amount: null,
+        expected_payment_date: null,
+        order_type: 'standard',
 
-// IMPORTANT: Update lead status for payment_post_service to payment_received
-if (paymentData.payment_post_service) {
-await updateLeadStatus(currentLead.id, 'payment_received');
-}
+        // Metadata
+        notes: paymentData.notes || existingOrder.notes,
+        updated_date: new Date().toISOString(),
+        updated_by: user.name
+      });
 
-// Update lead status if this is payment collection after service
-if (paymentData.payment_post_service || currentLead.status === 'payment_post_service') {
-await updateLeadStatus(currentLead.id, 'payment_received');
-}
+      console.log('Order update response:', updateResponse);
 
-// Handle receivable updates/deletion if payment is from receivables
-if (paymentData.from_receivable && paymentData.receivable_id) {
-console.log('Processing receivable payment...');
-console.log('Receivable ID:', paymentData.receivable_id);
-console.log('Original receivable amount:', paymentData.receivable_amount);
-console.log('Processing receivable payment...');
-console.log('Receivable ID:', paymentData.receivable_id);
-console.log('Original receivable amount:', paymentData.receivable_amount);
-// Calculate the actual invoice amount with GST
-const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
-const gstRate = paymentData.type_of_sale === 'Tour' ? 5 : 18;
+      setOrders(prev => prev.map(o => 
+        o.id === existingOrder.id ? {...o, ...updateResponse} : o
+      ));
 
-const baseAmount = getBaseAmount(paymentData);
+      // IMPORTANT: Update lead status for payment_post_service to payment_received
+      if (paymentData.payment_post_service) {
+        await updateLeadStatus(currentLead.id, 'payment_received');
+      }
 
-// Calculate GST
-const gstAmount = (baseAmount * gstRate) / 100;
-const finalInvoiceAmount = baseAmount + gstAmount;
+      // Update lead status if this is payment collection after service
+      if (paymentData.payment_post_service || currentLead.status === 'payment_post_service') {
+        await updateLeadStatus(currentLead.id, 'payment_received');
+      }
 
-// For receivable payments, the advance_amount field contains the actual payment amount
-const paidAmount = parseFloat(paymentData.advance_amount) || 0;
-const receivableAmount = parseFloat(paymentData.receivable_amount) || 0;
+      // Handle receivable updates/deletion if payment is from receivables
+      if (paymentData.from_receivable && paymentData.receivable_id) {
+        console.log('Processing receivable payment...');
+        console.log('Receivable ID:', paymentData.receivable_id);
+        console.log('Original receivable amount:', paymentData.receivable_amount);
 
-console.log('Payment being collected:', paidAmount);
-console.log('Original receivable amount:', receivableAmount);
-console.log('Calculated invoice amount with GST:', finalInvoiceAmount);
+        // For receivable payments, the advance_amount field contains the actual payment amount
+        const paidAmount = parseFloat(paymentData.advance_amount) || 0;
+        const receivableAmount = parseFloat(paymentData.receivable_amount) || 0;
 
-console.log('Payment being collected:', paidAmount);
-console.log('Original receivable amount:', receivableAmount);
-console.log('Calculated invoice amount with GST:', finalInvoiceAmount);
+        console.log('Payment being collected:', paidAmount);
+        console.log('Original receivable amount:', receivableAmount);
+        console.log('Calculated invoice amount with GST:', finalAmount);
 
-if (paidAmount >= receivableAmount) {
-// Full payment - delete the receivable
-try {
-    await apiCall('/receivables/' + paymentData.receivable_id, {
-        method: 'DELETE'
-    });
-    // Remove from local state
-    if (typeof setReceivables === 'function') {
-        setReceivables(prev => prev.filter(r => r.id !== paymentData.receivable_id));
-    }
-    console.log('Receivable deleted after full payment');
-} catch (error) {
-    console.error('Failed to delete receivable:', error);
-}
-} else {
-// Partial payment - ask user what to do
-const remainingAmount = receivableAmount - paidAmount;
-const userChoice = confirm(
-    `You are receiving only partial payment of ₹${paidAmount.toFixed(2)} out of ₹${receivableAmount.toFixed(2)} (inclusive of GST).
+        if (paidAmount >= receivableAmount) {
+          // Full payment - delete the receivable
+          try {
+            await apiCall(`/receivables/${paymentData.receivable_id}`, 'DELETE');
+            
+            // Remove from local state
+            if (typeof setReceivables === 'function') {
+              setReceivables(prev => prev.filter(r => r.id !== paymentData.receivable_id));
+            }
+            console.log('Receivable deleted after full payment');
+          } catch (error) {
+            console.error('Failed to delete receivable:', error);
+          }
+        } else {
+          // Partial payment - ask user what to do
+          const remainingAmount = receivableAmount - paidAmount;
+          const userChoice = confirm(
+            `You are receiving only partial payment of ₹${paidAmount.toFixed(2)} out of ₹${receivableAmount.toFixed(2)} (inclusive of GST).\n\n` +
+            `Remaining balance: ₹${remainingAmount.toFixed(2)}\n\n` +
+            `Click OK to update this receivable with the balance payment.\n` +
+            `Click Cancel to mark this receivable as closed and update the order value.`
+          );
 
-` +
-    `Remaining balance: ₹${remainingAmount.toFixed(2)}
-
-` +
-    `Click OK to update this receivable with the balance payment.
-` +
-    `Click Cancel to mark this receivable as closed and update the order value.`
-);
-
-if (userChoice) {
-    // Update receivable with remaining amount
-    try {
-        await apiCall('/receivables/' + paymentData.receivable_id, {
-            method: 'PUT',
-            body: JSON.stringify({
+          if (userChoice) {
+            // Update receivable with remaining amount
+            try {
+              await apiCall(`/receivables/${paymentData.receivable_id}`, 'PUT', {
                 balance_amount: remainingAmount,
                 amount: remainingAmount,
                 expected_amount: remainingAmount,
                 partial_payment_received: paidAmount,
                 last_payment_date: new Date().toISOString(),
                 updated_date: new Date().toISOString()
-            })
-        });
-        // Update local state
-        if (typeof setReceivables === 'function') {
-            setReceivables(prev => prev.map(r => 
-                r.id === paymentData.receivable_id 
+              });
+
+              // Update local state
+              if (typeof setReceivables === 'function') {
+                setReceivables(prev => prev.map(r => 
+                  r.id === paymentData.receivable_id 
                     ? { ...r, balance_amount: remainingAmount, amount: remainingAmount }
                     : r
-            ));
-        }
-        alert(`Receivable updated with remaining balance of ₹${remainingAmount.toFixed(2)}`);
-    } catch (error) {
-        console.error('Failed to update receivable:', error);
-        alert('Failed to update receivable with remaining balance');
-    }
-} else {
-    // Close receivable and update order total
-    try {
-        // Delete the receivable
-        await apiCall('/receivables/' + paymentData.receivable_id, {
-            method: 'DELETE'
-        });
-        
-        // Update the order with the actual paid amount
-        await apiCall('/orders/' + existingOrderId, {
-            method: 'PUT',
-            body: JSON.stringify({
+                ));
+              }
+              alert(`Receivable updated with remaining balance of ₹${remainingAmount.toFixed(2)}`);
+            } catch (error) {
+              console.error('Failed to update receivable:', error);
+              alert('Failed to update receivable with remaining balance');
+            }
+          } else {
+            // Close receivable and update order total
+            try {
+              // Delete the receivable
+              await apiCall(`/receivables/${paymentData.receivable_id}`, 'DELETE');
+              
+              // FIXED: Use existingOrder.id instead of undefined existingOrderId
+              await apiCall(`/orders/${existingOrder.id}`, 'PUT', {
                 total_amount: paidAmount,
                 original_amount: receivableAmount,
                 amount_adjusted: true,
                 adjustment_reason: 'Partial payment accepted',
                 updated_date: new Date().toISOString()
-            })
-        });
-        
-        // Update local states
-        if (typeof setReceivables === 'function') {
-            setReceivables(prev => prev.filter(r => r.id !== paymentData.receivable_id));
+              });
+              
+              // Update local states
+              if (typeof setReceivables === 'function') {
+                setReceivables(prev => prev.filter(r => r.id !== paymentData.receivable_id));
+              }
+              setOrders(prev => prev.map(o => 
+                o.id === existingOrder.id 
+                  ? { ...o, total_amount: paidAmount, amount_adjusted: true }
+                  : o
+              ));
+              
+              alert(`Receivable closed. Order value updated to ₹${paidAmount.toFixed(2)}`);
+            } catch (error) {
+              console.error('Failed to close receivable:', error);
+              alert('Failed to close receivable');
+            }
+          }
         }
-        setOrders(prev => prev.map(o => 
-            o.id === existingOrderId 
-                ? { ...o, total_amount: paidAmount, amount_adjusted: true }
-                : o
-        ));
-        
-        alert(`Receivable closed. Order value updated to ₹${paidAmount.toFixed(2)}`);
-    } catch (error) {
-        console.error('Failed to close receivable:', error);
-        alert('Failed to close receivable');
+      }
+
+      setLoading(false);
+      alert(paymentData.payment_post_service 
+        ? 'Payment collected successfully! Invoice can now be generated.' 
+        : 'Payment updated successfully!'
+      );
+      closeForm();
+      return; // Exit here, don't create new order
     }
-}
-}
-}
 
-setLoading(false);
-alert(paymentData.payment_post_service 
-? 'Payment collected successfully! Invoice can now be generated.' 
-: 'Payment updated successfully!'
-);
-closeForm();
-return; // Exit here, don't create new order
-}
+    // Create NEW order after successful payment
+    const orderData = {
+      order_number: 'ORD-' + (Date.now()),
+      lead_id: currentLead.id,
+      lead_name: currentLead.name,
+      client_name: currentLead.name,
+      lead_email: currentLead.email,
+      client_email: currentLead.email,
+      lead_phone: currentLead.phone,
+      client_phone: currentLead.phone,
+      legal_name: paymentData.legal_name || currentLead.legal_name,
+      gstin: paymentData.gstin,
+      registered_address: paymentData.registered_address,
+      category_of_sale: paymentData.category_of_sale,
+      type_of_sale: paymentData.type_of_sale,
+      indian_state: paymentData.indian_state,
+      payment_amount: paymentData.advance_amount,
+      payment_method: paymentData.payment_method,
+      transaction_id: paymentData.transaction_id,
+      payment_date: paymentData.payment_date,
+      payment_proof: paymentData.payment_proof,
+      notes: paymentData.notes,
+      gst_rate: calculation.gst.rate,
+      service_fee_amount: paymentData.service_fee_amount,
+      invoice_items: paymentData.invoice_items,
+      status: 'pending_approval',
+      requires_gst_invoice: true,
+      
+      // Add the missing fields by extracting from invoice items
+      event_name: paymentData.invoice_items?.[0]?.description || currentLead?.lead_for_event || 'General Event',
+      event_date: paymentData.payment_date || new Date().toISOString().split('T')[0],
+      tickets_allocated: parseInt(paymentData.invoice_items?.[0]?.quantity) || 1,
+      ticket_category: paymentData.category_of_sale || 'General',
+      price_per_ticket: paymentData.invoice_items?.[0]?.rate || 0,
+      total_amount: baseAmount,
+      base_amount: baseAmount,
+      gst_calculation: calculation.gst,
+      tcs_calculation: calculation.tcs,
+      total_tax: totalTax,
+      final_amount: finalAmount
+    };
 
-// Create order after successful payment
-const orderData = {
-order_number: 'ORD-' + (Date.now()),
-lead_id: currentLead.id,
-lead_name: currentLead.name,
-client_name: currentLead.name,  // Add client_name for display
-lead_email: currentLead.email,
-client_email: currentLead.email,  // Add client_email for display
-lead_phone: currentLead.phone,
-client_phone: currentLead.phone,  // Add client_phone for display
-legal_name: paymentData.legal_name || currentLead.legal_name,
-gstin: paymentData.gstin,
-registered_address: paymentData.registered_address,
-category_of_sale: paymentData.category_of_sale,
-type_of_sale: paymentData.type_of_sale,
-indian_state: paymentData.indian_state,
-payment_amount: paymentData.advance_amount,
-payment_method: paymentData.payment_method,
-transaction_id: paymentData.transaction_id,
-payment_date: paymentData.payment_date,
-payment_proof: paymentData.payment_proof,
-notes: paymentData.notes,
-gst_rate: paymentData.gst_rate,
-service_fee_amount: paymentData.service_fee_amount,
-invoice_items: paymentData.invoice_items,
-status: 'pending_approval',
-requires_gst_invoice: true,
-// Add the missing fields by extracting from invoice items
-event_name: paymentData.invoice_items?.[0]?.description || currentLead?.lead_for_event || 'General Event',
-event_date: paymentData.payment_date || new Date().toISOString().split('T')[0],
-tickets_allocated: parseInt(paymentData.invoice_items?.[0]?.quantity) || 1,
-ticket_category: paymentData.category_of_sale || 'General',
-price_per_ticket: paymentData.invoice_items?.[0]?.rate || 0,
-total_amount: (parseInt(paymentData.invoice_items?.[0]?.quantity || 1) * parseFloat(paymentData.invoice_items?.[0]?.rate || 0))
-};
+    // FIXED: Create order via API with correct format
+    console.log('Creating order with data:', JSON.stringify(orderData, null, 2));
+    
+    let orderResponse;
+    try {
+      orderResponse = await apiCall('/orders', 'POST', orderData);
+      console.log('Order creation response:', orderResponse);
 
-// Create order via API
-console.log('Creating order with data:', JSON.stringify(orderData, null, 2));
-console.log('Key fields:', {
-event_name: orderData.event_name,
-tickets_allocated: orderData.tickets_allocated,
-ticket_category: orderData.ticket_category,
-total_amount: orderData.total_amount
-});
-let orderResponse;
-try {
-orderResponse = await apiCall('/orders', {
-method: 'POST',
-body: JSON.stringify(orderData)
-});
-console.log('Order creation response:', orderResponse);
+      // Validate response
+      if (!orderResponse) {
+        throw new Error('Invalid response from order creation API');
+      }
+    } catch (error) {
+      console.error('Failed to create order:', error);
+      alert('Order creation failed: ' + error.message);
+      setLoading(false);
+      return;
+    }
 
-// Validate response
-if (!orderResponse || (!orderResponse.data && !orderResponse.id)) {
-throw new Error('Invalid response from order creation API');
-}
-} catch (error) {
-console.error('Failed to create order:', error);
-alert('Order creation failed: ' + error.message);
-orderResponse = {data: null, error: error.message};
-}
+    // Update local orders state
+    setOrders(prev => [...prev, orderResponse]);
 
-// Update local orders state
-setOrders(prev => [...prev, orderResponse]);
+    // Log for debugging
+    console.log('Order created:', orderResponse);
 
-// Log for debugging
-console.log('Order created:', orderResponse);
+    // Update status using updateLeadStatus to ensure persistence
+    await updateLeadStatus(currentLead.id, 'payment_received');
 
-// Update status using updateLeadStatus to ensure persistence
-await updateLeadStatus(currentLead.id, 'payment_received');
+    setLoading(false);
+    alert(paymentData.payment_post_service 
+      ? 'Payment collected successfully! Invoice can now be generated.' 
+      : 'Payment details submitted successfully! Order created and sent for finance approval.'
+    );
+    closeForm();
 
-// Order already created via API above - duplicate creation removed
-// The order was created and added to state after the API call
-
-setLoading(false);
-alert(paymentData.payment_post_service 
-? 'Payment collected successfully! Invoice can now be generated.' 
-: 'Payment details submitted successfully! Order created and sent for finance approval.'
-);
-closeForm();
-} catch (error) {
-setLoading(false);
-alert('Payment submission failed. Please try again.');
-}
+  } catch (error) {
+    console.error('Payment submission error:', error);
+    setLoading(false);
+    alert('Payment submission failed: ' + (error.message || 'Unknown error'));
+  }
 };
 
 // Generic form renderer with all sections
