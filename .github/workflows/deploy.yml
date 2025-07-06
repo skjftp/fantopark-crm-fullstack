@@ -1,0 +1,37 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# Add permissions at the workflow level
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    # Environment configuration
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4  # Updated to v4
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4  # Updated to v4
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3  # This is the correct version for pages
+      with:
+        path: 'frontend/public'
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4  # Updated to v4
