@@ -1133,6 +1133,9 @@ const [showClientSuggestion, setShowClientSuggestion] = useState(false);
 const [phoneCheckTimeout, setPhoneCheckTimeout] = useState(null);
 const [showStatusProgressModal, setShowStatusProgressModal] = useState(false);
 const [statusProgressOptions, setStatusProgressOptions] = useState([]);
+const [selectedStatus, setSelectedStatus] = useState('');
+const [followUpDate, setFollowUpDate] = useState('');
+const [followUpNotes, setFollowUpNotes] = useState('');
  
  
 
@@ -3470,10 +3473,21 @@ alert('Failed to update lead status: ' + error.message);
 }
 };
 
+// 1. ADD THESE STATE VARIABLES AT THE TOP LEVEL (where you have other useState declarations)
+// Find where you have: const [showStatusProgressModal, setShowStatusProgressModal] = useState(false);
+// And add these three lines right after it:
+
+const [showStatusProgressModal, setShowStatusProgressModal] = useState(false);
+const [statusProgressOptions, setStatusProgressOptions] = useState([]);
+// ADD THESE THREE NEW LINES:
+const [selectedStatus, setSelectedStatus] = useState('');
+const [followUpDate, setFollowUpDate] = useState('');
+const [followUpNotes, setFollowUpNotes] = useState('');
+
+// 2. REPLACE your renderStatusProgressModal function with this corrected version:
+
 const renderStatusProgressModal = () => {
-  const [selectedStatus, setSelectedStatus] = useState('');
-  const [followUpDate, setFollowUpDate] = useState('');
-  const [followUpNotes, setFollowUpNotes] = useState('');
+  // NO useState declarations here - they're now at top level!
 
   const handleStatusUpdate = async () => {
     if (!selectedStatus) {
@@ -3549,6 +3563,11 @@ const renderStatusProgressModal = () => {
       setLoading(false);
       setShowStatusProgressModal(false);
       
+      // Clear the form after successful update
+      setSelectedStatus('');
+      setFollowUpDate('');
+      setFollowUpNotes('');
+      
       // Show success message with follow-up info
       if (selectedStatusConfig.requires_followup_date && followUpDate) {
         alert(`Lead status updated successfully! Follow-up scheduled for ${new Date(followUpDate).toLocaleString()}`);
@@ -3560,6 +3579,14 @@ const renderStatusProgressModal = () => {
       setLoading(false);
       alert('Failed to update lead status: ' + error.message);
     }
+  };
+
+  const handleModalClose = () => {
+    setShowStatusProgressModal(false);
+    // Clear form when closing
+    setSelectedStatus('');
+    setFollowUpDate('');
+    setFollowUpNotes('');
   };
 
   if (!showStatusProgressModal) return null;
@@ -3635,7 +3662,7 @@ const renderStatusProgressModal = () => {
       React.createElement('div', { className: 'flex justify-end space-x-3 mt-6' },
         React.createElement('button', {
           type: 'button',
-          onClick: () => setShowStatusProgressModal(false),
+          onClick: handleModalClose,
           className: 'px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-blue-500'
         }, 'Cancel'),
         React.createElement('button', {
