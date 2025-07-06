@@ -12575,7 +12575,7 @@ const renderClientViewContent = () => {
             ),
             React.createElement('div', { className: 'bg-orange-50 border border-orange-200 rounded-lg p-4' },
                 React.createElement('div', { className: 'text-2xl font-bold text-orange-900' }, 
-                    '₹' + clients.reduce((sum, c) => sum + (c.total_value || 0), 0).toLocaleString()
+                    '₹' + clients.reduce((sum, c) => sum + (parseFloat(c.total_value) || 0), 0).toLocaleString()
                 ),
                 React.createElement('div', { className: 'text-sm text-orange-700' }, 'Total Client Value')
             )
@@ -12656,7 +12656,7 @@ const renderClientViewContent = () => {
                                     }, client.status || 'active')
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' },
-                                    client.total_value ? `₹${client.total_value.toLocaleString()}` : '-'
+                                    client.total_value ? `₹${(parseFloat(client.total_value) || 0).toLocaleString()}` : '-'
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4 text-sm font-medium space-x-2' },
                                     React.createElement('button', {
