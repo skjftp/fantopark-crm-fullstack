@@ -9584,8 +9584,10 @@ const handlePaymentSubmit = async (e) => {
 
       console.log('Order update response:', updateResponse);
 
+      // FIXED: Handle response structure properly
+      const updatedOrderData = updateResponse.data || updateResponse;
       setOrders(prev => prev.map(o => 
-        o.id === existingOrder.id ? {...o, ...updateResponse} : o
+        o.id === existingOrder.id ? {...o, ...updatedOrderData} : o
       ));
 
       // IMPORTANT: Update lead status for payment_post_service to payment_received
@@ -9694,6 +9696,17 @@ const handlePaymentSubmit = async (e) => {
         }
       }
 
+      // FIXED: Refresh orders data to ensure updated order shows correctly
+      try {
+        console.log('Refreshing orders after update...');
+        const freshOrdersResponse = await apiCall('/orders');
+        const freshOrders = freshOrdersResponse.data || freshOrdersResponse || [];
+        setOrders(freshOrders);
+        console.log('Orders refreshed after update:', freshOrders.length);
+      } catch (refreshError) {
+        console.error('Failed to refresh orders after update:', refreshError);
+      }
+
       setLoading(false);
       alert(paymentData.payment_post_service 
         ? 'Payment collected successfully! Invoice can now be generated.' 
@@ -9764,11 +9777,25 @@ const handlePaymentSubmit = async (e) => {
       return;
     }
 
-    // Update local orders state
-    setOrders(prev => [...prev, orderResponse]);
+    // FIXED: Handle different response structures and refresh data
+    console.log('Order created successfully, refreshing orders...');
 
-    // Log for debugging
-    console.log('Order created:', orderResponse);
+    // Method 1: Refresh all orders from server (RECOMMENDED)
+    try {
+      const freshOrdersResponse = await apiCall('/orders');
+      const freshOrders = freshOrdersResponse.data || freshOrdersResponse || [];
+      setOrders(freshOrders);
+      console.log('Orders refreshed from server:', freshOrders.length);
+    } catch (refreshError) {
+      console.error('Failed to refresh orders:', refreshError);
+      
+      // Fallback: Add to local state with proper structure
+      const newOrder = orderResponse.data || orderResponse;
+      if (newOrder) {
+        setOrders(prev => [...prev, newOrder]);
+        console.log('Added order to local state as fallback');
+      }
+    }
 
     // Update status using updateLeadStatus to ensure persistence
     await updateLeadStatus(currentLead.id, 'payment_received');
@@ -9779,6 +9806,16 @@ const handlePaymentSubmit = async (e) => {
       : 'Payment details submitted successfully! Order created and sent for finance approval.'
     );
     closeForm();
+
+    // IMPORTANT: Trigger a page refresh if still not showing
+    setTimeout(() => {
+      if (activeTab === 'orders') {
+        console.log('Triggering orders page refresh...');
+        // Force re-render of orders page
+        setActiveTab('dashboard');
+        setTimeout(() => setActiveTab('orders'), 100);
+      }
+    }, 1000);
 
   } catch (error) {
     console.error('Payment submission error:', error);
