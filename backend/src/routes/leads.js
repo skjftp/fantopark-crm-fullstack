@@ -440,8 +440,8 @@ router.post('/', authenticateToken, async (req, res) => {
     console.log(`🆕 Creating new lead: ${newLeadData.name} (${newLeadData.phone}) with status: ${newLeadData.status || 'unassigned'}`);
     
     // 🚀 **FIXED: Enhanced Auto-Assignment Logic (BEFORE client detection)**
-    if (!newLeadData.assigned_to || newLeadData.assigned_to === '') {
-      console.log('🎯 No assignment provided - attempting enhanced auto-assignment...');
+    if (true) { // TEMP: Force auto-assignment test
+  console.log('🎯 No assignment provided - attempting enhanced auto-assignment...');
       
       try {
         const assignment = await performEnhancedAutoAssignment(newLeadData);
