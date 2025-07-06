@@ -495,32 +495,38 @@ router.post('/', authenticateToken, async (req, res) => {
     
     console.log(`🆕 Creating new lead: ${newLeadData.name} (${newLeadData.phone}) with status: ${newLeadData.status || 'unassigned'}`);
     
-    // 🚀 **FIXED: Enhanced Auto-Assignment Logic (BEFORE client detection)**
+    // 🚀 **WORKING: Auto-Assignment Logic using AssignmentRule model**
     if (!newLeadData.assigned_to || newLeadData.assigned_to === '') {
-      console.log('🎯 No assignment provided - attempting enhanced auto-assignment...');
+      console.log('🎯 No assignment provided - attempting auto-assignment...');
       
       try {
-        const assignment = await performEnhancedAutoAssignment(newLeadData);
+        // Use the working AssignmentRule.testAssignment method
+        const assignment = await AssignmentRule.testAssignment(newLeadData);
         
-        if (assignment) {
-          // Apply all assignment fields
-          Object.assign(newLeadData, assignment);
-          console.log(`✅ Enhanced auto-assignment successful: ${assignment.assigned_to}`);
-          console.log(`📋 Assignment details:`, {
-            rule: assignment.assignment_rule_used,
-            reason: assignment.assignment_reason,
-            auto_assigned: assignment.auto_assigned
-          });
+        if (assignment && assignment.assigned_to) {
+          // Apply assignment results
+          newLeadData.assigned_to = assignment.assigned_to;
+          newLeadData.assignment_rule_used = assignment.rule_matched;
+          newLeadData.assignment_reason = assignment.assignment_reason;
+          newLeadData.auto_assigned = assignment.auto_assigned;
+          newLeadData.assignment_rule_id = assignment.rule_id;
+          newLeadData.assignment_date = new Date().toISOString();
+          newLeadData.status = 'assigned';
+          
+          console.log(`✅ Auto-assignment successful: ${assignment.assigned_to}`);
+          console.log(`📋 Rule matched: ${assignment.rule_matched}`);
+          console.log(`📋 Reason: ${assignment.assignment_reason}`);
         } else {
-          console.log('⚠️ Enhanced auto-assignment - no rules matched');
+          console.log('⚠️ Auto-assignment - no rules matched');
         }
       } catch (assignmentError) {
-        console.error('❌ Enhanced auto-assignment failed:', assignmentError);
+        console.error('❌ Auto-assignment failed:', assignmentError);
         // Continue with lead creation even if auto-assignment fails
       }
     } else {
       console.log('✅ Lead already has assignment:', newLeadData.assigned_to);
     }
+
     
     // Client detection logic (only if phone is provided)
     if (newLeadData.phone) {
