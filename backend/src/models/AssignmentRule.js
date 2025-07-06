@@ -1,237 +1,284 @@
-const { db } = require('../config/db');
+const { db, collections } = require('../config/db');
 
 class AssignmentRule {
   constructor(data) {
     this.name = data.name;
     this.description = data.description || '';
-    this.priority = data.priority || 1; // Higher = more important
-    this.active = data.active !== false;
-    this.conditions = data.conditions || []; // Array of condition objects
-    this.assignees = data.assignees || []; // Array of assignee objects with weights
-    this.assignment_strategy = data.assignment_strategy || 'weighted_round_robin';
+    this.priority = data.priority || 10; // Lower number = higher priority
+    this.is_active = data.is_active !== undefined ? data.is_active : true;
+    
+    // Conditions for rule matching
+    this.conditions = data.conditions || {}; // e.g., {potential_value: {gte: 100000}}
+    this.condition_logic = data.condition_logic || 'AND'; // AND/OR
+    
+    // Assignment strategy
+    this.assignment_strategy = data.assignment_strategy || 'round_robin'; // round_robin, weighted_round_robin, least_busy
+    this.assignees = data.assignees || []; // Array of {email: 'user@email.com', weight: 50}
+    
+    // Metadata
     this.created_date = data.created_date || new Date().toISOString();
     this.updated_date = new Date().toISOString();
-    this.usage_count = data.usage_count || 0;
-    this.last_used_date = data.last_used_date || null;
     this.created_by = data.created_by || '';
+    this.last_assignment_index = data.last_assignment_index || 0; // For round robin
   }
 
+  // Save rule to database
   async save() {
-    const docRef = await db.collection('crm_assignment_rules').add({...this});
-    return { id: docRef.id, ...this };
-  }
-
-  static async getAll() {
-    const snapshot = await db.collection('crm_assignment_rules')
-      .get();
-    
-    const rules = [];
-    snapshot.forEach(doc => {
-      rules.push({ id: doc.id, ...doc.data() });
-    });
-    // Sort manually by priority (highest first)
-    rules.sort((a, b) => (a.priority || 0) - (b.priority || 0));
-    // Sort manually by priority (highest first)
-    rules.sort((a, b) => (a.priority || 0) - (b.priority || 0));
-    return rules;
-  }
-
-  static async getActiveRules() {
-    const snapshot = await db.collection('crm_assignment_rules')
-      .where('active', '==', true)
-      .get();
-    
-    const rules = [];
-    snapshot.forEach(doc => {
-      rules.push({ id: doc.id, ...doc.data() });
-    });
-    // Sort manually by priority (highest first)
-    rules.sort((a, b) => (a.priority || 0) - (b.priority || 0));
-    return rules;
-  }
-
-  static async evaluateLeadAssignment(leadData) {
     try {
-      const rules = await AssignmentRule.getActiveRules();
-      console.log(`🤖 Evaluating ${rules.length} assignment rules for lead: ${leadData.name}`);
+      if (this.id) {
+        // Update existing
+        await db.collection('crm_assignment_rules').doc(this.id).update({
+          ...this,
+          updated_date: new Date().toISOString()
+        });
+        return { id: this.id, ...this };
+      } else {
+        // Create new
+        const docRef = await db.collection('crm_assignment_rules').add({...this});
+        return { id: docRef.id, ...this };
+      }
+    } catch (error) {
+      console.error('Error saving assignment rule:', error);
+      throw error;
+    }
+  }
+
+  // Get all assignment rules
+  static async getAll() {
+    try {
+      const snapshot = await db.collection('crm_assignment_rules')
+        .orderBy('priority', 'asc')
+        .get();
+      
+      const rules = [];
+      snapshot.forEach(doc => {
+        rules.push({ id: doc.id, ...doc.data() });
+      });
+      return rules;
+    } catch (error) {
+      console.error('Error fetching assignment rules:', error);
+      throw error;
+    }
+  }
+
+  // Get active rules only
+  static async getActive() {
+    try {
+      const snapshot = await db.collection('crm_assignment_rules')
+        .where('is_active', '==', true)
+        .orderBy('priority', 'asc')
+        .get();
+      
+      const rules = [];
+      snapshot.forEach(doc => {
+        rules.push({ id: doc.id, ...doc.data() });
+      });
+      return rules;
+    } catch (error) {
+      console.error('Error fetching active assignment rules:', error);
+      throw error;
+    }
+  }
+
+  // Get rule by ID
+  static async getById(id) {
+    try {
+      const doc = await db.collection('crm_assignment_rules').doc(id).get();
+      if (!doc.exists) return null;
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('Error fetching assignment rule:', error);
+      throw error;
+    }
+  }
+
+  // Update rule
+  static async update(id, data) {
+    try {
+      const updateData = { 
+        ...data, 
+        updated_date: new Date().toISOString() 
+      };
+      
+      await db.collection('crm_assignment_rules').doc(id).update(updateData);
+      
+      // Return updated document
+      const updated = await AssignmentRule.getById(id);
+      return updated;
+    } catch (error) {
+      console.error('Error updating assignment rule:', error);
+      throw error;
+    }
+  }
+
+  // Delete rule
+  static async delete(id) {
+    try {
+      await db.collection('crm_assignment_rules').doc(id).delete();
+      return true;
+    } catch (error) {
+      console.error('Error deleting assignment rule:', error);
+      throw error;
+    }
+  }
+
+  // Test lead against rules and return assignment
+  static async testAssignment(leadData) {
+    try {
+      const rules = await AssignmentRule.getActive();
       
       for (const rule of rules) {
-        if (AssignmentRule.matchesConditions(rule.conditions, leadData)) {
-          const assignee = await AssignmentRule.selectAssignee(rule, leadData);
-          if (assignee) {
-            // Update rule usage
-            await AssignmentRule.updateUsage(rule.id);
-            console.log(`✅ Rule matched: ${rule.name} → Assigned to: ${assignee}`);
+        if (AssignmentRule.evaluateConditions(leadData, rule.conditions, rule.condition_logic)) {
+          const assignedTo = AssignmentRule.selectAssignee(rule);
+          
+          if (assignedTo) {
+            // Update the last assignment index for round robin
+            await AssignmentRule.updateLastAssignmentIndex(rule.id, rule.last_assignment_index);
+            
             return {
-              assigned_to: assignee,
-              assignment_rule_used: rule.id,
-              assignment_reason: `Auto-assigned via rule: ${rule.name}`
+              assigned_to: assignedTo,
+              rule_matched: rule.name,
+              rule_id: rule.id,
+              assignment_reason: rule.description || `Matched rule: ${rule.name}`,
+              auto_assigned: true
             };
           }
         }
       }
       
-      // Fallback to load balancing
-      console.log('📊 No rules matched, using load balancing');
-      return await AssignmentRule.loadBalanceAssignment(leadData);
-      
+      return null; // No rule matched
     } catch (error) {
-      console.error('Assignment evaluation error:', error);
-      return { assigned_to: null, error: error.message };
+      console.error('Error testing assignment rules:', error);
+      throw error;
     }
   }
 
-  static matchesConditions(conditions, leadData) {
-    if (!conditions || conditions.length === 0) return true;
-    
-    return conditions.every(condition => {
-      const { field, operator, value } = condition;
+  // Evaluate if lead matches rule conditions
+  static evaluateConditions(leadData, conditions, logic = 'AND') {
+    if (!conditions || Object.keys(conditions).length === 0) {
+      return true; // No conditions = matches all
+    }
+
+    const results = [];
+
+    for (const [field, condition] of Object.entries(conditions)) {
       const leadValue = leadData[field];
+      let fieldMatches = false;
+
+      if (typeof condition === 'string' || typeof condition === 'number') {
+        // Simple equality check
+        fieldMatches = leadValue === condition;
+      } else if (typeof condition === 'object') {
+        // Complex conditions like {gte: 100000, lt: 500000}
+        for (const [operator, value] of Object.entries(condition)) {
+          switch (operator) {
+            case 'eq':
+              fieldMatches = leadValue === value;
+              break;
+            case 'neq':
+              fieldMatches = leadValue !== value;
+              break;
+            case 'gt':
+              fieldMatches = Number(leadValue) > Number(value);
+              break;
+            case 'gte':
+              fieldMatches = Number(leadValue) >= Number(value);
+              break;
+            case 'lt':
+              fieldMatches = Number(leadValue) < Number(value);
+              break;
+            case 'lte':
+              fieldMatches = Number(leadValue) <= Number(value);
+              break;
+            case 'in':
+              fieldMatches = Array.isArray(value) && value.includes(leadValue);
+              break;
+            case 'contains':
+              fieldMatches = String(leadValue).toLowerCase().includes(String(value).toLowerCase());
+              break;
+          }
+          if (fieldMatches) break;
+        }
+      }
+
+      results.push(fieldMatches);
+    }
+
+    // Apply logic
+    if (logic === 'OR') {
+      return results.some(r => r === true);
+    } else {
+      return results.every(r => r === true);
+    }
+  }
+
+  // Select assignee based on strategy
+  static selectAssignee(rule) {
+    if (!rule.assignees || rule.assignees.length === 0) {
+      return null;
+    }
+
+    switch (rule.assignment_strategy) {
+      case 'round_robin':
+        return AssignmentRule.roundRobinSelection(rule);
       
-      switch (operator) {
-        case '>=': return parseFloat(leadValue || 0) >= parseFloat(value);
-        case '<=': return parseFloat(leadValue || 0) <= parseFloat(value);
-        case '>': return parseFloat(leadValue || 0) > parseFloat(value);
-        case '<': return parseFloat(leadValue || 0) < parseFloat(value);
-        case '==': return leadValue === value;
-        case '!=': return leadValue !== value;
-        case 'in': return Array.isArray(value) ? value.includes(leadValue) : false;
-        case 'contains': return leadValue?.toLowerCase().includes(value.toLowerCase());
-        case 'starts_with': return leadValue?.toLowerCase().startsWith(value.toLowerCase());
-        default: return false;
+      case 'weighted_round_robin':
+        return AssignmentRule.weightedRoundRobinSelection(rule);
+      
+      case 'least_busy':
+        // For now, fallback to round robin - would need to implement workload tracking
+        return AssignmentRule.roundRobinSelection(rule);
+      
+      default:
+        return rule.assignees[0]?.email || null;
+    }
+  }
+
+  // Round robin selection
+  static roundRobinSelection(rule) {
+    const currentIndex = rule.last_assignment_index || 0;
+    const nextIndex = (currentIndex + 1) % rule.assignees.length;
+    
+    // Update the rule's last assignment index
+    rule.last_assignment_index = nextIndex;
+    
+    return rule.assignees[nextIndex]?.email || null;
+  }
+
+  // Weighted round robin selection
+  static weightedRoundRobinSelection(rule) {
+    // Create weighted pool
+    const weightedPool = [];
+    rule.assignees.forEach(assignee => {
+      const weight = assignee.weight || 50;
+      for (let i = 0; i < weight; i++) {
+        weightedPool.push(assignee.email);
       }
     });
-  }
 
-  static async selectAssignee(rule, leadData) {
-    const { assignees, assignment_strategy } = rule;
-    
-    if (!assignees || assignees.length === 0) return null;
-    
-    switch (assignment_strategy) {
-      case 'weighted_round_robin':
-        return AssignmentRule.weightedSelection(assignees);
-      case 'least_busy':
-        return await AssignmentRule.leastBusySelection(assignees);
-      case 'geographic':
-        return AssignmentRule.geographicSelection(assignees, leadData);
-      case 'first_available':
-        return assignees[0]?.user_email;
-      default:
-        return assignees[0]?.user_email;
+    if (weightedPool.length === 0) {
+      return null;
     }
-  }
 
-  static weightedSelection(assignees) {
-    const totalWeight = assignees.reduce((sum, a) => sum + (a.weight || 1), 0);
-    const random = Math.random() * totalWeight;
+    const currentIndex = rule.last_assignment_index || 0;
+    const nextIndex = (currentIndex + 1) % weightedPool.length;
     
-    let currentWeight = 0;
-    for (const assignee of assignees) {
-      currentWeight += (assignee.weight || 1);
-      if (random <= currentWeight) {
-        return assignee.user_email;
-      }
-    }
-    return assignees[0]?.user_email;
-  }
-
-  static async leastBusySelection(assignees) {
-    try {
-      const userLoads = {};
-      
-      // Get current active lead count for each assignee
-      for (const assignee of assignees) {
-        const snapshot = await db.collection('crm_leads')
-          .where('assigned_to', '==', assignee.user_email)
-          .where('status', 'in', ['new', 'contacted', 'interested', 'quoted', 'follow_up_required'])
-          .get();
-        userLoads[assignee.user_email] = snapshot.size;
-      }
-      
-      // Find the least busy
-      const leastBusy = assignees.reduce((min, assignee) => 
-        userLoads[assignee.user_email] < userLoads[min.user_email] ? assignee : min
-      );
-      
-      return leastBusy.user_email;
-    } catch (error) {
-      console.error('Least busy selection error:', error);
-      return assignees[0]?.user_email;
-    }
-  }
-
-  static geographicSelection(assignees, leadData) {
-    // Simple geographic matching based on city
-    const leadCity = leadData.city_of_residence?.toLowerCase();
+    // Update the rule's last assignment index
+    rule.last_assignment_index = nextIndex;
     
-    if (leadCity) {
-      const cityMatch = assignees.find(a => 
-        a.specialties?.cities?.some(city => 
-          city.toLowerCase().includes(leadCity) || leadCity.includes(city.toLowerCase())
-        )
-      );
-      if (cityMatch) return cityMatch.user_email;
-    }
-    
-    // Fallback to weighted selection
-    return AssignmentRule.weightedSelection(assignees);
+    return weightedPool[nextIndex];
   }
 
-  static async loadBalanceAssignment(leadData) {
-    try {
-      // Get all active sales users
-      const usersSnapshot = await db.collection('crm_users')
-        .where('status', '==', 'active')
-        .where('role', 'in', ['sales_executive', 'sales_manager'])
-        .get();
-      
-      if (usersSnapshot.empty) {
-        return { assigned_to: null, assignment_reason: 'No sales users available' };
-      }
-      
-      const salesUsers = [];
-      usersSnapshot.forEach(doc => {
-        salesUsers.push({ user_email: doc.data().email, weight: 1 });
-      });
-      
-      const assignee = await AssignmentRule.leastBusySelection(salesUsers);
-      
-      return {
-        assigned_to: assignee,
-        assignment_rule_used: 'load_balancing',
-        assignment_reason: 'Auto-assigned via load balancing (no rules matched)'
-      };
-      
-    } catch (error) {
-      console.error('Load balancing error:', error);
-      return { assigned_to: null, error: error.message };
-    }
-  }
-
-  static async updateUsage(ruleId) {
+  // Update last assignment index
+  static async updateLastAssignmentIndex(ruleId, newIndex) {
     try {
       await db.collection('crm_assignment_rules').doc(ruleId).update({
-        usage_count: db.FieldValue.increment(1),
-        last_used_date: new Date().toISOString(),
+        last_assignment_index: newIndex,
         updated_date: new Date().toISOString()
       });
     } catch (error) {
-      console.error('Error updating rule usage:', error);
+      console.error('Error updating assignment index:', error);
     }
-  }
-
-  static async update(id, data) {
-    const updateData = { ...data, updated_date: new Date().toISOString() };
-    await db.collection('crm_assignment_rules').doc(id).update(updateData);
-    
-    const doc = await db.collection('crm_assignment_rules').doc(id).get();
-    return { id: doc.id, ...doc.data() };
-  }
-
-  static async delete(id) {
-    await db.collection('crm_assignment_rules').doc(id).delete();
-    return { success: true };
   }
 }
 
