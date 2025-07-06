@@ -10580,6 +10580,53 @@ currentLead.notes && React.createElement('div', { className: 'mt-6 bg-yellow-50 
     React.createElement('p', { className: 'text-gray-900 whitespace-pre-wrap' }, currentLead.notes)
 ),
 
+currentLead.status === 'pickup_later' && React.createElement('div', { 
+  className: 'mt-6 bg-indigo-50 border border-indigo-200 rounded-lg p-4' 
+},
+  React.createElement('h3', { 
+    className: 'text-lg font-semibold text-indigo-800 mb-3 flex items-center' 
+  }, 
+    React.createElement('span', { className: 'mr-2' }, '⏰'),
+    'Pick Up Later Information'
+  ),
+  
+  currentLead.next_follow_up_date && 
+  React.createElement('div', { className: 'mb-3' },
+    React.createElement('p', { className: 'text-sm font-medium text-indigo-700 mb-1' }, '📅 Follow-up Date:'),
+    React.createElement('p', { className: 'text-indigo-900 font-semibold' },
+      new Date(currentLead.next_follow_up_date).toLocaleString()
+    )
+  ),
+  
+  currentLead.follow_up_notes && 
+  React.createElement('div', { className: 'mb-3' },
+    React.createElement('p', { className: 'text-sm font-medium text-indigo-700 mb-1' }, '📝 Follow-up Notes:'),
+    React.createElement('p', { className: 'text-indigo-900 whitespace-pre-wrap' }, currentLead.follow_up_notes)
+  ),
+  
+  currentLead.previous_status && 
+  React.createElement('div', { className: 'mb-3' },
+    React.createElement('p', { className: 'text-sm font-medium text-indigo-700 mb-1' }, '↩️ Previous Status:'),
+    React.createElement('span', { 
+      className: `inline-block px-2 py-1 text-xs rounded-full ${LEAD_STATUSES[currentLead.previous_status]?.color || 'bg-gray-100 text-gray-800'}`
+    }, LEAD_STATUSES[currentLead.previous_status]?.label || currentLead.previous_status)
+  ),
+  
+  React.createElement('button', {
+    onClick: () => {
+      const confirmReactivate = confirm('Reactivate this lead? It will return to: ' + (LEAD_STATUSES[currentLead.previous_status]?.label || 'contacted'));
+      if (confirmReactivate) {
+        const targetStatus = currentLead.previous_status || 'contacted';
+        updateLeadStatus(currentLead.id, targetStatus);
+      }
+    },
+    className: 'mt-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 flex items-center'
+  }, 
+    React.createElement('span', { className: 'mr-2' }, '🔄'),
+    'Reactivate Lead'
+  )
+),                    
+                    
 // 📞 **NEW: COMMUNICATION TIMELINE** - This is the main addition!
 React.createElement(CommunicationTimeline, {
     leadId: currentLead.id,
