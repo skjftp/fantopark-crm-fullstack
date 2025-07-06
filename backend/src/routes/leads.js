@@ -25,7 +25,7 @@ async function getUserName(email) {
   }
 }
 
-// 🔧 **FIXED: Enhanced Auto-Assignment Function**
+// 🔧 **COMPLETE: Enhanced Auto-Assignment Function**
 async function performEnhancedAutoAssignment(leadData) {
   console.log('🎯 === ENHANCED AUTO-ASSIGNMENT START ===');
   console.log('Lead name:', leadData.name);
@@ -73,7 +73,7 @@ async function performEnhancedAutoAssignment(leadData) {
             assignment_rule_used: rule.name,
             assignment_rule_id: rule.id,
             assignment_date: new Date().toISOString(),
-            status: 'assigned' // ✅ FIXED: Set correct status
+            status: 'assigned'
           };
           
           console.log('✅ Auto-assignment successful:', result);
@@ -95,7 +95,7 @@ async function performEnhancedAutoAssignment(leadData) {
   }
 }
 
-// Enhanced condition evaluation with detailed logging
+// ✅ COMPLETE: Enhanced condition evaluation with detailed logging
 function evaluateRuleConditions(leadData, conditions) {
   if (!conditions || Object.keys(conditions).length === 0) {
     console.log('   ✅ No conditions - rule matches all leads');
@@ -137,6 +137,11 @@ function evaluateRuleConditions(leadData, conditions) {
         console.log(`     ${passes ? '✅' : '❌'} ${leadValue} === ${condition.eq}: ${passes}`);
         if (!passes) return false;
       }
+      if (condition.in !== undefined && Array.isArray(condition.in)) {
+        const passes = condition.in.includes(leadValue);
+        console.log(`     ${passes ? '✅' : '❌'} ${leadValue} in [${condition.in.join(', ')}]: ${passes}`);
+        if (!passes) return false;
+      }
     } else {
       // Handle simple equality conditions
       const passes = leadValue === condition;
@@ -149,7 +154,7 @@ function evaluateRuleConditions(leadData, conditions) {
   return true;
 }
 
-// Enhanced assignee selection with weighted round-robin
+// ✅ COMPLETE: Enhanced assignee selection with weighted round-robin
 function selectWeightedAssignee(rule) {
   if (!rule.assignees || rule.assignees.length === 0) {
     console.log('   ❌ No assignees defined for rule');
@@ -158,29 +163,51 @@ function selectWeightedAssignee(rule) {
   
   console.log('   👥 Available assignees:', rule.assignees);
   
-  // For weighted round robin, create a pool based on weights
-  const weightedPool = [];
-  rule.assignees.forEach(assignee => {
-    const weight = assignee.weight || 50; // Default weight
-    for (let i = 0; i < weight; i++) {
-      weightedPool.push(assignee.email);
-    }
-  });
+  // Handle different assignee formats from your database
+  let assignees = rule.assignees;
   
-  if (weightedPool.length === 0) {
-    return rule.assignees[0].email; // Fallback to first assignee
+  // If assignees is array of objects with email and weight
+  if (assignees[0] && typeof assignees[0] === 'object' && assignees[0].email) {
+    // For weighted round robin, create a pool based on weights
+    const weightedPool = [];
+    assignees.forEach(assignee => {
+      const weight = assignee.weight || 50; // Default weight 50
+      for (let i = 0; i < weight; i++) {
+        weightedPool.push(assignee.email);
+      }
+    });
+    
+    if (weightedPool.length === 0) {
+      return assignees[0].email; // Fallback to first assignee
+    }
+    
+    // Use round-robin with weights
+    const currentIndex = rule.last_assignment_index || 0;
+    const nextIndex = (currentIndex + 1) % weightedPool.length;
+    const selected = weightedPool[nextIndex];
+    
+    console.log(`   🎯 Weighted selection: ${selected} (index ${nextIndex} of ${weightedPool.length})`);
+    return selected;
   }
   
-  // Use round-robin with weights
-  const currentIndex = rule.last_assignment_index || 0;
-  const nextIndex = (currentIndex + 1) % weightedPool.length;
-  const selected = weightedPool[nextIndex];
+  // If assignees is simple array of emails (fallback)
+  if (Array.isArray(assignees) && typeof assignees[0] === 'string') {
+    // Round-robin selection using last_assignment_index
+    const lastIndex = rule.last_assignment_index || 0;
+    const nextIndex = (lastIndex + 1) % assignees.length;
+    const selected = assignees[nextIndex];
+    
+    console.log(`   🔄 Round-robin selection: ${selected} (index: ${nextIndex})`);
+    return selected;
+  }
   
-  console.log(`   🎯 Selected: ${selected} (index ${nextIndex} of ${weightedPool.length})`);
-  return selected;
+  // Final fallback: just pick the first assignee
+  const fallback = assignees[0]?.email || assignees[0];
+  console.log(`   ⚠️ Fallback selection: ${fallback}`);
+  return fallback;
 }
 
-// Update rule's last assignment index for round-robin
+// ✅ COMPLETE: Update rule's last assignment index for round-robin
 async function updateRuleLastAssignment(ruleId, currentIndex) {
   try {
     const newIndex = currentIndex + 1;
@@ -191,6 +218,7 @@ async function updateRuleLastAssignment(ruleId, currentIndex) {
     console.log(`   ✅ Updated assignment index for rule ${ruleId}: ${newIndex}`);
   } catch (error) {
     console.error('   ❌ Failed to update assignment index:', error);
+    // Don't throw - this is non-critical for lead creation
   }
 }
 
