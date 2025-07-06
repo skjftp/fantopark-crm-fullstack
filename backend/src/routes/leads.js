@@ -25,6 +25,175 @@ async function getUserName(email) {
   }
 }
 
+// 🔧 **FIXED: Enhanced Auto-Assignment Function**
+async function performEnhancedAutoAssignment(leadData) {
+  console.log('🎯 === ENHANCED AUTO-ASSIGNMENT START ===');
+  console.log('Lead name:', leadData.name);
+  console.log('Potential value:', leadData.potential_value);
+  console.log('Business type:', leadData.business_type);
+  
+  try {
+    // Use direct database query to ensure it works
+    const snapshot = await db.collection('crm_assignment_rules')
+      .where('is_active', '==', true)
+      .orderBy('priority', 'asc')
+      .get();
+    
+    console.log(`📋 Found ${snapshot.size} active assignment rules`);
+    
+    if (snapshot.empty) {
+      console.log('⚠️ No active assignment rules found');
+      return null;
+    }
+    
+    // Evaluate each rule
+    for (const doc of snapshot.docs) {
+      const rule = { id: doc.id, ...doc.data() };
+      console.log(`\n🧪 Testing rule: ${rule.name} (Priority: ${rule.priority})`);
+      console.log('   Conditions:', rule.conditions);
+      
+      if (evaluateRuleConditions(leadData, rule.conditions)) {
+        console.log(`✅ Rule matched: ${rule.name}`);
+        
+        const assignee = selectWeightedAssignee(rule);
+        if (assignee) {
+          console.log(`🎯 Selected assignee: ${assignee}`);
+          
+          // Update assignment tracking for round-robin
+          try {
+            await updateRuleLastAssignment(rule.id, rule.last_assignment_index || 0);
+          } catch (updateError) {
+            console.log('⚠️ Failed to update assignment tracking:', updateError.message);
+          }
+          
+          const result = {
+            assigned_to: assignee,
+            auto_assigned: true,
+            assignment_reason: rule.description || `Matched rule: ${rule.name}`,
+            assignment_rule_used: rule.name,
+            assignment_rule_id: rule.id,
+            assignment_date: new Date().toISOString(),
+            status: 'assigned' // ✅ FIXED: Set correct status
+          };
+          
+          console.log('✅ Auto-assignment successful:', result);
+          return result;
+        } else {
+          console.log(`❌ No assignees available for rule: ${rule.name}`);
+        }
+      } else {
+        console.log(`❌ Rule conditions not met: ${rule.name}`);
+      }
+    }
+    
+    console.log('⚠️ No assignment rules matched');
+    return null;
+    
+  } catch (error) {
+    console.error('❌ Enhanced auto-assignment error:', error);
+    return null;
+  }
+}
+
+// Enhanced condition evaluation with detailed logging
+function evaluateRuleConditions(leadData, conditions) {
+  if (!conditions || Object.keys(conditions).length === 0) {
+    console.log('   ✅ No conditions - rule matches all leads');
+    return true;
+  }
+  
+  console.log('   🔍 Evaluating conditions against lead data:');
+  console.log('     Lead potential_value:', leadData.potential_value);
+  console.log('     Lead business_type:', leadData.business_type);
+  
+  for (const [field, condition] of Object.entries(conditions)) {
+    const leadValue = leadData[field];
+    console.log(`   🧪 Checking field "${field}": ${leadValue} vs`, condition);
+    
+    if (typeof condition === 'object' && condition !== null) {
+      // Handle complex conditions like {gte: 100000}
+      if (condition.gte !== undefined) {
+        const passes = Number(leadValue) >= Number(condition.gte);
+        console.log(`     ${passes ? '✅' : '❌'} ${leadValue} >= ${condition.gte}: ${passes}`);
+        if (!passes) return false;
+      }
+      if (condition.gt !== undefined) {
+        const passes = Number(leadValue) > Number(condition.gt);
+        console.log(`     ${passes ? '✅' : '❌'} ${leadValue} > ${condition.gt}: ${passes}`);
+        if (!passes) return false;
+      }
+      if (condition.lte !== undefined) {
+        const passes = Number(leadValue) <= Number(condition.lte);
+        console.log(`     ${passes ? '✅' : '❌'} ${leadValue} <= ${condition.lte}: ${passes}`);
+        if (!passes) return false;
+      }
+      if (condition.lt !== undefined) {
+        const passes = Number(leadValue) < Number(condition.lt);
+        console.log(`     ${passes ? '✅' : '❌'} ${leadValue} < ${condition.lt}: ${passes}`);
+        if (!passes) return false;
+      }
+      if (condition.eq !== undefined) {
+        const passes = leadValue === condition.eq;
+        console.log(`     ${passes ? '✅' : '❌'} ${leadValue} === ${condition.eq}: ${passes}`);
+        if (!passes) return false;
+      }
+    } else {
+      // Handle simple equality conditions
+      const passes = leadValue === condition;
+      console.log(`     ${passes ? '✅' : '❌'} ${leadValue} === ${condition}: ${passes}`);
+      if (!passes) return false;
+    }
+  }
+  
+  console.log('   ✅ All conditions passed');
+  return true;
+}
+
+// Enhanced assignee selection with weighted round-robin
+function selectWeightedAssignee(rule) {
+  if (!rule.assignees || rule.assignees.length === 0) {
+    console.log('   ❌ No assignees defined for rule');
+    return null;
+  }
+  
+  console.log('   👥 Available assignees:', rule.assignees);
+  
+  // For weighted round robin, create a pool based on weights
+  const weightedPool = [];
+  rule.assignees.forEach(assignee => {
+    const weight = assignee.weight || 50; // Default weight
+    for (let i = 0; i < weight; i++) {
+      weightedPool.push(assignee.email);
+    }
+  });
+  
+  if (weightedPool.length === 0) {
+    return rule.assignees[0].email; // Fallback to first assignee
+  }
+  
+  // Use round-robin with weights
+  const currentIndex = rule.last_assignment_index || 0;
+  const nextIndex = (currentIndex + 1) % weightedPool.length;
+  const selected = weightedPool[nextIndex];
+  
+  console.log(`   🎯 Selected: ${selected} (index ${nextIndex} of ${weightedPool.length})`);
+  return selected;
+}
+
+// Update rule's last assignment index for round-robin
+async function updateRuleLastAssignment(ruleId, currentIndex) {
+  try {
+    const newIndex = currentIndex + 1;
+    await db.collection('crm_assignment_rules').doc(ruleId).update({
+      last_assignment_index: newIndex,
+      updated_date: new Date().toISOString()
+    });
+    console.log(`   ✅ Updated assignment index for rule ${ruleId}: ${newIndex}`);
+  } catch (error) {
+    console.error('   ❌ Failed to update assignment index:', error);
+  }
+}
+
 // ===== ALL YOUR EXISTING ROUTES (UNCHANGED) =====
 
 // GET all leads - SAME AS YOUR ORIGINAL
@@ -211,9 +380,9 @@ router.delete('/', authenticateToken, async (req, res) => {
 router.get('/check-phone/:phone', authenticateToken, async (req, res) => {
   try {
     const phone = req.params.phone;
-    const clientInfo = await Lead.findClientByPhone(phone);
+    const clientInfo = await Lead.getClientByPhone(phone);
     
-    if (clientInfo.exists) {
+    if (clientInfo) {
       const primaryAssignedToName = await getUserName(clientInfo.primary_assigned_to);
       
       res.json({
@@ -235,30 +404,58 @@ router.get('/check-phone/:phone', authenticateToken, async (req, res) => {
   }
 });
 
-// POST create lead - ENHANCED WITH AUTO-REMINDERS + CLIENT MANAGEMENT + ASSIGNMENT RULES
+// 🔧 **FIXED: POST create lead - ENHANCED WITH WORKING AUTO-ASSIGNMENT**
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const newLeadData = req.body;
+    let newLeadData = { ...req.body };
     
-    console.log(`🆕 Creating new lead: ${newLeadData.name} (${newLeadData.phone}) with status: ${newLeadData.status || 'new'}`);
+    console.log(`🆕 Creating new lead: ${newLeadData.name} (${newLeadData.phone}) with status: ${newLeadData.status || 'unassigned'}`);
+    
+    // 🚀 **FIXED: Enhanced Auto-Assignment Logic (BEFORE client detection)**
+    if (!newLeadData.assigned_to || newLeadData.assigned_to === '') {
+      console.log('🎯 No assignment provided - attempting enhanced auto-assignment...');
+      
+      try {
+        const assignment = await performEnhancedAutoAssignment(newLeadData);
+        
+        if (assignment) {
+          // Apply all assignment fields
+          Object.assign(newLeadData, assignment);
+          console.log(`✅ Enhanced auto-assignment successful: ${assignment.assigned_to}`);
+          console.log(`📋 Assignment details:`, {
+            rule: assignment.assignment_rule_used,
+            reason: assignment.assignment_reason,
+            auto_assigned: assignment.auto_assigned
+          });
+        } else {
+          console.log('⚠️ Enhanced auto-assignment - no rules matched');
+        }
+      } catch (assignmentError) {
+        console.error('❌ Enhanced auto-assignment failed:', assignmentError);
+        // Continue with lead creation even if auto-assignment fails
+      }
+    } else {
+      console.log('✅ Lead already has assignment:', newLeadData.assigned_to);
+    }
     
     // Client detection logic (only if phone is provided)
     if (newLeadData.phone) {
-      console.log('Creating lead with client detection:', newLeadData.name, newLeadData.phone);
+      console.log('🔍 Running client detection for phone:', newLeadData.phone);
       
       try {
-        const clientInfo = await Lead.findClientByPhone(newLeadData.phone);
+        const clientInfo = await Lead.getClientByPhone(newLeadData.phone);
         
-        if (clientInfo.exists) {
-          console.log(`Existing client found with ${clientInfo.total_leads} leads`);
+        if (clientInfo) {
+          console.log(`📞 Existing client found with ${clientInfo.total_leads} leads`);
           
-          // Auto-suggest assignment but don't force it
-          if (!newLeadData.assigned_to) {
+          // Only override auto-assignment if no assignment was made and client has preferred assignee
+          if (!newLeadData.assigned_to && clientInfo.primary_assigned_to) {
             newLeadData.assigned_to = clientInfo.primary_assigned_to;
-            console.log('Auto-assigned to existing sales person:', clientInfo.primary_assigned_to);
+            newLeadData.assignment_reason = `Client detection: Previous leads assigned to ${clientInfo.primary_assigned_to}`;
+            console.log('📋 Client detection assignment:', clientInfo.primary_assigned_to);
           } else if (newLeadData.assigned_to !== clientInfo.primary_assigned_to) {
             newLeadData.manual_assignment_override = true;
-            console.log('Manual override detected');
+            console.log('🔄 Manual/auto assignment differs from client history');
           }
           
           // Add client metadata
@@ -275,23 +472,9 @@ router.post('/', authenticateToken, async (req, res) => {
             client_last_activity: new Date().toISOString()
           });
           
-          // Create lead with auto-reminder support
-          const lead = new Lead(newLeadData);
-          const savedLead = await lead.save(); // This will trigger auto-reminder creation
-          
-          // Return enhanced response with suggestion info
-          res.status(201).json({ 
-            data: savedLead,
-            client_suggestion: {
-              suggested_assigned_to: clientInfo.primary_assigned_to,
-              suggested_reason: `This client has ${clientInfo.total_leads + 1} total leads`,
-              client_history: clientInfo.leads
-            },
-            message: `Lead created and linked to existing client with auto-reminder`
-          });
-          return;
+          console.log('✅ Client metadata updated');
         } else {
-          console.log('New client - creating primary lead');
+          console.log('👤 New client - creating primary lead');
           
           // New client - set as primary
           newLeadData.is_primary_lead = true;
@@ -301,31 +484,19 @@ router.post('/', authenticateToken, async (req, res) => {
           }
         }
       } catch (clientError) {
-        console.log('Client detection failed (non-critical):', clientError.message);
+        console.log('⚠️ Client detection failed (non-critical):', clientError.message);
         // Continue with regular lead creation if client detection fails
       }
     }
     
-    // 🚀 NEW: AUTOMATED ASSIGNMENT RULES INTEGRATION
-    if (!newLeadData.assigned_to || newLeadData.assigned_to === '') {
-      try {
-        console.log('🤖 Evaluating auto-assignment for new lead:', newLeadData.name);
-        const assignment = await AssignmentRule.evaluateLeadAssignment(newLeadData);
-        
-        if (assignment.assigned_to) {
-          newLeadData.assigned_to = assignment.assigned_to;
-          newLeadData.assignment_rule_used = assignment.assignment_rule_used;
-          newLeadData.assignment_reason = assignment.assignment_reason;
-          newLeadData.auto_assigned = true;
-          console.log(`✅ Auto-assigned to: ${assignment.assigned_to} via ${assignment.assignment_reason}`);
-        } else {
-          console.log('⚠️ No assignment could be determined');
-        }
-      } catch (assignmentError) {
-        console.error('❌ Auto-assignment failed (non-critical):', assignmentError);
-        // Don't fail the lead creation if assignment fails
-      }
-    }
+    // 📝 **FINAL LEAD CREATION with all assignment metadata**
+    console.log('💾 Creating lead with final data:', {
+      name: newLeadData.name,
+      assigned_to: newLeadData.assigned_to,
+      auto_assigned: newLeadData.auto_assigned,
+      assignment_rule_used: newLeadData.assignment_rule_used,
+      status: newLeadData.status
+    });
     
     // Create lead with auto-reminder support
     const lead = new Lead(newLeadData);
@@ -348,12 +519,13 @@ router.post('/', authenticateToken, async (req, res) => {
         rule_used: savedLead.assignment_rule_used
       };
       response.message += ' with auto-assignment';
+      console.log('📊 Assignment info added to response');
     }
     
     res.status(201).json(response);
     
   } catch (error) {
-    console.error('Error creating lead:', error);
+    console.error('❌ Error creating lead:', error);
     res.status(500).json({ error: error.message });
   }
 });
