@@ -12776,54 +12776,83 @@ setFormData({});
 
 // Handle inventory form submission (specifically for payables integration)
 const handleInventoryFormSubmit = async (e) => {
-e.preventDefault();
+  e.preventDefault();
+  
+  try {
+    setLoading(true);
+    
+    // Enhanced debug logging
+    console.log('=== FRONTEND INVENTORY SUBMISSION DEBUG ===');
+    console.log('Inventory ID:', editingInventory.id);
+    console.log('Complete form data being sent:', formData);
+    console.log('Payment fields specifically:', {
+      totalPurchaseAmount: formData.totalPurchaseAmount,
+      amountPaid: formData.amountPaid,
+      paymentStatus: formData.paymentStatus,
+      supplierName: formData.supplierName,
+      supplierInvoice: formData.supplierInvoice
+    });
+    console.log('Is from payables?', editingInventory._payableContext?.fromPayables);
+    console.log('Payable amount:', editingInventory._payableContext?.payableAmount);
 
-try {
-setLoading(true);
+    if (editingInventory.id === null || editingInventory.id === undefined) {
+      // CREATE NEW INVENTORY
+      console.log('Creating new inventory item...');
+      
+      const response = await apiCall('/inventory', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...formData,
+          created_by: user.name || 'Unknown User',
+          created_date: new Date().toISOString()
+        })
+      });
 
-// Enhanced debug logging
-console.log('=== FRONTEND INVENTORY UPDATE DEBUG ===');
-console.log('Inventory ID being updated:', editingInventory.id);
-console.log('Complete form data being sent:', formData);
-console.log('Payment fields specifically:', {
-totalPurchaseAmount: formData.totalPurchaseAmount,
-amountPaid: formData.amountPaid,
-paymentStatus: formData.paymentStatus,
-supplierName: formData.supplierName,
-supplierInvoice: formData.supplierInvoice
-});
-console.log('Is from payables?', editingInventory._payableContext?.fromPayables);
-console.log('Payable amount:', editingInventory._payableContext?.payableAmount);
+      console.log('Backend response:', response);
 
-// Update inventory
-const response = await apiCall(`/inventory/${editingInventory.id}`, {
-method: 'PUT',
-body: JSON.stringify(formData)
-});
+      if (response.error) {
+        throw new Error(response.error);
+      }
 
-console.log('Backend response:', response);
+      // Add to local state
+      setInventory(prev => [...prev, response.data]);
+      
+      alert('Inventory created successfully!');
+      
+    } else {
+      // UPDATE EXISTING INVENTORY (your original code)
+      console.log('Updating existing inventory...');
+      
+      const response = await apiCall(`/inventory/${editingInventory.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(formData)
+      });
 
-if (response.error) {
-throw new Error(response.error);
-}
+      console.log('Backend response:', response);
 
-// Update local state
-setInventory(prev => prev.map(item => 
-item.id === editingInventory.id ? { ...item, ...formData } : item
-));
+      if (response.error) {
+        throw new Error(response.error);
+      }
 
-// Refresh financial data to show updated payables
-await fetchFinancialData();
+      // Update local state
+      setInventory(prev => prev.map(item => 
+        item.id === editingInventory.id ? { ...item, ...formData } : item
+      ));
 
-alert('Inventory updated successfully! Payables have been synced automatically.');
-closeInventoryForm();
-
-} catch (error) {
-console.error('Error updating inventory:', error);
-alert('Error updating inventory: ' + error.message);
-} finally {
-setLoading(false);
-}
+      // Refresh financial data to show updated payables
+      await fetchFinancialData();
+      
+      alert('Inventory updated successfully! Payables have been synced automatically.');
+    }
+    
+    closeInventoryForm();
+    
+  } catch (error) {
+    console.error('Error with inventory:', error);
+    alert('Error saving inventory: ' + error.message);
+  } finally {
+    setLoading(false);
+  }
 };
 
 // Enhanced leads content with permission checks
