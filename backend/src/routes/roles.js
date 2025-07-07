@@ -338,6 +338,7 @@ router.post('/initialize', authenticateToken, checkPermission('users', 'manage_r
                     orders: { read: true },
                     finance: { read: false },
                     delivery: { read: true, write: true, delete: true },
+                    stadiums: { read: true, write: true, delete: true },
                     users: { read: false }
                 },
                 is_system: true
