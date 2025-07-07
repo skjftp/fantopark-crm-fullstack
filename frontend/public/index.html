@@ -12144,51 +12144,6 @@ paymentData.payment_currency || 'INR', ' ', advanceAmount.toFixed(2)
 )
 );
 })(),
-
-// Tax Logic Explanation
-React.createElement('div', { className: 'mt-4 p-3 bg-blue-50 rounded border border-blue-200' },
-React.createElement('h5', { className: 'text-sm font-medium text-blue-800 mb-2' }, 
-'📋 Tax Logic Applied'
-),
-React.createElement('div', { className: 'text-xs text-blue-700' },
-(() => {
-const isIndian = paymentData.customer_type === 'indian';
-const isCorporate = paymentData.category_of_sale === 'Corporate';
-const isOutsideIndia = paymentData.event_location === 'outside_india';
-const isINRPayment = paymentData.payment_currency === 'INR';
-const isServiceFee = paymentData.type_of_sale === 'Service Fee';
-
-let gstLogic = '';
-let tcsLogic = '';
-
-// GST Logic
-if (isServiceFee) {
-gstLogic = 'Service Fee: Always 18% GST (fixed rate)';
-} else if (isIndian) {
-gstLogic = isCorporate ? 'Tour Package - Domestic B2B: 18% GST applies' : 'Tour Package - Domestic B2C: 5% GST applies';
-} else {
-if (!isOutsideIndia) {
-gstLogic = 'Tour Package - International client, event in India: 5% GST applies';
-} else {
-gstLogic = isINRPayment ? 'Tour Package - International client, event outside India, INR payment: 5% GST applies' : 'Tour Package - International client, event outside India, foreign currency: No GST';
-}
-}
-
-// TCS Logic
-if (!isOutsideIndia) {
-tcsLogic = 'Event in India: No TCS for anyone';
-} else {
-if (isIndian) {
-tcsLogic = 'Indian client, event outside India: TCS applies';
-} else {
-tcsLogic = isINRPayment ? 'International client, event outside India, INR payment: TCS applies' : 'International client, event outside India, foreign currency: No TCS';
-}
-}
-
-return `${gstLogic}. ${tcsLogic}.`;
-})()
-)
-)
 ),
 
 // Additional Notes (PRESERVED EXACTLY)
