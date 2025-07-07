@@ -126,19 +126,52 @@ class Lead {
     }
   }
 
-  // Client management methods
+  // ===== FIXED: Client management methods =====
   
   static async getClientByPhone(phone) {
     if (!phone) return null;
     
     try {
-      const snapshot = await db.collection(collections.leads)
-        .where('phone', '==', phone)
-        .orderBy('created_date', 'asc')
-        .limit(50)
-        .get();
+      console.log(`🔍 Backend: Searching for phone: ${phone}`);
+      
+      // Normalize the search phone number
+      const normalizedSearchPhone = phone.replace(/[\s\-\+]/g, '').replace(/^91/, '');
+      
+      console.log(`🔍 Backend: Normalized search phone: ${normalizedSearchPhone}`);
+      
+      // Search with multiple phone number formats
+      const phoneVariations = [
+        phone,                              // Original input
+        normalizedSearchPhone,              // Normalized (remove +91, spaces, etc.)
+        `+91${normalizedSearchPhone}`,      // With +91 prefix
+        `91${normalizedSearchPhone}`,       // With 91 prefix
+        `0${normalizedSearchPhone}`,        // With 0 prefix
+      ];
+      
+      console.log(`🔍 Backend: Checking phone variations:`, phoneVariations);
+      
+      let snapshot = null;
+      let searchPhone = null;
+      
+      // Try each phone variation until we find a match
+      for (const phoneVar of phoneVariations) {
+        console.log(`🔍 Backend: Trying phone format: ${phoneVar}`);
+        
+        const tempSnapshot = await db.collection(collections.leads)
+          .where('phone', '==', phoneVar)
+          .limit(50)
+          .get();
+        
+        if (!tempSnapshot.empty) {
+          snapshot = tempSnapshot;
+          searchPhone = phoneVar;
+          console.log(`✅ Backend: Found match with phone format: ${phoneVar}`);
+          break;
+        }
+      }
 
-      if (snapshot.empty) {
+      if (!snapshot || snapshot.empty) {
+        console.log(`❌ Backend: No leads found for any phone variation of: ${phone}`);
         return null;
       }
 
@@ -147,92 +180,133 @@ class Lead {
         leads.push({ id: doc.id, ...doc.data() });
       });
 
+      console.log(`📞 Backend: Found ${leads.length} leads for phone: ${searchPhone}`);
+      leads.forEach(lead => {
+        console.log(`   - ${lead.name} assigned to: ${lead.assigned_to || 'unassigned'}`);
+      });
+
+      // Find primary lead or use first one
       const primaryLead = leads.find(l => l.is_primary_lead) || leads[0];
       
+      // Calculate aggregated data
       const totalValue = leads.reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
       const events = [...new Set(leads.map(l => l.lead_for_event).filter(Boolean))];
+      
+      // Get the most common assigned_to person
+      const assignedToCounts = {};
+      leads.forEach(lead => {
+        if (lead.assigned_to) {
+          assignedToCounts[lead.assigned_to] = (assignedToCounts[lead.assigned_to] || 0) + 1;
+        }
+      });
+      
+      const primaryAssignedTo = Object.keys(assignedToCounts).length > 0 
+        ? Object.keys(assignedToCounts).reduce((a, b) => assignedToCounts[a] > assignedToCounts[b] ? a : b)
+        : null;
 
-      return {
-        client_id: primaryLead.client_id,
-        phone: phone,
+      const result = {
+        client_id: primaryLead.client_id || primaryLead.id,
+        phone: searchPhone,
         name: primaryLead.name,
         email: primaryLead.email,
-        primary_assigned_to: primaryLead.assigned_to,
+        primary_assigned_to: primaryAssignedTo,
         total_leads: leads.length,
         total_value: totalValue,
+        leads: leads.map(l => ({
+          id: l.id,
+          name: l.name,
+          email: l.email,
+          phone: l.phone,
+          company: l.company,
+          assigned_to: l.assigned_to,
+          status: l.status,
+          lead_for_event: l.lead_for_event,
+          created_date: l.created_date,
+          city_of_residence: l.city_of_residence,
+          country_of_residence: l.country_of_residence,
+          business_type: l.business_type,
+          annual_income_bracket: l.annual_income_bracket
+        })),
         events: events,
-        first_contact: primaryLead.created_date,
-        leads: leads
+        first_contact: primaryLead.created_date
       };
+
+      console.log(`✅ Backend: Client data prepared for: ${primaryLead.name}`, {
+        primary_assigned_to: result.primary_assigned_to,
+        total_leads: result.total_leads
+      });
+      
+      return result;
+
     } catch (error) {
-      console.error('Error searching for existing client:', error);
-      return null;
+      console.error('❌ Backend: Error in getClientByPhone:', error);
+      throw error;
     }
   }
 
-static async getAllClients() {
-  try {
-    console.log('🔍 Getting all leads to group into clients...');
-    
-    // Get all leads from Firestore
-    const snapshot = await db.collection(collections.leads)
-      .orderBy('created_date', 'desc')
-      .get();
-
-    if (snapshot.empty) {
-      console.log('No leads found');
-      return [];
-    }
-
-    // Group leads by client_id
-    const clientGroups = {};
-    
-    snapshot.forEach(doc => {
-      const lead = { id: doc.id, ...doc.data() };
-      const clientId = lead.client_id;
+  static async getAllClients() {
+    try {
+      console.log('🔍 Getting all leads to group into clients...');
       
-      if (!clientId) return; // Skip leads without client_id
-      
-      if (!clientGroups[clientId]) {
-        clientGroups[clientId] = [];
+      // Get all leads from Firestore
+      const snapshot = await db.collection(collections.leads)
+        .orderBy('created_date', 'desc')
+        .get();
+
+      if (snapshot.empty) {
+        console.log('No leads found');
+        return [];
       }
-      clientGroups[clientId].push(lead);
-    });
 
-    // Convert grouped leads into client objects
-    const clients = Object.entries(clientGroups).map(([clientId, leads]) => {
-      const primaryLead = leads.find(l => l.is_primary_lead) || leads[0];
-      const totalValue = leads.reduce((sum, lead) => sum + (lead.potential_value || 0), 0);
-      const events = [...new Set(leads.map(l => l.lead_for_event).filter(Boolean))];
-      const lastActivity = leads.reduce((latest, lead) => {
-        const leadDate = new Date(lead.updated_date || lead.created_date);
-        return leadDate > latest ? leadDate : latest;
-      }, new Date(0));
+      // Group leads by client_id
+      const clientGroups = {};
+      
+      snapshot.forEach(doc => {
+        const lead = { id: doc.id, ...doc.data() };
+        const clientId = lead.client_id;
+        
+        if (!clientId) return; // Skip leads without client_id
+        
+        if (!clientGroups[clientId]) {
+          clientGroups[clientId] = [];
+        }
+        clientGroups[clientId].push(lead);
+      });
 
-      return {
-        client_id: clientId,
-        phone: primaryLead.phone,
-        name: primaryLead.name,
-        email: primaryLead.email,
-        company: primaryLead.company,
-        assigned_to: primaryLead.assigned_to,
-        total_leads: leads.length,
-        total_value: totalValue,
-        events: events,
-        first_contact: primaryLead.created_date,
-        last_activity: lastActivity.toISOString(),
-        leads: leads
-      };
-    });
+      // Convert grouped leads into client objects
+      const clients = Object.entries(clientGroups).map(([clientId, leads]) => {
+        const primaryLead = leads.find(l => l.is_primary_lead) || leads[0];
+        const totalValue = leads.reduce((sum, lead) => sum + (lead.potential_value || 0), 0);
+        const events = [...new Set(leads.map(l => l.lead_for_event).filter(Boolean))];
+        const lastActivity = leads.reduce((latest, lead) => {
+          const leadDate = new Date(lead.updated_date || lead.created_date);
+          return leadDate > latest ? leadDate : latest;
+        }, new Date(0));
 
-    console.log(`✅ Found ${clients.length} clients from ${snapshot.size} leads`);
-    return clients;
-    
-  } catch (error) {
-    console.error('Error getting all clients:', error);
-    throw error;
+        return {
+          client_id: clientId,
+          phone: primaryLead.phone,
+          name: primaryLead.name,
+          email: primaryLead.email,
+          company: primaryLead.company,
+          assigned_to: primaryLead.assigned_to,
+          total_leads: leads.length,
+          total_value: totalValue,
+          events: events,
+          first_contact: primaryLead.created_date,
+          last_activity: lastActivity.toISOString(),
+          leads: leads
+        };
+      });
+
+      console.log(`✅ Found ${clients.length} clients from ${snapshot.size} leads`);
+      return clients;
+      
+    } catch (error) {
+      console.error('Error getting all clients:', error);
+      throw error;
+    }
   }
-}
 
   static async updateClientMetadata(clientId, metadata) {
     return true;
