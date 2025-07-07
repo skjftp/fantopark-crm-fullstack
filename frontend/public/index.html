@@ -5965,6 +5965,10 @@ const AssignmentRulesManager = ({ currentUser }) => {
         is_active: true
     });
 
+    const [isRunningAssignment, setIsRunningAssignment] = useState(false);
+    const [assignmentResults, setAssignmentResults] = useState(null);
+    const [showResults, setShowResults] = useState(false);
+
     useEffect(() => {
         loadRules();
         loadAvailableUsers();
@@ -6247,7 +6251,43 @@ const AssignmentRulesManager = ({ currentUser }) => {
             React.createElement('div', { className: 'animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full' })
         );
     }
-
+    const runAssignment = async () => {
+        if (!confirm('This will automatically assign all unassigned leads based on the active assignment rules. Continue?')) {
+            return;
+        }
+        
+        try {
+            setIsRunningAssignment(true);
+            setAssignmentResults(null);
+            
+            const response = await apiCall('/assignment-rules/run-assignment', {
+                method: 'POST'
+            });
+            
+            if (response.success) {
+                setAssignmentResults(response);
+                setShowResults(true);
+                
+                // Refresh data
+                loadRules();
+                
+                // Refresh leads data if available
+                if (typeof fetchData === 'function') {
+                    fetchData();
+                }
+                
+                alert(`Assignment Complete!\n\nProcessed: ${response.processedCount} leads\nAssigned: ${response.assignedCount} leads\nUnassigned: ${response.unassignedCount} leads`);
+            } else {
+                alert('Assignment failed: ' + response.message);
+            }
+        } catch (error) {
+            console.error('Error running assignment:', error);
+            alert('Error running assignment: ' + error.message);
+        } finally {
+            setIsRunningAssignment(false);
+        }
+    };
+ 
     return React.createElement('div', { className: 'space-y-6' },
         // Header with buttons
         React.createElement('div', { className: 'flex justify-between items-center' },
@@ -6260,6 +6300,15 @@ const AssignmentRulesManager = ({ currentUser }) => {
                     },
                     className: 'bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700'
                 }, '🔄 Refresh'),
+                React.createElement('button', {
+                    onClick: runAssignment,
+                    disabled: isRunningAssignment || rules.filter(r => r.is_active).length === 0,
+                    className: 'bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg disabled:opacity-50 flex items-center gap-2'
+                }, 
+                    isRunningAssignment ? 
+                        React.createElement('span', null, '⏳ Running...') :
+                        React.createElement('span', null, '🚀 Run Assignment')
+                ),                
                 React.createElement('button', {
                     onClick: testRule,
                     disabled: testingRule,
