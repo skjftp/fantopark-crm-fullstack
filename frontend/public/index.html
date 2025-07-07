@@ -4353,6 +4353,11 @@ setCurrentInventoryDetail(null);
 const openAddInventoryForm = () => {
   console.log('openAddInventoryForm called');
   
+  // Fetch stadiums if not already loaded
+  if (stadiums.length === 0) {
+    fetchStadiums();
+  }
+  
   // Set up for new inventory item
   setEditingInventory({ 
     id: null, // Indicates this is a new item
@@ -4373,18 +4378,22 @@ const openAddInventoryForm = () => {
     venue: '',
     day_of_match: '',
     category_of_ticket: '',
-    price_per_ticket: '',
-    number_of_tickets: '',
-    total_value_of_tickets: '',
-    currency: 'INR',
-    base_amount_inr: '',
-    gst_18_percent: '',
-    selling_price_per_ticket: '',
-    payment_due_date: '',
-    supplier_name: '',
-    ticket_source: '',
-    status: 'available',
-    notes: ''
+    total_tickets: '',
+    available_tickets: '',
+    mrp_of_ticket: '',
+    buying_price: '',
+    selling_price: '',
+    stand: '',
+    inclusions: '',
+    booking_person: '',
+    procurement_type: '',
+    notes: '',
+    paymentStatus: 'pending',
+    supplierName: '',
+    supplierInvoice: '',
+    totalPurchaseAmount: '',
+    amountPaid: '',
+    paymentDueDate: ''
   });
   
   setShowInventoryForm(true);
