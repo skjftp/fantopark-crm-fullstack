@@ -4,74 +4,52 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Environment files
+# Production builds
+/build
+/dist
+/backend/build
+/backend/dist
+
+# Environment variables
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# Build outputs
-build/
-dist/
-*.log
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store
-
-# Google Cloud
-.gcloudignore
-*.key.json
-*-key.json
-
-# Temporary files
-*.tmp
-*.temp
-.cache/
-
-# === Backup Files ===
-*.backup
-*.backup.*
-*.bak
-*.orig
-*.tmp
-*~
-*.swp
-*.swo
-
-# Date-stamped backup files
-*202[0-9]*backup*
-*backup*202[0-9]*
-*.backup-202[0-9]*
-*.backup-[0-9]*
-
-# Specific backup patterns
-*syntax-error-backup*
-*broken-*backup*
-*.backup-before-*
-*.backup-after-*
-*.backup-jwt-fix
-*.backup-finance*
-*.backup-sales-fix
-*.backup-auth-fix
-*.backup-syntax-fix
-*.backup-duplicates
-*.backup-direct-fix
-
-# Python cache and temp files
-__pycache__/
-*.pyc
-*.pyo
-
 # IDE files
 .vscode/
 .idea/
-*.sublime-*
+*.swp
+*.swo
 
-# OS files
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory
+coverage/
+.nyc_output/
+
+# Temporary folders
+tmp/
+temp/
+
+# Backup files
+*.bak
+*.backup
