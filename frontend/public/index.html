@@ -7295,10 +7295,14 @@ React.createElement('div', { className: 'text-center py-12' },
     React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view financials.')
 );
 case 'assignment-rules':
-return hasPermission('leads', 'assign') ? React.createElement(AssignmentRulesManager) : 
-React.createElement('div', { className: 'text-center py-12' },
-    React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to manage assignment rules.')
-);  
+    return hasPermission('leads', 'assign') ? 
+        React.createElement(AssignmentRulesManager, { 
+            key: 'assignment-rules-stable',
+            currentUser: user  // Add the missing currentUser prop
+        }) : 
+        React.createElement('div', { className: 'text-center py-12' },
+            React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to manage assignment rules.')
+        ); 
 case 'delivery':
 return hasPermission('delivery', 'read') ? renderDeliveryContent() : 
 React.createElement('div', { className: 'text-center py-12' },
