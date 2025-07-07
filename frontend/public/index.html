@@ -8073,167 +8073,128 @@ setShowInvoicePreview(true);
 
 // Enhanced GST and TCS Calculation Preview Function
 const renderEnhancedGSTCalculationPreview = () => {
-const baseAmount = getBaseAmount(paymentData);
-const calculation = calculateGSTAndTCS(baseAmount, paymentData);
-const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
-const advanceAmount = parseFloat(paymentData.advance_amount) || 0;
-const isReceivablePayment = paymentData.from_receivable || paymentData.payment_post_service;
+  // ADD: Calculate invoiceTotal first
+  const invoiceTotal = paymentData.invoice_items?.reduce((sum, item) => 
+    sum + ((item.quantity || 0) * (item.rate || 0)), 0
+  ) || 0;
+  
+  const baseAmount = getBaseAmount(paymentData);
+  const calculation = calculateGSTAndTCS(baseAmount, paymentData);
+  const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
+  const advanceAmount = parseFloat(paymentData.advance_amount) || 0;
+  const isReceivablePayment = paymentData.from_receivable || paymentData.payment_post_service;
 
-return React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
-React.createElement('h3', { className: 'text-lg font-semibold text-gray-800 mb-4' }, 
-'🧮 Enhanced Tax Calculation Preview'
-),
-React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-6' },
+  // CALCULATE: Final amount with custom TCS rate
+  const finalAmount = baseAmount + calculation.gst.total + 
+    (calculation.tcs.applicable ? (baseAmount * (paymentData.tcs_rate || calculation.tcs.rate)) / 100 : 0);
 
-// Left Column - Basic Amounts
-React.createElement('div', { className: 'space-y-3' },
-React.createElement('h4', { className: 'font-medium text-gray-700 border-b pb-2' }, 'Base Amounts'),
-React.createElement('div', { className: 'space-y-2 text-sm' },
-React.createElement('div', { className: 'flex justify-between' },
-React.createElement('span', null, 'Invoice Total:'),
-React.createElement('span', { className: 'font-medium' }, 
-(paymentData.payment_currency || 'INR'), ' ', invoiceTotal.toFixed(2)
-)
-),
-paymentData.type_of_sale === 'Service Fee' && 
-React.createElement('div', { className: 'flex justify-between border-t pt-2' },
-React.createElement('span', null, 'Service Fee:'),
-React.createElement('span', { className: 'font-medium' }, 
-(paymentData.payment_currency || 'INR'), ' ', (parseFloat(paymentData.service_fee_amount) || 0).toFixed(2)
-)
-),
-React.createElement('div', { className: 'flex justify-between font-medium border-t pt-2' },
-React.createElement('span', null, 'Taxable Amount:'),
-React.createElement('span', null, 
-(paymentData.payment_currency || 'INR'), ' ', baseAmount.toFixed(2)
-)
-)
-)
-),
+  return React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
+    React.createElement('h3', { className: 'text-lg font-semibold text-gray-800 mb-4' }, 
+      '🧮 Enhanced Tax Calculation Preview'
+    ),
+    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-6' },
 
-// Right Column - Tax Breakdown
-React.createElement('div', { className: 'space-y-3' },
-React.createElement('h4', { className: 'font-medium text-gray-700 border-b pb-2' }, 'Tax Breakdown'),
-React.createElement('div', { className: 'space-y-2 text-sm' },
+      // Left Column - Basic Amounts
+      React.createElement('div', { className: 'space-y-3' },
+        React.createElement('h4', { className: 'font-medium text-gray-700 border-b pb-2' }, 'Base Amounts'),
+        React.createElement('div', { className: 'space-y-2 text-sm' },
+          React.createElement('div', { className: 'flex justify-between' },
+            React.createElement('span', null, 'Invoice Total:'),
+            React.createElement('span', { className: 'font-medium' }, 
+              (paymentData.payment_currency || 'INR'), ' ', invoiceTotal.toFixed(2)
+            )
+          ),
+          paymentData.type_of_sale === 'Service Fee' && 
+          React.createElement('div', { className: 'flex justify-between border-t pt-2' },
+            React.createElement('span', null, 'Service Fee:'),
+            React.createElement('span', { className: 'font-medium' }, 
+              (paymentData.payment_currency || 'INR'), ' ', (parseFloat(paymentData.service_fee_amount) || 0).toFixed(2)
+            )
+          ),
+          React.createElement('div', { className: 'flex justify-between font-medium border-t pt-2' },
+            React.createElement('span', null, 'Taxable Amount:'),
+            React.createElement('span', null, 
+              (paymentData.payment_currency || 'INR'), ' ', baseAmount.toFixed(2)
+            )
+          )
+        )
+      ),
 
-// GST Section
-calculation.gst.applicable ? [
-isIntraState ? [
-React.createElement('div', { key: 'cgst', className: 'flex justify-between' },
-React.createElement('span', null, `CGST (${calculation.gst.rate/2}%):`),
-React.createElement('span', { className: 'font-medium' }, 
-(paymentData.payment_currency || 'INR'), ' ', calculation.gst.cgst.toFixed(2)
-)
-),
-React.createElement('div', { key: 'sgst', className: 'flex justify-between' },
-React.createElement('span', null, `SGST (${calculation.gst.rate/2}%):`),
-React.createElement('span', { className: 'font-medium' }, 
-(paymentData.payment_currency || 'INR'), ' ', calculation.gst.sgst.toFixed(2)
-)
-)
-] : React.createElement('div', { key: 'igst', className: 'flex justify-between' },
-React.createElement('span', null, `IGST (${calculation.gst.rate}%):`),
-React.createElement('span', { className: 'font-medium' }, 
-(paymentData.payment_currency || 'INR'), ' ', calculation.gst.igst.toFixed(2)
-)
-)
-] : React.createElement('div', { key: 'no-gst', className: 'flex justify-between text-gray-500' },
-React.createElement('span', null, 'GST:'),
-React.createElement('span', null, 'Not Applicable')
-),
+      // Right Column - Tax Breakdown
+      React.createElement('div', { className: 'space-y-3' },
+        React.createElement('h4', { className: 'font-medium text-gray-700 border-b pb-2' }, 'Tax Breakdown'),
+        React.createElement('div', { className: 'space-y-2 text-sm' },
 
-// TCS Section with dynamic rate
-calculation.tcs.applicable ? 
-React.createElement('div', { className: 'flex justify-between text-yellow-700' },
-  React.createElement('span', null, `TCS (${paymentData.tcs_rate || calculation.tcs.rate}%):`),
-  React.createElement('span', { className: 'font-medium' }, 
-    paymentData.payment_currency || 'INR', ' ', 
-    ((baseAmount * (paymentData.tcs_rate || calculation.tcs.rate)) / 100).toFixed(2)
-  )
-) : React.createElement('div', { className: 'flex justify-between text-gray-500' },
-  React.createElement('span', null, 'TCS:'),
-  React.createElement('span', null, 'Not Applicable')
-),
+          // GST Section
+          calculation.gst.applicable ? [
+            isIntraState ? [
+              React.createElement('div', { key: 'cgst', className: 'flex justify-between' },
+                React.createElement('span', null, `CGST (${calculation.gst.rate/2}%):`),
+                React.createElement('span', { className: 'font-medium' }, 
+                  (paymentData.payment_currency || 'INR'), ' ', calculation.gst.cgst.toFixed(2)
+                )
+              ),
+              React.createElement('div', { key: 'sgst', className: 'flex justify-between' },
+                React.createElement('span', null, `SGST (${calculation.gst.rate/2}%):`),
+                React.createElement('span', { className: 'font-medium' }, 
+                  (paymentData.payment_currency || 'INR'), ' ', calculation.gst.sgst.toFixed(2)
+                )
+              )
+            ] : React.createElement('div', { key: 'igst', className: 'flex justify-between' },
+              React.createElement('span', null, `IGST (${calculation.gst.rate}%):`),
+              React.createElement('span', { className: 'font-medium' }, 
+                (paymentData.payment_currency || 'INR'), ' ', calculation.gst.igst.toFixed(2)
+              )
+            )
+          ] : React.createElement('div', { key: 'no-gst', className: 'flex justify-between text-gray-500' },
+            React.createElement('span', null, 'GST:'),
+            React.createElement('span', null, 'Not Applicable')
+          ),
 
-// Final Amount with custom TCS rate
-React.createElement('div', { className: 'flex justify-between text-lg font-bold border-t pt-2 mt-2' },
-  React.createElement('span', null, 'Final Amount:'),
-  React.createElement('span', null, 
-    paymentData.payment_currency || 'INR', ' ', 
-    (baseAmount + calculation.gst.total + 
-     (calculation.tcs.applicable ? (baseAmount * (paymentData.tcs_rate || calculation.tcs.rate)) / 100 : 0)
-    ).toFixed(2)
-  )
-),
+          // TCS Section with dynamic rate
+          calculation.tcs.applicable ? 
+          React.createElement('div', { className: 'flex justify-between text-yellow-700' },
+            React.createElement('span', null, `TCS (${paymentData.tcs_rate || calculation.tcs.rate}%):`),
+            React.createElement('span', { className: 'font-medium' }, 
+              paymentData.payment_currency || 'INR', ' ', 
+              ((baseAmount * (paymentData.tcs_rate || calculation.tcs.rate)) / 100).toFixed(2)
+            )
+          ) : React.createElement('div', { className: 'flex justify-between text-gray-500' },
+            React.createElement('span', null, 'TCS:'),
+            React.createElement('span', null, 'Not Applicable')
+          ),
 
-// Payment Information
-!isReceivablePayment && React.createElement('div', { className: 'flex justify-between border-t pt-2' },
-React.createElement('span', { className: 'font-semibold' }, 'Advance Received:'),
-React.createElement('span', { className: 'font-semibold text-blue-600' }, 
-(paymentData.payment_currency || 'INR'), ' ', advanceAmount.toFixed(2)
-)
-),
-!isReceivablePayment && React.createElement('div', { className: 'flex justify-between' },
-React.createElement('span', { className: 'font-bold' }, 'Balance Due:'),
-React.createElement('span', { className: 'font-bold text-orange-600' }, 
-(paymentData.payment_currency || 'INR'), ' ', (calculation.finalAmount - advanceAmount).toFixed(2)
-)
-),
-isReceivablePayment && React.createElement('div', { className: 'flex justify-between border-t pt-2' },
-React.createElement('span', { className: 'font-bold' }, 'Payment Being Collected:'),
-React.createElement('span', { className: 'font-bold text-green-600' }, 
-(paymentData.payment_currency || 'INR'), ' ', advanceAmount.toFixed(2)
-)
-)
-)
-)
-),
+          // Final Amount with custom TCS rate
+          React.createElement('div', { className: 'flex justify-between text-lg font-bold border-t pt-2 mt-2' },
+            React.createElement('span', null, 'Final Amount:'),
+            React.createElement('span', null, 
+              paymentData.payment_currency || 'INR', ' ', finalAmount.toFixed(2)
+            )
+          ),
 
-// Tax Logic Explanation
-React.createElement('div', { className: 'mt-4 p-3 bg-blue-50 rounded border border-blue-200' },
-React.createElement('h5', { className: 'text-sm font-medium text-blue-800 mb-2' }, 
-'📋 Tax Logic Applied'
-),
-React.createElement('div', { className: 'text-xs text-blue-700' },
-(() => {
-const isIndian = paymentData.customer_type === 'indian';
-const isCorporate = paymentData.category_of_sale === 'Corporate';
-const isOutsideIndia = paymentData.event_location === 'outside_india';
-const isINRPayment = paymentData.payment_currency === 'INR';
-const isServiceFee = paymentData.type_of_sale === 'Service Fee';
-
-let gstLogic = '';
-let tcsLogic = '';
-
-// GST Logic
-if (isServiceFee) {
-gstLogic = 'Service Fee: Always 18% GST (fixed rate)';
-} else if (isIndian) {
-gstLogic = isCorporate ? 'Tour Package - Domestic B2B: 18% GST applies' : 'Tour Package - Domestic B2C: 5% GST applies';
-} else {
-if (!isOutsideIndia) {
-gstLogic = 'Tour Package - International client, event in India: 5% GST applies';
-} else {
-gstLogic = isINRPayment ? 'Tour Package - International client, event outside India, INR payment: 5% GST applies' : 'Tour Package - International client, event outside India, foreign currency: No GST';
-}
-}
-
-// TCS Logic
-if (!isOutsideIndia) {
-tcsLogic = 'Event in India: No TCS for anyone';
-} else {
-if (isIndian) {
-tcsLogic = 'Indian client, event outside India: TCS applies';
-} else {
-tcsLogic = isINRPayment ? 'International client, event outside India, INR payment: TCS applies' : 'International client, event outside India, foreign currency: No TCS';
-}
-}
-
-return `${gstLogic}. ${tcsLogic}.`;
-})()
-)
-)
-);
+          // Payment Information
+          !isReceivablePayment && React.createElement('div', { className: 'flex justify-between border-t pt-2' },
+            React.createElement('span', { className: 'font-semibold' }, 'Advance Received:'),
+            React.createElement('span', { className: 'font-semibold text-blue-600' }, 
+              (paymentData.payment_currency || 'INR'), ' ', advanceAmount.toFixed(2)
+            )
+          ),
+          !isReceivablePayment && React.createElement('div', { className: 'flex justify-between' },
+            React.createElement('span', { className: 'font-bold' }, 'Balance Due:'),
+            React.createElement('span', { className: 'font-bold text-orange-600' }, 
+              (paymentData.payment_currency || 'INR'), ' ', (finalAmount - advanceAmount).toFixed(2)
+            )
+          ),
+          isReceivablePayment && React.createElement('div', { className: 'flex justify-between border-t pt-2' },
+            React.createElement('span', { className: 'font-bold' }, 'Payment Being Collected:'),
+            React.createElement('span', { className: 'font-bold text-green-600' }, 
+              (paymentData.payment_currency || 'INR'), ' ', advanceAmount.toFixed(2)
+            )
+          )
+        )
+      )
+    )
+  );
 }; 
 
 const renderGSTInvoicePreview = () => {
