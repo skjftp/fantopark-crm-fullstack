@@ -6047,22 +6047,8 @@ const AssignmentRulesManager = ({ currentUser }) => {
     const [assignmentResults, setAssignmentResults] = useState(null);
     const [showResults, setShowResults] = useState(false);
 
-    useEffect(() => {
-        loadRules();
-        loadAvailableUsers();
-        
-        // Make loadRules function globally accessible for refreshing
-        window.refreshAssignmentRules = loadRules;
-        
-        // Cleanup function to remove global reference on unmount
-        return () => {
-            if (window.refreshAssignmentRules) {
-                delete window.refreshAssignmentRules;
-            }
-        };
-    }, []);
-
-    const loadRules = async () => {
+    // FIXED: Memoize functions to prevent infinite re-renders
+    const loadRules = React.useCallback(async () => {
         try {
             setLoading(true);
             const response = await apiCall('/assignment-rules');
@@ -6073,9 +6059,9 @@ const AssignmentRulesManager = ({ currentUser }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []); // No dependencies
 
-    const loadAvailableUsers = async () => {
+    const loadAvailableUsers = React.useCallback(async () => {
         try {
             // Use the existing users data if available, or fetch fresh
             if (window.users && window.users.length > 0) {
@@ -6088,7 +6074,24 @@ const AssignmentRulesManager = ({ currentUser }) => {
             console.error('Error loading users:', error);
             // Don't show alert for users loading failure - it's not critical
         }
-    };
+    }, []); // No dependencies
+
+    // FIXED: Only run once on mount with empty dependency array
+    React.useEffect(() => {
+        console.log('AssignmentRulesManager: Initial load effect running');
+        loadRules();
+        loadAvailableUsers();
+        
+        // Make loadRules function globally accessible for refreshing
+        window.refreshAssignmentRules = loadRules;
+        
+        // Cleanup function to remove global reference on unmount
+        return () => {
+            if (window.refreshAssignmentRules) {
+                delete window.refreshAssignmentRules;
+            }
+        };
+    }, []); // FIXED: Empty dependency array - only run once
 
     const toggleRule = async (ruleId, currentStatus) => {
         try {
@@ -6324,11 +6327,6 @@ const AssignmentRulesManager = ({ currentUser }) => {
         return conditionStrings.join(', ');
     };
 
-    if (loading) {
-        return React.createElement('div', { className: 'flex justify-center py-8' },
-            React.createElement('div', { className: 'animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full' })
-        );
-    }
     const runAssignment = async () => {
         if (!confirm('This will automatically assign all unassigned leads based on the active assignment rules. Continue?')) {
             return;
@@ -6365,6 +6363,12 @@ const AssignmentRulesManager = ({ currentUser }) => {
             setIsRunningAssignment(false);
         }
     };
+
+    if (loading) {
+        return React.createElement('div', { className: 'flex justify-center py-8' },
+            React.createElement('div', { className: 'animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full' })
+        );
+    }
  
     return React.createElement('div', { className: 'space-y-6' },
         // Header with buttons
