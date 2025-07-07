@@ -9,20 +9,25 @@ const Communication = require('../models/Communication');
 // Import db for bulk operations (you already had this)
 const { db, collections } = require('../config/db');
 
-// Helper function to get user name by email (for suggestions)
+// FIXED: Helper function to get user name by email (for suggestions)
 async function getUserName(email) {
   try {
-    const snapshot = await db.collection('crm_users')
+    if (!email) return 'Unassigned';
+    
+    const snapshot = await db.collection(collections.users)
       .where('email', '==', email)
       .limit(1)
       .get();
     
     if (!snapshot.empty) {
-      return snapshot.docs[0].data().name;
+      const userData = snapshot.docs[0].data();
+      return userData.name || email;
     }
+    
     return email; // fallback to email if name not found
   } catch (error) {
-    return email; // fallback on error
+    console.error('Error getting user name:', error);
+    return email || 'Unknown'; // fallback on error
   }
 }
 
@@ -454,18 +459,36 @@ router.delete('/', authenticateToken, async (req, res) => {
   }
 });
 
-// ===== NEW ROUTES FOR CLIENT MANAGEMENT (ADDITIVE ONLY) =====
+// ===== FIXED: NEW ROUTES FOR CLIENT MANAGEMENT =====
 
-// NEW: Check if phone number exists (for frontend suggestions)
+// FIXED: Check if phone number exists (for frontend suggestions)
 router.get('/check-phone/:phone', authenticateToken, async (req, res) => {
   try {
     const phone = req.params.phone;
+    console.log(`🔍 Route: Received phone check request for: ${phone}`);
+    
     const clientInfo = await Lead.getClientByPhone(phone);
     
     if (clientInfo) {
-      const primaryAssignedToName = await getUserName(clientInfo.primary_assigned_to);
+      console.log(`✅ Route: Client found:`, {
+        name: clientInfo.name,
+        total_leads: clientInfo.total_leads,
+        primary_assigned_to: clientInfo.primary_assigned_to
+      });
       
-      res.json({
+      // FIXED: Handle case where primary_assigned_to might be null
+      let primaryAssignedToName = 'Unassigned';
+      if (clientInfo.primary_assigned_to) {
+        try {
+          primaryAssignedToName = await getUserName(clientInfo.primary_assigned_to);
+          console.log(`📝 Route: Got user name: ${primaryAssignedToName}`);
+        } catch (nameError) {
+          console.warn(`⚠️ Route: Could not get name for ${clientInfo.primary_assigned_to}:`, nameError);
+          primaryAssignedToName = clientInfo.primary_assigned_to; // Fallback to email
+        }
+      }
+      
+      const response = {
         exists: true,
         suggestion: {
           suggested_assigned_to: clientInfo.primary_assigned_to,
@@ -474,12 +497,16 @@ router.get('/check-phone/:phone', authenticateToken, async (req, res) => {
           client_history: clientInfo.leads,
           events_interested: clientInfo.events
         }
-      });
+      };
+
+      console.log(`✅ Route: Sending response:`, response);
+      res.json(response);
     } else {
+      console.log(`❌ Route: No client found for: ${phone}`);
       res.json({ exists: false });
     }
   } catch (error) {
-    console.error('Error checking phone:', error);
+    console.error('❌ Route: Error checking phone:', error);
     res.status(500).json({ error: error.message });
   }
 });
