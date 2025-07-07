@@ -497,7 +497,7 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
               // Apply smart client detection logic
               const originalAssignment = leadData.assigned_to;
               
-              if (!originalAssignment && clientInfo.primary_assigned_to) {
+              if (clientInfo.primary_assigned_to && (!originalAssignment || leadData.auto_assigned)) {
                 // Override auto-assignment with client's preferred assignee
                 leadData.assigned_to = clientInfo.primary_assigned_to;
                 leadData.status = 'assigned';
