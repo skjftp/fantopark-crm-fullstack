@@ -9,6 +9,7 @@ const collections = {
   users: 'crm_users',
   leads: 'crm_leads',
   inventory: 'crm_inventory',
+  events: 'crm_events', // Add this line
   orders: 'crm_orders',
   invoices: 'crm_invoices',
   deliveries: 'crm_deliveries',
