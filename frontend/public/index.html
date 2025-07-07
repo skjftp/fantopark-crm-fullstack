@@ -9332,53 +9332,56 @@ const handlePaymentSubmit = async (e) => {
       });
 
       // FIXED: Correct API call format
-      const updateResponse = await apiCall(`/orders/${existingOrder.id}`, 'PUT', {
-        // Start with existing order data
-        ...existingOrder,
+      const updateResponse = await apiCall(`/orders/${existingOrder.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          // Start with existing order data
+          ...existingOrder,
 
-        // Payment fields (will override existing)
-        payment_amount: paymentData.advance_amount,
-        payment_method: paymentData.payment_method,
-        transaction_id: paymentData.transaction_id,
-        payment_date: paymentData.payment_date,
-        payment_proof: paymentData.payment_proof,
-        payment_status: 'paid',
+          // Payment fields (will override existing)
+          payment_amount: paymentData.advance_amount,
+          payment_method: paymentData.payment_method,
+          transaction_id: paymentData.transaction_id,
+          payment_date: paymentData.payment_date,
+          payment_proof: paymentData.payment_proof,
+          payment_status: 'paid',
 
-        // Amount fields
-        amount: paymentData.advance_amount,
-        total_amount: existingOrder.total_amount || existingOrder.final_amount,
-        final_amount: existingOrder.final_amount || existingOrder.total_amount,
+          // Amount fields
+          amount: paymentData.advance_amount,
+          total_amount: existingOrder.total_amount || existingOrder.final_amount,
+          final_amount: existingOrder.final_amount || existingOrder.total_amount,
 
-        // GST fields - IMPORTANT: These will override existing values
-        legal_name: paymentData.legal_name || existingOrder.legal_name,
-        gstin: paymentData.gstin || existingOrder.gstin,
-        registered_address: paymentData.registered_address || existingOrder.registered_address,
-        category_of_sale: paymentData.category_of_sale || existingOrder.category_of_sale,
-        type_of_sale: paymentData.type_of_sale || existingOrder.type_of_sale,
-        indian_state: paymentData.indian_state || existingOrder.indian_state,
-        is_outside_india: paymentData.is_outside_india || existingOrder.is_outside_india,
-        gst_certificate: paymentData.gst_certificate || existingOrder.gst_certificate,
-        pan_card: paymentData.pan_card || existingOrder.pan_card,
+          // GST fields - IMPORTANT: These will override existing values
+          legal_name: paymentData.legal_name || existingOrder.legal_name,
+          gstin: paymentData.gstin || existingOrder.gstin,
+          registered_address: paymentData.registered_address || existingOrder.registered_address,
+          category_of_sale: paymentData.category_of_sale || existingOrder.category_of_sale,
+          type_of_sale: paymentData.type_of_sale || existingOrder.type_of_sale,
+          indian_state: paymentData.indian_state || existingOrder.indian_state,
+          is_outside_india: paymentData.is_outside_india || existingOrder.is_outside_india,
+          gst_certificate: paymentData.gst_certificate || existingOrder.gst_certificate,
+          pan_card: paymentData.pan_card || existingOrder.pan_card,
 
-        // Invoice details
-        invoice_items: paymentData.invoice_items || existingOrder.invoice_items,
-        base_amount: baseAmount,
-        gst_calculation: calculation.gst,
-        tcs_calculation: calculation.tcs,
-        total_tax: totalTax,
-        final_amount: finalAmount,
-        gst_rate: calculation.gst.rate,
-        service_fee_amount: paymentData.service_fee_amount || existingOrder.service_fee_amount,
+          // Invoice details
+          invoice_items: paymentData.invoice_items || existingOrder.invoice_items,
+          base_amount: baseAmount,
+          gst_calculation: calculation.gst,
+          tcs_calculation: calculation.tcs,
+          total_tax: totalTax,
+          final_amount: finalAmount,
+          gst_rate: calculation.gst.rate,
+          service_fee_amount: paymentData.service_fee_amount || existingOrder.service_fee_amount,
 
-        // Clear post-service fields if this was a post-service order
-        expected_amount: null,
-        expected_payment_date: null,
-        order_type: 'standard',
+          // Clear post-service fields if this was a post-service order
+          expected_amount: null,
+          expected_payment_date: null,
+          order_type: 'standard',
 
-        // Metadata
-        notes: paymentData.notes || existingOrder.notes,
-        updated_date: new Date().toISOString(),
-        updated_by: user.name
+          // Metadata
+          notes: paymentData.notes || existingOrder.notes,
+          updated_date: new Date().toISOString(),
+          updated_by: user.name
+        })
       });
 
       console.log('Order update response:', updateResponse);
@@ -9416,7 +9419,9 @@ const handlePaymentSubmit = async (e) => {
         if (paidAmount >= receivableAmount) {
           // Full payment - delete the receivable
           try {
-            await apiCall(`/receivables/${paymentData.receivable_id}`, 'DELETE');
+            await apiCall(`/receivables/${paymentData.receivable_id}`, {
+              method: 'DELETE'
+            });
             
             // Remove from local state
             if (typeof setReceivables === 'function') {
@@ -9439,13 +9444,16 @@ const handlePaymentSubmit = async (e) => {
           if (userChoice) {
             // Update receivable with remaining amount
             try {
-              await apiCall(`/receivables/${paymentData.receivable_id}`, 'PUT', {
-                balance_amount: remainingAmount,
-                amount: remainingAmount,
-                expected_amount: remainingAmount,
-                partial_payment_received: paidAmount,
-                last_payment_date: new Date().toISOString(),
-                updated_date: new Date().toISOString()
+              await apiCall(`/receivables/${paymentData.receivable_id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                  balance_amount: remainingAmount,
+                  amount: remainingAmount,
+                  expected_amount: remainingAmount,
+                  partial_payment_received: paidAmount,
+                  last_payment_date: new Date().toISOString(),
+                  updated_date: new Date().toISOString()
+                })
               });
 
               // Update local state
@@ -9465,15 +9473,20 @@ const handlePaymentSubmit = async (e) => {
             // Close receivable and update order total
             try {
               // Delete the receivable
-              await apiCall(`/receivables/${paymentData.receivable_id}`, 'DELETE');
+              await apiCall(`/receivables/${paymentData.receivable_id}`, {
+                method: 'DELETE'
+              });
               
               // FIXED: Use existingOrder.id instead of undefined existingOrderId
-              await apiCall(`/orders/${existingOrder.id}`, 'PUT', {
-                total_amount: paidAmount,
-                original_amount: receivableAmount,
-                amount_adjusted: true,
-                adjustment_reason: 'Partial payment accepted',
-                updated_date: new Date().toISOString()
+              await apiCall(`/orders/${existingOrder.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                  total_amount: paidAmount,
+                  original_amount: receivableAmount,
+                  amount_adjusted: true,
+                  adjustment_reason: 'Partial payment accepted',
+                  updated_date: new Date().toISOString()
+                })
               });
               
               // Update local states
@@ -9572,56 +9585,18 @@ const handlePaymentSubmit = async (e) => {
 
     let orderResponse;
     try {
-      console.log('=== MAKING DIRECT API CALL (BYPASSING apiCall helper) ===');
+      console.log('=== CREATING ORDER WITH FIXED API CALL ===');
       
-      // DIRECT API CALL - bypassing your apiCall helper which seems to have issues
-      const apiUrl = '' + API_URL + '/orders';
-      const authToken = localStorage.getItem('crm_auth_token');
-      
-      console.log('API URL:', apiUrl);
-      console.log('Method: POST');
-      console.log('Auth token exists:', !!authToken);
-      console.log('Request headers:', {
-        'Authorization': 'Bearer ' + (authToken ? authToken.substring(0, 20) + '...' : 'None'),
-        'Content-Type': 'application/json'
-      });
-      
-      const response = await fetch(apiUrl, {
+      // FIXED: Use correct apiCall format
+      orderResponse = await apiCall('/orders', {
         method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + authToken,
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify(orderData)
       });
       
-      console.log('=== DIRECT API RESPONSE ===');
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-      console.log('Response status text:', response.statusText);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      // Get response text first to see what we actually received
-      const responseText = await response.text();
-      console.log('Raw response text:', responseText);
-      console.log('Response text length:', responseText.length);
-      
-      if (!response.ok) {
-        console.error('HTTP Error:', response.status, response.statusText);
-        throw new Error(`HTTP ${response.status}: ${responseText}`);
-      }
-      
-      // Try to parse JSON
-      try {
-        orderResponse = JSON.parse(responseText);
-        console.log('Parsed response:', orderResponse);
-        console.log('Response type:', typeof orderResponse);
-        console.log('Response keys:', Object.keys(orderResponse || {}));
-      } catch (parseError) {
-        console.error('JSON Parse Error:', parseError);
-        console.error('Failed to parse response text:', responseText);
-        throw new Error('Server returned invalid JSON: ' + responseText);
-      }
+      console.log('=== ORDER CREATION RESPONSE ===');
+      console.log('Response:', orderResponse);
+      console.log('Response type:', typeof orderResponse);
+      console.log('Response keys:', Object.keys(orderResponse || {}));
       
       // CRITICAL CHECK: Validate this is actually a created order, not a list
       if (Array.isArray(orderResponse)) {
@@ -9675,22 +9650,14 @@ const handlePaymentSubmit = async (e) => {
     try {
       console.log('Verifying order was actually saved...');
       
-      // Use direct API call for verification too
-      const verifyResponse = await fetch('' + API_URL + '/orders', {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer ' + localStorage.getItem('crm_auth_token'),
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      const verifyData = await verifyResponse.json();
-      const allOrders = verifyData.data || verifyData;
+      // FIXED: Use correct apiCall format for verification
+      const verifyResponse = await apiCall('/orders');
+      const allOrders = verifyResponse.data || verifyResponse;
       
       console.log('Total orders in backend after creation:', allOrders.length);
-      console.log('Previous count was: 2');
+      console.log('Previous count was: 3');
       
-      if (allOrders.length > 2) {
+      if (allOrders.length > 3) {
         console.log('✅ ORDER COUNT INCREASED - SUCCESS!');
         
         // Find our new order
@@ -9710,7 +9677,7 @@ const handlePaymentSubmit = async (e) => {
         
       } else {
         console.error('❌ ORDER COUNT DID NOT INCREASE');
-        console.error('Expected more than 2 orders, got:', allOrders.length);
+        console.error('Expected more than 3 orders, got:', allOrders.length);
         alert('⚠️ Order creation may have failed. The order count did not increase.');
       }
       
