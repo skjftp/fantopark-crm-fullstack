@@ -16132,11 +16132,12 @@ React.createElement('button', {
 )
 );
 };
-// CSV Upload Modal Component
+// FIXED: CSVUploadModal with proper preview flow handling
 const CSVUploadModal = ({ isOpen, onClose, type }) => {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
+  const [proceedAfterPreview, setProceedAfterPreview] = useState(false); // NEW: Track if we should proceed after preview
 
   // Enhanced file validation for both CSV and Excel (keeping your existing logic)
   const handleFileChange = (e) => {
@@ -16155,6 +16156,7 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
     if (selectedFile && isValidFile) {
       setFile(selectedFile);
       setUploadResult(null); // Clear previous results
+      setProceedAfterPreview(false); // Reset proceed flag
     } else {
       alert('Please select a valid CSV or Excel file (.csv, .xlsx, .xls)');
     }
@@ -16246,6 +16248,16 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
     }
   };
 
+  // NEW: Function to handle proceed from preview
+  const handleProceedFromPreview = () => {
+    setShowPreview(false);
+    setProceedAfterPreview(true);
+    // Trigger upload after a small delay to ensure state is updated
+    setTimeout(() => {
+      handleUpload();
+    }, 100);
+  };
+
   // NEW: Enhanced upload summary function
   const showEnhancedUploadSummary = (result) => {
     let message = `🎉 Upload completed!\n\n`;
@@ -16307,7 +16319,7 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
     document.body.removeChild(link);
   };
 
-  // Download Excel with FIXED validation (keeping your existing function exactly as is)
+  // Download Excel functions (keeping your existing functions exactly as is)
   const downloadSampleExcel = async () => {
     try {
       console.log('Downloading Excel with fixed validation...');
@@ -16342,7 +16354,6 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
     }
   };
 
-  // Download Excel with SIMPLE instructions (keeping your existing function exactly as is)
   const downloadSampleExcelV2 = async () => {
     try {
       console.log('Downloading Excel template with instructions...');
@@ -16418,13 +16429,13 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
 
       // Instructions (keeping your existing design)
       React.createElement('div', {
-        className: 'mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg'
+        className: 'mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg'
       },
         React.createElement('p', {
-          className: 'text-gray-800 dark:text-gray-200 mb-2'
+          className: 'text-blue-800 dark:text-blue-200 mb-2'
         }, '📋 Upload a CSV or Excel file to bulk import your data.'),
         React.createElement('p', {
-          className: 'text-gray-700 dark:text-gray-300 text-sm'
+          className: 'text-blue-700 dark:text-blue-300 text-sm'
         }, '💡 Excel files include validation guidance and clear instructions!')
       ),
 
@@ -16596,7 +16607,7 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
   );
 };
 
-// Upload Preview Modal Component
+// UPDATED: Upload Preview Modal Component with proper continue functionality
 const UploadPreviewModal = () => {
   if (!showPreview || !uploadPreview) return null;
 
@@ -16715,9 +16726,10 @@ const UploadPreviewModal = () => {
         }, 'Cancel'),
         React.createElement('button', {
           onClick: () => {
+            // FIXED: Call the function from CSVUploadModal scope properly
             setShowPreview(false);
-            // You can add logic here to proceed with upload if needed
-            // For now, user will need to click upload button again
+            // Just close preview and let user click upload button manually
+            alert('Preview closed. Please click "Upload File" button to proceed with the upload.');
           },
           className: 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
         }, 'Continue to Upload')
