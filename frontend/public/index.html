@@ -4343,11 +4343,19 @@ const openInventoryDetail = (inventoryItem) => {
 setCurrentInventoryDetail(inventoryItem);
 setShowInventoryDetail(true);
 };
-
+ 
 // 3. ADD THIS FUNCTION to close inventory detail:
 const closeInventoryDetail = () => {
 setShowInventoryDetail(false);
 setCurrentInventoryDetail(null);
+};
+
+const openAddInventoryForm = () => {
+  console.log('openAddInventoryForm called');
+  setEditingInventory({});  // Set empty object for new inventory
+  setFormData({});          // Clear form data
+  setShowInventoryForm(true); // Show the form
+  console.log('Inventory form should now be visible');
 };
 
 const handleCopyInventory = async (item) => {
@@ -6807,7 +6815,7 @@ React.createElement('span', { className: 'mr-3' }, '+'),
 ),
 
 hasPermission('inventory', 'write') && React.createElement('button', {
-onClick: () => setShowInventoryForm(true),
+onClick: openAddInventoryForm,
 className: 'w-full flex items-center px-4 py-3 text-purple-600 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors'
 },
 React.createElement('span', { className: 'mr-3' }, '+'),
@@ -14181,7 +14189,7 @@ React.createElement('div', { className: 'flex justify-between items-center' },
 React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Inventory Management'),
 hasPermission('inventory', 'write') && React.createElement('button', { 
 className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
-onClick: () => setShowInventoryForm(true)
+onClick: openAddInventoryForm
 }, '+ Add New Event'),
 React.createElement('button', {
 onClick: () => {
