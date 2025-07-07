@@ -9770,107 +9770,162 @@ const handlePaymentSubmit = async (e) => {
     console.log('=== ENHANCED ORDER CREATION DEBUG ===');
     console.log('Order data to create:', JSON.stringify(orderData, null, 2));
     console.log('Order data size:', JSON.stringify(orderData).length, 'characters');
-    console.log('Current user:', user);
-    console.log('Current lead:', currentLead);
-    
+
     let orderResponse;
     try {
-      console.log('=== MAKING API CALL ===');
-      console.log('API endpoint: /orders');
+      console.log('=== MAKING DIRECT API CALL (BYPASSING apiCall helper) ===');
+      
+      // DIRECT API CALL - bypassing your apiCall helper which seems to have issues
+      const apiUrl = 'https://fantopark-backend-150582227311.us-central1.run.app/api/orders';
+      const authToken = localStorage.getItem('crm_auth_token');
+      
+      console.log('API URL:', apiUrl);
       console.log('Method: POST');
+      console.log('Auth token exists:', !!authToken);
+      console.log('Request headers:', {
+        'Authorization': 'Bearer ' + (authToken ? authToken.substring(0, 20) + '...' : 'None'),
+        'Content-Type': 'application/json'
+      });
       
-      orderResponse = await apiCall('/orders', 'POST', orderData);
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + authToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(orderData)
+      });
       
-      console.log('=== API RESPONSE RECEIVED ===');
-      console.log('Raw response:', orderResponse);
-      console.log('Response type:', typeof orderResponse);
-      console.log('Response keys:', Object.keys(orderResponse || {}));
-      console.log('Has data property:', !!orderResponse?.data);
-      console.log('Has id property:', !!orderResponse?.id);
-
-      // Enhanced validation
-      if (!orderResponse) {
-        throw new Error('No response received from order creation API');
+      console.log('=== DIRECT API RESPONSE ===');
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+      console.log('Response status text:', response.statusText);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      // Get response text first to see what we actually received
+      const responseText = await response.text();
+      console.log('Raw response text:', responseText);
+      console.log('Response text length:', responseText.length);
+      
+      if (!response.ok) {
+        console.error('HTTP Error:', response.status, response.statusText);
+        throw new Error(`HTTP ${response.status}: ${responseText}`);
       }
       
+      // Try to parse JSON
+      try {
+        orderResponse = JSON.parse(responseText);
+        console.log('Parsed response:', orderResponse);
+        console.log('Response type:', typeof orderResponse);
+        console.log('Response keys:', Object.keys(orderResponse || {}));
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError);
+        console.error('Failed to parse response text:', responseText);
+        throw new Error('Server returned invalid JSON: ' + responseText);
+      }
+      
+      // CRITICAL CHECK: Validate this is actually a created order, not a list
+      if (Array.isArray(orderResponse)) {
+        console.error('❌ API RETURNED ARRAY INSTEAD OF CREATED ORDER');
+        console.error('This means the POST request was treated as GET');
+        throw new Error('API returned orders list instead of creating new order. Check backend routes.');
+      }
+      
+      if (orderResponse && Array.isArray(orderResponse.data)) {
+        console.error('❌ API RETURNED ORDERS LIST INSTEAD OF CREATED ORDER');
+        console.error('Response data is array of length:', orderResponse.data.length);
+        throw new Error('API returned existing orders list instead of creating new order. Backend routing issue.');
+      }
+      
+      // Check if we got a valid order back
       const createdOrder = orderResponse.data || orderResponse;
       if (!createdOrder || (!createdOrder.id && !createdOrder.order_number)) {
-        console.error('Invalid order response structure:', createdOrder);
-        throw new Error('Server response does not contain a valid order');
+        console.error('❌ INVALID ORDER RESPONSE');
+        console.error('Expected: order object with id or order_number');
+        console.error('Received:', createdOrder);
+        throw new Error('Server did not return a valid created order');
       }
       
-      console.log('✅ Order creation API call completed successfully');
+      console.log('✅ ORDER CREATED SUCCESSFULLY');
       console.log('Created order ID:', createdOrder.id);
       console.log('Created order number:', createdOrder.order_number);
+      console.log('Created order status:', createdOrder.status);
 
     } catch (error) {
-      console.error('=== ORDER CREATION API FAILED ===');
+      console.error('=== ORDER CREATION FAILED ===');
       console.error('Error type:', error.constructor.name);
       console.error('Error message:', error.message);
-      console.error('Error details:', error);
+      console.error('Full error:', error);
       
-      alert(`Order creation failed: ${error.message}\n\nPlease check console for details and try again.`);
+      // Specific error messages for common issues
+      if (error.message.includes('orders list')) {
+        alert('❌ Backend Issue: The API is returning existing orders instead of creating a new one.\n\nThis indicates a problem with your backend routing for POST /orders.\n\nPlease check your backend orders.js route file.');
+      } else {
+        alert(`❌ Order creation failed: ${error.message}\n\nCheck console for full details.`);
+      }
+      
       setLoading(false);
       return;
     }
 
     console.log('=== VERIFYING ORDER IN BACKEND ===');
-    
-    // Enhanced verification with retry
-    let verificationAttempts = 0;
-    const maxAttempts = 3;
-    let orderFoundInBackend = false;
-    
-    while (verificationAttempts < maxAttempts && !orderFoundInBackend) {
-      try {
-        // Wait before checking (gives backend time to process)
-        await new Promise(resolve => setTimeout(resolve, 1000 * (verificationAttempts + 1)));
+
+    // Wait a moment then verify
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    try {
+      console.log('Verifying order was actually saved...');
+      
+      // Use direct API call for verification too
+      const verifyResponse = await fetch('https://fantopark-backend-150582227311.us-central1.run.app/api/orders', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + localStorage.getItem('crm_auth_token'),
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const verifyData = await verifyResponse.json();
+      const allOrders = verifyData.data || verifyData;
+      
+      console.log('Total orders in backend after creation:', allOrders.length);
+      console.log('Previous count was: 2');
+      
+      if (allOrders.length > 2) {
+        console.log('✅ ORDER COUNT INCREASED - SUCCESS!');
         
-        console.log(`Verification attempt ${verificationAttempts + 1}/${maxAttempts}...`);
-        
-        const freshOrdersResponse = await apiCall('/orders');
-        const freshOrders = freshOrdersResponse.data || freshOrdersResponse || [];
-        
-        console.log(`Backend now has ${freshOrders.length} orders`);
-        
-        // Look for our new order
-        const newOrder = freshOrders.find(o => 
+        // Find our new order
+        const newOrder = allOrders.find(o => 
           o.lead_id === currentLead.id || 
-          o.order_number === orderData.order_number ||
-          (orderResponse.data?.id && o.id === orderResponse.data.id) ||
-          (orderResponse.id && o.id === orderResponse.id)
+          o.order_number === orderData.order_number
         );
         
         if (newOrder) {
-          console.log('✅ ORDER FOUND IN BACKEND!');
-          console.log('Found order:', newOrder);
-          orderFoundInBackend = true;
-          
-          // Update local state with all fresh orders
-          setOrders(freshOrders);
-          console.log('✅ Local state updated with fresh orders');
-          
-          break;
-        } else {
-          console.log(`❌ Order not found in backend (attempt ${verificationAttempts + 1})`);
-          verificationAttempts++;
+          console.log('✅ FOUND OUR NEW ORDER:', newOrder.id);
+          console.log('New order details:', newOrder);
         }
         
-      } catch (verifyError) {
-        console.error('Verification attempt failed:', verifyError);
-        verificationAttempts++;
+        // Update local state with all fresh orders
+        setOrders(allOrders);
+        console.log('✅ LOCAL STATE UPDATED');
+        
+      } else {
+        console.error('❌ ORDER COUNT DID NOT INCREASE');
+        console.error('Expected more than 2 orders, got:', allOrders.length);
+        alert('⚠️ Order creation may have failed. The order count did not increase.');
       }
-    }
-    
-    if (!orderFoundInBackend) {
-      console.error('❌ ORDER NOT FOUND IN BACKEND AFTER ALL ATTEMPTS');
-      alert('Warning: Order may not have been saved properly to the database. Please refresh the page and check if the order appears.');
       
-      // Fallback: Try to add to local state anyway
-      const fallbackOrder = orderResponse.data || orderResponse;
-      if (fallbackOrder && fallbackOrder.id) {
-        setOrders(prev => [...prev, fallbackOrder]);
-        console.log('Added order to local state as fallback');
+    } catch (verifyError) {
+      console.error('Failed to verify order creation:', verifyError);
+      
+      // Fallback: try using apiCall for refresh
+      try {
+        const fallbackResponse = await apiCall('/orders');
+        const fallbackOrders = fallbackResponse.data || fallbackResponse || [];
+        setOrders(fallbackOrders);
+        console.log('Fallback refresh completed, orders:', fallbackOrders.length);
+      } catch (fallbackError) {
+        console.error('Fallback refresh also failed:', fallbackError);
       }
     }
 
