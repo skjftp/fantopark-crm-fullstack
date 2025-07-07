@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const AssignmentRule = require('../models/AssignmentRule');
 const { authenticateToken, checkPermission } = require('../middleware/auth');
+const { db, collections } = require('../config/db');
 
 // GET all assignment rules
 router.get('/', authenticateToken, checkPermission('leads', 'read'), async (req, res) => {
@@ -198,4 +199,115 @@ router.post('/initialize-defaults', authenticateToken, checkPermission('leads', 
   }
 });
 
+
+// POST run assignment for all unassigned leads
+router.post('/run-assignment', authenticateToken, checkPermission('leads', 'assign'), async (req, res) => {
+  try {
+    console.log('🚀 Starting bulk assignment process...');
+    
+    // Get all unassigned leads
+    const unassignedSnapshot = await db.collection(collections.leads)
+      .where('assigned_to', 'in', ['', null])
+      .get();
+    
+    if (unassignedSnapshot.empty) {
+      return res.json({
+        success: true,
+        message: 'No unassigned leads found',
+        processedCount: 0,
+        assignedCount: 0,
+        results: []
+      });
+    }
+    
+    console.log(`📋 Found ${unassignedSnapshot.size} unassigned leads`);
+    
+    // Get all active assignment rules
+    const rules = await AssignmentRule.getActive();
+    
+    if (!rules || rules.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active assignment rules found. Please create assignment rules first.',
+        processedCount: 0,
+        assignedCount: 0
+      });
+    }
+    
+    const results = [];
+    let assignedCount = 0;
+    let processedCount = 0;
+    
+    // Process each unassigned lead
+    for (const leadDoc of unassignedSnapshot.docs) {
+      const leadData = { id: leadDoc.id, ...leadDoc.data() };
+      processedCount++;
+      
+      let assigned = false;
+      
+      // Try each rule in priority order
+      for (const rule of rules) {
+        if (AssignmentRule.evaluateConditions(leadData, rule.conditions)) {
+          const assignee = AssignmentRule.selectAssignee(rule);
+          
+          if (assignee) {
+            // Update the lead
+            const updateData = {
+              assigned_to: assignee,
+              auto_assigned: true,
+              assignment_reason: rule.description || `Matched rule: ${rule.name}`,
+              assignment_rule_used: rule.name,
+              assignment_rule_id: rule.id,
+              assignment_date: new Date().toISOString(),
+              updated_date: new Date().toISOString(),
+              status: 'assigned'
+            };
+            
+            await db.collection(collections.leads).doc(leadDoc.id).update(updateData);
+            
+            results.push({
+              leadId: leadDoc.id,
+              leadName: leadData.name,
+              assignedTo: assignee,
+              ruleName: rule.name,
+              success: true
+            });
+            
+            assignedCount++;
+            assigned = true;
+            break;
+          }
+        }
+      }
+      
+      if (!assigned) {
+        results.push({
+          leadId: leadDoc.id,
+          leadName: leadData.name,
+          assignedTo: null,
+          ruleName: null,
+          success: false
+        });
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Assignment completed. ${assignedCount} out of ${processedCount} leads assigned.`,
+      processedCount,
+      assignedCount,
+      unassignedCount: processedCount - assignedCount,
+      results
+    });
+    
+  } catch (error) {
+    console.error('Error in bulk assignment:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      processedCount: 0,
+      assignedCount: 0
+    });
+  }
+});
 module.exports = router;
