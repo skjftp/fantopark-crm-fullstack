@@ -7989,28 +7989,48 @@ const renderGSTInvoicePreview = () => {
     const invoice = currentInvoice;
     const isIntraState = invoice.indian_state === 'Haryana' && !invoice.is_outside_india;
 
-    // FIX: Calculate baseAmount FIRST before using it
+    // FIX 1: Calculate baseAmount FIRST before using it anywhere
     const baseAmount = getBaseAmount(invoice);
     
-    // Enhanced GST rate calculation - Service Fee always 18%
-    const calculation = calculateGSTAndTCS(baseAmount, invoice);
+    // FIX 2: Use the stored calculation from the invoice, or recalculate if needed
+    let calculation;
+    if (invoice.gst_calculation && invoice.tcs_calculation) {
+        // Use the stored calculation from the order
+        calculation = {
+            gst: {
+                applicable: invoice.gst_calculation.applicable || (invoice.gst_calculation.total > 0),
+                rate: invoice.gst_rate || invoice.gst_calculation.rate || 5,
+                cgst: invoice.gst_calculation.cgst || 0,
+                sgst: invoice.gst_calculation.sgst || 0,
+                igst: invoice.gst_calculation.igst || 0,
+                total: invoice.gst_calculation.total || invoice.total_tax || 0
+            },
+            tcs: {
+                applicable: invoice.tcs_calculation.applicable || false,
+                rate: invoice.tcs_calculation.rate || 5,
+                amount: invoice.tcs_calculation.amount || 0
+            },
+            finalAmount: invoice.final_amount || (baseAmount + (invoice.total_tax || 0))
+        };
+    } else {
+        // Fallback: recalculate using the function
+        calculation = calculateGSTAndTCS(baseAmount, invoice);
+    }
+
     const gstRate = calculation.gst.rate;
 
-    // Calculate GST amounts
-    const gstAmount = (baseAmount * gstRate) / 100;
-    const cgstAmount = isIntraState ? gstAmount / 2 : 0;
-    const sgstAmount = isIntraState ? gstAmount / 2 : 0;
-    const igstAmount = !isIntraState ? gstAmount : 0;
-    const tcsAmount = 0; // TCS calculation if needed
+    // Calculate GST amounts (use stored values if available, otherwise calculate)
+    const gstAmount = calculation.gst.total;
+    const cgstAmount = calculation.gst.cgst;
+    const sgstAmount = calculation.gst.sgst; 
+    const igstAmount = calculation.gst.igst;
+    const tcsAmount = calculation.tcs.amount;
 
-    // Update invoice with calculated values
-    invoice.gst_calculation = {
-        cgst: cgstAmount,
-        sgst: sgstAmount,
-        igst: igstAmount
-    };
+    // Update invoice with calculated values (ensure they're set)
+    invoice.gst_calculation = calculation.gst;
+    invoice.tcs_calculation = calculation.tcs;
     invoice.total_tax = gstAmount;
-    invoice.final_amount = baseAmount + gstAmount;
+    invoice.final_amount = calculation.finalAmount;
 
     return React.createElement('div', {
         className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-backdrop',
@@ -8202,6 +8222,12 @@ const renderGSTInvoicePreview = () => {
                         text-align: center;
                         font-size: 9px;
                         }
+                        .additional-info {
+                        font-size: 9px;
+                        color: #666;
+                        margin-top: 2px;
+                        font-style: italic;
+                        }
                         @media print {
                         body { background: white; padding: 0; margin: 0; }
                         .invoice-preview { border: none; box-shadow: none; margin: 0; padding: 5mm; }
@@ -8209,72 +8235,6 @@ const renderGSTInvoicePreview = () => {
                         .sticky { position: relative !important; }
                         @page { margin: 10mm; size: A4; }
                         }
-                        /* Fix for action buttons */
-                        .action-buttons button {
-                        position: relative;
-                        z-index: 10;
-                        cursor: pointer;
-                        }
-                        td .flex button {
-                        position: relative;
-                        z-index: 10;
-                        }
-
-                        /* Logout button fix */
-                        .logout-button-fix {
-                        position: relative !important;
-                        width: auto !important;
-                        height: auto !important;
-                        }
-
-                        /* Prevent invisible overlays */
-                        button:not(:hover) {
-                        z-index: auto !important;
-                        }
-
-                        /* Ensure sidebar stays contained */
-                        .sidebar-container {
-                        overflow: hidden;
-                        }
-
-                        /* Logout button area fix */
-                        .sidebar-logout {
-                        margin-top: auto;
-                        padding: 1rem;
-                        border-top: 1px solid #e5e7eb;
-                        }
-
-                        .sidebar-logout button {
-                        width: 100%;
-                        max-width: 200px;
-                        margin: 0 auto;
-                        display: flex;
-                        align-items: center;
-                        padding: 0.75rem 1rem;
-                        border-radius: 0.375rem;
-                        transition: background-color 0.2s;
-                        }
-
-                        .sidebar-logout button:hover {
-                        background-color: #f9fafb;
-                        }
-
-                        /* Prevent any overlay issues */
-                        .sidebar-container > div:last-child {
-                        position: relative !important;
-                        bottom: auto !important;
-                        left: auto !important;
-                        right: auto !important;
-                        }
-
-                        /* Additional Info Styling */
-                        .additional-info {
-                        font-size: 9px;
-                        color: #666;
-                        margin-top: 2px;
-                        font-style: italic;
-                        }
-
                         </style>
                         </head>
                         <body>
@@ -8330,7 +8290,7 @@ const renderGSTInvoicePreview = () => {
                 React.createElement('div', null,
                     React.createElement('div', null, 
                         React.createElement('strong', null, 'Date:'), ' ',
-                        new Date(invoice.invoice_date).toLocaleDateString('en-GB', {
+                        new Date(invoice.invoice_date || invoice.created_date || Date.now()).toLocaleDateString('en-GB', {
                             day: '2-digit',
                             month: 'short',
                             year: 'numeric'
@@ -8409,7 +8369,7 @@ const renderGSTInvoicePreview = () => {
                 )
             ),
 
-            // Enhanced Tax Table with TCS Support and Dynamic Calculation
+            // FIX 3: Enhanced Tax Table with better calculation handling
             React.createElement('table', { className: 'totals-table' },
                 React.createElement('tr', null,
                     React.createElement('td', { style: { width: '60%' }}),
@@ -8417,14 +8377,10 @@ const renderGSTInvoicePreview = () => {
                     React.createElement('td', { style: { textAlign: 'right', fontWeight: 'bold', width: '20%' }}, `Value (${invoice.payment_currency || 'INR'})`)
                 ),
                 (() => {
-                    // Enhanced calculation with TCS support
-                    const calculation = calculateGSTAndTCS(invoice.base_amount || 0, invoice);
-                    const isIntraState = invoice.indian_state === 'Haryana' && !invoice.is_outside_india;
-                    
                     const taxRows = [];
                     
-                    // GST Rows
-                    if (calculation.gst.applicable) {
+                    // FIX 4: GST Rows - ensure they show when GST is applicable
+                    if (calculation.gst.applicable && calculation.gst.total > 0) {
                         if (isIntraState) {
                             // CGST Row
                             taxRows.push(
@@ -8455,7 +8411,7 @@ const renderGSTInvoicePreview = () => {
                     }
                     
                     // TCS Row - NEW: Dynamic TCS calculation
-                    if (calculation.tcs.applicable) {
+                    if (calculation.tcs.applicable && calculation.tcs.amount > 0) {
                         taxRows.push(
                             React.createElement('tr', { key: 'tcs' },
                                 React.createElement('td', null, 'TCS'),
