@@ -14181,7 +14181,7 @@ React.createElement('div', { className: 'flex justify-between items-center' },
 React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Inventory Management'),
 hasPermission('inventory', 'write') && React.createElement('button', { 
 className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
-onClick: () => openAddForm('inventory')
+onClick: () => setShowInventoryForm(true)
 }, '+ Add New Event'),
 React.createElement('button', {
 onClick: () => {
