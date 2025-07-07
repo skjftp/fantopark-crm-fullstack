@@ -1211,8 +1211,9 @@ gst_rate: 5,
 
 // NEW: TCS fields
 tcs_applicable: false,
-tcs_rate: 5,
+tcs_rate: 5, // Default to 5%
 tcs_amount: 0,
+tcs_rate_editable: true, // Allow manual override
 });
 
 const addInvoiceItem = () => {
@@ -1261,7 +1262,7 @@ const isServiceFee = paymentData.type_of_sale === 'Service Fee';
 let gstApplicable = false;
 let gstRate = 0;
 let tcsApplicable = false;
-let tcsRate = 5; // Standard TCS rate
+let tcsRate = paymentData.tcs_rate || 5; // Standard TCS rate
 
 // TCS Logic: CORRECTED
 if (isOutsideIndia) {
@@ -1354,32 +1355,58 @@ return num.toLocaleString('en-IN');
 };
 
 const handlePaymentInputChange = (field, value) => {
-setPaymentData(prev => {
-const updated = { ...prev, [field]: value };
-
-// Auto-update GST rate based on type_of_sale
-if (field === 'type_of_sale') {
-if (value === 'Service Fee') {
-updated.gst_rate = 18;
-} else if (value === 'Tour') {
-updated.gst_rate = 5;
-} else {
-updated.gst_rate = 18;
-}
-}
-
-// NEW: Auto-determine TCS applicability when customer type or currency changes
-if (['customer_type', 'event_location', 'payment_currency'].includes(field)) {
-const baseAmount = getBaseAmount(updated);
-const calculation = calculateGSTAndTCS(baseAmount, updated);
-updated.tcs_applicable = calculation.tcs.applicable;
-updated.tcs_rate = calculation.tcs.rate;
-updated.tcs_amount = calculation.tcs.amount;
-}
-
-return updated;
-});
-}; 
+  setPaymentData(prev => {
+    const updated = { ...prev, [field]: value };
+    
+    // Auto-update GST rate based on type_of_sale
+    if (field === 'type_of_sale') {
+      if (value === 'Service Fee') {
+        updated.gst_rate = 18;
+      } else if (value === 'Tour') {
+        updated.gst_rate = 5;
+      } else {
+        updated.gst_rate = 18;
+      }
+    }
+    
+    // Handle TCS rate changes manually
+    if (field === 'tcs_rate') {
+      const baseAmount = getBaseAmount(updated);
+      const newTcsAmount = updated.tcs_applicable ? (baseAmount * parseFloat(value)) / 100 : 0;
+      updated.tcs_amount = newTcsAmount;
+      // Mark that rate was manually selected
+      updated.tcs_rate_manual = true;
+    }
+    
+    // Auto-determine TCS applicability when customer type or currency changes
+    if (['customer_type', 'event_location', 'payment_currency'].includes(field)) {
+      const baseAmount = getBaseAmount(updated);
+      const calculation = calculateGSTAndTCS(baseAmount, updated);
+      updated.tcs_applicable = calculation.tcs.applicable;
+      
+      // Only update TCS rate if it wasn't manually set, or if customer type changed
+      if (!updated.tcs_rate_manual || field === 'customer_type') {
+        updated.tcs_rate = calculation.tcs.rate;
+        updated.tcs_rate_manual = false; // Reset manual flag when customer type changes
+      }
+      
+      // Recalculate TCS amount with current (possibly manual) rate
+      const currentTcsRate = updated.tcs_rate || calculation.tcs.rate;
+      updated.tcs_amount = calculation.tcs.applicable ? (baseAmount * currentTcsRate) / 100 : 0;
+    }
+    
+    // Recalculate TCS when invoice items or service fee amount changes
+    if (['invoice_items', 'service_fee_amount'].includes(field)) {
+      const baseAmount = getBaseAmount(updated);
+      if (updated.tcs_applicable) {
+        const currentTcsRate = updated.tcs_rate || 5;
+        updated.tcs_amount = (baseAmount * currentTcsRate) / 100;
+      }
+    }
+    
+    return updated;
+  });
+};
 
 // Edit order function - in App scope
 const openEditOrderForm = (order) => {
@@ -4218,60 +4245,75 @@ setShowAssignForm(true);
 };
 
 const openPaymentForm = (lead) => {
-if (!hasPermission('leads', 'write')) {
-alert('You do not have permission to manage payments');
-return;
-}
-setCurrentLead(lead);
-setPaymentData({
-// Basic payment details
-advance_amount: '', // Changed from payment_amount
-payment_method: 'bank_transfer', // ADD: Default payment method
-transaction_id: '',
-payment_date: new Date().toISOString().split('T')[0],
-payment_proof: '',
-notes: '',
-
-// NEW: Enhanced customer classification
-customer_type: 'indian', // 'indian', 'nri', 'foreigner'
-event_location: 'india', // 'india', 'outside_india'
-payment_currency: 'INR', // 'INR', 'USD', 'EUR', 'GBP'
-
-// NEW: TCS fields
-tcs_applicable: false,
-tcs_rate: 5,
-tcs_amount: 0,
-
-// GST and Legal details
-gstin: lead.gstin || '', // ADD: Get from lead if available
-legal_name: lead.legal_name || lead.name || '', // CHANGE: Prioritize legal_name
-category_of_sale: lead.business_type === 'B2B' ? 'Corporate' : 'Retail', // CHANGE: Map to Corporate/Retail
-type_of_sale: 'Tour', // Tour or Service Fee
-registered_address: lead.registered_address || '', // ADD: Get from lead if available
-indian_state: 'Haryana',
-is_outside_india: false,
-gst_certificate: null,
-pan_card: null,
-
-// ENHANCED: Multi-row invoice items with additional info support
-invoice_items: [{
-description: lead.lead_for_event || 'Travel Package',
-additional_info: '', // NEW: For bracket info like (Lorem Ipsum)
-quantity: lead.number_of_people || 1,
-rate: lead.last_quoted_price || 0
-}],
-
-// GST calculations
-gst_rate: 5, // Default to 5% for Tour packages
-service_fee_amount: 0, // Only for Service Fee type
-
-// ADD: Missing fields for receivables and post-service payments
-from_receivable: false,
-payment_post_service: false,
-receivable_id: null,
-receivable_amount: 0
-});
-setShowPaymentForm(true);
+  if (!hasPermission('leads', 'write')) {
+    alert('You do not have permission to manage payments');
+    return;
+  }
+  
+  setCurrentLead(lead);
+  
+  // Initialize payment data with defaults
+  const initialPaymentData = {
+    // Basic payment details
+    advance_amount: '', // Changed from payment_amount
+    payment_method: 'bank_transfer', // ADD: Default payment method
+    transaction_id: '',
+    payment_date: new Date().toISOString().split('T')[0],
+    payment_proof: '',
+    notes: '',
+    
+    // NEW: Enhanced customer classification
+    customer_type: 'indian', // 'indian', 'nri', 'foreigner'
+    event_location: 'india', // 'india', 'outside_india'
+    payment_currency: 'INR', // 'INR', 'USD', 'EUR', 'GBP'
+    
+    // NEW: TCS fields with enhanced support
+    tcs_applicable: false,
+    tcs_rate: 5, // Default to 5%
+    tcs_amount: 0,
+    tcs_rate_manual: false, // Track if rate was manually selected
+    
+    // GST and Legal details
+    gstin: lead.gstin || '', // ADD: Get from lead if available
+    legal_name: lead.legal_name || lead.name || '', // CHANGE: Prioritize legal_name
+    category_of_sale: lead.business_type === 'B2B' ? 'Corporate' : 'Retail', // CHANGE: Map to Corporate/Retail
+    type_of_sale: 'Tour', // Tour or Service Fee
+    registered_address: lead.registered_address || '', // ADD: Get from lead if available
+    indian_state: 'Haryana',
+    is_outside_india: false,
+    gst_certificate: null,
+    pan_card: null,
+    
+    // ENHANCED: Multi-row invoice items with additional info support
+    invoice_items: [{
+      description: lead.lead_for_event || 'Travel Package',
+      additional_info: '', // NEW: For bracket info like (Lorem Ipsum)
+      quantity: lead.number_of_people || 1,
+      rate: lead.last_quoted_price || 0
+    }],
+    
+    // GST calculations
+    gst_rate: 5, // Default to 5% for Tour packages
+    service_fee_amount: 0, // Only for Service Fee type
+    
+    // ADD: Missing fields for receivables and post-service payments
+    from_receivable: false,
+    payment_post_service: false,
+    receivable_id: null,
+    receivable_amount: 0
+  };
+  
+  // Calculate initial TCS applicability and rate
+  const baseAmount = lead.last_quoted_price * (lead.number_of_people || 1) || 0;
+  if (baseAmount > 0) {
+    const calculation = calculateGSTAndTCS(baseAmount, initialPaymentData);
+    initialPaymentData.tcs_applicable = calculation.tcs.applicable;
+    initialPaymentData.tcs_rate = calculation.tcs.rate;
+    initialPaymentData.tcs_amount = calculation.tcs.amount;
+  }
+  
+  setPaymentData(initialPaymentData);
+  setShowPaymentForm(true);
 };
 
 const handleMarkPaymentFromReceivable = async (receivable) => {
@@ -8100,24 +8142,28 @@ React.createElement('span', null, 'GST:'),
 React.createElement('span', null, 'Not Applicable')
 ),
 
-// TCS Section
+// TCS Section with dynamic rate
 calculation.tcs.applicable ? 
 React.createElement('div', { className: 'flex justify-between text-yellow-700' },
-React.createElement('span', null, `TCS (${calculation.tcs.rate}%):`),
-React.createElement('span', { className: 'font-medium' }, 
-(paymentData.payment_currency || 'INR'), ' ', calculation.tcs.amount.toFixed(2)
-)
+  React.createElement('span', null, `TCS (${paymentData.tcs_rate || calculation.tcs.rate}%):`),
+  React.createElement('span', { className: 'font-medium' }, 
+    paymentData.payment_currency || 'INR', ' ', 
+    ((baseAmount * (paymentData.tcs_rate || calculation.tcs.rate)) / 100).toFixed(2)
+  )
 ) : React.createElement('div', { className: 'flex justify-between text-gray-500' },
-React.createElement('span', null, 'TCS:'),
-React.createElement('span', null, 'Not Applicable')
+  React.createElement('span', null, 'TCS:'),
+  React.createElement('span', null, 'Not Applicable')
 ),
 
-// Final Amount
-React.createElement('div', { className: 'flex justify-between border-t pt-2 font-semibold text-base text-green-700' },
-React.createElement('span', null, 'Final Amount:'),
-React.createElement('span', null, 
-(paymentData.payment_currency || 'INR'), ' ', calculation.finalAmount.toFixed(2)
-)
+// Final Amount with custom TCS rate
+React.createElement('div', { className: 'flex justify-between text-lg font-bold border-t pt-2 mt-2' },
+  React.createElement('span', null, 'Final Amount:'),
+  React.createElement('span', null, 
+    paymentData.payment_currency || 'INR', ' ', 
+    (baseAmount + calculation.gst.total + 
+     (calculation.tcs.applicable ? (baseAmount * (paymentData.tcs_rate || calculation.tcs.rate)) / 100 : 0)
+    ).toFixed(2)
+  )
 ),
 
 // Payment Information
@@ -8213,9 +8259,9 @@ igst: invoice.gst_calculation.igst || 0,
 total: invoice.gst_calculation.total || invoice.total_tax || 0
 },
 tcs: {
-applicable: invoice.tcs_calculation.applicable || false,
-rate: invoice.tcs_calculation.rate || 5,
-amount: invoice.tcs_calculation.amount || 0
+    applicable: invoice.tcs_calculation.applicable || false,
+    rate: invoice.tcs_rate || invoice.tcs_calculation.rate || 5, // Use stored rate
+    amount: invoice.tcs_calculation.amount || 0
 },
 finalAmount: invoice.final_amount || (baseAmount + (invoice.total_tax || 0))
 };
@@ -8617,23 +8663,23 @@ React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(calcu
 }
 }
 
-// TCS Row - NEW: Dynamic TCS calculation
+// TCS Row - Use stored rate from invoice
 if (calculation.tcs.applicable && calculation.tcs.amount > 0) {
-taxRows.push(
-React.createElement('tr', { key: 'tcs' },
-React.createElement('td', null, 'TCS'),
-React.createElement('td', { style: { textAlign: 'center' }}, calculation.tcs.rate.toFixed(2) + '%'),
-React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(calculation.tcs.amount))
-)
-);
+    taxRows.push(
+        React.createElement('tr', { key: 'tcs' },
+            React.createElement('td', null, `TCS (${calculation.tcs.rate}%)`), // Show actual rate
+            React.createElement('td', { style: { textAlign: 'center' }}, calculation.tcs.rate.toFixed(2) + '%'),
+            React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(calculation.tcs.amount))
+        )
+    );
 } else {
-taxRows.push(
-React.createElement('tr', { key: 'tcs' },
-React.createElement('td', null, 'TCS'),
-React.createElement('td', { style: { textAlign: 'center' }}, '0.00%'),
-React.createElement('td', { style: { textAlign: 'right' }}, '-')
-)
-);
+    taxRows.push(
+        React.createElement('tr', { key: 'tcs' },
+            React.createElement('td', null, 'TCS'),
+            React.createElement('td', { style: { textAlign: 'center' }}, '0.00%'),
+            React.createElement('td', { style: { textAlign: 'right' }}, '-')
+        )
+    );
 }
 
 // Grand Total Row
