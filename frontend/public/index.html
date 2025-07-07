@@ -4352,10 +4352,43 @@ setCurrentInventoryDetail(null);
 
 const openAddInventoryForm = () => {
   console.log('openAddInventoryForm called');
-  setEditingInventory({});  // Set empty object for new inventory
-  setFormData({});          // Clear form data
-  setShowInventoryForm(true); // Show the form
-  console.log('Inventory form should now be visible');
+  
+  // Set up for new inventory item
+  setEditingInventory({ 
+    id: null, // Indicates this is a new item
+    event_name: '',
+    event_date: '',
+    event_type: '',
+    sports: '',
+    venue: '',
+    // Add other default fields as needed
+  });
+  
+  // Initialize form data with empty values
+  setFormData({
+    event_name: '',
+    event_date: '',
+    event_type: '',
+    sports: '',
+    venue: '',
+    day_of_match: '',
+    category_of_ticket: '',
+    price_per_ticket: '',
+    number_of_tickets: '',
+    total_value_of_tickets: '',
+    currency: 'INR',
+    base_amount_inr: '',
+    gst_18_percent: '',
+    selling_price_per_ticket: '',
+    payment_due_date: '',
+    supplier_name: '',
+    ticket_source: '',
+    status: 'available',
+    notes: ''
+  });
+  
+  setShowInventoryForm(true);
+  console.log('Inventory form should now be visible with empty form data');
 };
 
 const handleCopyInventory = async (item) => {
@@ -4706,6 +4739,14 @@ const handleInputChange = (field, value, itemIndex = null, itemField = null) => 
     }));
   }
 };
+
+const handleFormDataChange = (field, value) => {
+  console.log('Form field changed:', field, '=', value);
+  setFormData(prev => ({
+    ...prev,
+    [field]: value
+  }));
+}; 
 
 const handleUserInputChange = (field, value) => {
 setUserFormData(prev => ({ ...prev, [field]: value }));
