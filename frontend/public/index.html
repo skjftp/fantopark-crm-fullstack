@@ -3370,46 +3370,78 @@ console.log('Raw receivables data:', receivablesData);
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 
-// Process active sales (approved orders with event date in future)
+// FIXED: Process active sales (orders in progress with event date in future)
 const activeSalesData = ordersData
 .filter(order => {
-if (order.status !== 'approved') return false;
-const eventDate = new Date(order.event_date);
-eventDate.setHours(0, 0, 0, 0);
-return eventDate >= today;
+  // Include orders that are approved OR in service/delivery process
+  const validStatuses = ['approved', 'service_assigned', 'in_progress', 'delivery_scheduled', 'pending_delivery'];
+  
+  if (!validStatuses.includes(order.status)) {
+    // Skip completed, cancelled, rejected orders
+    console.log(`Skipping order ${order.id} with status: ${order.status}`);
+    return false;
+  }
+  
+  // Only include if event date is in future
+  if (!order.event_date) {
+    console.log(`Skipping order ${order.id} - no event date`);
+    return false;
+  }
+  
+  const eventDate = new Date(order.event_date);
+  eventDate.setHours(0, 0, 0, 0);
+  const isEventInFuture = eventDate >= today;
+  
+  console.log(`Order ${order.id}: status=${order.status}, eventDate=${order.event_date}, inFuture=${isEventInFuture}`);
+  return isEventInFuture;
 })
 .map(order => ({
-id: order.id,
-date: order.created_at || order.created_date || new Date().toISOString(),
-invoice_number: order.invoice_number || 'INV-' + order.id,
-clientName: order.lead_name || order.client_name || 'N/A',
-assignedTo: order.assigned_to || order.sales_person || order.created_by || 'Unassigned',
-amount: parseFloat(order.final_amount || order.total_amount || 0),
-status: 'active',
-event_date: order.event_date,
-payment_status: order.payment_status || 'pending',
-order_type: order.order_type
+  id: order.id,
+  date: order.created_at || order.created_date || new Date().toISOString(),
+  invoice_number: order.invoice_number || 'INV-' + order.id,
+  clientName: order.lead_name || order.client_name || 'N/A',
+  assignedTo: order.assigned_to || order.sales_person || order.created_by || 'Unassigned',
+  amount: parseFloat(order.final_amount || order.total_amount || 0),
+  status: 'active',
+  event_date: order.event_date,
+  payment_status: order.payment_status || 'pending',
+  order_type: order.order_type,
+  order_status: order.status // Keep original status for reference
 }));
 
-// Process completed sales
+// FIXED: Process completed sales - orders that are completed OR have past event dates
 const salesData = ordersData
 .filter(order => {
-if (order.status === 'completed') return true;
-if (order.status !== 'approved') return false;
-const eventDate = new Date(order.event_date);
-eventDate.setHours(0, 0, 0, 0);
-return eventDate < today;
+  // Include if explicitly completed or delivered
+  if (order.status === 'completed' || order.status === 'delivered') {
+    console.log(`Including completed order ${order.id} with status: ${order.status}`);
+    return true;
+  }
+  
+  // Include if event date has passed (regardless of status, except rejected/cancelled)
+  if (order.status !== 'rejected' && order.status !== 'cancelled' && order.event_date) {
+    const eventDate = new Date(order.event_date);
+    eventDate.setHours(0, 0, 0, 0);
+    const isEventPast = eventDate < today;
+    
+    if (isEventPast) {
+      console.log(`Including past event order ${order.id}: eventDate=${order.event_date}, status=${order.status}`);
+      return true;
+    }
+  }
+  
+  return false;
 })
 .map(order => ({
-id: order.id,
-date: order.created_at || order.created_date || new Date().toISOString(),
-invoice_number: order.invoice_number || 'INV-' + order.id,
-clientName: order.lead_name || order.client_name || 'N/A',
-assignedTo: order.assigned_to || order.sales_person || order.created_by || 'Unassigned',
-amount: parseFloat(order.final_amount || order.total_amount || 0),
-status: order.payment_status === 'paid' ? 'paid' : 'completed',
-event_date: order.event_date,
-payment_status: order.payment_status || 'pending'
+  id: order.id,
+  date: order.created_at || order.created_date || new Date().toISOString(),
+  invoice_number: order.invoice_number || 'INV-' + order.id,
+  clientName: order.lead_name || order.client_name || 'N/A',
+  assignedTo: order.assigned_to || order.sales_person || order.created_by || 'Unassigned',
+  amount: parseFloat(order.final_amount || order.total_amount || 0),
+  status: order.payment_status === 'paid' ? 'paid' : 'completed',
+  event_date: order.event_date,
+  payment_status: order.payment_status || 'pending'
 }));
 
 // Process receivables - ensure all fields are properly mapped
@@ -3444,6 +3476,13 @@ sum + (rec.balance_amount || rec.amount || 0), 0
 const totalPayables = payablesData.reduce((sum, pay) => 
 sum + parseFloat(pay.amount || 0), 0
 );
+
+// Log the results
+console.log('=== FINANCIAL DATA SUMMARY ===');
+console.log(`Active Sales: ${activeSalesData.length} orders, Total: ₹${totalActiveSales.toLocaleString()}`);
+console.log(`Completed Sales: ${salesData.length} orders, Total: ₹${totalSales.toLocaleString()}`);
+console.log(`Receivables: ${unpaidReceivables.length} entries, Total: ₹${totalReceivables.toLocaleString()}`);
+console.log(`Payables: ${payablesData.length} entries, Total: ₹${totalPayables.toLocaleString()}`);
 
 // Update state
 setFinancialData({
