@@ -1760,6 +1760,12 @@ if (isLoggedIn) {
 fetchData();
 }
 
+React.useEffect(() => {
+  if (activeTab === 'sports-calendar' && sportsEvents.length === 0) {
+    fetchESPNEvents();
+  }
+}, [activeTab]); 
+ 
 // Fetch My Actions data
 console.log('useEffect triggered - activeTab:', activeTab, 'isLoggedIn:', isLoggedIn);
 if (activeTab === 'myactions') {
@@ -14352,6 +14358,192 @@ const renderStadiumsContent = () => {
     );
 };
 
+// 1. ESPN API ENDPOINTS AND FETCH FUNCTIONS
+const ESPN_API_BASE = 'https://site.api.espn.com/apis/site/v2/sports';
+
+// ESPN API fetch function with error handling
+const fetchESPNData = async (endpoint) => {
+  try {
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`ESPN API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('ESPN API fetch error:', error);
+    return null;
+  }
+};
+
+// Fetch events from multiple sports leagues
+const fetchESPNEvents = async () => {
+  try {
+    setLoading(true);
+    
+    // Define sports endpoints for different leagues
+    const sportsEndpoints = [
+      {
+        name: 'Cricket',
+        endpoint: `${ESPN_API_BASE}/cricket/icc/scoreboard`,
+        category: 'cricket'
+      },
+      {
+        name: 'Football (NFL)',
+        endpoint: `${ESPN_API_BASE}/football/nfl/scoreboard`,
+        category: 'football'
+      },
+      {
+        name: 'Soccer (Premier League)',
+        endpoint: `${ESPN_API_BASE}/soccer/eng.1/scoreboard`,
+        category: 'football'
+      },
+      {
+        name: 'Basketball (NBA)',
+        endpoint: `${ESPN_API_BASE}/basketball/nba/scoreboard`,
+        category: 'basketball'
+      },
+      {
+        name: 'Baseball (MLB)',
+        endpoint: `${ESPN_API_BASE}/baseball/mlb/scoreboard`,
+        category: 'baseball'
+      },
+      {
+        name: 'College Football',
+        endpoint: `${ESPN_API_BASE}/football/college-football/scoreboard`,
+        category: 'football'
+      }
+    ];
+
+    const allEvents = [];
+    
+    // Fetch events from each sport
+    for (const sport of sportsEndpoints) {
+      const data = await fetchESPNData(sport.endpoint);
+      
+      if (data && data.events) {
+        const processedEvents = data.events.map(event => ({
+          id: `espn_${event.id}`,
+          title: `${event.name || event.shortName}`,
+          date: new Date(event.date).toISOString().split('T')[0],
+          time: new Date(event.date).toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false 
+          }),
+          venue: event.competitions?.[0]?.venue?.fullName || 'TBD',
+          category: sport.category,
+          description: `${sport.name} - ${event.status?.type?.description || 'Scheduled'}`,
+          ticket_available: true,
+          fantopark_package: generateFanToParkPackage(event, sport.name),
+          status: getEventStatus(event.status?.type?.name),
+          espn_data: {
+            league: sport.name,
+            competitors: event.competitions?.[0]?.competitors?.map(comp => ({
+              name: comp.team?.displayName,
+              logo: comp.team?.logo,
+              record: comp.records?.[0]?.summary
+            })) || [],
+            broadcasts: event.competitions?.[0]?.broadcasts || [],
+            odds: event.competitions?.[0]?.odds || []
+          }
+        }));
+        
+        allEvents.push(...processedEvents);
+      }
+    }
+    
+    // Sort events by date
+    allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    // Update state with fetched events
+    setSportsEvents(allEvents);
+    setLoading(false);
+    
+    return allEvents;
+    
+  } catch (error) {
+    console.error('Error fetching ESPN events:', error);
+    setLoading(false);
+    
+    // Fallback to some basic events if ESPN API fails
+    setSportsEvents([
+      {
+        id: 'fallback_001',
+        title: 'ESPN API Unavailable - Sample Event',
+        date: new Date().toISOString().split('T')[0],
+        time: '20:00',
+        venue: 'Various Stadiums',
+        category: 'multi-sport',
+        description: 'ESPN API is currently unavailable. This is a fallback event.',
+        ticket_available: false,
+        fantopark_package: 'Please check back later for live events',
+        status: 'upcoming'
+      }
+    ]);
+    
+    return [];
+  }
+};
+
+// Generate FanToPark package descriptions based on event type
+const generateFanToParkPackage = (event, sportName) => {
+  const venue = event.competitions?.[0]?.venue?.fullName || 'Stadium';
+  const competitors = event.competitions?.[0]?.competitors;
+  
+  let packagePrice = '₹15,000';
+  let packageType = 'Standard Package';
+  
+  // Customize package based on sport and event importance
+  if (sportName.includes('Cricket') || sportName.includes('ICC')) {
+    packagePrice = '₹25,000';
+    packageType = 'Cricket Premium Package';
+  } else if (sportName.includes('Premier League')) {
+    packagePrice = '₹35,000';
+    packageType = 'Premier League VIP Package';
+  } else if (sportName.includes('NFL')) {
+    packagePrice = '₹45,000';
+    packageType = 'NFL Elite Package';
+  } else if (sportName.includes('NBA')) {
+    packagePrice = '₹30,000';
+    packageType = 'NBA Courtside Package';
+  }
+  
+  const teamNames = competitors?.map(c => c.team?.displayName).join(' vs ') || 'Teams TBD';
+  
+  return `${packageType}: ${packagePrice} - ${teamNames} at ${venue}, Premium seating, refreshments, and match commentary`;
+};
+
+// Convert ESPN event status to our status format
+const getEventStatus = (espnStatus) => {
+  if (!espnStatus) return 'upcoming';
+  
+  switch (espnStatus.toLowerCase()) {
+    case 'scheduled':
+    case 'pre':
+      return 'upcoming';
+    case 'in':
+    case 'live':
+      return 'live';
+    case 'final':
+    case 'completed':
+      return 'completed';
+    case 'postponed':
+    case 'canceled':
+      return 'cancelled';
+    default:
+      return 'upcoming';
+  }
+}; 
+
 const renderSportsCalendarContent = () => {
   const filteredEvents = sportsEvents.filter(event => {
     const eventDate = new Date(event.date);
@@ -14368,16 +14560,26 @@ const renderSportsCalendarContent = () => {
     // Header
     React.createElement('div', { className: 'flex justify-between items-center' },
       React.createElement('div', null,
-        React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, '📅 Sports Events Calendar'),
-        React.createElement('p', { className: 'text-gray-600 dark:text-gray-400 mt-1' }, 'Manage and track upcoming sports events with FanToPark packages')
+        React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, '📅 ESPN Sports Calendar'),
+        React.createElement('p', { className: 'text-gray-600 dark:text-gray-400 mt-1' }, 'Live sports events from ESPN with FanToPark packages'),
+        React.createElement('div', { className: 'flex items-center mt-2 text-sm' },
+          React.createElement('span', { 
+            className: `px-2 py-1 rounded-full text-xs ${sportsEvents.length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`
+          }, sportsEvents.length > 0 ? `${sportsEvents.length} Live Events` : 'Loading Events...'),
+          React.createElement('button', {
+            onClick: fetchESPNEvents,
+            disabled: loading,
+            className: 'ml-3 text-blue-600 hover:text-blue-800 text-sm underline disabled:opacity-50'
+          }, loading ? 'Refreshing...' : '🔄 Refresh Events')
+        )
       ),
       React.createElement('div', { className: 'flex space-x-2' },
         React.createElement('button', {
           onClick: () => setShowEventForm(true),
-          className: 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
+          className: 'bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
         }, 
           React.createElement('span', null, '➕'),
-          'Add Event'
+          'Add Custom Event'
         )
       )
     ),
@@ -14421,7 +14623,8 @@ const renderSportsCalendarContent = () => {
     // Events Display
     calendarView === 'month' ? renderMonthView(filteredEvents) : renderListView(filteredEvents)
   );
-}; 
+};
+
 
 // 5. CALENDAR VIEW FUNCTIONS
 const renderMonthView = (events) => {
@@ -14500,13 +14703,13 @@ const renderListView = (events) => {
             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event'),
             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Date & Time'),
             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Venue'),
-            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Category'),
+            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'League'),
             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
           )
         ),
         React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
-          sortedEvents.map(event =>
+          sortedEvents.length > 0 ? sortedEvents.map(event =>
             React.createElement('tr', {
               key: event.id,
               className: 'hover:bg-gray-50 cursor-pointer',
@@ -14518,26 +14721,46 @@ const renderListView = (events) => {
               React.createElement('td', { className: 'px-6 py-4' },
                 React.createElement('div', null,
                   React.createElement('div', { className: 'font-medium text-gray-900' }, event.title),
-                  React.createElement('div', { className: 'text-sm text-gray-500' }, event.description)
+                  React.createElement('div', { className: 'text-sm text-gray-500' }, event.description),
+                  event.espn_data?.competitors && React.createElement('div', { className: 'flex items-center mt-1 space-x-2' },
+                    ...event.espn_data.competitors.slice(0, 2).map((comp, idx) =>
+                      React.createElement('div', { 
+                        key: idx,
+                        className: 'flex items-center space-x-1 text-xs text-gray-600'
+                      },
+                        comp.logo && React.createElement('img', { 
+                          src: comp.logo, 
+                          alt: comp.name,
+                          className: 'w-4 h-4'
+                        }),
+                        React.createElement('span', null, comp.name)
+                      )
+                    )
+                  )
                 )
               ),
               React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' },
                 React.createElement('div', null, new Date(event.date).toLocaleDateString()),
                 React.createElement('div', { className: 'text-gray-500' }, event.time)
               ),
-              React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, event.venue),
+              React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, 
+                event.venue.length > 30 ? event.venue.substring(0, 30) + '...' : event.venue
+              ),
               React.createElement('td', { className: 'px-6 py-4' },
                 React.createElement('span', {
                   className: `px-2 py-1 text-xs rounded-full ${
                     event.category === 'cricket' ? 'bg-green-100 text-green-800' :
                     event.category === 'football' ? 'bg-blue-100 text-blue-800' :
+                    event.category === 'basketball' ? 'bg-orange-100 text-orange-800' :
+                    event.category === 'baseball' ? 'bg-red-100 text-red-800' :
                     'bg-purple-100 text-purple-800'
                   }`
-                }, event.category.toUpperCase())
+                }, event.espn_data?.league || event.category.toUpperCase())
               ),
               React.createElement('td', { className: 'px-6 py-4' },
                 React.createElement('span', {
                   className: `px-2 py-1 text-xs rounded-full ${
+                    event.status === 'live' ? 'bg-red-100 text-red-800 animate-pulse' :
                     event.status === 'upcoming' ? 'bg-yellow-100 text-yellow-800' :
                     event.status === 'completed' ? 'bg-gray-100 text-gray-800' :
                     'bg-red-100 text-red-800'
@@ -14555,6 +14778,13 @@ const renderListView = (events) => {
                 }, 'View Details')
               )
             )
+          ) : React.createElement('tr', null,
+            React.createElement('td', { 
+              colSpan: 6, 
+              className: 'px-6 py-8 text-center text-gray-500'
+            }, 
+              loading ? 'Loading ESPN events...' : 'No events found. Click "Refresh Events" to try again.'
+            )
           )
         )
       )
@@ -14571,59 +14801,94 @@ const renderEventDetailModal = () => {
     onClick: () => setShowEventDetail(false)
   },
     React.createElement('div', {
-      className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto',
+      className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto',
       onClick: (e) => e.stopPropagation()
     },
       React.createElement('div', { className: 'p-6' },
         React.createElement('div', { className: 'flex justify-between items-start mb-6' },
-          React.createElement('h2', { className: 'text-2xl font-bold text-gray-900 dark:text-white' }, currentEvent.title),
+          React.createElement('div', null,
+            React.createElement('h2', { className: 'text-2xl font-bold text-gray-900 dark:text-white' }, currentEvent.title),
+            currentEvent.espn_data?.league && React.createElement('p', { 
+              className: 'text-lg text-blue-600 mt-1' 
+            }, currentEvent.espn_data.league)
+          ),
           React.createElement('button', {
             onClick: () => setShowEventDetail(false),
             className: 'text-gray-500 hover:text-gray-700'
           }, '✕')
         ),
         
-        React.createElement('div', { className: 'space-y-4' },
-          React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
-            React.createElement('div', null,
-              React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Date'),
-              React.createElement('p', { className: 'text-gray-900' }, new Date(currentEvent.date).toLocaleDateString())
+        React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-2 gap-6' },
+          // Event Details
+          React.createElement('div', { className: 'space-y-4' },
+            React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
+              React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Date'),
+                React.createElement('p', { className: 'text-gray-900' }, new Date(currentEvent.date).toLocaleDateString())
+              ),
+              React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Time'),
+                React.createElement('p', { className: 'text-gray-900' }, currentEvent.time)
+              )
             ),
+            
             React.createElement('div', null,
-              React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Time'),
-              React.createElement('p', { className: 'text-gray-900' }, currentEvent.time)
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Venue'),
+              React.createElement('p', { className: 'text-gray-900' }, currentEvent.venue)
+            ),
+            
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Description'),
+              React.createElement('p', { className: 'text-gray-900' }, currentEvent.description)
+            ),
+            
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Status'),
+              React.createElement('span', {
+                className: `inline-block px-2 py-1 text-xs rounded-full ${
+                  currentEvent.status === 'live' ? 'bg-red-100 text-red-800 animate-pulse' :
+                  currentEvent.status === 'upcoming' ? 'bg-yellow-100 text-yellow-800' :
+                  currentEvent.status === 'completed' ? 'bg-gray-100 text-gray-800' :
+                  'bg-red-100 text-red-800'
+                }`
+              }, currentEvent.status.toUpperCase())
             )
           ),
           
-          React.createElement('div', null,
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Venue'),
-            React.createElement('p', { className: 'text-gray-900' }, currentEvent.venue)
-          ),
-          
-          React.createElement('div', null,
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Description'),
-            React.createElement('p', { className: 'text-gray-900' }, currentEvent.description)
-          ),
-          
-          React.createElement('div', null,
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Category'),
-            React.createElement('span', {
-              className: `inline-block px-2 py-1 text-xs rounded-full ${
-                currentEvent.category === 'cricket' ? 'bg-green-100 text-green-800' :
-                currentEvent.category === 'football' ? 'bg-blue-100 text-blue-800' :
-                'bg-purple-100 text-purple-800'
-              }`
-            }, currentEvent.category.toUpperCase())
-          ),
-          
-          React.createElement('div', { className: 'bg-blue-50 p-4 rounded-lg' },
-            React.createElement('h3', { className: 'font-medium text-blue-900 mb-2' }, '🎫 FanToPark Package'),
-            React.createElement('p', { className: 'text-blue-800' }, currentEvent.fantopark_package),
-            currentEvent.ticket_available && 
-            React.createElement('button', {
-              className: 'mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm'
-            }, 'Create Lead from This Event')
+          // ESPN Data (Teams, etc.)
+          currentEvent.espn_data && React.createElement('div', { className: 'space-y-4' },
+            currentEvent.espn_data.competitors && currentEvent.espn_data.competitors.length > 0 && 
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Teams'),
+              React.createElement('div', { className: 'space-y-2' },
+                ...currentEvent.espn_data.competitors.map((team, idx) =>
+                  React.createElement('div', { 
+                    key: idx,
+                    className: 'flex items-center space-x-3 p-2 bg-gray-50 rounded'
+                  },
+                    team.logo && React.createElement('img', { 
+                      src: team.logo, 
+                      alt: team.name,
+                      className: 'w-8 h-8'
+                    }),
+                    React.createElement('div', null,
+                      React.createElement('div', { className: 'font-medium' }, team.name),
+                      team.record && React.createElement('div', { className: 'text-sm text-gray-500' }, team.record)
+                    )
+                  )
+                )
+              )
+            )
           )
+        ),
+        
+        React.createElement('div', { className: 'bg-blue-50 p-4 rounded-lg mt-6' },
+          React.createElement('h3', { className: 'font-medium text-blue-900 mb-2' }, '🎫 FanToPark Package'),
+          React.createElement('p', { className: 'text-blue-800' }, currentEvent.fantopark_package),
+          currentEvent.ticket_available && 
+          React.createElement('button', {
+            className: 'mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm'
+          }, 'Create Lead from This Event')
         ),
         
         React.createElement('div', { className: 'flex justify-end space-x-3 mt-6' },
@@ -14631,7 +14896,7 @@ const renderEventDetailModal = () => {
             onClick: () => setShowEventDetail(false),
             className: 'px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50'
           }, 'Close'),
-          React.createElement('button', {
+          !currentEvent.id.startsWith('espn_') && React.createElement('button', {
             onClick: () => {
               setEventFormData({
                 ...currentEvent,
