@@ -14,39 +14,7 @@
  <!-- API Configuration--->
 <script>
 // Configure API endpoint
-const API_URL = "https://fantopark-backend-150582227311.us-central1.run.app/api";
-
-// Global function to handle proceed from preview
-window.handleProceedFromPreview = () => {
-  if (window.currentUploadFile) {
-    console.log("🚀 Starting upload with file:", window.currentUploadFile.name);
-    
-    // Close any open modals by clicking cancel/close buttons
-    const cancelBtn = Array.from(document.querySelectorAll("button")).find(b => b.textContent === "Cancel");
-    if (cancelBtn) cancelBtn.click();
-    
-    // Trigger the upload with the stored file
-    const formData = new FormData();
-    formData.append("file", window.currentUploadFile);
-    fetch(API_URL + "/upload/leads/csv", {
-      method: "POST",
-      headers: { Authorization: authToken ? "Bearer " + authToken : undefined },
-      body: formData
-    }).then(response => response.json()).then(result => {
-      console.log("✅ Upload successful:", result);
-      alert("✅ Upload successful: " + result.message);
-      window.currentUploadFile = null;
-      location.reload();
-    }).catch(error => {
-      console.error("❌ Upload failed:", error);
-      alert("❌ Upload failed: " + error.message);
-    });
-  } else {
-    alert("No file selected for upload");
-  }
-};
-console.log("🔗 API_URL set to:", API_URL);
-console.log("🔗 API_URL:", API_URL);
+const API_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname.includes("8000") || window.location.hostname.includes("cloudworkstations.dev")) ? "http://localhost:8080/api" : "https://fantopark-backend-dev-150582227311.us-central1.run.app/api";
 // Get stored auth token
 let authToken = localStorage.getItem("crm_auth_token");
 
@@ -1165,7 +1133,6 @@ const [followUpDate, setFollowUpDate] = useState('');
 const [followUpNotes, setFollowUpNotes] = useState('');
 const [uploadPreview, setUploadPreview] = useState(null);
 const [showPreview, setShowPreview] = useState(false);
-  const [proceedAfterPreview, setProceedAfterPreview] = useState(false);
 const [previewLoading, setPreviewLoading] = useState(false);
 const [clientDetectionResults, setClientDetectionResults] = useState([]);
 const [showClientDetectionResults, setShowClientDetectionResults] = useState(false);
@@ -3370,46 +3337,78 @@ console.log('Raw receivables data:', receivablesData);
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 
-// Process active sales (approved orders with event date in future)
+// FIXED: Process active sales (orders in progress with event date in future)
 const activeSalesData = ordersData
 .filter(order => {
-if (order.status !== 'approved') return false;
-const eventDate = new Date(order.event_date);
-eventDate.setHours(0, 0, 0, 0);
-return eventDate >= today;
+  // Include orders that are approved OR in service/delivery process
+  const validStatuses = ['approved', 'service_assigned', 'in_progress', 'delivery_scheduled', 'pending_delivery'];
+  
+  if (!validStatuses.includes(order.status)) {
+    // Skip completed, cancelled, rejected orders
+    console.log(`Skipping order ${order.id} with status: ${order.status}`);
+    return false;
+  }
+  
+  // Only include if event date is in future
+  if (!order.event_date) {
+    console.log(`Skipping order ${order.id} - no event date`);
+    return false;
+  }
+  
+  const eventDate = new Date(order.event_date);
+  eventDate.setHours(0, 0, 0, 0);
+  const isEventInFuture = eventDate >= today;
+  
+  console.log(`Order ${order.id}: status=${order.status}, eventDate=${order.event_date}, inFuture=${isEventInFuture}`);
+  return isEventInFuture;
 })
 .map(order => ({
-id: order.id,
-date: order.created_at || order.created_date || new Date().toISOString(),
-invoice_number: order.invoice_number || 'INV-' + order.id,
-clientName: order.lead_name || order.client_name || 'N/A',
-assignedTo: order.assigned_to || order.sales_person || order.created_by || 'Unassigned',
-amount: parseFloat(order.final_amount || order.total_amount || 0),
-status: 'active',
-event_date: order.event_date,
-payment_status: order.payment_status || 'pending',
-order_type: order.order_type
+  id: order.id,
+  date: order.created_at || order.created_date || new Date().toISOString(),
+  invoice_number: order.invoice_number || 'INV-' + order.id,
+  clientName: order.lead_name || order.client_name || 'N/A',
+  assignedTo: order.assigned_to || order.sales_person || order.created_by || 'Unassigned',
+  amount: parseFloat(order.final_amount || order.total_amount || 0),
+  status: 'active',
+  event_date: order.event_date,
+  payment_status: order.payment_status || 'pending',
+  order_type: order.order_type,
+  order_status: order.status // Keep original status for reference
 }));
 
-// Process completed sales
+// FIXED: Process completed sales - orders that are completed OR have past event dates
 const salesData = ordersData
 .filter(order => {
-if (order.status === 'completed') return true;
-if (order.status !== 'approved') return false;
-const eventDate = new Date(order.event_date);
-eventDate.setHours(0, 0, 0, 0);
-return eventDate < today;
+  // Include if explicitly completed or delivered
+  if (order.status === 'completed' || order.status === 'delivered') {
+    console.log(`Including completed order ${order.id} with status: ${order.status}`);
+    return true;
+  }
+  
+  // Include if event date has passed (regardless of status, except rejected/cancelled)
+  if (order.status !== 'rejected' && order.status !== 'cancelled' && order.event_date) {
+    const eventDate = new Date(order.event_date);
+    eventDate.setHours(0, 0, 0, 0);
+    const isEventPast = eventDate < today;
+    
+    if (isEventPast) {
+      console.log(`Including past event order ${order.id}: eventDate=${order.event_date}, status=${order.status}`);
+      return true;
+    }
+  }
+  
+  return false;
 })
 .map(order => ({
-id: order.id,
-date: order.created_at || order.created_date || new Date().toISOString(),
-invoice_number: order.invoice_number || 'INV-' + order.id,
-clientName: order.lead_name || order.client_name || 'N/A',
-assignedTo: order.assigned_to || order.sales_person || order.created_by || 'Unassigned',
-amount: parseFloat(order.final_amount || order.total_amount || 0),
-status: order.payment_status === 'paid' ? 'paid' : 'completed',
-event_date: order.event_date,
-payment_status: order.payment_status || 'pending'
+  id: order.id,
+  date: order.created_at || order.created_date || new Date().toISOString(),
+  invoice_number: order.invoice_number || 'INV-' + order.id,
+  clientName: order.lead_name || order.client_name || 'N/A',
+  assignedTo: order.assigned_to || order.sales_person || order.created_by || 'Unassigned',
+  amount: parseFloat(order.final_amount || order.total_amount || 0),
+  status: order.payment_status === 'paid' ? 'paid' : 'completed',
+  event_date: order.event_date,
+  payment_status: order.payment_status || 'pending'
 }));
 
 // Process receivables - ensure all fields are properly mapped
@@ -3444,6 +3443,13 @@ sum + (rec.balance_amount || rec.amount || 0), 0
 const totalPayables = payablesData.reduce((sum, pay) => 
 sum + parseFloat(pay.amount || 0), 0
 );
+
+// Log the results
+console.log('=== FINANCIAL DATA SUMMARY ===');
+console.log(`Active Sales: ${activeSalesData.length} orders, Total: ₹${totalActiveSales.toLocaleString()}`);
+console.log(`Completed Sales: ${salesData.length} orders, Total: ₹${totalSales.toLocaleString()}`);
+console.log(`Receivables: ${unpaidReceivables.length} entries, Total: ₹${totalReceivables.toLocaleString()}`);
+console.log(`Payables: ${payablesData.length} entries, Total: ₹${totalPayables.toLocaleString()}`);
 
 // Update state
 setFinancialData({
@@ -9293,53 +9299,56 @@ const handlePaymentSubmit = async (e) => {
       });
 
       // FIXED: Correct API call format
-      const updateResponse = await apiCall(`/orders/${existingOrder.id}`, 'PUT', {
-        // Start with existing order data
-        ...existingOrder,
+      const updateResponse = await apiCall(`/orders/${existingOrder.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          // Start with existing order data
+          ...existingOrder,
 
-        // Payment fields (will override existing)
-        payment_amount: paymentData.advance_amount,
-        payment_method: paymentData.payment_method,
-        transaction_id: paymentData.transaction_id,
-        payment_date: paymentData.payment_date,
-        payment_proof: paymentData.payment_proof,
-        payment_status: 'paid',
+          // Payment fields (will override existing)
+          payment_amount: paymentData.advance_amount,
+          payment_method: paymentData.payment_method,
+          transaction_id: paymentData.transaction_id,
+          payment_date: paymentData.payment_date,
+          payment_proof: paymentData.payment_proof,
+          payment_status: 'paid',
 
-        // Amount fields
-        amount: paymentData.advance_amount,
-        total_amount: existingOrder.total_amount || existingOrder.final_amount,
-        final_amount: existingOrder.final_amount || existingOrder.total_amount,
+          // Amount fields
+          amount: paymentData.advance_amount,
+          total_amount: existingOrder.total_amount || existingOrder.final_amount,
+          final_amount: existingOrder.final_amount || existingOrder.total_amount,
 
-        // GST fields - IMPORTANT: These will override existing values
-        legal_name: paymentData.legal_name || existingOrder.legal_name,
-        gstin: paymentData.gstin || existingOrder.gstin,
-        registered_address: paymentData.registered_address || existingOrder.registered_address,
-        category_of_sale: paymentData.category_of_sale || existingOrder.category_of_sale,
-        type_of_sale: paymentData.type_of_sale || existingOrder.type_of_sale,
-        indian_state: paymentData.indian_state || existingOrder.indian_state,
-        is_outside_india: paymentData.is_outside_india || existingOrder.is_outside_india,
-        gst_certificate: paymentData.gst_certificate || existingOrder.gst_certificate,
-        pan_card: paymentData.pan_card || existingOrder.pan_card,
+          // GST fields - IMPORTANT: These will override existing values
+          legal_name: paymentData.legal_name || existingOrder.legal_name,
+          gstin: paymentData.gstin || existingOrder.gstin,
+          registered_address: paymentData.registered_address || existingOrder.registered_address,
+          category_of_sale: paymentData.category_of_sale || existingOrder.category_of_sale,
+          type_of_sale: paymentData.type_of_sale || existingOrder.type_of_sale,
+          indian_state: paymentData.indian_state || existingOrder.indian_state,
+          is_outside_india: paymentData.is_outside_india || existingOrder.is_outside_india,
+          gst_certificate: paymentData.gst_certificate || existingOrder.gst_certificate,
+          pan_card: paymentData.pan_card || existingOrder.pan_card,
 
-        // Invoice details
-        invoice_items: paymentData.invoice_items || existingOrder.invoice_items,
-        base_amount: baseAmount,
-        gst_calculation: calculation.gst,
-        tcs_calculation: calculation.tcs,
-        total_tax: totalTax,
-        final_amount: finalAmount,
-        gst_rate: calculation.gst.rate,
-        service_fee_amount: paymentData.service_fee_amount || existingOrder.service_fee_amount,
+          // Invoice details
+          invoice_items: paymentData.invoice_items || existingOrder.invoice_items,
+          base_amount: baseAmount,
+          gst_calculation: calculation.gst,
+          tcs_calculation: calculation.tcs,
+          total_tax: totalTax,
+          final_amount: finalAmount,
+          gst_rate: calculation.gst.rate,
+          service_fee_amount: paymentData.service_fee_amount || existingOrder.service_fee_amount,
 
-        // Clear post-service fields if this was a post-service order
-        expected_amount: null,
-        expected_payment_date: null,
-        order_type: 'standard',
+          // Clear post-service fields if this was a post-service order
+          expected_amount: null,
+          expected_payment_date: null,
+          order_type: 'standard',
 
-        // Metadata
-        notes: paymentData.notes || existingOrder.notes,
-        updated_date: new Date().toISOString(),
-        updated_by: user.name
+          // Metadata
+          notes: paymentData.notes || existingOrder.notes,
+          updated_date: new Date().toISOString(),
+          updated_by: user.name
+        })
       });
 
       console.log('Order update response:', updateResponse);
@@ -9377,7 +9386,9 @@ const handlePaymentSubmit = async (e) => {
         if (paidAmount >= receivableAmount) {
           // Full payment - delete the receivable
           try {
-            await apiCall(`/receivables/${paymentData.receivable_id}`, 'DELETE');
+            await apiCall(`/receivables/${paymentData.receivable_id}`, {
+              method: 'DELETE'
+            });
             
             // Remove from local state
             if (typeof setReceivables === 'function') {
@@ -9400,13 +9411,16 @@ const handlePaymentSubmit = async (e) => {
           if (userChoice) {
             // Update receivable with remaining amount
             try {
-              await apiCall(`/receivables/${paymentData.receivable_id}`, 'PUT', {
-                balance_amount: remainingAmount,
-                amount: remainingAmount,
-                expected_amount: remainingAmount,
-                partial_payment_received: paidAmount,
-                last_payment_date: new Date().toISOString(),
-                updated_date: new Date().toISOString()
+              await apiCall(`/receivables/${paymentData.receivable_id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                  balance_amount: remainingAmount,
+                  amount: remainingAmount,
+                  expected_amount: remainingAmount,
+                  partial_payment_received: paidAmount,
+                  last_payment_date: new Date().toISOString(),
+                  updated_date: new Date().toISOString()
+                })
               });
 
               // Update local state
@@ -9426,15 +9440,20 @@ const handlePaymentSubmit = async (e) => {
             // Close receivable and update order total
             try {
               // Delete the receivable
-              await apiCall(`/receivables/${paymentData.receivable_id}`, 'DELETE');
+              await apiCall(`/receivables/${paymentData.receivable_id}`, {
+                method: 'DELETE'
+              });
               
               // FIXED: Use existingOrder.id instead of undefined existingOrderId
-              await apiCall(`/orders/${existingOrder.id}`, 'PUT', {
-                total_amount: paidAmount,
-                original_amount: receivableAmount,
-                amount_adjusted: true,
-                adjustment_reason: 'Partial payment accepted',
-                updated_date: new Date().toISOString()
+              await apiCall(`/orders/${existingOrder.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                  total_amount: paidAmount,
+                  original_amount: receivableAmount,
+                  amount_adjusted: true,
+                  adjustment_reason: 'Partial payment accepted',
+                  updated_date: new Date().toISOString()
+                })
               });
               
               // Update local states
@@ -9533,56 +9552,18 @@ const handlePaymentSubmit = async (e) => {
 
     let orderResponse;
     try {
-      console.log('=== MAKING DIRECT API CALL (BYPASSING apiCall helper) ===');
+      console.log('=== CREATING ORDER WITH FIXED API CALL ===');
       
-      // DIRECT API CALL - bypassing your apiCall helper which seems to have issues
-      const apiUrl = '' + API_URL + '/orders';
-      const authToken = localStorage.getItem('crm_auth_token');
-      
-      console.log('API URL:', apiUrl);
-      console.log('Method: POST');
-      console.log('Auth token exists:', !!authToken);
-      console.log('Request headers:', {
-        'Authorization': 'Bearer ' + (authToken ? authToken.substring(0, 20) + '...' : 'None'),
-        'Content-Type': 'application/json'
-      });
-      
-      const response = await fetch(apiUrl, {
+      // FIXED: Use correct apiCall format
+      orderResponse = await apiCall('/orders', {
         method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + authToken,
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify(orderData)
       });
       
-      console.log('=== DIRECT API RESPONSE ===');
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-      console.log('Response status text:', response.statusText);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      // Get response text first to see what we actually received
-      const responseText = await response.text();
-      console.log('Raw response text:', responseText);
-      console.log('Response text length:', responseText.length);
-      
-      if (!response.ok) {
-        console.error('HTTP Error:', response.status, response.statusText);
-        throw new Error(`HTTP ${response.status}: ${responseText}`);
-      }
-      
-      // Try to parse JSON
-      try {
-        orderResponse = JSON.parse(responseText);
-        console.log('Parsed response:', orderResponse);
-        console.log('Response type:', typeof orderResponse);
-        console.log('Response keys:', Object.keys(orderResponse || {}));
-      } catch (parseError) {
-        console.error('JSON Parse Error:', parseError);
-        console.error('Failed to parse response text:', responseText);
-        throw new Error('Server returned invalid JSON: ' + responseText);
-      }
+      console.log('=== ORDER CREATION RESPONSE ===');
+      console.log('Response:', orderResponse);
+      console.log('Response type:', typeof orderResponse);
+      console.log('Response keys:', Object.keys(orderResponse || {}));
       
       // CRITICAL CHECK: Validate this is actually a created order, not a list
       if (Array.isArray(orderResponse)) {
@@ -9636,22 +9617,14 @@ const handlePaymentSubmit = async (e) => {
     try {
       console.log('Verifying order was actually saved...');
       
-      // Use direct API call for verification too
-      const verifyResponse = await fetch('' + API_URL + '/orders', {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer ' + localStorage.getItem('crm_auth_token'),
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      const verifyData = await verifyResponse.json();
-      const allOrders = verifyData.data || verifyData;
+      // FIXED: Use correct apiCall format for verification
+      const verifyResponse = await apiCall('/orders');
+      const allOrders = verifyResponse.data || verifyResponse;
       
       console.log('Total orders in backend after creation:', allOrders.length);
-      console.log('Previous count was: 2');
+      console.log('Previous count was: 3');
       
-      if (allOrders.length > 2) {
+      if (allOrders.length > 3) {
         console.log('✅ ORDER COUNT INCREASED - SUCCESS!');
         
         // Find our new order
@@ -9671,7 +9644,7 @@ const handlePaymentSubmit = async (e) => {
         
       } else {
         console.error('❌ ORDER COUNT DID NOT INCREASE');
-        console.error('Expected more than 2 orders, got:', allOrders.length);
+        console.error('Expected more than 3 orders, got:', allOrders.length);
         alert('⚠️ Order creation may have failed. The order count did not increase.');
       }
       
@@ -16188,7 +16161,6 @@ const CSVUploadModal = ({ isOpen, onClose, type }) => {
 
     if (selectedFile && isValidFile) {
       setFile(selectedFile);
-      window.currentUploadFile = selectedFile; // Store globally for preview flow
       setUploadResult(null); // Clear previous results
       setProceedAfterPreview(false); // Reset proceed flag
     } else {
@@ -16760,7 +16732,10 @@ const UploadPreviewModal = () => {
         }, 'Cancel'),
         React.createElement('button', {
           onClick: () => {
-            handleProceedFromPreview();
+            // FIXED: Call the function from CSVUploadModal scope properly
+            setShowPreview(false);
+            // Just close preview and let user click upload button manually
+            alert('Preview closed. Please click "Upload File" button to proceed with the upload.');
           },
           className: 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
         }, 'Continue to Upload')
@@ -17044,14 +17019,14 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
 <h4 style="margin:5px 0; font-size:14px; color:#f59e0b;">Create Test Data:</h4>
 <button onclick="(async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
 // Get today's date in YYYY-MM-DD format
 const today = new Date().toISOString().split('T')[0];
 
 // Get inventory items to pick a random event
-const invResponse = await fetch(API_URL + '/inventory', {
+const invResponse = await fetch(API_URL + '/api/inventory', {
 headers: { 'Authorization': 'Bearer ' + authToken }
 });
 let eventName = 'General Inquiry';
@@ -17114,7 +17089,7 @@ updated_date: new Date().toISOString()
 
 console.log('Creating lead:', testData);
 
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(API_URL + '/api/leads', {
 method: 'POST',
 headers: {
     'Authorization': 'Bearer ' + authToken,
@@ -17139,7 +17114,7 @@ alert('Error: ' + error.message);
 })();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🧪 Create Test Lead</button>
 <button onclick="(async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
 const testData = {
@@ -17167,7 +17142,7 @@ created_date: new Date().toISOString()
 
 console.log('Creating inventory:', testData);
 
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(API_URL + '/api/inventory', {
 method: 'POST',
 headers: {
     'Authorization': 'Bearer ' + authToken,
@@ -17240,10 +17215,10 @@ panel.style.display = 'block';
 // Delete all function
 window.testDeleteAll = async function(type) {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
-const response = await fetch(API_URL + '/' + type, {
+const response = await fetch(API_URL + '/api/' + type, {
 method: 'DELETE',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -17285,9 +17260,9 @@ notes: 'Test lead created via test mode'
 
 // Call the API directly
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
-fetch(API_URL + '/leads', {
+fetch(API_URL + '/api/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -17320,9 +17295,9 @@ location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
 };
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
-fetch(API_URL + '/inventory', {
+fetch(API_URL + '/api/inventory', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -17351,7 +17326,7 @@ return;
 }
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
 // Show loading
@@ -17362,7 +17337,7 @@ loadingDiv.innerHTML = '<h3>Fetching ' + type + '...</h3>';
 document.body.appendChild(loadingDiv);
 
 // Get all items
-const response = await fetch(API_URL + '/' + type, {
+const response = await fetch(API_URL + '/api/' + type, {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -17392,7 +17367,7 @@ let failed = 0;
 // Delete each item
 for (const item of items) {
 try {
-const deleteUrl = API_URL + '/' + type + '/' + item.id;
+const deleteUrl = API_URL + '/api/' + type + '/' + item.id;
 console.log('Deleting:', deleteUrl);
 
 const deleteResponse = await fetch(deleteUrl, {
@@ -17486,13 +17461,13 @@ console.log('Could not get user ID');
 }
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 console.log('Creating lead with data:', testData);
 console.log('Date of enquiry:', testData.date_of_enquiry);
 
 try {
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(API_URL + '/api/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -17531,10 +17506,10 @@ location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
 };
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(API_URL + '/api/inventory', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -17562,9 +17537,9 @@ alert('Error creating inventory: ' + error.message);
 // Debug function
 window.debugLeads = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(API_URL + '/api/leads', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -17610,9 +17585,9 @@ showButton.style.display = 'block';
 // Debug function to see inventory structure
 window.checkInventoryFields = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(API_URL + '/api/inventory', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -17638,7 +17613,7 @@ window.deleteAllFinancials = async function() {
 if (!confirm('Delete all financial records (payables and receivables)?')) return;
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
 console.log('Starting to delete all financials...');
@@ -17754,10 +17729,10 @@ panel.style.display = 'block';
 // Delete all function
 window.testDeleteAll = async function(type) {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
-const response = await fetch(API_URL + '/' + type, {
+const response = await fetch(API_URL + '/api/' + type, {
 method: 'DELETE',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -17799,9 +17774,9 @@ notes: 'Test lead created via test mode'
 
 // Call the API directly
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
-fetch(API_URL + '/leads', {
+fetch(API_URL + '/api/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -17834,9 +17809,9 @@ location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
 };
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
-fetch(API_URL + '/inventory', {
+fetch(API_URL + '/api/inventory', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -17865,7 +17840,7 @@ return;
 }
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
 // Show loading
@@ -17876,7 +17851,7 @@ loadingDiv.innerHTML = '<h3>Fetching ' + type + '...</h3>';
 document.body.appendChild(loadingDiv);
 
 // Get all items
-const response = await fetch(API_URL + '/' + type, {
+const response = await fetch(API_URL + '/api/' + type, {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -17906,7 +17881,7 @@ let failed = 0;
 // Delete each item
 for (const item of items) {
 try {
-const deleteUrl = API_URL + '/' + type + '/' + item.id;
+const deleteUrl = API_URL + '/api/' + type + '/' + item.id;
 console.log('Deleting:', deleteUrl);
 
 const deleteResponse = await fetch(deleteUrl, {
@@ -17969,10 +17944,10 @@ notes: 'Test lead created via test mode at ' + new Date().toLocaleString()
 };
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(API_URL + '/api/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18011,10 +17986,10 @@ location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
 };
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(API_URL + '/api/inventory', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18042,9 +18017,9 @@ alert('Error creating inventory: ' + error.message);
 // Debug function
 window.debugLeads = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(API_URL + '/api/leads', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -18090,9 +18065,9 @@ showButton.style.display = 'block';
 // Debug function to see inventory structure
 window.checkInventoryFields = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(API_URL + '/api/inventory', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -18130,12 +18105,12 @@ return today;
 // Function to manually create a lead with custom data
 window.createCustomLead = async function(leadData) {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 console.log('Creating lead with custom data:', leadData);
 
 try {
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(API_URL + '/api/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18166,11 +18141,11 @@ return null;
 // Analyze existing lead structure
 window.analyzeLeadStructure = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
 // Get existing leads
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(API_URL + '/api/leads', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -18208,7 +18183,7 @@ return null;
 // Create lead with minimal required fields
 window.createMinimalLead = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 // Start with absolute minimum fields
 const minimalData = {
@@ -18221,7 +18196,7 @@ status: 'new'
 console.log('Creating minimal lead:', minimalData);
 
 try {
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(API_URL + '/api/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18252,7 +18227,7 @@ return null;
 // Fixed create test lead based on backend requirements
 window.oldCreateTestLead = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 // First analyze existing lead to understand structure
 console.log('Analyzing existing lead structure...');
@@ -18293,7 +18268,7 @@ testData.date_of_enquiry = now.getFullYear() + '-' +
 console.log('Creating lead with data:', testData);
 
 try {
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(API_URL + '/api/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18316,7 +18291,7 @@ if (result.error && result.error.includes('date_of_enquiry')) {
 console.log('Retrying without date_of_enquiry...');
 delete testData.date_of_enquiry;
 
-const retry = await fetch(API_URL + '/leads', {
+const retry = await fetch(API_URL + '/api/leads', {
 method: 'POST',
 headers: {
     'Authorization': 'Bearer ' + authToken,
@@ -18348,12 +18323,12 @@ alert('Error creating lead: ' + error.message);
 // Create test lead following form business logic
 window.oldCreateTestLead = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
 // First, get the active events (same as form does)
 console.log('Fetching active events...');
-const eventsResponse = await fetch(API_URL + '/events?status=active', {
+const eventsResponse = await fetch(API_URL + '/api/events?status=active', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -18398,7 +18373,7 @@ const dateStr = now.getFullYear() + '-' +
    String(now.getDate()).padStart(2, '0');
 
 // Check if date_of_enquiry is needed by trying to get existing lead structure
-const leadsCheck = await fetch(API_URL + '/leads?limit=1', {
+const leadsCheck = await fetch(API_URL + '/api/leads?limit=1', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -18433,7 +18408,7 @@ testData.created_by = user.id || user.email || 'admin';
 console.log('Creating lead with business logic data:', testData);
 
 // Create the lead
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(API_URL + '/api/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18460,7 +18435,7 @@ if (result.error && result.error.includes('date_of_enquiry')) {
 delete testData.date_of_enquiry;
 console.log('Retrying without date_of_enquiry...');
 
-const retry = await fetch(API_URL + '/leads', {
+const retry = await fetch(API_URL + '/api/leads', {
 method: 'POST',
 headers: {
     'Authorization': 'Bearer ' + authToken,
@@ -18508,12 +18483,12 @@ console.log('  Option:', opt.value, '-', opt.text);
 // Create test inventory following form business logic
 window.oldCreateTestInventory = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
 // First check existing inventory to understand structure
 console.log('Checking existing inventory structure...');
-const invResponse = await fetch(API_URL + '/inventory?limit=1', {
+const invResponse = await fetch(API_URL + '/api/inventory?limit=1', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -18620,7 +18595,7 @@ console.log('Added missing field:', key, 'with default:', testData[key]);
 console.log('Creating inventory with business logic data:', testData);
 
 // Create the inventory
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(API_URL + '/api/inventory', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18659,10 +18634,10 @@ alert('Error creating inventory: ' + error.message);
 // Function to analyze inventory fields
 window.analyzeInventoryStructure = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(API_URL + '/api/inventory', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -18692,7 +18667,7 @@ re
 // Test functions with correct field names from your actual forms
 window.createTestInventory = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
 // Using exact field names from inventoryFormFields
@@ -18731,7 +18706,7 @@ created_date: new Date().toISOString()
 
 console.log('Creating inventory with correct fields:', testData);
 
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(API_URL + '/api/inventory', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18762,7 +18737,7 @@ alert('Error: ' + error.message);
 
 window.createTestLead = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
 // Using exact field names from leadFormFields
@@ -18790,7 +18765,7 @@ created_date: new Date().toISOString()
 
 console.log('Creating lead with correct fields:', testData);
 
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(API_URL + '/api/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18831,7 +18806,7 @@ window.deleteAllFinancials = async function() {
 if (!confirm('Delete all financial records (payables and receivables)?')) return;
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app';
 
 try {
 console.log('Starting to delete all financials...');

@@ -9,7 +9,6 @@ class Lead {
     this.company = data.company || '';
     this.business_type = data.business_type || 'B2C';
     
-    
     // Lead Source & Initial Contact
     this.source = data.source || '';
     this.date_of_enquiry = data.date_of_enquiry;
@@ -21,21 +20,21 @@ class Lead {
     
     // Event & Travel Details
     this.lead_for_event = data.lead_for_event || '';
-    this.number_of_people = data.number_of_people || 1;
+    this.number_of_people = this.parseNumber(data.number_of_people, 1);
     this.has_valid_passport = data.has_valid_passport || 'Not Sure';
     this.visa_available = data.visa_available || 'Not Required';
     
     // Experience & Background
     this.attended_sporting_event_before = data.attended_sporting_event_before || 'No';
     
-    // Business & Financial Information
+    // Business & Financial Information - FIXED: Ensure numbers
     this.annual_income_bracket = data.annual_income_bracket || '';
-    this.potential_value = data.potential_value || 0;
+    this.potential_value = this.parseNumber(data.potential_value, 0);
     
-    // Sales Information
+    // Sales Information - FIXED: Ensure numbers
     this.status = data.status || 'unassigned';
     this.assigned_to = data.assigned_to || '';
-    this.last_quoted_price = data.last_quoted_price || 0;
+    this.last_quoted_price = this.parseNumber(data.last_quoted_price, 0);
     
     // Additional
     this.notes = data.notes || '';
@@ -45,7 +44,7 @@ class Lead {
     // Client Management Fields
     this.client_id = data.client_id || this.generateClientId(data.phone);
     this.is_primary_lead = data.is_primary_lead || false;
-    this.client_total_leads = data.client_total_leads || 1;
+    this.client_total_leads = this.parseNumber(data.client_total_leads, 1);
     this.client_events = data.client_events || (data.lead_for_event ? [data.lead_for_event] : []);
     this.client_first_contact = data.client_first_contact || this.created_date;
     this.client_last_activity = data.client_last_activity || this.created_date;
@@ -57,6 +56,19 @@ class Lead {
     this.assignment_rule_used = data.assignment_rule_used || '';
     this.assignment_rule_id = data.assignment_rule_id || '';
     this.assignment_date = data.assignment_date || null;
+  }
+
+  // FIXED: Helper method to safely parse numbers and prevent concatenation
+  parseNumber(value, defaultValue = 0) {
+    if (value === null || value === undefined || value === '') {
+      return defaultValue;
+    }
+    
+    // Handle string numbers, remove commas, currency symbols, and spaces
+    const cleanValue = String(value).replace(/[₹,\s]/g, '');
+    const numValue = parseFloat(cleanValue);
+    
+    return isNaN(numValue) ? defaultValue : numValue;
   }
 
   generateClientId(phone) {
@@ -103,10 +115,22 @@ class Lead {
 
   static async update(id, data) {
     try {
+      // FIXED: Parse numeric values before updating
       const updateData = { 
         ...data, 
         updated_date: new Date().toISOString() 
       };
+
+      // Ensure numeric fields are properly parsed
+      if (updateData.potential_value !== undefined) {
+        updateData.potential_value = Lead.prototype.parseNumber(updateData.potential_value, 0);
+      }
+      if (updateData.last_quoted_price !== undefined) {
+        updateData.last_quoted_price = Lead.prototype.parseNumber(updateData.last_quoted_price, 0);
+      }
+      if (updateData.number_of_people !== undefined) {
+        updateData.number_of_people = Lead.prototype.parseNumber(updateData.number_of_people, 1);
+      }
 
       await db.collection(collections.leads).doc(id).update(updateData);
       return await Lead.getById(id);
@@ -188,8 +212,15 @@ class Lead {
       // Find primary lead or use first one
       const primaryLead = leads.find(l => l.is_primary_lead) || leads[0];
       
-      // Calculate aggregated data
-      const totalValue = leads.reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+      // FIXED: Calculate aggregated data with proper number handling
+      const totalValue = leads.reduce((sum, lead) => {
+        const value = parseFloat(lead.potential_value) || 0;
+        console.log(`   Adding value: ${value} (from ${lead.potential_value})`);
+        return sum + value;
+      }, 0);
+      
+      console.log(`📊 Backend: Total calculated value: ${totalValue}`);
+      
       const events = [...new Set(leads.map(l => l.lead_for_event).filter(Boolean))];
       
       // Get the most common assigned_to person
@@ -211,7 +242,7 @@ class Lead {
         email: primaryLead.email,
         primary_assigned_to: primaryAssignedTo,
         total_leads: leads.length,
-        total_value: totalValue,
+        total_value: totalValue, // This is now guaranteed to be a number
         leads: leads.map(l => ({
           id: l.id,
           name: l.name,
@@ -233,7 +264,8 @@ class Lead {
 
       console.log(`✅ Backend: Client data prepared for: ${primaryLead.name}`, {
         primary_assigned_to: result.primary_assigned_to,
-        total_leads: result.total_leads
+        total_leads: result.total_leads,
+        total_value: result.total_value
       });
       
       return result;
@@ -276,7 +308,16 @@ class Lead {
       // Convert grouped leads into client objects
       const clients = Object.entries(clientGroups).map(([clientId, leads]) => {
         const primaryLead = leads.find(l => l.is_primary_lead) || leads[0];
-        const totalValue = leads.reduce((sum, lead) => sum + (lead.potential_value || 0), 0);
+        
+        // FIXED: Proper number handling for total value calculation
+        const totalValue = leads.reduce((sum, lead) => {
+          const value = parseFloat(lead.potential_value) || 0;
+          console.log(`   Client ${primaryLead.name}: Adding ${value} (from ${lead.potential_value})`);
+          return sum + value;
+        }, 0);
+        
+        console.log(`📊 Client ${primaryLead.name} total value: ${totalValue}`);
+        
         const events = [...new Set(leads.map(l => l.lead_for_event).filter(Boolean))];
         const lastActivity = leads.reduce((latest, lead) => {
           const leadDate = new Date(lead.updated_date || lead.created_date);
@@ -291,7 +332,7 @@ class Lead {
           company: primaryLead.company,
           assigned_to: primaryLead.assigned_to,
           total_leads: leads.length,
-          total_value: totalValue,
+          total_value: totalValue, // This is now guaranteed to be a number
           events: events,
           first_contact: primaryLead.created_date,
           last_activity: lastActivity.toISOString(),
