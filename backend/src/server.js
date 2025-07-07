@@ -6,37 +6,12 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Middleware
+// More permissive CORS for development
 app.use(cors({
-  origin: function(origin, callback) {
-    const allowedOrigins = [
-      "https://3000-my-workstation.cluster-zimojywdj5auyrswx7eyn2ckg6.cloudworkstations.dev",
-      "https://8080-my-workstation.cluster-zimojywdj5auyrswx7eyn2ckg6.cloudworkstations.dev",
-      "http://localhost:3000",
-      "http://localhost:8000",
-      "http://localhost:8080",
-      "https://8000-my-workstation.cluster-zimojywdj5auyrswx7eyn2ckg6.cloudworkstations.dev",
-      /^https:\/\/fantopark-.*\.vercel\.app$/,
-      "https://skjftp.github.io",
-      /^https:\/\/.*-skjftps-projects\.vercel\.app$/
-    ];
-    
-    if (!origin) return callback(null, true);
-    
-    const allowed = allowedOrigins.some(allowed => {
-      if (allowed instanceof RegExp) {
-        return allowed.test(origin);
-      }
-      return allowed === origin;
-    });
-    
-    if (allowed) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
@@ -61,45 +36,27 @@ app.use('/api/setup', require('./routes/setup'));
 app.use('/api/stadiums', require('./routes/stadiums'));
 app.use('/api/clients', require('./routes/clients'));
 app.use('/api/reminders', require('./routes/reminders'));
-// 🎯 NEW: Assignment Rules API
 app.use('/api/assignment-rules', require('./routes/assignmentRules'));
-
 
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date(),
-    routes: [
-      'auth', 'users', 'leads', 'inventory', 'orders', 
-      'invoices', 'deliveries', 'payables', 'finance', 
-      'receivables', 'dashboard', 'upload', 'roles', 
-      'setup', 'stadiums', 'clients', 'reminders', 'assignment-rules'
-    ]
+    environment: 'Development'
   });
 });
-// Error handling
 
+// Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🎯 Assignment Rules API available at /api/assignment-rules`);
-  console.log(`🏟️ Stadium API available at /api/stadiums`);
-  console.log(`🔍 Health check available at /health`);
+  console.log(`🔗 Access via: http://localhost:${PORT}`);
+  console.log(`🔍 Health check: http://localhost:${PORT}/health`);
 });
 
 module.exports = app;
-
-// Serve frontend files
-app.use(express.static('../frontend/public'));
-
-// Catch-all handler for SPA routing
-app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api') && !req.path.startsWith('/health')) {
-    res.sendFile(path.join(__dirname, '../frontend/public/index.html'));
-  }
-});
