@@ -723,75 +723,7 @@ return 'Error';
 }
 };
 
-const initializeSportsEvents = () => {
-  return [
-    {
-      id: 'evt_001',
-      title: 'IPL Final 2025',
-      date: '2025-05-26',
-      time: '19:30',
-      venue: 'Wankhede Stadium, Mumbai',
-      category: 'cricket',
-      description: 'The most anticipated cricket match of the year - IPL 2025 Final',
-      ticket_available: true,
-      fantopark_package: 'Premium Package: ₹25,000 - VIP seating, hospitality, meet & greet',
-      status: 'upcoming'
-    },
-    {
-      id: 'evt_002', 
-      title: 'FIFA World Cup Qualifiers - India vs Australia',
-      date: '2025-06-15',
-      time: '20:00',
-      venue: 'Salt Lake Stadium, Kolkata',
-      category: 'football',
-      description: 'Crucial FIFA World Cup qualifier match',
-      ticket_available: true,
-      fantopark_package: 'Standard Package: ₹8,000 - Stadium seating, refreshments',
-      status: 'upcoming'
-    },
-    {
-      id: 'evt_003',
-      title: 'Asian Games 2025 - Opening Ceremony',
-      date: '2025-09-20',
-      time: '18:00',
-      venue: 'National Stadium, Delhi',
-      category: 'multi-sport',
-      description: 'Grand opening ceremony of Asian Games 2025',
-      ticket_available: true,
-      fantopark_package: 'Exclusive Package: ₹50,000 - Premium seating, cultural show access',
-      status: 'upcoming'
-    },
-    {
-      id: 'evt_004',
-      title: 'India vs England Test Series - 1st Test',
-      date: '2025-07-10',
-      time: '09:30',
-      venue: 'M. Chinnaswamy Stadium, Bangalore',
-      category: 'cricket',
-      description: '5-match Test series opener',
-      ticket_available: true,
-      fantopark_package: 'Test Package: ₹12,000 - All 5 days access, lunch included',
-      status: 'upcoming'
-    },
-    {
-      id: 'evt_005',
-      title: 'Indian Super League Final',
-      date: '2025-03-15',
-      time: '19:30',
-      venue: 'JRD Tata Sports Complex, Jamshedpur',
-      category: 'football',
-      description: 'ISL 2024-25 Championship Final',
-      ticket_available: false,
-      fantopark_package: 'Sold Out - Join waitlist for next season',
-      status: 'completed'
-    }
-  ];
-}; 
 
-// Initialize events (call this in useEffect after login)
-if (sportsEvents.length === 0) {
-  setSportsEvents(initializeSportsEvents());
-} 
 
 // Default users (in production, this would come from a database)
 const DEFAULT_USERS = [
@@ -1138,6 +1070,22 @@ const [reminderStats, setReminderStats] = useState({
   due_today: 0,
   pending: 0
 }); 
+const [sportsEvents, setSportsEvents] = useState([]);
+const [showEventForm, setShowEventForm] = useState(false);
+const [showEventDetail, setShowEventDetail] = useState(false);
+const [currentEvent, setCurrentEvent] = useState(null);
+const [eventFormData, setEventFormData] = useState({
+  title: "",
+  date: "",
+  time: "",
+  venue: "",
+  category: "cricket",
+  description: "",
+  ticket_available: false,
+  fantopark_package: ""
+});
+const [calendarView, setCalendarView] = useState("month");
+const [selectedDate, setSelectedDate] = useState(new Date());
 const [showOrderAssignModal, setShowOrderAssignModal] = useState(false);
 const [showAllocationManagement, setShowAllocationManagement] = React.useState(false);
 const [showInventoryDetail, setShowInventoryDetail] = useState(false);
@@ -1183,22 +1131,6 @@ const [statusProgressOptions, setStatusProgressOptions] = useState([]);
 const [selectedStatus, setSelectedStatus] = useState('');
 const [followUpDate, setFollowUpDate] = useState('');
 const [followUpNotes, setFollowUpNotes] = useState('');
-const [sportsEvents, setSportsEvents] = useState([]);
-const [showEventForm, setShowEventForm] = useState(false);
-const [showEventDetail, setShowEventDetail] = useState(false);
-const [currentEvent, setCurrentEvent] = useState(null);
-const [eventFormData, setEventFormData] = useState({
-  title: '',
-  date: '',
-  time: '',
-  venue: '',
-  category: 'cricket',
-  description: '',
-  ticket_available: false,
-  fantopark_package: ''
-});
-const [calendarView, setCalendarView] = useState('month'); // 'month', 'week', 'list'
-const [selectedDate, setSelectedDate] = useState(new Date()); 
  
  
 // 1. Enhanced Customer Type Classification
@@ -14491,7 +14423,7 @@ const renderSportsCalendarContent = () => {
   );
 }; 
 
-/ 5. CALENDAR VIEW FUNCTIONS
+// 5. CALENDAR VIEW FUNCTIONS
 const renderMonthView = (events) => {
   const today = new Date();
   const year = selectedDate.getFullYear();
