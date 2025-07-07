@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require("path");
 const cors = require('cors');
 require('dotenv').config();
 
@@ -9,6 +10,8 @@ const PORT = process.env.PORT || 8080;
 app.use(cors({
   origin: function(origin, callback) {
     const allowedOrigins = [
+      "https://3000-my-workstation.cluster-zimojywdj5auyrswx7eyn2ckg6.cloudworkstations.dev",
+      "https://8080-my-workstation.cluster-zimojywdj5auyrswx7eyn2ckg6.cloudworkstations.dev",
       "http://localhost:3000",
       "http://localhost:8000",
       "http://localhost:8080",
@@ -90,3 +93,13 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
+
+// Serve frontend files
+app.use(express.static('../frontend/public'));
+
+// Catch-all handler for SPA routing
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api') && !req.path.startsWith('/health')) {
+    res.sendFile(path.join(__dirname, '../frontend/public/index.html'));
+  }
+});
