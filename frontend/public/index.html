@@ -1952,6 +1952,10 @@ if (activeTab === 'myactions') {
 } else if (activeTab === 'finance') {
 console.log('Finance tab active, fetching financial data...');
 fetchFinancialData();
+} else if (activeTab === 'sports-calendar') {
+console.log('Sports Calendar tab active, fetching events...');
+fetchAllEvents();
+} else if (activeTab === 'myactions') {
 console.log('My Actions tab is active, calling fetchMyActions...');
 fetchMyActions();
 }
@@ -3901,7 +3905,27 @@ setLoading(false);
 }
 };
 
-
+const fetchAllEvents = async () => {
+  try {
+    console.log("Fetching all events from backend...");
+    const response = await fetch(`${API_URL}/events`, {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${localStorage.getItem("crm_auth_token")}` }
+    });
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success && result.data) {
+        const transformedEvents = result.data.map(event => ({
+          id: event.id, title: event.event_name, date: event.start_date,
+          time: event.start_time || "", venue: event.venue || "",
+          category: event.sport_type || "", status: event.status || "upcoming",
+          ...event
+        }));
+        setSportsEvents(transformedEvents);
+      }
+    }
+  } catch (error) { console.error("Error fetching events:", error); }
+};
 
 window.chartInstances = chartInstances;
 window.calculateDashboardStats = calculateDashboardStats;
@@ -15108,28 +15132,6 @@ return null;
 
 
 
-// Fetch events from multiple sports leagues
-const fetchAllEvents = async () => {
-  try {
-    console.log("Fetching all events from backend...");
-    const response = await fetch(`${API_URL}/events`, {
-      method: "GET",
-      headers: { "Authorization": `Bearer ${localStorage.getItem("crm_auth_token")}` }
-    });
-    if (response.ok) {
-      const result = await response.json();
-      if (result.success && result.data) {
-        const transformedEvents = result.data.map(event => ({
-          id: event.id, title: event.event_name, date: event.start_date,
-          time: event.start_time || "", venue: event.venue || "",
-          category: event.sport_type || "", status: event.status || "upcoming",
-          ...event
-        }));
-        setSportsEvents(transformedEvents);
-      }
-    }
-  } catch (error) { console.error("Error fetching events:", error); }
-};
 
 
 
