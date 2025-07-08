@@ -101,26 +101,27 @@ router.get('/export/excel', authenticateToken, async (req, res) => {
     }
 
     // Prepare data for Excel
-    const excelData = events.map(event => ({
-      'Event Name': event.event_name,
-      'Event Type': event.event_type,
-      'Sport Type': event.sport_type,
-      'Geography': event.geography,
-      'Start Date': event.start_date ? new Date(event.start_date).toLocaleDateString() : '',
-      'End Date': event.end_date ? new Date(event.end_date).toLocaleDateString() : '',
-      'Start Time': event.start_time || '',
-      'End Time': event.end_time || '',
-      'Venue': event.venue,
-      'Official Ticketing Partners': event.official_ticketing_partners,
-      'Primary Source': event.primary_source,
-      'Secondary Source': event.secondary_source,
-      'Priority': event.priority,
-      'Status': event.status,
-      'Sold Out Potential': event.sold_out_potential,
-      'Remarks': event.remarks,
-      'FanToPark Package': event.fantopark_package
-    }));
-
+// Prepare data for Excel
+const excelData = events.map(event => ({
+  'Event Name': event.event_name,
+  'Event Type': event.event_type,
+  'Sport Type': event.sport_type,
+  'Geography': event.geography,
+  'Start Date': event.start_date ? new Date(event.start_date).toLocaleDateString() : '',
+  'End Date': event.end_date ? new Date(event.end_date).toLocaleDateString() : '',
+  'Start Time': event.start_time || '',
+  'End Time': event.end_time || '',
+  'Venue': event.venue,
+  'Official Ticketing Partners': event.official_ticketing_partners,
+  'Primary Source': event.primary_source,
+  'Secondary Source': event.secondary_source,
+  'Priority': event.priority,
+  'Status': event.status,
+  'Sold Out Potential': event.sold_out_potential,
+  'Remarks': event.remarks,
+  'Ticket Available': event.ticket_available ? 'true' : 'false',
+  'FanToPark Package': event.fantopark_package
+}));
     // Create workbook
     const ws = XLSX.utils.json_to_sheet(excelData);
     const wb = XLSX.utils.book_new();
@@ -146,25 +147,27 @@ router.post('/import/excel', authenticateToken, checkPermission('events', 'write
       return res.status(400).json({ success: false, error: 'No Excel data provided' });
     }
 
-    const events = req.body.excelData.map(row => new Event({
-      event_name: row['Event Name'],
-      event_type: row['Event Type'],
-      sport_type: row['Sport Type'],
-      geography: row['Geography'],
-      start_date: row['Start Date'],
-      end_date: row['End Date'],
-      start_time: row['Start Time'],
-      end_time: row['End Time'],
-      venue: row['Venue'],
-      official_ticketing_partners: row['Official Ticketing Partners'],
-      primary_source: row['Primary Source'],
-      secondary_source: row['Secondary Source'],
-      priority: row['Priority'],
-      sold_out_potential: row['Sold Out Potential'],
-      remarks: row['Remarks'],
-      created_by: req.user.email
-    }));
-
+const events = req.body.excelData.map(row => new Event({
+  event_name: row['Event Name'],
+  event_type: row['Event Type'],
+  sport_type: row['Sport Type'],
+  geography: row['Geography'],
+  start_date: row['Start Date'],
+  end_date: row['End Date'],
+  start_time: row['Start Time'],
+  end_time: row['End Time'],
+  venue: row['Venue'],
+  official_ticketing_partners: row['Official Ticketing Partners'],
+  primary_source: row['Primary Source'],
+  secondary_source: row['Secondary Source'],
+  priority: row['Priority'],
+  status: row['Status'] || 'upcoming',
+  sold_out_potential: row['Sold Out Potential'],
+  remarks: row['Remarks'],
+  ticket_available: row['Ticket Available'] ? (row['Ticket Available'].toLowerCase() === 'true' || row['Ticket Available'] === '1') : false,
+  fantopark_package: row['FanToPark Package'],
+  created_by: req.user.email
+}));
     const savedEvents = [];
     for (const event of events) {
       const saved = await event.save();
