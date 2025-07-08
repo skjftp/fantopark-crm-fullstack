@@ -8,7 +8,7 @@ class Lead {
     this.phone = data.phone;
     this.company = data.company || '';
     this.business_type = data.business_type || 'B2C';
-    
+    this.is_premium = data.is_premium || false;
     // Lead Source & Initial Contact
     this.source = data.source || '';
     this.date_of_enquiry = data.date_of_enquiry;
