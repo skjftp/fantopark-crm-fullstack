@@ -7700,19 +7700,6 @@ setCurrentLead(lead);
 setShowLeadDetail(true);
 };
 
-const AssignmentRulesTab = React.useMemo(() => {
-  return hasPermission('leads', 'assign') ? 
-    React.createElement(AssignmentRulesManager, { 
-      key: 'assignment-rules-stable',
-      currentUser: user 
-    }) :
-    React.createElement('div', { className: 'text-center py-12' },
-      React.createElement('p', { className: 'text-red-500 text-lg' }, 
-        'Access Denied: You do not have permission to manage assignment rules.'
-      )
-    );
-}, [user]); // Only recreate when user changes
-
 // FIXED: Add this BEFORE the renderContent function to create a stable AssignmentRulesTab
 const AssignmentRulesTab = React.useMemo(() => {
   return hasPermission('leads', 'assign') ? 
