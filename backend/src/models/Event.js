@@ -2,41 +2,58 @@ const { db, collections } = require('../config/db');
 
 class Event {
   constructor(data) {
-    // Core Event Information
-    this.event_name = data.event_name || data.title; // Support both formats
-    this.event_type = data.event_type;
-    this.sport_type = data.sport_type || data.category;
-    this.geography = data.geography || data.location;
-    this.start_date = data.start_date || data.date;
-    this.end_date = data.end_date;
-    this.start_time = data.start_time || data.time;
-    this.end_time = data.end_time;
-    
-    // Venue Information
-    this.venue = data.venue;
-    this.venue_capacity = data.venue_capacity;
-    this.venue_address = data.venue_address;
-    
-    // Ticketing Information
-    this.official_ticketing_partners = data.official_ticketing_partners;
-    this.primary_source = data.primary_source;
-    this.secondary_source = data.secondary_source;
-    this.ticket_available = data.ticket_available || false;
-    
-    // Priority and Status
-    this.priority = data.priority; // P1, P2, P3
-    this.status = data.status || 'upcoming';
-    this.sold_out_potential = data.sold_out_potential;
-    
-    // Additional Information
-    this.remarks = data.remarks || data.description;
-    this.fantopark_package = data.fantopark_package || '';
-    
-    // Metadata
-    this.created_date = data.created_date || new Date().toISOString();
-    this.updated_date = new Date().toISOString();
-    this.created_by = data.created_by;
+  // Helper function to safely assign values, filtering out undefined
+  const safeAssign = (value, defaultValue = '') => {
+    if (value === undefined || value === null) return defaultValue;
+    if (typeof value === 'string' && value.trim() === '') return defaultValue;
+    return value;
+  };
+
+  const safeNumber = (value) => {
+    if (value === undefined || value === null || value === '') return null;
+    const num = parseInt(value);
+    return isNaN(num) ? null : num;
+  };
+
+  // Only assign fields that are actually provided and not undefined
+  if (data.event_name !== undefined) this.event_name = safeAssign(data.event_name || data.title);
+  if (data.event_type !== undefined) this.event_type = safeAssign(data.event_type);
+  if (data.sport_type !== undefined || data.category !== undefined) {
+    this.sport_type = safeAssign(data.sport_type || data.category);
   }
+  if (data.geography !== undefined || data.location !== undefined) {
+    this.geography = safeAssign(data.geography || data.location);
+  }
+  if (data.start_date !== undefined || data.date !== undefined) {
+    this.start_date = safeAssign(data.start_date || data.date);
+  }
+  if (data.end_date !== undefined) this.end_date = data.end_date || null;
+  if (data.start_time !== undefined || data.time !== undefined) {
+    this.start_time = safeAssign(data.start_time || data.time);
+  }
+  if (data.end_time !== undefined) this.end_time = safeAssign(data.end_time);
+  if (data.venue !== undefined) this.venue = safeAssign(data.venue);
+  if (data.venue_capacity !== undefined) this.venue_capacity = safeNumber(data.venue_capacity);
+  if (data.venue_address !== undefined) this.venue_address = safeAssign(data.venue_address);
+  if (data.official_ticketing_partners !== undefined) {
+    this.official_ticketing_partners = safeAssign(data.official_ticketing_partners);
+  }
+  if (data.primary_source !== undefined) this.primary_source = safeAssign(data.primary_source);
+  if (data.secondary_source !== undefined) this.secondary_source = safeAssign(data.secondary_source);
+  if (data.ticket_available !== undefined) this.ticket_available = Boolean(data.ticket_available);
+  if (data.priority !== undefined) this.priority = safeAssign(data.priority);
+  if (data.status !== undefined) this.status = safeAssign(data.status, 'upcoming');
+  if (data.sold_out_potential !== undefined) this.sold_out_potential = safeAssign(data.sold_out_potential);
+  if (data.remarks !== undefined || data.description !== undefined) {
+    this.remarks = safeAssign(data.remarks || data.description);
+  }
+  if (data.fantopark_package !== undefined) this.fantopark_package = safeAssign(data.fantopark_package);
+  
+  // Metadata
+  this.created_date = data.created_date || new Date().toISOString();
+  this.updated_date = new Date().toISOString();
+  if (data.created_by !== undefined) this.created_by = safeAssign(data.created_by);
+}
 
   static async getAll() {
     const snapshot = await db.collection(collections.events || 'crm_events')
