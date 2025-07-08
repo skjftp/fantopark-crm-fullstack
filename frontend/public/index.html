@@ -15889,8 +15889,31 @@ React.createElement('span', null, '✏️'),
 ),
 React.createElement('button', {
 onClick: () => {
-console.log('Creating lead for event:', currentEvent.id);
-},
+// Pre-fill form data with event information and open lead form
+setFormData({
+  name: '',
+  email: '',
+  phone: '',
+  company: '',
+  business_type: 'B2C',
+  source: 'Event Calendar',
+  date_of_enquiry: new Date().toISOString().split('T')[0],
+  lead_for_event: currentEvent.event_name || currentEvent.title,
+  city_of_residence: currentEvent.geography || '',
+  country_of_residence: currentEvent.geography || '',
+  number_of_people: 1,
+  has_valid_passport: 'Not Sure',
+  visa_available: 'Not Required',
+  attended_sporting_event_before: 'Not Sure',
+  annual_income_bracket: '',
+  potential_value: 0,
+  status: 'unassigned',
+  notes: `Lead created from ${currentEvent.event_name || currentEvent.title} event`
+});
+setCurrentEvent(null);
+setShowEventDetail(false);
+setShowAddForm(true);
+setIsEdit(false);},
 className: 'px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors flex items-center gap-2'
 },
 React.createElement('span', null, '🎯'),
