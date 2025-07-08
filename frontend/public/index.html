@@ -7700,418 +7700,383 @@ setCurrentLead(lead);
 setShowLeadDetail(true);
 };
 
+const AssignmentRulesTab = React.useMemo(() => {
+  return hasPermission('leads', 'assign') ? 
+    React.createElement(AssignmentRulesManager, { 
+      key: 'assignment-rules-stable',
+      currentUser: user 
+    }) :
+    React.createElement('div', { className: 'text-center py-12' },
+      React.createElement('p', { className: 'text-red-500 text-lg' }, 
+        'Access Denied: You do not have permission to manage assignment rules.'
+      )
+    );
+}, [user]); // Only recreate when user changes
 
+// FIXED: Add this BEFORE the renderContent function to create a stable AssignmentRulesTab
+const AssignmentRulesTab = React.useMemo(() => {
+  return hasPermission('leads', 'assign') ? 
+    React.createElement(AssignmentRulesManager, { 
+      key: 'assignment-rules-stable',
+      currentUser: user 
+    }) :
+    React.createElement('div', { className: 'text-center py-12' },
+      React.createElement('p', { className: 'text-red-500 text-lg' }, 
+        'Access Denied: You do not have permission to manage assignment rules.'
+      )
+    );
+}, [user]); // Only recreate when user changes
 
 const renderContent = () => {
-if (loading && activeTab !== 'leads') {
-return React.createElement('div', { className: 'flex items-center justify-center h-64' },
-React.createElement('div', { className: 'text-gray-500' }, 'Loading...')
-);
-}
+  if (loading && activeTab !== 'leads') {
+    return React.createElement('div', { className: 'flex items-center justify-center h-64' },
+      React.createElement('div', { className: 'text-gray-500' }, 'Loading...')
+    );
+  }
 
-// FIXED: Render AssignmentRulesManager persistently to prevent infinite re-mounting
-const persistentAssignmentRules = React.createElement('div', { 
-style: { 
-display: activeTab === 'assignment-rules' ? 'block' : 'none' 
-},
-key: 'assignment-rules-persistent-container'
-},
-hasPermission('leads', 'assign') ? 
-React.createElement(AssignmentRulesManager, { 
-key: 'assignment-rules-persistent',
-currentUser: user 
-}) :
-React.createElement('div', { className: 'text-center py-12' },
-React.createElement('p', { className: 'text-red-500 text-lg' }, 
-'Access Denied: You do not have permission to manage assignment rules.'
-)
-)
-);
+  // Handle individual tabs with original logic preserved
+  switch (activeTab) {
+    case 'dashboard':
+      return renderDashboardContent();
 
-// Handle individual tabs with original logic preserved
-switch (activeTab) {
-case 'dashboard':
-return React.createElement('div', null,
-renderDashboardContent(),
-persistentAssignmentRules  // Hidden but present
-);
-
-case 'leads':
-return React.createElement('div', null,
-hasPermission('leads', 'read') ? renderLeadsContent() : 
-React.createElement('div', { className: 'text-center py-12' },
-React.createElement('p', { className: 'text-red-500 text-lg' }, 
-'Access Denied: You do not have permission to view leads.'
-)
-),
-persistentAssignmentRules  // Hidden but present
-);
-
-case 'inventory':
-return React.createElement('div', null,
-hasPermission('inventory', 'read') ? renderInventoryContent() : 
-React.createElement('div', { className: 'text-center py-12' },
-React.createElement('p', { className: 'text-red-500 text-lg' }, 
-'Access Denied: You do not have permission to view inventory.'
-)
-),
-persistentAssignmentRules  // Hidden but present
-);
-
-case 'orders':
-return React.createElement('div', null,
-hasPermission('orders', 'read') ? renderOrdersContent() : 
-React.createElement('div', { className: 'text-center py-12' },
-React.createElement('p', { className: 'text-red-500 text-lg' }, 
-'Access Denied: You do not have permission to view orders.'
-)
-),
-persistentAssignmentRules  // Hidden but present
-);
-
-case 'finance':
-return React.createElement('div', null,
-hasPermission('finance', 'read') ? renderFinancials() : 
-React.createElement('div', { className: 'text-center py-12' },
-React.createElement('p', { className: 'text-red-500 text-lg' }, 
-'Access Denied: You do not have permission to view financials.'
-)
-),
-persistentAssignmentRules  // Hidden but present
-);
-
-case 'assignment-rules':
-// For assignment-rules tab, just return the persistent element (visible)
-return persistentAssignmentRules;
-
-case 'delivery':
-return React.createElement('div', null,
-hasPermission('delivery', 'read') ? renderDeliveryContent() : 
-React.createElement('div', { className: 'text-center py-12' },
-React.createElement('p', { className: 'text-red-500 text-lg' }, 
-'Access Denied: You do not have permission to view delivery.'
-)
-),
-persistentAssignmentRules  // Hidden but present
-);
-
-case 'users':
-return React.createElement('div', null,
-hasPermission('users', 'read') ? renderUserManagement() : 
-React.createElement('div', { className: 'text-center py-12' },
-React.createElement('p', { className: 'text-red-500 text-lg' }, 
-'Access Denied: You do not have permission to view users.'
-)
-),
-persistentAssignmentRules  // Hidden but present
-);
-
-case 'stadiums':
-return React.createElement('div', null,
-hasPermission('stadiums', 'read') ? renderStadiumsContent() : 
-React.createElement('div', { className: 'text-center py-12' },
-React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view stadiums.')
-),
-persistentAssignmentRules  // Hidden but present
-);
-
-case 'reminders':
-return React.createElement('div', null,
-hasPermission('leads', 'read') ? renderRemindersContent() : 
-React.createElement('div', { className: 'text-center py-12' },
-React.createElement('p', { className: 'text-red-500 text-lg' }, 
-'Access Denied: You do not have permission to view reminders.'
-)
-),
-persistentAssignmentRules  // Hidden but present
-);
-
-case 'myactions':
-return React.createElement('div', null,
-renderMyActionsContent(),
-persistentAssignmentRules  // Hidden but present
-);
-
-case 'sports-calendar':
-return React.createElement('div', null,
-renderSportsCalendarContent(),
-persistentAssignmentRules  // Hidden but present
-);
-
-case 'roles':
-// PRESERVED: Your complete existing roles logic
-if (user?.role === 'super_admin' && !rolesInitialized) {
-setRolesInitialized(true);
-apiCall('/roles').then(response => {
-setRoles(response.data || []);
-}).catch(error => {
-console.error('Failed to fetch roles:', error);
-setRolesInitialized(false); // Allow retry on error
-});
-}
-
-return React.createElement('div', null,
-user?.role === 'super_admin' ? React.createElement('div', { className: 'space-y-6' },
-React.createElement('div', { className: 'flex justify-between items-center' },
-React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Role Management'),
-React.createElement('button', {
-onClick: () => {
-setShowRoleForm(true);
-setEditingRole(null);
-roleFormData = {
-name: '',
-label: '',
-description: '',
-permissions: {
-dashboard: { read: false, write: false, delete: false, manage_users: false },
-leads: { read: false, write: false, delete: false, assign: false, progress: false },
-inventory: { read: false, write: false, delete: false, allocate: false },
-orders: { read: false, write: false, delete: false, approve: false, assign: false },
-finance: { read: false, write: false, delete: false, approve: false },
-delivery: { read: false, write: false, delete: false },
-users: { read: false, write: false, delete: false, manage_roles: false }
-}
-};
-
-
-},
-className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
-}, '+ Add New Role')
-),
-
-// Show initialize button if no roles
-roles.length === 0 && React.createElement('div', { className: 'bg-yellow-50 border border-yellow-200 rounded-lg p-4' },
-React.createElement('p', { className: 'text-yellow-800' }, 'No roles found. Initialize default roles to get started.'),
-React.createElement('button', {
-onClick: async () => {
-try {
-const response = await apiCall('/roles/initialize', { method: 'POST', body: JSON.stringify({}) });
-console.log('Default roles initialized successfully');
-setRoles(response.data || []);
-} catch (error) {
-console.error('Failed to initialize roles:', error);
-console.log('Failed to initialize default roles');
-}
-},
-className: 'mt-2 bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700'
-}, 'Initialize Default Roles')
-),
-
-// Display roles
-React.createElement('div', { className: 'grid gap-4' },
-roles.map(role => React.createElement('div', {
-key: role.id,
-className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-6'
-},
-React.createElement('div', { className: 'flex justify-between items-start' },
-React.createElement('div', null,
-React.createElement('h3', { className: 'text-xl font-semibold text-gray-900 dark:text-white' }, 
-role.label,
-role.is_system && React.createElement('span', { 
-className: 'ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded' 
-}, 'System')
-),
-React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Name: ' + (role.name)),
-React.createElement('p', { className: 'text-gray-600 dark:text-gray-300 mt-1' }, role.description),
-React.createElement('p', { className: 'text-xs text-gray-500 mt-2' }, 'Users with this role: ' + (role.user_count || 0))
-),
-React.createElement('div', { className: 'flex gap-2' },
-!role.is_system && React.createElement('button', {
-onClick: () => {
-setEditingRole(role);
-setRoleFormData(JSON.parse(JSON.stringify(role)));
-setShowRoleForm(true);
-},
-className: 'text-blue-600 hover:text-blue-800'
-}, 'Edit'),
-!role.is_system && React.createElement('button', {
-onClick: async () => {
-if (!confirm('Are you sure you want to delete this role?')) return;
-try {
-  await apiCall('/roles/' + (role.id), { method: 'DELETE' });
-  alert('Role deleted successfully!');
-  roles = roles.filter(r => r._id !== role.id);
-} catch (error) {
-  console.error('Error deleting role:', error);
-  alert('Error: ' + (error.message || 'Failed to delete role'));
-}
-},
-className: 'text-red-600 hover:text-red-800'
-}, 'Delete')
-)
-),
-// Permission display
-React.createElement('div', { className: 'mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4' },
-Object.entries(role.permissions || {}).map(([module, perms]) =>
-React.createElement('div', { key: module, className: 'text-sm' },
-React.createElement('div', { className: 'font-medium text-gray-700 dark:text-gray-300 capitalize' }, module),
-React.createElement('div', { className: 'text-xs text-gray-500 dark:text-gray-400' },
-Object.entries(perms)
-  .filter(([_, value]) => value === true)
-  .map(([perm, _]) => perm)
-  .join(', ') || 'No permissions'
-)
-)
-)
-)
-))
-),
-
-// Role Form Modal
-showRoleForm && React.createElement('div', {
-className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
-onClick: (e) => {
-if (e.target === e.currentTarget) {
-setShowRoleForm(false);
-setActiveTab('roles');
-}
-}
-},
-React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-y-auto' },
-React.createElement('h2', { className: 'text-2xl font-bold mb-4' }, 
-editingRole ? 'Edit Role' : 'Create New Role'
-),
-React.createElement('form', { 
-onSubmit: async (e) => {
-e.preventDefault();
-try {
-if (editingRole) {
-await apiCall('/roles/' + (editingRole.id), { method: 'PUT', body: JSON.stringify(roleFormData) });
-console.log('Role updated successfully');
-} else {
-await apiCall('/roles', { method: 'POST', body: JSON.stringify(roleFormData) });
-console.log('Role created successfully');
-}
-
-// Refresh roles
-const response = await apiCall('/roles');
-setRoles(response.data || []);
-setShowRoleForm(false);
-setEditingRole(null);
-
-} catch (error) {
-console.error('Error saving role:', error);
-showNotification(error.message || 'Failed to save role', 'error');
-}
-}
-},
-React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-6' },
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Role Name'),
-React.createElement('input', {
-type: 'text',
-value: roleFormData.name,
-onChange: (e) => {
-  setRoleFormData(prev => ({
-      ...prev,
-      name: e.target.value
-  }));
-},
-className: 'w-full border rounded px-3 py-2',
-required: true,
-disabled: editingRole?.is_system
-})
-),
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Display Label'),
-React.createElement('input', {
-type: 'text',
-value: roleFormData.label,
-onChange: (e) => {
-  setRoleFormData(prev => ({
-      ...prev,
-      label: e.target.value
-  }));
-},
-className: 'w-full border rounded px-3 py-2',
-required: true
-})
-),
-React.createElement('div', { className: 'md:col-span-2' },
-React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Description'),
-React.createElement('textarea', {
-value: roleFormData.description,
-onChange: (e) => {
-  setRoleFormData(prev => ({
-      ...prev,
-      description: e.target.value
-  }));
-},
-className: 'w-full border rounded px-3 py-2',
-rows: 2
-})
-)
-),
-// Permissions section
-React.createElement('div', { className: 'mb-6' },
-React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Permissions'),
-React.createElement('div', { className: 'space-y-4' },
-Object.entries(roleFormData.permissions).map(([module, perms]) =>
-React.createElement('div', { key: module, className: 'border rounded-lg p-4' },
-  React.createElement('h4', { className: 'font-medium capitalize mb-2' }, module),
-  React.createElement('div', { className: 'grid grid-cols-2 md:grid-cols-4 gap-4' },
-      Object.entries(perms).map(([perm, value]) =>
-          React.createElement('label', {
-              key: perm,
-              className: 'flex items-center space-x-2'
-          },
-              React.createElement('input', {
-                  type: 'checkbox',
-                  checked: value,
-                  onChange: (e) => {
-                      setRoleFormData(prev => ({
-                          ...prev,
-                          permissions: {
-                              ...prev.permissions,
-                              [module]: {
-                                  ...prev.permissions[module],
-                                  [perm]: e.target.checked
-                              }
-                          }
-                      }));
-                  },
-                  disabled: editingRole?.is_system && module === 'users' && perm === 'manage_roles'
-              }),
-              React.createElement('span', { className: 'text-sm capitalize' }, 
-                  perm.replace(/_/g, ' ')
-              )
+    case 'leads':
+      return hasPermission('leads', 'read') ? renderLeadsContent() : 
+        React.createElement('div', { className: 'text-center py-12' },
+          React.createElement('p', { className: 'text-red-500 text-lg' }, 
+            'Access Denied: You do not have permission to view leads.'
           )
-      )
-  )
-)
-)
-)
-),
-React.createElement('div', { className: 'flex justify-end gap-2' },
-React.createElement('button', {
-type: 'button',
-onClick: () => {
-setShowRoleForm(false);
-setEditingRole(null);
-},
-className: 'px-4 py-2 border rounded hover:bg-gray-100'
-}, 'Cancel'),
-React.createElement('button', {
-type: 'submit',
-className: 'px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700'
-}, editingRole ? 'Update Role' : 'Create Role')
-)
-)
-)
-)
-) : 
-React.createElement('div', { className: 'text-center py-12' },
-React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: Only super admins can manage roles.')
-),
-persistentAssignmentRules  // Hidden but present
-);
+        );
 
-default:
-return React.createElement('div', null,
-renderDashboardContent(),
-persistentAssignmentRules  // Hidden but present
-);
-}
+    case 'inventory':
+      return hasPermission('inventory', 'read') ? renderInventoryContent() : 
+        React.createElement('div', { className: 'text-center py-12' },
+          React.createElement('p', { className: 'text-red-500 text-lg' }, 
+            'Access Denied: You do not have permission to view inventory.'
+          )
+        );
+
+    case 'orders':
+      return hasPermission('orders', 'read') ? renderOrdersContent() : 
+        React.createElement('div', { className: 'text-center py-12' },
+          React.createElement('p', { className: 'text-red-500 text-lg' }, 
+            'Access Denied: You do not have permission to view orders.'
+          )
+        );
+
+    case 'finance':
+      return hasPermission('finance', 'read') ? renderFinancials() : 
+        React.createElement('div', { className: 'text-center py-12' },
+          React.createElement('p', { className: 'text-red-500 text-lg' }, 
+            'Access Denied: You do not have permission to view financials.'
+          )
+        );
+
+    case 'assignment-rules':
+      // FIXED: Return the stable memoized component
+      return AssignmentRulesTab;
+
+    case 'delivery':
+      return hasPermission('delivery', 'read') ? renderDeliveryContent() : 
+        React.createElement('div', { className: 'text-center py-12' },
+          React.createElement('p', { className: 'text-red-500 text-lg' }, 
+            'Access Denied: You do not have permission to view delivery.'
+          )
+        );
+
+    case 'users':
+      return hasPermission('users', 'read') ? renderUserManagement() : 
+        React.createElement('div', { className: 'text-center py-12' },
+          React.createElement('p', { className: 'text-red-500 text-lg' }, 
+            'Access Denied: You do not have permission to view users.'
+          )
+        );
+
+    case 'stadiums':
+      return hasPermission('stadiums', 'read') ? renderStadiumsContent() : 
+        React.createElement('div', { className: 'text-center py-12' },
+          React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view stadiums.')
+        );
+
+    case 'reminders':
+      return hasPermission('leads', 'read') ? renderRemindersContent() : 
+        React.createElement('div', { className: 'text-center py-12' },
+          React.createElement('p', { className: 'text-red-500 text-lg' }, 
+            'Access Denied: You do not have permission to view reminders.'
+          )
+        );
+
+    case 'myactions':
+      return renderMyActionsContent();
+
+    case 'sports-calendar':
+      return renderSportsCalendarContent();
+
+    case 'roles':
+      // PRESERVED: Your complete existing roles logic
+      if (user?.role === 'super_admin' && !rolesInitialized) {
+        setRolesInitialized(true);
+        apiCall('/roles').then(response => {
+          setRoles(response.data || []);
+        }).catch(error => {
+          console.error('Failed to fetch roles:', error);
+          setRolesInitialized(false); // Allow retry on error
+        });
+      }
+
+      return user?.role === 'super_admin' ? React.createElement('div', { className: 'space-y-6' },
+        React.createElement('div', { className: 'flex justify-between items-center' },
+          React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Role Management'),
+          React.createElement('button', {
+            onClick: () => {
+              setShowRoleForm(true);
+              setEditingRole(null);
+              roleFormData = {
+                name: '',
+                label: '',
+                description: '',
+                permissions: {
+                  dashboard: { read: false, write: false, delete: false, manage_users: false },
+                  leads: { read: false, write: false, delete: false, assign: false, progress: false },
+                  inventory: { read: false, write: false, delete: false, allocate: false },
+                  orders: { read: false, write: false, delete: false, approve: false, assign: false },
+                  finance: { read: false, write: false, delete: false, approve: false },
+                  delivery: { read: false, write: false, delete: false },
+                  users: { read: false, write: false, delete: false, manage_roles: false }
+                }
+              };
+            },
+            className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
+          }, '+ Add New Role')
+        ),
+
+        // Show initialize button if no roles
+        roles.length === 0 && React.createElement('div', { className: 'bg-yellow-50 border border-yellow-200 rounded-lg p-4' },
+          React.createElement('p', { className: 'text-yellow-800' }, 'No roles found. Initialize default roles to get started.'),
+          React.createElement('button', {
+            onClick: async () => {
+              try {
+                const response = await apiCall('/roles/initialize', { method: 'POST', body: JSON.stringify({}) });
+                console.log('Default roles initialized successfully');
+                setRoles(response.data || []);
+              } catch (error) {
+                console.error('Failed to initialize roles:', error);
+                console.log('Failed to initialize default roles');
+              }
+            },
+            className: 'mt-2 bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700'
+          }, 'Initialize Default Roles')
+        ),
+
+        // Display roles
+        React.createElement('div', { className: 'grid gap-4' },
+          roles.map(role => React.createElement('div', {
+            key: role.id,
+            className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-6'
+          },
+            React.createElement('div', { className: 'flex justify-between items-start' },
+              React.createElement('div', null,
+                React.createElement('h3', { className: 'text-xl font-semibold text-gray-900 dark:text-white' }, 
+                  role.label,
+                  role.is_system && React.createElement('span', { 
+                    className: 'ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded' 
+                  }, 'System')
+                ),
+                React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Name: ' + (role.name)),
+                React.createElement('p', { className: 'text-gray-600 dark:text-gray-300 mt-1' }, role.description),
+                React.createElement('p', { className: 'text-xs text-gray-500 mt-2' }, 'Users with this role: ' + (role.user_count || 0))
+              ),
+              React.createElement('div', { className: 'flex gap-2' },
+                !role.is_system && React.createElement('button', {
+                  onClick: () => {
+                    setEditingRole(role);
+                    setRoleFormData(JSON.parse(JSON.stringify(role)));
+                    setShowRoleForm(true);
+                  },
+                  className: 'text-blue-600 hover:text-blue-800'
+                }, 'Edit'),
+                !role.is_system && React.createElement('button', {
+                  onClick: async () => {
+                    if (!confirm('Are you sure you want to delete this role?')) return;
+                    try {
+                      await apiCall('/roles/' + (role.id), { method: 'DELETE' });
+                      alert('Role deleted successfully!');
+                      roles = roles.filter(r => r._id !== role.id);
+                    } catch (error) {
+                      console.error('Error deleting role:', error);
+                      alert('Error: ' + (error.message || 'Failed to delete role'));
+                    }
+                  },
+                  className: 'text-red-600 hover:text-red-800'
+                }, 'Delete')
+              )
+            ),
+            // Permission display
+            React.createElement('div', { className: 'mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4' },
+              Object.entries(role.permissions || {}).map(([module, perms]) =>
+                React.createElement('div', { key: module, className: 'text-sm' },
+                  React.createElement('div', { className: 'font-medium text-gray-700 dark:text-gray-300 capitalize' }, module),
+                  React.createElement('div', { className: 'text-xs text-gray-500 dark:text-gray-400' },
+                    Object.entries(perms)
+                      .filter(([_, value]) => value === true)
+                      .map(([perm, _]) => perm)
+                      .join(', ') || 'No permissions'
+                  )
+                )
+              )
+            )
+          ))
+        ),
+
+        // Role Form Modal
+        showRoleForm && React.createElement('div', {
+          className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
+          onClick: (e) => {
+            if (e.target === e.currentTarget) {
+              setShowRoleForm(false);
+              setActiveTab('roles');
+            }
+          }
+        },
+          React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-y-auto' },
+            React.createElement('h2', { className: 'text-2xl font-bold mb-4' }, 
+              editingRole ? 'Edit Role' : 'Create New Role'
+            ),
+            React.createElement('form', { 
+              onSubmit: async (e) => {
+                e.preventDefault();
+                try {
+                  if (editingRole) {
+                    await apiCall('/roles/' + (editingRole.id), { method: 'PUT', body: JSON.stringify(roleFormData) });
+                    console.log('Role updated successfully');
+                  } else {
+                    await apiCall('/roles', { method: 'POST', body: JSON.stringify(roleFormData) });
+                    console.log('Role created successfully');
+                  }
+
+                  // Refresh roles
+                  const response = await apiCall('/roles');
+                  setRoles(response.data || []);
+                  setShowRoleForm(false);
+                  setEditingRole(null);
+
+                } catch (error) {
+                  console.error('Error saving role:', error);
+                  showNotification(error.message || 'Failed to save role', 'error');
+                }
+              }
+            },
+              React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-6' },
+                React.createElement('div', null,
+                  React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Role Name'),
+                  React.createElement('input', {
+                    type: 'text',
+                    value: roleFormData.name,
+                    onChange: (e) => {
+                      setRoleFormData(prev => ({
+                        ...prev,
+                        name: e.target.value
+                      }));
+                    },
+                    className: 'w-full border rounded px-3 py-2',
+                    required: true,
+                    disabled: editingRole?.is_system
+                  })
+                ),
+                React.createElement('div', null,
+                  React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Display Label'),
+                  React.createElement('input', {
+                    type: 'text',
+                    value: roleFormData.label,
+                    onChange: (e) => {
+                      setRoleFormData(prev => ({
+                        ...prev,
+                        label: e.target.value
+                      }));
+                    },
+                    className: 'w-full border rounded px-3 py-2',
+                    required: true
+                  })
+                ),
+                React.createElement('div', { className: 'md:col-span-2' },
+                  React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Description'),
+                  React.createElement('textarea', {
+                    value: roleFormData.description,
+                    onChange: (e) => {
+                      setRoleFormData(prev => ({
+                        ...prev,
+                        description: e.target.value
+                      }));
+                    },
+                    className: 'w-full border rounded px-3 py-2',
+                    rows: 2
+                  })
+                )
+              ),
+              // Permissions section
+              React.createElement('div', { className: 'mb-6' },
+                React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Permissions'),
+                React.createElement('div', { className: 'space-y-4' },
+                  Object.entries(roleFormData.permissions).map(([module, perms]) =>
+                    React.createElement('div', { key: module, className: 'border rounded-lg p-4' },
+                      React.createElement('h4', { className: 'font-medium capitalize mb-2' }, module),
+                      React.createElement('div', { className: 'grid grid-cols-2 md:grid-cols-4 gap-4' },
+                        Object.entries(perms).map(([perm, value]) =>
+                          React.createElement('label', {
+                            key: perm,
+                            className: 'flex items-center space-x-2'
+                          },
+                            React.createElement('input', {
+                              type: 'checkbox',
+                              checked: value,
+                              onChange: (e) => {
+                                setRoleFormData(prev => ({
+                                  ...prev,
+                                  permissions: {
+                                    ...prev.permissions,
+                                    [module]: {
+                                      ...prev.permissions[module],
+                                      [perm]: e.target.checked
+                                    }
+                                  }
+                                }));
+                              },
+                              disabled: editingRole?.is_system && module === 'users' && perm === 'manage_roles'
+                            }),
+                            React.createElement('span', { className: 'text-sm capitalize' }, 
+                              perm.replace(/_/g, ' ')
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              React.createElement('div', { className: 'flex justify-end gap-2' },
+                React.createElement('button', {
+                  type: 'button',
+                  onClick: () => {
+                    setShowRoleForm(false);
+                    setEditingRole(null);
+                  },
+                  className: 'px-4 py-2 border rounded hover:bg-gray-100'
+                }, 'Cancel'),
+                React.createElement('button', {
+                  type: 'submit',
+                  className: 'px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700'
+                }, editingRole ? 'Update Role' : 'Create Role')
+              )
+            )
+          )
+        )
+      ) : 
+      React.createElement('div', { className: 'text-center py-12' },
+        React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: Only super admins can manage roles.')
+      );
+
+    default:
+      return renderDashboardContent();
+  }
 };
 
 
