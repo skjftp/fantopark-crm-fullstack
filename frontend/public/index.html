@@ -1,3 +1,4 @@
+
 <!-- CRM Version:FIELD-MAPPING-FIXED-20250630 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -9,13 +10,22 @@
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- Load all constant files -->
+<script src="constants/config.js"></script>
+<script src="constants/status-config.js"></script>
+<script src="constants/user-roles.js"></script>
+<script src="constants/form-config.js"></script>
+<script src="constants/default-data.js"></script>
+<!-- Utility Functions -->
+<script src="utils/api.js"></script>
+<script src="utils/permissions.js"></script>
+<script src="utils/helpers.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>  
 
 <!-- API Configuration--->
 <script>
 // Configure API endpoint
-const API_URL = "https://fantopark-backend-150582227311.us-central1.run.app/api";
 
 // Global function to handle proceed from preview
 window.handleProceedFromPreview = () => {
@@ -29,7 +39,7 @@ if (cancelBtn) cancelBtn.click();
 // Trigger the upload with the stored file
 const formData = new FormData();
 formData.append("file", window.currentUploadFile);
-fetch(API_URL + "/upload/leads/csv", {
+fetch(window.API_CONFIG.API_URL + "/upload/leads/csv", {
 method: "POST",
 headers: { Authorization: authToken ? "Bearer " + authToken : undefined },
 body: formData
@@ -48,8 +58,8 @@ alert("No file selected for upload");
 };
 
 
-console.log("🔗 API_URL set to:", API_URL);
-console.log("🔗 API_URL:", API_URL);
+console.log("🔗 window.API_CONFIG.API_URL set to:", window.API_CONFIG.API_URL);
+console.log("🔗 window.API_CONFIG.API_URL:", window.API_CONFIG.API_URL);
 // Get stored auth token
 let authToken = localStorage.getItem("crm_auth_token");
 
@@ -58,55 +68,6 @@ if (authToken) {
 console.log("Auth token loaded from localStorage");
 }
 
-// API helper function
-async function apiCall(endpoint, options = {}) {
-const config = {
-...options,
-headers: {
-'Content-Type': 'application/json',
-...(authToken ? { 'Authorization': 'Bearer ' + (authToken) } : {}),
-...options.headers
-}
-};
-
-
-
-const response = await fetch((API_URL) + (endpoint), config);
-
-console.log('API Request:', {
-url: (API_URL) + (endpoint),
-method: config.method || 'GET',
-headers: config.headers
-});
-console.log('Response Status:', response.status, response.statusText);
-
-if (response.status === 401) {
-// Token expired or invalid
-console.error('401 Unauthorized - Authentication failed');
-console.error('Endpoint:', endpoint);
-console.error('Response status:', response.status);
-localStorage.removeItem('crm_auth_token');
-authToken = null;  // Clear the global authToken variable
-authToken = null;  // Clear the global authToken variable
-localStorage.removeItem('crm_user');
-
-// Don't reload immediately for login attempts
-if (endpoint !== '/auth/login') {
-window.location.reload();
-}
-throw new Error('Authentication failed - Invalid credentials');
-}
-
-if (!response.ok) {
-const errorText = await response.text();
-console.error('API Error Response:', errorText);
-throw new Error('API Error: ' + (response.statusText) + ' - ' + (errorText));
-}
-
-const data = await response.json();
-console.log('API Response from ' + (endpoint) + ':', data);
-return data;
-}
 </script>
 
 <style>
@@ -511,15 +472,6 @@ right: auto !important;
 <div id="error-message" style="position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 12px 20px; border-radius: 6px; display: none; z-index: 9999;"></div>
 <script>
 
-// Persistent logging for debugging
-const debugLog = (key, data) => {
-const logs = JSON.parse(sessionStorage.getItem('debugLogs') || '[]');
-logs.push({ time: new Date().toISOString(), key, data });
-sessionStorage.setItem('debugLogs', JSON.stringify(logs));
-console.log('[' + (key) + ']', data);
-};
-
-
 
 // Show previous logs on page load
 window.addEventListener('load', () => {
@@ -541,217 +493,12 @@ console.log('Debug logs cleared');
 
 const { useState, useEffect, useRef } = React;
 
-// User roles and permissions configuration
-const USER_ROLES = {
-super_admin: {
-label: 'Super Admin',
-permissions: {
-dashboard: { read: true, write: true, delete: true, manage_users: true,
-finance: { read: true, write: true, delete: true, approve: true }},
-leads: { read: true, write: true, delete: true, assign: true, progress: true },
-inventory: { read: true, write: true, delete: true, allocate: true },
-orders: { read: true, write: true, delete: true, approve: true, assign: true },
-finance: { read: true, write: true, delete: true, approve: true },
-delivery: { read: true, write: true, delete: true },
-users: { read: true, write: true, delete: true, manage_roles: true }
-}
-},
-admin: {
-label: 'Admin',
-permissions: {
-dashboard: { read: true, write: true, delete: true, manage_users: false },
-leads: { read: true, write: true, delete: true, assign: true, progress: true },
-inventory: { read: true, write: true, delete: true, allocate: true },
-orders: { read: true, write: true, delete: true, approve: false, assign: true },
-finance: { read: true, write: false, delete: false, approve: false },
-delivery: { read: true, write: true, delete: true },
-users: { read: true, write: false, delete: false, manage_roles: false }
-}
-},
-sales_manager: {
-label: 'Sales Manager',
-permissions: {
-dashboard: { read: true, write: false, delete: false, manage_users: false },
-leads: { read: true, write: true, delete: false, assign: true, progress: true },
-inventory: { read: true, write: false, delete: false, allocate: false },
-orders: { read: true, write: false, delete: false, approve: false, assign: false },
-finance: { read: true, write: false, delete: false, approve: false },
-delivery: { read: true, write: false, delete: false },
-users: { read: false, write: false, delete: false, manage_roles: false }
-}
-},
-sales_executive: {
-label: 'Sales Executive',
-permissions: {
-dashboard: { read: true, write: false, delete: false, manage_users: false },
-leads: { read: true, write: true, delete: true, assign: false, progress: true }, // Changed: added delete
-inventory: { read: true, write: false, delete: false, allocate: false },
-orders: { read: true, write: true, delete: false, approve: false, assign: false }, // Changed: added write
-finance: { read: false, write: false, delete: false, approve: false },
-delivery: { read: true, write: false, delete: false },
-users: { read: false, write: false, delete: false, manage_roles: false }
-}
-},
-supply_sales_service_manager: {
-label: 'Supply Sales Service Manager',
-permissions: {
-dashboard: { read: true, write: true, delete: true, manage_users: false },
-leads: { read: true, write: true, delete: true, assign: true, progress: true },
-inventory: { read: true, write: true, delete: true, allocate: true },
-orders: { read: true, write: true, delete: true, approve: true, assign: true },
-finance: { read: true, write: true, delete: true, approve: true },
-delivery: { read: true, write: true, delete: true },
-stadiums: { read: true, write: true, delete: true }, 
-users: { read: false, write: false, delete: false, manage_roles: false }
-}
-},
-finance_manager: {
-label: 'Finance Manager',
-permissions: {
-dashboard: { read: true, write: false, delete: false, manage_users: false },
-leads: { read: true, write: false, delete: false, assign: false, progress: false },
-inventory: { read: true, write: false, delete: false, allocate: false },
-orders: { read: true, write: false, delete: false, approve: true, assign: false },
-finance: { read: true, write: true, delete: true, approve: true },
-delivery: { read: true, write: false, delete: false },
-users: { read: false, write: false, delete: false, manage_roles: false }
-}
-},
-viewer: {
-label: 'Viewer',
-permissions: {
-dashboard: { read: true, write: false, delete: false, manage_users: false },
-leads: { read: true, write: false, delete: false, assign: false, progress: false },
-inventory: { read: true, write: false, delete: false, allocate: false },
-orders: { read: true, write: false, delete: false, approve: false, assign: false },
-finance: { read: true, write: false, delete: false, approve: false },
-delivery: { read: true, write: false, delete: false },
-users: { read: false, write: false, delete: false, manage_roles: false }
-}
-}
-};
-
-
-
-const stadiumFormFields = [
-{ name: 'name', label: 'Stadium Name', type: 'text', required: true, placeholder: 'e.g., Wankhede Stadium' },
-{ name: 'city', label: 'City', type: 'text', required: true, placeholder: 'e.g., Mumbai' },
-{ name: 'state', label: 'State/Province', type: 'text', required: false, placeholder: 'e.g., Maharashtra' },
-{ name: 'country', label: 'Country', type: 'select', required: true, options: [
-'India', 'United States', 'United Kingdom', 'Australia', 'Canada', 'South Africa',
-'New Zealand', 'West Indies', 'Sri Lanka', 'Bangladesh', 'Pakistan', 'Afghanistan',
-'Spain', 'Germany', 'France', 'Italy', 'Brazil', 'Argentina', 'Japan', 'China', 'Other'
-]},
-{ name: 'sport_type', label: 'Primary Sport', type: 'select', required: true, options: [
-'Cricket', 'Football', 'Basketball', 'Tennis', 'Hockey', 'Baseball', 
-'Rugby', 'Athletics', 'Formula 1', 'Multi-Sport', 'Other'
-]},
-{ name: 'capacity', label: 'Seating Capacity', type: 'number', required: false, placeholder: 'e.g., 33000' },
-{ name: 'opened_year', label: 'Year Opened', type: 'number', required: false, placeholder: 'e.g., 1974' },
-{ name: 'nickname', label: 'Nickname/Alternative Name', type: 'text', required: false, placeholder: 'e.g., Home of Cricket' },
-{ name: 'website', label: 'Official Website', type: 'url', required: false, placeholder: 'https://...' },
-{ name: 'notes', label: 'Additional Notes', type: 'textarea', required: false, placeholder: 'Famous matches, renovations, etc.' }
-];
-
 
 // Helper function to display user names instead of emails
-
-// Priority styling helper functions
-const getPriorityStyles = (priority) => {
-  switch (priority) {
-    case "P1":
-      return "bg-red-100 border-l-4 border-red-500 text-red-800";
-    case "P2":
-      return "bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800";
-    case "P3":
-      return "bg-green-100 border-l-4 border-green-500 text-green-800";
-    default:
-      return "bg-gray-100 border-l-4 border-gray-500 text-gray-800";
-  }
-};
-
-const getPriorityBadgeColor = (priority) => {
-  switch (priority) {
-    case "P1":
-      return "bg-red-500 text-white";
-    case "P2":
-      return "bg-yellow-500 text-white";
-    case "P3":
-      return "bg-green-500 text-white";
-    default:
-      return "bg-gray-500 text-white";
-  }
-};
-// Helper function to display user names instead of emails
-const getUserDisplayName = (email, usersList) => {
-if (!email || !usersList) return email || 'Unassigned';
-const user = usersList.find(u => u.email === email);
-return user ? user.name : email;
-};
-
-
-
-const getBaseAmount = (data) => {
-
-
-
-
-if (data.type_of_sale === 'Service Fee') {
-return parseFloat(data.service_fee_amount) || 0;
-}
-return data.invoice_items?.reduce((sum, item) => 
-sum + ((item.quantity || 0) * (item.rate || 0)), 0
-) || 0;
-}; 
-
-const formatDateForInput = (dateValue) => {
-if (!dateValue) return '';
-
-try {
-// Handle different date formats
-let date;
-
-// If it's already a Date object
-if (dateValue instanceof Date) {
-date = dateValue;
-}
-// If it's an ISO string (from CSV upload)
-else if (typeof dateValue === 'string' && dateValue.includes('T')) {
-date = new Date(dateValue);
-}
-// If it's a simple date string (YYYY-MM-DD)
-else if (typeof dateValue === 'string') {
-date = new Date(dateValue);
-}
-// If it's a Firestore timestamp object
-else if (typeof dateValue === 'object' && dateValue._seconds) {
-date = new Date(dateValue._seconds * 1000);
-}
-else {
-return '';
-}
-
-// Check if date is valid
-if (isNaN(date.getTime())) {
-return '';
-}
-
-// Convert to YYYY-MM-DD format for HTML input
-const year = date.getFullYear();
-const month = String(date.getMonth() + 1).padStart(2, '0');
-const day = String(date.getDate()).padStart(2, '0');
-
-return `${year}-${month}-${day}`;
-} catch (error) {
-console.error('Date formatting error:', error);
-return '';
-}
-};
-
 
 
 // Helper function to get proper role display label
-const getRoleDisplayLabel = (roleName) => {
+window.getRoleDisplayLabel = function(roleName) {
 // Map of role names to display labels
 const roleLabels = {
 'super_admin': 'Super Admin',
@@ -805,301 +552,13 @@ return 'Error';
 };
 
 
-
-
-
-// Default users (in production, this would come from a database)
-const DEFAULT_USERS = [
-{
-id: 1,
-name: 'Admin User',
-email: 'admin@fantopark.com',
-password: 'admin123',
-role: 'super_admin',
-department: 'Administration',
-status: 'active',
-created_date: '2024-01-01'
-},
-{
-id: 2,
-name: 'Varun',
-email: 'varun@fantopark.com',
-password: 'sales123',
-role: 'sales_manager',
-department: 'Sales',
-status: 'active',
-created_date: '2024-01-15'
-},
-{
-id: 3,
-name: 'Pratik',
-email: 'pratik@fantopark.com',
-password: 'sales123',
-role: 'sales_executive',
-department: 'Sales',
-status: 'active',
-created_date: '2024-01-15'
-},
-{
-id: 4,
-name: 'Ankita',
-email: 'ankita@fantopark.com',
-password: 'sales123',
-role: 'sales_executive',
-department: 'Sales',
-status: 'active',
-created_date: '2024-01-15'
-},
-{
-id: 5,
-name: 'Amit',
-email: 'amit@fantopark.com',
-password: 'sales123',
-role: 'sales_executive',
-department: 'Sales',
-status: 'active',
-created_date: '2024-01-15'
-},
-{
-id: 6,
-name: 'Amisha',
-email: 'amisha@fantopark.com',
-password: 'sales123',
-role: 'sales_executive',
-department: 'Sales',
-status: 'active',
-created_date: '2024-01-15'
-},
-{
-id: 7,
-name: 'Manmeet',
-email: 'manmeet@fantopark.com',
-password: 'sales123',
-role: 'sales_executive',
-department: 'Sales',
-status: 'active',
-created_date: '2024-01-15'
-},
-{
-id: 8,
-name: 'Akshay Singh',
-email: 'akshay@fantopark.com',
-password: 'supply123',
-role: 'supply_sales_service_manager',
-department: 'Supply Chain',
-status: 'active',
-created_date: '2024-01-20'
-},
-{
-id: 9,
-name: 'Shafeeq',
-email: 'shafeeq@fantopark.com',
-password: 'supply123',
-role: 'supply_sales_service_manager',
-department: 'Supply Chain',
-status: 'active',
-created_date: '2024-01-20'
-},
-{
-id: 10,
-name: 'Ankit',
-email: 'ankit@fantopark.com',
-password: 'supply123',
-role: 'supply_sales_service_manager',
-department: 'Supply Chain',
-status: 'active',
-created_date: '2024-01-20'
-},
-{
-id: 11,
-name: 'Finance Manager',
-email: 'finance@fantopark.com',
-password: 'finance123',
-role: 'finance_manager',
-department: 'Finance',
-status: 'active',
-created_date: '2024-01-10'
-}
-];
-
-// Lead and Order statuses (unchanged)
-const LEAD_STATUSES = {
-unassigned: { 
-label: 'Unassigned', 
-color: 'bg-gray-100 text-gray-800', 
-next: ['assigned', 'attempt_1', 'attempt_2', 'attempt_3'] 
-},
-assigned: { 
-label: 'Assigned', 
-color: 'bg-blue-100 text-blue-800', 
-next: ['contacted', 'attempt_1', 'attempt_2', 'attempt_3'] 
-},
-contacted: { 
-label: 'Contacted', 
-color: 'bg-yellow-100 text-yellow-800', 
-next: ['qualified', 'junk', 'pickup_later'] // Added pickup_later
-},
-attempt_1: { 
-label: 'Attempt 1', 
-color: 'bg-yellow-50 text-yellow-700', 
-next: ['contacted', 'attempt_2', 'junk', 'pickup_later'] // Added pickup_later
-},
-attempt_2: { 
-label: 'Attempt 2', 
-color: 'bg-orange-50 text-orange-700', 
-next: ['contacted', 'attempt_3', 'junk', 'pickup_later'] // Added pickup_later
-},
-attempt_3: { 
-label: 'Attempt 3', 
-color: 'bg-red-50 text-red-700', 
-next: ['contacted', 'junk', 'pickup_later'] // Added pickup_later
-},
-qualified: { 
-label: 'Qualified', 
-color: 'bg-green-100 text-green-800', 
-next: ['hot', 'warm', 'cold', 'pickup_later'] // Added pickup_later
-},
-junk: { 
-label: 'Junk', 
-color: 'bg-red-100 text-red-800', 
-next: [] 
-},
-hot: { 
-label: 'Hot Lead', 
-color: 'bg-red-100 text-red-800', 
-next: ['quote_requested', 'converted', 'dropped', 'pickup_later'], // Added pickup_later
-temperature: 'hot'
-},
-warm: { 
-label: 'Warm Lead', 
-color: 'bg-orange-100 text-orange-800', 
-next: ['quote_requested', 'converted', 'dropped', 'pickup_later'], // Added pickup_later
-temperature: 'warm'
-},
-cold: { 
-label: 'Cold Lead', 
-color: 'bg-blue-100 text-blue-800', 
-next: ['quote_requested', 'converted', 'dropped', 'pickup_later'], // Added pickup_later
-temperature: 'cold'
-},
-quote_requested: {
-label: 'Quote Requested',
-color: 'bg-purple-100 text-purple-800',
-next: ['converted', 'dropped', 'pickup_later'], // Added pickup_later
-parallel: true
-},
-converted: { 
-label: 'Converted', 
-color: 'bg-green-100 text-green-800', 
-next: ['payment', 'payment_post_service', 'payment_received', 'pickup_later'] // Added pickup_later
-},
-payment_received: { 
-label: 'Payment Received', 
-color: 'bg-green-100 text-green-800', 
-next: [] 
-},
-dropped: { 
-label: 'Dropped', 
-color: 'bg-gray-100 text-gray-800', 
-next: ['pickup_later'] // Added pickup_later
-},
-payment: { 
-label: 'Payment Received',
-color: 'bg-emerald-100 text-emerald-800', 
-next: [] 
-},
-payment_post_service: {
-label: 'Payment Post Service',
-color: 'bg-purple-100 text-purple-800',
-next: ['payment']
-},
-// NEW: Pick Up Later status
-pickup_later: {
-label: 'Pick Up Later',
-color: 'bg-indigo-100 text-indigo-800',
-next: ['contacted', 'qualified', 'hot', 'warm', 'cold', 'quote_requested', 'converted', 'dropped'],
-requires_followup_date: true
-}
-};
-
-
-
-const ORDER_STATUSES = {
-pending_approval: { 
-label: 'Pending Approval', 
-color: 'bg-yellow-100 text-yellow-800', 
-next: ['approved', 'rejected'] 
-},
-approved: { 
-label: 'Approved', 
-color: 'bg-green-100 text-green-800', 
-next: ['service_assigned'] 
-},
-service_assigned: { 
-label: 'Service Assigned', 
-color: 'bg-blue-100 text-blue-800', 
-next: ['completed'] 
-},
-completed: { 
-label: 'Completed', 
-color: 'bg-gray-100 text-gray-800', 
-next: [] 
-},
-rejected: { 
-label: 'Rejected', 
-color: 'bg-red-100 text-red-800', 
-next: [] 
-}
-};
-
-
-
-// Add this after ORDER_STATUSES
-const INDIAN_STATES = [
-'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 
-'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 
-'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 
-'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 
-'Uttarakhand', 'West Bengal', 'Andaman and Nicobar Islands', 'Chandigarh', 
-'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 
-'Lakshadweep', 'Puducherry'
-];
-
-// Team configurations removed - now using dynamic users from database
-
-const getStatusIcon = (status) => {
-const statusIcons = {
-'qualified': '✅',
-'junk': '🗑️',
-'hot': '🔥',
-'warm': '🌤️',
-'cold': '❄️',
-'quote_requested': '📋',
-'converted': '💰',
-'dropped': '❌',
-'pickup_later': '⏰',
-'contacted': '📞',
-'attempt_1': '📞¹',
-'attempt_2': '📞²',
-'attempt_3': '📞³',
-'payment': '💳',
-'payment_post_service': '📅',
-'payment_received': '✅'
-};
-
-
-return statusIcons[status] || '📝';
-};
-
-
-
 // Replace existing calculateGST function
 
 // Helper function to get lead temperature (preserves temperature through parallel stages)
 const getLeadTemperature = (lead) => {
 // If current status has temperature, use it
-if (LEAD_STATUSES[lead.status]?.temperature) {
-return LEAD_STATUSES[lead.status].temperature;
+if (window.LEAD_STATUSES[lead.status]?.temperature) {
+return window.LEAD_STATUSES[lead.status].temperature;
 }
 
 // If it's a parallel stage, get temperature from lead data
@@ -1447,7 +906,7 @@ const handlePaymentInputChange = (field, value) => {
     
     // Handle TCS rate changes manually
     if (field === 'tcs_rate') {
-      const baseAmount = getBaseAmount(updated);
+      const baseAmount = window.getBaseAmount(updated);
       const newTcsAmount = updated.tcs_applicable ? (baseAmount * parseFloat(value)) / 100 : 0;
       updated.tcs_amount = newTcsAmount;
       // Mark that rate was manually selected
@@ -1456,7 +915,7 @@ const handlePaymentInputChange = (field, value) => {
     
     // Auto-determine TCS applicability when customer type or currency changes
     if (['customer_type', 'event_location', 'payment_currency'].includes(field)) {
-      const baseAmount = getBaseAmount(updated);
+      const baseAmount = window.getBaseAmount(updated);
       const calculation = calculateGSTAndTCS(baseAmount, updated);
       updated.tcs_applicable = calculation.tcs.applicable;
       
@@ -1473,7 +932,7 @@ const handlePaymentInputChange = (field, value) => {
     
     // Recalculate TCS when invoice items or service fee amount changes
     if (['invoice_items', 'service_fee_amount'].includes(field)) {
-      const baseAmount = getBaseAmount(updated);
+      const baseAmount = window.getBaseAmount(updated);
       if (updated.tcs_applicable) {
         const currentTcsRate = updated.tcs_rate || 5;
         updated.tcs_amount = (baseAmount * currentTcsRate) / 100;
@@ -1493,7 +952,7 @@ alert('Order data not found');
 return;
 }
 
-if (!hasPermission('orders', 'write')) {
+if (!window.hasPermission('orders', 'write')) {
 alert('You do not have permission to edit orders');
 return;
 }
@@ -1524,7 +983,7 @@ let errorCount = 0;
 try {
 for (const [leadId, assigneeEmail] of Object.entries(bulkAssignSelections)) {
 try {
-const response = await apiCall(`/leads/${leadId}`, {
+const response = await window.apicall(`/leads/${leadId}`, {
 method: 'PUT',
 body: JSON.stringify({
 assigned_to: assigneeEmail,
@@ -1578,7 +1037,7 @@ setBulkAssignLoading(false);
 const fetchClients = async () => {
 setClientsLoading(true);
 try {
-const response = await apiCall('/clients');
+const response = await window.apicall('/clients');
 setClients(response.data || []);
 console.log(`Fetched ${response.data?.length || 0} clients`);
 } catch (error) {
@@ -1593,7 +1052,7 @@ setClientsLoading(false);
 
 const fetchUserRoles = async () => {
 try {
-const response = await apiCall('/roles');
+const response = await window.apicall('/roles');
 const roleMap = {};
 
 // Convert API roles to permission format
@@ -1611,7 +1070,7 @@ setRolesLoaded(true);
 } catch (error) {
 console.error('Failed to fetch roles:', error);
 // Fallback to hardcoded roles if API fails
-setDynamicRoles(USER_ROLES);
+setDynamicRoles(window.USER_ROLES);
 setRolesLoaded(true);
 }
 };
@@ -1631,10 +1090,10 @@ return [...prev, status];
 
 
 const handleSelectAllStatuses = () => {
-if (selectedStatusFilters.length === Object.keys(LEAD_STATUSES).length) {
+if (selectedStatusFilters.length === Object.keys(window.LEAD_STATUSES).length) {
 setSelectedStatusFilters([]);
 } else {
-setSelectedStatusFilters(Object.keys(LEAD_STATUSES));
+setSelectedStatusFilters(Object.keys(window.LEAD_STATUSES));
 }
 };
 
@@ -1659,7 +1118,7 @@ return;
 
 setPhoneCheckLoading(true);
 try {
-const response = await apiCall(`/leads/check-phone/${normalizedPhone}`);
+const response = await window.apicall(`/leads/check-phone/${normalizedPhone}`);
 if (response.exists && response.suggestion) {
 setClientSuggestion(response.suggestion);
 setShowClientSuggestion(true);
@@ -1726,8 +1185,8 @@ const getStatusFilterDisplayText = () => {
 if (selectedStatusFilters.length === 0) {
 return 'All Statuses';
 } else if (selectedStatusFilters.length === 1) {
-return LEAD_STATUSES[selectedStatusFilters[0]].label;
-} else if (selectedStatusFilters.length === Object.keys(LEAD_STATUSES).length) {
+return window.LEAD_STATUSES[selectedStatusFilters[0]].label;
+} else if (selectedStatusFilters.length === Object.keys(window.LEAD_STATUSES).length) {
 return 'All Statuses';
 } else {
 return `${selectedStatusFilters.length} statuses selected`;
@@ -1738,7 +1197,7 @@ return `${selectedStatusFilters.length} statuses selected`;
 
 const fetchStadiums = async () => {
 try {
-const response = await apiCall('/stadiums');
+const response = await window.apicall('/stadiums');
 setStadiums(response.data || []);
 console.log('✅ Loaded', response.data?.length || 0, 'stadiums');
 } catch (error) {
@@ -1766,7 +1225,7 @@ updated_date: new Date().toISOString()
 
 if (editingStadium) {
 // Update existing stadium
-const response = await apiCall(`/stadiums/${editingStadium.id}`, {
+const response = await window.apicall(`/stadiums/${editingStadium.id}`, {
 method: 'PUT',
 body: JSON.stringify({ ...stadiumData, id: editingStadium.id })
 });
@@ -1777,7 +1236,7 @@ stadium.id === editingStadium.id ? response.data : stadium
 alert('✅ Stadium updated successfully!');
 } else {
 // Create new stadium
-const response = await apiCall('/stadiums', {
+const response = await window.apicall('/stadiums', {
 method: 'POST',
 body: JSON.stringify(stadiumData)
 });
@@ -1802,7 +1261,7 @@ const handleDeleteStadium = async (stadiumId, stadiumName) => {
 if (!confirm(`Are you sure you want to delete "${stadiumName}"?`)) return;
 
 try {
-await apiCall(`/stadiums/${stadiumId}`, { method: 'DELETE' });
+await window.apicall(`/stadiums/${stadiumId}`, { method: 'DELETE' });
 setStadiums(prev => prev.filter(stadium => stadium.id !== stadiumId));
 alert('✅ Stadium deleted successfully!');
 } catch (error) {
@@ -1877,7 +1336,7 @@ updateData.approved_by = null;
 }
 
 // Update in backend
-await apiCall('/orders/' + (orderId), {
+await window.apicall('/orders/' + (orderId), {
 method: 'PUT',
 body: JSON.stringify(updateData)
 });
@@ -1918,12 +1377,12 @@ if (!isLoggedIn || !authToken) return;
 
 try {
 const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData, clientsData] = await Promise.all([
-apiCall('/leads').catch(() => ({ data: [] })),
-apiCall('/inventory').catch(() => ({ data: [] })),
-apiCall('/orders').catch(() => ({ data: [] })),
-apiCall('/invoices').catch(() => ({ data: [] })),
-apiCall('/deliveries').catch(() => ({ data: [] })),
-apiCall('/clients').catch(() => ({ data: [] }))
+window.apicall('/leads').catch(() => ({ data: [] })),
+window.apicall('/inventory').catch(() => ({ data: [] })),
+window.apicall('/orders').catch(() => ({ data: [] })),
+window.apicall('/invoices').catch(() => ({ data: [] })),
+window.apicall('/deliveries').catch(() => ({ data: [] })),
+window.apicall('/clients').catch(() => ({ data: [] }))
 ]);
 
 setLeads(leadsData.data || []);
@@ -1982,99 +1441,6 @@ const [searchQuery, setSearchQuery] = useState('');
 const [statusFilter, setStatusFilter] = useState('all');
 // Google Cloud Storage Integration
 // Google Cloud Storage Integration
-const UPLOAD_URL_FUNCTION = 'https://asia-south1-enduring-wharf-464005-h7.cloudfunctions.net/getSignedUploadUrl';
-const READ_URL_FUNCTION = 'https://asia-south1-enduring-wharf-464005-h7.cloudfunctions.net/getSignedReadUrl';
-
-// Get signed URL for uploading
-const getUploadUrl = async (fileName, fileType, documentType) => {
-try {
-const response = await fetch(UPLOAD_URL_FUNCTION, {
-method: 'POST',
-headers: {
-'Content-Type': 'application/json'},
-body: JSON.stringify({
-fileName,
-fileType,
-documentType
-})
-});
-
-if (!response.ok) {
-const error = await response.json();
-throw new Error(error.error || 'Failed to get upload URL');
-}
-
-return await response.json();
-} catch (error) {
-console.error('Error getting upload URL:', error);
-throw error;
-}
-};
-
-
-
-// Upload file to Google Cloud Storage
-const uploadFileToGCS = async (file, documentType) => {
-try {
-// Step 1: Get signed upload URL
-const { uploadUrl, filePath, publicUrl } = await getUploadUrl(
-file.name,
-file.type,
-documentType
-);
-
-// Step 2: Upload file directly to GCS
-const uploadResponse = await fetch(uploadUrl, {
-method: 'PUT',
-headers: {
-'Content-Type': file.type},
-body: file
-});
-
-if (!uploadResponse.ok) {
-throw new Error('Failed to upload file to storage');
-}
-
-// Return file information
-return {
-filePath,
-publicUrl,
-originalName: file.name,
-size: file.size,
-type: file.type,
-uploadedAt: new Date().toISOString()
-};
-
-
-} catch (error) {
-console.error('Upload error:', error);
-throw error;
-}
-};
-
-
-
-// Get signed URL for reading/viewing files
-const getFileViewUrl = async (filePath) => {
-try {
-const response = await fetch(READ_URL_FUNCTION, {
-method: 'POST',
-headers: {
-'Content-Type': 'application/json'},
-body: JSON.stringify({ filePath })
-});
-
-if (!response.ok) {
-throw new Error('Failed to get file URL');
-}
-
-const data = await response.json();
-return data.url;
-} catch (error) {
-console.error('Error getting file URL:', error);
-return null;
-}
-};
 
 
 const [showOrderDetail, setShowOrderDetail] = useState(false);
@@ -2198,7 +1564,7 @@ tempValue: null
 
 // Permission check function
 // Updated Permission check function with dynamic roles
-const hasPermission = (module, action) => {
+window.hasPermission = function(module, action) {
 if (user?.role === 'super_admin') return true;
 if (!user || !user.role) {
 console.log('No user or role found');
@@ -2206,7 +1572,7 @@ return false;
 }
 
 // Use dynamic roles if loaded, otherwise fallback to hardcoded
-const availableRoles = rolesLoaded ? dynamicRoles : USER_ROLES;
+const availableRoles = rolesLoaded ? dynamicRoles : window.USER_ROLES;
 const userRole = availableRoles[user.role];
 
 if (!userRole) {
@@ -2233,10 +1599,10 @@ if (!user) return false;
 // My Actions is available to all logged-in users
 if (tabId === 'myactions') return true;
 // Reminders available to users who can read leads
-if (tabId === 'reminders') return hasPermission('leads', 'read');
+if (tabId === 'reminders') return window.hasPermission('leads', 'read');
 // Sports Calendar available to users who can read leads (for now, or adjust as needed)
-if (tabId === 'sports-calendar') return hasPermission('leads', 'read');
-return hasPermission(tabId, 'read');
+if (tabId === 'sports-calendar') return window.hasPermission('leads', 'read');
+return window.hasPermission(tabId, 'read');
 };
 
 
@@ -2417,7 +1783,7 @@ document.documentElement.classList.remove('dark');
 }, [darkMode]);
 // Chart initialization
 useEffect(() => {
-if (isLoggedIn && hasPermission('finance', 'read')) {
+if (isLoggedIn && window.hasPermission('finance', 'read')) {
 const chartElement = document.getElementById('receivablesPieChart');
 if (chartElement && receivables.filter(r => r.status === 'pending').length > 0) {
 const ctx = chartElement.getContext('2d');
@@ -2476,7 +1842,7 @@ return () => clearInterval(interval);
 // ADD this new useEffect after your existing ones:
 useEffect(() => {
 if (users.length === 0) {
-setUsers(DEFAULT_USERS);
+setUsers(window.DEFAULT_USERS);
 }
 }, []);
 // Fetch all users on app initialization
@@ -2537,7 +1903,7 @@ assigned_date: new Date().toISOString()
 
 
 
-await apiCall('/orders/' + (orderId), {
+await window.apicall('/orders/' + (orderId), {
 method: 'PUT',
 body: JSON.stringify(updateData)
 });
@@ -2601,7 +1967,7 @@ console.log('Delivery entry created:', newDelivery);
 
 // Save delivery to backend
 try {
-const deliveryResponse = await apiCall('/deliveries', {
+const deliveryResponse = await window.apicall('/deliveries', {
 method: 'POST',
 body: JSON.stringify(newDelivery)
 });
@@ -2632,7 +1998,7 @@ const fetchReminders = async () => {
 if (!isLoggedIn) return;
 
 try {
-const response = await apiCall('/reminders');
+const response = await window.apicall('/reminders');
 if (response.data) {
 const userReminders = response.data.filter(r => 
 r.assigned_to === user.email || 
@@ -2669,7 +2035,7 @@ console.error('Error fetching reminders:', error);
 // Complete a reminder
 const completeReminder = async (reminderId, notes = '') => {
 try {
-await apiCall(`/reminders/${reminderId}/complete`, {
+await window.apicall(`/reminders/${reminderId}/complete`, {
 method: 'POST',
 body: JSON.stringify({ notes })
 });
@@ -2696,7 +2062,7 @@ try {
 const snoozeUntil = new Date();
 snoozeUntil.setHours(snoozeUntil.getHours() + hours);
 
-await apiCall(`/reminders/${reminderId}/snooze`, {
+await window.apicall(`/reminders/${reminderId}/snooze`, {
 method: 'POST',
 body: JSON.stringify({ snooze_until: snoozeUntil.toISOString() })
 });
@@ -2718,7 +2084,7 @@ return;
 }
 
 try {
-await apiCall(`/reminders/${reminderId}`, {
+await window.apicall(`/reminders/${reminderId}`, {
 method: 'DELETE'
 });
 
@@ -2823,7 +2189,7 @@ React.createElement('h3', { className: 'font-semibold mb-2' }, 'Approval Notes')
 React.createElement('p', null, currentOrderDetail.approval_notes)
 ),
 React.createElement('div', { className: 'flex justify-end space-x-2 mt-6' },
-currentOrderDetail.status === 'pending_approval' && hasPermission('orders', 'approve') && [
+currentOrderDetail.status === 'pending_approval' && window.hasPermission('orders', 'approve') && [
 React.createElement('button', {
 key: 'approve',
 className: 'bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700',
@@ -3258,7 +2624,7 @@ e.preventDefault();
 setLoading(true);
 
 try {
-const response = await apiCall('/auth/login', {
+const response = await window.apicall('/auth/login', {
 method: 'POST',
 body: JSON.stringify({ email, password })
 });
@@ -3319,7 +2685,7 @@ console.log('Failed to clear auth state:', e);
 
 // User Management Functions
 const openUserManagement = () => {
-if (!hasPermission('users', 'read')) {
+if (!window.hasPermission('users', 'read')) {
 alert('You do not have permission to access user management');
 return;
 }
@@ -3329,11 +2695,11 @@ setShowUserManagement(true);
 
 
 const openUserForm = (editUser = null) => {
-if (editUser && !hasPermission('users', 'write')) {
+if (editUser && !window.hasPermission('users', 'write')) {
 alert('You do not have permission to edit users');
 return;
 }
-if (!editUser && !hasPermission('users', 'write')) {
+if (!editUser && !window.hasPermission('users', 'write')) {
 alert('You do not have permission to create users');
 return;
 }
@@ -3363,7 +2729,7 @@ setShowUserForm(true);
 
 
 const handleDeleteUser = async (userId, userName) => {
-if (!hasPermission('users', 'delete')) {
+if (!window.hasPermission('users', 'delete')) {
 alert('You do not have permission to delete users');
 return;
 }
@@ -3374,7 +2740,7 @@ return;
 
 setLoading(true);
 try {
-await apiCall(`/users/${userId}`, { method: 'DELETE' });
+await window.apicall(`/users/${userId}`, { method: 'DELETE' });
 console.log('User deleted successfully');
 
 // Remove user from the list
@@ -3414,7 +2780,7 @@ try {
 const endpoint = editingUser ? '/users/' + (editingUser.id) : '/users';
 const method = editingUser ? 'PUT' : 'POST';
 
-const response = await apiCall(endpoint, {
+const response = await window.apicall(endpoint, {
 method: method,
 body: JSON.stringify(userFormData)
 });
@@ -3452,7 +2818,7 @@ setLoading(false);
 
 const fetchUsers = async () => {
 try {
-const response = await apiCall('/users');
+const response = await window.apicall('/users');
 if (response.data) {
 setUsers(response.data);
 }
@@ -3543,7 +2909,7 @@ if (!confirmPaid) return;
 
 setLoading(true);
 
-const response = await apiCall(`/finance/payables/${payableId}`, {
+const response = await window.apicall(`/finance/payables/${payableId}`, {
 method: 'PUT',
 body: JSON.stringify({
 status: 'paid',
@@ -3574,11 +2940,11 @@ const fetchFinancialData = async () => {
 try {
 console.log('Fetching financial data...');
 const [ordersRes, invoicesRes, payablesRes, inventoryRes, receivablesRes] = await Promise.all([
-apiCall('/orders'),
-apiCall('/invoices'),
-apiCall('/payables'),
-apiCall('/inventory'),
-apiCall('/receivables').catch(() => ({ data: [] }))
+window.apicall('/orders'),
+window.apicall('/invoices'),
+window.apicall('/payables'),
+window.apicall('/inventory'),
+window.apicall('/receivables').catch(() => ({ data: [] }))
 ]);
 
 const ordersData = ordersRes.data || [];
@@ -3747,7 +3113,7 @@ const transactionId = prompt('Enter transaction ID (optional):');
 
 try {
 setLoading(true);
-const response = await apiCall('/receivables/record-payment/' + (receivableId), 'PUT', {
+const response = await window.apicall('/receivables/record-payment/' + (receivableId), 'PUT', {
 payment_amount: parseFloat(paymentAmount),
 payment_date: new Date().toISOString(),
 payment_mode: paymentMode,
@@ -3792,10 +3158,10 @@ console.log('Fetching actions for:', user.name, '(' + user.email + ')');
 
 // Fetch all data in parallel
 const [leadsResponse, ordersResponse, deliveriesResponse, receivablesResponse] = await Promise.all([
-apiCall('/leads').catch(err => { console.error('Failed to fetch leads:', err); return { data: [] }; }),
-apiCall('/orders').catch(err => { console.error('Failed to fetch orders:', err); return { data: [] }; }),
-apiCall('/deliveries').catch(err => { console.error('Failed to fetch deliveries:', err); return { data: [] }; }),
-apiCall('/receivables').catch(err => { console.error('Failed to fetch receivables:', err); return { data: [] }; })
+window.apicall('/leads').catch(err => { console.error('Failed to fetch leads:', err); return { data: [] }; }),
+window.apicall('/orders').catch(err => { console.error('Failed to fetch orders:', err); return { data: [] }; }),
+window.apicall('/deliveries').catch(err => { console.error('Failed to fetch deliveries:', err); return { data: [] }; }),
+window.apicall('/receivables').catch(err => { console.error('Failed to fetch receivables:', err); return { data: [] }; })
 ]);
 
 // Debug: Log all API responses
@@ -3953,7 +3319,7 @@ initializeChartsAdvanced();
 // Enhanced lead progression function with permission check
 // Status update function with permission check
 const updateLeadStatus = async (leadId, newStatus) => {
-if (!hasPermission('leads', 'progress')) {
+if (!window.hasPermission('leads', 'progress')) {
 alert('You do not have permission to progress leads');
 return;
 }
@@ -3983,7 +3349,7 @@ updated_date: new Date().toISOString()
 console.log('Updating lead with full data:', updateData);
 
 // API call to update lead status
-const response = await apiCall('/leads/' + (leadId), {
+const response = await window.apicall('/leads/' + (leadId), {
 method: 'PUT',
 body: JSON.stringify(updateData)
 });
@@ -4024,7 +3390,7 @@ alert('Please select a status');
 return;
 }
 
-const selectedStatusConfig = LEAD_STATUSES[selectedStatus];
+const selectedStatusConfig = window.LEAD_STATUSES[selectedStatus];
 
 // Check if follow-up date is required
 if (selectedStatusConfig.requires_followup_date && !followUpDate) {
@@ -4074,7 +3440,7 @@ updateData.previous_status = currentLead.status;
 }
 
 // Update lead status
-const response = await apiCall('/leads/' + currentLead.id, {
+const response = await window.apicall('/leads/' + currentLead.id, {
 method: 'PUT',
 body: JSON.stringify(updateData)
 });
@@ -4138,7 +3504,7 @@ className: 'text-lg font-medium text-gray-900 mb-4'
 
 React.createElement('p', { 
 className: 'text-sm text-gray-600 mb-4' 
-}, 'Current Status: ' + LEAD_STATUSES[currentLead?.status]?.label),
+}, 'Current Status: ' + window.LEAD_STATUSES[currentLead?.status]?.label),
 
 // Status selection
 React.createElement('div', { className: 'mb-4' },
@@ -4159,7 +3525,7 @@ value: option.value
 ),
 
 // Follow-up date field (shown when required)
-selectedStatus && LEAD_STATUSES[selectedStatus]?.requires_followup_date && 
+selectedStatus && window.LEAD_STATUSES[selectedStatus]?.requires_followup_date && 
 React.createElement('div', { className: 'mb-4' },
 React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 
 '📅 Follow-up Date: *'
@@ -4177,7 +3543,7 @@ React.createElement('p', { className: 'text-xs text-gray-500 mt-1' },
 ),
 
 // Follow-up notes field (shown when follow-up date is required)
-selectedStatus && LEAD_STATUSES[selectedStatus]?.requires_followup_date && 
+selectedStatus && window.LEAD_STATUSES[selectedStatus]?.requires_followup_date && 
 React.createElement('div', { className: 'mb-4' },
 React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 
 '📝 Follow-up Notes:'
@@ -4214,13 +3580,13 @@ className: 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hove
 
 
 const handleLeadProgression = (lead) => {
-if (!hasPermission('leads', 'progress')) {
+if (!window.hasPermission('leads', 'progress')) {
 alert('You do not have permission to progress leads');
 return;
 }
 
 const currentStatus = lead.status;
-const nextOptions = LEAD_STATUSES[currentStatus]?.next || [];
+const nextOptions = window.LEAD_STATUSES[currentStatus]?.next || [];
 
 if (nextOptions.length === 0) {
 alert('This lead is already at the final stage.');
@@ -4229,7 +3595,7 @@ return;
 
 // Check if any of the next options require follow-up date (like pickup_later)
 const hasFollowUpOptions = nextOptions.some(status => 
-LEAD_STATUSES[status]?.requires_followup_date
+window.LEAD_STATUSES[status]?.requires_followup_date
 );
 
 if (nextOptions.length === 1) {
@@ -4241,8 +3607,8 @@ setCurrentLead(lead);
 setShowStatusProgressModal(true);
 setStatusProgressOptions([{
 value: 'pickup_later',
-label: LEAD_STATUSES['pickup_later'].label,
-color: LEAD_STATUSES['pickup_later'].color,
+label: window.LEAD_STATUSES['pickup_later'].label,
+color: window.LEAD_STATUSES['pickup_later'].color,
 requires_followup_date: true
 }]);
 return;
@@ -4300,10 +3666,10 @@ setCurrentLead(lead);
 setShowStatusProgressModal(true);
 setStatusProgressOptions(nextOptions.map(status => ({
 value: status,
-label: LEAD_STATUSES[status].label,
-color: LEAD_STATUSES[status].color,
-requires_followup_date: LEAD_STATUSES[status].requires_followup_date,
-icon: getStatusIcon(status) // Helper function for icons
+label: window.LEAD_STATUSES[status].label,
+color: window.LEAD_STATUSES[status].color,
+requires_followup_date: window.LEAD_STATUSES[status].requires_followup_date,
+icon: window.getStatusIcon(status) // Helper function for icons
 })));
 } 
 // Otherwise use the existing choice modal (this handles attempts and all other flows)
@@ -4311,8 +3677,8 @@ else {
 setCurrentLeadForChoice(lead);
 setChoiceOptions(nextOptions.map(status => ({
 value: status,
-label: LEAD_STATUSES[status].label,
-icon: getStatusIcon(status)
+label: window.LEAD_STATUSES[status].label,
+icon: window.getStatusIcon(status)
 })));
 setShowChoiceModal(true);
 }
@@ -4342,7 +3708,7 @@ dual_assignment: true
 
 
 
-const response = await apiCall(`/leads/${lead.id}`, {
+const response = await window.apicall(`/leads/${lead.id}`, {
 method: 'PUT',
 body: JSON.stringify(updateData)
 });
@@ -4383,7 +3749,7 @@ setShowStatusProgressModal(true);
 setStatusProgressOptions([{
 value: choice.value,
 label: choice.label,
-color: LEAD_STATUSES[choice.value]?.color || 'bg-gray-100 text-gray-800',
+color: window.LEAD_STATUSES[choice.value]?.color || 'bg-gray-100 text-gray-800',
 requires_followup_date: true
 }]);
 setLoading(false);
@@ -4422,7 +3788,7 @@ alert('Failed to update lead status: ' + error.message);
 
 // Form handlers with permission checks
 const openAddForm = (type) => {
-if (!hasPermission(type === 'lead' ? 'leads' : (type === 'order' ? 'orders' : type), 'write')) {
+if (!window.hasPermission(type === 'lead' ? 'leads' : (type === 'order' ? 'orders' : type), 'write')) {
 alert('You do not have permission to create ' + (type) + 's');
 return;
 }
@@ -4434,7 +3800,7 @@ setShowAddForm(true);
 
 
 const openEditForm = (lead) => {
-if (!hasPermission('leads', 'write')) {
+if (!window.hasPermission('leads', 'write')) {
 alert('You do not have permission to edit leads');
 return;
 }
@@ -4465,7 +3831,7 @@ setShowEditForm(true);
 
 
 const openAssignForm = (lead) => {
-if (!hasPermission('leads', 'assign')) {
+if (!window.hasPermission('leads', 'assign')) {
 alert('You do not have permission to assign leads');
 return;
 }
@@ -4477,7 +3843,7 @@ setShowAssignForm(true);
 
 
 const openPaymentForm = (lead) => {
-  if (!hasPermission('leads', 'write')) {
+  if (!window.hasPermission('leads', 'write')) {
     alert('You do not have permission to manage payments');
     return;
   }
@@ -4590,7 +3956,7 @@ const lead = leads.find(l => l.id === leadId);
 if (!lead) {
 try {
 console.log('Fetching lead from API:', leadId);
-const response = await apiCall('/leads/' + leadId);
+const response = await window.apicall('/leads/' + leadId);
 const leadData = response.data || response;
 
 setCurrentLead(leadData);
@@ -4633,7 +3999,7 @@ setShowLeadDetail(true);
 
 
 const openAllocationForm = (inventoryItem) => {
-if (!hasPermission('inventory', 'allocate')) {
+if (!window.hasPermission('inventory', 'allocate')) {
 alert('You do not have permission to allocate inventory');
 return;
 }
@@ -4650,7 +4016,7 @@ setShowAllocationForm(true);
 
 
 const openEditInventoryForm = (inventoryItem) => {
-if (!hasPermission('inventory', 'write')) {
+if (!window.hasPermission('inventory', 'write')) {
 alert('You do not have permission to edit inventory');
 return;
 }
@@ -4688,7 +4054,7 @@ inventoryData.paymentStatus = 'pending';
 }
 
 // Update inventory (this will automatically sync payables via backend)
-const response = await apiCall(`/inventory/${editingInventory.id}`, {
+const response = await window.apicall(`/inventory/${editingInventory.id}`, {
 method: 'PUT',
 body: JSON.stringify(inventoryData)
 });
@@ -4705,7 +4071,7 @@ item.id === editingInventory.id
 ));
 
 // Refresh financial data to show updated payables
-if (hasPermission('finance', 'read')) {
+if (window.hasPermission('finance', 'read')) {
 await fetchFinancialData();
 }
 
@@ -4823,7 +4189,7 @@ notes: (item.notes || '') + (item.notes ? '\n\n' : '') + 'Copied from original i
 console.log('Creating copy of inventory:', copiedData);
 
 // Call API to create the copied inventory
-const response = await apiCall('/inventory', {
+const response = await window.apicall('/inventory', {
 method: 'POST',
 body: JSON.stringify(copiedData)
 });
@@ -4852,7 +4218,7 @@ setLoading(false);
 
 
 const openDeliveryForm = (delivery) => {
-if (!hasPermission('delivery', 'write')) {
+if (!window.hasPermission('delivery', 'write')) {
 alert('You do not have permission to manage deliveries');
 return;
 }
@@ -4876,7 +4242,7 @@ setShowDeliveryForm(true);
 
 
 const openPaymentPostServiceForm = (lead) => {
-if (!hasPermission('leads', 'write')) {
+if (!window.hasPermission('leads', 'write')) {
 alert('You do not have permission to manage payment post service');
 return;
 }
@@ -4904,7 +4270,7 @@ setPaymentPostServiceData(prev => ({ ...prev, [field]: value }));
 const handlePaymentPostServiceSubmit = async (e) => {
 e.preventDefault();
 
-if (!hasPermission('leads', 'write')) {
+if (!window.hasPermission('leads', 'write')) {
 alert('You do not have permission to manage payment post service');
 return;
 }
@@ -4913,7 +4279,7 @@ setLoading(true);
 
 try {
 // Update lead status via API
-const leadResponse = await apiCall('/leads/' + (currentLead.id), {
+const leadResponse = await window.apicall('/leads/' + (currentLead.id), {
 method: 'PUT',
 body: JSON.stringify({
 status: 'payment_post_service',
@@ -4967,7 +4333,7 @@ assigned_to: ''  // Will be assigned later
 // Create order in backend
 try {
 console.log('Creating payment post service order:', JSON.stringify(newOrder, null, 2));
-const orderResponse = await apiCall('/orders', {
+const orderResponse = await window.apicall('/orders', {
 method: 'POST',
 body: JSON.stringify(newOrder)
 });
@@ -5045,7 +4411,7 @@ n.id === notification.id
 
 const handleDeliverySubmit = async (e) => {
 e.preventDefault();
-if (!hasPermission('delivery', 'write')) {
+if (!window.hasPermission('delivery', 'write')) {
 alert('You do not have permission to manage deliveries');
 return;
 }
@@ -5057,7 +4423,7 @@ await new Promise(resolve => setTimeout(resolve, 1000));
 
 // Update delivery in backend
 try {
-await apiCall('/deliveries/' + (currentDelivery.id), {
+await window.apicall('/deliveries/' + (currentDelivery.id), {
 method: 'PUT',
 body: JSON.stringify({
 ...currentDelivery,
@@ -5096,7 +4462,7 @@ alert('Failed to schedule delivery. Please try again.');
 
 
 const deleteDelivery = async (deliveryId) => {
-if (!hasPermission('delivery', 'write')) {
+if (!window.hasPermission('delivery', 'write')) {
 alert('You do not have permission to delete deliveries');
 return;
 }
@@ -5107,7 +4473,7 @@ return;
 
 setLoading(true);
 try {
-await apiCall('/deliveries/' + (deliveryId), {
+await window.apicall('/deliveries/' + (deliveryId), {
 method: 'DELETE'
 });
 
@@ -5201,7 +4567,7 @@ const modulePermissions = {
 
 
 
-if (!hasPermission(modulePermissions[type], 'delete')) {
+if (!window.hasPermission(modulePermissions[type], 'delete')) {
 alert('You do not have permission to delete ' + (type));
 return;
 }
@@ -5216,7 +4582,7 @@ if (type === 'orders') {
 console.log("Deleting order permanently");
 try {
 // Actually delete the order
-await apiCall('/' + (type) + '/' + (id), {
+await window.apicall('/' + (type) + '/' + (id), {
 method: 'DELETE'
 });
 
@@ -5233,7 +4599,7 @@ console.log("Delete error details:", deleteError.message, deleteError.status);
 if (deleteError.message && (deleteError.message.includes('404') || deleteError.message.includes('405'))) {
 console.log("Backend doesn't support DELETE, marking as deleted");
 try {
-await apiCall('/orders/' + (id), {
+await window.apicall('/orders/' + (id), {
 method: 'PUT',
 body: JSON.stringify({
 status: 'deleted',
@@ -5261,7 +4627,7 @@ alert('Order cancelled successfully!');
 // For leads and inventory, try actual DELETE
 try {
 console.log("Making API call to:", '/' + (type) + '/' + (id));
-await apiCall('/' + (type) + '/' + (id), {
+await window.apicall('/' + (type) + '/' + (id), {
 method: 'DELETE'
 });
 
@@ -5312,7 +4678,7 @@ React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-
 React.createElement('div', { className: 'sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center' },
 React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 'User Management'),
 React.createElement('div', { className: 'flex space-x-2' },
-hasPermission('users', 'write') && React.createElement('button', {
+window.hasPermission('users', 'write') && React.createElement('button', {
 onClick: () => openUserForm(user),
 className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
 }, '+ Add User'),
@@ -5351,7 +4717,7 @@ user.role === 'admin' ? 'bg-blue-100 text-blue-800' :
 user.role.includes('manager') ? 'bg-green-100 text-green-800' :
 'bg-gray-100 text-gray-800'
 }`
-}, getRoleDisplayLabel(user.role))
+}, window.getRoleDisplayLabel(user.role))
 ),
 React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, user.department),
 React.createElement('td', { className: 'px-6 py-4' },
@@ -5366,11 +4732,11 @@ new Date(user.created_date).toLocaleDateString()
 ),
 React.createElement('td', { className: 'px-6 py-4' },
 React.createElement('div', { className: 'flex space-x-2' },
-hasPermission('users', 'write') && React.createElement('button', {
+window.hasPermission('users', 'write') && React.createElement('button', {
 onClick: () => openUserForm(),
 className: 'text-blue-600 hover:text-blue-900 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50'
 }, 'Edit'),
-hasPermission('users', 'delete') && user.id !== 1 && React.createElement('button', {
+window.hasPermission('users', 'delete') && user.id !== 1 && React.createElement('button', {
 onClick: () => handleDeleteUser(user.id, user.name),
 className: 'text-red-600 hover:text-red-900 text-sm px-2 py-1 rounded border border-red-200 hover:bg-red-50',
 disabled: loading
@@ -5537,7 +4903,7 @@ const exportEventsToExcel = async () => {
     if (calendarFilters.priority) params.append('priority', calendarFilters.priority);
     params.append('sort_by', 'date'); // Default sort by date
 
-    const response = await fetch(`${API_URL}/events/export/excel?${params.toString()}`, {
+    const response = await fetch(`${window.API_CONFIG.API_URL}/events/export/excel?${params.toString()}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
@@ -5582,7 +4948,7 @@ const importEventsFromExcel = async (file) => {
 
         console.log('Parsed Excel data:', jsonData);
 
-        const response = await fetch(`${API_URL}/events/import/excel`, {
+        const response = await fetch(`${window.API_CONFIG.API_URL}/events/import/excel`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -5829,7 +5195,7 @@ onClick: () => handleMarkPaymentFromReceivable(rec),
 title: 'Mark Payment Received'
 }, 'Mark Payment'),
 React.createElement('button', {
-onClick: () => deleteReceivable(rec.id),
+onClick: () => window.deleteReceivable(rec.id, setLoading, setReceivables, fetchData),
 className: 'text-red-600 hover:text-red-800 font-medium',
 title: 'Delete Receivable'
 }, '🗑️ Delete')
@@ -5909,7 +5275,7 @@ pay.inventoryId ? '✏️ Edit Payment' : '✅ Mark as Paid'
 className: 'text-gray-500 text-sm' 
 }, 'Paid'),
 React.createElement('button', {
-onClick: () => deletePayable(pay.id),
+onClick: () => window.deletePayable(payable.id, setLoading, setFinancialData, fetchData),
 className: 'text-red-600 hover:text-red-800 font-medium',
 title: 'Delete Payable'
 }, '🗑️ Delete')
@@ -6376,7 +5742,7 @@ if (!leadId) return;
 
 try {
 setLoading(true);
-const response = await apiCall(`/communications/lead/${leadId}`);
+const response = await window.apicall(`/communications/lead/${leadId}`);
 setCommunications(response.data || []);
 } catch (error) {
 console.error('Error fetching communications:', error);
@@ -6393,7 +5759,7 @@ fetchCommunications();
 
 const addCommunication = async (commData) => {
 try {
-const response = await apiCall('/communications', {
+const response = await window.apicall('/communications', {
 method: 'POST',
 body: JSON.stringify({
 ...commData,
@@ -6558,7 +5924,7 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
     
     try {
       loadingInProgress.current = true;
-      const response = await apiCall('/assignment-rules');
+      const response = await window.apicall('/assignment-rules');
       if (mounted.current) {
         setRules(response.data || []);
       }
@@ -6583,7 +5949,7 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
           setAvailableUsers(window.users);
         }
       } else {
-        const response = await apiCall('/users');
+        const response = await window.apicall('/users');
         if (mounted.current) {
           setAvailableUsers(response.data || []);
         }
@@ -6651,7 +6017,7 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
 
   const toggleRule = async (ruleId, currentStatus) => {
     try {
-      await apiCall(`/assignment-rules/${ruleId}`, {
+      await window.apicall(`/assignment-rules/${ruleId}`, {
         method: 'PUT',
         body: JSON.stringify({ is_active: !currentStatus })
       });
@@ -6665,7 +6031,7 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
     if (!confirm('Are you sure you want to delete this assignment rule?')) return;
 
     try {
-      await apiCall(`/assignment-rules/${ruleId}`, { 
+      await window.apicall(`/assignment-rules/${ruleId}`, { 
         method: 'DELETE' 
       });
       await loadRules(); // Refresh rules after delete
@@ -6685,12 +6051,12 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
       };
 
       if (editingRule) {
-        await apiCall(`/assignment-rules/${editingRule.id}`, {
+        await window.apicall(`/assignment-rules/${editingRule.id}`, {
           method: 'PUT',
           body: JSON.stringify(ruleData)
         });
       } else {
-        await apiCall('/assignment-rules', {
+        await window.apicall('/assignment-rules', {
           method: 'POST',
           body: JSON.stringify(ruleData)
         });
@@ -6750,7 +6116,7 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
   const testRule = async () => {
     try {
       setTestingRule(true);
-      const response = await apiCall('/assignment-rules/test', {
+      const response = await window.apicall('/assignment-rules/test', {
         method: 'POST'
       });
       
@@ -6776,7 +6142,7 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
       setIsRunningAssignment(true);
       setAssignmentResults(null);
 
-      const response = await apiCall('/assignment-rules/run-assignment', {
+      const response = await window.apicall('/assignment-rules/run-assignment', {
         method: 'POST'
       });
 
@@ -7004,7 +6370,7 @@ AssignmentRulesManager.displayName = 'AssignmentRulesManager';
 const refreshAssignmentRules = async () => {
 try {
 // This will clear any cached assignment data and reload fresh rules
-await apiCall('/assignment-rules/refresh', 'POST');
+await window.apicall('/assignment-rules/refresh', 'POST');
 } catch (error) {
 console.log('Assignment rules refresh failed (non-critical):', error);
 // Non-critical - rules will still work
@@ -7174,7 +6540,7 @@ React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:tex
 ),
 user && React.createElement('div', { className: 'mt-4 p-3 bg-blue-50 rounded-lg' },
 React.createElement('div', { className: 'text-sm font-medium text-blue-900' }, user.name),
-React.createElement('div', { className: 'text-xs text-blue-600' }, USER_ROLES[user.role]?.label || user.role),
+React.createElement('div', { className: 'text-xs text-blue-600' }, window.USER_ROLES[user.role]?.label || user.role),
 React.createElement('div', { className: 'text-xs text-blue-500' }, user.department)
 )
 ),
@@ -7190,7 +6556,7 @@ item.label
 )
 ),
 // User Management - only for users with permission
-hasPermission('users', 'read') && React.createElement('button', {
+window.hasPermission('users', 'read') && React.createElement('button', {
 onClick: openUserManagement,
 className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 text-gray-700'
 },
@@ -7309,7 +6675,7 @@ React.createElement('p', { className: 'text-sm text-gray-600' },
 ),
 lead.assigned_to && React.createElement('p', { 
 className: 'text-xs text-gray-500' 
-}, `Assigned to: ${getUserDisplayName(lead.assigned_to, users)}`)
+}, `Assigned to: ${window.getUserDisplayName(lead.assigned_to, users)}`)
 ),
 React.createElement('span', { 
 className: 'px-2 py-1 text-xs rounded ' + 
@@ -7330,7 +6696,7 @@ React.createElement('p', { className: 'text-gray-500 text-center py-8' }, 'No le
 React.createElement('div', { className: 'bg-white rounded-lg shadow border p-6' },
 React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-4' }, 'Quick Actions'),
 React.createElement('div', { className: 'space-y-3' },
-hasPermission('leads', 'write') && React.createElement('button', {
+window.hasPermission('leads', 'write') && React.createElement('button', {
 onClick: () => openAddForm('lead'),
 className: 'w-full flex items-center px-4 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors'
 },
@@ -7338,7 +6704,7 @@ React.createElement('span', { className: 'mr-3' }, '+'),
 'Add New Lead'
 ),
 
-hasPermission('inventory', 'write') && React.createElement('button', {
+window.hasPermission('inventory', 'write') && React.createElement('button', {
 onClick: openAddInventoryForm,
 className: 'w-full flex items-center px-4 py-3 text-purple-600 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors'
 },
@@ -7439,7 +6805,7 @@ React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium 
 ),
 React.createElement('tbody', { className: 'divide-y divide-gray-200' },
 myLeads.map(lead => {
-const status = LEAD_STATUSES[lead.status] || { label: lead.status, color: 'bg-gray-100 text-gray-800' };
+const status = window.LEAD_STATUSES[lead.status] || { label: lead.status, color: 'bg-gray-100 text-gray-800' };
 return React.createElement('tr', { key: lead.id, className: 'hover:bg-gray-50' },
 React.createElement('td', { className: 'px-4 py-3' },
 React.createElement('div', null,
@@ -7580,7 +6946,7 @@ React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:tex
 lead.potential_value ? '₹' + lead.potential_value.toLocaleString() : '-'
 ),
 React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' }, 
-getUserDisplayName(lead.assigned_to, users)
+window.getUserDisplayName(lead.assigned_to, users)
 ),
 React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-500 dark:text-gray-400' }, 
 lead.quote_requested_date ? new Date(lead.quote_requested_date).toLocaleDateString() : '-'
@@ -7674,7 +7040,7 @@ alert('Delivery status update coming soon!');
 const approveOrder = async (orderId) => {
 if (confirm('Are you sure you want to approve this order?')) {
 try {
-await apiCall('/orders/' + (orderId), {
+await window.apicall('/orders/' + (orderId), {
 method: 'PUT',
 body: JSON.stringify({ status: 'approved' })
 });
@@ -7702,7 +7068,7 @@ setShowLeadDetail(true);
 
 // FIXED: Add this BEFORE the renderContent function to create a stable AssignmentRulesTab
 const AssignmentRulesTab = React.useMemo(() => {
-  return hasPermission('leads', 'assign') ? 
+  return window.hasPermission('leads', 'assign') ? 
     React.createElement(AssignmentRulesManager, { 
       key: 'assignment-rules-stable',
       currentUser: user 
@@ -7727,7 +7093,7 @@ const renderContent = () => {
       return renderDashboardContent();
 
     case 'leads':
-      return hasPermission('leads', 'read') ? renderLeadsContent() : 
+      return window.hasPermission('leads', 'read') ? renderLeadsContent() : 
         React.createElement('div', { className: 'text-center py-12' },
           React.createElement('p', { className: 'text-red-500 text-lg' }, 
             'Access Denied: You do not have permission to view leads.'
@@ -7735,7 +7101,7 @@ const renderContent = () => {
         );
 
     case 'inventory':
-      return hasPermission('inventory', 'read') ? renderInventoryContent() : 
+      return window.hasPermission('inventory', 'read') ? renderInventoryContent() : 
         React.createElement('div', { className: 'text-center py-12' },
           React.createElement('p', { className: 'text-red-500 text-lg' }, 
             'Access Denied: You do not have permission to view inventory.'
@@ -7743,7 +7109,7 @@ const renderContent = () => {
         );
 
     case 'orders':
-      return hasPermission('orders', 'read') ? renderOrdersContent() : 
+      return window.hasPermission('orders', 'read') ? renderOrdersContent() : 
         React.createElement('div', { className: 'text-center py-12' },
           React.createElement('p', { className: 'text-red-500 text-lg' }, 
             'Access Denied: You do not have permission to view orders.'
@@ -7751,7 +7117,7 @@ const renderContent = () => {
         );
 
     case 'finance':
-      return hasPermission('finance', 'read') ? renderFinancials() : 
+      return window.hasPermission('finance', 'read') ? renderFinancials() : 
         React.createElement('div', { className: 'text-center py-12' },
           React.createElement('p', { className: 'text-red-500 text-lg' }, 
             'Access Denied: You do not have permission to view financials.'
@@ -7763,7 +7129,7 @@ const renderContent = () => {
       return AssignmentRulesTab;
 
     case 'delivery':
-      return hasPermission('delivery', 'read') ? renderDeliveryContent() : 
+      return window.hasPermission('delivery', 'read') ? renderDeliveryContent() : 
         React.createElement('div', { className: 'text-center py-12' },
           React.createElement('p', { className: 'text-red-500 text-lg' }, 
             'Access Denied: You do not have permission to view delivery.'
@@ -7771,7 +7137,7 @@ const renderContent = () => {
         );
 
     case 'users':
-      return hasPermission('users', 'read') ? renderUserManagement() : 
+      return window.hasPermission('users', 'read') ? renderUserManagement() : 
         React.createElement('div', { className: 'text-center py-12' },
           React.createElement('p', { className: 'text-red-500 text-lg' }, 
             'Access Denied: You do not have permission to view users.'
@@ -7779,13 +7145,13 @@ const renderContent = () => {
         );
 
     case 'stadiums':
-      return hasPermission('stadiums', 'read') ? renderStadiumsContent() : 
+      return window.hasPermission('stadiums', 'read') ? renderStadiumsContent() : 
         React.createElement('div', { className: 'text-center py-12' },
           React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view stadiums.')
         );
 
     case 'reminders':
-      return hasPermission('leads', 'read') ? renderRemindersContent() : 
+      return window.hasPermission('leads', 'read') ? renderRemindersContent() : 
         React.createElement('div', { className: 'text-center py-12' },
           React.createElement('p', { className: 'text-red-500 text-lg' }, 
             'Access Denied: You do not have permission to view reminders.'
@@ -7802,7 +7168,7 @@ const renderContent = () => {
       // PRESERVED: Your complete existing roles logic
       if (user?.role === 'super_admin' && !rolesInitialized) {
         setRolesInitialized(true);
-        apiCall('/roles').then(response => {
+        window.apicall('/roles').then(response => {
           setRoles(response.data || []);
         }).catch(error => {
           console.error('Failed to fetch roles:', error);
@@ -7842,7 +7208,7 @@ const renderContent = () => {
           React.createElement('button', {
             onClick: async () => {
               try {
-                const response = await apiCall('/roles/initialize', { method: 'POST', body: JSON.stringify({}) });
+                const response = await window.apicall('/roles/initialize', { method: 'POST', body: JSON.stringify({}) });
                 console.log('Default roles initialized successfully');
                 setRoles(response.data || []);
               } catch (error) {
@@ -7885,7 +7251,7 @@ const renderContent = () => {
                   onClick: async () => {
                     if (!confirm('Are you sure you want to delete this role?')) return;
                     try {
-                      await apiCall('/roles/' + (role.id), { method: 'DELETE' });
+                      await window.apicall('/roles/' + (role.id), { method: 'DELETE' });
                       alert('Role deleted successfully!');
                       roles = roles.filter(r => r._id !== role.id);
                     } catch (error) {
@@ -7933,15 +7299,15 @@ const renderContent = () => {
                 e.preventDefault();
                 try {
                   if (editingRole) {
-                    await apiCall('/roles/' + (editingRole.id), { method: 'PUT', body: JSON.stringify(roleFormData) });
+                    await window.apicall('/roles/' + (editingRole.id), { method: 'PUT', body: JSON.stringify(roleFormData) });
                     console.log('Role updated successfully');
                   } else {
-                    await apiCall('/roles', { method: 'POST', body: JSON.stringify(roleFormData) });
+                    await window.apicall('/roles', { method: 'POST', body: JSON.stringify(roleFormData) });
                     console.log('Role created successfully');
                   }
 
                   // Refresh roles
-                  const response = await apiCall('/roles');
+                  const response = await window.apicall('/roles');
                   setRoles(response.data || []);
                   setShowRoleForm(false);
                   setEditingRole(null);
@@ -8153,7 +7519,7 @@ const leadFormFields = [
 'Below ₹5 Lakhs', '₹5-10 Lakhs', '₹10-25 Lakhs', '₹25-50 Lakhs', 
 '₹50 Lakhs - ₹1 Crore', '₹1-2 Crores', '₹2-5 Crores', 'Above ₹5 Crores'
 ], required: true, section: 'financial' },
-{ name: 'status', label: 'Lead Status', type: 'select', options: Object.keys(LEAD_STATUSES), section: 'sales', editOnly: true },
+{ name: 'status', label: 'Lead Status', type: 'select', options: Object.keys(window.LEAD_STATUSES), section: 'sales', editOnly: true },
 { name: 'assigned_to', label: 'Assigned To', type: 'select', options: [...(users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role)), ...(users || []).filter(u => ['supply_executive', 'supply_sales_service_manager'].includes(u.role))], section: 'sales', editOnly: true},
 { name: 'last_quoted_price', label: 'Last Quoted Price (₹)', type: 'number', section: 'sales', editOnly: true },
 { name: 'potential_value', label: 'Potential Value (₹)', type: 'number', section: 'business' },
@@ -8243,7 +7609,7 @@ const orderFormFields = [
 // Enhanced allocation handling with permission check
 const handleAllocation = async (e) => {
 e.preventDefault();
-if (!hasPermission('inventory', 'allocate')) {
+if (!window.hasPermission('inventory', 'allocate')) {
 alert('You do not have permission to allocate inventory');
 return;
 }
@@ -8276,7 +7642,7 @@ throw new Error('Not enough tickets available');
 }
 
 // Call the fixed backend endpoint
-const response = await apiCall(`/inventory/${currentInventory.id}/allocate`, {
+const response = await window.apicall(`/inventory/${currentInventory.id}/allocate`, {
 method: 'POST',
 body: JSON.stringify({
 lead_id: allocationData.lead_id,
@@ -8320,7 +7686,7 @@ setLoading(true);
 setAllocationManagementInventory(inventoryItem);
 
 // Fetch allocations for this inventory
-const response = await apiCall(`/inventory/${inventoryItem.id}/allocations`);
+const response = await window.apicall(`/inventory/${inventoryItem.id}/allocations`);
 
 if (response.error) {
 throw new Error(response.error);
@@ -8348,7 +7714,7 @@ return;
 try {
 setLoading(true);
 
-const response = await apiCall(`/inventory/${allocationManagementInventory.id}/allocations/${allocationId}`, {
+const response = await window.apicall(`/inventory/${allocationManagementInventory.id}/allocations/${allocationId}`, {
 method: 'DELETE'
 });
 
@@ -8382,7 +7748,7 @@ setLoading(false);
 
 // ADD this enhanced order approval function
 const handleEnhancedOrderApproval = async (orderId, action, notes = '') => {
-if (!hasPermission('orders', 'approve')) {
+if (!window.hasPermission('orders', 'approve')) {
 alert('You do not have permission to approve orders');
 return;
 }
@@ -8480,7 +7846,7 @@ const renderEnhancedGSTCalculationPreview = () => {
     sum + ((item.quantity || 0) * (item.rate || 0)), 0
   ) || 0;
   
-  const baseAmount = getBaseAmount(paymentData);
+  const baseAmount = window.getBaseAmount(paymentData);
   const calculation = calculateGSTAndTCS(baseAmount, paymentData);
   const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
   const advanceAmount = parseFloat(paymentData.advance_amount) || 0;
@@ -8606,7 +7972,7 @@ const invoice = currentInvoice;
 const isIntraState = invoice.indian_state === 'Haryana' && !invoice.is_outside_india;
 
 // FIX 1: Calculate baseAmount FIRST before using it anywhere
-const baseAmount = getBaseAmount(invoice);
+const baseAmount = window.getBaseAmount(invoice);
 
 // FIX 2: Use the stored calculation from the invoice, or recalculate if needed
 let calculation;
@@ -9138,7 +8504,7 @@ React.createElement('p', { style: { fontSize: '8px' }}, 'For any queries, please
 // REPLACE your existing handleOrderApproval function with this:
 // MERGED handleOrderApproval function - includes both GST invoice and receivables creation
 const handleOrderApproval = async (orderId, action) => {
-if (!hasPermission('orders', 'approve')) {
+if (!window.hasPermission('orders', 'approve')) {
 alert('You do not have permission to approve orders');
 return;
 }
@@ -9221,7 +8587,7 @@ updateData.invoice_id = invoiceId;
 }
 
 // Send update to backend
-await apiCall('/orders/' + orderId, {
+await window.apicall('/orders/' + orderId, {
 method: 'PUT',
 body: JSON.stringify(updateData)
 });
@@ -9280,7 +8646,7 @@ event_name: order.event_name
 console.log('Creating receivable with data:', receivableData);
 
 try {
-const receivableResponse = await apiCall('/receivables', {
+const receivableResponse = await window.apicall('/receivables', {
 method: 'POST',
 body: JSON.stringify(receivableData)
 });
@@ -9304,7 +8670,7 @@ prev.map(o => o.id === orderId ? { ...o, ...updateData } : o)
 );
 
 // Refresh financial data if user has permission
-if (hasPermission('finance', 'read')) {
+if (window.hasPermission('finance', 'read')) {
 await fetchFinancialData();
 }
 
@@ -9324,73 +8690,6 @@ alert('Failed to update order status');
 }
 };
 
-
-
-// 1. Delete Receivable Function
-const deleteReceivable = async (receivableId) => {
-if (!window.confirm('Are you sure you want to delete this receivable? This action cannot be undone.')) {
-return;
-}
-
-try {
-setLoading(true);
-
-const response = await apiCall(`/receivables/${receivableId}`, {
-method: 'DELETE'
-});
-
-// Update local state - remove the deleted receivable
-setReceivables(prev => prev.filter(r => r.id !== receivableId));
-
-// Update analytics by recalculating totals
-await fetchData(); // This will refresh all data including analytics
-
-alert('Receivable deleted successfully!');
-
-} catch (error) {
-console.error('Error deleting receivable:', error);
-alert('Failed to delete receivable: ' + error.message);
-} finally {
-setLoading(false);
-}
-};
-
-
-
-// 2. Delete Payable Function  
-const deletePayable = async (payableId) => {
-if (!window.confirm('Are you sure you want to delete this payable? This action cannot be undone.')) {
-return;
-}
-
-try {
-setLoading(true);
-
-const response = await apiCall(`/payables/${payableId}`, {
-method: 'DELETE'
-});
-
-// Update financialData state instead of separate payables state
-setFinancialData(prev => ({
-...prev,
-payables: prev.payables ? prev.payables.filter(p => p.id !== payableId) : []
-}));
-
-// Update analytics by recalculating totals
-await fetchData(); // This will refresh all data including analytics
-
-alert('Payable deleted successfully!');
-
-} catch (error) {
-console.error('Error deleting payable:', error);
-alert('Failed to delete payable: ' + error.message);
-} finally {
-setLoading(false);
-}
-};
-
-
-
 const handleFormSubmit = async (e) => {
 e.preventDefault();
 setLoading(true);
@@ -9398,7 +8697,7 @@ setLoading(true);
 try {
 if (showEditForm) {
 // Update lead via API
-const response = await apiCall('/leads/' + (currentLead.id), {
+const response = await window.apicall('/leads/' + (currentLead.id), {
 method: 'PUT',
 body: JSON.stringify(formData)
 });
@@ -9432,7 +8731,7 @@ supplierInvoice: formData.supplierInvoice
 });
 
 // Update inventory via API
-const response = await apiCall('/inventory/' + (currentInventory.id), {
+const response = await window.apicall('/inventory/' + (currentInventory.id), {
 method: 'PUT',
 body: JSON.stringify(formData)
 });
@@ -9447,7 +8746,7 @@ alert('Inventory updated successfully!');
 // Create new items
 switch (currentForm) {
 case 'lead':
-const leadResponse = await apiCall('/leads', {
+const leadResponse = await window.apicall('/leads', {
 method: 'POST',
 body: JSON.stringify({
 ...formData,
@@ -9473,7 +8772,7 @@ break;
 
 case 'inventory':
 console.log('Sending inventory data:', formData);
-const invResponse = await apiCall('/inventory', {
+const invResponse = await window.apicall('/inventory', {
 method: 'POST',
 body: JSON.stringify({
 ...formData,
@@ -9505,7 +8804,7 @@ status: 'pending'
 
 console.log('Creating payable for inventory:', payableData);
 
-const payableResponse = await apiCall('/finance/payables', {
+const payableResponse = await window.apicall('/finance/payables', {
 method: 'POST',
 body: JSON.stringify(payableData)
 });
@@ -9527,7 +8826,7 @@ tickets_allocated: orderData.tickets_allocated,
 ticket_category: orderData.ticket_category,
 total_amount: orderData.total_amount
 });
-const orderResponse = await apiCall('/orders', {
+const orderResponse = await window.apicall('/orders', {
 method: 'POST',
 body: JSON.stringify({
 ...formData,
@@ -9559,7 +8858,7 @@ const handleDeleteLead = async (leadId) => {
 if (!confirm('Are you sure you want to delete this lead?')) return;
 
 try {
-await apiCall('/leads/' + (leadId), { method: 'DELETE' });
+await window.apicall('/leads/' + (leadId), { method: 'DELETE' });
 setLeads(prev => prev.filter(lead => lead.id !== leadId));
 
 // ✅ ADD: Refresh assignment rules after lead deletion
@@ -9582,7 +8881,7 @@ const togglePremiumStatus = async (leadId, isPremium) => {
   try {
     setLoading(true);
     
-    const response = await apiCall(`/leads/${leadId}`, {
+    const response = await window.apicall(`/leads/${leadId}`, {
       method: 'PUT',
       body: JSON.stringify({ is_premium: isPremium })
     });
@@ -9611,7 +8910,7 @@ const handleDeleteInventory = async (inventoryId) => {
 if (!confirm('Are you sure you want to delete this event?')) return;
 
 try {
-await apiCall('/inventory/' + (inventoryId), { method: 'DELETE' });
+await window.apicall('/inventory/' + (inventoryId), { method: 'DELETE' });
 setInventory(prev => prev.filter(item => item.id !== inventoryId));
 alert('Event deleted successfully!');
 } catch (error) {
@@ -9640,7 +8939,7 @@ console.log('❌ Value does NOT contain @ - appears to be a name');
 setLoading(true);
 
 try {
-const response = await apiCall('/leads/' + (currentLead.id), {
+const response = await window.apicall('/leads/' + (currentLead.id), {
 method: 'PUT',
 body: JSON.stringify({
 status: 'assigned',
@@ -9689,7 +8988,7 @@ console.log('Full paymentData:', paymentData);
 console.log('GST Certificate:', paymentData.gst_certificate);
 console.log('PAN Card:', paymentData.pan_card);
 
-if (!hasPermission('leads', 'write')) {
+if (!window.hasPermission('leads', 'write')) {
 alert('You do not have permission to manage payments');
 return;
 }
@@ -9724,7 +9023,7 @@ o.id === order.id
 }
 
 // FIXED: Use helper function and correct GST calculation
-const baseAmount = getBaseAmount(paymentData);
+const baseAmount = window.getBaseAmount(paymentData);
 const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
 
 // FIXED: Use the correct calculateGSTAndTCS function
@@ -9776,7 +9075,7 @@ indian_state: paymentData.indian_state
 });
 
 // FIXED: Correct API call format
-const updateResponse = await apiCall(`/orders/${existingOrder.id}`, {
+const updateResponse = await window.apicall(`/orders/${existingOrder.id}`, {
 method: 'PUT',
 body: JSON.stringify({
 // Start with existing order data
@@ -9863,7 +9162,7 @@ console.log('Calculated invoice amount with GST:', finalAmount);
 if (paidAmount >= receivableAmount) {
 // Full payment - delete the receivable
 try {
-await apiCall(`/receivables/${paymentData.receivable_id}`, {
+await window.apicall(`/receivables/${paymentData.receivable_id}`, {
 method: 'DELETE'
 });
 
@@ -9888,7 +9187,7 @@ const userChoice = confirm(
 if (userChoice) {
 // Update receivable with remaining amount
 try {
-await apiCall(`/receivables/${paymentData.receivable_id}`, {
+await window.apicall(`/receivables/${paymentData.receivable_id}`, {
 method: 'PUT',
 body: JSON.stringify({
 balance_amount: remainingAmount,
@@ -9917,12 +9216,12 @@ alert('Failed to update receivable with remaining balance');
 // Close receivable and update order total
 try {
 // Delete the receivable
-await apiCall(`/receivables/${paymentData.receivable_id}`, {
+await window.apicall(`/receivables/${paymentData.receivable_id}`, {
 method: 'DELETE'
 });
 
 // FIXED: Use existingOrder.id instead of undefined existingOrderId
-await apiCall(`/orders/${existingOrder.id}`, {
+await window.apicall(`/orders/${existingOrder.id}`, {
 method: 'PUT',
 body: JSON.stringify({
 total_amount: paidAmount,
@@ -9955,7 +9254,7 @@ alert('Failed to close receivable');
 // FIXED: Refresh orders data to ensure updated order shows correctly
 try {
 console.log('Refreshing orders after update...');
-const freshOrdersResponse = await apiCall('/orders');
+const freshOrdersResponse = await window.apicall('/orders');
 const freshOrders = freshOrdersResponse.data || freshOrdersResponse || [];
 setOrders(freshOrders);
 console.log('Orders refreshed after update:', freshOrders.length);
@@ -10033,8 +9332,8 @@ let orderResponse;
 try {
 console.log('=== CREATING ORDER WITH FIXED API CALL ===');
 
-// FIXED: Use correct apiCall format
-orderResponse = await apiCall('/orders', {
+// FIXED: Use correct window.apicall format
+orderResponse = await window.apicall('/orders', {
 method: 'POST',
 body: JSON.stringify(orderData)
 });
@@ -10096,8 +9395,8 @@ await new Promise(resolve => setTimeout(resolve, 2000));
 try {
 console.log('Verifying order was actually saved...');
 
-// FIXED: Use correct apiCall format for verification
-const verifyResponse = await apiCall('/orders');
+// FIXED: Use correct window.apicall format for verification
+const verifyResponse = await window.apicall('/orders');
 const allOrders = verifyResponse.data || verifyResponse;
 
 console.log('Total orders in backend after creation:', allOrders.length);
@@ -10130,9 +9429,9 @@ alert('⚠️ Order creation may have failed. The order count did not increase.'
 } catch (verifyError) {
 console.error('Failed to verify order creation:', verifyError);
 
-// Fallback: try using apiCall for refresh
+// Fallback: try using window.apicall for refresh
 try {
-const fallbackResponse = await apiCall('/orders');
+const fallbackResponse = await window.apicall('/orders');
 const fallbackOrders = fallbackResponse.data || fallbackResponse || [];
 setOrders(fallbackOrders);
 console.log('Fallback refresh completed, orders:', fallbackOrders.length);
@@ -10901,7 +10200,7 @@ React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4' 
 React.createElement('div', null,
 React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Assigned To'),
 React.createElement('div', { className: 'mt-1 text-sm text-gray-900' }, 
-selectedClient.assigned_to ? getUserDisplayName(selectedClient.assigned_to, users) : 'Unassigned'
+selectedClient.assigned_to ? window.getUserDisplayName(selectedClient.assigned_to, users) : 'Unassigned'
 )
 ),
 React.createElement('div', null,
@@ -10933,7 +10232,7 @@ React.createElement('span', { className: 'mr-2' }, '📋'),
 // Timeline Container
 React.createElement('div', { className: 'space-y-4' },
 sortedLeads.map((lead, index) => {
-const status = LEAD_STATUSES[lead.status] || { label: lead.status, color: 'bg-gray-100 text-gray-800' };
+const status = window.LEAD_STATUSES[lead.status] || { label: lead.status, color: 'bg-gray-100 text-gray-800' };
 const isLatest = index === sortedLeads.length - 1;
 
 return React.createElement('div', { 
@@ -11028,7 +10327,7 @@ React.createElement('button', {
   },
   className: 'text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded border'
 }, '👁️ View Details'),
-hasPermission('leads', 'write') && React.createElement('button', {
+window.hasPermission('leads', 'write') && React.createElement('button', {
   onClick: () => {
       setShowClientDetail(false);
       setSelectedClient(null);
@@ -11036,7 +10335,7 @@ hasPermission('leads', 'write') && React.createElement('button', {
   },
   className: 'text-xs text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 px-2 py-1 rounded border'
 }, '✏️ Edit Lead'),
-hasPermission('leads', 'progress') && React.createElement('button', {
+window.hasPermission('leads', 'progress') && React.createElement('button', {
   onClick: () => {
       setShowClientDetail(false);
       setSelectedClient(null);
@@ -11063,7 +10362,7 @@ React.createElement('span', { className: 'mr-2' }, '⚡'),
 'Client Actions'
 ),
 React.createElement('div', { className: 'flex flex-wrap gap-3' },
-hasPermission('leads', 'write') && React.createElement('button', {
+window.hasPermission('leads', 'write') && React.createElement('button', {
 onClick: () => {
 setShowClientDetail(false);
 setSelectedClient(null);
@@ -11104,7 +10403,7 @@ className: 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-m
 React.createElement('span', null, '+'),
 'Add New Lead for this Client'
 ),
-hasPermission('leads', 'assign') && selectedClient.total_leads > 1 && React.createElement('button', {
+window.hasPermission('leads', 'assign') && selectedClient.total_leads > 1 && React.createElement('button', {
 onClick: () => {
 // Bulk reassign functionality - placeholder for now
 if (confirm(`Reassign all ${selectedClient.total_leads} leads for this client to a new sales person?`)) {
@@ -11150,7 +10449,7 @@ className: 'bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg fon
 const renderLeadDetail = () => {
 if (!showLeadDetail || !currentLead) return null;
 
-const status = LEAD_STATUSES[currentLead.status] || { label: currentLead.status, color: 'bg-gray-100 text-gray-800', next: [] };
+const status = window.LEAD_STATUSES[currentLead.status] || { label: currentLead.status, color: 'bg-gray-100 text-gray-800', next: [] };
 const nextActions = status.next || [];
 
 return React.createElement('div', { 
@@ -11166,7 +10465,7 @@ React.createElement('span', {
 className: 'px-3 py-1 text-sm rounded-full ' + (status.color)
 }, status.label),
 currentLead.assigned_to && React.createElement('span', { className: 'text-sm text-blue-600' }, 
-'Assigned to: ' + getUserDisplayName(currentLead.assigned_to, users)
+'Assigned to: ' + window.getUserDisplayName(currentLead.assigned_to, users)
 ),
 // Show auto-assignment info if available
 currentLead.auto_assigned && React.createElement('span', { className: 'text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded' }, 
@@ -11182,14 +10481,14 @@ className: 'text-gray-400 hover:text-gray-600 text-2xl'
 
 React.createElement('div', { className: 'p-6' },
 React.createElement('div', { className: 'mb-6 flex flex-wrap gap-2' },
-hasPermission('leads', 'write') && React.createElement('button', { 
+window.hasPermission('leads', 'write') && React.createElement('button', { 
 className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
 onClick: () => {
 closeForm();
 setTimeout(() => openEditForm(currentLead), 100);
 }
 }, '✏️ Edit Lead'),
-hasPermission('leads', 'assign') && !currentLead.assigned_to && currentLead.status === 'unassigned' &&
+window.hasPermission('leads', 'assign') && !currentLead.assigned_to && currentLead.status === 'unassigned' &&
 React.createElement('button', { 
 className: 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700',
 onClick: () => {
@@ -11197,13 +10496,13 @@ closeForm();
 setTimeout(() => openAssignForm(currentLead), 100);
 }
 }, '👤 Assign'),
-hasPermission('leads', 'progress') && nextActions.length > 0 && React.createElement('button', {
+window.hasPermission('leads', 'progress') && nextActions.length > 0 && React.createElement('button', {
 className: 'bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700',
 onClick: () => {
 handleLeadProgression(currentLead);
 }
 }, '→ Progress Lead'),
-hasPermission('leads', 'write') && currentLead.status === 'converted' &&
+window.hasPermission('leads', 'write') && currentLead.status === 'converted' &&
 React.createElement('button', { 
 className: 'bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700',
 onClick: () => {
@@ -11230,7 +10529,7 @@ React.createElement('span', { className: 'text-purple-900' }, currentLead.assign
 ),
 React.createElement('div', null,
 React.createElement('span', { className: 'font-medium text-purple-700' }, 'Assigned To: '),
-React.createElement('span', { className: 'text-purple-900' }, getUserDisplayName(currentLead.assigned_to, users) || currentLead.assigned_to)
+React.createElement('span', { className: 'text-purple-900' }, window.getUserDisplayName(currentLead.assigned_to, users) || currentLead.assigned_to)
 ),
 currentLead.assignment_date && React.createElement('div', null,
 React.createElement('span', { className: 'font-medium text-purple-700' }, 'Assignment Date: '),
@@ -11290,7 +10589,7 @@ React.createElement('span', { className: 'text-gray-900' },
 )
 ),
 
-hasPermission('finance', 'read') && React.createElement('div', { className: 'bg-gray-50 rounded-lg p-4' },
+window.hasPermission('finance', 'read') && React.createElement('div', { className: 'bg-gray-50 rounded-lg p-4' },
 React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-3' }, '💰 Financial Details'),
 React.createElement('div', { className: 'space-y-2' },
 React.createElement('div', null,
@@ -11394,13 +10693,13 @@ currentLead.previous_status &&
 React.createElement('div', { className: 'mb-3' },
 React.createElement('p', { className: 'text-sm font-medium text-indigo-700 mb-1' }, '↩️ Previous Status:'),
 React.createElement('span', { 
-className: `inline-block px-2 py-1 text-xs rounded-full ${LEAD_STATUSES[currentLead.previous_status]?.color || 'bg-gray-100 text-gray-800'}`
-}, LEAD_STATUSES[currentLead.previous_status]?.label || currentLead.previous_status)
+className: `inline-block px-2 py-1 text-xs rounded-full ${window.LEAD_STATUSES[currentLead.previous_status]?.color || 'bg-gray-100 text-gray-800'}`
+}, window.LEAD_STATUSES[currentLead.previous_status]?.label || currentLead.previous_status)
 ),
 
 React.createElement('button', {
 onClick: () => {
-const confirmReactivate = confirm('Reactivate this lead? It will return to: ' + (LEAD_STATUSES[currentLead.previous_status]?.label || 'contacted'));
+const confirmReactivate = confirm('Reactivate this lead? It will return to: ' + (window.LEAD_STATUSES[currentLead.previous_status]?.label || 'contacted'));
 if (confirmReactivate) {
 const targetStatus = currentLead.previous_status || 'contacted';
 updateLeadStatus(currentLead.id, targetStatus);
@@ -11474,28 +10773,28 @@ className: 'text-gray-400 hover:text-gray-600 text-2xl'
 React.createElement('div', { className: 'p-6' },
 // Action Buttons
 React.createElement('div', { className: 'mb-6 flex flex-wrap gap-2' },
-hasPermission('inventory', 'write') && React.createElement('button', { 
+window.hasPermission('inventory', 'write') && React.createElement('button', { 
 className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
 onClick: () => {
 closeInventoryDetail();
 setTimeout(() => openEditInventoryForm(item), 100);
 }
 }, '✏️ Edit Inventory'),
-hasPermission('inventory', 'write') && React.createElement('button', { 
+window.hasPermission('inventory', 'write') && React.createElement('button', { 
 className: 'bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700',
 onClick: () => {
 closeInventoryDetail();
 setTimeout(() => handleCopyInventory(item), 100);
 }
 }, '📋 Copy Inventory'),
-hasPermission('inventory', 'allocate') && item.available_tickets > 0 && React.createElement('button', { 
+window.hasPermission('inventory', 'allocate') && item.available_tickets > 0 && React.createElement('button', { 
 className: 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700',
 onClick: () => {
 closeInventoryDetail();
 setTimeout(() => openAllocationForm(item), 100);
 }
 }, '🎫 Allocate Tickets'),
-hasPermission('inventory', 'read') && React.createElement('button', { 
+window.hasPermission('inventory', 'read') && React.createElement('button', { 
 className: 'bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700',
 onClick: () => {
 closeInventoryDetail();
@@ -11571,7 +10870,7 @@ React.createElement('span', { className: 'text-gray-900' }, item.inclusions)
 ),
 
 // Financial Information
-hasPermission('finance', 'read') && React.createElement('div', { className: 'bg-gray-50 rounded-lg p-4' },
+window.hasPermission('finance', 'read') && React.createElement('div', { className: 'bg-gray-50 rounded-lg p-4' },
 React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-3' }, '💰 Financial Information'),
 React.createElement('div', { className: 'space-y-2' },
 React.createElement('div', null,
@@ -12210,7 +11509,7 @@ onChange: (e) => handlePaymentInputChange('indian_state', e.target.value),
 className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
 required: true
 },
-INDIAN_STATES.map(state =>
+window.INDIAN_STATES.map(state =>
 React.createElement('option', { key: state, value: state }, state)
 ),
 React.createElement('option', { value: 'Outside India' }, 'Outside India')
@@ -12250,7 +11549,7 @@ return;
 
 setLoading(true);
 try {
-const uploadResult = await uploadFileToGCS(file, 'gst');
+const uploadResult = await window.uploadFileToGCS(file, 'gst');
 handlePaymentInputChange('gst_certificate', uploadResult);
 alert('GST Certificate uploaded successfully!');
 } catch (error) {
@@ -12295,7 +11594,7 @@ return;
 
 setLoading(true);
 try {
-const uploadResult = await uploadFileToGCS(file, 'pan');
+const uploadResult = await window.uploadFileToGCS(file, 'pan');
 console.log('Upload result:', uploadResult);
 handlePaymentInputChange('pan_card', uploadResult);
 console.log('Payment data after update:', paymentData);
@@ -12971,7 +12270,7 @@ className: 'text-gray-400 hover:text-gray-600 text-2xl'
 
 React.createElement('form', { onSubmit: handleStadiumFormSubmit },
 React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
-stadiumFormFields.map(field =>
+window.stadiumFormFields.map(field =>
 React.createElement('div', {
 key: field.name,
 className: field.type === 'textarea' ? 'md:col-span-2' : ''
@@ -13231,7 +12530,7 @@ try {
 setLoading(true);
 console.log(`🏟️ Adding ${defaultStadiums.length} popular stadiums...`);
 
-const response = await apiCall('/stadiums/bulk', {
+const response = await window.apicall('/stadiums/bulk', {
 method: 'POST',
 body: JSON.stringify({ stadiums: defaultStadiums })
 });
@@ -13537,7 +12836,7 @@ if (editingInventory.id === null || editingInventory.id === undefined) {
 // CREATE NEW INVENTORY
 console.log('Creating new inventory item...');
 
-const response = await apiCall('/inventory', {
+const response = await window.apicall('/inventory', {
 method: 'POST',
 body: JSON.stringify({
 ...formData,
@@ -13561,7 +12860,7 @@ alert('Inventory created successfully!');
 // UPDATE EXISTING INVENTORY (your original code)
 console.log('Updating existing inventory...');
 
-const response = await apiCall(`/inventory/${editingInventory.id}`, {
+const response = await window.apicall(`/inventory/${editingInventory.id}`, {
 method: 'PUT',
 body: JSON.stringify(formData)
 });
@@ -13724,13 +13023,13 @@ React.createElement('div', { className: 'space-y-6' },
 React.createElement('div', { className: 'flex justify-between items-center' },
 React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Lead Management'),
 React.createElement('div', { className: 'flex gap-2' },
-hasPermission('leads', 'write') && React.createElement('button', { 
+window.hasPermission('leads', 'write') && React.createElement('button', { 
 className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
 onClick: () => openAddForm('lead')
 }, '+ Add New Lead'),
 
 // YOUR EXISTING BULK ASSIGN BUTTON - UNCHANGED
-hasPermission('leads', 'assign') && unassignedLeads.length > 0 && React.createElement('button', {
+window.hasPermission('leads', 'assign') && unassignedLeads.length > 0 && React.createElement('button', {
 onClick: () => setShowBulkAssignModal(true),
 className: 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2'
 }, 
@@ -13817,7 +13116,7 @@ React.createElement('div', { className: 'flex justify-between' },
 React.createElement('button', {
   onClick: handleSelectAllStatuses,
   className: 'text-sm text-blue-600 hover:text-blue-800 font-medium'
-}, selectedStatusFilters.length === Object.keys(LEAD_STATUSES).length ? 'Deselect All' : 'Select All'),
+}, selectedStatusFilters.length === Object.keys(window.LEAD_STATUSES).length ? 'Deselect All' : 'Select All'),
 React.createElement('button', {
   onClick: handleClearAllStatuses,
   className: 'text-sm text-red-600 hover:text-red-800 font-medium'
@@ -13830,7 +13129,7 @@ React.createElement('div', { className: 'py-1' },
 // Initial Contact Group
 React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Initial Contact'),
 ['unassigned', 'assigned', 'contacted', 'attempt_1', 'attempt_2', 'attempt_3'].map(status =>
-LEAD_STATUSES[status] && React.createElement('label', {
+window.LEAD_STATUSES[status] && React.createElement('label', {
   key: status,
   className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
 },
@@ -13841,15 +13140,15 @@ LEAD_STATUSES[status] && React.createElement('label', {
       className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
   }),
   React.createElement('span', {
-      className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${LEAD_STATUSES[status].color}`
-  }, LEAD_STATUSES[status].label)
+      className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
+  }, window.LEAD_STATUSES[status].label)
 )
 ),
 
 // Qualification Group
 React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Qualification'),
 ['qualified', 'junk'].map(status =>
-LEAD_STATUSES[status] && React.createElement('label', {
+window.LEAD_STATUSES[status] && React.createElement('label', {
   key: status,
   className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
 },
@@ -13860,15 +13159,15 @@ LEAD_STATUSES[status] && React.createElement('label', {
       className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
   }),
   React.createElement('span', {
-      className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${LEAD_STATUSES[status].color}`
-  }, LEAD_STATUSES[status].label)
+      className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
+  }, window.LEAD_STATUSES[status].label)
 )
 ),
 
 // Temperature Group
 React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Temperature'),
 ['hot', 'warm', 'cold'].map(status =>
-LEAD_STATUSES[status] && React.createElement('label', {
+window.LEAD_STATUSES[status] && React.createElement('label', {
   key: status,
   className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
 },
@@ -13879,15 +13178,15 @@ LEAD_STATUSES[status] && React.createElement('label', {
       className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
   }),
   React.createElement('span', {
-      className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${LEAD_STATUSES[status].color}`
-  }, LEAD_STATUSES[status].label)
+      className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
+  }, window.LEAD_STATUSES[status].label)
 )
 ),
 
 // Sales Process Group
 React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Sales Process'),
 ['quote_requested', 'converted', 'dropped'].map(status =>
-LEAD_STATUSES[status] && React.createElement('label', {
+window.LEAD_STATUSES[status] && React.createElement('label', {
   key: status,
   className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
 },
@@ -13898,15 +13197,15 @@ LEAD_STATUSES[status] && React.createElement('label', {
       className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
   }),
   React.createElement('span', {
-      className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${LEAD_STATUSES[status].color}`
-  }, LEAD_STATUSES[status].label)
+      className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
+  }, window.LEAD_STATUSES[status].label)
 )
 ),
 
 // Payment Group
 React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Payment'),
 ['payment', 'payment_post_service', 'payment_received'].map(status =>
-LEAD_STATUSES[status] && React.createElement('label', {
+window.LEAD_STATUSES[status] && React.createElement('label', {
   key: status,
   className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
 },
@@ -13917,8 +13216,8 @@ LEAD_STATUSES[status] && React.createElement('label', {
       className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
   }),
   React.createElement('span', {
-      className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${LEAD_STATUSES[status].color}`
-  }, LEAD_STATUSES[status].label)
+      className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
+  }, window.LEAD_STATUSES[status].label)
 )
 )
 )
@@ -14057,13 +13356,13 @@ React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium 
 React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event'),
 React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Assignment'),
 React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
-hasPermission('finance', 'read') && React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Value'),
+window.hasPermission('finance', 'read') && React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Value'),
 React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
 )
 ),
 React.createElement('tbody', { className: 'bg-white divide-y divide-gray-200' },
 currentLeads.map(lead => {
-const status = LEAD_STATUSES[lead.status] || { label: lead.status, color: 'bg-gray-100 text-gray-800', next: [] };
+const status = window.LEAD_STATUSES[lead.status] || { label: lead.status, color: 'bg-gray-100 text-gray-800', next: [] };
 
 return React.createElement('tr', { key: lead.id, className: `hover:bg-gray-50 ${lead.is_premium ? 'bg-gradient-to-r from-yellow-100 to-yellow-50 border-l-4 border-yellow-400' : ''}` },
 React.createElement('td', { className: 'px-6 py-4' },
@@ -14110,7 +13409,7 @@ React.createElement('div', { className: 'text-xs text-gray-500' },
 ),
 React.createElement('td', { className: 'px-6 py-4' },
 lead.assigned_to ? React.createElement('div', null,
-  React.createElement('div', { className: 'text-sm font-medium text-blue-600' }, getUserDisplayName(lead.assigned_to, users)),
+  React.createElement('div', { className: 'text-sm font-medium text-blue-600' }, window.getUserDisplayName(lead.assigned_to, users)),
   React.createElement('div', { className: 'text-xs text-gray-500' }, 
       lead.assigned_team === 'supply' ? 'Supply Team' : 'Sales Team'
   )
@@ -14124,7 +13423,7 @@ lead.status === 'rejected' && lead.rejection_reason && React.createElement('div'
   className: 'mt-1 text-xs text-red-600 italic'
 }, 'Reason: ' + (lead.rejection_reason))
 ),
-hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
+window.hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
 React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, 
   '₹' + (lead.potential_value || 0).toLocaleString()
 ),
@@ -14134,16 +13433,16 @@ lead.last_quoted_price && React.createElement('div', { className: 'text-xs text-
 ),
 React.createElement('td', { className: 'px-6 py-4' },
 React.createElement('div', { className: 'flex flex-wrap gap-1' },
-  hasPermission('leads', 'write') && React.createElement('button', { 
+  window.hasPermission('leads', 'write') && React.createElement('button', { 
       className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
       onClick: () => openEditForm(lead)
   }, '✏️'),
-  hasPermission('leads', 'assign') && !lead.assigned_to && lead.status === 'unassigned' &&
+  window.hasPermission('leads', 'assign') && !lead.assigned_to && lead.status === 'unassigned' &&
       React.createElement('button', { 
           className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
           onClick: () => openAssignForm(lead)
       }, '👤'),
-  hasPermission('leads', 'progress') && React.createElement('button', {
+  window.hasPermission('leads', 'progress') && React.createElement('button', {
       className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
       onClick: () => {
           // If lead is unassigned and not assigned to anyone, open assign form
@@ -14159,12 +13458,12 @@ React.createElement('div', { className: 'flex flex-wrap gap-1' },
           ? 'Assign lead' 
           : `Progress lead to next stage`
   }, loading ? '...' : '→'),
-  hasPermission('leads', 'write') && lead.status === 'converted' &&
+  window.hasPermission('leads', 'write') && lead.status === 'converted' &&
       React.createElement('button', { 
           className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
           onClick: () => openPaymentForm(lead)
       }, '💳'),
-  hasPermission('leads', 'delete') && React.createElement('button', { 
+  window.hasPermission('leads', 'delete') && React.createElement('button', { 
       className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
       onClick: () => handleDelete('leads', lead.id, lead.name),
       disabled: loading
@@ -14342,7 +13641,7 @@ setShowClientDetail(true);
 },
 className: 'text-blue-600 hover:text-blue-900'
 }, 'View Timeline'),
-hasPermission('leads', 'assign') && client.total_leads > 1 &&
+window.hasPermission('leads', 'assign') && client.total_leads > 1 &&
 React.createElement('button', {
 onClick: () => {
 // Bulk reassign functionality - will implement in next phase
@@ -14388,7 +13687,7 @@ updateData.rejected_date = new Date().toISOString();
 updateData.rejected_by = user.name;
 }
 
-const response = await apiCall('/orders/' + (currentOrderForEdit.id), {
+const response = await window.apicall('/orders/' + (currentOrderForEdit.id), {
 method: 'PUT',
 body: JSON.stringify(updateData)
 });
@@ -14461,9 +13760,9 @@ value: orderEditData.status || '',
 onChange: (e) => setOrderEditData(prev => ({ ...prev, status: e.target.value })),
 className: 'w-full px-3 py-2 border rounded-md'
 },
-Object.keys(ORDER_STATUSES).map(status =>
+Object.keys(window.ORDER_STATUSES).map(status =>
 React.createElement('option', { key: status, value: status }, 
-ORDER_STATUSES[status].label
+window.ORDER_STATUSES[status].label
 )
 )
 )
@@ -14637,9 +13936,9 @@ React.createElement('div', null,
 React.createElement('span', { className: 'font-medium text-gray-700' }, 'Status: '),
 React.createElement('span', {
 className: `px-2 py-1 text-xs rounded ${
-ORDER_STATUSES[currentOrderDetail.status]?.color || 'bg-gray-100 text-gray-800'
+window.ORDER_STATUSES[currentOrderDetail.status]?.color || 'bg-gray-100 text-gray-800'
 }`
-}, ORDER_STATUSES[currentOrderDetail.status]?.label || currentOrderDetail.status)
+}, window.ORDER_STATUSES[currentOrderDetail.status]?.label || currentOrderDetail.status)
 )
 )
 ),
@@ -14723,7 +14022,7 @@ currentOrderDetail.pan_card.uploadedAt && React.createElement('div', { className
 ),
 
 // Approval Actions
-hasPermission('orders', 'approve') && currentOrderDetail.status === 'pending_approval' && 
+window.hasPermission('orders', 'approve') && currentOrderDetail.status === 'pending_approval' && 
 React.createElement('div', { className: 'flex space-x-4 pt-4 border-t' },
 React.createElement('button', {
 className: 'flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700',
@@ -14782,7 +14081,7 @@ return React.createElement('div', { className: 'space-y-6' },
 React.createElement('div', { className: 'flex justify-between items-center' },
 React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Stadium Management'),
 React.createElement('div', { className: 'flex gap-2' },
-hasPermission('admin', 'write') && React.createElement('button', {
+window.hasPermission('admin', 'write') && React.createElement('button', {
 onClick: () => openStadiumForm(),
 className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
 }, '+ Add Stadium'),
@@ -14926,11 +14225,11 @@ stadium.capacity ? stadium.capacity.toLocaleString() : 'N/A'
 ),
 React.createElement('td', { className: 'px-6 py-4' },
 React.createElement('div', { className: 'flex gap-2' },
-hasPermission('admin', 'write') && React.createElement('button', {
+window.hasPermission('admin', 'write') && React.createElement('button', {
 onClick: () => openStadiumForm(stadium),
 className: 'text-blue-600 hover:text-blue-900 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50'
 }, '✏️'),
-hasPermission('admin', 'delete') && React.createElement('button', {
+window.hasPermission('admin', 'delete') && React.createElement('button', {
 onClick: () => handleDeleteStadium(stadium.id, stadium.name),
 className: 'text-red-600 hover:text-red-900 text-sm px-2 py-1 rounded border border-red-200 hover:bg-red-50'
 }, '🗑️'),
@@ -14990,7 +14289,7 @@ return null;
 const fetchAllEvents = async () => {
   try {
     console.log("Fetching all events from backend...");
-    const response = await fetch(`${API_URL}/events`, {
+    const response = await fetch(`${window.API_CONFIG.API_URL}/events`, {
       method: "GET",
       headers: { "Authorization": `Bearer ${localStorage.getItem("crm_auth_token")}` }
     });
@@ -15401,7 +14700,7 @@ dayEvents.map(event =>
 React.createElement('div', {
 key: event.id,
 className: `text-xs p-1 mt-1 rounded truncate ${
-getPriorityStyles(event.priority)
+window.getPriorityStyles(event.priority)
 }`
 }, event.title)
 )
@@ -15542,7 +14841,7 @@ className: 'bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-auto shad
 onClick: (e) => e.stopPropagation()
 },
 React.createElement('div', {
-className: `p-6 border-b ${getPriorityStyles(currentEvent.priority)}`
+className: `p-6 border-b ${window.getPriorityStyles(currentEvent.priority)}`
 },
 React.createElement('div', { className: 'flex justify-between items-start' },
 React.createElement('div', { className: 'flex-1' },
@@ -15551,7 +14850,7 @@ React.createElement('h2', { className: 'text-2xl font-bold' },
 currentEvent.event_name || currentEvent.title
 ),
 React.createElement('span', {
-className: `px-3 py-1 text-sm font-semibold rounded-full ${getPriorityBadgeColor(currentEvent.priority)}`
+className: `px-3 py-1 text-sm font-semibold rounded-full ${window.getPriorityBadgeColor(currentEvent.priority)}`
 }, currentEvent.priority || 'N/A')
 ),
 React.createElement('p', { className: 'text-sm opacity-75' },
@@ -15604,7 +14903,7 @@ React.createElement('span', { className: 'mr-2' }, '📊'),
 ),
 React.createElement('div', { className: 'flex flex-wrap gap-2' },
 React.createElement('span', {
-className: `px-3 py-1 text-sm font-semibold rounded-full ${getPriorityBadgeColor(currentEvent.priority)}`
+className: `px-3 py-1 text-sm font-semibold rounded-full ${window.getPriorityBadgeColor(currentEvent.priority)}`
 }, `Priority ${currentEvent.priority || 'N/A'}`),
 React.createElement('span', {
 className: `px-3 py-1 text-sm font-semibold rounded-full ${
@@ -15789,7 +15088,7 @@ const renderEventFormModal = () => {
 
     console.log('Sending clean event data:', cleanEventData); // Debug log
 
-    const url = currentEvent ? `${API_URL}/events/${currentEvent.id}` : `${API_URL}/events`;
+    const url = currentEvent ? `${window.API_CONFIG.API_URL}/events/${currentEvent.id}` : `${window.API_CONFIG.API_URL}/events`;
     const method = currentEvent ? 'PUT' : 'POST';
     
     const response = await fetch(url, {
@@ -16041,7 +15340,7 @@ const totalInventoryPages = Math.ceil(sortedInventory.length / itemsPerPage);
 return React.createElement('div', { className: 'space-y-6' },
 React.createElement('div', { className: 'flex justify-between items-center' },
 React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Inventory Management'),
-hasPermission('inventory', 'write') && React.createElement('button', { 
+window.hasPermission('inventory', 'write') && React.createElement('button', { 
 className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
 onClick: openAddInventoryForm
 }, '+ Add New Event'),
@@ -16221,7 +15520,7 @@ React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium 
 React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Category'),
 React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Date'),
 React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Available'),
-hasPermission('finance', 'read') && React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Margin'),
+window.hasPermission('finance', 'read') && React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Margin'),
 React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
 )
 ),
@@ -16264,7 +15563,7 @@ item.available_tickets > 5 ? 'bg-yellow-100 text-yellow-800' :
 }`
 }, item.available_tickets + ' tickets')
 ),
-hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
+window.hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
 React.createElement('div', { className: 'text-sm text-gray-900' }, 
 (() => {
 const buyingPrice = item.buying_price || 0;
@@ -16284,27 +15583,27 @@ React.createElement('div', { className: 'text-xs text-gray-500' },
 ),
 React.createElement('td', { className: 'px-6 py-4 text-sm' },
 React.createElement('div', { className: 'flex flex-wrap gap-1' },
-hasPermission('inventory', 'write') && React.createElement('button', { 
+window.hasPermission('inventory', 'write') && React.createElement('button', { 
 className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
 onClick: () => openEditInventoryForm(item)
 }, '✏️ Edit'),
 
-hasPermission('inventory', 'write') && React.createElement('button', { 
+window.hasPermission('inventory', 'write') && React.createElement('button', { 
 className: 'text-indigo-600 hover:text-indigo-900 text-xs px-2 py-1 rounded border border-indigo-200 hover:bg-indigo-50',
 onClick: () => handleCopyInventory(item),
 title: 'Create a copy of this inventory item',
 disabled: loading
 }, loading ? '⏳' : '📋 Copy'),
 
-hasPermission('inventory', 'allocate') && item.available_tickets > 0 && React.createElement('button', { 
+window.hasPermission('inventory', 'allocate') && item.available_tickets > 0 && React.createElement('button', { 
 className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
 onClick: () => openAllocationForm(item)
 }, '🎫 Allocate'),
-hasPermission('inventory', 'read') && React.createElement('button', { 
+window.hasPermission('inventory', 'read') && React.createElement('button', { 
 className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
 onClick: () => openAllocationManagement(item)
 }, '👁️ View Allocations'),
-hasPermission('inventory', 'delete') && React.createElement('button', { 
+window.hasPermission('inventory', 'delete') && React.createElement('button', { 
 className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
 onClick: () => handleDelete('inventory', item.id, item.event_name),
 disabled: loading
@@ -16350,7 +15649,7 @@ return React.createElement('div', { className: 'space-y-6' },
 React.createElement('div', { className: 'flex justify-between items-center' },
 React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Order Management'),
 React.createElement('div', { className: 'flex space-x-2' },
-hasPermission('orders', 'write') && React.createElement('button', { 
+window.hasPermission('orders', 'write') && React.createElement('button', { 
 className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
 onClick: () => openAddForm('order')
 }, '+ Manual Order')
@@ -16365,7 +15664,7 @@ React.createElement('tr', null,
 React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Order#'),
 React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Client'),
 React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event'),
-hasPermission('finance', 'read') && React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
+window.hasPermission('finance', 'read') && React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
 React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
 React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Assigned To'),
 React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
@@ -16373,7 +15672,7 @@ React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium 
 ),
 React.createElement('tbody', { className: 'bg-white divide-y divide-gray-200' },
 orders.map(order => {
-const status = ORDER_STATUSES[order.status] || { label: order.status, color: 'bg-gray-100 text-gray-800', next: [] };
+const status = window.ORDER_STATUSES[order.status] || { label: order.status, color: 'bg-gray-100 text-gray-800', next: [] };
 
 // ENHANCED: Handle both old and new order formats
 const orderNumber = order.order_number || order.id || 'N/A';
@@ -16450,7 +15749,7 @@ order.event_date && React.createElement('div', { className: 'text-xs text-blue-6
 new Date(order.event_date).toLocaleDateString()
 )
 ),
-hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
+window.hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
 React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, 
 '₹' + getAmountDisplay(order).toLocaleString()
 ),
@@ -16519,7 +15818,7 @@ onClick: () => openOrderDetail(order)
 }, '👁️ View'),
 
 // PRESERVED: Finance approval buttons
-hasPermission('orders', 'approve') && order.status === 'pending_approval' && [
+window.hasPermission('orders', 'approve') && order.status === 'pending_approval' && [
 // Show if this requires sales head approval
 order.order_type === 'payment_post_service' && React.createElement('span', {
 key: 'sales-head-label',
@@ -16602,7 +15901,7 @@ alert('Invoice not found for this order');
 }, '📄 View Invoice'),
 
 // PRESERVED: Service assignment
-hasPermission('orders', 'assign') && order.status === 'approved' && !order.assigned_to &&
+window.hasPermission('orders', 'assign') && order.status === 'approved' && !order.assigned_to &&
 React.createElement('button', {
 className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
 onClick: () => {
@@ -16613,7 +15912,7 @@ disabled: loading
 }, '→ Assign'),
 
 // PRESERVED: Complete order
-hasPermission('orders', 'write') && order.status === 'service_assigned' && React.createElement('button', {
+window.hasPermission('orders', 'write') && order.status === 'service_assigned' && React.createElement('button', {
 className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
 onClick: () => {
 setOrders(prev => 
@@ -16629,13 +15928,13 @@ disabled: loading
 }, '✅ Complete'),
 
 // PRESERVED: Edit button
-hasPermission('orders', 'write') && React.createElement('button', {
+window.hasPermission('orders', 'write') && React.createElement('button', {
 className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
 onClick: () => openEditOrderForm(order)
 }, '✏️ Edit'),
 
 // PRESERVED: Delete button
-hasPermission('orders', 'delete') && React.createElement('button', { 
+window.hasPermission('orders', 'delete') && React.createElement('button', { 
 className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
 onClick: () => handleDelete('orders', order.id, order.order_number),
 disabled: loading
@@ -16727,18 +16026,18 @@ className: 'px-2 py-1 text-xs rounded ' + (status.color)
 ),
 React.createElement('td', { className: 'px-6 py-4' },
 React.createElement('div', { className: 'flex flex-wrap gap-1' },
-hasPermission('delivery', 'write') && delivery.status === 'pending' && 
+window.hasPermission('delivery', 'write') && delivery.status === 'pending' && 
 React.createElement('button', {
 className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
 onClick: () => openDeliveryForm(delivery)
 }, '📅 Schedule'),
-hasPermission('delivery', 'write') && 
+window.hasPermission('delivery', 'write') && 
 React.createElement('button', {
 className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
 onClick: () => deleteDelivery(delivery.id),
 disabled: loading
 }, '🗑️ Delete'),
-hasPermission('delivery', 'write') && delivery.status === 'scheduled' && 
+window.hasPermission('delivery', 'write') && delivery.status === 'scheduled' && 
 React.createElement('button', {
 className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
 onClick: () => {
@@ -16752,7 +16051,7 @@ d.id === delivery.id
 alert('Delivery marked as in transit!');
 }
 }, '🚚 Start'),
-hasPermission('delivery', 'write') && delivery.status === 'in_transit' && 
+window.hasPermission('delivery', 'write') && delivery.status === 'in_transit' && 
 React.createElement('button', {
 className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
 onClick: () => {
@@ -17048,7 +16347,7 @@ const formData = new FormData();
 formData.append('file', file);
 
 try {
-const response = await fetch(`${API_URL}/upload/leads/csv/preview`, {
+const response = await fetch(`${window.API_CONFIG.API_URL}/upload/leads/csv/preview`, {
 method: 'POST',
 headers: {
 'Authorization': authToken ? 'Bearer ' + authToken : undefined
@@ -17084,7 +16383,7 @@ const formData = new FormData();
 formData.append('file', file);
 
 try {
-const response = await fetch(`${API_URL}/upload/${type}/csv`, {
+const response = await fetch(`${window.API_CONFIG.API_URL}/upload/${type}/csv`, {
 method: 'POST',
 headers: {
 'Authorization': authToken ? 'Bearer ' + authToken : undefined
@@ -17104,10 +16403,10 @@ setShowClientDetectionResults(true);
 
 // Refresh data (keeping your existing logic)
 if (type === 'leads') {
-const leadsData = await apiCall('/leads');
+const leadsData = await window.apicall('/leads');
 setLeads(leadsData.data || []);
 } else if (type === 'inventory') {
-const inventoryData = await apiCall('/inventory');
+const inventoryData = await window.apicall('/inventory');
 setInventory(inventoryData.data || []);
 }
 
@@ -17174,108 +16473,6 @@ alert(message);
 };
 
 
-
-// Download sample CSV (keeping your existing function exactly as is)
-const downloadSampleCSV = () => {
-let csvContent = '';
-let filename = '';
-
-if (type === 'leads') {
-csvContent = `Name,Email,Phone,Company,Business Type,Source,Date of Enquiry,First Touch Base Done By,City of Residence,Country of Residence,Lead for Event,Number of People,Has Valid Passport,Visa Available,Attended Sporting Event Before,Annual Income Bracket,Potential Value,Status,Assigned To,Last Quoted Price,Notes
-John Doe,john@example.com,+919876543210,ABC Corp,B2C,Facebook,2025-01-15,Sales Team,Mumbai,India,IPL 2025,2,Yes,Not Required,No,₹25-50 Lakhs,500000,unassigned,,0,Interested in VIP tickets
-Jane Smith,jane@example.com,+919876543211,XYZ Ltd,B2B,WhatsApp,2025-01-16,Marketing Team,Delhi,India,FIFA World Cup 2026,4,Not Sure,Required,Yes,₹50 Lakhs - ₹1 Crore,1000000,unassigned,,0,Family trip planned`;
-filename = 'sample_leads.csv';
-} else if (type === 'inventory') {
-csvContent = `Event Name,Event Date,Event Type,Sports,Venue,Day of Match,Category of Ticket,Price per Ticket,Number of Tickets,Total Value of Tickets,Currency,Base Amount INR,GST 18%,Selling Price per Ticket,Payment Due Date,Supplier Name,Ticket Source,Status,Allocated to Order,Notes
-IPL 2025 Final,2025-05-28,cricket,Cricket,Wankhede Stadium,Not Applicable,VIP,15000,10,150000,INR,150000,27000,17700,2025-04-15,Ticket Master,Primary,available,,Premium seats
-FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,Premium,25000,20,500000,USD,2000000,360000,118000,2026-03-01,FIFA Official,Primary,available,,Group stage match`;
-filename = 'sample_inventory.csv';
-}
-
-const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-const link = document.createElement('a');
-link.href = URL.createObjectURL(blob);
-link.download = filename;
-document.body.appendChild(link);
-link.click();
-document.body.removeChild(link);
-};
-
-
-
-// Download Excel functions (keeping your existing functions exactly as is)
-const downloadSampleExcel = async () => {
-try {
-console.log('Downloading Excel with fixed validation...');
-
-const response = await fetch(`${API_URL}/upload/leads/sample-excel-fixed`, {
-method: 'GET',
-headers: {
-'Authorization': `Bearer ${authToken}`
-}
-});
-
-if (!response.ok) {
-throw new Error(`HTTP error! status: ${response.status}`);
-}
-
-const blob = await response.blob();
-const url = window.URL.createObjectURL(blob);
-
-const link = document.createElement('a');
-link.href = url;
-link.download = 'leads_with_fixed_validation.xlsx';
-document.body.appendChild(link);
-link.click();
-document.body.removeChild(link);
-
-window.URL.revokeObjectURL(url);
-alert('✅ Excel file with improved validation downloaded successfully!');
-
-} catch (error) {
-console.error('Error downloading Excel:', error);
-alert('❌ Failed to download Excel file: ' + error.message);
-}
-};
-
-
-
-const downloadSampleExcelV2 = async () => {
-try {
-console.log('Downloading Excel template with instructions...');
-
-const response = await fetch(`${API_URL}/upload/leads/sample-excel-simple`, {
-method: 'GET',
-headers: {
-'Authorization': `Bearer ${authToken}`
-}
-});
-
-if (!response.ok) {
-throw new Error(`HTTP error! status: ${response.status}`);
-}
-
-const blob = await response.blob();
-const url = window.URL.createObjectURL(blob);
-
-const link = document.createElement('a');
-link.href = url;
-link.download = 'leads_template_with_instructions.xlsx';
-document.body.appendChild(link);
-link.click();
-document.body.removeChild(link);
-
-window.URL.revokeObjectURL(url);
-alert('✅ Excel template with clear instructions downloaded successfully!');
-
-} catch (error) {
-console.error('Error downloading Excel:', error);
-alert('❌ Failed to download Excel file: ' + error.message);
-}
-};
-
-
-
 if (!isOpen) return null;
 
 return React.createElement('div', {
@@ -17340,19 +16537,19 @@ className: 'grid grid-cols-1 md:grid-cols-3 gap-2'
 },
 // CSV Download
 React.createElement('button', {
-onClick: downloadSampleCSV,
+onClick: window.downloadSampleCSV,
 className: 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors'
 }, '📄 CSV Template'),
 
 // Excel Method 1 - UPDATED LABEL
 type === 'leads' && React.createElement('button', {
-onClick: downloadSampleExcel,
+onClick: window.downloadSampleExcel,
 className: 'bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors'
 }, '📊 Excel (Advanced)'),
 
 // Excel Method 2 - UPDATED LABEL
 type === 'leads' && React.createElement('button', {
-onClick: downloadSampleExcelV2,
+onClick: window.window.downloadSampleExcelV2,
 className: 'bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors'
 }, '📋 Excel (Instructions)')
 ),
@@ -17752,7 +16949,7 @@ React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm 
 React.createElement('div', { className: 'flex items-center justify-between' },
 React.createElement('div', null,
 React.createElement('h1', { className: 'text-lg font-semibold' }, 'Welcome, ' + (user?.name || 'Admin User')),
-React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, USER_ROLES[user?.role]?.label + ' • ' + user?.department)
+React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, window.USER_ROLES[user?.role]?.label + ' • ' + user?.department)
 ),
 React.createElement('div', { className: 'flex items-center space-x-4' },
 React.createElement('span', { className: 'text-lg' }, '🔔'),
@@ -17908,14 +17105,14 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
 <h4 style="margin:5px 0; font-size:14px; color:#f59e0b;">Create Test Data:</h4>
 <button onclick="(async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
 // Get today's date in YYYY-MM-DD format
 const today = new Date().toISOString().split('T')[0];
 
 // Get inventory items to pick a random event
-const invResponse = await fetch(API_URL + '/inventory', {
+const invResponse = await fetch(window.API_CONFIG.API_URL + '/inventory', {
 headers: { 'Authorization': 'Bearer ' + authToken }
 });
 let eventName = 'General Inquiry';
@@ -17980,7 +17177,7 @@ updated_date: new Date().toISOString()
 
 console.log('Creating lead:', testData);
 
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18005,7 +17202,7 @@ alert('Error: ' + error.message);
 })();" style="display:block; width:100%; margin:5px 0; padding:8px; background:#f59e0b; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px;">🧪 Create Test Lead</button>
 <button onclick="(async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
 const testData = {
@@ -18035,7 +17232,7 @@ created_date: new Date().toISOString()
 
 console.log('Creating inventory:', testData);
 
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(window.API_CONFIG.API_URL + '/inventory', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18110,10 +17307,10 @@ panel.style.display = 'block';
 // Delete all function
 window.testDeleteAll = async function(type) {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
-const response = await fetch(API_URL + '/' + type, {
+const response = await fetch(window.API_CONFIG.API_URL + '/' + type, {
 method: 'DELETE',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18159,9 +17356,9 @@ notes: 'Test lead created via test mode'
 
 // Call the API directly
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
-fetch(API_URL + '/leads', {
+fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18198,9 +17395,9 @@ location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
 
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
-fetch(API_URL + '/inventory', {
+fetch(window.API_CONFIG.API_URL + '/inventory', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18231,7 +17428,7 @@ return;
 }
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
 // Show loading
@@ -18242,7 +17439,7 @@ loadingDiv.innerHTML = '<h3>Fetching ' + type + '...</h3>';
 document.body.appendChild(loadingDiv);
 
 // Get all items
-const response = await fetch(API_URL + '/' + type, {
+const response = await fetch(window.API_CONFIG.API_URL + '/' + type, {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18272,7 +17469,7 @@ let failed = 0;
 // Delete each item
 for (const item of items) {
 try {
-const deleteUrl = API_URL + '/' + type + '/' + item.id;
+const deleteUrl = window.API_CONFIG.API_URL + '/' + type + '/' + item.id;
 console.log('Deleting:', deleteUrl);
 
 const deleteResponse = await fetch(deleteUrl, {
@@ -18370,13 +17567,13 @@ console.log('Could not get user ID');
 }
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 console.log('Creating lead with data:', testData);
 console.log('Date of enquiry:', testData.date_of_enquiry);
 
 try {
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18419,10 +17616,10 @@ location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
 
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(window.API_CONFIG.API_URL + '/inventory', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18452,9 +17649,9 @@ alert('Error creating inventory: ' + error.message);
 // Debug function
 window.debugLeads = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -18504,9 +17701,9 @@ showButton.style.display = 'block';
 // Debug function to see inventory structure
 window.checkInventoryFields = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(window.API_CONFIG.API_URL + '/inventory', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -18534,7 +17731,7 @@ window.deleteAllFinancials = async function() {
 if (!confirm('Delete all financial records (payables and receivables)?')) return;
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
 console.log('Starting to delete all financials...');
@@ -18543,7 +17740,7 @@ let deletedReceivables = 0;
 
 // Delete all payables
 try {
-const payablesRes = await fetch(`${API_URL}/api/payables`, {
+const payablesRes = await fetch(`${window.API_CONFIG.API_URL}/api/payables`, {
 headers: {
 'Authorization': `Bearer ${authToken}`,
 'Content-Type': 'application/json'
@@ -18556,7 +17753,7 @@ const payables = payablesData.data || [];
 console.log(`Found ${payables.length} payables to delete`);
 
 for (const payable of payables) {
-const delRes = await fetch(`${API_URL}/api/payables/${payable.id}`, {
+const delRes = await fetch(`${window.API_CONFIG.API_URL}/api/payables/${payable.id}`, {
 method: 'DELETE',
 headers: {
 'Authorization': `Bearer ${authToken}`,
@@ -18576,7 +17773,7 @@ console.error('Error deleting payables:', e);
 // Delete all receivables - FIXED endpoint
 try {
 console.log('Fetching receivables...');
-const receivablesRes = await fetch(`${API_URL}/api/receivables`, {
+const receivablesRes = await fetch(`${window.API_CONFIG.API_URL}/api/receivables`, {
 headers: {
 'Authorization': `Bearer ${authToken}`,
 'Content-Type': 'application/json'
@@ -18593,7 +17790,7 @@ console.log(`Found ${receivables.length} receivables to delete`);
 // Delete each receivable
 for (const receivable of receivables) {
 console.log(`Deleting receivable: ${receivable.id}`);
-const delRes = await fetch(`${API_URL}/api/receivables/${receivable.id}`, {
+const delRes = await fetch(`${window.API_CONFIG.API_URL}/api/receivables/${receivable.id}`, {
 method: 'DELETE',
 headers: {
 'Authorization': `Bearer ${authToken}`,
@@ -18654,10 +17851,10 @@ panel.style.display = 'block';
 // Delete all function
 window.testDeleteAll = async function(type) {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
-const response = await fetch(API_URL + '/' + type, {
+const response = await fetch(window.API_CONFIG.API_URL + '/' + type, {
 method: 'DELETE',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18703,9 +17900,9 @@ notes: 'Test lead created via test mode'
 
 // Call the API directly
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
-fetch(API_URL + '/leads', {
+fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18742,9 +17939,9 @@ location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
 
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
-fetch(API_URL + '/inventory', {
+fetch(window.API_CONFIG.API_URL + '/inventory', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18775,7 +17972,7 @@ return;
 }
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
 // Show loading
@@ -18786,7 +17983,7 @@ loadingDiv.innerHTML = '<h3>Fetching ' + type + '...</h3>';
 document.body.appendChild(loadingDiv);
 
 // Get all items
-const response = await fetch(API_URL + '/' + type, {
+const response = await fetch(window.API_CONFIG.API_URL + '/' + type, {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18816,7 +18013,7 @@ let failed = 0;
 // Delete each item
 for (const item of items) {
 try {
-const deleteUrl = API_URL + '/' + type + '/' + item.id;
+const deleteUrl = window.API_CONFIG.API_URL + '/' + type + '/' + item.id;
 console.log('Deleting:', deleteUrl);
 
 const deleteResponse = await fetch(deleteUrl, {
@@ -18883,10 +18080,10 @@ notes: 'Test lead created via test mode at ' + new Date().toLocaleString()
 
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18929,10 +18126,10 @@ location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
 
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(window.API_CONFIG.API_URL + '/inventory', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -18962,9 +18159,9 @@ alert('Error creating inventory: ' + error.message);
 // Debug function
 window.debugLeads = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -19014,9 +18211,9 @@ showButton.style.display = 'block';
 // Debug function to see inventory structure
 window.checkInventoryFields = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(window.API_CONFIG.API_URL + '/inventory', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -19058,12 +18255,12 @@ return today;
 // Function to manually create a lead with custom data
 window.createCustomLead = async function(leadData) {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 console.log('Creating lead with custom data:', leadData);
 
 try {
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -19096,11 +18293,11 @@ return null;
 // Analyze existing lead structure
 window.analyzeLeadStructure = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
 // Get existing leads
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -19140,7 +18337,7 @@ return null;
 // Create lead with minimal required fields
 window.createMinimalLead = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 // Start with absolute minimum fields
 const minimalData = {
@@ -19155,7 +18352,7 @@ status: 'new'
 console.log('Creating minimal lead:', minimalData);
 
 try {
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -19188,7 +18385,7 @@ return null;
 // Fixed create test lead based on backend requirements
 window.oldCreateTestLead = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 // First analyze existing lead to understand structure
 console.log('Analyzing existing lead structure...');
@@ -19231,7 +18428,7 @@ String(now.getDate()).padStart(2, '0');
 console.log('Creating lead with data:', testData);
 
 try {
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -19254,7 +18451,7 @@ if (result.error && result.error.includes('date_of_enquiry')) {
 console.log('Retrying without date_of_enquiry...');
 delete testData.date_of_enquiry;
 
-const retry = await fetch(API_URL + '/leads', {
+const retry = await fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -19288,12 +18485,12 @@ alert('Error creating lead: ' + error.message);
 // Create test lead following form business logic
 window.oldCreateTestLead = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
 // First, get the active events (same as form does)
 console.log('Fetching active events...');
-const eventsResponse = await fetch(API_URL + '/events?status=active', {
+const eventsResponse = await fetch(window.API_CONFIG.API_URL + '/events?status=active', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -19340,7 +18537,7 @@ String(now.getMonth() + 1).padStart(2, '0') + '-' +
 String(now.getDate()).padStart(2, '0');
 
 // Check if date_of_enquiry is needed by trying to get existing lead structure
-const leadsCheck = await fetch(API_URL + '/leads?limit=1', {
+const leadsCheck = await fetch(window.API_CONFIG.API_URL + '/leads?limit=1', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -19377,7 +18574,7 @@ testData.created_by = user.id || user.email || 'admin';
 console.log('Creating lead with business logic data:', testData);
 
 // Create the lead
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -19404,7 +18601,7 @@ if (result.error && result.error.includes('date_of_enquiry')) {
 delete testData.date_of_enquiry;
 console.log('Retrying without date_of_enquiry...');
 
-const retry = await fetch(API_URL + '/leads', {
+const retry = await fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -19456,12 +18653,12 @@ console.log('  Option:', opt.value, '-', opt.text);
 // Create test inventory following form business logic
 window.oldCreateTestInventory = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
 // First check existing inventory to understand structure
 console.log('Checking existing inventory structure...');
-const invResponse = await fetch(API_URL + '/inventory?limit=1', {
+const invResponse = await fetch(window.API_CONFIG.API_URL + '/inventory?limit=1', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -19570,7 +18767,7 @@ console.log('Added missing field:', key, 'with default:', testData[key]);
 console.log('Creating inventory with business logic data:', testData);
 
 // Create the inventory
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(window.API_CONFIG.API_URL + '/inventory', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -19611,10 +18808,10 @@ alert('Error creating inventory: ' + error.message);
 // Function to analyze inventory fields
 window.analyzeInventoryStructure = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(window.API_CONFIG.API_URL + '/inventory', {
 method: 'GET',
 headers: {
 'Authorization': 'Bearer ' + authToken
@@ -19644,7 +18841,7 @@ re
 // Test functions with correct field names from your actual forms
 window.createTestInventory = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
 // Using exact field names from inventoryFormFields
@@ -19685,7 +18882,7 @@ created_date: new Date().toISOString()
 
 console.log('Creating inventory with correct fields:', testData);
 
-const response = await fetch(API_URL + '/inventory', {
+const response = await fetch(window.API_CONFIG.API_URL + '/inventory', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -19718,7 +18915,7 @@ alert('Error: ' + error.message);
 
 window.createTestLead = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
 // Using exact field names from leadFormFields
@@ -19748,7 +18945,7 @@ created_date: new Date().toISOString()
 
 console.log('Creating lead with correct fields:', testData);
 
-const response = await fetch(API_URL + '/leads', {
+const response = await fetch(window.API_CONFIG.API_URL + '/leads', {
 method: 'POST',
 headers: {
 'Authorization': 'Bearer ' + authToken,
@@ -19793,7 +18990,7 @@ window.deleteAllFinancials = async function() {
 if (!confirm('Delete all financial records (payables and receivables)?')) return;
 
 const authToken = localStorage.getItem('crm_auth_token');
-// Using global API_URL variable
+// Using global window.API_CONFIG.API_URL variable
 
 try {
 console.log('Starting to delete all financials...');
@@ -19802,7 +18999,7 @@ let deletedReceivables = 0;
 
 // Delete all payables
 try {
-const payablesRes = await fetch(`${API_URL}/api/payables`, {
+const payablesRes = await fetch(`${window.API_CONFIG.API_URL}/api/payables`, {
 headers: {
 'Authorization': `Bearer ${authToken}`,
 'Content-Type': 'application/json'
@@ -19815,7 +19012,7 @@ const payables = payablesData.data || [];
 console.log(`Found ${payables.length} payables to delete`);
 
 for (const payable of payables) {
-const delRes = await fetch(`${API_URL}/api/payables/${payable.id}`, {
+const delRes = await fetch(`${window.API_CONFIG.API_URL}/api/payables/${payable.id}`, {
 method: 'DELETE',
 headers: {
 'Authorization': `Bearer ${authToken}`,
@@ -19835,7 +19032,7 @@ console.error('Error deleting payables:', e);
 // Delete all receivables - FIXED endpoint
 try {
 console.log('Fetching receivables...');
-const receivablesRes = await fetch(`${API_URL}/api/receivables`, {
+const receivablesRes = await fetch(`${window.API_CONFIG.API_URL}/api/receivables`, {
 headers: {
 'Authorization': `Bearer ${authToken}`,
 'Content-Type': 'application/json'
@@ -19852,7 +19049,7 @@ console.log(`Found ${receivables.length} receivables to delete`);
 // Delete each receivable
 for (const receivable of receivables) {
 console.log(`Deleting receivable: ${receivable.id}`);
-const delRes = await fetch(`${API_URL}/api/receivables/${receivable.id}`, {
+const delRes = await fetch(`${window.API_CONFIG.API_URL}/api/receivables/${receivable.id}`, {
 method: 'DELETE',
 headers: {
 'Authorization': `Bearer ${authToken}`,
