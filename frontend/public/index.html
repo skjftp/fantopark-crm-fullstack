@@ -15695,9 +15695,15 @@ React.createElement('span', { className: 'mr-2' }, '📅'),
 ),
 React.createElement('div', { className: 'space-y-2 text-sm bg-gray-50 p-4 rounded-lg' },
 React.createElement('div', { className: 'flex justify-between' },
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'Date:'),
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Start Date:'),
 React.createElement('span', { className: 'text-gray-900' },
 new Date(currentEvent.start_date || currentEvent.date).toLocaleDateString()
+)
+),
+React.createElement('div', { className: 'flex justify-between' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'End Date:'),
+React.createElement('span', { className: 'text-gray-900' },
+currentEvent.end_date ? new Date(currentEvent.end_date).toLocaleDateString() : 'Same day'
 )
 ),
 React.createElement('div', { className: 'flex justify-between' },
