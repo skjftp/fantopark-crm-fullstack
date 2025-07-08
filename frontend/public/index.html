@@ -15708,6 +15708,17 @@ currentEvent.start_time || currentEvent.time || 'TBD'
 )
 )
 ),
+React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '🎭'),
+'Event Type'
+),
+React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg' },
+React.createElement('div', { className: 'font-medium text-gray-900' },
+currentEvent.event_type || 'Not specified'
+)
+)
+),
 currentEvent.venue && React.createElement('div', null,
 React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
 React.createElement('span', { className: 'mr-2' }, '🏟️'),
