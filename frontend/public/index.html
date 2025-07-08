@@ -9747,7 +9747,34 @@ alert('Failed to delete lead: ' + error.message);
 }
 };
 
-
+const togglePremiumStatus = async (leadId, isPremium) => {
+  try {
+    setLoading(true);
+    
+    const response = await apiCall(`/leads/${leadId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ is_premium: isPremium })
+    });
+    
+    // Update the leads list
+    setLeads(prev => prev.map(lead => 
+      lead.id === leadId ? { ...lead, is_premium: isPremium } : lead
+    ));
+    
+    // Update currentLead if viewing the lead details
+    if (showLeadDetail && currentLead?.id === leadId) {
+      setCurrentLead(prev => ({ ...prev, is_premium: isPremium }));
+    }
+    
+    console.log(`✅ Lead ${leadId} premium status updated to ${isPremium}`);
+    
+  } catch (error) {
+    console.error('Error updating premium status:', error);
+    alert('Failed to update premium status: ' + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
 const handleDeleteInventory = async (inventoryId) => {
 if (!confirm('Are you sure you want to delete this event?')) return;
@@ -10915,23 +10942,6 @@ className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focu
 rows: 3,
 placeholder: 'Add any additional notes or comments...'
 })
-)
-),
-
-// Premium Lead Toggle Section
-React.createElement('div', { className: 'mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4' },
-React.createElement('label', { className: 'flex items-center space-x-3 cursor-pointer' },
-React.createElement('input', {
-type: 'checkbox',
-checked: formData.is_premium || false,
-onChange: (e) => setFormData(prev => ({ ...prev, is_premium: e.target.checked })),
-className: 'w-5 h-5 text-yellow-600 bg-gray-100 border-gray-300 rounded focus:ring-yellow-500'
-}),
-React.createElement('div', { className: 'flex items-center gap-2' },
-React.createElement('span', { className: 'text-yellow-500 text-xl' }, '👑'),
-React.createElement('span', { className: 'text-sm font-medium text-gray-900' }, 'Mark as Premium Lead'),
-React.createElement('span', { className: 'text-xs text-gray-500' }, '(Row will be highlighted in golden color)')
-)
 )
 ),
 
@@ -14237,7 +14247,23 @@ React.createElement('div', { className: `text-sm font-medium ${lead.is_premium ?
 ),
   React.createElement('div', { className: 'text-sm text-gray-500' }, lead.email),
   lead.company && React.createElement('div', { className: 'text-xs text-gray-400' }, lead.company),
-  React.createElement('div', { className: 'text-xs text-blue-600 mt-1' }, '👁️ Click to view details')
+React.createElement('div', { className: 'flex items-center justify-between mt-1' },
+  React.createElement('div', { className: 'text-xs text-blue-600' }, '👁️ Click to view details'),
+  React.createElement('button', {
+    onClick: (e) => {
+      e.stopPropagation();
+      togglePremiumStatus(lead.id, !lead.is_premium);
+    },
+    className: `text-sm px-2 py-1 rounded ${
+      lead.is_premium 
+        ? 'text-yellow-600 hover:text-yellow-800 bg-yellow-100 hover:bg-yellow-200' 
+        : 'text-gray-400 hover:text-yellow-600 bg-gray-100 hover:bg-yellow-100'
+    }`,
+    title: lead.is_premium ? 'Remove Premium Status' : 'Mark as Premium'
+  }, 
+    lead.is_premium ? '⭐' : '☆'
+  )
+)
 )
 ),
 React.createElement('td', { className: 'px-6 py-4' },
