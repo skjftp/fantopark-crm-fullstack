@@ -654,6 +654,33 @@ const user = usersList.find(u => u.email === email);
 return user ? user.name : email;
 };
 
+// Priority styling helper functions
+const getPriorityStyles = (priority) => {
+  switch (priority) {
+    case 'P1':
+      return 'bg-red-100 border-l-4 border-red-500 text-red-800';
+    case 'P2':
+      return 'bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800';
+    case 'P3':
+      return 'bg-green-100 border-l-4 border-green-500 text-green-800';
+    default:
+      return 'bg-gray-100 border-l-4 border-gray-500 text-gray-800';
+  }
+};
+
+const getPriorityBadgeColor = (priority) => {
+  switch (priority) {
+    case 'P1':
+      return 'bg-red-500 text-white';
+    case 'P2':
+      return 'bg-yellow-500 text-white';
+    case 'P3':
+      return 'bg-green-500 text-white';
+    default:
+      return 'bg-gray-500 text-white';
+  }
+};
+  
 const getBaseAmount = (data) => {
 if (data.type_of_sale === 'Service Fee') {
 return parseFloat(data.service_fee_amount) || 0;
@@ -14817,11 +14844,27 @@ return passesFilter;
 });
 
 return React.createElement('div', { className: 'space-y-6' },
-// Header
+// Enhanced Header with Priority Legend
 React.createElement('div', { className: 'flex justify-between items-center' },
 React.createElement('div', null,
 React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, '📅 Sports Calendar'),
 React.createElement('p', { className: 'text-gray-600 dark:text-gray-400 mt-1' }, 'Manage your sporting events with advanced filters and Excel integration'),
+// Priority legend
+React.createElement('div', { className: 'flex items-center gap-4 mt-3' },
+React.createElement('span', { className: 'text-sm font-medium text-gray-700' }, 'Priority Legend:'),
+React.createElement('div', { className: 'flex items-center gap-1' },
+React.createElement('div', { className: 'w-3 h-3 bg-red-500 rounded' }),
+React.createElement('span', { className: 'text-xs' }, 'P1 High')
+),
+React.createElement('div', { className: 'flex items-center gap-1' },
+React.createElement('div', { className: 'w-3 h-3 bg-yellow-500 rounded' }),
+React.createElement('span', { className: 'text-xs' }, 'P2 Medium')
+),
+React.createElement('div', { className: 'flex items-center gap-1' },
+React.createElement('div', { className: 'w-3 h-3 bg-green-500 rounded' }),
+React.createElement('span', { className: 'text-xs' }, 'P3 Low')
+)
+),
 React.createElement('div', { className: 'flex items-center mt-2 text-sm' },
 React.createElement('span', { 
 className: `px-2 py-1 rounded-full text-xs ${sportsEvents.length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`
@@ -14858,9 +14901,12 @@ React.createElement('span', null, '📤'),
 )
 ),
 
-// Calendar Filters
+// Enhanced Calendar Filters
 React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4' },
-  React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '🔍 Filters'),
+  React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' }, 
+    React.createElement('span', { className: 'mr-2' }, '🔍'),
+    'Filters'
+  ),
   React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
     // Geography Filter
     React.createElement('div', null,
@@ -14868,7 +14914,7 @@ React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg sh
       React.createElement('select', {
         value: calendarFilters.geography || '',
         onChange: (e) => setCalendarFilters({...calendarFilters, geography: e.target.value}),
-        className: 'w-full p-2 border border-gray-300 rounded-lg'
+        className: 'w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
       },
         React.createElement('option', { value: '' }, 'All Locations'),
         React.createElement('option', { value: 'India' }, 'India'),
@@ -14885,7 +14931,7 @@ React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg sh
       React.createElement('select', {
         value: calendarFilters.sport_type || '',
         onChange: (e) => setCalendarFilters({...calendarFilters, sport_type: e.target.value}),
-        className: 'w-full p-2 border border-gray-300 rounded-lg'
+        className: 'w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
       },
         React.createElement('option', { value: '' }, 'All Sports'),
         React.createElement('option', { value: 'Cricket' }, 'Cricket'),
@@ -14896,31 +14942,31 @@ React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg sh
         React.createElement('option', { value: 'Basketball' }, 'Basketball')
       )
     ),
-    // Priority Filter
+    // Enhanced Priority Filter with colors
     React.createElement('div', null,
       React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Priority'),
       React.createElement('select', {
         value: calendarFilters.priority || '',
         onChange: (e) => setCalendarFilters({...calendarFilters, priority: e.target.value}),
-        className: 'w-full p-2 border border-gray-300 rounded-lg'
+        className: 'w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
       },
         React.createElement('option', { value: '' }, 'All Priorities'),
-        React.createElement('option', { value: 'P1' }, 'P1 - High'),
-        React.createElement('option', { value: 'P2' }, 'P2 - Medium'),
-        React.createElement('option', { value: 'P3' }, 'P3 - Low')
+        React.createElement('option', { value: 'P1' }, '🔴 P1 - High Priority'),
+        React.createElement('option', { value: 'P2' }, '🟡 P2 - Medium Priority'),
+        React.createElement('option', { value: 'P3' }, '🟢 P3 - Low Priority')
       )
     ),
     // Clear Filters Button
     React.createElement('div', { className: 'flex items-end' },
       React.createElement('button', {
         onClick: () => setCalendarFilters({}),
-        className: 'w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg'
+        className: 'w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors'
       }, 'Clear Filters')
     )
   )
 ),
                            
-// Calendar Controls
+// Enhanced Calendar Controls
 React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4' },
 React.createElement('div', { className: 'flex justify-between items-center mb-4' },
 React.createElement('div', { className: 'flex items-center space-x-4' },
@@ -14930,9 +14976,9 @@ const newDate = new Date(selectedDate);
 newDate.setMonth(newDate.getMonth() - 1);
 setSelectedDate(newDate);
 },
-className: 'p-2 hover:bg-gray-100 rounded'
-}, '←'),
-React.createElement('h2', { className: 'text-xl font-semibold' }, 
+className: 'p-2 hover:bg-gray-100 rounded-lg transition-colors'
+}, '◀'),
+React.createElement('h2', { className: 'text-xl font-semibold text-gray-900 dark:text-white' }, 
 selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 ),
 React.createElement('button', {
@@ -14941,15 +14987,17 @@ const newDate = new Date(selectedDate);
 newDate.setMonth(newDate.getMonth() + 1);
 setSelectedDate(newDate);
 },
-className: 'p-2 hover:bg-gray-100 rounded'
-}, '→')
+className: 'p-2 hover:bg-gray-100 rounded-lg transition-colors'
+}, '▶')
 ),
-React.createElement('div', { className: 'flex space-x-2' },
+React.createElement('div', { className: 'flex bg-gray-100 rounded-lg p-1' },
 ['month', 'list'].map(view =>
 React.createElement('button', {
 key: view,
 onClick: () => setCalendarView(view),
-className: `px-3 py-1 rounded text-sm ${calendarView === view ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`
+className: `px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+calendarView === view ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600 hover:text-gray-900'
+}`
 }, view.charAt(0).toUpperCase() + view.slice(1))
 )
 )
@@ -14974,62 +15022,165 @@ const firstDay = new Date(year, month, 1);
 const lastDay = new Date(year, month + 1, 0);
 const daysInMonth = lastDay.getDate();
 const startingDayOfWeek = firstDay.getDay();
-
 const days = [];
+
+// Helper function to get events for a specific date (handles multi-day events)
+const getEventsForDate = (day) => {
+  const currentDate = new Date(year, month, day);
+  return events.filter(event => {
+    const eventStartDate = new Date(event.date || event.start_date);
+    const eventEndDate = event.end_date ? new Date(event.end_date) : eventStartDate;
+    
+    // Check if the current date falls within the event's date range
+    const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+    const eventStartOnly = new Date(eventStartDate.getFullYear(), eventStartDate.getMonth(), eventStartDate.getDate());
+    const eventEndOnly = new Date(eventEndDate.getFullYear(), eventEndDate.getMonth(), eventEndDate.getDate());
+    
+    return currentDateOnly >= eventStartOnly && currentDateOnly <= eventEndOnly;
+  });
+};
+
+// Helper function to determine event position in multi-day span
+const getEventPosition = (event, day) => {
+  const currentDate = new Date(year, month, day);
+  const eventStartDate = new Date(event.start_date || event.date);
+  const eventEndDate = event.end_date ? new Date(event.end_date) : eventStartDate;
+  
+  const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+  const eventStartOnly = new Date(eventStartDate.getFullYear(), eventStartDate.getMonth(), eventStartDate.getDate());
+  const eventEndOnly = new Date(eventEndDate.getFullYear(), eventEndDate.getMonth(), eventEndDate.getDate());
+  
+  const isStart = currentDateOnly.getTime() === eventStartOnly.getTime();
+  const isEnd = currentDateOnly.getTime() === eventEndOnly.getTime();
+  const isContinuation = !isStart && !isEnd && eventEndDate > eventStartDate;
+  
+  return { isStart, isEnd, isContinuation };
+};
 
 // Empty cells for days before month starts
 for (let i = 0; i < startingDayOfWeek; i++) {
-days.push(React.createElement('div', { key: `empty-${i}`, className: 'p-2 h-24' }));
+  days.push(React.createElement('div', { 
+    key: `empty-${i}`, 
+    className: 'calendar-cell bg-gray-50 border border-gray-200',
+    style: { minHeight: '120px' }
+  }));
 }
 
 // Days of the month
 for (let day = 1; day <= daysInMonth; day++) {
-const currentDate = new Date(year, month, day);
-const dayEvents = events.filter(event => {
-const eventStartDate = new Date(event.date || event.start_date);
-    const eventEndDate = event.end_date ? new Date(event.end_date) : eventStartDate;
-return eventStartDate.getDate() <= day && (eventEndDate.getDate() >= day || !event.end_date);
-});
+  const currentDate = new Date(year, month, day);
+  const dayEvents = getEventsForDate(day);
+  const isToday = currentDate.toDateString() === today.toDateString();
+  const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
 
-const isToday = currentDate.toDateString() === today.toDateString();
+  days.push(
+    React.createElement('div', {
+      key: day,
+      className: `calendar-cell border border-gray-200 p-3 cursor-pointer transition-all duration-200 ${
+        isToday ? 'bg-blue-50 border-blue-300' : 
+        isWeekend ? 'bg-gray-50' : 'bg-white'
+      } hover:bg-gray-100 hover:shadow-md`,
+      style: { minHeight: '120px' },
+      onClick: () => {
+        if (dayEvents.length > 0) {
+          setCurrentEvent(dayEvents[0]);
+          setShowEventDetail(true);
+        }
+      }
+    },
+      // Day number
+      React.createElement('div', { 
+        className: `text-sm font-semibold mb-2 ${
+          isToday ? 'text-blue-600' : 
+          isWeekend ? 'text-gray-500' : 'text-gray-900'
+        }` 
+      }, day),
 
-days.push(
-React.createElement('div', {
-key: day,
-className: `p-2 h-24 border border-gray-200 ${isToday ? 'bg-blue-50' : 'bg-white'} hover:bg-gray-50 cursor-pointer`,
-onClick: () => {
-if (dayEvents.length > 0) {
-setCurrentEvent(dayEvents[0]);
-setShowEventDetail(true);
+      // Events container
+      React.createElement('div', { className: 'space-y-1' },
+        // Show up to 3 events
+        dayEvents.slice(0, 3).map(event => {
+          const position = getEventPosition(event, day);
+          const priorityStyles = getPriorityStyles(event.priority);
+
+          return React.createElement('div', {
+            key: `${event.id}-${day}`,
+            className: `text-xs p-1 rounded cursor-pointer hover:opacity-80 transition-opacity ${priorityStyles}`,
+            onClick: (e) => {
+              e.stopPropagation();
+              setCurrentEvent(event);
+              setShowEventDetail(true);
+            },
+            title: `${event.event_name || event.title} - ${event.priority || 'No Priority'}`
+          },
+            // Multi-day event indicators
+            position.isContinuation ? 
+              React.createElement('div', { 
+                className: 'h-2 rounded',
+                style: { 
+                  background: 'linear-gradient(90deg, transparent 0%, currentColor 20%, currentColor 80%, transparent 100%)' 
+                }
+              }) :
+              React.createElement('div', { className: 'flex items-center gap-1' },
+                // Start indicator
+                position.isStart && React.createElement('span', { 
+                  className: 'text-xs',
+                  style: { fontSize: '8px' }
+                }, '▶'),
+                
+                // Event time (if available and is start day)
+                position.isStart && event.start_time && React.createElement('span', { 
+                  className: 'font-mono text-xs font-semibold' 
+                }, event.start_time),
+                
+                // Event name
+                React.createElement('span', { 
+                  className: 'truncate flex-1' 
+                }, event.event_name || event.title),
+                
+                // End indicator
+                position.isEnd && React.createElement('span', { 
+                  className: 'text-xs',
+                  style: { fontSize: '8px' }
+                }, '◀')
+              )
+          );
+        }),
+
+        // "+X more" indicator
+        dayEvents.length > 3 && React.createElement('div', {
+          className: 'text-xs text-gray-500 font-medium cursor-pointer hover:text-gray-700 hover:underline',
+          onClick: (e) => {
+            e.stopPropagation();
+            // You can implement a "show all events for day" modal here
+            console.log(`Show all ${dayEvents.length} events for ${currentDate.toDateString()}`);
+          }
+        }, `+${dayEvents.length - 3} more`)
+      )
+    )
+  );
 }
-}
-},
-React.createElement('div', { className: `text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}` }, day),
-dayEvents.map(event =>
-React.createElement('div', {
-key: event.id,
-className: `text-xs p-1 mt-1 rounded truncate ${
-event.category === 'cricket' ? 'bg-green-100 text-green-800' :
-event.category === 'football' ? 'bg-blue-100 text-blue-800' :
-'bg-purple-100 text-purple-800'
-}`
-}, event.title)
-)
-)
+
+return React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden' },
+  // Enhanced calendar header
+  React.createElement('div', { className: 'grid grid-cols-7 bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200' },
+    ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, index) =>
+      React.createElement('div', {
+        key: day,
+        className: `p-4 text-center font-semibold text-gray-700 ${
+          index === 0 || index === 6 ? 'text-red-600' : ''
+        }`
+      }, 
+        React.createElement('div', { className: 'text-sm' }, day.slice(0, 3)),
+        React.createElement('div', { className: 'text-xs text-gray-500 hidden md:block' }, day.slice(3))
+      )
+    )
+  ),
+  
+  // Calendar grid
+  React.createElement('div', { className: 'grid grid-cols-7' }, days)
 );
-}
-
-return React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
-React.createElement('div', { className: 'grid grid-cols-7 gap-0 border-b' },
-['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day =>
-React.createElement('div', {
-key: day,
-className: 'p-3 text-center font-medium text-gray-600 bg-gray-50'
-}, day)
-)
-),
-React.createElement('div', { className: 'grid grid-cols-7 gap-0' }, days)
-);
+};
 };
 
 const renderListView = (events) => {
@@ -15137,124 +15288,291 @@ const renderEventDetailModal = () => {
 if (!showEventDetail || !currentEvent) return null;
 
 return React.createElement('div', {
-className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
-onClick: () => setShowEventDetail(false)
+className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4',
+style: { backdropFilter: 'blur(4px)' },
+onClick: (e) => {
+if (e.target === e.currentTarget) setShowEventDetail(false);
+}
 },
 React.createElement('div', {
-className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto',
+className: 'bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-auto shadow-2xl',
 onClick: (e) => e.stopPropagation()
 },
-React.createElement('div', { className: 'p-6' },
-React.createElement('div', { className: 'flex justify-between items-start mb-6' },
-React.createElement('div', null,
-React.createElement('h2', { className: 'text-2xl font-bold text-gray-900 dark:text-white' }, currentEvent.title),
-currentEvent.espn_data?.league && React.createElement('p', { 
-className: 'text-lg text-blue-600 mt-1' 
-}, currentEvent.espn_data.league)
-),
-React.createElement('button', {
-onClick: () => setShowEventDetail(false),
-className: 'text-gray-500 hover:text-gray-700'
-}, '✕')
-),
-
-React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-2 gap-6' },
-// Event Details
-React.createElement('div', { className: 'space-y-4' },
-React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Date'),
-React.createElement('p', { className: 'text-gray-900' }, new Date(currentEvent.date).toLocaleDateString())
-),
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Time'),
-React.createElement('p', { className: 'text-gray-900' }, currentEvent.time)
-)
-),
-
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Venue'),
-React.createElement('p', { className: 'text-gray-900' }, currentEvent.venue)
-),
-
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Description'),
-React.createElement('p', { className: 'text-gray-900' }, currentEvent.description)
-),
-
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Status'),
-React.createElement('span', {
-className: `inline-block px-2 py-1 text-xs rounded-full ${
-currentEvent.status === 'live' ? 'bg-red-100 text-red-800 animate-pulse' :
-currentEvent.status === 'upcoming' ? 'bg-yellow-100 text-yellow-800' :
-currentEvent.status === 'completed' ? 'bg-gray-100 text-gray-800' :
-'bg-red-100 text-red-800'
-}`
-}, currentEvent.status.toUpperCase())
-)
-),
-
-// ESPN Data (Teams, etc.)
-currentEvent.espn_data && React.createElement('div', { className: 'space-y-4' },
-currentEvent.espn_data.competitors && currentEvent.espn_data.competitors.length > 0 && 
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Teams'),
-React.createElement('div', { className: 'space-y-2' },
-...currentEvent.espn_data.competitors.map((team, idx) =>
-React.createElement('div', { 
-key: idx,
-className: 'flex items-center space-x-3 p-2 bg-gray-50 rounded'
+// Enhanced Header with Priority Color
+React.createElement('div', {
+className: `p-6 border-b ${getPriorityStyles(currentEvent.priority)}`
 },
-team.logo && React.createElement('img', { 
-src: team.logo, 
-alt: team.name,
-className: 'w-8 h-8'
-}),
-React.createElement('div', null,
-React.createElement('div', { className: 'font-medium' }, team.name),
-team.record && React.createElement('div', { className: 'text-sm text-gray-500' }, team.record)
-)
-)
-)
-)
-)
+React.createElement('div', { className: 'flex justify-between items-start' },
+React.createElement('div', { className: 'flex-1' },
+React.createElement('div', { className: 'flex items-center gap-3 mb-2' },
+React.createElement('h2', { className: 'text-2xl font-bold' }, 
+currentEvent.event_name || currentEvent.title
+),
+React.createElement('span', {
+className: `px-3 py-1 text-sm font-semibold rounded-full ${getPriorityBadgeColor(currentEvent.priority)}`
+}, currentEvent.priority || 'N/A')
+),
+React.createElement('p', { className: 'text-sm opacity-75' }, 
+`${currentEvent.sport_type || currentEvent.category || 'Event'} • ${currentEvent.geography || 'Location TBD'}`
 )
 ),
-
-React.createElement('div', { className: 'bg-blue-50 p-4 rounded-lg mt-6' },
-React.createElement('h3', { className: 'font-medium text-blue-900 mb-2' }, '🎫 FanToPark Package'),
-React.createElement('p', { className: 'text-blue-800' }, currentEvent.fantopark_package),
-currentEvent.ticket_available && 
-React.createElement('button', {
-className: 'mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm'
-}, 'Create Lead from This Event')
-),
-
-React.createElement('div', { className: 'flex justify-end space-x-3 mt-6' },
 React.createElement('button', {
 onClick: () => setShowEventDetail(false),
-className: 'px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50'
-}, 'Close'),
-!currentEvent.id.startsWith('espn_') && React.createElement('button', {
+className: 'text-gray-500 hover:text-gray-700 text-2xl p-2 rounded-lg hover:bg-gray-100'
+}, '✕')
+)
+),
+
+// Enhanced Content in 2-column layout
+React.createElement('div', { className: 'p-6 grid md:grid-cols-2 gap-6' },
+// Left Column - Date & Venue Information
+React.createElement('div', { className: 'space-y-6' },
+// Date & Time Section
+React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '📅'),
+'Date & Time'
+),
+React.createElement('div', { className: 'space-y-2 text-sm bg-gray-50 p-4 rounded-lg' },
+React.createElement('div', { className: 'flex justify-between' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Start Date:'),
+React.createElement('span', { className: 'text-gray-900' }, 
+new Date(currentEvent.start_date || currentEvent.date).toLocaleDateString()
+)
+),
+currentEvent.end_date && React.createElement('div', { className: 'flex justify-between' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'End Date:'),
+React.createElement('span', { className: 'text-gray-900' }, 
+new Date(currentEvent.end_date).toLocaleDateString()
+)
+),
+React.createElement('div', { className: 'flex justify-between' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Start Time:'),
+React.createElement('span', { className: 'text-gray-900 font-mono' }, 
+currentEvent.start_time || currentEvent.time || 'TBD'
+)
+),
+currentEvent.end_time && React.createElement('div', { className: 'flex justify-between' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'End Time:'),
+React.createElement('span', { className: 'text-gray-900 font-mono' }, currentEvent.end_time)
+)
+)
+),
+
+// Venue Section
+React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '🏟️'),
+'Venue Details'
+),
+React.createElement('div', { className: 'space-y-2 text-sm bg-gray-50 p-4 rounded-lg' },
+React.createElement('div', null,
+React.createElement('span', { className: 'font-medium text-gray-900 text-base' }, 
+currentEvent.venue || 'Venue TBD'
+)
+),
+currentEvent.venue_address && React.createElement('div', { className: 'text-gray-600' }, 
+currentEvent.venue_address
+),
+currentEvent.venue_capacity && React.createElement('div', { className: 'flex justify-between mt-2' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Capacity:'),
+React.createElement('span', { className: 'text-gray-900' }, 
+currentEvent.venue_capacity.toLocaleString()
+)
+)
+)
+),
+
+// Status & Priority Section
+React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '📊'),
+'Status & Priority'
+),
+React.createElement('div', { className: 'space-y-3' },
+React.createElement('div', { className: 'flex flex-wrap gap-2' },
+React.createElement('span', {
+className: `px-3 py-1 text-sm font-semibold rounded-full ${getPriorityBadgeColor(currentEvent.priority)}`
+}, `Priority ${currentEvent.priority || 'N/A'}`),
+React.createElement('span', {
+className: `px-3 py-1 text-sm font-semibold rounded-full ${
+currentEvent.status === 'live' ? 'bg-red-500 text-white animate-pulse' :
+currentEvent.status === 'upcoming' ? 'bg-blue-500 text-white' :
+currentEvent.status === 'completed' ? 'bg-gray-500 text-white' :
+currentEvent.status === 'cancelled' ? 'bg-red-600 text-white' :
+'bg-gray-400 text-white'
+}`
+}, (currentEvent.status || 'upcoming').toUpperCase())
+),
+currentEvent.sold_out_potential && React.createElement('div', { className: 'text-sm mt-2' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Sold Out Potential: '),
+React.createElement('span', {
+className: currentEvent.sold_out_potential === 'High' ? 'text-red-600 font-semibold' :
+currentEvent.sold_out_potential === 'Medium' ? 'text-yellow-600 font-semibold' :
+'text-green-600 font-semibold'
+}, currentEvent.sold_out_potential)
+)
+)
+)
+),
+
+// Right Column - Business Information
+React.createElement('div', { className: 'space-y-6' },
+// Ticketing Information
+React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '🎫'),
+'Ticketing Information'
+),
+React.createElement('div', { className: 'space-y-2 text-sm bg-gray-50 p-4 rounded-lg' },
+currentEvent.official_ticketing_partners && React.createElement('div', null,
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Official Partners:'),
+React.createElement('div', { className: 'text-gray-900 mt-1' }, currentEvent.official_ticketing_partners)
+),
+React.createElement('div', { className: 'flex justify-between items-center mt-2' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Tickets Available:'),
+React.createElement('span', {
+className: `font-semibold ${currentEvent.ticket_available ? 'text-green-600' : 'text-red-600'}`
+}, currentEvent.ticket_available ? '✅ Yes' : '❌ No')
+)
+)
+),
+
+// Information Sources
+React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '📡'),
+'Information Sources'
+),
+React.createElement('div', { className: 'space-y-2 text-sm bg-gray-50 p-4 rounded-lg' },
+currentEvent.primary_source && React.createElement('div', null,
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Primary Source:'),
+React.createElement('div', { className: 'text-gray-900 mt-1' }, currentEvent.primary_source)
+),
+currentEvent.secondary_source && React.createElement('div', { className: 'mt-2' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Secondary Source:'),
+React.createElement('div', { className: 'text-gray-900 mt-1' }, currentEvent.secondary_source)
+)
+)
+),
+
+// Event Type & Geography
+React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '🌍'),
+'Event Classification'
+),
+React.createElement('div', { className: 'space-y-2 text-sm bg-gray-50 p-4 rounded-lg' },
+React.createElement('div', { className: 'flex justify-between' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Event Type:'),
+React.createElement('span', { className: 'text-gray-900' }, 
+currentEvent.event_type || 'Sport'
+)
+),
+React.createElement('div', { className: 'flex justify-between' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Sport:'),
+React.createElement('span', { className: 'text-gray-900' }, 
+currentEvent.sport_type || currentEvent.category || 'N/A'
+)
+),
+React.createElement('div', { className: 'flex justify-between' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Geography:'),
+React.createElement('span', { className: 'text-gray-900' }, 
+currentEvent.geography || 'N/A'
+)
+)
+)
+)
+)
+),
+
+// FanToPark Package Section (full width)
+currentEvent.fantopark_package && React.createElement('div', { className: 'px-6 pb-4' },
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '📦'),
+'FanToPark Package'
+),
+React.createElement('div', { className: 'bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200' },
+React.createElement('p', { className: 'text-blue-900 text-sm leading-relaxed' }, 
+currentEvent.fantopark_package
+)
+)
+),
+
+// Additional Notes Section
+currentEvent.remarks && React.createElement('div', { className: 'px-6 pb-4' },
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '📝'),
+'Additional Notes'
+),
+React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg border' },
+React.createElement('p', { className: 'text-gray-700 text-sm leading-relaxed' }, 
+currentEvent.remarks
+)
+)
+),
+
+// Action Buttons
+React.createElement('div', { className: 'px-6 pb-6 flex flex-wrap gap-3' },
+React.createElement('button', {
 onClick: () => {
+// Add your edit functionality here
 setEventFormData({
 ...currentEvent,
-title: currentEvent.title,
-date: currentEvent.date,
-time: currentEvent.time,
+event_name: currentEvent.event_name || currentEvent.title,
+start_date: currentEvent.start_date || currentEvent.date,
+end_date: currentEvent.end_date,
+start_time: currentEvent.start_time || currentEvent.time,
+end_time: currentEvent.end_time,
 venue: currentEvent.venue,
-category: currentEvent.category,
-description: currentEvent.description,
+sport_type: currentEvent.sport_type || currentEvent.category,
+geography: currentEvent.geography,
+priority: currentEvent.priority,
+status: currentEvent.status,
+event_type: currentEvent.event_type,
+venue_capacity: currentEvent.venue_capacity,
+venue_address: currentEvent.venue_address,
+official_ticketing_partners: currentEvent.official_ticketing_partners,
+primary_source: currentEvent.primary_source,
+secondary_source: currentEvent.secondary_source,
+sold_out_potential: currentEvent.sold_out_potential,
 ticket_available: currentEvent.ticket_available,
+remarks: currentEvent.remarks,
 fantopark_package: currentEvent.fantopark_package
 });
 setShowEventDetail(false);
 setShowEventForm(true);
 },
-className: 'px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg'
-}, 'Edit Event')
-)
+className: 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center gap-2'
+}, 
+React.createElement('span', null, '✏️'),
+'Edit Event'
+),
+React.createElement('button', {
+onClick: () => {
+// Add your create lead functionality here
+console.log('Creating lead for event:', currentEvent.id);
+// You can navigate to leads module with this event data
+},
+className: 'px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors flex items-center gap-2'
+}, 
+React.createElement('span', null, '🎯'),
+'Create Lead'
+),
+React.createElement('button', {
+onClick: () => {
+// Add export functionality
+console.log('Exporting event:', currentEvent.id);
+},
+className: 'px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors flex items-center gap-2'
+}, 
+React.createElement('span', null, '📤'),
+'Export Event'
+),
+React.createElement('button', {
+onClick: () => setShowEventDetail(false),
+className: 'px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors'
+}, 'Close')
 )
 )
 );
