@@ -5600,10 +5600,39 @@ const importEventsFromExcel = async (file) => {
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+  raw: false,  // This ensures dates are properly formatted
+  dateNF: 'yyyy-mm-dd',  // Format dates as YYYY-MM-DD
+  cellDates: true  // Parse Excel dates correctly
+});
 
-        console.log('Parsed Excel data:', jsonData);
+// Additional date processing for common Excel date issues
+const processedData = jsonData.map(row => {
+  const processedRow = { ...row };
+  
+  // Fix date fields specifically
+  ['Start Date', 'End Date'].forEach(dateField => {
+    if (processedRow[dateField]) {
+      // Handle various date formats from Excel
+      const dateValue = processedRow[dateField];
+      if (dateValue instanceof Date) {
+        // Already a Date object, format it properly
+        processedRow[dateField] = dateValue.toISOString().split('T')[0];
+      } else if (typeof dateValue === 'string' && dateValue.trim()) {
+        // Try to parse string dates
+        const parsedDate = new Date(dateValue);
+        if (!isNaN(parsedDate.getTime())) {
+          processedRow[dateField] = parsedDate.toISOString().split('T')[0];
+        }
+      }
+    }
+  });
+  
+  return processedRow;
+});
 
+const finalJsonData = processedData;
+console.log('Parsed Excel data:', finalJsonData);
 console.log('Making API call to:', `${API_URL}/events/import/excel`);
         console.log('Request payload:', { excelData: jsonData.slice(0, 2) }); // Show first 2 records
         
@@ -5613,7 +5642,7 @@ console.log('Making API call to:', `${API_URL}/events/import/excel`);
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
           },
-          body: JSON.stringify({ excelData: jsonData })
+	body: JSON.stringify({ excelData: finalJsonData })
         });
 
         console.log('Response status:', response.status, response.statusText);
