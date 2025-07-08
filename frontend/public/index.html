@@ -15707,9 +15707,15 @@ currentEvent.end_date ? new Date(currentEvent.end_date).toLocaleDateString() : '
 )
 ),
 React.createElement('div', { className: 'flex justify-between' },
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'Time:'),
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Start Time:'),
 React.createElement('span', { className: 'text-gray-900 font-mono' },
 currentEvent.start_time || currentEvent.time || 'TBD'
+)
+),
+React.createElement('div', { className: 'flex justify-between' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'End Time:'),
+React.createElement('span', { className: 'text-gray-900 font-mono' },
+currentEvent.end_time || 'TBD'
 )
 )
 )
