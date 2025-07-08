@@ -46,6 +46,8 @@ alert("❌ Upload failed: " + error.message);
 alert("No file selected for upload");
 }
 };
+
+
 console.log("🔗 API_URL set to:", API_URL);
 console.log("🔗 API_URL:", API_URL);
 // Get stored auth token
@@ -66,6 +68,8 @@ headers: {
 ...options.headers
 }
 };
+
+
 
 const response = await fetch((API_URL) + (endpoint), config);
 
@@ -515,6 +519,8 @@ sessionStorage.setItem('debugLogs', JSON.stringify(logs));
 console.log('[' + (key) + ']', data);
 };
 
+
+
 // Show previous logs on page load
 window.addEventListener('load', () => {
 const logs = JSON.parse(sessionStorage.getItem('debugLogs') || '[]');
@@ -625,6 +631,8 @@ users: { read: false, write: false, delete: false, manage_roles: false }
 }
 };
 
+
+
 const stadiumFormFields = [
 { name: 'name', label: 'Stadium Name', type: 'text', required: true, placeholder: 'e.g., Wankhede Stadium' },
 { name: 'city', label: 'City', type: 'text', required: true, placeholder: 'e.g., Mumbai' },
@@ -647,6 +655,33 @@ const stadiumFormFields = [
 
 
 // Helper function to display user names instead of emails
+
+// Priority styling helper functions
+const getPriorityStyles = (priority) => {
+  switch (priority) {
+    case "P1":
+      return "bg-red-100 border-l-4 border-red-500 text-red-800";
+    case "P2":
+      return "bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800";
+    case "P3":
+      return "bg-green-100 border-l-4 border-green-500 text-green-800";
+    default:
+      return "bg-gray-100 border-l-4 border-gray-500 text-gray-800";
+  }
+};
+
+const getPriorityBadgeColor = (priority) => {
+  switch (priority) {
+    case "P1":
+      return "bg-red-500 text-white";
+    case "P2":
+      return "bg-yellow-500 text-white";
+    case "P3":
+      return "bg-green-500 text-white";
+    default:
+      return "bg-gray-500 text-white";
+  }
+};
 // Helper function to display user names instead of emails
 const getUserDisplayName = (email, usersList) => {
 if (!email || !usersList) return email || 'Unassigned';
@@ -654,34 +689,13 @@ const user = usersList.find(u => u.email === email);
 return user ? user.name : email;
 };
 
-// Priority styling helper functions
-const getPriorityStyles = (priority) => {
-  switch (priority) {
-    case 'P1':
-      return 'bg-red-100 border-l-4 border-red-500 text-red-800';
-    case 'P2':
-      return 'bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800';
-    case 'P3':
-      return 'bg-green-100 border-l-4 border-green-500 text-green-800';
-    default:
-      return 'bg-gray-100 border-l-4 border-gray-500 text-gray-800';
-  }
-};
 
-const getPriorityBadgeColor = (priority) => {
-  switch (priority) {
-    case 'P1':
-      return 'bg-red-500 text-white';
-    case 'P2':
-      return 'bg-yellow-500 text-white';
-    case 'P3':
-      return 'bg-green-500 text-white';
-    default:
-      return 'bg-gray-500 text-white';
-  }
-};
-  
+
 const getBaseAmount = (data) => {
+
+
+
+
 if (data.type_of_sale === 'Service Fee') {
 return parseFloat(data.service_fee_amount) || 0;
 }
@@ -734,6 +748,8 @@ return '';
 }
 };
 
+
+
 // Helper function to get proper role display label
 const getRoleDisplayLabel = (roleName) => {
 // Map of role names to display labels
@@ -748,8 +764,12 @@ const roleLabels = {
 'viewer': 'Viewer'
 };
 
+
+
 return roleLabels[roleName] || roleName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
+
+
 
 // Helper function to format date for display (DD/MM/YYYY)
 const formatDateForDisplay = (dateValue) => {
@@ -783,6 +803,8 @@ return `${day}/${month}/${year}`;
 return 'Error';
 }
 };
+
+
 
 
 
@@ -1000,6 +1022,8 @@ requires_followup_date: true
 }
 };
 
+
+
 const ORDER_STATUSES = {
 pending_approval: { 
 label: 'Pending Approval', 
@@ -1027,6 +1051,8 @@ color: 'bg-red-100 text-red-800',
 next: [] 
 }
 };
+
+
 
 // Add this after ORDER_STATUSES
 const INDIAN_STATES = [
@@ -1060,8 +1086,12 @@ const statusIcons = {
 'payment_post_service': '📅',
 'payment_received': '✅'
 };
+
+
 return statusIcons[status] || '📝';
 };
+
+
 
 // Replace existing calculateGST function
 
@@ -1085,6 +1115,8 @@ return lead.status;
 return null;
 };
 
+
+
 // Helper function to get display temperature for dashboard
 const getDisplayTemperature = (lead) => {
 const temp = getLeadTemperature(lead);
@@ -1097,6 +1129,8 @@ return lead.temperature;
 }
 return null;
 };
+
+
 
 function App() {
 // Authentication states
@@ -1257,6 +1291,8 @@ rate: 0
 handlePaymentInputChange('invoice_items', newItems);
 };
 
+
+
 const removeInvoiceItem = (index) => {
 if (paymentData.invoice_items.length <= 1) {
 alert('At least one invoice item is required');
@@ -1265,6 +1301,8 @@ return;
 const newItems = paymentData.invoice_items.filter((_, i) => i !== index);
 handlePaymentInputChange('invoice_items', newItems);
 };
+
+
 
 // Fixed version for post-deployment input issues
 const updateInvoiceItem = (index, field, value) => {
@@ -1369,7 +1407,11 @@ amount: tcsAmount
 },
 finalAmount: baseAmount + gstAmount + tcsAmount
 };
+
+
 };
+
+
 
 const formatCurrency = (amount) => {
 return amount.toLocaleString('en-IN', {
@@ -1378,11 +1420,15 @@ maximumFractionDigits: 2
 });
 };
 
+
+
 // Safe number formatting helper
 const safeFormatNumber = (value) => {
 const num = parseFloat(value) || 0;
 return num.toLocaleString('en-IN');
 };
+
+
 
 const handlePaymentInputChange = (field, value) => {
   setPaymentData(prev => {
@@ -1438,6 +1484,8 @@ const handlePaymentInputChange = (field, value) => {
   });
 };
 
+
+
 // Edit order function - in App scope
 const openEditOrderForm = (order) => {
 if (!order) {
@@ -1459,6 +1507,8 @@ assigned_to: order.assigned_to || ''
 });
 setShowEditOrderForm(true);
 };
+
+
 
 
 const handleBulkAssignSubmit = async () => {
@@ -1523,6 +1573,8 @@ setBulkAssignLoading(false);
 }
 };
 
+
+
 const fetchClients = async () => {
 setClientsLoading(true);
 try {
@@ -1537,6 +1589,8 @@ setClientsLoading(false);
 }
 };
 
+
+
 const fetchUserRoles = async () => {
 try {
 const response = await apiCall('/roles');
@@ -1548,6 +1602,8 @@ roleMap[role.name] = {
 label: role.label,
 permissions: role.permissions
 };
+
+
 });
 
 setDynamicRoles(roleMap);
@@ -1560,6 +1616,8 @@ setRolesLoaded(true);
 }
 };
 
+
+
 const handleStatusFilterToggle = (status) => {
 setSelectedStatusFilters(prev => {
 if (prev.includes(status)) {
@@ -1570,6 +1628,8 @@ return [...prev, status];
 });
 };
 
+
+
 const handleSelectAllStatuses = () => {
 if (selectedStatusFilters.length === Object.keys(LEAD_STATUSES).length) {
 setSelectedStatusFilters([]);
@@ -1577,6 +1637,8 @@ setSelectedStatusFilters([]);
 setSelectedStatusFilters(Object.keys(LEAD_STATUSES));
 }
 };
+
+
 
 // Add this function for checking phone numbers
 const checkPhoneForClient = async (phone) => {
@@ -1614,6 +1676,8 @@ setPhoneCheckLoading(false);
 }
 };
 
+
+
 // Add this function to handle phone input changes with debouncing
 const handlePhoneChange = (value) => {
 setLeadFormData(prev => ({ ...prev, phone: value }));
@@ -1630,6 +1694,8 @@ checkPhoneForClient(value);
 
 setPhoneCheckTimeout(newTimeout);
 };
+
+
 
 // Add this function to apply client suggestions
 const applyClientSuggestion = () => {
@@ -1648,9 +1714,13 @@ alert('Client information applied! This lead will be linked to the existing clie
 }
 };
 
+
+
 const handleClearAllStatuses = () => {
 setSelectedStatusFilters([]);
 };
+
+
 
 const getStatusFilterDisplayText = () => {
 if (selectedStatusFilters.length === 0) {
@@ -1677,6 +1747,8 @@ setStadiums([]);
 }
 };
 
+
+
 // Stadium form submission
 const handleStadiumFormSubmit = async (e) => {
 e.preventDefault();
@@ -1689,6 +1761,8 @@ created_by: user.name,
 created_date: new Date().toISOString(),
 updated_date: new Date().toISOString()
 };
+
+
 
 if (editingStadium) {
 // Update existing stadium
@@ -1721,6 +1795,8 @@ setLoading(false);
 }
 };
 
+
+
 // Delete stadium
 const handleDeleteStadium = async (stadiumId, stadiumName) => {
 if (!confirm(`Are you sure you want to delete "${stadiumName}"?`)) return;
@@ -1735,6 +1811,8 @@ alert('❌ Error deleting stadium: ' + error.message);
 }
 };
 
+
+
 // Form helpers
 const openStadiumForm = (stadium = null) => {
 setEditingStadium(stadium);
@@ -1742,11 +1820,15 @@ setStadiumFormData(stadium || {});
 setShowStadiumForm(true);
 };
 
+
+
 const closeStadiumForm = () => {
 setShowStadiumForm(false);
 setEditingStadium(null);
 setStadiumFormData({});
 };
+
+
 
 const handleStadiumInputChange = (name, value) => {
 setStadiumFormData(prev => ({
@@ -1754,6 +1836,8 @@ setStadiumFormData(prev => ({
 [name]: value
 }));
 };
+
+
 
 
 const updateOrderStatus = async (orderId, newStatus, rejectionReason = '') => {
@@ -1764,6 +1848,8 @@ status: newStatus,
 updated_date: new Date().toISOString(),
 updated_by: user.name
 };
+
+
 
 // Add specific fields based on status
 if (newStatus === 'rejected' && rejectionReason) {
@@ -1851,6 +1937,8 @@ console.error('Error fetching data:', error);
 }
 };
 
+
+
 // Fetch data when logged in
 useEffect(() => {
 if (isLoggedIn) {
@@ -1923,6 +2011,8 @@ throw error;
 }
 };
 
+
+
 // Upload file to Google Cloud Storage
 const uploadFileToGCS = async (file, documentType) => {
 try {
@@ -1954,11 +2044,15 @@ size: file.size,
 type: file.type,
 uploadedAt: new Date().toISOString()
 };
+
+
 } catch (error) {
 console.error('Upload error:', error);
 throw error;
 }
 };
+
+
 
 // Get signed URL for reading/viewing files
 const getFileViewUrl = async (filePath) => {
@@ -1981,6 +2075,8 @@ console.error('Error getting file URL:', error);
 return null;
 }
 };
+
+
 const [showOrderDetail, setShowOrderDetail] = useState(false);
 const [selectedOrderForAssignment, setSelectedOrderForAssignment] = useState(null);
 const [showOrderAssignmentModal, setShowOrderAssignmentModal] = useState(false);
@@ -2130,6 +2226,8 @@ console.log(`Permission check: ${user.role} -> ${module}.${action} = ${hasAccess
 return hasAccess;
 };
 
+
+
 const canAccessTab = (tabId) => {
 if (!user) return false;
 // My Actions is available to all logged-in users
@@ -2140,6 +2238,8 @@ if (tabId === 'reminders') return hasPermission('leads', 'read');
 if (tabId === 'sports-calendar') return hasPermission('leads', 'read');
 return hasPermission(tabId, 'read');
 };
+
+
 
 
 // Test mode logging
@@ -2203,6 +2303,8 @@ if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.targe
 setShowStatusFilterDropdown(false);
 }
 };
+
+
 document.addEventListener('mousedown', handleClickOutside);
 return () => document.removeEventListener('mousedown', handleClickOutside);
 }, []);
@@ -2365,6 +2467,8 @@ sendEmailNotification(notification);
 });
 };
 
+
+
 const interval = setInterval(checkScheduledNotifications, 60000); // Check every minute
 return () => clearInterval(interval);
 }, [emailNotifications]);
@@ -2421,6 +2525,8 @@ Amount: ₹${order.total_amount || 0}
 
 Status: ${order.status}`);
 };
+
+
 setLoading(true);
 try {
 const updateData = {
@@ -2428,6 +2534,8 @@ assigned_to: assignee, // This will now be an email
 status: 'service_assigned',
 assigned_date: new Date().toISOString()
 };
+
+
 
 await apiCall('/orders/' + (orderId), {
 method: 'PUT',
@@ -2446,6 +2554,8 @@ const openOrderForm = () => {
 setShowOrderForm(true);
 // Initialize any form data if needed
 };
+
+
 
 // Create delivery entry when assigning to supply team
 const order = orders.find(o => o.id === orderId);
@@ -2482,6 +2592,8 @@ created_date: new Date().toISOString().split('T')[0],
 created_by: user.name
 };
 
+
+
 // Add to deliveries state
 setDeliveries(prev => [...prev, newDelivery]);
 
@@ -2514,6 +2626,8 @@ setLoading(false);
 }
 };
 
+
+
 const fetchReminders = async () => {
 if (!isLoggedIn) return;
 
@@ -2541,12 +2655,16 @@ return dueDate >= today && dueDate < new Date(today.getTime() + 24*60*60*1000) &
 pending: userReminders.filter(r => r.status === 'pending').length
 };
 
+
+
 setReminderStats(stats);
 }
 } catch (error) {
 console.error('Error fetching reminders:', error);
 }
 };
+
+
 
 // Complete a reminder
 const completeReminder = async (reminderId, notes = '') => {
@@ -2570,6 +2688,8 @@ alert('❌ Failed to complete reminder');
 }
 };
 
+
+
 // Snooze a reminder
 const snoozeReminder = async (reminderId, hours = 24) => {
 try {
@@ -2588,6 +2708,8 @@ console.error('Error snoozing reminder:', error);
 alert('❌ Failed to snooze reminder');
 }
 };
+
+
 
 const deleteReminder = async (reminderId) => {
 // Confirm before deleting
@@ -2643,6 +2765,8 @@ return 'now';
 }
 };
 
+
+
 const getPriorityColor = (priority) => {
 switch (priority) {
 case 'urgent': return 'text-red-600 bg-red-100';
@@ -2653,10 +2777,14 @@ default: return 'text-gray-600 bg-gray-100';
 }
 };
 
+
+
 const openOrderDetail = (order) => {
 setCurrentOrderDetail(order);
 setShowOrderDetail(true);
 };
+
+
 
 const renderOrderDetailModal = () => {
 if (!showOrderDetail || !currentOrderDetail) return null;
@@ -2765,6 +2893,8 @@ setSelectedOrderForAssignment(null);
 )
 );
 };
+
+
 ;
 
 const getInventoryDueInDays = (eventDate) => {
@@ -2774,6 +2904,8 @@ const diffTime = event - today;
 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 return diffDays;
 };
+
+
 
 
 const calculateDashboardStats = () => {
@@ -2793,11 +2925,15 @@ thisMonthRevenue: 0,
 pendingDeliveries: deliveries.filter(d => d.status === 'pending').length,
 inventoryValue: inventory.reduce((sum, item) => sum + (item.price * item.quantity), 0)
 };
+
+
 setDashboardStats(stats);
 
 // Update charts with filtered data
 updateCharts(filteredLeads);
 };
+
+
 
 // HOW TO FIX THE DUPLICATE FUNCTION ERRORS
 
@@ -2831,6 +2967,8 @@ u.role === 'sales_executive' || u.role === 'sales_manager'
 );
 setSalesPeople(salesUsers);
 };
+
+
 
 // ===== KEEP ONLY ONE updateCharts =====
 const updateCharts = (filteredLeads) => {
@@ -2883,6 +3021,8 @@ console.log('Temp Value chart updated');
 console.log('Temp Value chart not found!');
 }
 };
+
+
 
 
 // Function to initialize charts
@@ -3096,6 +3236,8 @@ console.error('Error creating advanced Temp Value chart:', error);
 console.log('Advanced chart initialization complete');
 };
 
+
+
 const formatValueInLacs = (value) => {
 if (value >= 100000) {
 return (value / 100000).toFixed(2) + 'L';
@@ -3105,6 +3247,8 @@ return (value / 1000).toFixed(1) + 'K';
 return value.toString();
 }
 };
+
+
 
 
 // Authentication
@@ -3152,6 +3296,8 @@ setLoading(false);
 };
 
 
+
+
 const handleLogout = () => {
 setIsLoggedIn(false);
 setUser(null);
@@ -3169,6 +3315,8 @@ console.log('Failed to clear auth state:', e);
 }
 };
 
+
+
 // User Management Functions
 const openUserManagement = () => {
 if (!hasPermission('users', 'read')) {
@@ -3177,6 +3325,8 @@ return;
 }
 setShowUserManagement(true);
 };
+
+
 
 const openUserForm = (editUser = null) => {
 if (editUser && !hasPermission('users', 'write')) {
@@ -3210,6 +3360,8 @@ status: 'active'
 setShowUserForm(true);
 };
 
+
+
 const handleDeleteUser = async (userId, userName) => {
 if (!hasPermission('users', 'delete')) {
 alert('You do not have permission to delete users');
@@ -3237,6 +3389,8 @@ setLoading(false);
 };
 
 
+
+
 const closeUserForm = () => {
 setShowUserForm(false);
 setEditingUser(null);
@@ -3249,6 +3403,8 @@ department: '',
 status: 'active'
 });
 };
+
+
 
 const handleUserSubmit = async (e) => {
 e.preventDefault();
@@ -3292,6 +3448,8 @@ setLoading(false);
 };
 
 
+
+
 const fetchUsers = async () => {
 try {
 const response = await apiCall('/users');
@@ -3302,6 +3460,8 @@ setUsers(response.data);
 console.error('Failed to fetch users:', error);
 }
 };
+
+
 
 // Enhanced handleMarkAsPaid function with inventory integration
 const handleMarkAsPaid = async (payableId) => {
@@ -3344,6 +3504,8 @@ payableAmount: payable.amount,
 fromPayables: true
 }
 };
+
+
 
 setEditingInventory(inventoryWithContext);
 
@@ -3405,6 +3567,8 @@ alert('Failed to process payment: ' + error.message);
 setLoading(false);
 }
 };
+
+
 
 const fetchFinancialData = async () => {
 try {
@@ -3516,6 +3680,8 @@ client_name: r.client_name || 'N/A',
 assigned_to: r.assigned_to || 'Unassigned',
 status: r.status || 'pending'
 };
+
+
 });
 
 console.log('Processed receivables:', processedReceivables);
@@ -3569,6 +3735,8 @@ alert('Failed to load financial data. Please refresh the page.');
 };
 
 
+
+
 // Record payment for receivable
 const recordPayment = async (receivableId) => {
 const paymentAmount = prompt('Enter payment amount:');
@@ -3595,6 +3763,8 @@ alert('Failed to record payment');
 setLoading(false);
 }
 };
+
+
 
 
 const fetchMyActions = async () => {
@@ -3731,6 +3901,8 @@ setLoading(false);
 }
 };
 
+
+
 window.chartInstances = chartInstances;
 window.calculateDashboardStats = calculateDashboardStats;
 window.debugCharts = () => {
@@ -3744,6 +3916,8 @@ console.log('Chart instances:', window.chartInstances);
 console.log('Current leads:', leads);
 console.log('Lead statuses:', leads.map(l => ({ name: l.name, status: l.status })));
 };
+
+
 
 // 5. Function to manually initialize charts:
 window.forceInitCharts = () => {
@@ -3774,6 +3948,8 @@ initializeChartsAdvanced();
 }
 };
 
+
+
 // Enhanced lead progression function with permission check
 // Status update function with permission check
 const updateLeadStatus = async (leadId, newStatus) => {
@@ -3801,6 +3977,8 @@ last_contact_date: new Date().toISOString(),
 [(newStatus) + '_date']: new Date().toISOString(),
 updated_date: new Date().toISOString()
 };
+
+
 
 console.log('Updating lead with full data:', updateData);
 
@@ -3831,6 +4009,8 @@ setLoading(false);
 alert('Failed to update lead status: ' + error.message);
 }
 };
+
+
 
 
 // 2. REPLACE your renderStatusProgressModal function with this corrected version:
@@ -3878,6 +4058,8 @@ last_contact_date: new Date().toISOString(),
 [(selectedStatus) + '_date']: new Date().toISOString(),
 updated_date: new Date().toISOString()
 };
+
+
 
 // Add follow-up specific fields if applicable
 if (selectedStatusConfig.requires_followup_date && followUpDate) {
@@ -3930,6 +4112,8 @@ alert('Failed to update lead status: ' + error.message);
 }
 };
 
+
+
 const handleModalClose = () => {
 setShowStatusProgressModal(false);
 // Clear form when closing
@@ -3937,6 +4121,8 @@ setSelectedStatus('');
 setFollowUpDate('');
 setFollowUpNotes('');
 };
+
+
 
 if (!showStatusProgressModal) return null;
 
@@ -4024,6 +4210,8 @@ className: 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hove
 )
 );
 };
+
+
 
 const handleLeadProgression = (lead) => {
 if (!hasPermission('leads', 'progress')) {
@@ -4131,6 +4319,8 @@ setShowChoiceModal(true);
 }
 };
 
+
+
 const handleQuoteRequestStage = async (lead, newStatus) => {
 try {
 setLoading(true);
@@ -4149,6 +4339,8 @@ updated_date: new Date().toISOString(),
 quote_assigned_to: user.role === 'supply_manager' ? user.email : 'supply.service@fantopark.com', // Auto-assign based on role
 dual_assignment: true
 };
+
+
 
 const response = await apiCall(`/leads/${lead.id}`, {
 method: 'PUT',
@@ -4175,6 +4367,8 @@ setLoading(false);
 alert('Failed to update lead status: ' + error.message);
 }
 };
+
+
 
 // Enhanced Choice Modal Handler to support pickup_later
 const handleChoiceSelection = async (choice) => {
@@ -4224,6 +4418,8 @@ alert('Failed to update lead status: ' + error.message);
 
 
 
+
+
 // Form handlers with permission checks
 const openAddForm = (type) => {
 if (!hasPermission(type === 'lead' ? 'leads' : (type === 'order' ? 'orders' : type), 'write')) {
@@ -4234,6 +4430,8 @@ setCurrentForm(type);
 setFormData({});
 setShowAddForm(true);
 };
+
+
 
 const openEditForm = (lead) => {
 if (!hasPermission('leads', 'write')) {
@@ -4264,6 +4462,8 @@ setFormData(processedLead);
 setShowEditForm(true);
 };
 
+
+
 const openAssignForm = (lead) => {
 if (!hasPermission('leads', 'assign')) {
 alert('You do not have permission to assign leads');
@@ -4273,6 +4473,8 @@ setCurrentLead(lead);
 setFormData({ assigned_team: 'sales', assigned_to: '' });
 setShowAssignForm(true);
 };
+
+
 
 const openPaymentForm = (lead) => {
   if (!hasPermission('leads', 'write')) {
@@ -4345,6 +4547,8 @@ const openPaymentForm = (lead) => {
   setPaymentData(initialPaymentData);
   setShowPaymentForm(true);
 };
+
+
 
 const handleMarkPaymentFromReceivable = async (receivable) => {
 console.log('Mark Payment clicked for receivable:', receivable);
@@ -4419,10 +4623,14 @@ receivable_amount: receivable.balance_amount || receivable.expected_amount || re
 }
 };
 
+
+
 const openLeadDetail = (lead) => {
 setCurrentLead(lead);
 setShowLeadDetail(true);
 };
+
+
 
 const openAllocationForm = (inventoryItem) => {
 if (!hasPermission('inventory', 'allocate')) {
@@ -4439,6 +4647,8 @@ notes: ''
 setShowAllocationForm(true);
 };
 
+
+
 const openEditInventoryForm = (inventoryItem) => {
 if (!hasPermission('inventory', 'write')) {
 alert('You do not have permission to edit inventory');
@@ -4448,6 +4658,8 @@ setCurrentInventory(inventoryItem);
 setFormData(inventoryItem);
 setShowEditInventoryForm(true);
 };
+
+
 
 // Add this right after the openEditInventoryForm function
 const handleEditInventory = async (inventoryData) => {
@@ -4509,16 +4721,22 @@ setLoading(false);
 }
 };
 
+
+
 const openInventoryDetail = (inventoryItem) => {
 setCurrentInventoryDetail(inventoryItem);
 setShowInventoryDetail(true);
 };
+
+
 
 // 3. ADD THIS FUNCTION to close inventory detail:
 const closeInventoryDetail = () => {
 setShowInventoryDetail(false);
 setCurrentInventoryDetail(null);
 };
+
+
 
 const openAddInventoryForm = () => {
 console.log('openAddInventoryForm called');
@@ -4570,6 +4788,8 @@ setShowInventoryForm(true);
 console.log('Inventory form should now be visible with empty form data');
 };
 
+
+
 const handleCopyInventory = async (item) => {
 try {
 setLoading(true);
@@ -4597,6 +4817,8 @@ supplierInvoice: '',
 created_by: JSON.parse(localStorage.getItem('crm_user') || '{}').name || 'Unknown User',
 notes: (item.notes || '') + (item.notes ? '\n\n' : '') + 'Copied from original inventory on ' + new Date().toLocaleDateString()
 };
+
+
 
 console.log('Creating copy of inventory:', copiedData);
 
@@ -4627,6 +4849,8 @@ setLoading(false);
 
 
 
+
+
 const openDeliveryForm = (delivery) => {
 if (!hasPermission('delivery', 'write')) {
 alert('You do not have permission to manage deliveries');
@@ -4649,6 +4873,8 @@ online_link: ''
 setShowDeliveryForm(true);
 };
 
+
+
 const openPaymentPostServiceForm = (lead) => {
 if (!hasPermission('leads', 'write')) {
 alert('You do not have permission to manage payment post service');
@@ -4667,9 +4893,13 @@ notes: ''
 setShowPaymentPostServiceForm(true);
 };
 
+
+
 const handlePaymentPostServiceInputChange = (field, value) => {
 setPaymentPostServiceData(prev => ({ ...prev, [field]: value }));
 };
+
+
 
 const handlePaymentPostServiceSubmit = async (e) => {
 e.preventDefault();
@@ -4732,6 +4962,8 @@ created_by: user.name,
 assigned_to: ''  // Will be assigned later
 };
 
+
+
 // Create order in backend
 try {
 console.log('Creating payment post service order:', JSON.stringify(newOrder, null, 2));
@@ -4771,6 +5003,8 @@ console.error('Payment post service error:', error);
 };
 
 
+
+
 const collectPostServicePayment = (receivable) => {
 const lead = leads.find(l => l.id === receivable.lead_id);
 if (lead) {
@@ -4786,6 +5020,8 @@ receivable_amount: receivable.expected_amount || receivable.balance_amount || re
 setShowPaymentForm(true);
 }
 };
+
+
 
 const sendEmailNotification = (notification) => {
 console.log('Email Notification:', {
@@ -4804,6 +5040,8 @@ n.id === notification.id
 )
 );
 };
+
+
 
 const handleDeliverySubmit = async (e) => {
 e.preventDefault();
@@ -4855,6 +5093,8 @@ alert('Failed to schedule delivery. Please try again.');
 }
 };
 
+
+
 const deleteDelivery = async (deliveryId) => {
 if (!hasPermission('delivery', 'write')) {
 alert('You do not have permission to delete deliveries');
@@ -4882,6 +5122,8 @@ setLoading(false);
 }
 };
 
+
+
 const closeForm = () => {
 setShowAddForm(false);
 setShowEditForm(false);
@@ -4908,6 +5150,8 @@ setDeliveryFormData({});
 setPaymentPostServiceData({});
 };
 
+
+
 const handleInputChange = (field, value, itemIndex = null, itemField = null) => {
 if (itemIndex !== null && itemField !== null) {
 updateInvoiceItem(itemIndex, itemField, value);
@@ -4918,6 +5162,8 @@ setPaymentData(prevData => ({
 }));
 }
 };
+
+
 
 const handleFormDataChange = (field, value) => {
 console.log('Form field changed:', field, '=', value);
@@ -4931,12 +5177,18 @@ const handleUserInputChange = (field, value) => {
 setUserFormData(prev => ({ ...prev, [field]: value }));
 };
 
+
+
 const handleAllocationInputChange = (field, value) => {
 setAllocationData(prev => ({ ...prev, [field]: value }));
 };
+
+
 const handleDeliveryInputChange = (field, value) => {
 setDeliveryFormData(prev => ({ ...prev, [field]: value }));
 };
+
+
 
 // Delete function with permission check
 const handleDelete = async (type, id, name) => {
@@ -4946,6 +5198,8 @@ const modulePermissions = {
 'inventory': 'inventory',
 'orders': 'orders'
 };
+
+
 
 if (!hasPermission(modulePermissions[type], 'delete')) {
 alert('You do not have permission to delete ' + (type));
@@ -5044,6 +5298,8 @@ alert('Failed to process ' + (type === 'inventory' ? 'event' : type.slice(0, -1)
 }
 };
 
+
+
 // User Management Modal
 const renderUserManagement = () => {
 if (!showUserManagement) return null;
@@ -5131,6 +5387,8 @@ disabled: loading
 );
 };
 
+
+
 const renderFinancials = () => {
 // Filter data based on filters
 const applyFilters = (data) => {
@@ -5143,6 +5401,8 @@ if (financialFilters.status !== 'all' && item.status !== financialFilters.status
 return true;
 });
 };
+
+
 
 return React.createElement('div', { className: 'space-y-6' },
 // Header with stats cards
@@ -5266,6 +5526,8 @@ activeFinancialTab === 'expiring' && renderExpiringTab(financialData.expiringInv
 );
 };
 
+
+
 // Export Events to Excel
 const exportEventsToExcel = async () => {
   try {
@@ -5301,6 +5563,8 @@ const exportEventsToExcel = async () => {
     alert('Failed to export events: ' + error.message);
   }
 };
+
+
 
 
 // Import Events from Excel
@@ -5348,6 +5612,8 @@ const importEventsFromExcel = async (file) => {
   }
 };
 
+
+
 const renderImportModal = () => {
   if (!showImportModal) return null;
 
@@ -5394,6 +5660,8 @@ const renderImportModal = () => {
     )
   );
 };
+
+
   
 
   
@@ -5444,6 +5712,8 @@ className: 'px-4 py-8 text-center text-gray-500'
 )
 );
 };
+
+
 
 
 const renderSalesTab = (sales) => {
@@ -5502,6 +5772,8 @@ className: 'px-4 py-8 text-center text-gray-500'
 )
 );
 };
+
+
 
 // UPDATED RECEIVABLES TABLE FUNCTION - REPLACE YOUR EXISTING renderReceivablesTab FUNCTION
 const renderReceivablesTab = (receivables) => {
@@ -5575,6 +5847,8 @@ className: 'px-4 py-8 text-center text-gray-500'
 )
 );
 };
+
+
 
 // UPDATED PAYABLES TABLE FUNCTION - REPLACE YOUR EXISTING renderPayablesTab FUNCTION
 const renderPayablesTab = (payables) => {
@@ -5653,6 +5927,8 @@ className: 'px-4 py-8 text-center text-gray-500'
 );
 };
 
+
+
 // ADD these components where you have your other component definitions:
 
 const ReminderCard = (reminder, isOverdue) => {
@@ -5714,6 +5990,8 @@ className: 'px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700'
 )
 );
 };
+
+
 
 const ReminderDashboard = () => {
 if (!showReminderDashboard) return null;
@@ -5857,6 +6135,8 @@ ReminderCard(reminder, new Date(reminder.due_date) < new Date())
 );
 };
 
+
+
 const renderExpiringTab = (expiring) => {
 return React.createElement('div', { className: 'overflow-x-auto' },
 React.createElement('table', { className: 'w-full' },
@@ -5909,6 +6189,8 @@ className: 'px-4 py-8 text-center text-gray-500'
 )
 );
 };
+
+
 
 
 
@@ -6026,6 +6308,8 @@ className: 'flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700
 );
 };
 
+
+
 // [Rest of the component code remains the same, but with permission checks added to buttons and actions]
 // [I'll include the key rendering functions with permission checks integrated]
 
@@ -6076,6 +6360,8 @@ className: 'px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text
 );
 };
 
+
+
 // ===== COMMUNICATION COMPONENTS - INSERT THIS BLOCK =====
 // Insert this BEFORE the line "const renderSidebar = () => {"
 
@@ -6098,6 +6384,8 @@ console.error('Error fetching communications:', error);
 setLoading(false);
 }
 };
+
+
 
 React.useEffect(() => {
 fetchCommunications();
@@ -6124,6 +6412,8 @@ alert('Failed to log communication: ' + error.message);
 }
 };
 
+
+
 const getCommIcon = (type) => {
 const icons = {
 call: '📞',
@@ -6133,8 +6423,12 @@ meeting: '🤝',
 sms: '📱',
 system: '🤖'
 };
+
+
 return icons[type] || '📝';
 };
+
+
 
 const getOutcomeColor = (outcome) => {
 const colors = {
@@ -6143,8 +6437,12 @@ not_interested: 'bg-red-100 text-red-800',
 follow_up: 'bg-yellow-100 text-yellow-800',
 closed: 'bg-gray-100 text-gray-800'
 };
+
+
 return colors[outcome] || 'bg-blue-100 text-blue-800';
 };
+
+
 
 return React.createElement('div', { className: 'bg-white rounded-lg shadow-sm border mt-6' },
 React.createElement('div', { className: 'p-4 border-b flex justify-between items-center' },
@@ -6217,6 +6515,8 @@ React.createElement('div', { className: 'text-xs text-gray-500 mt-1' },
 )
 );
 };
+
+
 
 // COMPLETE FIXED AssignmentRulesManager component
 // ULTRA-FIXED: AssignmentRulesManager with multiple safeguards against infinite re-renders
@@ -6326,6 +6626,8 @@ setHasInitialized(false);
 }
 };
 
+
+
 // Small delay to prevent race conditions
 const timeoutId = setTimeout(initializeData, 100);
 
@@ -6337,6 +6639,8 @@ delete window.refreshAssignmentRules;
 }
 console.log('AssignmentRulesManager: Cleanup completed');
 };
+
+
 }, []); // CRITICAL: Empty dependency array
 
 // ULTRA-FIX: Add useEffect to reset initialization if component is truly remounted
@@ -6346,6 +6650,8 @@ console.log('AssignmentRulesManager: Component unmounting, resetting refs');
 initializationRef.current = false;
 loadingRef.current = false;
 };
+
+
 }, []);
 
 const toggleRule = async (ruleId, currentStatus) => {
@@ -6360,6 +6666,8 @@ alert('Error updating rule: ' + error.message);
 }
 };
 
+
+
 const deleteRule = async (ruleId) => {
 if (!confirm('Are you sure you want to delete this assignment rule?')) return;
 
@@ -6373,6 +6681,8 @@ alert('Error deleting rule: ' + error.message);
 }
 };
 
+
+
 const handleSubmit = async (e) => {
 e.preventDefault();
 
@@ -6383,6 +6693,8 @@ const ruleData = {
 conditions: buildConditions(ruleFormData.conditions),
 created_by: currentUser?.email
 };
+
+
 
 console.log('Submitting rule data:', ruleData);
 
@@ -6406,6 +6718,8 @@ alert('Error saving rule: ' + error.message);
 }
 };
 
+
+
 const buildConditions = (formConditions) => {
 const conditions = {};
 
@@ -6428,6 +6742,8 @@ conditions.lead_source = { eq: formConditions.lead_source };
 return conditions;
 };
 
+
+
 const resetForm = () => {
 setRuleFormData({
 name: '',
@@ -6447,6 +6763,8 @@ setEditingRule(null);
 setShowForm(false);
 };
 
+
+
 const editRule = (rule) => {
 setEditingRule(rule);
 
@@ -6457,6 +6775,8 @@ potential_value_operator: 'gte',
 business_type: '',
 lead_source: ''
 };
+
+
 
 if (rule.conditions?.potential_value) {
 const potentialValueCondition = rule.conditions.potential_value;
@@ -6487,12 +6807,16 @@ conditions: formConditions
 setShowForm(true);
 };
 
+
+
 const addAssignee = () => {
 setRuleFormData({
 ...ruleFormData,
 assignees: [...ruleFormData.assignees, { email: '', weight: 50 }]
 });
 };
+
+
 
 const updateAssignee = (index, field, value) => {
 const newAssignees = [...ruleFormData.assignees];
@@ -6503,12 +6827,16 @@ assignees: newAssignees
 });
 };
 
+
+
 const removeAssignee = (index) => {
 setRuleFormData({
 ...ruleFormData,
 assignees: ruleFormData.assignees.filter((_, i) => i !== index)
 });
 };
+
+
 
 const testRule = async () => {
 try {
@@ -6519,6 +6847,8 @@ potential_value: 150000,
 business_type: 'B2B',
 lead_source: 'Website'
 };
+
+
 
 const response = await apiCall('/assignment-rules/test', {
 method: 'POST',
@@ -6537,6 +6867,8 @@ setTestingRule(false);
 }
 };
 
+
+
 const initializeDefaults = async () => {
 if (!confirm('This will create default assignment rules. Continue?')) return;
 
@@ -6550,6 +6882,8 @@ loadRules();
 alert('Error creating default rules: ' + error.message);
 }
 };
+
+
 
 const formatConditions = (conditions) => {
 if (!conditions || Object.keys(conditions).length === 0) {
@@ -6575,6 +6909,8 @@ conditionStrings.push(`Source: ${conditions.lead_source.eq}`);
 
 return conditionStrings.join(', ');
 };
+
+
 
 const runAssignment = async () => {
 if (!confirm('This will automatically assign all unassigned leads based on the active assignment rules. Continue?')) {
@@ -6612,6 +6948,8 @@ alert('Error running assignment: ' + error.message);
 setIsRunningAssignment(false);
 }
 };
+
+
 
 // ULTRA-FIX: Show loading state until initialization is complete
 if (loading || !hasInitialized) {
@@ -6819,6 +7157,8 @@ duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes
 });
 };
 
+
+
 return React.createElement('form', { onSubmit: handleSubmit, className: 'space-y-4' },
 React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
 React.createElement('div', null,
@@ -6924,6 +7264,8 @@ className: 'px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700'
 );
 };
 
+
+
 // ===== END OF COMMUNICATION COMPONENTS =====
 
 // Enhanced sidebar with user access control
@@ -6996,6 +7338,8 @@ React.createElement('span', { className: 'mr-3' }, '🚪'),
 )
 );
 };
+
+
 
 const renderDashboardContent = () => {
 return React.createElement('div', { className: 'space-y-6' },
@@ -7127,6 +7471,8 @@ React.createElement('span', { className: 'mr-3' }, '+'),
 )
 );
 };
+
+
 
 
 // I'll continue with the rest of the rendering functions but with permission checks integrated
@@ -7437,10 +7783,14 @@ className: 'text-blue-600 hover:text-blue-800 text-sm'
 );
 };
 
+
+
 const updateDeliveryStatus = (deliveryId) => {
 // Implement delivery status update
 alert('Delivery status update coming soon!');
 };
+
+
 
 const approveOrder = async (orderId) => {
 if (confirm('Are you sure you want to approve this order?')) {
@@ -7457,15 +7807,21 @@ alert('Failed to approve order: ' + error.message);
 }
 };
 
+
+
 const viewOrderDetails = (order) => {
 setCurrentOrderDetail(order);
 setShowOrderDetail(true);
 };
 
+
+
 const viewLeadDetails = (lead) => {
 setCurrentLead(lead);
 setShowLeadDetail(true);
 };
+
+
 
 const renderContent = () => {
 if (loading && activeTab !== 'leads') {
@@ -7637,6 +7993,8 @@ delivery: { read: false, write: false, delete: false },
 users: { read: false, write: false, delete: false, manage_roles: false }
 }
 };
+
+
 },
 className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
 }, '+ Add New Role')
@@ -7877,6 +8235,8 @@ persistentAssignmentRules  // Hidden but present
 }
 };
 
+
+
 // Login screen
 if (!isLoggedIn) {
 return React.createElement('div', { className: 'min-h-screen bg-gray-100 flex items-center justify-center'},
@@ -8073,6 +8433,8 @@ const postConvertedStages = ['converted', 'payment', 'payment_post_service', 'pa
 return postConvertedStages.includes(status);
 };
 
+
+
 // Use it in the validation
 if (!isConvertedOrLater(selectedLead.status)) {
 throw new Error('Lead must be in converted status or later to allocate inventory');
@@ -8118,6 +8480,8 @@ setLoading(false);
 }
 };
 
+
+
 // Function to open allocation management
 const openAllocationManagement = async (inventoryItem) => {
 try {
@@ -8141,6 +8505,8 @@ alert('Error fetching allocations: ' + error.message);
 setLoading(false);
 }
 };
+
+
 
 // Function to unallocate tickets
 const handleUnallocate = async (allocationId, ticketsToReturn) => {
@@ -8181,6 +8547,8 @@ setLoading(false);
 }
 };
 
+
+
 // ADD this enhanced order approval function
 const handleEnhancedOrderApproval = async (orderId, action, notes = '') => {
 if (!hasPermission('orders', 'approve')) {
@@ -8203,6 +8571,8 @@ approved_date: new Date().toISOString().split('T')[0],
 approval_notes: notes,
 approved_by: user.name
 };
+
+
 
 // Generate GST invoice if approved
 if (action === 'approve' && order.requires_gst_invoice) {
@@ -8238,6 +8608,8 @@ status: 'generated',
 generated_by: user.name
 };
 
+
+
 setInvoices(prev => [...prev, newInvoice]);
 updatedOrder.invoice_id = newInvoice.id;
 updatedOrder.invoice_number = invoiceNumber;
@@ -8260,11 +8632,15 @@ alert('Failed to update order status');
 }
 };
 
+
+
 // ADD this GST invoice preview function
 const openInvoicePreview = (invoice) => {
 setCurrentInvoice(invoice);
 setShowInvoicePreview(true);
 };
+
+
 
 // Enhanced GST and TCS Calculation Preview Function
 const renderEnhancedGSTCalculationPreview = () => {
@@ -8421,6 +8797,8 @@ tcs: {
 },
 finalAmount: invoice.final_amount || (baseAmount + (invoice.total_tax || 0))
 };
+
+
 } else {
 // Fallback: recalculate using the function
 calculation = calculateGSTAndTCS(baseAmount, invoice);
@@ -8664,7 +9042,11 @@ printWindow.print();
 printWindow.onafterprint = function() {
 printWindow.close();
 };
+
+
 };
+
+
 },
 className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
 }, '🖨️ Print'),
@@ -8919,6 +9301,8 @@ React.createElement('p', { style: { fontSize: '8px' }}, 'For any queries, please
 ));
 };
 
+
+
 // Order approval with permission check
 // REPLACE your existing handleOrderApproval function with this:
 // MERGED handleOrderApproval function - includes both GST invoice and receivables creation
@@ -8983,6 +9367,8 @@ status: 'generated',
 generated_by: user.name
 };
 
+
+
 setInvoices(prev => [...prev, newInvoice]);
 }
 
@@ -8994,6 +9380,8 @@ approval_notes: notes,
 approved_by: user.name,
 payment_status: order.payment_status || 'pending'
 };
+
+
 
 // Add invoice fields if invoice was generated
 if (invoiceNumber && invoiceId) {
@@ -9056,6 +9444,8 @@ event_date: order.event_date,
 event_name: order.event_name
 };
 
+
+
 console.log('Creating receivable with data:', receivableData);
 
 try {
@@ -9103,6 +9493,8 @@ alert('Failed to update order status');
 }
 };
 
+
+
 // 1. Delete Receivable Function
 const deleteReceivable = async (receivableId) => {
 if (!window.confirm('Are you sure you want to delete this receivable? This action cannot be undone.')) {
@@ -9131,6 +9523,8 @@ alert('Failed to delete receivable: ' + error.message);
 setLoading(false);
 }
 };
+
+
 
 // 2. Delete Payable Function  
 const deletePayable = async (payableId) => {
@@ -9163,6 +9557,8 @@ alert('Failed to delete payable: ' + error.message);
 setLoading(false);
 }
 };
+
+
 
 const handleFormSubmit = async (e) => {
 e.preventDefault();
@@ -9274,6 +9670,8 @@ inventoryId: invResponse.data?.id || invResponse.id,
 status: 'pending'
 };
 
+
+
 console.log('Creating payable for inventory:', payableData);
 
 const payableResponse = await apiCall('/finance/payables', {
@@ -9324,6 +9722,8 @@ setLoading(false);
 }
 };
 
+
+
 const handleDeleteLead = async (leadId) => {
 if (!confirm('Are you sure you want to delete this lead?')) return;
 
@@ -9347,6 +9747,8 @@ alert('Failed to delete lead: ' + error.message);
 }
 };
 
+
+
 const handleDeleteInventory = async (inventoryId) => {
 if (!confirm('Are you sure you want to delete this event?')) return;
 
@@ -9358,6 +9760,8 @@ alert('Event deleted successfully!');
 alert('Failed to delete event: ' + error.message);
 }
 };
+
+
 
 // Assignment with permission check
 const handleAssignLead = async (e) => {
@@ -9414,6 +9818,8 @@ alert('Assignment failed: ' + error.message);
 setLoading(false);
 }
 };
+
+
 
 // Payment submission with permission check
 const handlePaymentSubmit = async (e) => {
@@ -9482,6 +9888,8 @@ final_amount: finalAmount
 },
 payment_received_date: new Date().toISOString().split('T')[0]
 };
+
+
 
 // Update local state with payment details
 setLeads(prev => 
@@ -9757,6 +10165,8 @@ payment_status: 'paid',
 order_type: 'standard'
 };
 
+
+
 console.log('=== ENHANCED ORDER CREATION DEBUG ===');
 console.log('Order data to create:', JSON.stringify(orderData, null, 2));
 console.log('Order data size:', JSON.stringify(orderData).length, 'characters');
@@ -9916,6 +10326,8 @@ setLoading(false);
 alert('Payment submission failed: ' + (error.message || 'Unknown error'));
 }
 };
+
+
 
 // Generic form renderer with all sections
 const renderForm = () => {
@@ -10529,6 +10941,8 @@ className: 'px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabl
 );
 };
 
+
+
 // Client Detail Modal Component - Shows complete client timeline and relationship history
 // Add this component to your frontend
 
@@ -10865,6 +11279,8 @@ className: 'bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg fon
 );
 };
 
+
+
 // Add this to your main render function where you have other modals (around line 4000-5000)
 // Add this line in your main return statement where you have other modals like:
 // showLeadDetail && renderLeadDetailModal(),
@@ -11149,6 +11565,8 @@ leadName: currentLead.name
 );
 };
 
+
+
 const renderInventoryDetail = () => {
 if (!showInventoryDetail || !currentInventoryDetail) return null;
 
@@ -11164,6 +11582,8 @@ if (item.available_tickets === item.total_tickets) return { label: 'Available', 
 if (item.available_tickets > 5) return { label: 'Limited', color: 'bg-yellow-100 text-yellow-800' };
 return { label: 'Nearly Sold', color: 'bg-orange-100 text-orange-800' };
 };
+
+
 
 const availabilityStatus = getAvailabilityStatus();
 
@@ -11375,6 +11795,8 @@ React.createElement('p', { className: 'text-gray-900 whitespace-pre-wrap' }, ite
 
 
 
+
+
 // Assign form with permission checks
 const renderAssignForm = () => {
 if (!showAssignForm || !currentLead) return null;
@@ -11443,11 +11865,15 @@ className: 'flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700
 );
 };
 
+
+
 // Payment form
 // REPLACE your existing renderPaymentForm function with this:
 const renderPaymentForm = () => {
 return renderEnhancedPaymentForm();
 };
+
+
 
 const renderPaymentPostServiceForm = () => {
 if (!showPaymentPostServiceForm || !currentLead) return null;
@@ -11580,6 +12006,8 @@ className: 'flex-1 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple
 )
 );
 };
+
+
 
 // ADD this new enhanced payment form function
 const renderEnhancedPaymentForm = () => {
@@ -12371,6 +12799,8 @@ className: 'flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-7
 );
 };
 
+
+
 // Allocation form
 const renderAllocationForm = () => {
 if (!showAllocationForm || !currentInventory) return null;
@@ -12463,6 +12893,8 @@ className: 'flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-7
 );
 };
 
+
+
 const renderBulkAssignModal = () => {
 if (!showBulkAssignModal) return null;
 
@@ -12483,6 +12915,8 @@ delete newSelections[leadId];
 return newSelections;
 });
 };
+
+
 
 return React.createElement('div', { 
 className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
@@ -12569,6 +13003,8 @@ className: 'px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disa
 );
 };
 
+
+
 // Allocation Management Modal
 const renderAllocationManagement = () => {
 if (!showAllocationManagement || !allocationManagementInventory) return null;
@@ -12654,6 +13090,8 @@ className: 'bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600'
 );
 };
 
+
+
 const renderStadiumForm = () => {
 if (!showStadiumForm) return null;
 
@@ -12733,6 +13171,8 @@ className: 'flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700
 )
 );
 };
+
+
 
 const populateDefaultStadiums = async () => {
 if (!confirm('This will add popular stadiums to your database. Continue?')) return;
@@ -13203,12 +13643,16 @@ className: 'px-6 py-4 text-center text-gray-500 dark:text-gray-400'
 );
 };
 
+
+
 // Close inventory form
 const closeInventoryForm = () => {
 setShowInventoryForm(false);
 setEditingInventory(null);
 setFormData({});
 };
+
+
 
 // Handle inventory form submission (specifically for payables integration)
 const handleInventoryFormSubmit = async (e) => {
@@ -13290,6 +13734,8 @@ alert('Error saving inventory: ' + error.message);
 setLoading(false);
 }
 };
+
+
 
 // Enhanced leads content with permission checks
 // Enhanced renderLeadsContent function with Client Toggle - PRESERVES ALL YOUR EXISTING FEATURES
@@ -13882,6 +14328,8 @@ renderClientViewContent()
 );
 };
 
+
+
 // NEW: Client View Content Function
 const renderClientViewContent = () => {
 if (clientsLoading) {
@@ -14035,6 +14483,8 @@ className: 'text-green-600 hover:text-green-900 ml-2'
 };
 
 
+
+
 const handleEditOrderSubmit = async (e) => {
 e.preventDefault();
 setLoading(true);
@@ -14046,6 +14496,8 @@ const updateData = {
 updated_date: new Date().toISOString(),
 updated_by: user.name
 };
+
+
 
 // Clear rejection fields if status is not rejected
 if (orderEditData.status !== 'rejected') {
@@ -14079,6 +14531,8 @@ alert('Failed to update order');
 setLoading(false);
 }
 };
+
+
 
 const renderEditOrderForm = () => {
 if (!showEditOrderForm || !currentOrderForEdit) return null;
@@ -14165,6 +14619,8 @@ className: 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabl
 };
 
 
+
+
 // Render order assignment modal
 const renderOrderAssignModal = () => {
 if (!showOrderAssignModal || !orderToAssign) return null;
@@ -14221,6 +14677,8 @@ className: 'px-4 py-2 text-gray-600 hover:text-gray-800'
 )
 );
 };
+
+
 
 
 const renderOrderDetail = () => {
@@ -14408,6 +14866,8 @@ handleOrderApproval(currentOrderDetail.id, 'reject');
 )
 );
 };
+
+
 
 
 const renderStadiumsContent = () => {
@@ -14618,6 +15078,8 @@ className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
 );
 };
 
+
+
 // 1. ESPN API ENDPOINTS AND FETCH FUNCTIONS
 const SOFASCORE_API_BASE = "https://api.sofascore.com/api/v1";
 
@@ -14644,6 +15106,8 @@ return null;
 }
 };
 
+
+
 // Fetch events from multiple sports leagues
 const fetchAllEvents = async () => {
   try {
@@ -14666,6 +15130,8 @@ const fetchAllEvents = async () => {
     }
   } catch (error) { console.error("Error fetching events:", error); }
 };
+
+
 
 const fetchSofaScoreEvents = async () => {
 try {
@@ -14761,6 +15227,8 @@ return [];
 }
 };
 
+
+
 // Generate FanToPark package descriptions based on event type
 const generateFanToParkPackage = (event, sportName) => {
 const venue = event.competitions?.[0]?.venue?.fullName || 'Stadium';
@@ -14788,6 +15256,8 @@ const teamNames = competitors?.map(c => c.team?.displayName).join(' vs ') || 'Te
 
 return `${packageType}: ${packagePrice} - ${teamNames} at ${venue}, Premium seating, refreshments, and match commentary`;
 };
+
+
 
 // Convert ESPN event status to our status format
 const getEventStatus = (espnStatus) => {
@@ -14844,12 +15314,11 @@ return passesFilter;
 });
 
 return React.createElement('div', { className: 'space-y-6' },
-// Enhanced Header with Priority Legend
+// Header
 React.createElement('div', { className: 'flex justify-between items-center' },
 React.createElement('div', null,
 React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, '📅 Sports Calendar'),
 React.createElement('p', { className: 'text-gray-600 dark:text-gray-400 mt-1' }, 'Manage your sporting events with advanced filters and Excel integration'),
-// Priority legend
 React.createElement('div', { className: 'flex items-center gap-4 mt-3' },
 React.createElement('span', { className: 'text-sm font-medium text-gray-700' }, 'Priority Legend:'),
 React.createElement('div', { className: 'flex items-center gap-1' },
@@ -14901,12 +15370,9 @@ React.createElement('span', null, '📤'),
 )
 ),
 
-// Enhanced Calendar Filters
+// Calendar Filters
 React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4' },
-  React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' }, 
-    React.createElement('span', { className: 'mr-2' }, '🔍'),
-    'Filters'
-  ),
+  React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '🔍 Filters'),
   React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
     // Geography Filter
     React.createElement('div', null,
@@ -14914,7 +15380,7 @@ React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg sh
       React.createElement('select', {
         value: calendarFilters.geography || '',
         onChange: (e) => setCalendarFilters({...calendarFilters, geography: e.target.value}),
-        className: 'w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+        className: 'w-full p-2 border border-gray-300 rounded-lg'
       },
         React.createElement('option', { value: '' }, 'All Locations'),
         React.createElement('option', { value: 'India' }, 'India'),
@@ -14931,7 +15397,7 @@ React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg sh
       React.createElement('select', {
         value: calendarFilters.sport_type || '',
         onChange: (e) => setCalendarFilters({...calendarFilters, sport_type: e.target.value}),
-        className: 'w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+        className: 'w-full p-2 border border-gray-300 rounded-lg'
       },
         React.createElement('option', { value: '' }, 'All Sports'),
         React.createElement('option', { value: 'Cricket' }, 'Cricket'),
@@ -14942,31 +15408,31 @@ React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg sh
         React.createElement('option', { value: 'Basketball' }, 'Basketball')
       )
     ),
-    // Enhanced Priority Filter with colors
+    // Priority Filter
     React.createElement('div', null,
       React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Priority'),
       React.createElement('select', {
         value: calendarFilters.priority || '',
         onChange: (e) => setCalendarFilters({...calendarFilters, priority: e.target.value}),
-        className: 'w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+        className: 'w-full p-2 border border-gray-300 rounded-lg'
       },
         React.createElement('option', { value: '' }, 'All Priorities'),
-        React.createElement('option', { value: 'P1' }, '🔴 P1 - High Priority'),
-        React.createElement('option', { value: 'P2' }, '🟡 P2 - Medium Priority'),
-        React.createElement('option', { value: 'P3' }, '🟢 P3 - Low Priority')
+        React.createElement('option', { value: 'P1' }, 'P1 - High'),
+        React.createElement('option', { value: 'P2' }, 'P2 - Medium'),
+        React.createElement('option', { value: 'P3' }, 'P3 - Low')
       )
     ),
     // Clear Filters Button
     React.createElement('div', { className: 'flex items-end' },
       React.createElement('button', {
         onClick: () => setCalendarFilters({}),
-        className: 'w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors'
+        className: 'w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg'
       }, 'Clear Filters')
     )
   )
 ),
                            
-// Enhanced Calendar Controls
+// Calendar Controls
 React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4' },
 React.createElement('div', { className: 'flex justify-between items-center mb-4' },
 React.createElement('div', { className: 'flex items-center space-x-4' },
@@ -14976,9 +15442,9 @@ const newDate = new Date(selectedDate);
 newDate.setMonth(newDate.getMonth() - 1);
 setSelectedDate(newDate);
 },
-className: 'p-2 hover:bg-gray-100 rounded-lg transition-colors'
-}, '◀'),
-React.createElement('h2', { className: 'text-xl font-semibold text-gray-900 dark:text-white' }, 
+className: 'p-2 hover:bg-gray-100 rounded'
+}, '←'),
+React.createElement('h2', { className: 'text-xl font-semibold' }, 
 selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 ),
 React.createElement('button', {
@@ -14987,17 +15453,15 @@ const newDate = new Date(selectedDate);
 newDate.setMonth(newDate.getMonth() + 1);
 setSelectedDate(newDate);
 },
-className: 'p-2 hover:bg-gray-100 rounded-lg transition-colors'
-}, '▶')
+className: 'p-2 hover:bg-gray-100 rounded'
+}, '→')
 ),
-React.createElement('div', { className: 'flex bg-gray-100 rounded-lg p-1' },
+React.createElement('div', { className: 'flex space-x-2' },
 ['month', 'list'].map(view =>
 React.createElement('button', {
 key: view,
 onClick: () => setCalendarView(view),
-className: `px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-calendarView === view ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600 hover:text-gray-900'
-}`
+className: `px-3 py-1 rounded text-sm ${calendarView === view ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`
 }, view.charAt(0).toUpperCase() + view.slice(1))
 )
 )
@@ -15013,6 +15477,8 @@ renderImportModal()
 };
 
 
+
+
 // 5. CALENDAR VIEW FUNCTIONS
 const renderMonthView = (events) => {
 const today = new Date();
@@ -15022,166 +15488,63 @@ const firstDay = new Date(year, month, 1);
 const lastDay = new Date(year, month + 1, 0);
 const daysInMonth = lastDay.getDate();
 const startingDayOfWeek = firstDay.getDay();
+
 const days = [];
-
-// Helper function to get events for a specific date (handles multi-day events)
-const getEventsForDate = (day) => {
-  const currentDate = new Date(year, month, day);
-  return events.filter(event => {
-    const eventStartDate = new Date(event.date || event.start_date);
-    const eventEndDate = event.end_date ? new Date(event.end_date) : eventStartDate;
-    
-    // Check if the current date falls within the event's date range
-    const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-    const eventStartOnly = new Date(eventStartDate.getFullYear(), eventStartDate.getMonth(), eventStartDate.getDate());
-    const eventEndOnly = new Date(eventEndDate.getFullYear(), eventEndDate.getMonth(), eventEndDate.getDate());
-    
-    return currentDateOnly >= eventStartOnly && currentDateOnly <= eventEndOnly;
-  });
-};
-
-// Helper function to determine event position in multi-day span
-const getEventPosition = (event, day) => {
-  const currentDate = new Date(year, month, day);
-  const eventStartDate = new Date(event.start_date || event.date);
-  const eventEndDate = event.end_date ? new Date(event.end_date) : eventStartDate;
-  
-  const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-  const eventStartOnly = new Date(eventStartDate.getFullYear(), eventStartDate.getMonth(), eventStartDate.getDate());
-  const eventEndOnly = new Date(eventEndDate.getFullYear(), eventEndDate.getMonth(), eventEndDate.getDate());
-  
-  const isStart = currentDateOnly.getTime() === eventStartOnly.getTime();
-  const isEnd = currentDateOnly.getTime() === eventEndOnly.getTime();
-  const isContinuation = !isStart && !isEnd && eventEndDate > eventStartDate;
-  
-  return { isStart, isEnd, isContinuation };
-};
 
 // Empty cells for days before month starts
 for (let i = 0; i < startingDayOfWeek; i++) {
-  days.push(React.createElement('div', { 
-    key: `empty-${i}`, 
-    className: 'calendar-cell bg-gray-50 border border-gray-200',
-    style: { minHeight: '120px' }
-  }));
+days.push(React.createElement('div', { key: `empty-${i}`, className: 'p-2 h-24' }));
 }
 
 // Days of the month
 for (let day = 1; day <= daysInMonth; day++) {
-  const currentDate = new Date(year, month, day);
-  const dayEvents = getEventsForDate(day);
-  const isToday = currentDate.toDateString() === today.toDateString();
-  const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+const currentDate = new Date(year, month, day);
+const dayEvents = events.filter(event => {
+const eventStartDate = new Date(event.date || event.start_date);
+    const eventEndDate = event.end_date ? new Date(event.end_date) : eventStartDate;
+return eventStartDate.getDate() <= day && (eventEndDate.getDate() >= day || !event.end_date);
+});
 
-  days.push(
-    React.createElement('div', {
-      key: day,
-      className: `calendar-cell border border-gray-200 p-3 cursor-pointer transition-all duration-200 ${
-        isToday ? 'bg-blue-50 border-blue-300' : 
-        isWeekend ? 'bg-gray-50' : 'bg-white'
-      } hover:bg-gray-100 hover:shadow-md`,
-      style: { minHeight: '120px' },
-      onClick: () => {
-        if (dayEvents.length > 0) {
-          setCurrentEvent(dayEvents[0]);
-          setShowEventDetail(true);
-        }
-      }
-    },
-      // Day number
-      React.createElement('div', { 
-        className: `text-sm font-semibold mb-2 ${
-          isToday ? 'text-blue-600' : 
-          isWeekend ? 'text-gray-500' : 'text-gray-900'
-        }` 
-      }, day),
+const isToday = currentDate.toDateString() === today.toDateString();
 
-      // Events container
-      React.createElement('div', { className: 'space-y-1' },
-        // Show up to 3 events
-        dayEvents.slice(0, 3).map(event => {
-          const position = getEventPosition(event, day);
-          const priorityStyles = getPriorityStyles(event.priority);
-
-          return React.createElement('div', {
-            key: `${event.id}-${day}`,
-            className: `text-xs p-1 rounded cursor-pointer hover:opacity-80 transition-opacity ${priorityStyles}`,
-            onClick: (e) => {
-              e.stopPropagation();
-              setCurrentEvent(event);
-              setShowEventDetail(true);
-            },
-            title: `${event.event_name || event.title} - ${event.priority || 'No Priority'}`
-          },
-            // Multi-day event indicators
-            position.isContinuation ? 
-              React.createElement('div', { 
-                className: 'h-2 rounded',
-                style: { 
-                  background: 'linear-gradient(90deg, transparent 0%, currentColor 20%, currentColor 80%, transparent 100%)' 
-                }
-              }) :
-              React.createElement('div', { className: 'flex items-center gap-1' },
-                // Start indicator
-                position.isStart && React.createElement('span', { 
-                  className: 'text-xs',
-                  style: { fontSize: '8px' }
-                }, '▶'),
-                
-                // Event time (if available and is start day)
-                position.isStart && event.start_time && React.createElement('span', { 
-                  className: 'font-mono text-xs font-semibold' 
-                }, event.start_time),
-                
-                // Event name
-                React.createElement('span', { 
-                  className: 'truncate flex-1' 
-                }, event.event_name || event.title),
-                
-                // End indicator
-                position.isEnd && React.createElement('span', { 
-                  className: 'text-xs',
-                  style: { fontSize: '8px' }
-                }, '◀')
-              )
-          );
-        }),
-
-        // "+X more" indicator
-        dayEvents.length > 3 && React.createElement('div', {
-          className: 'text-xs text-gray-500 font-medium cursor-pointer hover:text-gray-700 hover:underline',
-          onClick: (e) => {
-            e.stopPropagation();
-            // You can implement a "show all events for day" modal here
-            console.log(`Show all ${dayEvents.length} events for ${currentDate.toDateString()}`);
-          }
-        }, `+${dayEvents.length - 3} more`)
-      )
-    )
-  );
+days.push(
+React.createElement('div', {
+key: day,
+className: `p-2 h-24 border border-gray-200 ${isToday ? 'bg-blue-50' : 'bg-white'} hover:bg-gray-50 cursor-pointer`,
+onClick: () => {
+if (dayEvents.length > 0) {
+setCurrentEvent(dayEvents[0]);
+setShowEventDetail(true);
+}
+}
+},
+React.createElement('div', { className: `text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}` }, day),
+dayEvents.map(event =>
+React.createElement('div', {
+key: event.id,
+className: `text-xs p-1 mt-1 rounded truncate ${
+getPriorityStyles(event.priority)
+}`
+}, event.title)
+)
+)
+);
 }
 
-return React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden' },
-  // Enhanced calendar header
-  React.createElement('div', { className: 'grid grid-cols-7 bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200' },
-    ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, index) =>
-      React.createElement('div', {
-        key: day,
-        className: `p-4 text-center font-semibold text-gray-700 ${
-          index === 0 || index === 6 ? 'text-red-600' : ''
-        }`
-      }, 
-        React.createElement('div', { className: 'text-sm' }, day.slice(0, 3)),
-        React.createElement('div', { className: 'text-xs text-gray-500 hidden md:block' }, day.slice(3))
-      )
-    )
-  ),
-  
-  // Calendar grid
-  React.createElement('div', { className: 'grid grid-cols-7' }, days)
+return React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
+React.createElement('div', { className: 'grid grid-cols-7 gap-0 border-b' },
+['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day =>
+React.createElement('div', {
+key: day,
+className: 'p-3 text-center font-medium text-gray-600 bg-gray-50'
+}, day)
+)
+),
+React.createElement('div', { className: 'grid grid-cols-7 gap-0' }, days)
 );
 };
-};
+
+
 
 const renderListView = (events) => {
 const sortedEvents = events.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -15283,202 +15646,91 @@ loading ? 'Loading ESPN events...' : 'No events found. Click "Refresh Events" to
 );
 };
 
+
+
 // 6. EVENT DETAIL MODAL
 const renderEventDetailModal = () => {
 if (!showEventDetail || !currentEvent) return null;
 
 return React.createElement('div', {
-className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4',
-style: { backdropFilter: 'blur(4px)' },
-onClick: (e) => {
-if (e.target === e.currentTarget) setShowEventDetail(false);
-}
+className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
+onClick: () => setShowEventDetail(false)
 },
 React.createElement('div', {
-className: 'bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-auto shadow-2xl',
+className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto',
 onClick: (e) => e.stopPropagation()
 },
-// Enhanced Header with Priority Color
-React.createElement('div', {
-className: `p-6 border-b ${getPriorityStyles(currentEvent.priority)}`
-},
-React.createElement('div', { className: 'flex justify-between items-start' },
-React.createElement('div', { className: 'flex-1' },
-React.createElement('div', { className: 'flex items-center gap-3 mb-2' },
-React.createElement('h2', { className: 'text-2xl font-bold' }, 
-currentEvent.event_name || currentEvent.title
-),
-React.createElement('span', {
-className: `px-3 py-1 text-sm font-semibold rounded-full ${getPriorityBadgeColor(currentEvent.priority)}`
-}, currentEvent.priority || 'N/A')
-),
-React.createElement('p', { className: 'text-sm opacity-75' }, 
-`${currentEvent.sport_type || currentEvent.category || 'Event'} • ${currentEvent.geography || 'Location TBD'}`
-)
+React.createElement('div', { className: 'p-6' },
+React.createElement('div', { className: 'flex justify-between items-start mb-6' },
+React.createElement('div', null,
+React.createElement('h2', { className: 'text-2xl font-bold text-gray-900 dark:text-white' }, currentEvent.title),
+currentEvent.espn_data?.league && React.createElement('p', { 
+className: 'text-lg text-blue-600 mt-1' 
+}, currentEvent.espn_data.league)
 ),
 React.createElement('button', {
 onClick: () => setShowEventDetail(false),
-className: 'text-gray-500 hover:text-gray-700 text-2xl p-2 rounded-lg hover:bg-gray-100'
+className: 'text-gray-500 hover:text-gray-700'
 }, '✕')
+),
+
+React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-2 gap-6' },
+// Event Details
+React.createElement('div', { className: 'space-y-4' },
+React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
+React.createElement('div', null,
+React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Date'),
+React.createElement('p', { className: 'text-gray-900' }, new Date(currentEvent.date).toLocaleDateString())
+),
+React.createElement('div', null,
+React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Time'),
+React.createElement('p', { className: 'text-gray-900' }, currentEvent.time)
 )
 ),
 
-// Enhanced Content in 2-column layout
-React.createElement('div', { className: 'p-6 grid md:grid-cols-2 gap-6' },
-// Left Column - Date & Venue Information
-React.createElement('div', { className: 'space-y-6' },
-// Date & Time Section
 React.createElement('div', null,
-React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
-React.createElement('span', { className: 'mr-2' }, '📅'),
-'Date & Time'
-),
-React.createElement('div', { className: 'space-y-2 text-sm bg-gray-50 p-4 rounded-lg' },
-React.createElement('div', { className: 'flex justify-between' },
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'Start Date:'),
-React.createElement('span', { className: 'text-gray-900' }, 
-new Date(currentEvent.start_date || currentEvent.date).toLocaleDateString()
-)
-),
-currentEvent.end_date && React.createElement('div', { className: 'flex justify-between' },
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'End Date:'),
-React.createElement('span', { className: 'text-gray-900' }, 
-new Date(currentEvent.end_date).toLocaleDateString()
-)
-),
-React.createElement('div', { className: 'flex justify-between' },
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'Start Time:'),
-React.createElement('span', { className: 'text-gray-900 font-mono' }, 
-currentEvent.start_time || currentEvent.time || 'TBD'
-)
-),
-currentEvent.end_time && React.createElement('div', { className: 'flex justify-between' },
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'End Time:'),
-React.createElement('span', { className: 'text-gray-900 font-mono' }, currentEvent.end_time)
-)
-)
+React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Venue'),
+React.createElement('p', { className: 'text-gray-900' }, currentEvent.venue)
 ),
 
-// Venue Section
 React.createElement('div', null,
-React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
-React.createElement('span', { className: 'mr-2' }, '🏟️'),
-'Venue Details'
-),
-React.createElement('div', { className: 'space-y-2 text-sm bg-gray-50 p-4 rounded-lg' },
-React.createElement('div', null,
-React.createElement('span', { className: 'font-medium text-gray-900 text-base' }, 
-currentEvent.venue || 'Venue TBD'
-)
-),
-currentEvent.venue_address && React.createElement('div', { className: 'text-gray-600' }, 
-currentEvent.venue_address
-),
-currentEvent.venue_capacity && React.createElement('div', { className: 'flex justify-between mt-2' },
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'Capacity:'),
-React.createElement('span', { className: 'text-gray-900' }, 
-currentEvent.venue_capacity.toLocaleString()
-)
-)
-)
+React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Description'),
+React.createElement('p', { className: 'text-gray-900' }, currentEvent.description)
 ),
 
-// Status & Priority Section
 React.createElement('div', null,
-React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
-React.createElement('span', { className: 'mr-2' }, '📊'),
-'Status & Priority'
-),
-React.createElement('div', { className: 'space-y-3' },
-React.createElement('div', { className: 'flex flex-wrap gap-2' },
+React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Status'),
 React.createElement('span', {
-className: `px-3 py-1 text-sm font-semibold rounded-full ${getPriorityBadgeColor(currentEvent.priority)}`
-}, `Priority ${currentEvent.priority || 'N/A'}`),
-React.createElement('span', {
-className: `px-3 py-1 text-sm font-semibold rounded-full ${
-currentEvent.status === 'live' ? 'bg-red-500 text-white animate-pulse' :
-currentEvent.status === 'upcoming' ? 'bg-blue-500 text-white' :
-currentEvent.status === 'completed' ? 'bg-gray-500 text-white' :
-currentEvent.status === 'cancelled' ? 'bg-red-600 text-white' :
-'bg-gray-400 text-white'
+className: `inline-block px-2 py-1 text-xs rounded-full ${
+currentEvent.status === 'live' ? 'bg-red-100 text-red-800 animate-pulse' :
+currentEvent.status === 'upcoming' ? 'bg-yellow-100 text-yellow-800' :
+currentEvent.status === 'completed' ? 'bg-gray-100 text-gray-800' :
+'bg-red-100 text-red-800'
 }`
-}, (currentEvent.status || 'upcoming').toUpperCase())
-),
-currentEvent.sold_out_potential && React.createElement('div', { className: 'text-sm mt-2' },
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'Sold Out Potential: '),
-React.createElement('span', {
-className: currentEvent.sold_out_potential === 'High' ? 'text-red-600 font-semibold' :
-currentEvent.sold_out_potential === 'Medium' ? 'text-yellow-600 font-semibold' :
-'text-green-600 font-semibold'
-}, currentEvent.sold_out_potential)
-)
-)
+}, currentEvent.status.toUpperCase())
 )
 ),
 
-// Right Column - Business Information
-React.createElement('div', { className: 'space-y-6' },
-// Ticketing Information
+// ESPN Data (Teams, etc.)
+currentEvent.espn_data && React.createElement('div', { className: 'space-y-4' },
+currentEvent.espn_data.competitors && currentEvent.espn_data.competitors.length > 0 && 
 React.createElement('div', null,
-React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
-React.createElement('span', { className: 'mr-2' }, '🎫'),
-'Ticketing Information'
-),
-React.createElement('div', { className: 'space-y-2 text-sm bg-gray-50 p-4 rounded-lg' },
-currentEvent.official_ticketing_partners && React.createElement('div', null,
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'Official Partners:'),
-React.createElement('div', { className: 'text-gray-900 mt-1' }, currentEvent.official_ticketing_partners)
-),
-React.createElement('div', { className: 'flex justify-between items-center mt-2' },
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'Tickets Available:'),
-React.createElement('span', {
-className: `font-semibold ${currentEvent.ticket_available ? 'text-green-600' : 'text-red-600'}`
-}, currentEvent.ticket_available ? '✅ Yes' : '❌ No')
-)
-)
-),
-
-// Information Sources
+React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Teams'),
+React.createElement('div', { className: 'space-y-2' },
+...currentEvent.espn_data.competitors.map((team, idx) =>
+React.createElement('div', { 
+key: idx,
+className: 'flex items-center space-x-3 p-2 bg-gray-50 rounded'
+},
+team.logo && React.createElement('img', { 
+src: team.logo, 
+alt: team.name,
+className: 'w-8 h-8'
+}),
 React.createElement('div', null,
-React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
-React.createElement('span', { className: 'mr-2' }, '📡'),
-'Information Sources'
-),
-React.createElement('div', { className: 'space-y-2 text-sm bg-gray-50 p-4 rounded-lg' },
-currentEvent.primary_source && React.createElement('div', null,
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'Primary Source:'),
-React.createElement('div', { className: 'text-gray-900 mt-1' }, currentEvent.primary_source)
-),
-currentEvent.secondary_source && React.createElement('div', { className: 'mt-2' },
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'Secondary Source:'),
-React.createElement('div', { className: 'text-gray-900 mt-1' }, currentEvent.secondary_source)
+React.createElement('div', { className: 'font-medium' }, team.name),
+team.record && React.createElement('div', { className: 'text-sm text-gray-500' }, team.record)
 )
-)
-),
-
-// Event Type & Geography
-React.createElement('div', null,
-React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
-React.createElement('span', { className: 'mr-2' }, '🌍'),
-'Event Classification'
-),
-React.createElement('div', { className: 'space-y-2 text-sm bg-gray-50 p-4 rounded-lg' },
-React.createElement('div', { className: 'flex justify-between' },
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'Event Type:'),
-React.createElement('span', { className: 'text-gray-900' }, 
-currentEvent.event_type || 'Sport'
-)
-),
-React.createElement('div', { className: 'flex justify-between' },
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'Sport:'),
-React.createElement('span', { className: 'text-gray-900' }, 
-currentEvent.sport_type || currentEvent.category || 'N/A'
-)
-),
-React.createElement('div', { className: 'flex justify-between' },
-React.createElement('span', { className: 'font-medium text-gray-700' }, 'Geography:'),
-React.createElement('span', { className: 'text-gray-900' }, 
-currentEvent.geography || 'N/A'
 )
 )
 )
@@ -15486,97 +15738,45 @@ currentEvent.geography || 'N/A'
 )
 ),
 
-// FanToPark Package Section (full width)
-currentEvent.fantopark_package && React.createElement('div', { className: 'px-6 pb-4' },
-React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
-React.createElement('span', { className: 'mr-2' }, '📦'),
-'FanToPark Package'
-),
-React.createElement('div', { className: 'bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200' },
-React.createElement('p', { className: 'text-blue-900 text-sm leading-relaxed' }, 
-currentEvent.fantopark_package
-)
-)
-),
-
-// Additional Notes Section
-currentEvent.remarks && React.createElement('div', { className: 'px-6 pb-4' },
-React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
-React.createElement('span', { className: 'mr-2' }, '📝'),
-'Additional Notes'
-),
-React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg border' },
-React.createElement('p', { className: 'text-gray-700 text-sm leading-relaxed' }, 
-currentEvent.remarks
-)
-)
-),
-
-// Action Buttons
-React.createElement('div', { className: 'px-6 pb-6 flex flex-wrap gap-3' },
+React.createElement('div', { className: 'bg-blue-50 p-4 rounded-lg mt-6' },
+React.createElement('h3', { className: 'font-medium text-blue-900 mb-2' }, '🎫 FanToPark Package'),
+React.createElement('p', { className: 'text-blue-800' }, currentEvent.fantopark_package),
+currentEvent.ticket_available && 
 React.createElement('button', {
+className: 'mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm'
+}, 'Create Lead from This Event')
+),
+
+React.createElement('div', { className: 'flex justify-end space-x-3 mt-6' },
+React.createElement('button', {
+onClick: () => setShowEventDetail(false),
+className: 'px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50'
+}, 'Close'),
+!currentEvent.id.startsWith('espn_') && React.createElement('button', {
 onClick: () => {
-// Add your edit functionality here
 setEventFormData({
 ...currentEvent,
-event_name: currentEvent.event_name || currentEvent.title,
-start_date: currentEvent.start_date || currentEvent.date,
-end_date: currentEvent.end_date,
-start_time: currentEvent.start_time || currentEvent.time,
-end_time: currentEvent.end_time,
+title: currentEvent.title,
+date: currentEvent.date,
+time: currentEvent.time,
 venue: currentEvent.venue,
-sport_type: currentEvent.sport_type || currentEvent.category,
-geography: currentEvent.geography,
-priority: currentEvent.priority,
-status: currentEvent.status,
-event_type: currentEvent.event_type,
-venue_capacity: currentEvent.venue_capacity,
-venue_address: currentEvent.venue_address,
-official_ticketing_partners: currentEvent.official_ticketing_partners,
-primary_source: currentEvent.primary_source,
-secondary_source: currentEvent.secondary_source,
-sold_out_potential: currentEvent.sold_out_potential,
+category: currentEvent.category,
+description: currentEvent.description,
 ticket_available: currentEvent.ticket_available,
-remarks: currentEvent.remarks,
 fantopark_package: currentEvent.fantopark_package
 });
 setShowEventDetail(false);
 setShowEventForm(true);
 },
-className: 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center gap-2'
-}, 
-React.createElement('span', null, '✏️'),
-'Edit Event'
-),
-React.createElement('button', {
-onClick: () => {
-// Add your create lead functionality here
-console.log('Creating lead for event:', currentEvent.id);
-// You can navigate to leads module with this event data
-},
-className: 'px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors flex items-center gap-2'
-}, 
-React.createElement('span', null, '🎯'),
-'Create Lead'
-),
-React.createElement('button', {
-onClick: () => {
-// Add export functionality
-console.log('Exporting event:', currentEvent.id);
-},
-className: 'px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors flex items-center gap-2'
-}, 
-React.createElement('span', null, '📤'),
-'Export Event'
-),
-React.createElement('button', {
-onClick: () => setShowEventDetail(false),
-className: 'px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors'
-}, 'Close')
+className: 'px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg'
+}, 'Edit Event')
+)
 )
 )
 );
 };
+
+
 
 // 7. EVENT FORM MODAL
 const renderEventFormModal = () => {
@@ -15711,6 +15911,8 @@ const renderEventFormModal = () => {
     alert('Error saving event: ' + error.message);
   }
 };
+
+
 
 
 
@@ -15855,6 +16057,8 @@ const renderEventFormModal = () => {
     )
   );
 };
+
+
 
 // Enhanced inventory content with permission checks
 const renderInventoryContent = () => {
@@ -16228,6 +16432,8 @@ className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
 );
 };
 
+
+
 // Enhanced orders content with permission checks
 const renderOrdersContent = () => {
 console.log("All orders:", orders);
@@ -16281,6 +16487,8 @@ return order.event_name || 'No Event';
 }
 };
 
+
+
 // ENHANCED: Handle amount display for new GST/TCS format
 const getAmountDisplay = (order) => {
 // Try different amount fields in order of preference
@@ -16290,6 +16498,8 @@ if (order.amount) return order.amount;
 if (order.base_amount) return order.base_amount;
 return 0;
 };
+
+
 
 // ENHANCED: Handle tickets display for both formats
 const getTicketDisplay = (order) => {
@@ -16302,6 +16512,8 @@ return `${totalQuantity} items - ${order.category_of_sale || 'Mixed'}`;
 return `${order.tickets_allocated || 0} tickets - ${order.ticket_category || ""}`;
 }
 };
+
+
 
 return React.createElement('tr', { 
 key: order.id, 
@@ -16472,6 +16684,8 @@ generated_by: order.approved_by || 'System',
 // ENHANCED: Add payment currency for new format
 payment_currency: order.payment_currency || 'INR'
 };
+
+
 console.log('Reconstructed invoice:', reconstructedInvoice);
 openInvoicePreview(reconstructedInvoice);
 } else {
@@ -16530,6 +16744,8 @@ disabled: loading
 );
 };
 
+
+
 const renderDeliveryContent = () => {
 const DELIVERY_STATUSES = {
 pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
@@ -16538,6 +16754,8 @@ in_transit: { label: 'In Transit', color: 'bg-purple-100 text-purple-800' },
 delivered: { label: 'Delivered', color: 'bg-green-100 text-green-800' },
 failed: { label: 'Failed', color: 'bg-red-100 text-red-800' }
 };
+
+
 
 return React.createElement('div', { className: 'space-y-6' },
 React.createElement('div', { className: 'flex justify-between items-center' },
@@ -16671,6 +16889,8 @@ alert(details);
 )
 );
 };
+
+
 
 const renderDeliveryForm = () => {
 if (!showDeliveryForm || !currentDelivery) return null;
@@ -16874,6 +17094,8 @@ className: 'flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700
 )
 );
 };
+
+
 // FIXED: CSVUploadModal with proper preview flow handling
 const CSVUploadModal = ({ isOpen, onClose, type }) => {
 const [file, setFile] = useState(null);
@@ -16904,6 +17126,8 @@ setProceedAfterPreview(false); // Reset proceed flag
 alert('Please select a valid CSV or Excel file (.csv, .xlsx, .xls)');
 }
 };
+
+
 
 // NEW: Preview function for smart client detection (only for leads)
 const handlePreview = async () => {
@@ -16938,6 +17162,8 @@ alert('Preview error: ' + error.message);
 setPreviewLoading(false);
 }
 };
+
+
 
 // Enhanced upload function (updated from your existing one)
 const handleUpload = async () => {
@@ -16991,6 +17217,8 @@ setUploading(false);
 }
 };
 
+
+
 // NEW: Function to handle proceed from preview
 const handleProceedFromPreview = () => {
 setShowPreview(false);
@@ -17000,6 +17228,8 @@ setTimeout(() => {
 handleUpload();
 }, 100);
 };
+
+
 
 // NEW: Enhanced upload summary function
 const showEnhancedUploadSummary = (result) => {
@@ -17036,6 +17266,8 @@ message += `• Unassigned: ${result.summary.unassigned}\n`;
 alert(message);
 };
 
+
+
 // Download sample CSV (keeping your existing function exactly as is)
 const downloadSampleCSV = () => {
 let csvContent = '';
@@ -17061,6 +17293,8 @@ document.body.appendChild(link);
 link.click();
 document.body.removeChild(link);
 };
+
+
 
 // Download Excel functions (keeping your existing functions exactly as is)
 const downloadSampleExcel = async () => {
@@ -17097,6 +17331,8 @@ alert('❌ Failed to download Excel file: ' + error.message);
 }
 };
 
+
+
 const downloadSampleExcelV2 = async () => {
 try {
 console.log('Downloading Excel template with instructions...');
@@ -17130,6 +17366,8 @@ console.error('Error downloading Excel:', error);
 alert('❌ Failed to download Excel file: ' + error.message);
 }
 };
+
+
 
 if (!isOpen) return null;
 
@@ -17350,6 +17588,8 @@ uploading ? 'animate-pulse' : ''
 );
 };
 
+
+
 // UPDATED: Upload Preview Modal Component with proper continue functionality
 const UploadPreviewModal = () => {
 if (!showPreview || !uploadPreview) return null;
@@ -17478,6 +17718,8 @@ className: 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
 );
 };
 
+
+
 // Client Detection Results Modal Component
 const ClientDetectionResultsModal = () => {
 if (!showClientDetectionResults || !clientDetectionResults.length) return null;
@@ -17593,6 +17835,8 @@ React.createElement('li', null, 'All actions are logged and tracked automaticall
 )
 );
 };
+
+
 
 return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:bg-gray-900' },
 renderSidebar(),
@@ -17728,10 +17972,14 @@ alert('Test mode ' + (newState ? 'ENABLED' : 'DISABLED') + '. Page will reload.'
 window.location.reload();
 };
 
+
+
 floatDiv.appendChild(button);
 document.body.appendChild(floatDiv);
 }
 };
+
+
 
 // Check on load and after login
 setTimeout(checkAndAddTestButton, 1000);
@@ -17821,6 +18069,8 @@ created_date: new Date().toISOString(),
 updated_date: new Date().toISOString()
 };
 
+
+
 console.log('Creating lead:', testData);
 
 const response = await fetch(API_URL + '/leads', {
@@ -17873,6 +18123,8 @@ paymentStatus: 'paid',
 created_by: JSON.parse(localStorage.getItem('crm_user') || '{}').name || 'Test User',
 created_date: new Date().toISOString()
 };
+
+
 
 console.log('Creating inventory:', testData);
 
@@ -17946,6 +18198,8 @@ panel.style.display = 'block';
 }
 };
 
+
+
 // Delete all function
 window.testDeleteAll = async function(type) {
 const authToken = localStorage.getItem('crm_auth_token');
@@ -17972,6 +18226,8 @@ alert('Error: ' + error.message);
 }
 };
 
+
+
 // Check on load
 setTimeout(window.updateTestPanel, 1000);
 </script>
@@ -17991,6 +18247,8 @@ lead_for_event: 'General Inquiry',
 lead_source: 'Website',
 notes: 'Test lead created via test mode'
 };
+
+
 
 // Call the API directly
 const authToken = localStorage.getItem('crm_auth_token');
@@ -18015,6 +18273,8 @@ alert('Error creating test lead: ' + error.message);
 }
 };
 
+
+
 window.fillTestInventory = function() {
 if (confirm('Create a test inventory item?')) {
 const categories = ['Stall', 'Equipment', 'Service', 'Package'];
@@ -18027,6 +18287,8 @@ description: 'Test inventory item created via test mode',
 size: '10x10 ft',
 location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
 };
+
+
 
 const authToken = localStorage.getItem('crm_auth_token');
 // Using global API_URL variable
@@ -18049,6 +18311,8 @@ alert('Error creating test inventory: ' + error.message);
 });
 }
 };
+
+
 </script>
 
 
@@ -18149,6 +18413,8 @@ document.body.removeChild(loadingDiv);
 }
 };
 
+
+
 // Working create functions
 window.oldCreateTestLead = async function() {
 // Get current date in YYYY-MM-DD format
@@ -18183,6 +18449,8 @@ event_date: followUpDate,
 location: 'Test Location',
 urgency: 'medium'
 };
+
+
 
 // Add created_by if user is logged in
 try {
@@ -18226,6 +18494,8 @@ alert('Error creating lead: ' + error.message);
 }
 };
 
+
+
 window.oldCreateTestInventory = async function() {
 const categories = ['Stall', 'Equipment', 'Service', 'Package'];
 const testData = {
@@ -18238,6 +18508,8 @@ description: 'Test inventory item created via test mode at ' + new Date().toLoca
 size: '10x10 ft',
 location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
 };
+
+
 
 const authToken = localStorage.getItem('crm_auth_token');
 // Using global API_URL variable
@@ -18268,6 +18540,8 @@ alert('Error creating inventory: ' + error.message);
 }
 };
 
+
+
 // Debug function
 window.debugLeads = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
@@ -18286,6 +18560,8 @@ return result;
 };
 
 
+
+
 // Add floating button to show test panel if hidden
 setTimeout(() => {
 if (localStorage.getItem('testMode') === 'true') {
@@ -18301,6 +18577,8 @@ panel.style.display = 'block';
 showButton.style.display = 'none';
 }
 };
+
+
 document.body.appendChild(showButton);
 
 // Hide button if panel is visible
@@ -18337,6 +18615,8 @@ console.log('No inventory found');
 }
 return result;
 };
+
+
 
 console.log('Test mode functions loaded. Type debugLeads() to see all leads.');
 </script>
@@ -18436,6 +18716,8 @@ console.error('Error:', error);
 alert('Error: ' + error.message);
 }
 };
+
+
 </script>
 
 </body>
@@ -18459,6 +18741,8 @@ if (testMode && user.role === 'super_admin' && panel) {
 panel.style.display = 'block';
 }
 };
+
+
 
 // Delete all function
 window.testDeleteAll = async function(type) {
@@ -18486,6 +18770,8 @@ alert('Error: ' + error.message);
 }
 };
 
+
+
 // Check on load
 setTimeout(window.updateTestPanel, 1000);
 </script>
@@ -18505,6 +18791,8 @@ lead_for_event: 'General Inquiry',
 lead_source: 'Website',
 notes: 'Test lead created via test mode'
 };
+
+
 
 // Call the API directly
 const authToken = localStorage.getItem('crm_auth_token');
@@ -18529,6 +18817,8 @@ alert('Error creating test lead: ' + error.message);
 }
 };
 
+
+
 window.fillTestInventory = function() {
 if (confirm('Create a test inventory item?')) {
 const categories = ['Stall', 'Equipment', 'Service', 'Package'];
@@ -18541,6 +18831,8 @@ description: 'Test inventory item created via test mode',
 size: '10x10 ft',
 location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
 };
+
+
 
 const authToken = localStorage.getItem('crm_auth_token');
 // Using global API_URL variable
@@ -18563,6 +18855,8 @@ alert('Error creating test inventory: ' + error.message);
 });
 }
 };
+
+
 </script>
 
 
@@ -18663,6 +18957,8 @@ document.body.removeChild(loadingDiv);
 }
 };
 
+
+
 // Working create functions
 window.oldCreateTestLead = async function() {
 const testData = {
@@ -18676,6 +18972,8 @@ lead_type: 'warm',
 status: 'new',
 notes: 'Test lead created via test mode at ' + new Date().toLocaleString()
 };
+
+
 
 const authToken = localStorage.getItem('crm_auth_token');
 // Using global API_URL variable
@@ -18706,6 +19004,8 @@ alert('Error creating lead: ' + error.message);
 }
 };
 
+
+
 window.oldCreateTestInventory = async function() {
 const categories = ['Stall', 'Equipment', 'Service', 'Package'];
 const testData = {
@@ -18718,6 +19018,8 @@ description: 'Test inventory item created via test mode at ' + new Date().toLoca
 size: '10x10 ft',
 location: 'Zone ' + Math.floor(Math.random() * 5 + 1)
 };
+
+
 
 const authToken = localStorage.getItem('crm_auth_token');
 // Using global API_URL variable
@@ -18748,6 +19050,8 @@ alert('Error creating inventory: ' + error.message);
 }
 };
 
+
+
 // Debug function
 window.debugLeads = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
@@ -18766,6 +19070,8 @@ return result;
 };
 
 
+
+
 // Add floating button to show test panel if hidden
 setTimeout(() => {
 if (localStorage.getItem('testMode') === 'true') {
@@ -18781,6 +19087,8 @@ panel.style.display = 'block';
 showButton.style.display = 'none';
 }
 };
+
+
 document.body.appendChild(showButton);
 
 // Hide button if panel is visible
@@ -18818,6 +19126,8 @@ console.log('No inventory found');
 return result;
 };
 
+
+
 console.log('Test mode functions loaded. Type debugLeads() to see all leads.');
 
 
@@ -18835,6 +19145,8 @@ console.log('Type:', typeof today);
 
 return today;
 };
+
+
 
 // Function to manually create a lead with custom data
 window.createCustomLead = async function(leadData) {
@@ -18869,6 +19181,8 @@ alert('Error: ' + error.message);
 return null;
 }
 };
+
+
 
 
 
@@ -18914,6 +19228,8 @@ return null;
 }
 };
 
+
+
 // Create lead with minimal required fields
 window.createMinimalLead = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
@@ -18926,6 +19242,8 @@ email: 'minimal' + Math.floor(Math.random() * 1000) + '@test.com',
 phone: '9876543210',
 status: 'new'
 };
+
+
 
 console.log('Creating minimal lead:', minimalData);
 
@@ -18958,6 +19276,8 @@ return null;
 }
 };
 
+
+
 // Fixed create test lead based on backend requirements
 window.oldCreateTestLead = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
@@ -18980,6 +19300,8 @@ status: 'new',
 notes: 'Test lead created via test mode',
 requirements: 'Test requirements'
 };
+
+
 
 // If we found date fields in existing lead, add them
 if (existingLead && existingLead.date_of_enquiry) {
@@ -19054,6 +19376,8 @@ alert('Error creating lead: ' + error.message);
 
 
 
+
+
 // Create test lead following form business logic
 window.oldCreateTestLead = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
@@ -19100,6 +19424,8 @@ urgency: urgencyLevels[Math.floor(Math.random() * urgencyLevels.length)],
 location: 'Test Location ' + ['Delhi', 'Mumbai', 'Bangalore', 'Chennai'][Math.floor(Math.random() * 4)]
 };
 
+
+
 // Add date fields if needed
 const now = new Date();
 const dateStr = now.getFullYear() + '-' + 
@@ -19126,6 +19452,8 @@ testData.date_of_enquiry = {
 _seconds: Math.floor(now.getTime() / 1000),
 _nanoseconds: 0
 };
+
+
 } else {
 testData.date_of_enquiry = dateStr;
 }
@@ -19195,6 +19523,8 @@ alert('Error creating lead: ' + error.message);
 }
 };
 
+
+
 // Function to see what status options exist in the form
 window.checkFormOptions = function() {
 // This would analyze the form to see what options are available
@@ -19211,6 +19541,8 @@ console.log('  Option:', opt.value, '-', opt.text);
 }
 });
 };
+
+
 
 
 
@@ -19292,6 +19624,8 @@ images: [],
 tags: [category.toLowerCase(), 'test', 'available']
 };
 
+
+
 // Add created_by from current user
 const user = JSON.parse(localStorage.getItem('crm_user') || '{}');
 if (user.id) {
@@ -19364,6 +19698,8 @@ console.error('Error:', error);
 alert('Error creating inventory: ' + error.message);
 }
 };
+
+
 
 // Function to analyze inventory fields
 window.analyzeInventoryStructure = async function() {
@@ -19438,6 +19774,8 @@ created_by: JSON.parse(localStorage.getItem('crm_user') || '{}').name || 'Test U
 created_date: new Date().toISOString()
 };
 
+
+
 console.log('Creating inventory with correct fields:', testData);
 
 const response = await fetch(API_URL + '/inventory', {
@@ -19469,6 +19807,8 @@ alert('Error: ' + error.message);
 }
 };
 
+
+
 window.createTestLead = async function() {
 const authToken = localStorage.getItem('crm_auth_token');
 // Using global API_URL variable
@@ -19496,6 +19836,8 @@ status: 'unassigned', // Using lowercase as per your code
 created_by: JSON.parse(localStorage.getItem('crm_user') || '{}').name || 'Test User',
 created_date: new Date().toISOString()
 };
+
+
 
 console.log('Creating lead with correct fields:', testData);
 
@@ -19526,11 +19868,15 @@ alert('Error: ' + error.message);
 }
 };
 
+
+
 console.log('Test functions loaded with correct field names');
 
 return null;
 }
 };
+
+
 
 </script>
 
@@ -19629,6 +19975,8 @@ console.error('Error:', error);
 alert('Error: ' + error.message);
 }
 };
+
+
 </script>
 
 </body>
