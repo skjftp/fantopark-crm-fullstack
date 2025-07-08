@@ -15840,6 +15840,17 @@ currentEvent.sold_out_potential
 )
 )
 ),
+currentEvent.remarks && React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '📝'),
+'Remarks'
+),
+React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg border border-gray-200' },
+React.createElement('p', { className: 'text-gray-700 text-sm' },
+currentEvent.remarks
+)
+)
+),
 currentEvent.description && React.createElement('div', null,
 React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
 React.createElement('span', { className: 'mr-2' }, '📝'),
