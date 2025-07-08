@@ -10918,6 +10918,23 @@ placeholder: 'Add any additional notes or comments...'
 )
 ),
 
+// Premium Lead Toggle Section
+React.createElement('div', { className: 'mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4' },
+React.createElement('label', { className: 'flex items-center space-x-3 cursor-pointer' },
+React.createElement('input', {
+type: 'checkbox',
+checked: formData.is_premium || false,
+onChange: (e) => setFormData(prev => ({ ...prev, is_premium: e.target.checked })),
+className: 'w-5 h-5 text-yellow-600 bg-gray-100 border-gray-300 rounded focus:ring-yellow-500'
+}),
+React.createElement('div', { className: 'flex items-center gap-2' },
+React.createElement('span', { className: 'text-yellow-500 text-xl' }, '👑'),
+React.createElement('span', { className: 'text-sm font-medium text-gray-900' }, 'Mark as Premium Lead'),
+React.createElement('span', { className: 'text-xs text-gray-500' }, '(Row will be highlighted in golden color)')
+)
+)
+),
+
 // Footer with Action Buttons
 React.createElement('div', { className: 'bg-gray-50 px-6 py-4 flex justify-between items-center border-t' },
 React.createElement('div', { className: 'text-sm text-gray-600' },
