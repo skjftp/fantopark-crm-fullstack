@@ -15719,6 +15719,17 @@ currentEvent.event_type || 'Not specified'
 )
 )
 ),
+React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '⚽'),
+'Sport Type'
+),
+React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg' },
+React.createElement('div', { className: 'font-medium text-gray-900' },
+currentEvent.sport_type || currentEvent.category || 'Not specified'
+)
+)
+),
 currentEvent.venue && React.createElement('div', null,
 React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
 React.createElement('span', { className: 'mr-2' }, '🏟️'),
