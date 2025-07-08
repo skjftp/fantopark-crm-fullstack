@@ -15829,6 +15829,17 @@ currentEvent.ticket_available ? '✅ Tickets Available' : '❌ Tickets Not Avail
 )
 )
 ),
+currentEvent.sold_out_potential && React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '📊'),
+'Sold Out Potential'
+),
+React.createElement('div', { className: 'bg-orange-50 p-4 rounded-lg border border-orange-200' },
+React.createElement('p', { className: 'text-orange-900 text-sm font-medium' },
+currentEvent.sold_out_potential
+)
+)
+),
 currentEvent.description && React.createElement('div', null,
 React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
 React.createElement('span', { className: 'mr-2' }, '📝'),
