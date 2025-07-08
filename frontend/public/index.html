@@ -15818,6 +15818,17 @@ currentEvent.secondary_source
 )
 )
 ),
+React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '🎟️'),
+'Ticket Availability'
+),
+React.createElement('div', { className: `p-4 rounded-lg border ${currentEvent.ticket_available ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}` },
+React.createElement('p', { className: `text-sm font-semibold ${currentEvent.ticket_available ? 'text-green-900' : 'text-red-900'}` },
+currentEvent.ticket_available ? '✅ Tickets Available' : '❌ Tickets Not Available'
+)
+)
+),
 currentEvent.description && React.createElement('div', null,
 React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
 React.createElement('span', { className: 'mr-2' }, '📝'),
