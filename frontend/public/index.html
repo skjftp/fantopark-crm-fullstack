@@ -5264,6 +5264,7 @@ const exportEventsToExcel = async () => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      alert('Events exported successfully!');
     } else {
       throw new Error('Failed to export events');
     }
@@ -5273,33 +5274,101 @@ const exportEventsToExcel = async () => {
   }
 };
 
-// Import Events from Excel
-const importEventsFromExcel = async (excelData) => {
-  try {
-    const response = await fetch(`${API_URL}/events/import/excel`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
-      },
-      body: JSON.stringify({ excelData })
-    });
 
-    const result = await response.json();
-    
-    if (result.success) {
-      await fetchSportsEvents(); // Refresh the events list
-      alert(result.message);
-      setShowImportModal(false);
-    } else {
-      throw new Error(result.error || 'Failed to import events');
-    }
+// Import Events from Excel
+const importEventsFromExcel = async (file) => {
+  try {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        // Parse Excel file
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        console.log('Parsed Excel data:', jsonData);
+
+        const response = await fetch(`${API_URL}/events/import/excel`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
+          },
+          body: JSON.stringify({ excelData: jsonData })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          await fetchSportsEvents(); // Refresh the events list
+          alert(result.message);
+          setShowImportModal(false);
+        } else {
+          throw new Error(result.error || 'Failed to import events');
+        }
+      } catch (error) {
+        console.error('Import processing error:', error);
+        alert('Failed to process Excel file: ' + error.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
   } catch (error) {
     console.error('Import error:', error);
     alert('Failed to import events: ' + error.message);
   }
-};  
+};
 
+const renderImportModal = () => {
+  if (!showImportModal) return null;
+
+  return React.createElement('div', {
+    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
+    onClick: () => setShowImportModal(false)
+  },
+    React.createElement('div', {
+      className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-md p-6',
+      onClick: (e) => e.stopPropagation()
+    },
+      React.createElement('h2', { className: 'text-2xl font-bold mb-4' }, 'Import Events from Excel'),
+      React.createElement('div', { className: 'mb-4' },
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Select Excel File'),
+        React.createElement('input', {
+          type: 'file',
+          accept: '.xlsx,.xls',
+          onChange: (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              importEventsFromExcel(file);
+            }
+          },
+          className: 'w-full p-2 border border-gray-300 rounded-lg'
+        })
+      ),
+      React.createElement('div', { className: 'text-sm text-gray-600 mb-4' },
+        React.createElement('p', null, 'Expected columns:'),
+        React.createElement('ul', { className: 'list-disc list-inside text-xs mt-1' },
+          React.createElement('li', null, 'Event Name'),
+          React.createElement('li', null, 'Event Type'),
+          React.createElement('li', null, 'Sport Type'),
+          React.createElement('li', null, 'Geography'),
+          React.createElement('li', null, 'Start Date'),
+          React.createElement('li', null, 'End Date')
+        )
+      ),
+      React.createElement('div', { className: 'flex justify-end space-x-3' },
+        React.createElement('button', {
+          onClick: () => setShowImportModal(false),
+          className: 'px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50'
+        }, 'Cancel')
+      )
+    )
+  );
+};
+  
+
+  
 const renderActiveSalesTab = (activeSales) => {
 return React.createElement('div', { className: 'space-y-4' },
 React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Active Sales (Post-Service Payment Orders)'),
@@ -14694,26 +14763,46 @@ return 'upcoming';
 
 const renderSportsCalendarContent = () => {
 const filteredEvents = sportsEvents.filter(event => {
-const eventDate = new Date(event.date);
+const eventDate = new Date(event.date || event.start_date);
 const selectedMonth = selectedDate.getMonth();
 const selectedYear = selectedDate.getFullYear();
 
+// Apply filters
+let passesFilter = true;
+
+// Date filter for month view
 if (calendarView === 'month') {
-return eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear;
+passesFilter = eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear;
 }
-return true;
+
+// Geography filter
+if (calendarFilters.geography && passesFilter) {
+passesFilter = event.geography === calendarFilters.geography;
+}
+
+// Sport type filter
+if (calendarFilters.sport_type && passesFilter) {
+passesFilter = event.sport_type === calendarFilters.sport_type || event.category === calendarFilters.sport_type;
+}
+
+// Priority filter
+if (calendarFilters.priority && passesFilter) {
+passesFilter = event.priority === calendarFilters.priority;
+}
+
+return passesFilter;
 });
 
 return React.createElement('div', { className: 'space-y-6' },
 // Header
 React.createElement('div', { className: 'flex justify-between items-center' },
 React.createElement('div', null,
-React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, '📅 SofaScore Sports Calendar'),
-React.createElement('p', { className: 'text-gray-600 dark:text-gray-400 mt-1' }, 'Live sports events from SofaScore with FanToPark packages'),
+React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, '📅 Sports Calendar'),
+React.createElement('p', { className: 'text-gray-600 dark:text-gray-400 mt-1' }, 'Manage your sporting events with advanced filters and Excel integration'),
 React.createElement('div', { className: 'flex items-center mt-2 text-sm' },
 React.createElement('span', { 
 className: `px-2 py-1 rounded-full text-xs ${sportsEvents.length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`
-}, sportsEvents.length > 0 ? `${sportsEvents.length} Live Events` : 'Loading Events...'),
+}, sportsEvents.length > 0 ? `${filteredEvents.length}/${sportsEvents.length} Events` : 'Loading Events...'),
 React.createElement('button', {
 onClick: fetchSofaScoreEvents,
 disabled: loading,
@@ -14721,13 +14810,27 @@ className: 'ml-3 text-blue-600 hover:text-blue-800 text-sm underline disabled:op
 }, loading ? 'Refreshing...' : '🔄 Refresh Events')
 )
 ),
-React.createElement('div', { className: 'flex space-x-2' },
+React.createElement('div', { className: 'flex flex-wrap gap-2' },
 React.createElement('button', {
 onClick: () => setShowEventForm(true),
 className: 'bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
 }, 
 React.createElement('span', null, '➕'),
-'Add Custom Event'
+'Add Event'
+),
+React.createElement('button', {
+onClick: exportEventsToExcel,
+className: 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
+}, 
+React.createElement('span', null, '📥'),
+'Export Excel'
+),
+React.createElement('button', {
+onClick: () => setShowImportModal(true),
+className: 'bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
+}, 
+React.createElement('span', null, '📤'),
+'Import Excel'
 )
 )
 ),
@@ -14831,7 +14934,10 @@ className: `px-3 py-1 rounded text-sm ${calendarView === view ? 'bg-blue-600 tex
 ),
 
 // Events Display
-calendarView === 'month' ? renderMonthView(filteredEvents) : renderListView(filteredEvents)
+calendarView === 'month' ? renderMonthView(filteredEvents) : renderListView(filteredEvents),
+
+// Import Modal
+renderImportModal()
 );
 };
 
@@ -15135,45 +15241,80 @@ const renderEventFormModal = () => {
   if (!showEventForm) return null;
 
   const handleEventSubmit = async (e) => {
-    e.preventDefault();
-    
-    try {
-      const eventData = {
-        ...eventFormData,
-        // Ensure proper date formatting
-        start_date: eventFormData.start_date,
-        end_date: eventFormData.end_date || null,
-      };
-
-      const url = currentEvent ? `${API_URL}/events/${currentEvent.id}` : `${API_URL}/events`;
-      const method = currentEvent ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
-        },
-        body: JSON.stringify(eventData)
+  e.preventDefault();
+  
+  try {
+    // Sanitize event data - remove undefined values and convert empty strings
+    const sanitizeData = (data) => {
+      const sanitized = {};
+      Object.keys(data).forEach(key => {
+        const value = data[key];
+        if (value !== undefined && value !== null && value !== '') {
+          sanitized[key] = value;
+        } else if (typeof value === 'string' && value === '') {
+          // Keep empty strings as empty strings, don't convert to undefined
+          sanitized[key] = '';
+        }
+        // Skip undefined, null values entirely
       });
+      return sanitized;
+    };
 
-      const result = await response.json();
-      
-      if (result.success) {
-        // Refresh events list
-        await fetchSportsEvents();
-        setShowEventForm(false);
-        setCurrentEvent(null);
-        resetEventForm();
-        alert(currentEvent ? 'Event updated successfully!' : 'Event created successfully!');
-      } else {
-        throw new Error(result.error || 'Failed to save event');
-      }
-    } catch (error) {
-      console.error('Error saving event:', error);
-      alert('Error saving event: ' + error.message);
+    const eventData = sanitizeData({
+      event_name: eventFormData.event_name || '',
+      event_type: eventFormData.event_type || '',
+      sport_type: eventFormData.sport_type || '',
+      geography: eventFormData.geography || '',
+      start_date: eventFormData.start_date || '',
+      end_date: eventFormData.end_date || null,
+      start_time: eventFormData.start_time || '',
+      end_time: eventFormData.end_time || '',
+      venue: eventFormData.venue || '',
+      venue_capacity: eventFormData.venue_capacity ? parseInt(eventFormData.venue_capacity) : null,
+      venue_address: eventFormData.venue_address || '',
+      official_ticketing_partners: eventFormData.official_ticketing_partners || '',
+      primary_source: eventFormData.primary_source || '',
+      secondary_source: eventFormData.secondary_source || '',
+      ticket_available: Boolean(eventFormData.ticket_available),
+      priority: eventFormData.priority || '',
+      status: eventFormData.status || 'upcoming',
+      sold_out_potential: eventFormData.sold_out_potential || '',
+      remarks: eventFormData.remarks || '',
+      fantopark_package: eventFormData.fantopark_package || ''
+    });
+
+    console.log('Sending event data:', eventData); // Debug log
+
+    const url = currentEvent ? `${API_URL}/events/${currentEvent.id}` : `${API_URL}/events`;
+    const method = currentEvent ? 'PUT' : 'POST';
+    
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
+      },
+      body: JSON.stringify(eventData)
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      // Refresh events list
+      await fetchSportsEvents();
+      setShowEventForm(false);
+      setCurrentEvent(null);
+      resetEventForm();
+      alert(currentEvent ? 'Event updated successfully!' : 'Event created successfully!');
+    } else {
+      throw new Error(result.error || 'Failed to save event');
     }
-  };
+  } catch (error) {
+    console.error('Error saving event:', error);
+    alert('Error saving event: ' + error.message);
+  }
+};
+
 
   const resetEventForm = () => {
     setEventFormData({
