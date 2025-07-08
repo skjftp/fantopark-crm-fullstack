@@ -1937,7 +1937,27 @@ console.error('Error fetching data:', error);
 }
 };
 
-
+const fetchAllEvents = async () => {
+  try {
+    console.log("Fetching all events from backend...");
+    const response = await fetch(`${API_URL}/events`, {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${localStorage.getItem("crm_auth_token")}` }
+    });
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success && result.data) {
+        const transformedEvents = result.data.map(event => ({
+          id: event.id, title: event.event_name, date: event.start_date,
+          time: event.start_time || "", venue: event.venue || "",
+          category: event.sport_type || "", status: event.status || "upcoming",
+          ...event
+        }));
+        setSportsEvents(transformedEvents);
+      }
+    }
+  } catch (error) { console.error("Error fetching events:", error); }
+};
 
 // Fetch data when logged in
 useEffect(() => {
@@ -3905,28 +3925,6 @@ setLoading(false);
 }
 };
 
-const fetchAllEvents = async () => {
-  try {
-    console.log("Fetching all events from backend...");
-    const response = await fetch(`${API_URL}/events`, {
-      method: "GET",
-      headers: { "Authorization": `Bearer ${localStorage.getItem("crm_auth_token")}` }
-    });
-    if (response.ok) {
-      const result = await response.json();
-      if (result.success && result.data) {
-        const transformedEvents = result.data.map(event => ({
-          id: event.id, title: event.event_name, date: event.start_date,
-          time: event.start_time || "", venue: event.venue || "",
-          category: event.sport_type || "", status: event.status || "upcoming",
-          ...event
-        }));
-        setSportsEvents(transformedEvents);
-      }
-    }
-  } catch (error) { console.error("Error fetching events:", error); }
-};
-
 window.chartInstances = chartInstances;
 window.calculateDashboardStats = calculateDashboardStats;
 window.debugCharts = () => {
@@ -5606,6 +5604,9 @@ const importEventsFromExcel = async (file) => {
 
         console.log('Parsed Excel data:', jsonData);
 
+console.log('Making API call to:', `${API_URL}/events/import/excel`);
+        console.log('Request payload:', { excelData: jsonData.slice(0, 2) }); // Show first 2 records
+        
         const response = await fetch(`${API_URL}/events/import/excel`, {
           method: 'POST',
           headers: {
@@ -5615,10 +5616,12 @@ const importEventsFromExcel = async (file) => {
           body: JSON.stringify({ excelData: jsonData })
         });
 
+        console.log('Response status:', response.status, response.statusText);
         const result = await response.json();
+        console.log('Response data:', result);
         
         if (result.success) {
-          await fetchSportsEvents(); // Refresh the events list
+	await fetchAllEvents(); // Refresh the events list
           alert(result.message);
           setShowImportModal(false);
         } else {
