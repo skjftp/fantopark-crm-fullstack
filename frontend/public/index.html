@@ -15245,31 +15245,7 @@ const renderEventFormModal = () => {
   e.preventDefault();
   
   try {
-    // Sanitize event data - remove undefined values completely
-    const sanitizeData = (data) => {
-      const sanitized = {};
-      Object.keys(data).forEach(key => {
-        const value = data[key];
-        
-        // Only include non-undefined, non-null values
-        if (value !== undefined && value !== null) {
-          // Convert empty strings to actual empty strings, not null
-          if (typeof value === 'string') {
-            sanitized[key] = value.trim();
-          } else if (typeof value === 'number' && !isNaN(value)) {
-            sanitized[key] = value;
-          } else if (typeof value === 'boolean') {
-            sanitized[key] = value;
-          } else if (value !== '') {
-            sanitized[key] = value;
-          }
-        }
-        // Skip completely if undefined, null, or problematic
-      });
-      return sanitized;
-    };
-
-    // Build clean event data object
+    // Build clean event data object (same as before)
     const cleanEventData = {};
     
     // Required fields
@@ -15339,7 +15315,7 @@ const renderEventFormModal = () => {
     // Status with default
     cleanEventData.status = eventFormData.status && eventFormData.status.trim() ? eventFormData.status.trim() : 'upcoming';
 
-    console.log('Sending clean event data:', cleanEventData); // Debug log
+    console.log('Sending clean event data:', cleanEventData);
 
     const url = currentEvent ? `${API_URL}/events/${currentEvent.id}` : `${API_URL}/events`;
     const method = currentEvent ? 'PUT' : 'POST';
@@ -15356,8 +15332,25 @@ const renderEventFormModal = () => {
     const result = await response.json();
     
     if (result.success) {
-      // Refresh events list
-      await fetchSportsEvents();
+      // Refresh events list - use the correct function name
+      if (typeof fetchSofaScoreEvents === 'function') {
+        await fetchSofaScoreEvents();
+      } else {
+        // Fallback: manually refresh the events
+        setSportsEvents(prev => {
+          if (currentEvent) {
+            // Update existing event
+            return prev.map(event => 
+              event.id === currentEvent.id ? { ...event, ...cleanEventData, id: currentEvent.id } : event
+            );
+          } else {
+            // Add new event
+            const newEvent = { ...result.data, id: result.data.id || 'evt_' + Date.now() };
+            return [...prev, newEvent];
+          }
+        });
+      }
+      
       setShowEventForm(false);
       setCurrentEvent(null);
       resetEventForm();
@@ -15368,6 +15361,41 @@ const renderEventFormModal = () => {
   } catch (error) {
     console.error('Error saving event:', error);
     alert('Error saving event: ' + error.message);
+  }
+};
+
+// =============================================================================
+// ALTERNATIVE: Add a proper fetchSportsEvents function if it doesn't exist
+// =============================================================================
+
+// ADD this function if fetchSofaScoreEvents doesn't handle custom events:
+
+const fetchAllEvents = async () => {
+  try {
+    // Fetch both SofaScore events and custom events
+    await fetchSofaScoreEvents(); // This should exist for SofaScore events
+    
+    // Fetch custom events from your backend
+    const response = await fetch(`${API_URL}/events`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
+      }
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success && result.data) {
+        // Merge with existing sports events
+        setSportsEvents(prev => {
+          // Filter out any existing custom events and add new ones
+          const sofaScoreEvents = prev.filter(event => event.id && event.id.startsWith('espn_'));
+          return [...sofaScoreEvents, ...result.data];
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching events:', error);
   }
 };
 
