@@ -37,6 +37,7 @@ app.use('/api/stadiums', require('./routes/stadiums'));
 app.use('/api/clients', require('./routes/clients'));
 app.use('/api/reminders', require('./routes/reminders'));
 app.use('/api/assignment-rules', require('./routes/assignmentRules'));
+app.use('/api/events', require('./routes/events'));
 
 // Health check
 app.get('/health', (req, res) => {
