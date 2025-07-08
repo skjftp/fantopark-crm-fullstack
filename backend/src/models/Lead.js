@@ -8,7 +8,7 @@ class Lead {
     this.phone = data.phone;
     this.company = data.company || '';
     this.business_type = data.business_type || 'B2C';
-    
+    this.is_premium = data.is_premium || false;
     // Lead Source & Initial Contact
     this.source = data.source || '';
     this.date_of_enquiry = data.date_of_enquiry;
@@ -101,18 +101,27 @@ class Lead {
   }
 
   async save() {
-    try {
-      const docRef = await db.collection(collections.leads).add({...this});
-      const savedLead = { id: docRef.id, ...this };
-      
-      console.log(`✅ Lead saved successfully: ${docRef.id}`);
-      return savedLead;
-    } catch (error) {
-      console.error('Error saving lead:', error);
-      throw error;
+  try {
+    // Filter out undefined values to prevent Firestore errors
+    const cleanData = {};
+    for (const [key, value] of Object.entries(this)) {
+      if (value !== undefined) {
+        cleanData[key] = value;
+      }
     }
+    
+    const docRef = await db.collection(collections.leads).add(cleanData);
+    const savedLead = { id: docRef.id, ...cleanData };
+    
+    console.log(`✅ Lead saved successfully: ${docRef.id}`);
+    return savedLead;
+  } catch (error) {
+    console.error('Error saving lead:', error);
+    throw error;
   }
+}
 
+	
   static async update(id, data) {
     try {
       // FIXED: Parse numeric values before updating
