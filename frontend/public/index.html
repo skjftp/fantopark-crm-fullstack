@@ -1170,6 +1170,8 @@ const [proceedAfterPreview, setProceedAfterPreview] = useState(false);
 const [previewLoading, setPreviewLoading] = useState(false);
 const [clientDetectionResults, setClientDetectionResults] = useState([]);
 const [showClientDetectionResults, setShowClientDetectionResults] = useState(false);
+const [calendarFilters, setCalendarFilters] = React.useState({});
+const [showImportModal, setShowImportModal] = React.useState(false);
 
 
 
@@ -5236,6 +5238,67 @@ activeFinancialTab === 'expiring' && renderExpiringTab(financialData.expiringInv
 );
 };
 
+// Export Events to Excel
+const exportEventsToExcel = async () => {
+  try {
+    const params = new URLSearchParams();
+    if (calendarFilters.geography) params.append('geography', calendarFilters.geography);
+    if (calendarFilters.sport_type) params.append('sport_type', calendarFilters.sport_type);
+    if (calendarFilters.priority) params.append('priority', calendarFilters.priority);
+    params.append('sort_by', 'date'); // Default sort by date
+
+    const response = await fetch(`${API_URL}/events/export/excel?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
+      }
+    });
+
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `events_calendar_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } else {
+      throw new Error('Failed to export events');
+    }
+  } catch (error) {
+    console.error('Export error:', error);
+    alert('Failed to export events: ' + error.message);
+  }
+};
+
+// Import Events from Excel
+const importEventsFromExcel = async (excelData) => {
+  try {
+    const response = await fetch(`${API_URL}/events/import/excel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
+      },
+      body: JSON.stringify({ excelData })
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      await fetchSportsEvents(); // Refresh the events list
+      alert(result.message);
+      setShowImportModal(false);
+    } else {
+      throw new Error(result.error || 'Failed to import events');
+    }
+  } catch (error) {
+    console.error('Import error:', error);
+    alert('Failed to import events: ' + error.message);
+  }
+};  
 
 const renderActiveSalesTab = (activeSales) => {
 return React.createElement('div', { className: 'space-y-4' },
@@ -7808,6 +7871,41 @@ const leadFormFields = [
 { name: 'potential_value', label: 'Potential Value (₹)', type: 'number', section: 'business' },
 { name: 'notes', label: 'Additional Notes', type: 'textarea', section: 'business' }
 ];
+
+// Enhanced Event Form Fields based on Excel structure
+const eventFormFields = [
+  // Core Event Information
+  { name: 'event_name', label: 'Event Name', type: 'text', required: true, section: 'basic' },
+  { name: 'event_type', label: 'Event Type', type: 'select', options: ['Sport', 'Concert', 'Conference', 'Exhibition', 'Other'], required: true, section: 'basic' },
+  { name: 'sport_type', label: 'Sport Type', type: 'select', options: ['Cricket', 'Football', 'Tennis', 'Basketball', 'Golf', 'Formula 1', 'Marathon', 'Boxing', 'Wrestling', 'Hockey', 'Badminton', 'Other'], required: true, section: 'basic' },
+  { name: 'geography', label: 'Geography/Location', type: 'select', options: ['India', 'UAE - Dubai', 'UAE - Abu Dhabi', 'UK', 'USA', 'Australia', 'South Africa', 'New Zealand', 'Other'], required: true, section: 'basic' },
+  
+  // Date and Time Information
+  { name: 'start_date', label: 'Start Date', type: 'date', required: true, section: 'datetime' },
+  { name: 'end_date', label: 'End Date', type: 'date', required: false, section: 'datetime' },
+  { name: 'start_time', label: 'Start Time', type: 'time', required: false, section: 'datetime' },
+  { name: 'end_time', label: 'End Time', type: 'time', required: false, section: 'datetime' },
+  
+  // Venue Information
+  { name: 'venue', label: 'Venue', type: 'text', required: true, section: 'venue' },
+  { name: 'venue_capacity', label: 'Venue Capacity', type: 'number', required: false, section: 'venue' },
+  { name: 'venue_address', label: 'Venue Address', type: 'textarea', required: false, section: 'venue' },
+  
+  // Ticketing Information
+  { name: 'official_ticketing_partners', label: 'Official Ticketing Partners', type: 'textarea', required: false, section: 'ticketing' },
+  { name: 'primary_source', label: 'Primary Source', type: 'text', required: false, section: 'ticketing' },
+  { name: 'secondary_source', label: 'Secondary Source', type: 'text', required: false, section: 'ticketing' },
+  { name: 'ticket_available', label: 'Tickets Available for Sale', type: 'checkbox', required: false, section: 'ticketing' },
+  
+  // Priority and Status
+  { name: 'priority', label: 'Priority', type: 'select', options: ['P1', 'P2', 'P3'], required: true, section: 'status' },
+  { name: 'status', label: 'Status', type: 'select', options: ['upcoming', 'live', 'completed', 'cancelled', 'postponed'], required: true, section: 'status' },
+  { name: 'sold_out_potential', label: 'Sold Out Potential', type: 'select', options: ['High', 'Medium', 'Low', 'No'], required: false, section: 'status' },
+  
+  // Additional Information
+  { name: 'remarks', label: 'Remarks/Description', type: 'textarea', required: false, section: 'additional' },
+  { name: 'fantopark_package', label: 'FanToPark Package Details', type: 'textarea', required: false, section: 'additional' }
+];  
 
 const inventoryFormFields = [
 { name: 'event_name', label: 'Event Name', type: 'text', required: true },
@@ -14634,6 +14732,68 @@ React.createElement('span', null, '➕'),
 )
 ),
 
+// Calendar Filters
+React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4' },
+  React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '🔍 Filters'),
+  React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
+    // Geography Filter
+    React.createElement('div', null,
+      React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Geography'),
+      React.createElement('select', {
+        value: calendarFilters.geography || '',
+        onChange: (e) => setCalendarFilters({...calendarFilters, geography: e.target.value}),
+        className: 'w-full p-2 border border-gray-300 rounded-lg'
+      },
+        React.createElement('option', { value: '' }, 'All Locations'),
+        React.createElement('option', { value: 'India' }, 'India'),
+        React.createElement('option', { value: 'UAE - Dubai' }, 'UAE - Dubai'),
+        React.createElement('option', { value: 'UAE - Abu Dhabi' }, 'UAE - Abu Dhabi'),
+        React.createElement('option', { value: 'UK' }, 'UK'),
+        React.createElement('option', { value: 'USA' }, 'USA'),
+        React.createElement('option', { value: 'Australia' }, 'Australia')
+      )
+    ),
+    // Sport Type Filter
+    React.createElement('div', null,
+      React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Sport Type'),
+      React.createElement('select', {
+        value: calendarFilters.sport_type || '',
+        onChange: (e) => setCalendarFilters({...calendarFilters, sport_type: e.target.value}),
+        className: 'w-full p-2 border border-gray-300 rounded-lg'
+      },
+        React.createElement('option', { value: '' }, 'All Sports'),
+        React.createElement('option', { value: 'Cricket' }, 'Cricket'),
+        React.createElement('option', { value: 'Football' }, 'Football'),
+        React.createElement('option', { value: 'Tennis' }, 'Tennis'),
+        React.createElement('option', { value: 'Golf' }, 'Golf'),
+        React.createElement('option', { value: 'Formula 1' }, 'Formula 1'),
+        React.createElement('option', { value: 'Basketball' }, 'Basketball')
+      )
+    ),
+    // Priority Filter
+    React.createElement('div', null,
+      React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Priority'),
+      React.createElement('select', {
+        value: calendarFilters.priority || '',
+        onChange: (e) => setCalendarFilters({...calendarFilters, priority: e.target.value}),
+        className: 'w-full p-2 border border-gray-300 rounded-lg'
+      },
+        React.createElement('option', { value: '' }, 'All Priorities'),
+        React.createElement('option', { value: 'P1' }, 'P1 - High'),
+        React.createElement('option', { value: 'P2' }, 'P2 - Medium'),
+        React.createElement('option', { value: 'P3' }, 'P3 - Low')
+      )
+    ),
+    // Clear Filters Button
+    React.createElement('div', { className: 'flex items-end' },
+      React.createElement('button', {
+        onClick: () => setCalendarFilters({}),
+        className: 'w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg'
+      }, 'Clear Filters')
+    )
+  )
+),
+                           
 // Calendar Controls
 React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4' },
 React.createElement('div', { className: 'flex justify-between items-center mb-4' },
@@ -14972,162 +15132,190 @@ className: 'px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg'
 
 // 7. EVENT FORM MODAL
 const renderEventFormModal = () => {
-if (!showEventForm) return null;
+  if (!showEventForm) return null;
 
-const handleEventSubmit = (e) => {
-e.preventDefault();
+  const handleEventSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const eventData = {
+        ...eventFormData,
+        // Ensure proper date formatting
+        start_date: eventFormData.start_date,
+        end_date: eventFormData.end_date || null,
+      };
 
-const newEvent = {
-...eventFormData,
-id: currentEvent ? currentEvent.id : 'evt_' + Date.now(),
-status: 'upcoming'
+      const url = currentEvent ? `${API_URL}/events/${currentEvent.id}` : `${API_URL}/events`;
+      const method = currentEvent ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
+        },
+        body: JSON.stringify(eventData)
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Refresh events list
+        await fetchSportsEvents();
+        setShowEventForm(false);
+        setCurrentEvent(null);
+        resetEventForm();
+        alert(currentEvent ? 'Event updated successfully!' : 'Event created successfully!');
+      } else {
+        throw new Error(result.error || 'Failed to save event');
+      }
+    } catch (error) {
+      console.error('Error saving event:', error);
+      alert('Error saving event: ' + error.message);
+    }
+  };
+
+  const resetEventForm = () => {
+    setEventFormData({
+      event_name: '',
+      event_type: '',
+      sport_type: '',
+      geography: '',
+      start_date: '',
+      end_date: '',
+      start_time: '',
+      end_time: '',
+      venue: '',
+      venue_capacity: '',
+      venue_address: '',
+      official_ticketing_partners: '',
+      primary_source: '',
+      secondary_source: '',
+      ticket_available: false,
+      priority: '',
+      status: 'upcoming',
+      sold_out_potential: '',
+      remarks: '',
+      fantopark_package: ''
+    });
+  };
+
+  const renderFormSection = (sectionName, title) => {
+    const sectionFields = eventFormFields.filter(field => field.section === sectionName);
+    
+    return React.createElement('div', { className: 'mb-6' },
+      React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-3 border-b pb-2' }, title),
+      React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+        ...sectionFields.map(field => {
+          if (field.type === 'textarea') {
+            return React.createElement('div', { key: field.name, className: 'md:col-span-2' },
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                field.label + (field.required ? ' *' : '')
+              ),
+              React.createElement('textarea', {
+                value: eventFormData[field.name] || '',
+                onChange: (e) => setEventFormData({...eventFormData, [field.name]: e.target.value}),
+                className: 'w-full p-2 border border-gray-300 rounded-lg',
+                required: field.required,
+                rows: 3,
+                placeholder: field.placeholder || ''
+              })
+            );
+          } else if (field.type === 'select') {
+            return React.createElement('div', { key: field.name },
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                field.label + (field.required ? ' *' : '')
+              ),
+              React.createElement('select', {
+                value: eventFormData[field.name] || '',
+                onChange: (e) => setEventFormData({...eventFormData, [field.name]: e.target.value}),
+                className: 'w-full p-2 border border-gray-300 rounded-lg',
+                required: field.required
+              },
+                React.createElement('option', { value: '' }, `Select ${field.label}`),
+                ...field.options.map(option =>
+                  React.createElement('option', { key: option, value: option }, option)
+                )
+              )
+            );
+          } else if (field.type === 'checkbox') {
+            return React.createElement('div', { key: field.name, className: 'flex items-center' },
+              React.createElement('input', {
+                type: 'checkbox',
+                checked: eventFormData[field.name] || false,
+                onChange: (e) => setEventFormData({...eventFormData, [field.name]: e.target.checked}),
+                className: 'mr-2',
+                id: field.name
+              }),
+              React.createElement('label', { 
+                htmlFor: field.name,
+                className: 'text-sm font-medium text-gray-700' 
+              }, field.label)
+            );
+          } else {
+            return React.createElement('div', { key: field.name },
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                field.label + (field.required ? ' *' : '')
+              ),
+              React.createElement('input', {
+                type: field.type,
+                value: eventFormData[field.name] || '',
+                onChange: (e) => setEventFormData({...eventFormData, [field.name]: e.target.value}),
+                className: 'w-full p-2 border border-gray-300 rounded-lg',
+                required: field.required,
+                placeholder: field.placeholder || ''
+              })
+            );
+          }
+        })
+      )
+    );
+  };
+
+  return React.createElement('div', {
+    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
+    onClick: () => setShowEventForm(false)
+  },
+    React.createElement('div', {
+      className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto',
+      onClick: (e) => e.stopPropagation()
+    },
+      React.createElement('form', { onSubmit: handleEventSubmit, className: 'p-6' },
+        React.createElement('div', { className: 'flex justify-between items-center mb-6' },
+          React.createElement('h2', { className: 'text-2xl font-bold' }, 
+            currentEvent ? 'Edit Event' : 'Add New Event'
+          ),
+          React.createElement('button', {
+            type: 'button',
+            onClick: () => setShowEventForm(false),
+            className: 'text-gray-400 hover:text-gray-600 text-2xl'
+          }, '✕')
+        ),
+
+        // Form sections
+        renderFormSection('basic', '📅 Basic Information'),
+        renderFormSection('datetime', '⏰ Date & Time'),
+        renderFormSection('venue', '🏟️ Venue Details'),
+        renderFormSection('ticketing', '🎫 Ticketing Information'),
+        renderFormSection('status', '📊 Priority & Status'),
+        renderFormSection('additional', '📝 Additional Information'),
+
+        // Form actions
+        React.createElement('div', { className: 'flex justify-end space-x-3 mt-6 pt-6 border-t' },
+          React.createElement('button', {
+            type: 'button',
+            onClick: () => setShowEventForm(false),
+            className: 'px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50'
+          }, 'Cancel'),
+          React.createElement('button', {
+            type: 'submit',
+            className: 'px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium'
+          }, currentEvent ? 'Update Event' : 'Create Event')
+        )
+      )
+    )
+  );
 };
-
-if (currentEvent) {
-// Update existing event
-setSportsEvents(prev => prev.map(event => 
-event.id === currentEvent.id ? newEvent : event
-));
-} else {
-// Add new event
-setSportsEvents(prev => [...prev, newEvent]);
-}
-
-setShowEventForm(false);
-setCurrentEvent(null);
-setEventFormData({
-title: '',
-date: '',
-time: '',
-venue: '',
-category: 'cricket',
-description: '',
-ticket_available: false,
-fantopark_package: ''
-});
-};
-
-return React.createElement('div', {
-className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
-onClick: () => setShowEventForm(false)
-},
-React.createElement('div', {
-className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto',
-onClick: (e) => e.stopPropagation()
-},
-React.createElement('form', { onSubmit: handleEventSubmit, className: 'p-6' },
-React.createElement('h2', { className: 'text-2xl font-bold mb-6' }, 
-currentEvent ? 'Edit Sports Event' : 'Add New Sports Event'
-),
-
-React.createElement('div', { className: 'space-y-4' },
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Event Title *'),
-React.createElement('input', {
-type: 'text',
-value: eventFormData.title,
-onChange: (e) => setEventFormData({...eventFormData, title: e.target.value}),
-className: 'w-full p-2 border border-gray-300 rounded-lg',
-required: true
-})
-),
-
-React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Date *'),
-React.createElement('input', {
-type: 'date',
-value: eventFormData.date,
-onChange: (e) => setEventFormData({...eventFormData, date: e.target.value}),
-className: 'w-full p-2 border border-gray-300 rounded-lg',
-required: true
-})
-),
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Time *'),
-React.createElement('input', {
-type: 'time',
-value: eventFormData.time,
-onChange: (e) => setEventFormData({...eventFormData, time: e.target.value}),
-className: 'w-full p-2 border border-gray-300 rounded-lg',
-required: true
-})
-)
-),
-
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Venue *'),
-React.createElement('input', {
-type: 'text',
-value: eventFormData.venue,
-onChange: (e) => setEventFormData({...eventFormData, venue: e.target.value}),
-className: 'w-full p-2 border border-gray-300 rounded-lg',
-required: true
-})
-),
-
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Category *'),
-React.createElement('select', {
-value: eventFormData.category,
-onChange: (e) => setEventFormData({...eventFormData, category: e.target.value}),
-className: 'w-full p-2 border border-gray-300 rounded-lg',
-required: true
-},
-React.createElement('option', { value: 'cricket' }, 'Cricket'),
-React.createElement('option', { value: 'football' }, 'Football'),
-React.createElement('option', { value: 'multi-sport' }, 'Multi-Sport'),
-React.createElement('option', { value: 'other' }, 'Other')
-)
-),
-
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Description'),
-React.createElement('textarea', {
-value: eventFormData.description,
-onChange: (e) => setEventFormData({...eventFormData, description: e.target.value}),
-className: 'w-full p-2 border border-gray-300 rounded-lg',
-rows: 3
-})
-),
-
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'FanToPark Package Details'),
-React.createElement('textarea', {
-value: eventFormData.fantopark_package,
-onChange: (e) => setEventFormData({...eventFormData, fantopark_package: e.target.value}),
-className: 'w-full p-2 border border-gray-300 rounded-lg',
-rows: 2,
-placeholder: 'e.g., Premium Package: ₹25,000 - VIP seating, hospitality, meet & greet'
-})
-),
-
-React.createElement('div', { className: 'flex items-center' },
-React.createElement('input', {
-type: 'checkbox',
-checked: eventFormData.ticket_available,
-onChange: (e) => setEventFormData({...eventFormData, ticket_available: e.target.checked}),
-className: 'mr-2'
-}),
-React.createElement('label', { className: 'text-sm font-medium text-gray-700' }, 'Tickets Available')
-)
-),
-
-React.createElement('div', { className: 'flex justify-end space-x-3 mt-6' },
-React.createElement('button', {
-type: 'button',
-onClick: () => setShowEventForm(false),
-className: 'px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50'
-}, 'Cancel'),
-React.createElement('button', {
-type: 'submit',
-className: 'px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg'
-}, currentEvent ? 'Update Event' : 'Add Event')
-)
-)
-)
-);
-}; 
 
 // Enhanced inventory content with permission checks
 const renderInventoryContent = () => {
