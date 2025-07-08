@@ -2103,13 +2103,6 @@ console.log(`Permission check: ${user.role} -> ${module}.${action} = ${hasAccess
 return hasAccess;
 };
 
-React.useEffect(() => {
-  if (activeTab === 'sports-calendar' && isLoggedIn) {
-    console.log('Sports Calendar tab opened, loading events...');
-    fetchAllEvents();
-  }
-}, [activeTab, isLoggedIn]);  
-  
 const canAccessTab = (tabId) => {
 if (!user) return false;
 // My Actions is available to all logged-in users
@@ -14625,16 +14618,120 @@ return null;
 };
 
 // Fetch events from multiple sports leagues
-const fetchSofaScoreEvents = async () => {
-  console.log('Loading custom events only (SofaScore disabled due to CORS)');
-  setLoading(true);
+const fetchAllEvents = async () => {
   try {
-    await fetchAllEvents();
-  } catch (error) {
-    console.error('Error loading events:', error);
-  } finally {
-    setLoading(false);
-  }
+    console.log("Fetching all events from backend...");
+    const response = await fetch(`${API_URL}/events`, {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${localStorage.getItem("crm_auth_token")}` }
+    });
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success && result.data) {
+        const transformedEvents = result.data.map(event => ({
+          id: event.id, title: event.event_name, date: event.start_date,
+          time: event.start_time || "", venue: event.venue || "",
+          category: event.sport_type || "", status: event.status || "upcoming",
+          ...event
+        }));
+        setSportsEvents(transformedEvents);
+      }
+    }
+  } catch (error) { console.error("Error fetching events:", error); }
+};
+
+const fetchSofaScoreEvents = async () => {
+try {
+setLoading(true);
+
+// Define sports endpoints for different leagues
+const sportsEndpoints = [
+{
+name: "Premier League",
+endpoint: `${SOFASCORE_API_BASE}/unique-tournament/17/season/52186/events/last/0`,
+category: "football"
+},
+{
+name: "Champions League",
+endpoint: `${SOFASCORE_API_BASE}/unique-tournament/7/season/52162/events/last/0`,
+category: "football"
+},
+{
+name: "NBA",
+endpoint: `${SOFASCORE_API_BASE}/unique-tournament/132/season/58766/events/last/0`,
+category: "basketball"
+}
+];
+
+const allEvents = [];
+
+// Fetch events from each sport
+for (const sport of sportsEndpoints) {
+const data = await fetchSofaScoreData(sport.endpoint);
+
+if (data && data.events) {
+const processedEvents = data.events.map(event => ({
+id: `sofascore_${event.id}`,
+title: `${event.name || event.shortName}`,
+date: new Date(event.date).toISOString().split('T')[0],
+time: new Date(event.date).toLocaleTimeString('en-US', { 
+hour: '2-digit', 
+minute: '2-digit',
+hour12: false 
+}),
+venue: event.competitions?.[0]?.venue?.fullName || 'TBD',
+category: sport.category,
+description: `${sport.name} - ${event.status?.type?.description || 'Scheduled'}`,
+ticket_available: true,
+fantopark_package: generateFanToParkPackage(event, sport.name),
+status: getEventStatus(event.status?.type?.name),
+espn_data: {
+league: sport.name,
+competitors: event.competitions?.[0]?.competitors?.map(comp => ({
+name: comp.team?.displayName,
+logo: comp.team?.logo,
+record: comp.records?.[0]?.summary
+})) || [],
+broadcasts: event.competitions?.[0]?.broadcasts || [],
+odds: event.competitions?.[0]?.odds || []
+}
+}));
+
+allEvents.push(...processedEvents);
+}
+}
+
+// Sort events by date
+allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+// Update state with fetched events
+setSportsEvents(allEvents);
+setLoading(false);
+
+return allEvents;
+
+} catch (error) {
+console.error('Error fetching ESPN events:', error);
+setLoading(false);
+
+// Fallback to some basic events if ESPN API fails
+setSportsEvents([
+{
+id: 'fallback_001',
+title: 'ESPN API Unavailable - Sample Event',
+date: new Date().toISOString().split('T')[0],
+time: '20:00',
+venue: 'Various Stadiums',
+category: 'multi-sport',
+description: 'ESPN API is currently unavailable. This is a fallback event.',
+ticket_available: false,
+fantopark_package: 'Please check back later for live events',
+status: 'upcoming'
+}
+]);
+
+return [];
+}
 };
 
 // Generate FanToPark package descriptions based on event type
@@ -14688,7 +14785,6 @@ return 'upcoming';
 }; 
 
 const renderSportsCalendarContent = () => {
-console.log('Rendering Sports Calendar with events:', sportsEvents);  
 const filteredEvents = sportsEvents.filter(event => {
 const eventDate = new Date(event.date || event.start_date);
 const selectedMonth = selectedDate.getMonth();
@@ -14890,8 +14986,9 @@ days.push(React.createElement('div', { key: `empty-${i}`, className: 'p-2 h-24' 
 for (let day = 1; day <= daysInMonth; day++) {
 const currentDate = new Date(year, month, day);
 const dayEvents = events.filter(event => {
-const eventDate = new Date(event.date);
-return eventDate.getDate() === day;
+const eventStartDate = new Date(event.date || event.start_date);
+    const eventEndDate = event.end_date ? new Date(event.end_date) : eventStartDate;
+return eventStartDate.getDate() <= day && (eventEndDate.getDate() >= day || !event.end_date);
 });
 
 const isToday = currentDate.toDateString() === today.toDateString();
@@ -14936,112 +15033,103 @@ React.createElement('div', { className: 'grid grid-cols-7 gap-0' }, days)
 };
 
 const renderListView = (events) => {
-  if (!events || events.length === 0) {
-    return React.createElement('div', { 
-      className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center' 
-    },
-      React.createElement('p', { className: 'text-gray-500' }, 'No events found'),
-      React.createElement('button', {
-        onClick: () => setShowEventForm(true),
-        className: 'mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg'
-      }, 'Add Your First Event')
-    );
-  }
+const sortedEvents = events.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  return React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden' },
-    React.createElement('table', { className: 'w-full' },
-      React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
-        React.createElement('tr', null,
-          React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Event'),
-          React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Date'),
-          React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Location'),
-          React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Sport'),
-          React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Priority'),
-          React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Status'),
-          React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Actions')
-        )
-      ),
-      React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200' },
-        ...events.map(event =>
-          React.createElement('tr', {
-            key: event.id,
-            className: 'hover:bg-gray-50 cursor-pointer'
-          },
-            // Event column
-            React.createElement('td', { className: 'px-6 py-4' },
-              React.createElement('div', null,
-                React.createElement('div', { className: 'font-medium text-gray-900' }, event.title || event.event_name),
-                React.createElement('div', { className: 'text-sm text-gray-500' }, event.venue),
-                event.geography && React.createElement('div', { className: 'text-xs text-blue-600' }, event.geography)
-              )
-            ),
-            // Date column
-            React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' },
-              React.createElement('div', null, new Date(event.date || event.start_date).toLocaleDateString()),
-              event.time && React.createElement('div', { className: 'text-gray-500' }, event.time)
-            ),
-            // Location column
-            React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, 
-              event.geography || event.venue || 'Not specified'
-            ),
-            // Sport column
-            React.createElement('td', { className: 'px-6 py-4' },
-              React.createElement('span', {
-                className: `px-2 py-1 text-xs rounded-full ${
-                  event.category === 'Cricket' || event.sport_type === 'Cricket' ? 'bg-green-100 text-green-800' :
-                  event.category === 'Football' || event.sport_type === 'Football' ? 'bg-blue-100 text-blue-800' :
-                  event.category === 'Tennis' || event.sport_type === 'Tennis' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-purple-100 text-purple-800'
-                }`
-              }, event.sport_type || event.category || 'Sport')
-            ),
-            // Priority column
-            React.createElement('td', { className: 'px-6 py-4' },
-              event.priority && React.createElement('span', {
-                className: `px-2 py-1 text-xs rounded-full ${
-                  event.priority === 'P1' ? 'bg-red-100 text-red-800' :
-                  event.priority === 'P2' ? 'bg-yellow-100 text-yellow-800' :
-                  event.priority === 'P3' ? 'bg-green-100 text-green-800' :
-                  'bg-gray-100 text-gray-800'
-                }`
-              }, event.priority)
-            ),
-            // Status column
-            React.createElement('td', { className: 'px-6 py-4' },
-              React.createElement('span', {
-                className: `px-2 py-1 text-xs rounded-full ${
-                  event.status === 'live' ? 'bg-red-100 text-red-800 animate-pulse' :
-                  event.status === 'upcoming' ? 'bg-yellow-100 text-yellow-800' :
-                  event.status === 'completed' ? 'bg-gray-100 text-gray-800' :
-                  'bg-blue-100 text-blue-800'
-                }`
-              }, event.status ? event.status.toUpperCase() : 'UPCOMING')
-            ),
-            // Actions column
-            React.createElement('td', { className: 'px-6 py-4 text-sm' },
-              React.createElement('button', {
-                onClick: (e) => {
-                  e.stopPropagation();
-                  setCurrentEvent(event);
-                  setShowEventDetail(true);
-                },
-                className: 'text-blue-600 hover:text-blue-800 mr-3'
-              }, 'View'),
-              React.createElement('button', {
-                onClick: (e) => {
-                  e.stopPropagation();
-                  setEventFormData(event);
-                  setCurrentEvent(event);
-                  setShowEventForm(true);
-                },
-                className: 'text-green-600 hover:text-green-800'
-              }, 'Edit')
-            )
-          )
-        )
-      )
-    )
-  );
+return React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
+React.createElement('div', { className: 'overflow-x-auto' },
+React.createElement('table', { className: 'w-full' },
+React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
+React.createElement('tr', null,
+React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event'),
+React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Date & Time'),
+React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Venue'),
+React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'League'),
+React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
+React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
+)
+),
+React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
+sortedEvents.length > 0 ? sortedEvents.map(event =>
+React.createElement('tr', {
+key: event.id,
+className: 'hover:bg-gray-50 cursor-pointer',
+onClick: () => {
+setCurrentEvent(event);
+setShowEventDetail(true);
+}
+},
+React.createElement('td', { className: 'px-6 py-4' },
+React.createElement('div', null,
+React.createElement('div', { className: 'font-medium text-gray-900' }, event.title),
+React.createElement('div', { className: 'text-sm text-gray-500' }, event.description),
+event.espn_data?.competitors && React.createElement('div', { className: 'flex items-center mt-1 space-x-2' },
+...event.espn_data.competitors.slice(0, 2).map((comp, idx) =>
+React.createElement('div', { 
+key: idx,
+className: 'flex items-center space-x-1 text-xs text-gray-600'
+},
+comp.logo && React.createElement('img', { 
+src: comp.logo, 
+alt: comp.name,
+className: 'w-4 h-4'
+}),
+React.createElement('span', null, comp.name)
+)
+)
+)
+)
+),
+React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' },
+React.createElement('div', null, new Date(event.date).toLocaleDateString()),
+React.createElement('div', { className: 'text-gray-500' }, event.time)
+),
+React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' }, 
+event.venue.length > 30 ? event.venue.substring(0, 30) + '...' : event.venue
+),
+React.createElement('td', { className: 'px-6 py-4' },
+React.createElement('span', {
+className: `px-2 py-1 text-xs rounded-full ${
+event.category === 'cricket' ? 'bg-green-100 text-green-800' :
+event.category === 'football' ? 'bg-blue-100 text-blue-800' :
+event.category === 'basketball' ? 'bg-orange-100 text-orange-800' :
+event.category === 'baseball' ? 'bg-red-100 text-red-800' :
+'bg-purple-100 text-purple-800'
+}`
+}, event.espn_data?.league || event.category.toUpperCase())
+),
+React.createElement('td', { className: 'px-6 py-4' },
+React.createElement('span', {
+className: `px-2 py-1 text-xs rounded-full ${
+event.status === 'live' ? 'bg-red-100 text-red-800 animate-pulse' :
+event.status === 'upcoming' ? 'bg-yellow-100 text-yellow-800' :
+event.status === 'completed' ? 'bg-gray-100 text-gray-800' :
+'bg-red-100 text-red-800'
+}`
+}, event.status.toUpperCase())
+),
+React.createElement('td', { className: 'px-6 py-4 text-sm' },
+React.createElement('button', {
+onClick: (e) => {
+e.stopPropagation();
+setCurrentEvent(event);
+setShowEventDetail(true);
+},
+className: 'text-blue-600 hover:text-blue-800'
+}, 'View Details')
+)
+)
+) : React.createElement('tr', null,
+React.createElement('td', { 
+colSpan: 6, 
+className: 'px-6 py-8 text-center text-gray-500'
+}, 
+loading ? 'Loading ESPN events...' : 'No events found. Click "Refresh Events" to try again.'
+)
+)
+)
+)
+)
+);
 };
 
 // 6. EVENT DETAIL MODAL
@@ -15180,7 +15268,31 @@ const renderEventFormModal = () => {
   e.preventDefault();
   
   try {
-    // Build clean event data object (same as before)
+    // Sanitize event data - remove undefined values completely
+    const sanitizeData = (data) => {
+      const sanitized = {};
+      Object.keys(data).forEach(key => {
+        const value = data[key];
+        
+        // Only include non-undefined, non-null values
+        if (value !== undefined && value !== null) {
+          // Convert empty strings to actual empty strings, not null
+          if (typeof value === 'string') {
+            sanitized[key] = value.trim();
+          } else if (typeof value === 'number' && !isNaN(value)) {
+            sanitized[key] = value;
+          } else if (typeof value === 'boolean') {
+            sanitized[key] = value;
+          } else if (value !== '') {
+            sanitized[key] = value;
+          }
+        }
+        // Skip completely if undefined, null, or problematic
+      });
+      return sanitized;
+    };
+
+    // Build clean event data object
     const cleanEventData = {};
     
     // Required fields
@@ -15250,7 +15362,7 @@ const renderEventFormModal = () => {
     // Status with default
     cleanEventData.status = eventFormData.status && eventFormData.status.trim() ? eventFormData.status.trim() : 'upcoming';
 
-    console.log('Sending clean event data:', cleanEventData);
+    console.log('Sending clean event data:', cleanEventData); // Debug log
 
     const url = currentEvent ? `${API_URL}/events/${currentEvent.id}` : `${API_URL}/events`;
     const method = currentEvent ? 'PUT' : 'POST';
@@ -15267,90 +15379,19 @@ const renderEventFormModal = () => {
     const result = await response.json();
     
     if (result.success) {
-  console.log('Event saved successfully:', result);
-  // Refresh events list
-  await fetchAllEvents();
-  setShowEventForm(false);
-  setCurrentEvent(null);
-  resetEventForm();
-  alert(currentEvent ? 'Event updated successfully!' : 'Event created successfully!');
-} else {
-  throw new Error(result.error || 'Failed to save event');
-}
+      // Refresh events list
+      await fetchSportsEvents();
+      setShowEventForm(false);
+      setCurrentEvent(null);
+      resetEventForm();
+      alert(currentEvent ? 'Event updated successfully!' : 'Event created successfully!');
+    } else {
+      throw new Error(result.error || 'Failed to save event');
+    }
   } catch (error) {
     console.error('Error saving event:', error);
     alert('Error saving event: ' + error.message);
   }
-};
-
-// =============================================================================
-// ALTERNATIVE: Add a proper fetchSportsEvents function if it doesn't exist
-// =============================================================================
-
-// ADD this function if fetchSofaScoreEvents doesn't handle custom events:
-
-const fetchAllEvents = async () => {
-  try {
-    console.log('Fetching all events from backend...');
-    
-    const response = await fetch(`${API_URL}/events`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
-      }
-    });
-    
-    if (response.ok) {
-      const result = await response.json();
-      console.log('Backend events response:', result);
-      
-      if (result.success && result.data && result.data.length > 0) {
-        // Transform backend events to match frontend format
-        const transformedEvents = result.data.map(event => ({
-          id: event.id,
-          title: event.event_name || event.title,
-          date: event.start_date || event.date,
-          time: event.start_time || event.time || '',
-          venue: event.venue || '',
-          category: event.sport_type || event.category || '',
-          status: event.status || 'upcoming',
-          description: event.remarks || event.description || '',
-          ticket_available: event.ticket_available || false,
-          fantopark_package: event.fantopark_package || '',
-          
-          // Keep all original fields for detailed view
-          event_name: event.event_name,
-          event_type: event.event_type,
-          sport_type: event.sport_type,
-          geography: event.geography,
-          start_date: event.start_date,
-          end_date: event.end_date,
-          start_time: event.start_time,
-          end_time: event.end_time,
-          priority: event.priority,
-          official_ticketing_partners: event.official_ticketing_partners,
-          primary_source: event.primary_source,
-          secondary_source: event.secondary_source,
-          sold_out_potential: event.sold_out_potential,
-          remarks: event.remarks
-        }));
-        
-        console.log('Setting sports events:', transformedEvents);
-        setSportsEvents(transformedEvents);
-      } else {
-        console.log('No events found in response');
-        setSportsEvents([]);
-      }
-    } else {
-      console.error('Failed to fetch events:', response.status, response.statusText);
-      setSportsEvents([]);
-    }
-  } catch (error) {
-    console.error('Error fetching events:', error);
-    setSportsEvents([]);
-  }
-};
-
 };
 
 
