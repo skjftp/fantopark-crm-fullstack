@@ -15796,6 +15796,28 @@ currentEvent.official_ticketing_partners
 )
 )
 ),
+currentEvent.primary_source && React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '🔗'),
+'Primary Source'
+),
+React.createElement('div', { className: 'bg-green-50 p-4 rounded-lg border border-green-200' },
+React.createElement('p', { className: 'text-green-900 text-sm' },
+currentEvent.primary_source
+)
+)
+),
+currentEvent.secondary_source && React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '🔗'),
+'Secondary Source'
+),
+React.createElement('div', { className: 'bg-purple-50 p-4 rounded-lg border border-purple-200' },
+React.createElement('p', { className: 'text-purple-900 text-sm' },
+currentEvent.secondary_source
+)
+)
+),
 currentEvent.description && React.createElement('div', null,
 React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
 React.createElement('span', { className: 'mr-2' }, '📝'),
