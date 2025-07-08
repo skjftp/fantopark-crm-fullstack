@@ -16027,7 +16027,7 @@ const renderEventFormModal = () => {
     
     if (result.success) {
       // Refresh events list
-      await fetchSportsEvents();
+	await fetchAllEvents();
       setShowEventForm(false);
       setCurrentEvent(null);
       resetEventForm();
