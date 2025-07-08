@@ -15241,50 +15241,105 @@ className: 'px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg'
 const renderEventFormModal = () => {
   if (!showEventForm) return null;
 
-  const handleEventSubmit = async (e) => {
+ const handleEventSubmit = async (e) => {
   e.preventDefault();
   
   try {
-    // Sanitize event data - remove undefined values and convert empty strings
+    // Sanitize event data - remove undefined values completely
     const sanitizeData = (data) => {
       const sanitized = {};
       Object.keys(data).forEach(key => {
         const value = data[key];
-        if (value !== undefined && value !== null && value !== '') {
-          sanitized[key] = value;
-        } else if (typeof value === 'string' && value === '') {
-          // Keep empty strings as empty strings, don't convert to undefined
-          sanitized[key] = '';
+        
+        // Only include non-undefined, non-null values
+        if (value !== undefined && value !== null) {
+          // Convert empty strings to actual empty strings, not null
+          if (typeof value === 'string') {
+            sanitized[key] = value.trim();
+          } else if (typeof value === 'number' && !isNaN(value)) {
+            sanitized[key] = value;
+          } else if (typeof value === 'boolean') {
+            sanitized[key] = value;
+          } else if (value !== '') {
+            sanitized[key] = value;
+          }
         }
-        // Skip undefined, null values entirely
+        // Skip completely if undefined, null, or problematic
       });
       return sanitized;
     };
 
-    const eventData = sanitizeData({
-      event_name: eventFormData.event_name || '',
-      event_type: eventFormData.event_type || '',
-      sport_type: eventFormData.sport_type || '',
-      geography: eventFormData.geography || '',
-      start_date: eventFormData.start_date || '',
-      end_date: eventFormData.end_date || null,
-      start_time: eventFormData.start_time || '',
-      end_time: eventFormData.end_time || '',
-      venue: eventFormData.venue || '',
-      venue_capacity: eventFormData.venue_capacity ? parseInt(eventFormData.venue_capacity) : null,
-      venue_address: eventFormData.venue_address || '',
-      official_ticketing_partners: eventFormData.official_ticketing_partners || '',
-      primary_source: eventFormData.primary_source || '',
-      secondary_source: eventFormData.secondary_source || '',
-      ticket_available: Boolean(eventFormData.ticket_available),
-      priority: eventFormData.priority || '',
-      status: eventFormData.status || 'upcoming',
-      sold_out_potential: eventFormData.sold_out_potential || '',
-      remarks: eventFormData.remarks || '',
-      fantopark_package: eventFormData.fantopark_package || ''
-    });
+    // Build clean event data object
+    const cleanEventData = {};
+    
+    // Required fields
+    if (eventFormData.event_name && eventFormData.event_name.trim()) {
+      cleanEventData.event_name = eventFormData.event_name.trim();
+    }
+    if (eventFormData.event_type && eventFormData.event_type.trim()) {
+      cleanEventData.event_type = eventFormData.event_type.trim();
+    }
+    if (eventFormData.sport_type && eventFormData.sport_type.trim()) {
+      cleanEventData.sport_type = eventFormData.sport_type.trim();
+    }
+    if (eventFormData.geography && eventFormData.geography.trim()) {
+      cleanEventData.geography = eventFormData.geography.trim();
+    }
+    if (eventFormData.start_date && eventFormData.start_date.trim()) {
+      cleanEventData.start_date = eventFormData.start_date.trim();
+    }
+    if (eventFormData.venue && eventFormData.venue.trim()) {
+      cleanEventData.venue = eventFormData.venue.trim();
+    }
+    if (eventFormData.priority && eventFormData.priority.trim()) {
+      cleanEventData.priority = eventFormData.priority.trim();
+    }
+    
+    // Optional fields - only add if they have actual values
+    if (eventFormData.end_date && eventFormData.end_date.trim()) {
+      cleanEventData.end_date = eventFormData.end_date.trim();
+    }
+    if (eventFormData.start_time && eventFormData.start_time.trim()) {
+      cleanEventData.start_time = eventFormData.start_time.trim();
+    }
+    if (eventFormData.end_time && eventFormData.end_time.trim()) {
+      cleanEventData.end_time = eventFormData.end_time.trim();
+    }
+    if (eventFormData.venue_capacity && eventFormData.venue_capacity !== '') {
+      const capacity = parseInt(eventFormData.venue_capacity);
+      if (!isNaN(capacity)) {
+        cleanEventData.venue_capacity = capacity;
+      }
+    }
+    if (eventFormData.venue_address && eventFormData.venue_address.trim()) {
+      cleanEventData.venue_address = eventFormData.venue_address.trim();
+    }
+    if (eventFormData.official_ticketing_partners && eventFormData.official_ticketing_partners.trim()) {
+      cleanEventData.official_ticketing_partners = eventFormData.official_ticketing_partners.trim();
+    }
+    if (eventFormData.primary_source && eventFormData.primary_source.trim()) {
+      cleanEventData.primary_source = eventFormData.primary_source.trim();
+    }
+    if (eventFormData.secondary_source && eventFormData.secondary_source.trim()) {
+      cleanEventData.secondary_source = eventFormData.secondary_source.trim();
+    }
+    if (eventFormData.sold_out_potential && eventFormData.sold_out_potential.trim()) {
+      cleanEventData.sold_out_potential = eventFormData.sold_out_potential.trim();
+    }
+    if (eventFormData.remarks && eventFormData.remarks.trim()) {
+      cleanEventData.remarks = eventFormData.remarks.trim();
+    }
+    if (eventFormData.fantopark_package && eventFormData.fantopark_package.trim()) {
+      cleanEventData.fantopark_package = eventFormData.fantopark_package.trim();
+    }
+    
+    // Boolean field
+    cleanEventData.ticket_available = Boolean(eventFormData.ticket_available);
+    
+    // Status with default
+    cleanEventData.status = eventFormData.status && eventFormData.status.trim() ? eventFormData.status.trim() : 'upcoming';
 
-    console.log('Sending event data:', eventData); // Debug log
+    console.log('Sending clean event data:', cleanEventData); // Debug log
 
     const url = currentEvent ? `${API_URL}/events/${currentEvent.id}` : `${API_URL}/events`;
     const method = currentEvent ? 'PUT' : 'POST';
@@ -15295,7 +15350,7 @@ const renderEventFormModal = () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
       },
-      body: JSON.stringify(eventData)
+      body: JSON.stringify(cleanEventData)
     });
 
     const result = await response.json();
@@ -15315,6 +15370,7 @@ const renderEventFormModal = () => {
     alert('Error saving event: ' + error.message);
   }
 };
+
 
 
   const resetEventForm = () => {
