@@ -15653,124 +15653,153 @@ const renderEventDetailModal = () => {
 if (!showEventDetail || !currentEvent) return null;
 
 return React.createElement('div', {
-className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
-onClick: () => setShowEventDetail(false)
+className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4',
+style: { backdropFilter: 'blur(4px)' },
+onClick: (e) => {
+if (e.target === e.currentTarget) setShowEventDetail(false);
+}
 },
 React.createElement('div', {
-className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto',
+className: 'bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-auto shadow-2xl',
 onClick: (e) => e.stopPropagation()
 },
-React.createElement('div', { className: 'p-6' },
-React.createElement('div', { className: 'flex justify-between items-start mb-6' },
-React.createElement('div', null,
-React.createElement('h2', { className: 'text-2xl font-bold text-gray-900 dark:text-white' }, currentEvent.title),
-currentEvent.espn_data?.league && React.createElement('p', { 
-className: 'text-lg text-blue-600 mt-1' 
-}, currentEvent.espn_data.league)
-),
-React.createElement('button', {
-onClick: () => setShowEventDetail(false),
-className: 'text-gray-500 hover:text-gray-700'
-}, '✕')
-),
-
-React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-2 gap-6' },
-// Event Details
-React.createElement('div', { className: 'space-y-4' },
-React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Date'),
-React.createElement('p', { className: 'text-gray-900' }, new Date(currentEvent.date).toLocaleDateString())
-),
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Time'),
-React.createElement('p', { className: 'text-gray-900' }, currentEvent.time)
-)
-),
-
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Venue'),
-React.createElement('p', { className: 'text-gray-900' }, currentEvent.venue)
-),
-
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Description'),
-React.createElement('p', { className: 'text-gray-900' }, currentEvent.description)
-),
-
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Status'),
-React.createElement('span', {
-className: `inline-block px-2 py-1 text-xs rounded-full ${
-currentEvent.status === 'live' ? 'bg-red-100 text-red-800 animate-pulse' :
-currentEvent.status === 'upcoming' ? 'bg-yellow-100 text-yellow-800' :
-currentEvent.status === 'completed' ? 'bg-gray-100 text-gray-800' :
-'bg-red-100 text-red-800'
-}`
-}, currentEvent.status.toUpperCase())
-)
-),
-
-// ESPN Data (Teams, etc.)
-currentEvent.espn_data && React.createElement('div', { className: 'space-y-4' },
-currentEvent.espn_data.competitors && currentEvent.espn_data.competitors.length > 0 && 
-React.createElement('div', null,
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Teams'),
-React.createElement('div', { className: 'space-y-2' },
-...currentEvent.espn_data.competitors.map((team, idx) =>
-React.createElement('div', { 
-key: idx,
-className: 'flex items-center space-x-3 p-2 bg-gray-50 rounded'
+React.createElement('div', {
+className: `p-6 border-b ${getPriorityStyles(currentEvent.priority)}`
 },
-team.logo && React.createElement('img', { 
-src: team.logo, 
-alt: team.name,
-className: 'w-8 h-8'
-}),
-React.createElement('div', null,
-React.createElement('div', { className: 'font-medium' }, team.name),
-team.record && React.createElement('div', { className: 'text-sm text-gray-500' }, team.record)
-)
-)
-)
-)
-)
+React.createElement('div', { className: 'flex justify-between items-start' },
+React.createElement('div', { className: 'flex-1' },
+React.createElement('div', { className: 'flex items-center gap-3 mb-2' },
+React.createElement('h2', { className: 'text-2xl font-bold' },
+currentEvent.event_name || currentEvent.title
+),
+React.createElement('span', {
+className: `px-3 py-1 text-sm font-semibold rounded-full ${getPriorityBadgeColor(currentEvent.priority)}`
+}, currentEvent.priority || 'N/A')
+),
+React.createElement('p', { className: 'text-sm opacity-75' },
+`${currentEvent.sport_type || currentEvent.category || 'Event'} • ${currentEvent.geography || 'Location TBD'}`
 )
 ),
-
-React.createElement('div', { className: 'bg-blue-50 p-4 rounded-lg mt-6' },
-React.createElement('h3', { className: 'font-medium text-blue-900 mb-2' }, '🎫 FanToPark Package'),
-React.createElement('p', { className: 'text-blue-800' }, currentEvent.fantopark_package),
-currentEvent.ticket_available && 
-React.createElement('button', {
-className: 'mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm'
-}, 'Create Lead from This Event')
-),
-
-React.createElement('div', { className: 'flex justify-end space-x-3 mt-6' },
 React.createElement('button', {
 onClick: () => setShowEventDetail(false),
-className: 'px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50'
-}, 'Close'),
-!currentEvent.id.startsWith('espn_') && React.createElement('button', {
+className: 'text-gray-500 hover:text-gray-700 text-2xl p-2 rounded-lg hover:bg-gray-100'
+}, '✕')
+)
+),
+React.createElement('div', { className: 'p-6 grid md:grid-cols-2 gap-6' },
+React.createElement('div', { className: 'space-y-6' },
+React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '📅'),
+'Date & Time'
+),
+React.createElement('div', { className: 'space-y-2 text-sm bg-gray-50 p-4 rounded-lg' },
+React.createElement('div', { className: 'flex justify-between' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Date:'),
+React.createElement('span', { className: 'text-gray-900' },
+new Date(currentEvent.start_date || currentEvent.date).toLocaleDateString()
+)
+),
+React.createElement('div', { className: 'flex justify-between' },
+React.createElement('span', { className: 'font-medium text-gray-700' }, 'Time:'),
+React.createElement('span', { className: 'text-gray-900 font-mono' },
+currentEvent.start_time || currentEvent.time || 'TBD'
+)
+)
+)
+),
+currentEvent.venue && React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '🏟️'),
+'Venue'
+),
+React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg' },
+React.createElement('div', { className: 'font-medium text-gray-900' },
+currentEvent.venue
+)
+)
+),
+React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '📊'),
+'Status & Priority'
+),
+React.createElement('div', { className: 'flex flex-wrap gap-2' },
+React.createElement('span', {
+className: `px-3 py-1 text-sm font-semibold rounded-full ${getPriorityBadgeColor(currentEvent.priority)}`
+}, `Priority ${currentEvent.priority || 'N/A'}`),
+React.createElement('span', {
+className: `px-3 py-1 text-sm font-semibold rounded-full ${
+currentEvent.status === 'live' ? 'bg-red-500 text-white animate-pulse' :
+currentEvent.status === 'upcoming' ? 'bg-blue-500 text-white' :
+currentEvent.status === 'completed' ? 'bg-gray-500 text-white' :
+'bg-gray-400 text-white'
+}`
+}, (currentEvent.status || 'upcoming').toUpperCase())
+)
+)
+),
+React.createElement('div', { className: 'space-y-6' },
+currentEvent.fantopark_package && React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '📦'),
+'FanToPark Package'
+),
+React.createElement('div', { className: 'bg-blue-50 p-4 rounded-lg border border-blue-200' },
+React.createElement('p', { className: 'text-blue-900 text-sm' },
+currentEvent.fantopark_package
+)
+)
+),
+currentEvent.description && React.createElement('div', null,
+React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+React.createElement('span', { className: 'mr-2' }, '📝'),
+'Description'
+),
+React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg' },
+React.createElement('p', { className: 'text-gray-700 text-sm' },
+currentEvent.description
+)
+)
+)
+)
+),
+React.createElement('div', { className: 'px-6 pb-6 flex flex-wrap gap-3' },
+React.createElement('button', {
 onClick: () => {
 setEventFormData({
 ...currentEvent,
-title: currentEvent.title,
-date: currentEvent.date,
-time: currentEvent.time,
+event_name: currentEvent.event_name || currentEvent.title,
+start_date: currentEvent.start_date || currentEvent.date,
+start_time: currentEvent.start_time || currentEvent.time,
 venue: currentEvent.venue,
-category: currentEvent.category,
+sport_type: currentEvent.sport_type || currentEvent.category,
+priority: currentEvent.priority,
+status: currentEvent.status,
 description: currentEvent.description,
-ticket_available: currentEvent.ticket_available,
 fantopark_package: currentEvent.fantopark_package
 });
 setShowEventDetail(false);
 setShowEventForm(true);
 },
-className: 'px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg'
-}, 'Edit Event')
-)
+className: 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center gap-2'
+},
+React.createElement('span', null, '✏️'),
+'Edit Event'
+),
+React.createElement('button', {
+onClick: () => {
+console.log('Creating lead for event:', currentEvent.id);
+},
+className: 'px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors flex items-center gap-2'
+},
+React.createElement('span', null, '🎯'),
+'Create Lead'
+),
+React.createElement('button', {
+onClick: () => setShowEventDetail(false),
+className: 'px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors'
+}, 'Close')
 )
 )
 );
