@@ -1236,6 +1236,42 @@ const [calendarFilters, setCalendarFilters] = React.useState({});
 const [showImportModal, setShowImportModal] = React.useState(false);
 
 
+// Permission check function - moved inside component to access user state
+const hasPermission = (module, action) => {
+  if (user?.role === 'super_admin') return true;
+  if (!user || !user.role) {
+    console.log('No user or role found');
+    return false;
+  }
+
+  // Get role permissions from USER_ROLES
+  const rolePermissions = USER_ROLES[user.role]?.permissions;
+  if (!rolePermissions) {
+    console.log('No permissions found for role:', user.role);
+    return false;
+  }
+
+  const modulePermissions = rolePermissions[module];
+  if (!modulePermissions) {
+    console.log('No permissions found for module:', module);
+    return false;
+  }
+
+  const hasAccess = modulePermissions[action] === true;
+  console.log(`Permission check: ${user.role} -> ${module}.${action} = ${hasAccess}`);
+  return hasAccess;
+};
+
+const canAccessTab = (tabId) => {
+  if (!user) return false;
+  // My Actions is available to all logged-in users
+  if (tabId === 'myactions') return true;
+  // Reminders available to users who can read leads
+  if (tabId === 'reminders') return hasPermission('leads', 'read');
+  // Sports Calendar available to users who can read leads (for now, or adjust as needed)
+  if (tabId === 'sports-calendar') return hasPermission('leads', 'read');
+  return hasPermission(tabId, 'read');
+};
 
 // 1. Enhanced Customer Type Classification
 const [paymentData, setPaymentData] = useState({
@@ -2218,52 +2254,6 @@ leadSplit: null,
 tempCount: null,
 tempValue: null
 });
-
-
-// Permission check function
-// Updated Permission check function with dynamic roles
-const hasPermission = (module, action) => {
-if (user?.role === 'super_admin') return true;
-if (!user || !user.role) {
-console.log('No user or role found');
-return false;
-}
-
-// Use dynamic roles if loaded, otherwise fallback to hardcoded
-const availableRoles = rolesLoaded ? dynamicRoles : USER_ROLES;
-const userRole = availableRoles[user.role];
-
-if (!userRole) {
-console.log('Role not found in available roles:', user.role);
-console.log('Available roles:', Object.keys(availableRoles));
-return false;
-}
-
-const modulePermissions = userRole.permissions[module];
-if (!modulePermissions) {
-console.log('Module permissions not found:', module);
-return false;
-}
-
-const hasAccess = modulePermissions[action] === true;
-console.log(`Permission check: ${user.role} -> ${module}.${action} = ${hasAccess}`);
-return hasAccess;
-};
-
-
-
-const canAccessTab = (tabId) => {
-if (!user) return false;
-// My Actions is available to all logged-in users
-if (tabId === 'myactions') return true;
-// Reminders available to users who can read leads
-if (tabId === 'reminders') return hasPermission('leads', 'read');
-// Sports Calendar available to users who can read leads (for now, or adjust as needed)
-if (tabId === 'sports-calendar') return hasPermission('leads', 'read');
-return hasPermission(tabId, 'read');
-};
-
-
 
 
 // Test mode logging
