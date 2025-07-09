@@ -411,8 +411,8 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
                                 row['Annual Income Bracket'] || '',
           potential_value: parseFloat(row.potential_value || 
                                      row['Potential Value'] || '0'),
-          status: assignedToValue.trim() === '' || assignedToValue === '0' ? 
-                 'unassigned' : 'assigned',
+          status: row.status || row.Status || row.STATUS || 
+       (assignedToValue.trim() === '' || assignedToValue === '0' ? 'unassigned' : 'assigned'),
           assigned_to: assignedToValue.trim() === '' || assignedToValue === '0' ? '' : assignedToValue,
           last_quoted_price: parseFloat(row.last_quoted_price || 
                                        row['Last Quoted Price'] || '0'),
@@ -459,7 +459,10 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
               leadData.assignment_reason = assignment.assignment_reason;
               leadData.auto_assigned = assignment.auto_assigned;
               leadData.assignment_rule_id = assignment.rule_id;
-              leadData.status = 'assigned';
+              // Only override status if it's currently unassigned
+if (leadData.status === 'unassigned') {
+  leadData.status = 'assigned';
+}
               autoAssignmentCount++;
               
               console.log(`✅ Row ${index + 1}: Auto-assignment successful: ${assignment.assigned_to}`);
@@ -500,7 +503,10 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
               if (clientInfo.primary_assigned_to && (!originalAssignment || leadData.auto_assigned)) {
                 // Override auto-assignment with client's preferred assignee
                 leadData.assigned_to = clientInfo.primary_assigned_to;
-                leadData.status = 'assigned';
+                // Only override status if it's currently unassigned
+if (leadData.status === 'unassigned') {
+  leadData.status = 'assigned';
+}
                 leadData.assignment_reason = `Smart client detection: Previous leads assigned to ${clientInfo.primary_assigned_to}`;
                 leadData.auto_assigned = false; // This is client-based, not rule-based
                 clientAssignmentCount++;
