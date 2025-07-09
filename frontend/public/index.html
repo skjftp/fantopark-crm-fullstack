@@ -771,37 +771,84 @@ return roleLabels[roleName] || roleName.replace(/_/g, ' ').replace(/\b\w/g, l =>
 
 
 
-// Helper function to format date for display (DD/MM/YYYY)
+// Update your formatDateForDisplay function to handle null/invalid dates better
 const formatDateForDisplay = (dateValue) => {
-if (!dateValue) return 'Not Set';
+  if (!dateValue || dateValue === null || dateValue === undefined) {
+    return 'Date Not Set';
+  }
 
-try {
-let date;
+  try {
+    let date;
 
-if (dateValue instanceof Date) {
-date = dateValue;
-} else if (typeof dateValue === 'string' && dateValue.includes('T')) {
-date = new Date(dateValue);
-} else if (typeof dateValue === 'string') {
-date = new Date(dateValue);
-} else if (typeof dateValue === 'object' && dateValue._seconds) {
-date = new Date(dateValue._seconds * 1000);
-} else {
-return 'Invalid Date';
-}
+    if (dateValue instanceof Date) {
+      date = dateValue;
+    } else if (typeof dateValue === 'string' && dateValue.includes('T')) {
+      date = new Date(dateValue);
+    } else if (typeof dateValue === 'string') {
+      date = new Date(dateValue);
+    } else if (typeof dateValue === 'object' && dateValue._seconds) {
+      date = new Date(dateValue._seconds * 1000);
+    } else {
+      return 'Invalid Date Format';
+    }
 
-if (isNaN(date.getTime())) {
-return 'Invalid Date';
-}
+    // Check if the parsed date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
 
-const day = String(date.getDate()).padStart(2, '0');
-const month = String(date.getMonth() + 1).padStart(2, '0');
-const year = date.getFullYear();
+    // Check if the date is the Unix epoch (01/01/1970)
+    if (date.getTime() === 0 || date.getFullYear() === 1970) {
+      return 'Date Not Set';
+    }
 
-return `${day}/${month}/${year}`;
-} catch (error) {
-return 'Error';
-}
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return 'Date Error';
+  }
+};
+
+// Similarly, update formatDateForInput to handle null dates
+const formatDateForInput = (dateValue) => {
+  if (!dateValue || dateValue === null || dateValue === undefined) {
+    return '';
+  }
+
+  try {
+    let date;
+
+    if (dateValue instanceof Date) {
+      date = dateValue;
+    } else if (typeof dateValue === 'string' && dateValue.includes('T')) {
+      date = new Date(dateValue);
+    } else if (typeof dateValue === 'string') {
+      date = new Date(dateValue);
+    } else if (typeof dateValue === 'object' && dateValue._seconds) {
+      date = new Date(dateValue._seconds * 1000);
+    } else {
+      return '';
+    }
+
+    // Check if date is valid and not epoch
+    if (isNaN(date.getTime()) || date.getTime() === 0 || date.getFullYear() === 1970) {
+      return '';
+    }
+
+    // Convert to YYYY-MM-DD format for HTML input
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return '';
+  }
 };
 
 
