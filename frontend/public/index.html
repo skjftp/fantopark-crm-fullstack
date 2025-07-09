@@ -744,45 +744,6 @@ const formatDateForInput = (dateValue) => {
   }
 };
 
-// Enhanced formatDateForDisplay function (KEEP THIS ONE)
-const formatDateForDisplay = (dateValue) => {
-  if (!dateValue || dateValue === null || dateValue === undefined) {
-    return 'Date Not Set';
-  }
-
-  try {
-    let date;
-
-    if (dateValue instanceof Date) {
-      date = dateValue;
-    } else if (typeof dateValue === 'string' && dateValue.includes('T')) {
-      date = new Date(dateValue);
-    } else if (typeof dateValue === 'string') {
-      date = new Date(dateValue);
-    } else if (typeof dateValue === 'object' && dateValue._seconds) {
-      date = new Date(dateValue._seconds * 1000);
-    } else {
-      return 'Invalid Date Format';
-    }
-
-    // Check if the parsed date is valid and not epoch
-    if (isNaN(date.getTime()) || date.getTime() === 0 || date.getFullYear() === 1970) {
-      return 'Date Not Set';
-    }
-
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-
-    return `${day}/${month}/${year}`;
-  } catch (error) {
-    console.error('Date formatting error:', error);
-    return 'Date Error';
-  }
-};
-
-
-
 // Helper function to get proper role display label
 const getRoleDisplayLabel = (roleName) => {
 // Map of role names to display labels
