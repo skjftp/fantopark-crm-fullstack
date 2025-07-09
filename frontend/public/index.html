@@ -11969,9 +11969,9 @@ const renderAssignForm = () => {
   // FIXED: Use multiple sources for users and include more supply roles
   const availableUsers = window.users || users || [];
   
-  // FIXED: Include more supply team roles and fallback loading
+  // FIXED: Include ALL supply team roles (added 'supply_service_manager')
   const teamMembers = formData.assigned_team === 'supply' 
-    ? availableUsers.filter(u => ['supply_executive', 'supply_sales_service_manager', 'supply_manager'].includes(u.role))
+    ? availableUsers.filter(u => ['supply_executive', 'supply_sales_service_manager', 'supply_service_manager', 'supply_manager'].includes(u.role))
     : availableUsers.filter(u => ['sales_executive', 'sales_manager', 'sales_head'].includes(u.role));
 
   // FIXED: Auto-fetch users if not available
