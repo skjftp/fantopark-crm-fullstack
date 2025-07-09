@@ -53,17 +53,23 @@ const csvUpload = multer({
 });
 
 // ENHANCED: Helper function to properly parse dates from Excel/CSV
+// Enhanced parseDate function - replace your existing one
 const parseDate = (dateValue) => {
-  console.log('🗓️ Parsing date value:', dateValue, 'Type:', typeof dateValue);
+  console.log('🔍 Parsing date value:', dateValue, 'Type:', typeof dateValue);
   
+  // Handle null, undefined, or empty values
   if (!dateValue || dateValue === '' || dateValue === null || dateValue === undefined) {
-    console.log('⚠️ No date value provided, using current date');
-    return new Date().toISOString();
+    console.log('⚠️ Empty/null date value, returning null instead of current date');
+    return null; // Return null instead of current date for empty values
   }
   
-  // If it's already a Date object, convert to ISO string
+  // If it's already a Date object, validate and convert to ISO string
   if (dateValue instanceof Date) {
-    console.log('✅ Date object found, converting to ISO');
+    if (isNaN(dateValue.getTime())) {
+      console.log('⚠️ Invalid Date object, returning null');
+      return null;
+    }
+    console.log('✅ Valid Date object found, converting to ISO');
     return dateValue.toISOString();
   }
   
@@ -71,61 +77,111 @@ const parseDate = (dateValue) => {
   if (typeof dateValue === 'string') {
     const trimmedValue = dateValue.trim();
     
-    if (trimmedValue === '') {
-      console.log('⚠️ Empty string date, using current date');
-      return new Date().toISOString();
+    if (trimmedValue === '' || trimmedValue.toLowerCase() === 'null' || trimmedValue.toLowerCase() === 'undefined') {
+      console.log('⚠️ Empty/null string date, returning null');
+      return null;
     }
     
     // Handle YYYY-MM-DD format (most common CSV format)
     if (trimmedValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
       console.log('✅ YYYY-MM-DD format detected');
-      return new Date(trimmedValue + 'T00:00:00Z').toISOString();
+      const date = new Date(trimmedValue + 'T00:00:00Z');
+      if (isNaN(date.getTime())) {
+        console.log('⚠️ Invalid YYYY-MM-DD date, returning null');
+        return null;
+      }
+      return date.toISOString();
     }
     
     // Handle DD/MM/YYYY format
     if (trimmedValue.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
       console.log('✅ DD/MM/YYYY format detected');
       const [day, month, year] = trimmedValue.split('/');
+      
+      // Validate day and month ranges
+      const dayNum = parseInt(day);
+      const monthNum = parseInt(month);
+      if (dayNum < 1 || dayNum > 31 || monthNum < 1 || monthNum > 12) {
+        console.log('⚠️ Invalid day/month values, returning null');
+        return null;
+      }
+      
       const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00Z`;
+      const date = new Date(formattedDate);
+      if (isNaN(date.getTime())) {
+        console.log('⚠️ Invalid DD/MM/YYYY date, returning null');
+        return null;
+      }
       console.log('✅ Converted to:', formattedDate);
-      return new Date(formattedDate).toISOString();
+      return date.toISOString();
     }
     
     // Handle MM/DD/YYYY format (American style)
-    if (trimmedValue.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/) && trimmedValue.indexOf('/') !== -1) {
+    if (trimmedValue.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
       console.log('✅ Attempting MM/DD/YYYY format');
       const [month, day, year] = trimmedValue.split('/');
+      
+      // Validate day and month ranges
+      const dayNum = parseInt(day);
+      const monthNum = parseInt(month);
+      if (dayNum < 1 || dayNum > 31 || monthNum < 1 || monthNum > 12) {
+        console.log('⚠️ Invalid day/month values, returning null');
+        return null;
+      }
+      
       const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00Z`;
+      const date = new Date(formattedDate);
+      if (isNaN(date.getTime())) {
+        console.log('⚠️ Invalid MM/DD/YYYY date, returning null');
+        return null;
+      }
       console.log('✅ Converted to:', formattedDate);
-      return new Date(formattedDate).toISOString();
+      return date.toISOString();
     }
     
     // Handle DD-MM-YYYY format
     if (trimmedValue.match(/^\d{1,2}-\d{1,2}-\d{4}$/)) {
       console.log('✅ DD-MM-YYYY format detected');
       const [day, month, year] = trimmedValue.split('-');
+      
+      // Validate day and month ranges
+      const dayNum = parseInt(day);
+      const monthNum = parseInt(month);
+      if (dayNum < 1 || dayNum > 31 || monthNum < 1 || monthNum > 12) {
+        console.log('⚠️ Invalid day/month values, returning null');
+        return null;
+      }
+      
       const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00Z`;
+      const date = new Date(formattedDate);
+      if (isNaN(date.getTime())) {
+        console.log('⚠️ Invalid DD-MM-YYYY date, returning null');
+        return null;
+      }
       console.log('✅ Converted to:', formattedDate);
-      return new Date(formattedDate).toISOString();
+      return date.toISOString();
     }
     
     // Handle ISO format with time
     if (trimmedValue.includes('T') || trimmedValue.includes('Z')) {
       console.log('✅ ISO format detected');
       const parsed = new Date(trimmedValue);
-      if (!isNaN(parsed.getTime())) {
-        return parsed.toISOString();
+      if (isNaN(parsed.getTime())) {
+        console.log('⚠️ Invalid ISO date, returning null');
+        return null;
       }
+      return parsed.toISOString();
     }
     
     // Try general Date parsing as fallback
     const parsed = new Date(trimmedValue);
-    if (!isNaN(parsed.getTime())) {
+    if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 1970) {
       console.log('✅ Successfully parsed with Date constructor');
       return parsed.toISOString();
     }
     
-    console.log('⚠️ String date parsing failed for:', trimmedValue, 'using current date');
+    console.log('⚠️ String date parsing failed for:', trimmedValue, 'returning null');
+    return null;
   }
   
   // If it's a number (Excel serial date), convert it
@@ -135,13 +191,19 @@ const parseDate = (dateValue) => {
     const excelEpoch = new Date(1900, 0, 1);
     const msPerDay = 24 * 60 * 60 * 1000;
     const date = new Date(excelEpoch.getTime() + (dateValue - 2) * msPerDay);
+    
+    if (isNaN(date.getTime())) {
+      console.log('⚠️ Invalid Excel date conversion, returning null');
+      return null;
+    }
+    
     console.log('✅ Excel date converted to:', date.toISOString());
     return date.toISOString();
   }
   
-  // Default to current date if parsing fails
-  console.log('⚠️ All parsing methods failed, using current date');
-  return new Date().toISOString();
+  // Default to null if all parsing methods fail
+  console.log('⚠️ All parsing methods failed, returning null instead of current date');
+  return null;
 };
 
 // Helper function to parse both CSV and Excel files
