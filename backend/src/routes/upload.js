@@ -716,7 +716,6 @@ if (leadData.status === 'unassigned') {
   }
 });
 
-// POST bulk upload inventory from CSV/Excel - ENHANCED VERSION (unchanged from your original)
 router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -732,44 +731,59 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
     const errors = [];
     let successCount = 0;
     let errorCount = 0;
+    let skippedCount = 0;
 
     for (const [index, row] of results.entries()) {
       try {
-        // DIRECT field mapping with date parsing
+        // Parse dates with enhanced validation
+        const eventDate = parseDate(row.event_date || row['Event Date']);
+        const paymentDueDate = parseDate(row.paymentDueDate || row['Payment Due Date']);
+        
+        // Skip records with missing event dates (required field)
+        if (!eventDate) {
+          errors.push({
+            row: index + 2,
+            error: 'Missing or invalid Event Date - record skipped'
+          });
+          skippedCount++;
+          continue;
+        }
+
+        // ENHANCED field mapping with better validation
         const inventoryData = {
           // Basic Event Information
-          event_name: row.event_name || row['Event Name'] || '',
-          event_date: parseDate(row.event_date || row['Event Date']),
-          event_type: row.event_type || row['Event Type'] || '',
-          sports: row.sports || row.Sports || '',
-          venue: row.venue || row.Venue || '',
-          day_of_match: row.day_of_match || row['Day of Match'] || 'Not Applicable',
+          event_name: (row.event_name || row['Event Name'] || '').toString().trim(),
+          event_date: eventDate, // Will be null or valid ISO string
+          event_type: (row.event_type || row['Event Type'] || '').toString().trim(),
+          sports: (row.sports || row.Sports || '').toString().trim(),
+          venue: (row.venue || row.Venue || '').toString().trim(),
+          day_of_match: (row.day_of_match || row['Day of Match'] || 'Not Applicable').toString().trim(),
           
           // Ticket Details
-          category_of_ticket: row.category_of_ticket || row['Category of Ticket'] || '',
-          stand: row.stand || row['Stand/Section'] || row['Stand'] || '',
-          total_tickets: parseInt(row.total_tickets || row['Total Tickets'] || '0'),
-          available_tickets: parseInt(row.available_tickets || row['Available Tickets'] || '0'),
+          category_of_ticket: (row.category_of_ticket || row['Category of Ticket'] || '').toString().trim(),
+          stand: (row.stand || row['Stand/Section'] || row['Stand'] || '').toString().trim(),
+          total_tickets: parseInt(row.total_tickets || row['Total Tickets'] || '0') || 0,
+          available_tickets: parseInt(row.available_tickets || row['Available Tickets'] || '0') || 0,
           
           // Pricing Information
-          mrp_of_ticket: parseFloat(row.mrp_of_ticket || row['MRP of Ticket'] || '0'),
-          buying_price: parseFloat(row.buying_price || row['Buying Price'] || '0'),
-          selling_price: parseFloat(row.selling_price || row['Selling Price'] || '0'),
+          mrp_of_ticket: parseFloat(row.mrp_of_ticket || row['MRP of Ticket'] || '0') || 0,
+          buying_price: parseFloat(row.buying_price || row['Buying Price'] || '0') || 0,
+          selling_price: parseFloat(row.selling_price || row['Selling Price'] || '0') || 0,
           
           // Additional Information
-          inclusions: row.inclusions || row['Inclusions'] || '',
-          booking_person: row.booking_person || row['Booking Person'] || '',
-          procurement_type: row.procurement_type || row['Procurement Type'] || 'pre_inventory',
-          notes: row.notes || row['Notes'] || '',
+          inclusions: (row.inclusions || row['Inclusions'] || '').toString().trim(),
+          booking_person: (row.booking_person || row['Booking Person'] || '').toString().trim(),
+          procurement_type: (row.procurement_type || row['Procurement Type'] || 'pre_inventory').toString().trim(),
+          notes: (row.notes || row['Notes'] || '').toString().trim(),
           
-          // PAYMENT INFORMATION with date parsing
-          paymentStatus: row.paymentStatus || row['Payment Status'] || 'pending',
-          supplierName: row.supplierName || row['Supplier Name'] || '',
-          supplierInvoice: row.supplierInvoice || row['Supplier Invoice'] || '',
-          purchasePrice: parseFloat(row.purchasePrice || row['Purchase Price'] || '0'),
-          totalPurchaseAmount: parseFloat(row.totalPurchaseAmount || row['Total Purchase Amount'] || '0'),
-          amountPaid: parseFloat(row.amountPaid || row['Amount Paid'] || '0'),
-          paymentDueDate: parseDate(row.paymentDueDate || row['Payment Due Date']),
+          // PAYMENT INFORMATION with enhanced date handling
+          paymentStatus: (row.paymentStatus || row['Payment Status'] || 'pending').toString().trim(),
+          supplierName: (row.supplierName || row['Supplier Name'] || '').toString().trim(),
+          supplierInvoice: (row.supplierInvoice || row['Supplier Invoice'] || '').toString().trim(),
+          purchasePrice: parseFloat(row.purchasePrice || row['Purchase Price'] || '0') || 0,
+          totalPurchaseAmount: parseFloat(row.totalPurchaseAmount || row['Total Purchase Amount'] || '0') || 0,
+          amountPaid: parseFloat(row.amountPaid || row['Amount Paid'] || '0') || 0,
+          paymentDueDate: paymentDueDate, // Will be null or valid ISO string
           
           // System fields
           created_date: new Date().toISOString(),
@@ -782,11 +796,21 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
           inventoryData.totalPurchaseAmount = inventoryData.buying_price * inventoryData.total_tickets;
         }
 
-        // Validate required fields
-        if (!inventoryData.event_name || !inventoryData.event_date || !inventoryData.venue) {
+        // Set available tickets to total if not specified
+        if (!inventoryData.available_tickets && inventoryData.total_tickets) {
+          inventoryData.available_tickets = inventoryData.total_tickets;
+        }
+
+        // Enhanced validation for required fields
+        const missingFields = [];
+        if (!inventoryData.event_name) missingFields.push('Event Name');
+        if (!inventoryData.venue) missingFields.push('Venue');
+        if (!inventoryData.sports && !inventoryData.event_type) missingFields.push('Sports or Event Type');
+
+        if (missingFields.length > 0) {
           errors.push({
             row: index + 2,
-            error: 'Missing required fields (Event Name, Event Date, or Venue)'
+            error: `Missing required fields: ${missingFields.join(', ')}`
           });
           errorCount++;
           continue;
@@ -796,7 +820,7 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
         const { db } = require('../config/db');
         const docRef = await db.collection('crm_inventory').add(inventoryData);
         
-        // Create payable if needed
+        // Create payable if needed (only if valid payment due date or amount)
         if ((inventoryData.paymentStatus === 'pending' || inventoryData.paymentStatus === 'partial') && inventoryData.totalPurchaseAmount > 0) {
           const totalAmount = parseFloat(inventoryData.totalPurchaseAmount) || 0;
           const amountPaid = parseFloat(inventoryData.amountPaid) || 0;
@@ -809,7 +833,7 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
               eventName: inventoryData.event_name,
               invoiceNumber: inventoryData.supplierInvoice || 'INV-' + Date.now(),
               amount: pendingBalance,
-              dueDate: inventoryData.paymentDueDate || null,
+              dueDate: inventoryData.paymentDueDate, // Can be null now
               status: 'pending',
               created_date: new Date().toISOString(),
               createdBy: req.user.id,
@@ -821,7 +845,10 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
         }
         
         successCount++;
+        console.log(`✅ Row ${index + 2}: Successfully imported ${inventoryData.event_name}`);
+        
       } catch (error) {
+        console.error(`❌ Row ${index + 2} error:`, error.message);
         errors.push({
           row: index + 2,
           error: error.message
@@ -830,16 +857,35 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
       }
     }
 
+    // Enhanced response with better summary
+    const summary = {
+      totalRows: results.length,
+      successful: successCount,
+      failed: errorCount,
+      skipped: skippedCount,
+      dateIssues: errors.filter(e => e.error.includes('Date')).length
+    };
+
     res.json({
       success: true,
-      message: `Import completed. ${successCount} inventory items imported successfully, ${errorCount} failed.`,
+      message: `Import completed. ${successCount} inventory items imported successfully, ${errorCount} failed, ${skippedCount} skipped due to missing dates.`,
+      summary,
       totalProcessed: results.length,
       successCount,
       errorCount,
-      errors: errors.slice(0, 10)
+      skippedCount,
+      errors: errors.slice(0, 15), // Show more errors for debugging
+      uploadSessionId: `inventory_upload_${Date.now()}_${req.user.email}`,
+      fileName: req.file.originalname
     });
+    
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ Inventory upload error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      details: 'Check server logs for detailed error information'
+    });
   }
 });
 
