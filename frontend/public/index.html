@@ -10812,7 +10812,7 @@ clientSuggestion && formData.assigned_to === clientSuggestion.suggested_assigned
 }`
 },
 React.createElement('option', { value: '' }, 'Select sales person'),
-users.filter(u => u.role && ['sales_executive', 'sales_manager', 'admin', 'super_admin'].includes(u.role))
+users.filter(u => u.role && ['sales_executive', 'sales_manager', 'sales_head', 'supply_executive', 'supply_sales_service_manager', 'supply_service_manager', 'supply_manager', 'admin', 'super_admin'].includes(u.role))
 .map(user =>
 React.createElement('option', { 
 key: user.email, 
