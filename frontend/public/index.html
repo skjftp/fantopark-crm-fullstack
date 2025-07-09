@@ -6546,11 +6546,8 @@ React.createElement('div', { className: 'text-xs text-gray-500 mt-1' },
 
 
 
-// COMPLETE FIXED AssignmentRulesManager component
-// ULTRA-FIXED: AssignmentRulesManager with multiple safeguards against infinite re-renders
-// COMPLETELY FIXED AssignmentRulesManager - No more infinite re-renders
 const AssignmentRulesManager = React.memo(({ currentUser }) => {
-  // Simple state without complex initialization tracking
+  // Simple state without complex initialization tracking (from version 2)
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -6561,6 +6558,7 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
   const [assignmentResults, setAssignmentResults] = useState(null);
   const [showResults, setShowResults] = useState(false);
 
+  // Full form data structure (from version 1)
   const [ruleFormData, setRuleFormData] = useState({
     name: '',
     description: '',
@@ -6576,11 +6574,11 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
     is_active: true
   });
 
-  // Simple refs without complex state management
+  // Simple refs without complex state management (from version 2)
   const mounted = useRef(true);
   const loadingInProgress = useRef(false);
 
-  // Simple load functions without useCallback (causing issues)
+  // Simple load functions without useCallback (from version 2 for bug fix)
   const loadRules = async () => {
     if (loadingInProgress.current || !mounted.current) return;
     
@@ -6622,7 +6620,7 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
     }
   };
 
-  // Single initialization effect - ONLY runs once
+  // Single initialization effect - ONLY runs once (from version 2 for bug fix)
   useEffect(() => {
     let isMounted = true;
     
@@ -6651,7 +6649,7 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
     };
   }, []); // CRITICAL: Empty dependency array, runs only once
 
-  // Helper functions
+  // Full helper functions (from version 1)
   const resetForm = () => {
     setRuleFormData({
       name: '',
@@ -6671,9 +6669,44 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
     setShowForm(false);
   };
 
+  // Enhanced editRule function (from version 1)
   const editRule = (rule) => {
-    setRuleFormData(rule);
     setEditingRule(rule);
+
+    // Parse conditions back to form format
+    const formConditions = {
+      potential_value: '',
+      potential_value_operator: 'gte',
+      business_type: '',
+      lead_source: ''
+    };
+
+    if (rule.conditions?.potential_value) {
+      const potentialValueCondition = rule.conditions.potential_value;
+      if (potentialValueCondition.gte) {
+        formConditions.potential_value = potentialValueCondition.gte.toString();
+        formConditions.potential_value_operator = 'gte';
+      } else if (potentialValueCondition.gt) {
+        formConditions.potential_value = potentialValueCondition.gt.toString();
+        formConditions.potential_value_operator = 'gt';
+      } else if (potentialValueCondition.eq) {
+        formConditions.potential_value = potentialValueCondition.eq.toString();
+        formConditions.potential_value_operator = 'eq';
+      }
+    }
+
+    if (rule.conditions?.business_type?.eq) {
+      formConditions.business_type = rule.conditions.business_type.eq;
+    }
+
+    if (rule.conditions?.lead_source?.eq) {
+      formConditions.lead_source = rule.conditions.lead_source.eq;
+    }
+
+    setRuleFormData({
+      ...rule,
+      conditions: formConditions
+    });
     setShowForm(true);
   };
 
@@ -6706,11 +6739,14 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
     e.preventDefault();
 
     try {
+      // Prepare rule data
       const ruleData = {
         ...ruleFormData,
         conditions: buildConditions(ruleFormData.conditions),
         created_by: currentUser?.email
       };
+
+      console.log('Submitting rule data:', ruleData);
 
       if (editingRule) {
         await apiCall(`/assignment-rules/${editingRule.id}`, {
@@ -6732,71 +6768,124 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
     }
   };
 
+  // Build conditions function (from version 1)
   const buildConditions = (formConditions) => {
     const conditions = {};
 
+    // Potential value condition
     if (formConditions.potential_value) {
       conditions.potential_value = {};
-      conditions.potential_value[formConditions.potential_value_operator] = 
-        parseInt(formConditions.potential_value);
+      conditions.potential_value[formConditions.potential_value_operator] = parseInt(formConditions.potential_value);
     }
 
+    // Business type condition
     if (formConditions.business_type) {
       conditions.business_type = { eq: formConditions.business_type };
     }
 
+    // Lead source condition
     if (formConditions.lead_source) {
-      conditions.source = { eq: formConditions.lead_source };
+      conditions.lead_source = { eq: formConditions.lead_source };
     }
 
     return conditions;
   };
 
-  const formatConditions = (conditions) => {
-    if (!conditions) return 'None';
-    
-    const formatted = [];
-    
-    if (conditions.potential_value) {
-      const operator = Object.keys(conditions.potential_value)[0];
-      const value = conditions.potential_value[operator];
-      const opText = operator === 'gte' ? '>=' : operator === 'lte' ? '<=' : operator;
-      formatted.push(`Value ${opText} ₹${value.toLocaleString()}`);
-    }
-    
-    if (conditions.business_type) {
-      formatted.push(`Business: ${conditions.business_type.eq}`);
-    }
-    
-    if (conditions.source) {
-      formatted.push(`Source: ${conditions.source.eq}`);
-    }
-    
-    return formatted.length > 0 ? formatted.join(', ') : 'None';
+  // Assignee management functions (from version 1)
+  const addAssignee = () => {
+    setRuleFormData({
+      ...ruleFormData,
+      assignees: [...ruleFormData.assignees, { email: '', weight: 50 }]
+    });
   };
 
+  const updateAssignee = (index, field, value) => {
+    const newAssignees = [...ruleFormData.assignees];
+    newAssignees[index][field] = field === 'weight' ? parseInt(value) || 0 : value;
+    setRuleFormData({
+      ...ruleFormData,
+      assignees: newAssignees
+    });
+  };
+
+  const removeAssignee = (index) => {
+    setRuleFormData({
+      ...ruleFormData,
+      assignees: ruleFormData.assignees.filter((_, i) => i !== index)
+    });
+  };
+
+  // Enhanced format conditions function (from version 1)
+  const formatConditions = (conditions) => {
+    if (!conditions || Object.keys(conditions).length === 0) {
+      return 'No conditions (matches all leads)';
+    }
+
+    const conditionStrings = [];
+
+    if (conditions.potential_value) {
+      const pv = conditions.potential_value;
+      if (pv.gte) conditionStrings.push(`Value ≥ ₹${pv.gte.toLocaleString()}`);
+      if (pv.gt) conditionStrings.push(`Value > ₹${pv.gt.toLocaleString()}`);
+      if (pv.eq) conditionStrings.push(`Value = ₹${pv.eq.toLocaleString()}`);
+    }
+
+    if (conditions.business_type?.eq) {
+      conditionStrings.push(`Business: ${conditions.business_type.eq}`);
+    }
+
+    if (conditions.lead_source?.eq) {
+      conditionStrings.push(`Source: ${conditions.lead_source.eq}`);
+    }
+
+    return conditionStrings.join(', ');
+  };
+
+  // Enhanced test rule function (from version 1)
   const testRule = async () => {
     try {
       setTestingRule(true);
+      const testLead = {
+        name: 'Test Lead',
+        potential_value: 150000,
+        business_type: 'B2B',
+        lead_source: 'Website'
+      };
+
       const response = await apiCall('/assignment-rules/test', {
-        method: 'POST'
+        method: 'POST',
+        body: JSON.stringify(testLead)
       });
-      
+
       if (response.success) {
-        alert(`Test Results:\n\nTotal Leads: ${response.totalLeads}\nMatched Leads: ${response.matchedLeads}\nAssignment Preview: ${response.assignmentPreview.join(', ')}`);
+        alert(`Test Result: ${response.message}`);
       } else {
-        alert('Test failed: ' + response.message);
+        alert('Test Result: No rules matched the test lead');
       }
     } catch (error) {
-      console.error('Error testing rules:', error);
       alert('Error testing rules: ' + error.message);
     } finally {
       setTestingRule(false);
     }
   };
 
+  // Initialize defaults function (from version 1)
+  const initializeDefaults = async () => {
+    if (!confirm('This will create default assignment rules. Continue?')) return;
+
+    try {
+      await apiCall('/assignment-rules/initialize-defaults', {
+        method: 'POST'
+      });
+      alert('Default assignment rules created successfully!');
+      await loadRules();
+    } catch (error) {
+      alert('Error creating default rules: ' + error.message);
+    }
+  };
+
   const runAssignment = async () => {
-    if (!confirm('This will run automatic assignment for all unassigned leads. Continue?')) {
+    if (!confirm('This will automatically assign all unassigned leads based on the active assignment rules. Continue?')) {
       return;
     }
 
@@ -6815,6 +6904,11 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
         // Refresh data
         await loadRules();
 
+        // Refresh leads data if available
+        if (typeof fetchData === 'function') {
+          fetchData();
+        }
+
         alert(`Assignment Complete!\n\nProcessed: ${response.processedCount} leads\nAssigned: ${response.assignedCount} leads\nUnassigned: ${response.unassignedCount} leads`);
       } else {
         alert('Assignment failed: ' + response.message);
@@ -6827,7 +6921,7 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
     }
   };
 
-  // Simple loading state
+  // Simple loading state (from version 2)
   if (loading) {
     return React.createElement('div', { className: 'flex flex-col items-center justify-center py-16' },
       React.createElement('div', { className: 'animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full' }),
@@ -6897,9 +6991,9 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
           React.createElement('div', { className: 'text-4xl mb-2' }, '⚙️'),
           React.createElement('p', { className: 'mb-4' }, 'No assignment rules configured'),
           React.createElement('button', {
-            onClick: () => setShowForm(true),
+            onClick: initializeDefaults,
             className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
-          }, 'Create First Rule')
+          }, 'Initialize Default Rules')
         ) :
         rules.map(rule => 
           React.createElement('div', { 
@@ -6950,7 +7044,7 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
       )
     ),
 
-    // Form Modal (simplified)
+    // COMPLETE FORM MODAL with all fields (from version 1)
     showForm && React.createElement('div', { 
       className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4',
       onClick: resetForm
@@ -7005,6 +7099,146 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
             })
           ),
 
+          // Conditions Section
+          React.createElement('div', { className: 'border-t pt-6' },
+            React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Conditions'),
+            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4' },
+              // Potential Value
+              React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Potential Value'),
+                React.createElement('div', { className: 'flex space-x-2' },
+                  React.createElement('select', {
+                    value: ruleFormData.conditions.potential_value_operator,
+                    onChange: (e) => setRuleFormData({
+                      ...ruleFormData,
+                      conditions: { ...ruleFormData.conditions, potential_value_operator: e.target.value }
+                    }),
+                    className: 'p-2 border border-gray-300 rounded text-sm'
+                  },
+                    React.createElement('option', { value: 'gte' }, '≥'),
+                    React.createElement('option', { value: 'gt' }, '>'),
+                    React.createElement('option', { value: 'eq' }, '=')
+                  ),
+                  React.createElement('input', {
+                    type: 'number',
+                    value: ruleFormData.conditions.potential_value,
+                    onChange: (e) => setRuleFormData({
+                      ...ruleFormData,
+                      conditions: { ...ruleFormData.conditions, potential_value: e.target.value }
+                    }),
+                    className: 'flex-1 p-2 border border-gray-300 rounded text-sm',
+                    placeholder: 'e.g., 100000'
+                  })
+                )
+              ),
+
+              // Business Type
+              React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Business Type'),
+                React.createElement('select', {
+                  value: ruleFormData.conditions.business_type,
+                  onChange: (e) => setRuleFormData({
+                    ...ruleFormData,
+                    conditions: { ...ruleFormData.conditions, business_type: e.target.value }
+                  }),
+                  className: 'w-full p-2 border border-gray-300 rounded text-sm'
+                },
+                  React.createElement('option', { value: '' }, 'Any'),
+                  React.createElement('option', { value: 'B2B' }, 'B2B'),
+                  React.createElement('option', { value: 'B2C' }, 'B2C'),
+                  React.createElement('option', { value: 'Government' }, 'Government')
+                )
+              ),
+
+              // Lead Source
+              React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Lead Source'),
+                React.createElement('select', {
+                  value: ruleFormData.conditions.lead_source,
+                  onChange: (e) => setRuleFormData({
+                    ...ruleFormData,
+                    conditions: { ...ruleFormData.conditions, lead_source: e.target.value }
+                  }),
+                  className: 'w-full p-2 border border-gray-300 rounded text-sm'
+                },
+                  React.createElement('option', { value: '' }, 'Any'),
+                  React.createElement('option', { value: 'Website' }, 'Website'),
+                  React.createElement('option', { value: 'Referral' }, 'Referral'),
+                  React.createElement('option', { value: 'Social Media' }, 'Social Media'),
+                  React.createElement('option', { value: 'Email Campaign' }, 'Email Campaign'),
+                  React.createElement('option', { value: 'Cold Call' }, 'Cold Call')
+                )
+              )
+            )
+          ),
+
+          // Assignment Strategy
+          React.createElement('div', { className: 'border-t pt-6' },
+            React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Assignment Strategy'),
+            React.createElement('select', {
+              value: ruleFormData.assignment_strategy,
+              onChange: (e) => setRuleFormData({...ruleFormData, assignment_strategy: e.target.value}),
+              className: 'w-full p-2 border border-gray-300 rounded text-sm'
+            },
+              React.createElement('option', { value: 'weighted_round_robin' }, 'Weighted Round Robin'),
+              React.createElement('option', { value: 'round_robin' }, 'Round Robin'),
+              React.createElement('option', { value: 'least_busy' }, 'Least Busy')
+            )
+          ),
+
+          // Assignees Section
+          React.createElement('div', { className: 'border-t pt-6' },
+            React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+              React.createElement('h3', { className: 'text-lg font-semibold' }, 'Assignees'),
+              React.createElement('button', {
+                type: 'button',
+                onClick: addAssignee,
+                className: 'bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700'
+              }, '+ Add Assignee')
+            ),
+
+            React.createElement('div', { className: 'space-y-3' },
+              ruleFormData.assignees.length === 0 ? 
+              React.createElement('p', { className: 'text-gray-500 text-sm' }, 'No assignees added yet. Click "Add Assignee" to get started.') :
+              ruleFormData.assignees.map((assignee, index) =>
+                React.createElement('div', { 
+                  key: index, 
+                  className: 'flex items-center space-x-3 p-3 bg-gray-50 rounded border' 
+                },
+                  React.createElement('select', {
+                    value: assignee.email,
+                    onChange: (e) => updateAssignee(index, 'email', e.target.value),
+                    className: 'flex-1 p-2 border border-gray-300 rounded text-sm',
+                    required: true
+                  },
+                    React.createElement('option', { value: '' }, 'Select User...'),
+                    availableUsers.map(user =>
+                      React.createElement('option', { key: user.email, value: user.email }, 
+                        `${user.name} (${user.email})`
+                      )
+                    )
+                  ),
+                  React.createElement('div', { className: 'flex items-center space-x-2' },
+                    React.createElement('label', { className: 'text-sm text-gray-600' }, 'Weight:'),
+                    React.createElement('input', {
+                      type: 'number',
+                      value: assignee.weight,
+                      onChange: (e) => updateAssignee(index, 'weight', e.target.value),
+                      className: 'w-16 p-1 border border-gray-300 rounded text-sm',
+                      min: 1,
+                      max: 100
+                    })
+                  ),
+                  React.createElement('button', {
+                    type: 'button',
+                    onClick: () => removeAssignee(index),
+                    className: 'bg-red-500 text-white px-2 py-1 rounded text-sm hover:bg-red-600'
+                  }, '×')
+                )
+              )
+            )
+          ),
+
           // Form Actions
           React.createElement('div', { className: 'flex justify-end space-x-3 pt-6 border-t' },
             React.createElement('button', {
@@ -7014,7 +7248,8 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
             }, 'Cancel'),
             React.createElement('button', {
               type: 'submit',
-              className: 'px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
+              disabled: ruleFormData.assignees.length === 0,
+              className: 'px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400'
             }, editingRule ? 'Update Rule' : 'Create Rule')
           )
         )
@@ -7022,9 +7257,6 @@ const AssignmentRulesManager = React.memo(({ currentUser }) => {
     )
   );
 });
-
-// Set display name for debugging
-AssignmentRulesManager.displayName = 'AssignmentRulesManager';
 
 // ULTRA-FIX: Add display name for debugging
 AssignmentRulesManager.displayName = 'AssignmentRulesManager';
