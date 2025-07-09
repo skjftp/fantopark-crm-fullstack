@@ -1996,11 +1996,25 @@ const fetchAllEvents = async () => {
 };
 
 // Fetch data when logged in
-useEffect(() => {
-if (isLoggedIn) {
-fetchData();
-}
 
+React.useEffect(() => {
+  if (isLoggedIn) {
+    console.log('🚀 User logged in, initializing data...');
+    
+    // Fetch all required data
+    Promise.all([
+      fetchData(),        // Fetch leads, inventory, etc.
+      fetchUsers(),       // CRITICAL: Fetch users for assignments
+      fetchUserRoles(),   // Fetch user roles
+      fetchStadiums()     // Fetch stadiums
+    ]).then(() => {
+      console.log('✅ All data loaded successfully');
+      console.log('👥 Users available for assignment:', (window.users || []).length);
+    }).catch(error => {
+      console.error('❌ Error loading initial data:', error);
+    });
+  }
+}, [isLoggedIn]);	
 
 // Fetch My Actions data
 console.log('useEffect triggered - activeTab:', activeTab, 'isLoggedIn:', isLoggedIn);
@@ -3465,14 +3479,42 @@ setLoading(false);
 
 
 const fetchUsers = async () => {
-try {
-const response = await apiCall('/users');
-if (response.data) {
-setUsers(response.data);
-}
-} catch (error) {
-console.error('Failed to fetch users:', error);
-}
+  try {
+    console.log('📥 Fetching users...');
+    setLoading(true);
+    
+    const response = await apiCall('/users');
+    console.log('📥 Users API Response:', response);
+    
+    if (response.data && Array.isArray(response.data)) {
+      const userData = response.data;
+      console.log(`✅ Loaded ${userData.length} users:`, userData.map(u => ({ name: u.name, role: u.role, email: u.email })));
+      
+      // Set users in state
+      setUsers(userData);
+      
+      // CRITICAL: Store users globally for assignment dropdowns
+      window.users = userData;
+      
+      // Verify global storage
+      console.log('🌐 Users stored globally:', window.users?.length, 'users');
+      
+      return userData;
+    } else {
+      console.error('❌ Invalid users response format:', response);
+      setUsers([]);
+      window.users = [];
+      return [];
+    }
+  } catch (error) {
+    console.error('❌ Error fetching users:', error);
+    alert('Failed to load users: ' + error.message);
+    setUsers([]);
+    window.users = [];
+    return [];
+  } finally {
+    setLoading(false);
+  }
 };
 
 
@@ -4226,109 +4268,115 @@ className: 'px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hove
 
 
 const handleLeadProgression = (lead) => {
-if (!hasPermission('leads', 'progress')) {
-alert('You do not have permission to progress leads');
-return;
-}
+  // FIXED: Handle unassigned leads first - open assignment form instead of progressing
+  if (lead.status === 'unassigned' && !lead.assigned_to) {
+    console.log('📝 Opening assignment form for unassigned lead:', lead.name);
+    openAssignForm(lead);
+    return;
+  }
 
-const currentStatus = lead.status;
-const nextOptions = LEAD_STATUSES[currentStatus]?.next || [];
+  if (!hasPermission('leads', 'progress')) {
+    alert('You do not have permission to progress leads');
+    return;
+  }
 
-if (nextOptions.length === 0) {
-alert('This lead is already at the final stage.');
-return;
-}
+  const currentStatus = lead.status;
+  const nextOptions = LEAD_STATUSES[currentStatus]?.next || [];
 
-// Check if any of the next options require follow-up date (like pickup_later)
-const hasFollowUpOptions = nextOptions.some(status => 
-LEAD_STATUSES[status]?.requires_followup_date
-);
+  if (nextOptions.length === 0) {
+    alert('This lead is already at the final stage.');
+    return;
+  }
 
-if (nextOptions.length === 1) {
-const nextStatus = nextOptions[0];
+  // Check if any of the next options require follow-up date (like pickup_later)
+  const hasFollowUpOptions = nextOptions.some(status => 
+    LEAD_STATUSES[status]?.requires_followup_date
+  );
 
-// Handle pickup_later status (requires follow-up date)
-if (nextStatus === 'pickup_later') {
-setCurrentLead(lead);
-setShowStatusProgressModal(true);
-setStatusProgressOptions([{
-value: 'pickup_later',
-label: LEAD_STATUSES['pickup_later'].label,
-color: LEAD_STATUSES['pickup_later'].color,
-requires_followup_date: true
-}]);
-return;
-}
+  if (nextOptions.length === 1) {
+    const nextStatus = nextOptions[0];
 
-// Handle payment status (existing logic)
-if (nextStatus === 'payment') {
-if (currentStatus === 'payment_post_service') {
-// Coming from payment_post_service, collect payment
-const receivable = receivables.find(r => r.lead_id === lead.id && r.status === 'pending');
-if (receivable) {
-collectPostServicePayment(receivable);
-} else {
-openPaymentForm(lead);
-}
-} else {
-openPaymentForm(lead);
-}
-return;
-}
+    // Handle pickup_later status (requires follow-up date)
+    if (nextStatus === 'pickup_later') {
+      setCurrentLead(lead);
+      setShowStatusProgressModal(true);
+      setStatusProgressOptions([{
+        value: 'pickup_later',
+        label: LEAD_STATUSES['pickup_later'].label,
+        color: LEAD_STATUSES['pickup_later'].color,
+        requires_followup_date: true
+      }]);
+      return;
+    }
 
-// For other single status transitions (including attempts)
-updateLeadStatus(lead.id, nextStatus);
-} else {
-// Multiple options available - need to show choice modal
+    // Handle payment status (existing logic)
+    if (nextStatus === 'payment') {
+      if (currentStatus === 'payment_post_service') {
+        // Coming from payment_post_service, collect payment
+        const receivable = receivables.find(r => r.lead_id === lead.id && r.status === 'pending');
+        if (receivable) {
+          collectPostServicePayment(receivable);
+        } else {
+          openPaymentForm(lead);
+        }
+      } else {
+        openPaymentForm(lead);
+      }
+      return;
+    }
 
-// Handle special case for converted status with payment options (existing logic)
-if (currentStatus === 'converted' && 
-nextOptions.includes('payment') && 
-nextOptions.includes('payment_post_service')) {
-
-// Check if pickup_later is also an option
-if (nextOptions.includes('pickup_later')) {
-// Show enhanced choice modal with pickup_later option
-setCurrentLeadForChoice(lead);
-setChoiceOptions([
-{ value: 'payment', label: 'Collect Payment Now', icon: '💳' },
-{ value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' },
-{ value: 'pickup_later', label: 'Pick Up Later', icon: '⏰', requires_followup_date: true }
-]);
-setShowChoiceModal(true);
-} else {
-// Original logic for payment choices
-setCurrentLeadForChoice(lead);
-setChoiceOptions([
-{ value: 'payment', label: 'Collect Payment Now', icon: '💳' },
-{ value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' }
-]);
-setShowChoiceModal(true);
-}
-} 
-// If any option requires follow-up date, use the enhanced modal
-else if (hasFollowUpOptions) {
-setCurrentLead(lead);
-setShowStatusProgressModal(true);
-setStatusProgressOptions(nextOptions.map(status => ({
-value: status,
-label: LEAD_STATUSES[status].label,
-color: LEAD_STATUSES[status].color,
-requires_followup_date: LEAD_STATUSES[status].requires_followup_date,
-icon: getStatusIcon(status) // Helper function for icons
-})));
-} 
-// Otherwise use the existing choice modal (this handles attempts and all other flows)
-else {
-setCurrentLeadForChoice(lead);
-setChoiceOptions(nextOptions.map(status => ({
-value: status,
-label: LEAD_STATUSES[status].label,
-icon: getStatusIcon(status)
-})));
-setShowChoiceModal(true);
-}
-}
+    // For other single status transitions (including attempts)
+    updateLeadStatus(lead.id, nextStatus);
+  } else {
+    // Multiple options available - need to show choice modal
+    // Handle special case for converted status with payment options (existing logic)
+    if (currentStatus === 'converted' && 
+        nextOptions.includes('payment') && 
+        nextOptions.includes('payment_post_service')) {
+      
+      // Check if pickup_later is also an option
+      if (nextOptions.includes('pickup_later')) {
+        // Show enhanced choice modal with pickup_later option
+        setCurrentLeadForChoice(lead);
+        setChoiceOptions([
+          { value: 'payment', label: 'Collect Payment Now', icon: '💳' },
+          { value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' },
+          { value: 'pickup_later', label: 'Pick Up Later', icon: '⏰', requires_followup_date: true }
+        ]);
+        setShowChoiceModal(true);
+      } else {
+        // Original logic for payment choices
+        setCurrentLeadForChoice(lead);
+        setChoiceOptions([
+          { value: 'payment', label: 'Collect Payment Now', icon: '💳' },
+          { value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' }
+        ]);
+        setShowChoiceModal(true);
+      }
+    } 
+    // If any option requires follow-up date, use the enhanced modal
+    else if (hasFollowUpOptions) {
+      setCurrentLead(lead);
+      setShowStatusProgressModal(true);
+      setStatusProgressOptions(nextOptions.map(status => ({
+        value: status,
+        label: LEAD_STATUSES[status].label,
+        color: LEAD_STATUSES[status].color,
+        requires_followup_date: LEAD_STATUSES[status].requires_followup_date,
+        icon: getStatusIcon(status) // Helper function for icons
+      })));
+    } 
+    // Otherwise use the existing choice modal (this handles attempts and all other flows)
+    else {
+      setCurrentLeadForChoice(lead);
+      setChoiceOptions(nextOptions.map(status => ({
+        value: status,
+        label: LEAD_STATUSES[status].label,
+        icon: getStatusIcon(status)
+      })));
+      setShowChoiceModal(true);
+    }
+  }
 };
 
 
@@ -4477,14 +4525,36 @@ setShowEditForm(true);
 
 
 const openAssignForm = (lead) => {
-if (!hasPermission('leads', 'assign')) {
-alert('You do not have permission to assign leads');
-return;
-}
-setCurrentLead(lead);
-setFormData({ assigned_team: 'sales', assigned_to: '' });
-setShowAssignForm(true);
+  console.log('📝 Opening assign form for lead:', lead.name);
+  console.log('👥 Available users:', (window.users || users || []).length);
+  
+  // Ensure users are loaded
+  if (!window.users || window.users.length === 0) {
+    console.log('🔄 Users not loaded, fetching...');
+    fetchUsers().then(() => {
+      console.log('✅ Users fetched, reopening form');
+      openAssignForm(lead);
+    });
+    return;
+  }
+
+  setCurrentLead(lead);
+  
+  // FIXED: Set default team based on lead type or user preference
+  const defaultTeam = lead.lead_for_event?.includes('Supply') || 
+                     lead.event_type?.includes('Logistics') ? 'supply' : 'sales';
+  
+  setFormData({
+    assigned_team: defaultTeam,
+    assigned_to: '',
+    lead_id: lead.id
+  });
+  
+  setShowAssignForm(true);
+  
+  console.log('📋 Form data initialized:', { assigned_team: defaultTeam, lead_id: lead.id });
 };
+
 
 
 
@@ -11909,70 +11979,99 @@ React.createElement('p', { className: 'text-gray-900 whitespace-pre-wrap' }, ite
 
 // Assign form with permission checks
 const renderAssignForm = () => {
-if (!showAssignForm || !currentLead) return null;
+  if (!showAssignForm || !currentLead) return null;
+  
+  // FIXED: Use multiple sources for users and include more supply roles
+  const availableUsers = window.users || users || [];
+  
+  // FIXED: Include more supply team roles and fallback loading
+  const teamMembers = formData.assigned_team === 'supply' 
+    ? availableUsers.filter(u => ['supply_executive', 'supply_sales_service_manager', 'supply_manager'].includes(u.role))
+    : availableUsers.filter(u => ['sales_executive', 'sales_manager', 'sales_head'].includes(u.role));
 
-const teamMembers = formData.assigned_team === 'supply' ? (users || []).filter(u => ['supply_executive', 'supply_sales_service_manager'].includes(u.role)) : (users || []).filter(u => ['sales_executive', 'sales_manager'].includes(u.role));
+  // FIXED: Auto-fetch users if not available
+  if (availableUsers.length === 0 && typeof fetchUsers === 'function') {
+    console.log('⚠️ No users available, fetching...');
+    fetchUsers();
+  }
 
-return React.createElement('div', { 
-className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
-onClick: (e) => e.target === e.currentTarget && closeForm()
-},
-React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md' },
-React.createElement('div', { className: 'flex justify-between items-center mb-6' },
-React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
-'Assign Lead: ' + (currentLead.name)
-),
-React.createElement('button', {
-onClick: closeForm,
-className: 'text-gray-400 hover:text-gray-600 text-2xl'
-}, '✕')
-),
-React.createElement('form', { onSubmit: handleAssignLead },
-React.createElement('div', { className: 'mb-4' },
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 
-'Team'
-),
-React.createElement('select', {
-value: formData.assigned_team || 'sales',
-onChange: (e) => handleInputChange('assigned_team', e.target.value),
-className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-required: true
-},
-React.createElement('option', { value: 'sales' }, 'Sales Team'),
-React.createElement('option', { value: 'supply' }, 'Supply Team')
-)
-),
-React.createElement('div', { className: 'mb-6' },
-React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 
-'Assign To'
-),
-React.createElement('select', {
-value: formData.assigned_to || '',
-onChange: (e) => handleInputChange('assigned_to', e.target.value),
-className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-required: true
-},
-React.createElement('option', { value: '' }, 'Select Team Member'),
-teamMembers.map(user =>
-React.createElement('option', { key: user.id, value: user.email }, user.name)
-)
-)
-),
-React.createElement('div', { className: 'flex space-x-4' },
-React.createElement('button', {
-type: 'button',
-onClick: closeForm,
-className: 'flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50'
-}, 'Cancel'),
-React.createElement('button', {
-type: 'submit',
-disabled: loading,
-className: 'flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50'
-}, loading ? 'Assigning...' : 'Assign')
-)
-)
-)
-);
+  return React.createElement('div', { 
+    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
+    onClick: (e) => e.target === e.currentTarget && closeForm()
+  },
+    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md' },
+      React.createElement('div', { className: 'flex justify-between items-center mb-6' },
+        React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
+          'Assign Lead: ' + (currentLead.name)
+        ),
+        React.createElement('button', {
+          onClick: closeForm,
+          className: 'text-gray-400 hover:text-gray-600 text-2xl'
+        }, '✕')
+      ),
+      
+      // FIXED: Show loading indicator if no users available
+      availableUsers.length === 0 && React.createElement('div', { 
+        className: 'mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-center' 
+      },
+        React.createElement('p', { className: 'text-sm text-yellow-800' }, 
+          'Loading users... Please wait or refresh if this persists.'
+        )
+      ),
+      
+      React.createElement('form', { onSubmit: handleAssignLead },
+        React.createElement('div', { className: 'mb-4' },
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 
+            'Team'
+          ),
+          React.createElement('select', {
+            value: formData.assigned_team || 'sales',
+            onChange: (e) => {
+              handleInputChange('assigned_team', e.target.value);
+              // FIXED: Reset assigned_to when team changes
+              handleInputChange('assigned_to', '');
+            },
+            className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+            required: true
+          },
+            React.createElement('option', { value: 'sales' }, 'Sales Team'),
+            React.createElement('option', { value: 'supply' }, 'Supply Team')
+          )
+        ),
+        React.createElement('div', { className: 'mb-6' },
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 
+            'Assign To'
+          ),
+          React.createElement('select', {
+            value: formData.assigned_to || '',
+            onChange: (e) => handleInputChange('assigned_to', e.target.value),
+            className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+            required: true,
+            disabled: teamMembers.length === 0  // FIXED: Disable if no team members
+          },
+            React.createElement('option', { value: '' }, 
+              teamMembers.length === 0 ? 'No team members available' : 'Select Team Member'
+            ),
+            teamMembers.map(user =>
+              React.createElement('option', { key: user.id, value: user.email }, user.name)
+            )
+          )
+        ),
+        React.createElement('div', { className: 'flex space-x-4' },
+          React.createElement('button', {
+            type: 'button',
+            onClick: closeForm,
+            className: 'flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50'
+          }, 'Cancel'),
+          React.createElement('button', {
+            type: 'submit',
+            disabled: loading || teamMembers.length === 0,  // FIXED: Disable if no team members
+            className: 'flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50'
+          }, loading ? 'Assigning...' : 'Assign')
+        )
+      )
+    )
+  );
 };
 
 
@@ -13006,111 +13105,153 @@ className: 'flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-7
 
 
 const renderBulkAssignModal = () => {
-if (!showBulkAssignModal) return null;
+  if (!showBulkAssignModal) return null;
 
-const unassignedLeads = leads.filter(lead => !lead.assigned_to || lead.assigned_to === '' || lead.status === 'unassigned');
-const salesUsers = users.filter(u => 
-['sales_executive', 'sales_manager', 'supply_executive', 'supply_sales_service_manager'].includes(u.role) && 
-u.status === 'active'
-);
+  const unassignedLeads = leads.filter(lead => !lead.assigned_to || lead.assigned_to === '' || lead.status === 'unassigned');
+  
+  // FIXED: Use multiple sources for users and include more supply roles
+  const availableUsers = window.users || users || [];
+  
+  // FIXED: Include all team members (sales + supply) with expanded supply roles
+  const salesUsers = availableUsers.filter(u => 
+    ['sales_executive', 'sales_manager', 'sales_head', 'supply_executive', 'supply_sales_service_manager', 'supply_manager'].includes(u.role) && 
+    u.status === 'active'
+  );
 
-const handleCheckboxChange = (leadId, userEmail, isChecked) => {
-setBulkAssignSelections(prev => {
-const newSelections = { ...prev };
-if (isChecked) {
-newSelections[leadId] = userEmail;
-} else {
-delete newSelections[leadId];
-}
-return newSelections;
-});
-};
+  // FIXED: Auto-fetch users if not available
+  if (availableUsers.length === 0 && typeof fetchUsers === 'function') {
+    console.log('⚠️ No users available for bulk assignment, fetching...');
+    fetchUsers();
+  }
 
+  const handleCheckboxChange = (leadId, userEmail, isChecked) => {
+    setBulkAssignSelections(prev => {
+      const newSelections = { ...prev };
+      if (isChecked) {
+        newSelections[leadId] = userEmail;
+      } else {
+        delete newSelections[leadId];
+      }
+      return newSelections;
+    });
+  };
 
+  return React.createElement('div', { 
+    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
+    onClick: (e) => e.target === e.currentTarget && setShowBulkAssignModal(false)
+  },
+    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-7xl max-h-[90vh] overflow-hidden' },
+      React.createElement('div', { className: 'flex justify-between items-center mb-6' },
+        React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 
+          `Bulk Assign Leads (${unassignedLeads.length} unassigned)`
+        ),
+        React.createElement('button', {
+          onClick: () => setShowBulkAssignModal(false),
+          className: 'text-gray-400 hover:text-gray-600 text-2xl'
+        }, '✕')
+      ),
 
-return React.createElement('div', { 
-className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
-onClick: (e) => e.target === e.currentTarget && setShowBulkAssignModal(false)
-},
-React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-7xl max-h-[90vh] overflow-hidden' },
-React.createElement('div', { className: 'flex justify-between items-center mb-6' },
-React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, `Bulk Assign Leads (${unassignedLeads.length} unassigned)`),
-React.createElement('button', {
-onClick: () => setShowBulkAssignModal(false),
-className: 'text-gray-400 hover:text-gray-600 text-2xl'
-}, '✕')
-),
+      // FIXED: Show loading indicator if no users available
+      availableUsers.length === 0 && React.createElement('div', { 
+        className: 'mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md text-center' 
+      },
+        React.createElement('p', { className: 'text-sm text-yellow-800' }, 
+          'Loading team members... Please wait or refresh if this persists.'
+        ),
+        React.createElement('p', { className: 'text-xs text-yellow-600 mt-1' }, 
+          'Cannot perform bulk assignment without team member data.'
+        )
+      ),
 
-React.createElement('div', { className: 'overflow-auto max-h-96' },
-React.createElement('table', { className: 'w-full border-collapse' },
-React.createElement('thead', { className: 'bg-gray-50 sticky top-0' },
-React.createElement('tr', null,
-React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase border' }, 'Lead Details'),
-React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase border' }, 'Business Info'),
-...salesUsers.map(user =>
-React.createElement('th', { 
-key: user.email, 
-className: 'px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase border min-w-24'
-}, user.name)
-)
-)
-),
-React.createElement('tbody', null,
-unassignedLeads.map(lead =>
-React.createElement('tr', { key: lead.id, className: 'hover:bg-gray-50' },
-React.createElement('td', { className: 'px-4 py-3 border' },
-React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, lead.name),
-React.createElement('div', { className: 'text-sm text-gray-500' }, lead.email),
-React.createElement('div', { className: 'text-xs text-gray-400' }, lead.phone),
-React.createElement('div', { className: 'text-xs text-blue-600' }, 
-lead.date_of_enquiry ? new Date(lead.date_of_enquiry).toLocaleDateString() : ''
-)
-),
-React.createElement('td', { className: 'px-4 py-3 border' },
-React.createElement('div', { className: 'text-sm text-gray-900' }, lead.company || 'N/A'),
-React.createElement('div', { className: 'text-xs text-gray-500' }, lead.business_type || 'N/A'),
-React.createElement('div', { className: 'text-xs text-gray-600' }, lead.lead_for_event || 'N/A'),
-React.createElement('div', { className: 'text-xs text-green-600' }, 
-lead.potential_value ? `₹${parseFloat(lead.potential_value).toLocaleString()}` : 'N/A'
-)
-),
-...salesUsers.map(user =>
-React.createElement('td', { 
-key: `${lead.id}-${user.email}`, 
-className: 'px-3 py-3 text-center border'
-},
-React.createElement('input', {
-type: 'checkbox',
-checked: bulkAssignSelections[lead.id] === user.email,
-onChange: (e) => handleCheckboxChange(lead.id, user.email, e.target.checked),
-className: 'w-4 h-4 text-blue-600 rounded focus:ring-blue-500'
-})
-)
-)
-)
-)
-)
-)
-),
+      // FIXED: Show team member count info
+      salesUsers.length > 0 && React.createElement('div', { 
+        className: 'mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md' 
+      },
+        React.createElement('p', { className: 'text-sm text-blue-800' },
+          `Available team members: ${salesUsers.length} `,
+          `(Sales: ${salesUsers.filter(u => u.role.includes('sales')).length}, `,
+          `Supply: ${salesUsers.filter(u => u.role.includes('supply')).length})`
+        )
+      ),
 
-React.createElement('div', { className: 'flex justify-between items-center mt-6 pt-4 border-t' },
-React.createElement('div', { className: 'text-sm text-gray-600' },
-`${Object.keys(bulkAssignSelections).length} leads selected for assignment`
-),
-React.createElement('div', { className: 'flex space-x-4' },
-React.createElement('button', {
-onClick: () => setShowBulkAssignModal(false),
-className: 'px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50'
-}, 'Cancel'),
-React.createElement('button', {
-onClick: handleBulkAssignSubmit,
-disabled: bulkAssignLoading || Object.keys(bulkAssignSelections).length === 0,
-className: 'px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50'
-}, bulkAssignLoading ? 'Assigning...' : `Assign ${Object.keys(bulkAssignSelections).length} Leads`)
-)
-)
-)
-);
+      React.createElement('div', { className: 'overflow-auto max-h-96' },
+        React.createElement('table', { className: 'w-full border-collapse' },
+          React.createElement('thead', { className: 'bg-gray-50 sticky top-0' },
+            React.createElement('tr', null,
+              React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase border' }, 'Lead Details'),
+              React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase border' }, 'Business Info'),
+              ...salesUsers.map(user =>
+                React.createElement('th', { 
+                  key: user.email, 
+                  className: 'px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase border min-w-24'
+                }, 
+                  // FIXED: Show role indicator for better identification
+                  React.createElement('div', null,
+                    React.createElement('div', null, user.name),
+                    React.createElement('div', { className: 'text-xs text-gray-400 normal-case' }, 
+                      user.role.includes('supply') ? 'Supply' : 'Sales'
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          React.createElement('tbody', null,
+            unassignedLeads.map(lead =>
+              React.createElement('tr', { key: lead.id, className: 'hover:bg-gray-50' },
+                React.createElement('td', { className: 'px-4 py-3 border' },
+                  React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, lead.name),
+                  React.createElement('div', { className: 'text-sm text-gray-500' }, lead.email),
+                  React.createElement('div', { className: 'text-xs text-gray-400' }, lead.phone),
+                  React.createElement('div', { className: 'text-xs text-blue-600' }, 
+                    lead.date_of_enquiry ? new Date(lead.date_of_enquiry).toLocaleDateString() : ''
+                  )
+                ),
+                React.createElement('td', { className: 'px-4 py-3 border' },
+                  React.createElement('div', { className: 'text-sm text-gray-900' }, lead.company || 'N/A'),
+                  React.createElement('div', { className: 'text-xs text-gray-500' }, lead.business_type || 'N/A'),
+                  React.createElement('div', { className: 'text-xs text-gray-600' }, lead.lead_for_event || 'N/A'),
+                  React.createElement('div', { className: 'text-xs text-green-600' }, 
+                    lead.potential_value ? `₹${parseFloat(lead.potential_value).toLocaleString()}` : 'N/A'
+                  )
+                ),
+                ...salesUsers.map(user =>
+                  React.createElement('td', { 
+                    key: `${lead.id}-${user.email}`, 
+                    className: 'px-3 py-3 text-center border'
+                  },
+                    React.createElement('input', {
+                      type: 'checkbox',
+                      checked: bulkAssignSelections[lead.id] === user.email,
+                      onChange: (e) => handleCheckboxChange(lead.id, user.email, e.target.checked),
+                      className: 'w-4 h-4 text-blue-600 rounded focus:ring-blue-500'
+                    })
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+
+      React.createElement('div', { className: 'flex justify-between items-center mt-6 pt-4 border-t' },
+        React.createElement('div', { className: 'text-sm text-gray-600' },
+          `${Object.keys(bulkAssignSelections).length} leads selected for assignment`
+        ),
+        React.createElement('div', { className: 'flex space-x-4' },
+          React.createElement('button', {
+            onClick: () => setShowBulkAssignModal(false),
+            className: 'px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50'
+          }, 'Cancel'),
+          React.createElement('button', {
+            onClick: handleBulkAssignSubmit,
+            disabled: bulkAssignLoading || Object.keys(bulkAssignSelections).length === 0 || salesUsers.length === 0,  // FIXED: Disable if no users
+            className: 'px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50'
+          }, bulkAssignLoading ? 'Assigning...' : `Assign ${Object.keys(bulkAssignSelections).length} Leads`)
+        )
+      )
+    )
+  );
 };
 
 
