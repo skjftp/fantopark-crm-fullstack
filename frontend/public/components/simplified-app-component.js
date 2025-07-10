@@ -173,6 +173,11 @@ window.SimplifiedApp = function() {
   window.setEditingUser = state.setEditingUser;
   window.setShowUserForm = state.setShowUserForm;
 
+  // ✅ CRITICAL MISSING: Choice Modal State Setters - FIXED
+  window.setCurrentLeadForChoice = state.setCurrentLeadForChoice;
+  window.setChoiceOptions = state.setChoiceOptions;
+  window.setShowChoiceModal = state.setShowChoiceModal;
+
   // ✅ ADDITIONAL VARIABLES NEEDED BY COMPONENTS
   window.phoneCheckTimeout = state.phoneCheckTimeout;
   window.allocationData = state.allocationData;
@@ -185,6 +190,11 @@ window.SimplifiedApp = function() {
   window.showEditInventoryForm = state.showEditInventoryForm;
   window.userFormData = state.userFormData;
   window.editingUser = state.editingUser;
+
+  // ✅ CRITICAL MISSING: Choice Modal State Variables - FIXED
+  window.currentLeadForChoice = state.currentLeadForChoice;
+  window.choiceOptions = state.choiceOptions;
+  window.showChoiceModal = state.showChoiceModal;
 
   // ✅ HELPER FUNCTIONS FOR COMPONENTS
   window.checkPhoneForClient = handlers.checkPhoneForClient || ((phone) => {
@@ -215,10 +225,13 @@ window.SimplifiedApp = function() {
     state.setShowInventoryForm && state.setShowInventoryForm(false);
     state.setShowAllocationForm && state.setShowAllocationForm(false);
     state.setShowDeliveryForm && state.setShowDeliveryForm(false);
+    state.setShowChoiceModal && state.setShowChoiceModal(false);
     state.setFormData && state.setFormData({});
     state.setCurrentLead && state.setCurrentLead(null);
     state.setCurrentInventory && state.setCurrentInventory(null);
     state.setCurrentDelivery && state.setCurrentDelivery(null);
+    state.setCurrentLeadForChoice && state.setCurrentLeadForChoice(null);
+    state.setChoiceOptions && state.setChoiceOptions([]);
   };
 
   // ✅ STATUS FILTER FUNCTIONS
