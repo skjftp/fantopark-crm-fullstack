@@ -114,6 +114,35 @@ window.SimplifiedApp = function() {
     return user ? user.name : userId;
   });
 
+  // ✅ MISSING UTILITY FUNCTION EXPOSURES - NEWLY ADDED
+window.formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric' 
+  });
+};
+
+window.getInventoryStatus = (item) => {
+  if (!item) return 'Unknown';
+  if (item.available_tickets <= 0) return 'Sold Out';
+  if (item.available_tickets < 10) return 'Low Stock';
+  return 'Available';
+};
+
+window.calculateMargin = (item) => {
+  if (!item || !item.selling_price || !item.buying_price) return 0;
+  return ((item.selling_price - item.buying_price) / item.selling_price * 100).toFixed(1);
+};
+
+window.getUserName = (email) => {
+  if (!email) return 'Unknown';
+  const user = window.users?.find(u => u.email === email);
+  return user ? user.name : email.split('@')[0];
+};
+
 // ✅ NEW: Add these missing function exposures
 window.getInventoryDueInDays = (eventDate) => {
   const today = new Date();
