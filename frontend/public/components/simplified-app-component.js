@@ -287,6 +287,31 @@ window.SimplifiedApp = function() {
     console.warn("⚠️ setShowClientSuggestion not implemented in state");
   });
 
+  // ✅ CRITICAL FIX: CLIENT MANAGEMENT FUNCTIONS - NEWLY ADDED
+  window.fetchClients = handlers.fetchClients || (() => {
+    console.log("👥 fetchClients called");
+    // Return a promise for compatibility with .then() chains
+    return new Promise((resolve, reject) => {
+      console.warn("⚠️ fetchClients not implemented in handlers");
+      // Resolve with empty array as fallback
+      window.clients = window.clients || [];
+      resolve(window.clients);
+    });
+  });
+
+  window.setSelectedClient = state.setSelectedClient || ((client) => {
+    console.log("👤 setSelectedClient called with:", client);
+    console.warn("⚠️ setSelectedClient not implemented in state");
+  });
+
+  window.setShowClientDetail = state.setShowClientDetail || ((show) => {
+    console.log("👁️ setShowClientDetail called with:", show);
+    console.warn("⚠️ setShowClientDetail not implemented in state");
+  });
+
+  // ✅ CLIENT DATA VARIABLE
+  window.clients = state.clients || [];
+
   // ✅ ADDITIONAL VARIABLES NEEDED BY COMPONENTS
   window.phoneCheckTimeout = state.phoneCheckTimeout;
   window.allocationData = state.allocationData;
