@@ -28,42 +28,54 @@ window.renderLeadsContent = () => {
         }));
     };
 
-    // ✅ ENHANCED FUNCTION: Handle lead progression with proper status selection
+    // ✅ FIXED: Use the sophisticated handleLeadProgression from app-business-logic.js
     const handleLeadProgressionClick = (lead) => {
         console.log("🔄 Lead progression clicked for:", lead.name, "Current status:", lead.status);
         
-        // If lead is unassigned, open assign form first
-        if (lead.status === 'unassigned' && !lead.assigned_to) {
-            console.log("📝 Opening assign form for unassigned lead");
-            window.openAssignForm(lead);
-            return;
-        }
+        // ✅ CRITICAL FIX: Use the sophisticated function from app-business-logic.js
+        // This includes the earlyStageStatuses logic and proper modal switching
+        if (window.handleLeadProgression && typeof window.handleLeadProgression === 'function') {
+            console.log("✅ Using sophisticated handleLeadProgression from app-business-logic.js");
+            window.handleLeadProgression(lead);
+        } else {
+            // Fallback to simple logic if business logic not loaded
+            console.warn("⚠️ Fallback: app-business-logic not loaded, using simple progression");
+            
+            // If lead is unassigned, open assign form first
+            if (lead.status === 'unassigned' && !lead.assigned_to) {
+                console.log("📝 Opening assign form for unassigned lead");
+                window.openAssignForm(lead);
+                return;
+            }
 
-        // Get available progression options
-        const progressionOptions = getLeadProgressionOptions(lead);
-        
-        if (progressionOptions.length === 0) {
-            alert(`No progression options available for status: ${lead.status}`);
-            return;
+            // Get available progression options
+            const progressionOptions = getLeadProgressionOptions(lead);
+            
+            if (progressionOptions.length === 0) {
+                alert(`No progression options available for status: ${lead.status}`);
+                return;
+            }
+            
+            // If only one option, progress directly
+            if (progressionOptions.length === 1) {
+                const nextStatus = progressionOptions[0].status;
+                console.log("🚀 Direct progression to:", nextStatus);
+                if (window.updateLeadStatus && typeof window.updateLeadStatus === 'function') {
+                    window.updateLeadStatus(lead.id, nextStatus);
+                }
+                return;
+            }
+            
+            // Multiple options - use choice modal as fallback
+            console.log("🎯 Fallback: Opening choice modal with options:", progressionOptions);
+            window.setCurrentLeadForChoice(lead);
+            window.setChoiceOptions(progressionOptions.map(opt => ({
+                value: opt.status,
+                label: opt.label,
+                color: opt.color
+            })));
+            window.setShowChoiceModal(true);
         }
-        
-        // If only one option, progress directly
-        if (progressionOptions.length === 1) {
-            const nextStatus = progressionOptions[0].status;
-            console.log("🚀 Direct progression to:", nextStatus);
-            window.handleLeadProgression(lead, nextStatus);
-            return;
-        }
-        
-        // Multiple options - open choice modal
-        console.log("🎯 Opening choice modal with options:", progressionOptions);
-        window.setCurrentLeadForChoice(lead);
-        window.setChoiceOptions(progressionOptions.map(opt => ({
-            value: opt.status,
-            label: opt.label,
-            color: opt.color
-        })));
-        window.setShowChoiceModal(true);
     };
 
     // EXISTING FILTERING LOGIC - UNCHANGED
@@ -610,7 +622,7 @@ window.renderLeadsContent = () => {
                                                     className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
                                                     onClick: () => window.openAssignForm(lead)
                                                 }, '👤'),
-                                            // ✅ FIXED: Enhanced progression button with proper logic
+                                            // ✅ FIXED: Enhanced progression button with sophisticated logic
                                             window.hasPermission('leads', 'progress') && React.createElement('button', {
                                                 className: `text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50 ${
                                                     progressionOptions.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
@@ -672,4 +684,4 @@ window.renderLeadsContent = () => {
     );
 };
 
-console.log('✅ Leads component loaded with enhanced progression handling');
+console.log('✅ Leads component loaded with FIXED sophisticated progression handling that uses app-business-logic.js');
