@@ -313,6 +313,71 @@ window.getPriorityColor = (priority) => {
     console.warn("⚠️ setLeadsSortDirection not implemented in state");
   });
 
+  // ✅ CRITICAL FIX: MISSING INVENTORY FILTER FUNCTION EXPOSURES - NEWLY ADDED
+  window.setInventoryEventFilter = state.setInventoryEventFilter || ((filter) => {
+    console.log("🎫 setInventoryEventFilter called with:", filter);
+    window.inventoryEventFilter = filter;
+    if (state.setInventoryEventFilter) {
+      state.setInventoryEventFilter(filter);
+    } else {
+      console.warn("⚠️ setInventoryEventFilter not implemented in state");
+    }
+  });
+  
+  window.setInventoryEventTypeFilter = state.setInventoryEventTypeFilter || ((filter) => {
+    console.log("🏷️ setInventoryEventTypeFilter called with:", filter);
+    window.inventoryEventTypeFilter = filter;
+    if (state.setInventoryEventTypeFilter) {
+      state.setInventoryEventTypeFilter(filter);
+    } else {
+      console.warn("⚠️ setInventoryEventTypeFilter not implemented in state");
+    }
+  });
+  
+  window.setInventoryDueDateFilter = state.setInventoryDueDateFilter || ((filter) => {
+    console.log("📅 setInventoryDueDateFilter called with:", filter);
+    window.inventoryDueDateFilter = filter;
+    if (state.setInventoryDueDateFilter) {
+      state.setInventoryDueDateFilter(filter);
+    } else {
+      console.warn("⚠️ setInventoryDueDateFilter not implemented in state");
+    }
+  });
+  
+  window.setInventorySortField = state.setInventorySortField || ((field) => {
+    console.log("📊 setInventorySortField called with:", field);
+    window.inventorySortField = field;
+    if (state.setInventorySortField) {
+      state.setInventorySortField(field);
+    } else {
+      console.warn("⚠️ setInventorySortField not implemented in state");
+    }
+  });
+  
+  window.setInventorySortDirection = state.setInventorySortDirection || ((direction) => {
+    console.log("🔄 setInventorySortDirection called with:", direction);
+    window.inventorySortDirection = direction;
+    if (state.setInventorySortDirection) {
+      state.setInventorySortDirection(direction);
+    } else {
+      console.warn("⚠️ setInventorySortDirection not implemented in state");
+    }
+  });
+
+  // ✅ INVENTORY FILTER STATE VARIABLES - NEWLY ADDED
+  window.inventoryEventFilter = state.inventoryEventFilter || 'all';
+  window.inventoryEventTypeFilter = state.inventoryEventTypeFilter || 'all';
+  window.inventoryDueDateFilter = state.inventoryDueDateFilter || 'all';
+  window.inventorySortField = state.inventorySortField || 'event_date';
+  window.inventorySortDirection = state.inventorySortDirection || 'asc';
+
+  // ✅ ADD TO APPSTATE FOR COMPONENT COMPATIBILITY - NEWLY ADDED
+  window.appState.inventoryEventFilter = state.inventoryEventFilter || 'all';
+  window.appState.inventoryEventTypeFilter = state.inventoryEventTypeFilter || 'all';
+  window.appState.inventoryDueDateFilter = state.inventoryDueDateFilter || 'all';
+  window.appState.inventorySortField = state.inventorySortField || 'event_date';
+  window.appState.inventorySortDirection = state.inventorySortDirection || 'asc';
+
   // ✅ CRITICAL FIX: VIEW MODE SETTER - NEWLY ADDED  
   window.setViewMode = state.setViewMode || ((mode) => {
     console.log("👁️ setViewMode called with:", mode);
