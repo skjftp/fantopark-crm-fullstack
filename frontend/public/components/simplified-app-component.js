@@ -193,6 +193,14 @@ window.SimplifiedApp = function() {
   window.setPaymentPostServiceData = state.setPaymentPostServiceData;
   window.paymentPostServiceData = state.paymentPostServiceData;
 
+  // ✅ CRITICAL MISSING: Payment Post Service Form Handlers - NEWLY ADDED
+  window.handlePaymentPostServiceSubmit = handlers.handlePaymentPostServiceSubmit || window.handlePaymentPostServiceSubmit;
+  window.handlePaymentPostServiceInputChange = handlers.handlePaymentPostServiceInputChange || window.handlePaymentPostServiceInputChange;
+
+  // ✅ CRITICAL MISSING: Payment Form Handlers - NEWLY ADDED
+  window.handlePaymentSubmit = handlers.handlePaymentSubmit || window.handlePaymentSubmit;
+  window.handlePaymentInputChange = handlers.handlePaymentInputChange || window.handlePaymentInputChange;
+
   // ✅ CRITICAL MISSING: Choice Modal State Setters - FIXED
   window.setCurrentLeadForChoice = state.setCurrentLeadForChoice;
   window.setChoiceOptions = state.setChoiceOptions;
