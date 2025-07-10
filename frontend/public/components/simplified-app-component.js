@@ -461,8 +461,26 @@ window.SimplifiedApp = function() {
 
   // ✅ BULK OPERATIONS SUPPORT
   window.bulkAssignSelections = state.bulkAssignSelections || {};
-  window.setBulkAssignSelections = state.setBulkAssignSelections;
-  window.setBulkAssignLoading = state.setBulkAssignLoading;
+  window.setBulkAssignSelections = state.setBulkAssignSelections || ((selections) => {
+    console.log("👥 setBulkAssignSelections called with:", Object.keys(selections || {}).length, "selections");
+    window.bulkAssignSelections = selections;
+    if (state.setBulkAssignSelections) {
+      state.setBulkAssignSelections(selections);
+    } else {
+      console.warn("⚠️ setBulkAssignSelections not implemented in state");
+    }
+  });
+  
+  window.setBulkAssignLoading = state.setBulkAssignLoading || ((loading) => {
+    console.log("⏳ setBulkAssignLoading called with:", loading);
+    window.bulkAssignLoading = loading;
+    if (state.setBulkAssignLoading) {
+      state.setBulkAssignLoading(loading);
+    } else {
+      console.warn("⚠️ setBulkAssignLoading not implemented in state");
+    }
+  });
+  
   window.setShowBulkAssignModal = state.setShowBulkAssignModal || ((show) => {
     console.log("👥 setShowBulkAssignModal called with:", show);
     window.showBulkAssignModal = show;
@@ -472,6 +490,15 @@ window.SimplifiedApp = function() {
       console.warn("⚠️ setShowBulkAssignModal not implemented in state");
     }
   });
+
+  window.handleBulkAssignSubmit = handlers.handleBulkAssignSubmit || (() => {
+    console.log("🚀 handleBulkAssignSubmit called");
+    console.warn("⚠️ handleBulkAssignSubmit not implemented in handlers");
+    alert("Bulk assign functionality will be implemented in next update!");
+  });
+
+  // ✅ BULK ASSIGN STATE VARIABLES
+  window.bulkAssignLoading = state.bulkAssignLoading || false;
 
   // ✅ CRITICAL FIX: CSV UPLOAD FUNCTIONS - NEWLY ADDED
   window.setCSVUploadType = state.setCSVUploadType || ((type) => {
