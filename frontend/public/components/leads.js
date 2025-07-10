@@ -6,11 +6,66 @@ window.renderClientViewContent = function() {
         React.createElement("p", { className: "text-gray-600" }, "Client view content will be implemented here.")
     );
 };
+
 // Leads Content Component - Extracted from index.html
 // Enhanced renderLeadsContent function with Client Toggle - PRESERVES ALL EXISTING FEATURES
 // This includes advanced filtering, sorting, pagination, premium features, and client view
 
 window.renderLeadsContent = () => {
+    // ✅ HELPER FUNCTION: Get next status options for a lead
+    const getLeadProgressionOptions = (lead) => {
+        const currentStatus = lead.status;
+        const statusConfig = window.LEAD_STATUSES[currentStatus];
+        
+        if (!statusConfig || !statusConfig.next) {
+            return [];
+        }
+        
+        return statusConfig.next.map(nextStatus => ({
+            status: nextStatus,
+            label: window.LEAD_STATUSES[nextStatus]?.label || nextStatus,
+            color: window.LEAD_STATUSES[nextStatus]?.color || 'bg-gray-100 text-gray-800'
+        }));
+    };
+
+    // ✅ ENHANCED FUNCTION: Handle lead progression with proper status selection
+    const handleLeadProgressionClick = (lead) => {
+        console.log("🔄 Lead progression clicked for:", lead.name, "Current status:", lead.status);
+        
+        // If lead is unassigned, open assign form first
+        if (lead.status === 'unassigned' && !lead.assigned_to) {
+            console.log("📝 Opening assign form for unassigned lead");
+            window.openAssignForm(lead);
+            return;
+        }
+
+        // Get available progression options
+        const progressionOptions = getLeadProgressionOptions(lead);
+        
+        if (progressionOptions.length === 0) {
+            alert(`No progression options available for status: ${lead.status}`);
+            return;
+        }
+        
+        // If only one option, progress directly
+        if (progressionOptions.length === 1) {
+            const nextStatus = progressionOptions[0].status;
+            console.log("🚀 Direct progression to:", nextStatus);
+            window.handleLeadProgression(lead, nextStatus);
+            return;
+        }
+        
+        // Multiple options - open choice modal
+        console.log("🎯 Opening choice modal with options:", progressionOptions);
+        window.setCurrentLeadForChoice(lead);
+        window.setChoiceOptions(progressionOptions.map(opt => ({
+            value: opt.status,
+            label: opt.label,
+            color: opt.color
+        })));
+        window.setShowChoiceModal(true);
+    };
+
     // EXISTING FILTERING LOGIC - UNCHANGED
     const filteredLeads = (window.appState.leads || []).filter(lead => {
         // Search filter
@@ -475,6 +530,7 @@ window.renderLeadsContent = () => {
                         React.createElement('tbody', { className: 'bg-white divide-y divide-gray-200' },
                             currentLeads.map(lead => {
                                 const status = window.LEAD_STATUSES[lead.status] || { label: lead.status, color: 'bg-gray-100 text-gray-800', next: [] };
+                                const progressionOptions = getLeadProgressionOptions(lead);
 
                                 return React.createElement('tr', { key: lead.id, className: `hover:bg-gray-50 ${lead.is_premium ? 'bg-gradient-to-r from-yellow-100 to-yellow-50 border-l-4 border-yellow-400' : ''}` },
                                     React.createElement('td', { className: 'px-6 py-4' },
@@ -554,21 +610,20 @@ window.renderLeadsContent = () => {
                                                     className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
                                                     onClick: () => window.openAssignForm(lead)
                                                 }, '👤'),
+                                            // ✅ FIXED: Enhanced progression button with proper logic
                                             window.hasPermission('leads', 'progress') && React.createElement('button', {
-                                                className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
-                                                onClick: () => {
-                                                    // If lead is unassigned and not assigned to anyone, open assign form
-                                                    if (lead.status === 'unassigned' && !lead.assigned_to) {
-                                                        window.openAssignForm(lead);
-                                                    } else {
-                                                        // Otherwise proceed with normal progression
-                                                        window.handleLeadProgression(lead);
-                                                    }
-                                                },
-                                                disabled: window.loading,
+                                                className: `text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50 ${
+                                                    progressionOptions.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                                                }`,
+                                                onClick: () => handleLeadProgressionClick(lead),
+                                                disabled: window.loading || progressionOptions.length === 0,
                                                 title: lead.status === 'unassigned' && !lead.assigned_to 
-                                                    ? 'Assign lead' 
-                                                    : `Progress lead to next stage`
+                                                    ? 'Assign lead first' 
+                                                    : progressionOptions.length === 0 
+                                                    ? 'No progression options available'
+                                                    : progressionOptions.length === 1 
+                                                    ? `Progress to ${progressionOptions[0].label}`
+                                                    : `Choose next stage (${progressionOptions.length} options)`
                                             }, window.loading ? '...' : '→'),
                                             window.hasPermission('leads', 'write') && lead.status === 'converted' &&
                                                 React.createElement('button', { 
@@ -616,3 +671,5 @@ window.renderLeadsContent = () => {
         window.renderClientViewContent()
     );
 };
+
+console.log('✅ Leads component loaded with enhanced progression handling');
