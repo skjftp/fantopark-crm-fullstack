@@ -295,6 +295,91 @@ window.openAddInventoryForm = handlers.openAddInventoryForm || (() => {
   window.events = state.events || [];
   window.invoices = state.invoices || [];
 
+  // ✅ CRITICAL MISSING: Inventory processing variables and functions - NEWLY ADDED
+window.currentInventoryItems = (() => {
+  if (!window.inventory) return [];
+  
+  // Apply all the filters that are set
+  return window.inventory.filter(item => {
+    // Due date filter
+    if (window.inventoryDueDateFilter && window.inventoryDueDateFilter !== 'all') {
+      const daysUntilEvent = window.getInventoryDueInDays(item.event_date);
+      if (window.inventoryDueDateFilter === 'overdue' && daysUntilEvent >= 0) return false;
+      if (window.inventoryDueDateFilter === 'today' && daysUntilEvent !== 0) return false;
+      if (window.inventoryDueDateFilter === 'week' && (daysUntilEvent < 0 || daysUntilEvent > 7)) return false;
+    }
+    
+    // Event filter
+    if (window.inventoryEventFilter && window.inventoryEventFilter !== 'all' && 
+        item.event_name !== window.inventoryEventFilter) return false;
+    
+    // Event type filter  
+    if (window.inventoryEventTypeFilter && window.inventoryEventTypeFilter !== 'all' && 
+        item.event_type !== window.inventoryEventTypeFilter) return false;
+    
+    return true;
+  }).sort((a, b) => {
+    // Apply sorting
+    const field = window.inventorySortField || 'event_date';
+    const direction = window.inventorySortDirection || 'asc';
+    
+    let aVal = a[field];
+    let bVal = b[field];
+    
+    if (field === 'event_date') {
+      aVal = new Date(aVal);
+      bVal = new Date(bVal);
+    }
+    
+    if (direction === 'asc') {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
+    }
+  });
+})();
+
+// Update currentInventoryItems whenever inventory or filters change
+window.updateCurrentInventoryItems = () => {
+  window.currentInventoryItems = (() => {
+    if (!window.inventory) return [];
+    
+    return window.inventory.filter(item => {
+      if (window.inventoryDueDateFilter && window.inventoryDueDateFilter !== 'all') {
+        const daysUntilEvent = window.getInventoryDueInDays(item.event_date);
+        if (window.inventoryDueDateFilter === 'overdue' && daysUntilEvent >= 0) return false;
+        if (window.inventoryDueDateFilter === 'today' && daysUntilEvent !== 0) return false;
+        if (window.inventoryDueDateFilter === 'week' && (daysUntilEvent < 0 || daysUntilEvent > 7)) return false;
+      }
+      
+      if (window.inventoryEventFilter && window.inventoryEventFilter !== 'all' && 
+          item.event_name !== window.inventoryEventFilter) return false;
+      
+      if (window.inventoryEventTypeFilter && window.inventoryEventTypeFilter !== 'all' && 
+          item.event_type !== window.inventoryEventTypeFilter) return false;
+      
+      return true;
+    }).sort((a, b) => {
+      const field = window.inventorySortField || 'event_date';
+      const direction = window.inventorySortDirection || 'asc';
+      
+      let aVal = a[field];
+      let bVal = b[field];
+      
+      if (field === 'event_date') {
+        aVal = new Date(aVal);
+        bVal = new Date(bVal);
+      }
+      
+      if (direction === 'asc') {
+        return aVal > bVal ? 1 : -1;
+      } else {
+        return aVal < bVal ? 1 : -1;
+      }
+    });
+  })();
+};
+
   // ✅ CRITICAL STATE SETTERS - COMPLETE SET
   window.setLoading = state.setLoading;
   window.setLeads = state.setLeads;
