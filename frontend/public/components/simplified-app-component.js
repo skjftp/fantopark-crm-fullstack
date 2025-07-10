@@ -639,16 +639,90 @@ window.SimplifiedApp = function() {
     }
   });
 
+  // ✅ UPLOAD STATE MANAGEMENT - NEWLY ADDED
+  window.setUploading = state.setUploading || ((uploading) => {
+    console.log("⏳ setUploading called with:", uploading);
+    window.uploading = uploading;
+    if (state.setUploading) {
+      state.setUploading(uploading);
+    } else {
+      console.warn("⚠️ setUploading not implemented in state");
+    }
+  });
+
   // ✅ CRITICAL FIX: PROCEED FROM PREVIEW FUNCTION - NEWLY ADDED
   window.handleProceedFromPreview = handlers.handleProceedFromPreview || (() => {
     console.log("🚀 handleProceedFromPreview called");
+    
+    // Close the preview modal
     window.setShowPreview(false);
-    console.warn("⚠️ handleProceedFromPreview not fully implemented in handlers");
+    
+    // Get the current upload file
+    const file = window.currentUploadFile;
+    if (!file) {
+      alert('No file selected for upload');
+      return;
+    }
+    
+    console.log("📤 Starting upload process for:", file.name);
+    
+    // Trigger the upload directly
+    const uploadFunction = async () => {
+      try {
+        // Set uploading state (assuming there's a setter for this)
+        window.setUploading && window.setUploading(true);
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch(`${window.API_CONFIG.API_URL}/upload/leads/csv`, {
+          method: 'POST',
+          headers: {
+            'Authorization': window.authToken ? 'Bearer ' + window.authToken : undefined
+          },
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          console.log("✅ Upload successful:", result);
+          
+          // Handle smart client detection results
+          if (result.clientDetectionResults && result.clientDetectionResults.length > 0) {
+            window.setClientDetectionResults(result.clientDetectionResults);
+            window.setShowClientDetectionResults(true);
+          }
+          
+          // Refresh leads data
+          if (window.fetchLeads && typeof window.fetchLeads === 'function') {
+            window.fetchLeads();
+          }
+          
+          // Show success message
+          alert(`✅ Upload completed!\n✅ Successfully imported: ${result.successCount} leads\n${result.clientDetectionCount ? `🔍 Existing clients found: ${result.clientDetectionCount}\n` : ''}${result.autoAssignmentCount ? `🎯 Auto-assignments: ${result.autoAssignmentCount}` : ''}`);
+          
+        } else {
+          console.error("❌ Upload failed:", result);
+          alert('Upload failed: ' + (result.error || 'Unknown error'));
+        }
+        
+      } catch (error) {
+        console.error("❌ Upload error:", error);
+        alert('Upload error: ' + error.message);
+      } finally {
+        window.setUploading && window.setUploading(false);
+      }
+    };
+    
+    // Execute upload
+    uploadFunction();
   });
 
   // ✅ CLIENT DETECTION STATE VARIABLES
   window.clientDetectionResults = state.clientDetectionResults || [];
   window.showClientDetectionResults = state.showClientDetectionResults || false;
+  window.uploading = state.uploading || false;
 
   // ✅ FETCHING FUNCTIONS
   window.fetchUsers = handlers.fetchUsers || (() => {
