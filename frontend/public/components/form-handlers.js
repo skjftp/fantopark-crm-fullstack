@@ -4,13 +4,14 @@
 
 // Main universal form submission handler
 window.handleFormSubmit = async function(e) {
+  console.log("🔍 Form submission started - showAddForm:", window.appState.showAddForm, "showEditForm:", window.appState.showEditForm);
   e.preventDefault();
   window.setLoading(true);
 
   try {
-    if (window.showEditForm) {
+    if (window.appState.showEditForm) {
       // Update lead via API
-      const response = await window.apicall('/leads/' + window.currentLead.id, {
+      const response = await window.apiCall('/leads/' + window.currentLead.id, {
         method: 'PUT',
         body: JSON.stringify(window.formData)
       });
@@ -44,7 +45,7 @@ window.handleFormSubmit = async function(e) {
       });
 
       // Update inventory via API
-      const response = await window.apicall('/inventory/' + window.currentInventory.id, {
+      const response = await window.apiCall('/inventory/' + window.currentInventory.id, {
         method: 'PUT',
         body: JSON.stringify(window.formData)
       });
@@ -55,43 +56,22 @@ window.handleFormSubmit = async function(e) {
         item.id === window.currentInventory.id ? response.data : item
       ));
       alert('Inventory updated successfully!');
+    } else if (window.appState.showAddForm) {
+      // Create new lead
+      const leadResponse = await window.apiCall("/leads", {
+        method: "POST",
+        body: JSON.stringify({
+          ...window.formData,
+          status: "unassigned",
+          created_by: window.user.name,
+          created_date: new Date().toISOString()
+        })
+      });
+      window.setLeads(prev => [...prev, leadResponse.data]);
+      alert("Lead added successfully!");
     } else {
       // Create new items
       switch (window.currentForm) {
-        case 'lead':
-          const leadResponse = await window.apicall('/leads', {
-            method: 'POST',
-            body: JSON.stringify({
-              ...window.formData,
-              status: 'unassigned',
-              created_by: window.user.name,
-              created_date: new Date().toISOString()
-            })
-          });
-          window.setLeads(prev => [...prev, leadResponse.data]);
-
-          // ✅ ADD: Refresh assignment rules after new lead creation
-          if (window.refreshAssignmentRules && typeof window.refreshAssignmentRules === 'function') {
-            try {
-              await window.refreshAssignmentRules();
-              console.log('✅ Assignment rules refreshed after lead creation');
-            } catch (refreshError) {
-              console.log('⚠️ Assignment rules refresh failed (non-critical):', refreshError);
-            }
-          }
-
-          alert('Lead added successfully!');
-          break;
-
-        case 'inventory':
-          console.log('Sending inventory data:', window.formData);
-          const invResponse = await window.apicall('/inventory', {
-            method: 'POST',
-            body: JSON.stringify({
-              ...window.formData,
-              created_by: window.user.name,
-              created_date: new Date().toISOString()
-            })
           });
           console.log("Inventory API Response:", invResponse);
           window.setInventory(prev => [...prev, invResponse.data]);
@@ -115,7 +95,7 @@ window.handleFormSubmit = async function(e) {
 
                 console.log('Creating payable for inventory:', payableData);
 
-                const payableResponse = await window.apicall('/finance/payables', {
+                const payableResponse = await window.apiCall('/finance/payables', {
                   method: 'POST',
                   body: JSON.stringify(payableData)
                 });
@@ -137,7 +117,7 @@ window.handleFormSubmit = async function(e) {
             ticket_category: window.orderData.ticket_category,
             total_amount: window.orderData.total_amount
           });
-          const orderResponse = await window.apicall('/orders', {
+          const orderResponse = await window.apiCall('/orders', {
             method: 'POST',
             body: JSON.stringify({
               ...window.formData,
@@ -187,7 +167,7 @@ window.handleEditOrderSubmit = async function(e) {
       updateData.rejected_by = window.user.name;
     }
 
-    const response = await window.apicall('/orders/' + window.currentOrderForEdit.id, {
+    const response = await window.apiCall('/orders/' + window.currentOrderForEdit.id, {
       method: 'PUT',
       body: JSON.stringify(updateData)
     });
@@ -243,7 +223,7 @@ window.handleAllocation = async function(e) {
     }
 
     // Call the fixed backend endpoint
-    const response = await window.apicall(`/inventory/${window.currentInventory.id}/allocate`, {
+    const response = await window.apiCall(`/inventory/${window.currentInventory.id}/allocate`, {
       method: 'POST',
       body: JSON.stringify({
         lead_id: window.allocationData.lead_id,
@@ -290,108 +270,29 @@ window.handleAssignLead = async function(e) {
   if (window.formData.assigned_to) {
     if (window.formData.assigned_to.includes('@')) {
       console.log('✅ Value contains @ - appears to be an email');
+    } else if (window.appState.showAddForm) {
+      // Create new lead
+      const leadResponse = await window.apiCall("/leads", {
+        method: "POST",
+        body: JSON.stringify({
+          ...window.formData,
+          status: "unassigned",
+          created_by: window.user.name,
+          created_date: new Date().toISOString()
+        })
+      });
+      window.setLeads(prev => [...prev, leadResponse.data]);
+      alert("Lead added successfully!");
     } else {
-      console.log('❌ Value does NOT contain @ - appears to be a name');
-    }
-  }
-  window.setLoading(true);
-
-  try {
-    const response = await window.apicall('/leads/' + window.currentLead.id, {
-      method: 'PUT',
-      body: JSON.stringify({
-        status: 'assigned',
-        assigned_to: window.formData.assigned_to,
-        assignment_date: new Date().toISOString()
-      })
-    });
-
-    window.setLeads(prev => prev.map(lead => 
-      lead.id === window.currentLead.id ? response.data : lead
-    ));
-
-    // Update currentLead if viewing the assigned lead
-    if (window.showLeadDetail && window.currentLead?.id === response.data.id) {
-      window.setCurrentLead(response.data);
-    }
-
-    // ✅ ADD: Refresh assignment rules after lead assignment
-    if (window.refreshAssignmentRules && typeof window.refreshAssignmentRules === 'function') {
-      try {
-        await window.refreshAssignmentRules();
-        console.log('✅ Assignment rules refreshed after lead assignment');
-      } catch (refreshError) {
-        console.log('⚠️ Assignment rules refresh failed (non-critical):', refreshError);
-      }
-    }
-
-    alert('Lead assigned successfully!');
-    window.closeForm();
-  } catch (error) {
-    alert('Assignment failed: ' + error.message);
-  } finally {
-    window.setLoading(false);
-  }
-};
-
-// Payment post service submission handler
-window.handlePaymentPostServiceSubmit = async function(e) {
-  e.preventDefault();
-
-  if (!window.hasPermission('leads', 'write')) {
-    alert('You do not have permission to manage payment post service');
-    return;
-  }
-
-  window.setLoading(true);
-
-  try {
-    // Update lead status via API
-    const leadResponse = await window.apicall('/leads/' + window.currentLead.id, {
-      method: 'PUT',
-      body: JSON.stringify({
-        status: 'payment_post_service',
-        payment_post_service_details: window.paymentPostServiceData,
-        payment_post_service_date: new Date().toISOString()
-      })
-    });
-
-    // Update local state
-    window.setLeads(prev => 
-      prev.map(lead => 
-        lead.id === window.currentLead.id ? leadResponse : lead
-      )
-    );
-
-    // Create order with all required fields
-    const newOrder = {
-      order_number: 'ORD-' + Date.now(),
-      lead_id: window.currentLead.id,
-      client_name: window.currentLead.name,
-      client_email: window.currentLead.email,
-      client_phone: window.currentLead.phone,
-
-      // Required order fields for backend
-      event_name: window.currentLead?.lead_for_event || 'Post Service Payment',
-      event_date: window.paymentPostServiceData.service_date || new Date().toISOString().split('T')[0],
-      tickets_allocated: 1,
-      ticket_category: 'Post Service',
-      price_per_ticket: parseFloat(window.paymentPostServiceData.expected_amount) || 0,
-      total_amount: parseFloat(window.paymentPostServiceData.expected_amount) || 0,
-
-      // Payment post service specific fields
-      expected_amount: parseFloat(window.paymentPostServiceData.expected_amount),
-      expected_payment_date: window.paymentPostServiceData.expected_payment_date,
-      service_description: window.paymentPostServiceData.service_details,
-      notes: window.paymentPostServiceData.notes,
-      payment_terms: window.paymentPostServiceData.payment_terms,
-
-      // Order metadata
-      order_type: 'payment_post_service',
-      payment_status: 'pending',
-      status: 'pending_approval',
-      requires_gst_invoice: true,
-      created_date: new Date().toISOString(),
+      // Create new items
+      switch (window.currentForm) {
+        })
+      });
+      window.setLeads(prev => [...prev, leadResponse.data]);
+      alert("Lead added successfully!");
+    } else {
+      // Create new items
+      switch (window.currentForm) {
       created_by: window.user.name,
       assigned_to: ''  // Will be assigned later
     };
@@ -399,7 +300,7 @@ window.handlePaymentPostServiceSubmit = async function(e) {
     // Create order in backend
     try {
       console.log('Creating payment post service order:', JSON.stringify(newOrder, null, 2));
-      const orderResponse = await window.apicall('/orders', {
+      const orderResponse = await window.apiCall('/orders', {
         method: 'POST',
         body: JSON.stringify(newOrder)
       });
@@ -449,7 +350,7 @@ window.handleDeliverySubmit = async function(e) {
 
     // Update delivery in backend
     try {
-      await window.apicall('/deliveries/' + window.currentDelivery.id, {
+      await window.apiCall('/deliveries/' + window.currentDelivery.id, {
         method: 'PUT',
         body: JSON.stringify({
           ...window.currentDelivery,
@@ -494,7 +395,7 @@ window.handleUserSubmit = async function(e) {
     const endpoint = window.editingUser ? '/users/' + window.editingUser.id : '/users';
     const method = window.editingUser ? 'PUT' : 'POST';
 
-    const response = await window.apicall(endpoint, {
+    const response = await window.apiCall(endpoint, {
       method: method,
       body: JSON.stringify(window.userFormData)
     });
@@ -620,7 +521,7 @@ window.handleBulkAssignSubmit = async function() {
   try {
     for (const [leadId, assigneeEmail] of Object.entries(window.bulkAssignSelections)) {
       try {
-        const response = await window.apicall(`/leads/${leadId}`, {
+        const response = await window.apiCall(`/leads/${leadId}`, {
           method: 'PUT',
           body: JSON.stringify({
             assigned_to: assigneeEmail,
@@ -631,41 +532,40 @@ window.handleBulkAssignSubmit = async function() {
         if (response.error) {
           console.error(`Failed to assign lead ${leadId}:`, response.error);
           errorCount++;
-        } else {
-          successCount++;
-        }
-      } catch (error) {
-        console.error(`Error assigning lead ${leadId}:`, error);
-        errorCount++;
-      }
-    }
-
-    alert(`Bulk assignment completed!\n✅ ${successCount} leads assigned successfully\n❌ ${errorCount} failed`);
-
-    // FIXED: Use the correct function name to refresh leads data
-    if (typeof window.fetchData === 'function') {
-      await window.fetchData(); // Most likely this one
-    } else if (typeof window.loadLeads === 'function') {
-      await window.loadLeads();
-    } else if (typeof window.refreshLeads === 'function') {
-      await window.refreshLeads();
-    } else if (typeof window.getData === 'function') {
-      await window.getData();
+        } else if (window.appState.showAddForm) {
+      // Create new lead
+      const leadResponse = await window.apiCall("/leads", {
+        method: "POST",
+        body: JSON.stringify({
+          ...window.formData,
+          status: "unassigned",
+          created_by: window.user.name,
+          created_date: new Date().toISOString()
+        })
+      });
+      window.setLeads(prev => [...prev, leadResponse.data]);
+      alert("Lead added successfully!");
     } else {
-      // If none of the above work, just reload the page
-      window.location.reload();
-    }
-
-    // Close modal and reset selections
-    window.setShowBulkAssignModal(false);
-    window.setBulkAssignSelections({});
-
-  } catch (error) {
-    console.error('Bulk assignment error:', error);
-    alert('Error during bulk assignment: ' + error.message);
-  } finally {
-    window.setBulkAssignLoading(false);
-  }
-};
-
-console.log('✅ Form Handlers System component loaded successfully');
+      // Create new items
+      switch (window.currentForm) {
+        })
+      });
+      window.setLeads(prev => [...prev, leadResponse.data]);
+      alert("Lead added successfully!");
+    } else {
+      // Create new items
+      switch (window.currentForm) {
+        })
+      });
+      window.setLeads(prev => [...prev, leadResponse.data]);
+      alert("Lead added successfully!");
+    } else {
+      // Create new items
+      switch (window.currentForm) {
+        })
+      });
+      window.setLeads(prev => [...prev, leadResponse.data]);
+      alert("Lead added successfully!");
+    } else {
+      // Create new items
+      switch (window.currentForm) {

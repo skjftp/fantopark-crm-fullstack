@@ -13,96 +13,6 @@ window.SimplifiedApp = function() {
   // Make handlers available globally
   window.appHandlers = handlers;
 
-  // Expose commonly used functions directly to window for easier access
-  window.getStatusFilterDisplayText = handlers.getStatusFilterDisplayText;
-  window.openLeadDetail = handlers.openLeadDetail;
-  window.editLead = handlers.editLead;
-  window.deleteLead = handlers.deleteLead;
-  window.assignLead = handlers.assignLead;
-  window.progressLead = handlers.progressLead;
-  
-  // Window function exposures
-  window.openAddForm = handlers.openAddForm || (() => console.log("openAddForm not implemented"));
-  window.openPaymentForm = handlers.openPaymentForm || (() => console.log("openPaymentForm not implemented"));
-  window.openAllocationForm = handlers.openAllocationForm || (() => console.log("openAllocationForm not implemented"));
-  window.openDeliveryForm = handlers.openDeliveryForm || (() => console.log("openDeliveryForm not implemented"));
-  window.openInventoryForm = handlers.openInventoryForm || (() => console.log("openInventoryForm not implemented"));
-  window.openEditForm = (lead) => { 
-    console.log("🔍 openEditForm called with lead:", lead); 
-    try { 
-      const result = handlers.openEditForm(lead); 
-      console.log("🔍 openEditForm completed successfully"); 
-      return result; 
-    } catch (error) { 
-      console.error("🔍 openEditForm error:", error); 
-    } 
-  };
-  window.openAssignForm = handlers.openAssignForm || (() => console.log("openAssignForm not implemented"));
-  window.handleLeadProgression = handlers.handleLeadProgression || (() => console.log("handleLeadProgression not implemented"));
-  window.openPaymentForm = handlers.openPaymentForm || (() => console.log("openPaymentForm not implemented"));
-  window.updateLeadStatus = handlers.updateLeadStatus || (() => console.log("updateLeadStatus not implemented"));
-  window.getUserDisplayName = handlers.getUserDisplayName || ((userId) => userId);
-  
-  // Expose modal state variables
-  window.appState.showAddForm = state.showAddForm;
-  window.appState.showEditForm = state.showEditForm;
-  window.appState.showAssignForm = state.showAssignForm;
-  window.appState.showPaymentForm = state.showPaymentForm;
-  
-  // Expose additional form state variables
-  window.appState.showClientSuggestion = state.showClientSuggestion;
-  window.appState.clientSuggestion = state.clientSuggestion;
-  window.appState.formData = state.formData;
-  window.appState.currentLead = state.currentLead;
-  window.appState.phoneCheckLoading = state.phoneCheckLoading;
-  
-  // Expose global variables for lead form
-  window.showClientSuggestion = state.showClientSuggestion;
-  window.clientSuggestion = state.clientSuggestion;
-  window.formData = state.formData;
-  window.currentLead = state.currentLead;
-  window.user = state.user;
-  window.phoneCheckLoading = state.phoneCheckLoading;
-  window.loading = state.loading;
-  window.setLoading = state.setLoading;
-  window.setLeads = state.setLeads;
-  window.inventory = state.inventory;
-  window.users = state.users || [];
-  window.events = state.events || [];
-  window.setFormData = state.setFormData;
-  window.setClientSuggestion = state.setClientSuggestion;
-  window.setPhoneCheckTimeout = state.setPhoneCheckTimeout;
-  window.checkPhoneForClient = handlers.checkPhoneForClient || (() => console.log("checkPhoneForClient not implemented"));
-  window.phoneCheckTimeout = state.phoneCheckTimeout;
-  window.setShowClientDetail = state.setShowClientDetail;
-  window.setShowClientSuggestion = state.setShowClientSuggestion;
-
-  // Critical missing state setters
-  window.setLoading = state.setLoading;
-  window.setLeads = state.setLeads;
-  window.setInventory = state.setInventory;
-  window.setOrders = state.setOrders;
-  window.setUsers = state.setUsers;
-  window.setDeliveries = state.setDeliveries;
-  window.setCurrentInventory = state.setCurrentInventory;
-  window.setShowInventoryForm = state.setShowInventoryForm;
-  window.setAllocationData = state.setAllocationData;
-  window.setPaymentData = state.setPaymentData;
-  window.closeForm = () => {
-    window.appState.setShowLeadDetail(false);
-    window.appState.setShowEditForm(false);
-    window.appState.setShowAddForm(false);
-    window.appState.setFormData({});
-    window.appState.setCurrentLead(null);
-  };
-  window.setShowStatusFilterDropdown = handlers.setShowStatusFilterDropdown;
-  window.showStatusFilterDropdown = state.showStatusFilterDropdown;
-  window.statusDropdownRef = state.statusDropdownRef;
-  window.statusFilter = state.statusFilter;
-  window.setStatusFilter = state.setStatusFilter;
-  window.selectedStatusFilters = state.selectedStatusFilters;
-  window.setSelectedStatusFilters = state.setSelectedStatusFilters;
-
   // Permission and access control functions
   window.hasPermission = function(module, action) {
     if (state.user?.role === 'super_admin') return true;
@@ -288,7 +198,7 @@ window.SimplifiedApp = function() {
         menuItems.filter(item => canAccessTab(item.id)).map(item =>
           React.createElement('button', {
             key: item.id,
-            onClick: () => { state.setActiveTab(item.id); if(item.id === 'leads') state.setViewMode('leads'); },
+            onClick: () => state.setActiveTab(item.id),
             className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 ' + (state.activeTab === item.id ? 'bg-blue-50 border-r-2 border-blue-600 text-blue-600' : 'text-gray-700')
           },
             React.createElement('span', { className: 'mr-3' }, item.icon),

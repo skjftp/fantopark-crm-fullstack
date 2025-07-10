@@ -3,9 +3,9 @@
 // Uses window.* globals for CDN-based React compatibility
 
 window.renderBulkAssignModal = () => {
-  if (!showBulkAssignModal) return null;
+  if (!window.showBulkAssignModal) return null;
 
-  const unassignedLeads = leads.filter(lead => !lead.assigned_to || lead.assigned_to === '' || lead.status === 'unassigned');
+  const unassignedLeads = (window.leads || []).filter(lead => !lead.assigned_to || lead.assigned_to === '' || lead.status === 'unassigned');
   const salesUsers = users.filter(u => 
     ['sales_executive', 'sales_manager', 'supply_executive', 'supply_sales_service_manager'].includes(u.role) && 
     u.status === 'active'

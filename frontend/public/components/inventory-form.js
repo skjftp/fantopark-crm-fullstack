@@ -3,7 +3,7 @@
 // Uses window.* globals for CDN-based React compatibility
 
 window.renderInventoryForm = () => {
-  if (!showInventoryForm || !editingInventory) return null;
+  if (!window.showInventoryForm || !window.editingInventory) return null;
 
   // Check if opened from payables (payment context)
   const isFromPayables = editingInventory._payableContext?.fromPayables;

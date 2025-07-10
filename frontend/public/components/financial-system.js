@@ -80,7 +80,7 @@ window.handleMarkAsPaid = async function(payableId) {
 
     window.setLoading(true);
 
-    const response = await window.apicall(`/finance/payables/${payableId}`, {
+    const response = await window.apiCall(`/finance/payables/${payableId}`, {
       method: 'PUT',
       body: JSON.stringify({
         status: 'paid',
@@ -110,11 +110,11 @@ window.fetchFinancialData = async function() {
   try {
     console.log('Fetching financial data...');
     const [ordersRes, invoicesRes, payablesRes, inventoryRes, receivablesRes] = await Promise.all([
-      window.apicall('/orders'),
-      window.apicall('/invoices'),
-      window.apicall('/payables'),
-      window.apicall('/inventory'),
-      window.apicall('/receivables').catch(() => ({ data: [] }))
+      window.apiCall('/orders'),
+      window.apiCall('/invoices'),
+      window.apiCall('/payables'),
+      window.apiCall('/inventory'),
+      window.apiCall('/receivables').catch(() => ({ data: [] }))
     ]);
 
     const ordersData = ordersRes.data || [];
@@ -278,7 +278,7 @@ window.recordPayment = async function(receivableId) {
 
   try {
     window.setLoading(true);
-    const response = await window.apicall('/receivables/record-payment/' + receivableId, 'PUT', {
+    const response = await window.apiCall('/receivables/record-payment/' + receivableId, 'PUT', {
       payment_amount: parseFloat(paymentAmount),
       payment_date: new Date().toISOString(),
       payment_mode: paymentMode,
@@ -419,7 +419,7 @@ window.markReceivableAsPaid = async function(receivableId, paymentDetails = {}) 
       payment_notes: paymentDetails.notes || 'Marked as paid manually'
     };
 
-    const response = await window.apicall(`/receivables/${receivableId}`, {
+    const response = await window.apiCall(`/receivables/${receivableId}`, {
       method: 'PUT',
       body: JSON.stringify(updateData)
     });

@@ -23,7 +23,7 @@ window.renderDeliveryContent = () => {
         ),
 
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border' },
-            window.deliveries.length > 0 ? React.createElement('div', { className: 'overflow-x-auto' },
+            (window.deliveries || []).length > 0 ? React.createElement('div', { className: 'overflow-x-auto' },
                 React.createElement('table', { className: 'w-full' },
                     React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
                         React.createElement('tr', null,
@@ -37,7 +37,7 @@ window.renderDeliveryContent = () => {
                         )
                     ),
                     React.createElement('tbody', { className: 'bg-white divide-y divide-gray-200' },
-                        window.deliveries.map(delivery => {
+                        (window.deliveries || []).map(delivery => {
                             const status = DELIVERY_STATUSES[delivery.status] || { label: delivery.status, color: 'bg-gray-100 text-gray-800' };
 
                             return React.createElement('tr', { key: delivery.id, className: 'hover:bg-gray-50' },

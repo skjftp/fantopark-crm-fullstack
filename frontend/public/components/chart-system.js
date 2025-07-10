@@ -1,4 +1,12 @@
 // Chart Management System Component for FanToPark CRM
+// Helper function for getting lead temperature
+window.getDisplayTemperature = function(lead) {
+    if (lead.temperature) return lead.temperature;
+    if (lead.status === "hot") return "hot";
+    if (lead.status === "warm") return "warm";
+    if (lead.status === "cold") return "cold";
+    return "warm"; // default
+};
 // Extracted from index.html - maintains 100% functionality
 // Handles all Chart.js initialization, updates, and management
 

@@ -1,17 +1,24 @@
 // components/leads.js
+// Placeholder for client view content
+window.renderClientViewContent = function() {
+    return React.createElement("div", { className: "p-4" },
+        React.createElement("h2", { className: "text-xl font-bold mb-4" }, "Client View"),
+        React.createElement("p", { className: "text-gray-600" }, "Client view content will be implemented here.")
+    );
+};
 // Leads Content Component - Extracted from index.html
 // Enhanced renderLeadsContent function with Client Toggle - PRESERVES ALL EXISTING FEATURES
 // This includes advanced filtering, sorting, pagination, premium features, and client view
 
 window.renderLeadsContent = () => {
     // EXISTING FILTERING LOGIC - UNCHANGED
-    const filteredLeads = window.leads.filter(lead => {
+    const filteredLeads = (window.appState.leads || []).filter(lead => {
         // Search filter
-        const matchesSearch = window.searchQuery === '' || 
-            lead.name.toLowerCase().includes(window.searchQuery.toLowerCase()) ||
-            lead.email.toLowerCase().includes(window.searchQuery.toLowerCase()) ||
-            (lead.company && lead.company.toLowerCase().includes(window.searchQuery.toLowerCase())) ||
-            (lead.phone && lead.phone.includes(window.searchQuery));
+        const matchesSearch = (!window.appState.searchQuery || window.appState.searchQuery === '') || 
+            lead.name?.toLowerCase().includes(window.appState.searchQuery?.toLowerCase()) ||
+            lead.email?.toLowerCase().includes(window.appState.searchQuery?.toLowerCase()) ||
+            (lead.company && lead.company?.toLowerCase().includes(window.appState.searchQuery?.toLowerCase())) ||
+            (lead.phone && lead.phone.includes(window.appState.searchQuery));
 
         // Updated status filter - support both old single filter and new multi-select
         let matchesStatus = true;
@@ -25,13 +32,13 @@ window.renderLeadsContent = () => {
         }
 
         // Source filter (EXISTING)
-        const matchesSource = window.leadsSourceFilter === 'all' || lead.source === window.leadsSourceFilter;
+        const matchesSource = window.appState.leadsSourceFilter === 'all' || lead.source === window.appState.leadsSourceFilter;
 
         // Business type filter (EXISTING)
-        const matchesBusinessType = window.leadsBusinessTypeFilter === 'all' || lead.business_type === window.leadsBusinessTypeFilter;
+        const matchesBusinessType = window.appState.leadsBusinessTypeFilter === 'all' || lead.business_type === window.appState.leadsBusinessTypeFilter;
 
         // Event filter (EXISTING)
-        const matchesEvent = window.leadsEventFilter === 'all' || lead.lead_for_event === window.leadsEventFilter;
+        const matchesEvent = window.appState.leadsEventFilter === 'all' || lead.lead_for_event === window.appState.leadsEventFilter;
 
         return matchesSearch && matchesStatus && matchesSource && matchesBusinessType && matchesEvent;
     });
@@ -40,7 +47,7 @@ window.renderLeadsContent = () => {
     const sortedLeads = filteredLeads.sort((a, b) => {
         let aValue, bValue;
 
-        switch (window.leadsSortField) {
+        switch (window.appState.leadsSortField) {
             case 'date_of_enquiry':
                 aValue = new Date(a.date_of_enquiry || a.created_date);
                 bValue = new Date(b.date_of_enquiry || b.created_date);
@@ -62,7 +69,7 @@ window.renderLeadsContent = () => {
                 bValue = new Date(b.date_of_enquiry || b.created_date);
         }
 
-        if (window.leadsSortDirection === 'asc') {
+        if (window.appState.leadsSortDirection === 'asc') {
             return aValue > bValue ? 1 : -1;
         } else {
             return aValue < bValue ? 1 : -1;
@@ -70,10 +77,10 @@ window.renderLeadsContent = () => {
     });
 
     // EXISTING PAGINATION LOGIC - UNCHANGED
-    const indexOfLastItem = window.currentLeadsPage * window.itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - window.itemsPerPage;
+    const indexOfLastItem = window.appState.currentLeadsPage * window.appState.itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - window.appState.itemsPerPage;
     const currentLeads = sortedLeads.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(sortedLeads.length / window.itemsPerPage);
+    const totalPages = Math.ceil(sortedLeads.length / window.appState.itemsPerPage);
 
     // EXISTING UNASSIGNED LEADS LOGIC - UNCHANGED
     const unassignedLeads = sortedLeads.filter(lead => !lead.assigned_to || lead.assigned_to === '' || lead.status === 'unassigned');
@@ -90,38 +97,38 @@ window.renderLeadsContent = () => {
                     React.createElement('button', {
                         onClick: () => window.setViewMode('leads'),
                         className: `px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                            window.viewMode === 'leads' 
+                            window.appState.viewMode === 'leads' 
                             ? 'bg-blue-600 text-white shadow-sm' 
                             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                         }`
                     }, 
                         React.createElement('span', { className: 'mr-2' }, '📋'),
-                        `Lead View (${window.leads.length})`
+                        `Lead View (${(window.appState.leads || []).length})`
                     ),
                     React.createElement('button', {
                         onClick: () => window.setViewMode('clients'),
                         className: `px-4 py-2 rounded-md text-sm font-medium transition-colors ml-1 ${
-                            window.viewMode === 'clients' 
+                            window.appState.viewMode === 'clients' 
                             ? 'bg-blue-600 text-white shadow-sm' 
                             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                         }`
                     }, 
                         React.createElement('span', { className: 'mr-2' }, '👥'),
-                        `Client View (${window.clients.length})`
+                        `Client View (${(window.clients || []).length})`
                     )
                 )
             ),
 
             // Mode Description
             React.createElement('p', { className: 'text-sm text-gray-600' },
-                window.viewMode === 'leads' 
+                window.appState.viewMode === 'leads' 
                 ? 'Individual lead management - Create, assign, and track each lead separately with advanced filtering'
                 : 'Client-based view - See all leads grouped by phone number for complete client history and relationships'
             )
         ),
 
         // Conditional Content Based on View Mode
-        window.viewMode === 'leads' ? 
+        window.appState.viewMode === 'leads' ? 
         // EXISTING LEAD VIEW CONTENT - COMPLETELY UNCHANGED
         React.createElement('div', { className: 'space-y-6' },
             // EXISTING HEADER WITH BUTTONS - UNCHANGED
@@ -178,10 +185,10 @@ window.renderLeadsContent = () => {
                         React.createElement('input', {
                             type: 'text',
                             placeholder: 'Name, email, company...',
-                            value: window.searchQuery,
+                            value: window.appState.searchQuery,
                             onChange: (e) => {
                                 window.setSearchQuery(e.target.value);
-                                window.setCurrentLeadsPage(1);
+                                window.appState.setCurrentLeadsPage(1);
                             },
                             className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                         })
@@ -339,15 +346,15 @@ window.renderLeadsContent = () => {
                     React.createElement('div', null,
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Source'),
                         React.createElement('select', {
-                            value: window.leadsSourceFilter,
+                            value: window.appState.leadsSourceFilter,
                             onChange: (e) => {
                                 window.setLeadsSourceFilter(e.target.value);
-                                window.setCurrentLeadsPage(1);
+                                window.appState.setCurrentLeadsPage(1);
                             },
                             className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                         },
                             React.createElement('option', { value: 'all' }, 'All Sources'),
-                            ...Array.from(new Set(window.leads.map(lead => lead.source).filter(Boolean))).sort().map(source =>
+                            ...Array.from(new Set(window.appState.leads.map(lead => lead.source).filter(Boolean))).sort().map(source =>
                                 React.createElement('option', { key: source, value: source }, source)
                             )
                         )
@@ -357,15 +364,15 @@ window.renderLeadsContent = () => {
                     React.createElement('div', null,
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Business Type'),
                         React.createElement('select', {
-                            value: window.leadsBusinessTypeFilter,
+                            value: window.appState.leadsBusinessTypeFilter,
                             onChange: (e) => {
                                 window.setLeadsBusinessTypeFilter(e.target.value);
-                                window.setCurrentLeadsPage(1);
+                                window.appState.setCurrentLeadsPage(1);
                             },
                             className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                         },
                             React.createElement('option', { value: 'all' }, 'All Business Types'),
-                            ...Array.from(new Set(window.leads.map(lead => lead.business_type).filter(Boolean))).sort().map(type =>
+                            ...Array.from(new Set(window.appState.leads.map(lead => lead.business_type).filter(Boolean))).sort().map(type =>
                                 React.createElement('option', { key: type, value: type }, type)
                             )
                         )
@@ -375,15 +382,15 @@ window.renderLeadsContent = () => {
                     React.createElement('div', null,
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Event'),
                         React.createElement('select', {
-                            value: window.leadsEventFilter,
+                            value: window.appState.leadsEventFilter,
                             onChange: (e) => {
                                 window.setLeadsEventFilter(e.target.value);
-                                window.setCurrentLeadsPage(1);
+                                window.appState.setCurrentLeadsPage(1);
                             },
                             className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                         },
                             React.createElement('option', { value: 'all' }, 'All Events'),
-                            ...Array.from(new Set(window.leads.map(lead => lead.lead_for_event).filter(Boolean))).sort().map(event =>
+                            ...Array.from(new Set(window.appState.leads.map(lead => lead.lead_for_event).filter(Boolean))).sort().map(event =>
                                 React.createElement('option', { key: event, value: event }, event)
                             )
                         )
@@ -394,10 +401,10 @@ window.renderLeadsContent = () => {
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Sort By'),
                         React.createElement('div', { className: 'flex gap-2' },
                             React.createElement('select', {
-                                value: window.leadsSortField,
+                                value: window.appState.leadsSortField,
                                 onChange: (e) => {
                                     window.setLeadsSortField(e.target.value);
-                                    window.setCurrentLeadsPage(1);
+                                    window.appState.setCurrentLeadsPage(1);
                                 },
                                 className: 'flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                             },
@@ -408,12 +415,12 @@ window.renderLeadsContent = () => {
                             ),
                             React.createElement('button', {
                                 onClick: () => {
-                                    window.setLeadsSortDirection(window.leadsSortDirection === 'asc' ? 'desc' : 'asc');
-                                    window.setCurrentLeadsPage(1);
+                                    window.setLeadsSortDirection(window.appState.leadsSortDirection === 'asc' ? 'desc' : 'asc');
+                                    window.appState.setCurrentLeadsPage(1);
                                 },
                                 className: 'px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500',
-                                title: window.leadsSortDirection === 'asc' ? 'Sort Descending' : 'Sort Ascending'
-                            }, window.leadsSortDirection === 'asc' ? '↑' : '↓')
+                                title: window.appState.leadsSortDirection === 'asc' ? 'Sort Descending' : 'Sort Ascending'
+                            }, window.appState.leadsSortDirection === 'asc' ? '↑' : '↓')
                         )
                     )
                 ),
@@ -421,10 +428,10 @@ window.renderLeadsContent = () => {
                 // EXISTING FILTER STATUS SUMMARY - COMPLETELY UNCHANGED
                 React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
                     React.createElement('span', { className: 'text-sm text-gray-600' },
-                        `Showing ${sortedLeads.length} of ${window.leads.length} leads`
+                        `Showing ${sortedLeads.length} of ${(window.appState.leads || []).length} leads`
                     ),
-                    (window.searchQuery !== '' || window.selectedStatusFilters.length > 0 || window.statusFilter !== 'all' || window.leadsSourceFilter !== 'all' || 
-                    window.leadsBusinessTypeFilter !== 'all' || window.leadsEventFilter !== 'all') &&
+                    (window.appState.searchQuery !== '' || window.selectedStatusFilters.length > 0 || window.statusFilter !== 'all' || window.appState.leadsSourceFilter !== 'all' || 
+                    window.appState.leadsBusinessTypeFilter !== 'all' || window.appState.leadsEventFilter !== 'all') &&
                     React.createElement('button', {
                         onClick: () => {
                             window.setSearchQuery('');
@@ -433,7 +440,7 @@ window.renderLeadsContent = () => {
                             window.setLeadsSourceFilter('all');
                             window.setLeadsBusinessTypeFilter('all');
                             window.setLeadsEventFilter('all');
-                            window.setCurrentLeadsPage(1);
+                            window.appState.setCurrentLeadsPage(1);
                         },
                         className: 'text-sm text-blue-600 hover:text-blue-800 underline'
                     }, 'Clear All Filters')
@@ -580,26 +587,26 @@ window.renderLeadsContent = () => {
                         )
                     ),
                     // EXISTING PAGINATION - COMPLETELY UNCHANGED
-                    sortedLeads.length > window.itemsPerPage && React.createElement('div', { className: 'flex justify-between items-center px-6 py-3 bg-gray-50 border-t' },
+                    sortedLeads.length > window.appState.itemsPerPage && React.createElement('div', { className: 'flex justify-between items-center px-6 py-3 bg-gray-50 border-t' },
                         React.createElement('div', { className: 'text-sm text-gray-700' },
                             'Showing ' + (indexOfFirstItem + 1) + ' to ' + (Math.min(indexOfLastItem, sortedLeads.length)) + ' of ' + (sortedLeads.length) + ' leads'
                         ),
                         React.createElement('div', { className: 'flex space-x-2' },
                             React.createElement('button', {
-                                onClick: () => window.setCurrentLeadsPage(prev => Math.max(prev - 1, 1)),
-                                disabled: window.currentLeadsPage === 1,
+                                onClick: () => window.appState.setCurrentLeadsPage(prev => Math.max(prev - 1, 1)),
+                                disabled: window.appState.currentLeadsPage === 1,
                                 className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
                             }, 'Previous'),
-                            React.createElement('span', { className: 'px-3 py-1' }, 'Page ' + (window.currentLeadsPage) + ' of ' + (totalPages)),
+                            React.createElement('span', { className: 'px-3 py-1' }, 'Page ' + (window.appState.currentLeadsPage) + ' of ' + (totalPages)),
                             React.createElement('button', {
-                                onClick: () => window.setCurrentLeadsPage(prev => Math.min(prev + 1, totalPages)),
-                                disabled: window.currentLeadsPage === totalPages,
+                                onClick: () => window.appState.setCurrentLeadsPage(prev => Math.min(prev + 1, totalPages)),
+                                disabled: window.appState.currentLeadsPage === totalPages,
                                 className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
                             }, 'Next')
                         )
                     )
                 ) : React.createElement('div', { className: 'p-6 text-center text-gray-500' }, 
-                    sortedLeads.length === 0 && window.leads.length > 0 ? 
+                    sortedLeads.length === 0 && (window.appState.leads || []).length > 0 ? 
                     'No leads match your current filters.' : 
                     'No leads found. Add your first lead!'
                 )

@@ -4,7 +4,7 @@
 
 window.renderInventoryContent = () => {
     // ENHANCED FILTERING - includes event type filter
-    const filteredInventory = window.inventory.filter(item => {
+    const filteredInventory = (window.inventory || []).filter(item => {
         const daysUntilEvent = window.getInventoryDueInDays(item.event_date);
 
         // Event name filter
@@ -170,7 +170,7 @@ window.renderInventoryContent = () => {
                     },
                         React.createElement('option', { value: 'all' }, 'All Events'),
                         // Fixed to use ALL inventory data, not just current page
-                        ...Array.from(new Set(window.inventory.map(item => item.event_name))).sort().map(event =>
+                        ...Array.from(new Set((window.inventory || []).map(item => item.event_name))).sort().map(event =>
                             React.createElement('option', { key: event, value: event }, event)
                         )
                     )
@@ -188,7 +188,7 @@ window.renderInventoryContent = () => {
                         className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                     },
                         React.createElement('option', { value: 'all' }, 'All Event Types'),
-                        ...Array.from(new Set(window.inventory.map(item => item.event_type).filter(Boolean))).sort().map(eventType =>
+                        ...Array.from(new Set((window.inventory || []).map(item => item.event_type).filter(Boolean))).sort().map(eventType =>
                             React.createElement('option', { key: eventType, value: eventType }, 
                                 eventType.charAt(0).toUpperCase() + eventType.slice(1)
                             )
@@ -228,7 +228,7 @@ window.renderInventoryContent = () => {
             // Filter Status Summary
             React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
                 React.createElement('span', { className: 'text-sm text-gray-600' },
-                    `Showing ${sortedInventory.length} of ${window.inventory.length} events`
+                    `Showing ${sortedInventory.length} of ${(window.inventory || []).length} events`
                 ),
                 (window.inventoryEventFilter !== 'all' || window.inventoryEventTypeFilter !== 'all' || window.inventoryDueDateFilter !== 'all') &&
                 React.createElement('button', {
@@ -245,7 +245,7 @@ window.renderInventoryContent = () => {
 
         // INVENTORY TABLE
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border' },
-            window.inventory.length > 0 ? 
+            (window.inventory || []).length > 0 ? 
             React.createElement('div', { className: 'overflow-x-auto' },
                 React.createElement('table', { className: 'w-full' },
                     React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
@@ -260,7 +260,7 @@ window.renderInventoryContent = () => {
                         )
                     ),
                     React.createElement('tbody', { className: 'bg-white divide-y divide-gray-200' },
-                        currentInventoryItems.map(item =>
+                        (currentInventoryItems || []).map(item =>
                             React.createElement('tr', { key: item.id, className: 'hover:bg-gray-50' },
                                 React.createElement('td', { className: 'px-6 py-4' },
                                     React.createElement('div', { 

@@ -7,8 +7,8 @@
 // Main render function for orders management
 window.renderOrdersContent = () => {
     console.log("All orders:", window.orders);
-    console.log("Orders with is_deleted:", window.orders.filter(o => o.is_deleted));
-    console.log("Orders with status deleted:", window.orders.filter(o => o.status === "deleted"));
+    console.log("Orders with is_deleted:", (window.orders || []).filter(o => o.is_deleted));
+    console.log("Orders with status deleted:", (window.orders || []).filter(o => o.status === "deleted"));
     
     return React.createElement('div', { className: 'space-y-6' },
         React.createElement('div', { className: 'flex justify-between items-center' },
@@ -22,7 +22,7 @@ window.renderOrdersContent = () => {
         ),
 
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border' },
-            window.orders.length > 0 ? React.createElement('div', { className: 'overflow-x-auto' },
+            (window.orders || []).length > 0 ? React.createElement('div', { className: 'overflow-x-auto' },
                 React.createElement('table', { className: 'w-full' },
                     React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
                         React.createElement('tr', null,
@@ -37,7 +37,7 @@ window.renderOrdersContent = () => {
                         )
                     ),
                     React.createElement('tbody', { className: 'bg-white divide-y divide-gray-200' },
-                        window.orders.map(order => {
+                        (window.orders || []).map(order => {
                             const status = window.ORDER_STATUSES[order.status] || { label: order.status, color: 'bg-gray-100 text-gray-800', next: [] };
 
                             // ENHANCED: Handle both old and new order formats

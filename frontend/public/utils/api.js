@@ -13,13 +13,13 @@ window.apiCall = async function(endpoint, options = {}) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(window.authToken ? { 'Authorization': `Bearer ${window.authToken}` } : {}),
+      ...(localStorage.getItem('crm_auth_token') ? { 'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}` } : {}),
       ...options.headers
     }
   };
 
   try {
-    const response = await fetch(`${window.API_URL}${endpoint}`, config);
+    const response = await fetch(`${window.API_CONFIG.API_URL}${endpoint}`, config);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

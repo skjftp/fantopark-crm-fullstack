@@ -1,10 +1,19 @@
 // components/my-actions.js
+// My Actions data arrays - safe defaults
+window.myReceivables = window.myReceivables || [];
+window.myLeads = window.myLeads || [];
+window.myOrders = window.myOrders || [];
+window.myDeliveries = window.myDeliveries || [];
+// My Actions data arrays
+window.myActions = window.myActions || [];
+window.myTasks = window.myTasks || [];
+window.myReminders = window.myReminders || [];
 // My Actions Content Component - Extracted from index.html
 // Handles all "My Actions" page functionality including assigned leads, orders, deliveries, and quote requests
 
 window.renderMyActionsContent = () => {
 
-    const totalOverdueAmount = window.myReceivables.reduce((sum, rec) => sum + (rec.amount || 0), 0);
+    const totalOverdueAmount = (window.myReceivables || []).reduce((sum, rec) => sum + (rec.amount || 0), 0);
     const hasActions = window.myLeads.length > 0 || window.myOrders.length > 0 || window.myDeliveries.length > 0;
 
     return React.createElement('div', { className: 'space-y-6' },

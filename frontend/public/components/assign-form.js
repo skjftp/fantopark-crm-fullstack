@@ -3,7 +3,7 @@
 // Uses window.* globals for CDN-based React compatibility
 
 window.renderAssignForm = () => {
-  if (!showAssignForm || !currentLead) return null;
+  if (!window.showAssignForm || !window.currentLead) return null;
   
   const teamMembers = formData.assigned_team === 'supply' 
     ? (users || []).filter(u => ['supply_executive', 'supply_sales_service_manager'].includes(u.role)) 

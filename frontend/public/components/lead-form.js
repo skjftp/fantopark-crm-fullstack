@@ -3,9 +3,28 @@
 // Uses window.* globals for CDN-based React compatibility
 
 window.renderForm = () => {
-  if (!showAddForm && !showEditForm) return null;
+  // Extract needed variables from window for local scope
+  const { showClientSuggestion, clientSuggestion, formData, currentLead, phoneCheckLoading, loading, handleFormSubmit, setClientSuggestion, setFormData, setPhoneCheckTimeout, setSelectedClient, inventory, users, events, phoneCheckTimeout, checkPhoneForClient } = {
+    showClientSuggestion: window.showClientSuggestion,
+    clientSuggestion: window.clientSuggestion,
+    formData: window.formData,
+    currentLead: window.currentLead,
+    phoneCheckLoading: window.phoneCheckLoading,
+    loading: window.loading,
+    handleFormSubmit: window.handleFormSubmit,
+    setClientSuggestion: window.setClientSuggestion,
+    setFormData: window.setFormData,
+    setPhoneCheckTimeout: window.setPhoneCheckTimeout,
+    setSelectedClient: window.setSelectedClient,
+    inventory: window.inventory,
+    users: window.users,
+    events: window.events
+    ,phoneCheckTimeout: window.phoneCheckTimeout
+    ,checkPhoneForClient: window.checkPhoneForClient
+  };
+  if (!window.appState.showAddForm && !window.appState.showEditForm) return null;
 
-  const isEdit = showEditForm;
+  const isEdit = window.appState.showEditForm;
   const title = isEdit ? 'Edit Lead' : 'Create New Lead';
 
   return React.createElement('div', {

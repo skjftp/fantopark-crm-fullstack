@@ -7,7 +7,7 @@
 // Main Stadiums Content Renderer
 window.renderStadiumsContent = () => {
     // Filter and sort stadiums
-    const filteredStadiums = window.stadiums.filter(stadium => {
+    const filteredStadiums = (window.stadiums || []).filter(stadium => {
         const matchesSearch = window.stadiumSearchQuery === '' || 
             stadium.name.toLowerCase().includes(window.stadiumSearchQuery.toLowerCase()) ||
             stadium.city.toLowerCase().includes(window.stadiumSearchQuery.toLowerCase()) ||
@@ -55,24 +55,24 @@ window.renderStadiumsContent = () => {
         React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
                 React.createElement('h3', { className: 'text-sm font-medium text-gray-500' }, 'Total Stadiums'),
-                React.createElement('p', { className: 'text-2xl font-bold text-blue-600' }, window.stadiums.length)
+                React.createElement('p', { className: 'text-2xl font-bold text-blue-600' }, (window.stadiums || []).length)
             ),
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
                 React.createElement('h3', { className: 'text-sm font-medium text-gray-500' }, 'Cricket Stadiums'),
                 React.createElement('p', { className: 'text-2xl font-bold text-green-600' }, 
-                    window.stadiums.filter(s => s.sport_type === 'Cricket').length
+                    (window.stadiums || []).filter(s => s.sport_type === 'Cricket').length
                 )
             ),
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
                 React.createElement('h3', { className: 'text-sm font-medium text-gray-500' }, 'Football Stadiums'),
                 React.createElement('p', { className: 'text-2xl font-bold text-orange-600' }, 
-                    window.stadiums.filter(s => s.sport_type === 'Football').length
+                    (window.stadiums || []).filter(s => s.sport_type === 'Football').length
                 )
             ),
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
                 React.createElement('h3', { className: 'text-sm font-medium text-gray-500' }, 'Countries'),
                 React.createElement('p', { className: 'text-2xl font-bold text-purple-600' }, 
-                    new Set(window.stadiums.map(s => s.country)).size
+                    new Set((window.stadiums || []).map(s => s.country)).size
                 )
             )
         ),
@@ -135,7 +135,7 @@ window.renderStadiumsContent = () => {
             ),
 
             React.createElement('div', { className: 'mt-4 text-sm text-gray-600' },
-                `Showing ${sortedStadiums.length} of ${window.stadiums.length} stadiums`
+                `Showing ${sortedStadiums.length} of ${(window.stadiums || []).length} stadiums`
             )
         ),
 

@@ -18,6 +18,12 @@ window.renderMainApp = function() {
     return savedTab || 'dashboard';
   });
   const [loading, setLoading] = useState(false);
+
+  // Sync activeTab with window object for content router
+  useEffect(() => {
+    window.activeTab = activeTab;
+    localStorage.setItem("crm_active_tab", activeTab);
+  }, [activeTab]);
   const [leads, setLeads] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [editingInventory, setEditingInventory] = useState(null);
@@ -307,8 +313,8 @@ window.renderMainApp = function() {
     stadiumSearchQuery, setStadiumSearchQuery,
     stadiumSportFilter, setStadiumSportFilter,
     dynamicRoles, setDynamicRoles,
-    rolesLoaded, setRolesLoaded,
     viewMode, setViewMode,
+    rolesLoaded, setRolesLoaded,
     clients, setClients,
     clientsLoading, setClientsLoading,
     selectedClient, setSelectedClient,
@@ -407,6 +413,7 @@ window.renderMainApp = function() {
   };
 
   // Return the state object to be used by App component
+  window.setViewMode = setViewMode;
   return window.appState;
 };
 

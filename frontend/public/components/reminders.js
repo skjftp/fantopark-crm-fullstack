@@ -1,4 +1,13 @@
 // Reminders Component for FanToPark CRM
+// Reminders data array
+window.reminders = window.reminders || [];
+// Reminder stats state
+window.reminderStats = window.reminderStats || {
+    totalReminders: 0,
+    overdueReminders: 0,
+    upcomingReminders: 0,
+    completedReminders: 0
+};
 // Extracted from index.html - maintains 100% functionality
 // Uses window.* globals for CDN-based React compatibility
 
@@ -26,11 +35,11 @@ window.renderRemindersContent = () => {
     // Quick stats
     React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
       React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
-        React.createElement('div', { className: 'text-3xl font-bold text-blue-600' }, reminderStats.total),
+        React.createElement('div', { className: 'text-3xl font-bold text-blue-600' }, window.reminderStats.totalReminders),
         React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Total Reminders')
       ),
       React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
-        React.createElement('div', { className: 'text-3xl font-bold text-red-600' }, reminderStats.overdue),
+        React.createElement('div', { className: 'text-3xl font-bold text-red-600' }, window.reminderStats.overdueReminders),
         React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Overdue')
       ),
       React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
@@ -61,7 +70,7 @@ window.renderRemindersContent = () => {
             )
           ),
           React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700' },
-            reminders.length > 0 ? reminders.map(reminder => {
+            (window.reminders || []).length > 0 ? (window.reminders || []).map(reminder => {
               const isOverdue = new Date(reminder.due_date) < new Date() && reminder.status === 'pending';
               const lead = leads.find(l => l.id === reminder.lead_id);
 

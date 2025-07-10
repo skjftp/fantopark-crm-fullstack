@@ -3,9 +3,9 @@
 // Uses window.* globals for CDN-based React compatibility
 
 window.renderGSTInvoicePreview = () => {
-  if (!showInvoicePreview || !currentInvoice) return null;
+  if (!window.showInvoicePreview || !window.currentInvoice) return null;
 
-  const invoice = currentInvoice;
+  const invoice = window.currentInvoice;
   const isIntraState = invoice.indian_state === 'Haryana' && !invoice.is_outside_india;
 
   // FIX 1: Calculate baseAmount FIRST before using it anywhere

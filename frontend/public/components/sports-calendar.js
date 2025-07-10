@@ -1,25 +1,55 @@
 // Sports Calendar Component for FanToPark CRM
+// Calendar view state
+window.calendarView = window.calendarView || "month";
+window.setCalendarView = window.setCalendarView || function(view) {
+    window.calendarView = view;
+    console.log("Calendar view updated:", window.calendarView);
+};
+// Selected date state for calendar
+window.selectedDate = window.selectedDate || new Date();
+window.setSelectedDate = window.setSelectedDate || function(date) {
+    window.selectedDate = date;
+    console.log("Selected date updated:", window.selectedDate);
+};
+// Calendar filters state
+window.calendarFilters = window.calendarFilters || {};
+window.setCalendarFilters = window.setCalendarFilters || function(newFilters) {
+    window.calendarFilters = { ...window.calendarFilters, ...newFilters };
+    console.log("Calendar filters updated:", window.calendarFilters);
+};
+// Fetch all sports events function
+window.fetchAllEvents = async function() {
+    try {
+        console.log("Fetching sports events...");
+        const response = await window.apiCall("/events");
+        window.sportsEvents = response.data || [];
+        console.log("Sports events loaded:", window.sportsEvents.length);
+    } catch (error) {
+        console.error("Error fetching sports events:", error);
+        window.sportsEvents = [];
+    }
+};
 // Extracted from index.html - maintains 100% functionality
 // Uses window.* globals for CDN-based React compatibility
 
 // Main Sports Calendar Content Function
 window.renderSportsCalendarContent = () => {
-  const filteredEvents = sportsEvents.filter(event => {
+  const filteredEvents = (window.sportsEvents || []).filter(event => {
     const eventDate = new Date(event.date || event.start_date);
-    const selectedMonth = selectedDate.getMonth();
-    const selectedYear = selectedDate.getFullYear();
+    const selectedMonth = window.selectedDate.getMonth();
+    const selectedYear = window.selectedDate.getFullYear();
 
     // Apply filters
     let passesFilter = true;
 
     // Date filter for month view
-    if (calendarView === 'month') {
+    if (window.calendarView === 'month') {
       passesFilter = eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear;
     }
 
     // Geography filter
-    if (calendarFilters.geography && passesFilter) {
-      passesFilter = event.geography === calendarFilters.geography;
+    if (window.calendarFilters.geography && passesFilter) {
+      passesFilter = event.geography === window.calendarFilters.geography;
     }
 
     // Sport type filter
@@ -58,13 +88,13 @@ window.renderSportsCalendarContent = () => {
         ),
         React.createElement('div', { className: 'flex items-center mt-2 text-sm' },
           React.createElement('span', { 
-            className: `px-2 py-1 rounded-full text-xs ${sportsEvents.length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`
-          }, sportsEvents.length > 0 ? `${filteredEvents.length}/${sportsEvents.length} Events` : 'Loading Events...'),
+            className: `px-2 py-1 rounded-full text-xs ${(window.sportsEvents || []).length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`
+          }, (window.sportsEvents || []).length > 0 ? `${filteredEvents.length}/${(window.sportsEvents || []).length} Events` : 'Loading Events...'),
           React.createElement('button', {
             onClick: fetchAllEvents,
-            disabled: loading,
+            disabled: window.loading || false,
             className: 'ml-3 text-blue-600 hover:text-blue-800 text-sm underline disabled:opacity-50'
-          }, loading ? 'Refreshing...' : '🔄 Refresh Events')
+          }, window.loading ? 'Refreshing...' : '🔄 Refresh Events')
         )
       ),
       React.createElement('div', { className: 'flex flex-wrap gap-2' },
@@ -100,8 +130,8 @@ window.renderSportsCalendarContent = () => {
         React.createElement('div', null,
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Geography'),
           React.createElement('select', {
-            value: calendarFilters.geography || '',
-            onChange: (e) => setCalendarFilters({...calendarFilters, geography: e.target.value}),
+            value: window.calendarFilters.geography || '',
+            onChange: (e) => window.setCalendarFilters({...calendarFilters, geography: e.target.value}),
             className: 'w-full p-2 border border-gray-300 rounded-lg'
           },
             React.createElement('option', { value: '' }, 'All Locations'),
@@ -118,7 +148,7 @@ window.renderSportsCalendarContent = () => {
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Sport Type'),
           React.createElement('select', {
             value: calendarFilters.sport_type || '',
-            onChange: (e) => setCalendarFilters({...calendarFilters, sport_type: e.target.value}),
+            onChange: (e) => window.setCalendarFilters({...calendarFilters, sport_type: e.target.value}),
             className: 'w-full p-2 border border-gray-300 rounded-lg'
           },
             React.createElement('option', { value: '' }, 'All Sports'),
@@ -135,7 +165,7 @@ window.renderSportsCalendarContent = () => {
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Priority'),
           React.createElement('select', {
             value: calendarFilters.priority || '',
-            onChange: (e) => setCalendarFilters({...calendarFilters, priority: e.target.value}),
+            onChange: (e) => window.setCalendarFilters({...calendarFilters, priority: e.target.value}),
             className: 'w-full p-2 border border-gray-300 rounded-lg'
           },
             React.createElement('option', { value: '' }, 'All Priorities'),
@@ -147,7 +177,7 @@ window.renderSportsCalendarContent = () => {
         // Clear Filters Button
         React.createElement('div', { className: 'flex items-end' },
           React.createElement('button', {
-            onClick: () => setCalendarFilters({}),
+            onClick: () => window.setCalendarFilters({}),
             className: 'w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg'
           }, 'Clear Filters')
         )
@@ -162,7 +192,7 @@ window.renderSportsCalendarContent = () => {
             onClick: () => {
               const newDate = new Date(selectedDate);
               newDate.setMonth(newDate.getMonth() - 1);
-              setSelectedDate(newDate);
+              window.setSelectedDate(newDate);
             },
             className: 'p-2 hover:bg-gray-100 rounded'
           }, '←'),
@@ -173,7 +203,7 @@ window.renderSportsCalendarContent = () => {
             onClick: () => {
               const newDate = new Date(selectedDate);
               newDate.setMonth(newDate.getMonth() + 1);
-              setSelectedDate(newDate);
+              window.setSelectedDate(newDate);
             },
             className: 'p-2 hover:bg-gray-100 rounded'
           }, '→')
@@ -182,15 +212,15 @@ window.renderSportsCalendarContent = () => {
           ['month', 'list'].map(view =>
             React.createElement('button', {
               key: view,
-              onClick: () => setCalendarView(view),
-              className: `px-3 py-1 rounded text-sm ${calendarView === view ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`
+              onClick: () => window.setCalendarView(view),
+              className: `px-3 py-1 rounded text-sm ${window.calendarView === view ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`
             }, view.charAt(0).toUpperCase() + view.slice(1))
           )
         )
       ),
 
       // Events Display
-      calendarView === 'month' ? window.renderMonthView(filteredEvents) : window.renderListView(filteredEvents),
+      window.calendarView === 'month' ? window.renderMonthView(filteredEvents) : window.renderListView(filteredEvents),
 
       // Import Modal
       window.renderImportModal()
@@ -201,8 +231,8 @@ window.renderSportsCalendarContent = () => {
 // Month View Function
 window.renderMonthView = (events) => {
   const today = new Date();
-  const year = selectedDate.getFullYear();
-  const month = selectedDate.getMonth();
+  const year = window.selectedDate.getFullYear();
+  const month = window.selectedDate.getMonth();
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   const daysInMonth = lastDay.getDate();
@@ -357,7 +387,7 @@ window.renderListView = (events) => {
 
 // Import Modal Function
 window.renderImportModal = () => {
-  if (!showImportModal) return null;
+  if (!window.showImportModal) return null;
 
   return React.createElement('div', {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
@@ -412,7 +442,7 @@ window.renderImportModal = () => {
 window.exportEventsToExcel = async () => {
   try {
     const params = new URLSearchParams();
-    if (calendarFilters.geography) params.append('geography', calendarFilters.geography);
+    if (window.calendarFilters.geography) params.append('geography', window.calendarFilters.geography);
     if (calendarFilters.sport_type) params.append('sport_type', calendarFilters.sport_type);
     if (calendarFilters.priority) params.append('priority', calendarFilters.priority);
     params.append('sort_by', 'date'); // Default sort by date

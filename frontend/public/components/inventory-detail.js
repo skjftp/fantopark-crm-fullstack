@@ -3,9 +3,9 @@
 // Uses window.* globals for CDN-based React compatibility
 
 window.renderInventoryDetail = () => {
-  if (!showInventoryDetail || !currentInventoryDetail) return null;
+  if (!window.showInventoryDetail || !currentInventoryDetail) return null;
 
-  const item = currentInventoryDetail;
+  const item = window.currentInventoryDetail;
   const daysUntilEvent = Math.ceil((new Date(item.event_date) - new Date()) / (1000 * 60 * 60 * 24));
   const marginAmount = (item.selling_price || 0) - (item.buying_price || 0);
   const marginPercentage = item.buying_price > 0 ? ((marginAmount / item.selling_price) * 100) : 0;

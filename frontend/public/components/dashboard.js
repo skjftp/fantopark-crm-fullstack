@@ -74,8 +74,8 @@ window.renderDashboardContent = () => {
             React.createElement('div', { className: 'bg-white rounded-lg shadow border p-6' },
                 React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-4' }, 'Recent Leads'),
                 React.createElement('div', { className: 'space-y-4' },
-                    window.leads.slice(0, 5).length > 0 ? 
-                    window.leads.slice(0, 5).map(lead => 
+                    (window.leads || []).slice(0, 5).length > 0 ? 
+                    (window.leads || []).slice(0, 5).map(lead => 
                         React.createElement('div', { 
                             key: lead.id, 
                             className: 'flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer',

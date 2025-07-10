@@ -105,7 +105,7 @@ window.renderStatusProgressModal = () => {
     setFollowUpNotes('');
   };
 
-  if (!showStatusProgressModal) return null;
+  if (!window.showStatusProgressModal) return null;
 
   return React.createElement('div', { 
     className: 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50' 

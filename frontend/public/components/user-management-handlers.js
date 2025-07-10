@@ -1,4 +1,14 @@
 // User Management Functions Component for FanToPark CRM
+// Missing setter functions
+window.setUsers = function(users) {
+    window.users = users;
+    console.log("Users set:", users?.length, "users");
+};
+
+window.setFinancialData = function(data) {
+    window.financialData = data;
+    console.log("Financial data set:", data);
+};
 // Extracted from index.html - maintains 100% functionality
 // Handles user form operations, deletion, and data fetching
 
@@ -48,7 +58,7 @@ window.handleDeleteUser = async function(userId, userName) {
 
   window.setLoading(true);
   try {
-    await window.apicall(`/users/${userId}`, { method: 'DELETE' });
+    await window.apiCall(`/users/${userId}`, { method: 'DELETE' });
     console.log('User deleted successfully');
 
     // Remove user from the list
@@ -79,7 +89,7 @@ window.closeUserForm = function() {
 // User data fetching function
 window.fetchUsers = async function() {
   try {
-    const response = await window.apicall('/users');
+    const response = await window.apiCall('/users');
     if (response.data) {
       window.setUsers(response.data);
     }
@@ -174,7 +184,7 @@ window.toggleUserStatus = async function(userId, currentStatus) {
   try {
     window.setLoading(true);
     
-    const response = await window.apicall(`/users/${userId}`, {
+    const response = await window.apiCall(`/users/${userId}`, {
       method: 'PUT',
       body: JSON.stringify({ status: newStatus })
     });
@@ -217,7 +227,7 @@ window.resetUserPassword = async function(userId, userName) {
   try {
     window.setLoading(true);
     
-    const response = await window.apicall(`/users/${userId}/reset-password`, {
+    const response = await window.apiCall(`/users/${userId}/reset-password`, {
       method: 'POST',
       body: JSON.stringify({ new_password: newPassword })
     });
@@ -253,7 +263,7 @@ window.bulkUpdateUsers = async function(userIds, updateData) {
   try {
     for (const userId of userIds) {
       try {
-        const response = await window.apicall(`/users/${userId}`, {
+        const response = await window.apiCall(`/users/${userId}`, {
           method: 'PUT',
           body: JSON.stringify(updateData)
         });

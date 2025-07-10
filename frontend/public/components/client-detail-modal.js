@@ -3,7 +3,7 @@
 // Uses window.* globals for CDN-based React compatibility
 
 window.renderClientDetailModal = () => {
-  if (!showClientDetail || !selectedClient) return null;
+  if (!window.showClientDetail || !selectedClient) return null;
 
   const primaryLead = selectedClient.leads[0];
   const sortedLeads = selectedClient.leads.sort((a, b) => 

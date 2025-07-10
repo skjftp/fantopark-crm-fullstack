@@ -68,7 +68,7 @@ window.renderAppBusinessLogic = function() {
   const fetchClients = async () => {
     setClientsLoading(true);
     try {
-      const response = await window.apicall('/clients');
+      const response = await window.apiCall('/clients');
       setClients(response.data || []);
       console.log(`Fetched ${response.data?.length || 0} clients`);
     } catch (error) {
@@ -81,7 +81,7 @@ window.renderAppBusinessLogic = function() {
 
   const fetchUserRoles = async () => {
     try {
-      const response = await window.apicall('/roles');
+      const response = await window.apiCall('/roles');
       const roleMap = {};
 
       response.data.forEach(role => {
@@ -132,7 +132,7 @@ window.renderAppBusinessLogic = function() {
     }
     setPhoneCheckLoading(true);
     try {
-      const response = await window.apicall(`/leads/check-phone/${normalizedPhone}`);
+      const response = await window.apiCall(`/leads/check-phone/${normalizedPhone}`);
       if (response.exists && response.suggestion) {
         setClientSuggestion(response.suggestion);
         setShowClientSuggestion(true);
@@ -218,12 +218,12 @@ window.renderAppBusinessLogic = function() {
     if (!state.isLoggedIn || !authToken) return;
     try {
       const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData, clientsData] = await Promise.all([
-        window.apicall('/leads').catch(() => ({ data: [] })),
-        window.apicall('/inventory').catch(() => ({ data: [] })),
-        window.apicall('/orders').catch(() => ({ data: [] })),
-        window.apicall('/invoices').catch(() => ({ data: [] })),
-        window.apicall('/deliveries').catch(() => ({ data: [] })),
-        window.apicall('/clients').catch(() => ({ data: [] }))
+        window.apiCall('/leads').catch(() => ({ data: [] })),
+        window.apiCall('/inventory').catch(() => ({ data: [] })),
+        window.apiCall('/orders').catch(() => ({ data: [] })),
+        window.apiCall('/invoices').catch(() => ({ data: [] })),
+        window.apiCall('/deliveries').catch(() => ({ data: [] })),
+        window.apiCall('/clients').catch(() => ({ data: [] }))
       ]);
       setLeads(leadsData.data || []);
       setInventory(inventoryData.data || []);
@@ -245,7 +245,7 @@ window.renderAppBusinessLogic = function() {
         assigned_date: new Date().toISOString()
       };
 
-      await window.apicall('/orders/' + (orderId), {
+      await window.apiCall('/orders/' + (orderId), {
         method: 'PUT',
         body: JSON.stringify(updateData)
       });
@@ -290,7 +290,7 @@ window.renderAppBusinessLogic = function() {
         setDeliveries(prev => [...prev, newDelivery]);
 
         try {
-          const deliveryResponse = await window.apicall('/deliveries', {
+          const deliveryResponse = await window.apiCall('/deliveries', {
             method: 'POST',
             body: JSON.stringify(newDelivery)
           });
@@ -356,7 +356,7 @@ window.renderAppBusinessLogic = function() {
     setLoading(true);
 
     try {
-      const response = await window.apicall('/auth/login', {
+      const response = await window.apiCall('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email: state.email, password: state.password })
       });
@@ -544,7 +544,7 @@ window.renderAppBusinessLogic = function() {
     if (!lead) {
       try {
         console.log('Fetching lead from API:', leadId);
-        const response = await window.apicall('/leads/' + leadId);
+        const response = await window.apiCall('/leads/' + leadId);
         const leadData = response.data || response;
 
         setCurrentLead(leadData);
@@ -628,7 +628,7 @@ window.renderAppBusinessLogic = function() {
         inventoryData.paymentStatus = 'pending';
       }
 
-      const response = await window.apicall(`/inventory/${editingInventory.id}`, {
+      const response = await window.apiCall(`/inventory/${editingInventory.id}`, {
         method: 'PUT',
         body: JSON.stringify(inventoryData)
       });
@@ -735,7 +735,7 @@ window.renderAppBusinessLogic = function() {
 
       console.log('Creating copy of inventory:', copiedData);
 
-      const response = await window.apicall('/inventory', {
+      const response = await window.apiCall('/inventory', {
         method: 'POST',
         body: JSON.stringify(copiedData)
       });
@@ -847,7 +847,7 @@ window.renderAppBusinessLogic = function() {
 
     setLoading(true);
     try {
-      await window.apicall('/deliveries/' + (deliveryId), {
+      await window.apiCall('/deliveries/' + (deliveryId), {
         method: 'DELETE'
       });
 

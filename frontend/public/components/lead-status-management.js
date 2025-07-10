@@ -14,7 +14,7 @@ window.updateLeadStatus = async function(leadId, newStatus) {
 
     // CRITICAL: Get the full lead object first
     const currentLead = window.leads.find(l => l.id === leadId);
-    if (!currentLead) {
+    if (!window.currentLead) {
       alert('Lead not found');
       window.setLoading(false);
       return;
