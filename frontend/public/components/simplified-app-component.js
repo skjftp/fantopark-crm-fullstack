@@ -462,7 +462,41 @@ window.SimplifiedApp = function() {
   window.bulkAssignSelections = state.bulkAssignSelections || {};
   window.setBulkAssignSelections = state.setBulkAssignSelections;
   window.setBulkAssignLoading = state.setBulkAssignLoading;
-  window.setShowBulkAssignModal = state.setShowBulkAssignModal;
+  window.setShowBulkAssignModal = state.setShowBulkAssignModal || ((show) => {
+    console.log("👥 setShowBulkAssignModal called with:", show);
+    window.showBulkAssignModal = show;
+    if (state.setShowBulkAssignModal) {
+      state.setShowBulkAssignModal(show);
+    } else {
+      console.warn("⚠️ setShowBulkAssignModal not implemented in state");
+    }
+  });
+
+  // ✅ CRITICAL FIX: CSV UPLOAD FUNCTIONS - NEWLY ADDED
+  window.setCSVUploadType = state.setCSVUploadType || ((type) => {
+    console.log("📄 setCSVUploadType called with:", type);
+    window.csvUploadType = type;
+    if (state.setCSVUploadType) {
+      state.setCSVUploadType(type);
+    } else {
+      console.warn("⚠️ setCSVUploadType not implemented in state");
+    }
+  });
+
+  window.setShowCSVUploadModal = state.setShowCSVUploadModal || ((show) => {
+    console.log("📤 setShowCSVUploadModal called with:", show);
+    window.showCSVUploadModal = show;
+    if (state.setShowCSVUploadModal) {
+      state.setShowCSVUploadModal(show);
+    } else {
+      console.warn("⚠️ setShowCSVUploadModal not implemented in state");
+    }
+  });
+
+  // ✅ CSV UPLOAD STATE VARIABLES
+  window.csvUploadType = state.csvUploadType || '';
+  window.showCSVUploadModal = state.showCSVUploadModal || false;
+  window.showBulkAssignModal = state.showBulkAssignModal || false;
 
   // ✅ FETCHING FUNCTIONS
   window.fetchUsers = handlers.fetchUsers || (() => {
