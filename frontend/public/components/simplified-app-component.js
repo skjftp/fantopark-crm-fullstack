@@ -36,6 +36,12 @@ window.SimplifiedApp = function() {
     console.warn("⚠️ updateLeadStatus not implemented in handlers");
   });
 
+  // ✅ CRITICAL: handleChoiceSelection function exposure - MISSING AND NOW FIXED
+  window.handleChoiceSelection = handlers.handleChoiceSelection || ((choice) => {
+    console.log("🎯 handleChoiceSelection called with:", choice);
+    console.warn("⚠️ handleChoiceSelection not implemented in handlers");
+  });
+
   // ✅ FORM FUNCTION EXPOSURES - CLEANED UP DUPLICATES
   window.openAddForm = handlers.openAddForm || ((type) => {
     console.log("🔍 openAddForm called with type:", type);
@@ -70,6 +76,12 @@ window.SimplifiedApp = function() {
     console.log("💰 openPaymentForm called with lead:", lead);
     state.setCurrentLead(lead);
     state.setShowPaymentForm(true);
+  });
+
+  window.openPaymentPostServiceForm = handlers.openPaymentPostServiceForm || ((lead) => {
+    console.log("📅 openPaymentPostServiceForm called with lead:", lead);
+    state.setCurrentLead(lead);
+    state.setShowPaymentPostServiceForm(true);
   });
   
   window.openAllocationForm = handlers.openAllocationForm || ((inventory) => {
@@ -178,6 +190,13 @@ window.SimplifiedApp = function() {
   window.setChoiceOptions = state.setChoiceOptions;
   window.setShowChoiceModal = state.setShowChoiceModal;
 
+  // ✅ CRITICAL MISSING: Status Progress Modal State Setters - FIXED
+  window.setShowStatusProgressModal = state.setShowStatusProgressModal;
+  window.setStatusProgressOptions = state.setStatusProgressOptions;
+  window.setSelectedStatus = state.setSelectedStatus;
+  window.setFollowUpDate = state.setFollowUpDate;
+  window.setFollowUpNotes = state.setFollowUpNotes;
+
   // ✅ ADDITIONAL VARIABLES NEEDED BY COMPONENTS
   window.phoneCheckTimeout = state.phoneCheckTimeout;
   window.allocationData = state.allocationData;
@@ -195,6 +214,13 @@ window.SimplifiedApp = function() {
   window.currentLeadForChoice = state.currentLeadForChoice;
   window.choiceOptions = state.choiceOptions;
   window.showChoiceModal = state.showChoiceModal;
+
+  // ✅ CRITICAL MISSING: Status Progress Modal State Variables - FIXED
+  window.showStatusProgressModal = state.showStatusProgressModal;
+  window.statusProgressOptions = state.statusProgressOptions;
+  window.selectedStatus = state.selectedStatus;
+  window.followUpDate = state.followUpDate;
+  window.followUpNotes = state.followUpNotes;
 
   // ✅ HELPER FUNCTIONS FOR COMPONENTS
   window.checkPhoneForClient = handlers.checkPhoneForClient || ((phone) => {
@@ -226,12 +252,14 @@ window.SimplifiedApp = function() {
     state.setShowAllocationForm && state.setShowAllocationForm(false);
     state.setShowDeliveryForm && state.setShowDeliveryForm(false);
     state.setShowChoiceModal && state.setShowChoiceModal(false);
+    state.setShowStatusProgressModal && state.setShowStatusProgressModal(false);
     state.setFormData && state.setFormData({});
     state.setCurrentLead && state.setCurrentLead(null);
     state.setCurrentInventory && state.setCurrentInventory(null);
     state.setCurrentDelivery && state.setCurrentDelivery(null);
     state.setCurrentLeadForChoice && state.setCurrentLeadForChoice(null);
     state.setChoiceOptions && state.setChoiceOptions([]);
+    state.setStatusProgressOptions && state.setStatusProgressOptions([]);
   };
 
   // ✅ STATUS FILTER FUNCTIONS
@@ -242,6 +270,11 @@ window.SimplifiedApp = function() {
   window.setStatusFilter = state.setStatusFilter;
   window.selectedStatusFilters = state.selectedStatusFilters;
   window.setSelectedStatusFilters = state.setSelectedStatusFilters;
+
+  // ✅ STATUS FILTER HELPER FUNCTIONS
+  window.handleStatusFilterToggle = handlers.handleStatusFilterToggle;
+  window.handleSelectAllStatuses = handlers.handleSelectAllStatuses;
+  window.handleClearAllStatuses = handlers.handleClearAllStatuses;
 
   // ✅ BULK OPERATIONS SUPPORT
   window.bulkAssignSelections = state.bulkAssignSelections || {};
@@ -689,4 +722,4 @@ window.SimplifiedApp = function() {
   );
 };
 
-console.log('✅ Simplified App Component loaded successfully with complete function exposures');
+console.log('✅ Simplified App Component loaded successfully with ORIGINAL SOPHISTICATED WORKFLOW FUNCTION EXPOSURES');
