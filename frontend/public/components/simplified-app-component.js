@@ -125,6 +125,24 @@ window.formatDate = (dateString) => {
   });
 };
 
+  // ✅ FINAL MISSING UTILITY FUNCTIONS - NEWLY ADDED
+window.getStatusColor = (status) => {
+  if (!status) return 'bg-gray-100 text-gray-800';
+  const statusColors = {
+    'Available': 'bg-green-100 text-green-800',
+    'Low Stock': 'bg-yellow-100 text-yellow-800', 
+    'Sold Out': 'bg-red-100 text-red-800',
+    'Coming Soon': 'bg-blue-100 text-blue-800'
+  };
+  return statusColors[status] || 'bg-gray-100 text-gray-800';
+};
+
+window.formatNumber = (number) => {
+  if (number === null || number === undefined) return '0';
+  return Number(number).toLocaleString();
+};
+  
+  
 window.getInventoryStatus = (item) => {
   if (!item) return 'Unknown';
   if (item.available_tickets <= 0) return 'Sold Out';
