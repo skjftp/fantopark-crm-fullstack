@@ -13,7 +13,7 @@ window.CommunicationTimeline = ({ leadId, leadName }) => {
 
     try {
       setLoading(true);
-      const response = await window.apicall(`/communications/lead/${leadId}`);
+      const response = await window.apiCall(`/communications/lead/${leadId}`);
       setCommunications(response.data || []);
     } catch (error) {
       console.error('Error fetching communications:', error);
@@ -28,7 +28,7 @@ window.CommunicationTimeline = ({ leadId, leadName }) => {
 
   const addCommunication = async (commData) => {
     try {
-      const response = await window.apicall('/communications', {
+      const response = await window.apiCall('/communications', {
         method: 'POST',
         body: JSON.stringify({
           ...commData,
@@ -350,7 +350,7 @@ window.logAutoSystemCommunication = async (leadId, subject, content, type = 'sys
       created_by: 'System'
     };
 
-    const response = await window.apicall('/communications', {
+    const response = await window.apiCall('/communications', {
       method: 'POST',
       body: JSON.stringify(commData)
     });
@@ -427,13 +427,13 @@ window.createFollowUpReminder = async (communication, leadData) => {
       communication_id: communication.id
     };
 
-    const response = await window.apicall('/reminders', {
+    const response = await window.apiCall('/reminders', {
       method: 'POST',
       body: JSON.stringify(reminderData)
     });
 
     // Mark communication as having reminder created
-    await window.apicall(`/communications/${communication.id}`, {
+    await window.apiCall(`/communications/${communication.id}`, {
       method: 'PUT',
       body: JSON.stringify({
         ...communication,
