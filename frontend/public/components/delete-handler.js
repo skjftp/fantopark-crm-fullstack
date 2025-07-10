@@ -33,7 +33,7 @@ window.renderDeleteHandler = () => {
         
         try {
           // Actually delete the order
-          await window.apicall('/' + (type) + '/' + (id), {
+          await window.apiCall('/' + (type) + '/' + (id), {
             method: 'DELETE'
           });
 
@@ -51,7 +51,7 @@ window.renderDeleteHandler = () => {
             console.log("Backend doesn't support DELETE, marking as deleted");
             
             try {
-              await window.apicall('/orders/' + (id), {
+              await window.apiCall('/orders/' + (id), {
                 method: 'PUT',
                 body: JSON.stringify({
                   status: 'deleted',
@@ -85,7 +85,7 @@ window.renderDeleteHandler = () => {
         try {
           console.log("Making API call to:", '/' + (type) + '/' + (id));
           
-          await window.apicall('/' + (type) + '/' + (id), {
+          await window.apiCall('/' + (type) + '/' + (id), {
             method: 'DELETE'
           });
 
