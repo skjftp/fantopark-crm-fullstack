@@ -3,7 +3,65 @@
 // Uses window.* globals for CDN-based React compatibility
 
 window.renderEnhancedPaymentForm = () => {
-  if (!window.showPaymentForm || !window.currentLead) return null;
+  // ✅ COMPONENT INTEGRATION PATTERN: Extract state from window globals
+  const {
+    showPaymentForm = window.showPaymentForm,
+    currentLead = window.currentLead,
+    paymentData = window.paymentData || {},
+    loading = window.loading
+  } = window.appState || {};
+
+  // ✅ COMPONENT INTEGRATION PATTERN: Function references with fallbacks
+  const handlePaymentSubmit = window.handlePaymentSubmit || ((e) => {
+    e.preventDefault();
+    console.warn("⚠️ handlePaymentSubmit not implemented");
+  });
+
+  const handlePaymentInputChange = window.handlePaymentInputChange || ((field, value) => {
+    console.warn("⚠️ handlePaymentInputChange not implemented:", field, value);
+  });
+
+  const closeForm = window.closeForm || (() => {
+    console.warn("⚠️ closeForm not implemented");
+  });
+
+  const calculateGSTAndTCS = window.calculateGSTAndTCS || ((baseAmount, paymentData) => {
+    console.warn("⚠️ calculateGSTAndTCS not implemented");
+    return {
+      gst: { applicable: false, rate: 0, amount: 0, cgst: 0, sgst: 0, igst: 0 },
+      tcs: { applicable: false, rate: 0, amount: 0 },
+      finalAmount: baseAmount
+    };
+  });
+
+  const setLoading = window.setLoading || ((loading) => {
+    console.warn("⚠️ setLoading not implemented:", loading);
+  });
+
+  const uploadFileToGCS = window.uploadFileToGCS || ((file, type) => {
+    console.warn("⚠️ uploadFileToGCS not implemented:", file, type);
+    return Promise.reject(new Error("Upload function not implemented"));
+  });
+
+  // ✅ ADD MISSING HELPER FUNCTIONS
+  const addInvoiceItem = window.addInvoiceItem || (() => {
+    const currentItems = paymentData.invoice_items || [];
+    const newItem = {
+      description: '',
+      quantity: 1,
+      rate: 0,
+      additional_info: ''
+    };
+    handlePaymentInputChange('invoice_items', [...currentItems, newItem]);
+  });
+
+  const removeInvoiceItem = window.removeInvoiceItem || ((index) => {
+    const currentItems = paymentData.invoice_items || [];
+    const newItems = currentItems.filter((_, i) => i !== index);
+    handlePaymentInputChange('invoice_items', newItems);
+  });
+
+  if (!showPaymentForm || !currentLead) return null;
 
   return React.createElement('div', { 
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
@@ -255,7 +313,7 @@ window.renderEnhancedPaymentForm = () => {
           )
         ),
 
-        // GST and Legal Details Section (PRESERVED WITH ENHANCEMENTS)
+        // GST and Legal Details Section
         React.createElement('div', { className: 'mb-6 p-4 bg-green-50 rounded-lg' },
           React.createElement('h3', { className: 'text-lg font-semibold text-gray-800 mb-4' }, '📋 GST & Legal Details'),
           React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
@@ -344,7 +402,7 @@ window.renderEnhancedPaymentForm = () => {
                 className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                 required: true
               },
-                window.INDIAN_STATES.map(state =>
+                (window.INDIAN_STATES || ['Haryana', 'Delhi', 'Maharashtra', 'Karnataka', 'Tamil Nadu']).map(state =>
                   React.createElement('option', { key: state, value: state }, state)
                 ),
                 React.createElement('option', { value: 'Outside India' }, 'Outside India')
@@ -364,7 +422,7 @@ window.renderEnhancedPaymentForm = () => {
           )
         ),
 
-        // Document Upload Section (PRESERVED EXACTLY)
+        // Document Upload Section
         React.createElement('div', { className: 'mb-6 p-4 bg-yellow-50 rounded-lg' },
           React.createElement('h3', { className: 'text-lg font-semibold text-gray-800 mb-4' }, '📎 Document Upload'),
           React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
@@ -384,7 +442,7 @@ window.renderEnhancedPaymentForm = () => {
 
                     setLoading(true);
                     try {
-                      const uploadResult = await window.uploadFileToGCS(file, 'gst');
+                      const uploadResult = await uploadFileToGCS(file, 'gst');
                       handlePaymentInputChange('gst_certificate', uploadResult);
                       alert('GST Certificate uploaded successfully!');
                     } catch (error) {
@@ -429,7 +487,7 @@ window.renderEnhancedPaymentForm = () => {
 
                     setLoading(true);
                     try {
-                      const uploadResult = await window.uploadFileToGCS(file, 'pan');
+                      const uploadResult = await uploadFileToGCS(file, 'pan');
                       console.log('Upload result:', uploadResult);
                       handlePaymentInputChange('pan_card', uploadResult);
                       console.log('Payment data after update:', paymentData);
@@ -560,7 +618,7 @@ window.renderEnhancedPaymentForm = () => {
                   )
                 ),
 
-                // NEW: Additional Info Field (Full Width)
+                // Additional Info Field (Full Width)
                 React.createElement('div', { className: 'mt-3' },
                   React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
                     'Additional Info (Optional)',
@@ -604,7 +662,7 @@ window.renderEnhancedPaymentForm = () => {
           )
         ),
 
-        // Service Fee Section (PRESERVED EXACTLY)
+        // Service Fee Section
         paymentData.type_of_sale === 'Service Fee' && 
           React.createElement('div', { className: 'mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200' },
             React.createElement('h3', { className: 'text-lg font-semibold text-gray-800 mb-4' }, 
@@ -639,7 +697,7 @@ window.renderEnhancedPaymentForm = () => {
             )
           ),
 
-        // ENHANCED: Tax Calculation Preview with TCS Support
+        // Tax Calculation Preview with TCS Support
         React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 rounded-lg' },
           React.createElement('h3', { className: 'text-lg font-semibold text-gray-800 mb-4' }, '🧮 Enhanced Tax Calculation Preview'),
           (() => {
@@ -736,7 +794,7 @@ window.renderEnhancedPaymentForm = () => {
                     )
                   ),
 
-                  // Payment Information (PRESERVED)
+                  // Payment Information
                   !isReceivablePayment && React.createElement('div', { className: 'flex justify-between border-t pt-2' },
                     React.createElement('span', { className: 'font-semibold' }, 'Advance Received:'),
                     React.createElement('span', { className: 'font-semibold text-blue-600' }, 
@@ -761,7 +819,7 @@ window.renderEnhancedPaymentForm = () => {
           })(),
         ),
 
-        // Additional Notes (PRESERVED EXACTLY)
+        // Additional Notes
         React.createElement('div', { className: 'mb-6' },
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Additional Notes'),
           React.createElement('textarea', {
@@ -773,7 +831,7 @@ window.renderEnhancedPaymentForm = () => {
           })
         ),
 
-        // Submit Buttons (PRESERVED EXACTLY)
+        // Submit Buttons
         React.createElement('div', { className: 'flex space-x-4 pt-4 border-t' },
           React.createElement('button', {
             type: 'button',
@@ -796,4 +854,4 @@ window.renderPaymentForm = () => {
   return renderEnhancedPaymentForm();
 };
 
-console.log('✅ Payment Form component loaded successfully');
+console.log('✅ Payment Form component loaded successfully with window function references');
