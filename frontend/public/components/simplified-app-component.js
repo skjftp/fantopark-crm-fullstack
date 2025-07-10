@@ -173,6 +173,10 @@ window.SimplifiedApp = function() {
   window.setShowLeadDetail = state.setShowLeadDetail;
   window.setShowDeliveryForm = state.setShowDeliveryForm;
 
+  // ✅ CRITICAL MISSING ADDITION - PAYMENT POST SERVICE FORM SETTERS
+  window.setShowPaymentPostServiceForm = state.setShowPaymentPostServiceForm;
+  window.showPaymentPostServiceForm = state.showPaymentPostServiceForm;
+
   // ✅ ADDITIONAL STATE SETTERS FOR FORMS
   window.setAllocationData = state.setAllocationData;
   window.setPaymentData = state.setPaymentData;
@@ -184,6 +188,10 @@ window.SimplifiedApp = function() {
   window.setUserFormData = state.setUserFormData;
   window.setEditingUser = state.setEditingUser;
   window.setShowUserForm = state.setShowUserForm;
+
+  // ✅ CRITICAL MISSING: Payment Post Service Data Handlers
+  window.setPaymentPostServiceData = state.setPaymentPostServiceData;
+  window.paymentPostServiceData = state.paymentPostServiceData;
 
   // ✅ CRITICAL MISSING: Choice Modal State Setters - FIXED
   window.setCurrentLeadForChoice = state.setCurrentLeadForChoice;
@@ -240,7 +248,7 @@ window.SimplifiedApp = function() {
     }).then(response => response.json());
   });
 
-  // ✅ ENHANCED CLOSE FORM FUNCTION
+  // ✅ ENHANCED CLOSE FORM FUNCTION - UPDATED WITH PAYMENT POST SERVICE
   window.closeForm = () => {
     console.log("🔄 closeForm called - closing all forms");
     state.setShowLeadDetail && state.setShowLeadDetail(false);
@@ -248,6 +256,7 @@ window.SimplifiedApp = function() {
     state.setShowAddForm && state.setShowAddForm(false);
     state.setShowAssignForm && state.setShowAssignForm(false);
     state.setShowPaymentForm && state.setShowPaymentForm(false);
+    state.setShowPaymentPostServiceForm && state.setShowPaymentPostServiceForm(false);
     state.setShowInventoryForm && state.setShowInventoryForm(false);
     state.setShowAllocationForm && state.setShowAllocationForm(false);
     state.setShowDeliveryForm && state.setShowDeliveryForm(false);
@@ -722,4 +731,4 @@ window.SimplifiedApp = function() {
   );
 };
 
-console.log('✅ Simplified App Component loaded successfully with ORIGINAL SOPHISTICATED WORKFLOW FUNCTION EXPOSURES');
+console.log('✅ Simplified App Component loaded successfully with PAYMENT POST SERVICE FORM EXPOSURES FIXED');
