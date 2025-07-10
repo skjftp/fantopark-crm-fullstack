@@ -327,6 +327,7 @@ window.SimplifiedApp = function() {
   window.clients = state.clients || [];
   window.selectedClient = state.selectedClient || null;
   window.showClientDetail = state.showClientDetail || false;
+  window.clientsLoading = state.clientsLoading || false;
 
   // ✅ ENHANCED CLIENT FINDER FUNCTION - WORKS WITH MULTIPLE DATA STRUCTURES
   window.findClientByPhone = (phone) => {
