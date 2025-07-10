@@ -1,9 +1,226 @@
 // components/leads.js
 // Placeholder for client view content
+// REPLACE THE PLACEHOLDER window.renderClientViewContent FUNCTION IN leads.js
+// This should replace the simple placeholder at the top of leads.js
+
 window.renderClientViewContent = function() {
-    return React.createElement("div", { className: "p-4" },
-        React.createElement("h2", { className: "text-xl font-bold mb-4" }, "Client View"),
-        React.createElement("p", { className: "text-gray-600" }, "Client view content will be implemented here.")
+    console.log("🔍 Rendering Client View Content");
+    
+    // Get leads data from window state
+    const leads = window.appState?.leads || window.leads || [];
+    console.log("📊 Processing", leads.length, "leads for client view");
+
+    if (leads.length === 0) {
+        return React.createElement("div", { className: "p-8 text-center" },
+            React.createElement("div", { className: "text-gray-400 text-6xl mb-4" }, "👥"),
+            React.createElement("h2", { className: "text-xl font-bold mb-2 text-gray-700" }, "No Clients Found"),
+            React.createElement("p", { className: "text-gray-500" }, "Add some leads first to see client relationships.")
+        );
+    }
+
+    // Group leads by phone number to create client view
+    const clientGroups = {};
+    
+    leads.forEach(lead => {
+        const phone = lead.phone || 'No Phone';
+        if (!clientGroups[phone]) {
+            clientGroups[phone] = {
+                phone: phone,
+                leads: [],
+                totalValue: 0,
+                latestLead: null,
+                events: new Set(),
+                statuses: new Set()
+            };
+        }
+        
+        clientGroups[phone].leads.push(lead);
+        clientGroups[phone].totalValue += (lead.potential_value || 0);
+        
+        // Track latest lead by date
+        if (!clientGroups[phone].latestLead || 
+            new Date(lead.date_of_enquiry || lead.created_date) > 
+            new Date(clientGroups[phone].latestLead.date_of_enquiry || clientGroups[phone].latestLead.created_date)) {
+            clientGroups[phone].latestLead = lead;
+        }
+        
+        // Track events and statuses
+        if (lead.lead_for_event) clientGroups[phone].events.add(lead.lead_for_event);
+        if (lead.status) clientGroups[phone].statuses.add(lead.status);
+    });
+
+    // Convert to array and sort by latest activity
+    const clients = Object.values(clientGroups)
+        .filter(client => client.phone !== 'No Phone') // Filter out leads without phone
+        .sort((a, b) => {
+            const aDate = new Date(a.latestLead.date_of_enquiry || a.latestLead.created_date);
+            const bDate = new Date(b.latestLead.date_of_enquiry || b.latestLead.created_date);
+            return bDate - aDate; // Most recent first
+        });
+
+    console.log("👥 Found", clients.length, "unique clients");
+
+    return React.createElement("div", { className: "space-y-6" },
+        // Header Stats
+        React.createElement("div", { className: "bg-white rounded-lg shadow border p-6" },
+            React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-4 gap-6" },
+                React.createElement("div", { className: "text-center" },
+                    React.createElement("div", { className: "text-3xl font-bold text-blue-600" }, clients.length),
+                    React.createElement("div", { className: "text-sm text-gray-600" }, "Total Clients")
+                ),
+                React.createElement("div", { className: "text-center" },
+                    React.createElement("div", { className: "text-3xl font-bold text-green-600" }, leads.length),
+                    React.createElement("div", { className: "text-sm text-gray-600" }, "Total Leads")
+                ),
+                React.createElement("div", { className: "text-center" },
+                    React.createElement("div", { className: "text-3xl font-bold text-purple-600" }, 
+                        (leads.length / clients.length).toFixed(1)
+                    ),
+                    React.createElement("div", { className: "text-sm text-gray-600" }, "Avg Leads/Client")
+                ),
+                React.createElement("div", { className: "text-center" },
+                    React.createElement("div", { className: "text-3xl font-bold text-orange-600" }, 
+                        "₹" + Math.round(clients.reduce((sum, c) => sum + c.totalValue, 0) / 1000) + "K"
+                    ),
+                    React.createElement("div", { className: "text-sm text-gray-600" }, "Total Value")
+                )
+            )
+        ),
+
+        // Client List
+        React.createElement("div", { className: "bg-white rounded-lg shadow border" },
+            React.createElement("div", { className: "p-6 border-b" },
+                React.createElement("h2", { className: "text-xl font-bold text-gray-900" }, 
+                    "Client Relationships"
+                ),
+                React.createElement("p", { className: "text-gray-600 text-sm mt-1" }, 
+                    "All leads grouped by phone number showing complete client history"
+                )
+            ),
+            
+            React.createElement("div", { className: "divide-y divide-gray-200" },
+                clients.map((client, index) => {
+                    const latestLead = client.latestLead;
+                    const eventsArray = Array.from(client.events);
+                    const statusesArray = Array.from(client.statuses);
+                    
+                    return React.createElement("div", { 
+                        key: client.phone, 
+                        className: "p-6 hover:bg-gray-50 cursor-pointer",
+                        onClick: () => {
+                            // Show client detail modal
+                            if (window.setSelectedClient && window.setShowClientDetail) {
+                                window.setSelectedClient({
+                                    phone: client.phone,
+                                    name: latestLead.name,
+                                    email: latestLead.email,
+                                    leads: client.leads,
+                                    totalValue: client.totalValue
+                                });
+                                window.setShowClientDetail(true);
+                            } else {
+                                console.log("Client Details:", client);
+                                alert(`Client: ${latestLead.name}\nPhone: ${client.phone}\nLeads: ${client.leads.length}\nTotal Value: ₹${client.totalValue.toLocaleString()}`);
+                            }
+                        }
+                    },
+                        React.createElement("div", { className: "flex items-start justify-between" },
+                            // Client Info
+                            React.createElement("div", { className: "flex-1" },
+                                React.createElement("div", { className: "flex items-center space-x-3 mb-3" },
+                                    React.createElement("div", { className: "w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center" },
+                                        React.createElement("span", { className: "text-blue-600 font-semibold text-lg" }, 
+                                            (latestLead.name || 'Unknown')[0].toUpperCase()
+                                        )
+                                    ),
+                                    React.createElement("div", null,
+                                        React.createElement("h3", { className: "text-lg font-semibold text-gray-900" }, 
+                                            latestLead.name || 'Unknown Client'
+                                        ),
+                                        React.createElement("p", { className: "text-blue-600 text-sm font-medium" }, 
+                                            client.phone
+                                        ),
+                                        latestLead.email && React.createElement("p", { className: "text-gray-500 text-sm" }, 
+                                            latestLead.email
+                                        )
+                                    )
+                                ),
+                                
+                                // Lead Summary
+                                React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-3 gap-4 mb-3" },
+                                    React.createElement("div", null,
+                                        React.createElement("span", { className: "text-sm font-medium text-gray-600" }, "Leads: "),
+                                        React.createElement("span", { className: "text-sm font-bold text-blue-600" }, 
+                                            client.leads.length
+                                        )
+                                    ),
+                                    React.createElement("div", null,
+                                        React.createElement("span", { className: "text-sm font-medium text-gray-600" }, "Total Value: "),
+                                        React.createElement("span", { className: "text-sm font-bold text-green-600" }, 
+                                            "₹" + client.totalValue.toLocaleString()
+                                        )
+                                    ),
+                                    React.createElement("div", null,
+                                        React.createElement("span", { className: "text-sm font-medium text-gray-600" }, "Last Activity: "),
+                                        React.createElement("span", { className: "text-sm text-gray-700" }, 
+                                            new Date(latestLead.date_of_enquiry || latestLead.created_date).toLocaleDateString()
+                                        )
+                                    )
+                                ),
+
+                                // Events & Statuses
+                                React.createElement("div", { className: "space-y-2" },
+                                    eventsArray.length > 0 && React.createElement("div", null,
+                                        React.createElement("span", { className: "text-xs font-medium text-gray-600" }, "Events: "),
+                                        eventsArray.slice(0, 3).map((event, i) =>
+                                            React.createElement("span", {
+                                                key: i,
+                                                className: "inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full mr-1"
+                                            }, event)
+                                        ),
+                                        eventsArray.length > 3 && React.createElement("span", { className: "text-xs text-gray-500" }, 
+                                            `+${eventsArray.length - 3} more`
+                                        )
+                                    ),
+                                    
+                                    React.createElement("div", null,
+                                        React.createElement("span", { className: "text-xs font-medium text-gray-600" }, "Statuses: "),
+                                        statusesArray.slice(0, 4).map((status, i) => {
+                                            const statusConfig = window.LEAD_STATUSES[status] || { 
+                                                label: status, 
+                                                color: 'bg-gray-100 text-gray-800' 
+                                            };
+                                            return React.createElement("span", {
+                                                key: i,
+                                                className: `inline-block text-xs px-2 py-1 rounded-full mr-1 ${statusConfig.color}`
+                                            }, statusConfig.label);
+                                        }),
+                                        statusesArray.length > 4 && React.createElement("span", { className: "text-xs text-gray-500" }, 
+                                            `+${statusesArray.length - 4} more`
+                                        )
+                                    )
+                                )
+                            ),
+
+                            // Action Button
+                            React.createElement("div", { className: "flex-shrink-0 ml-4" },
+                                React.createElement("button", {
+                                    className: "text-blue-600 hover:text-blue-800 text-sm font-medium",
+                                    onClick: (e) => {
+                                        e.stopPropagation();
+                                        // View all leads for this client
+                                        if (window.setSearchQuery && window.setViewMode) {
+                                            window.setSearchQuery(client.phone);
+                                            window.setViewMode('leads');
+                                        }
+                                    }
+                                }, "View Leads →")
+                            )
+                        )
+                    );
+                })
+            )
+        )
     );
 };
 
