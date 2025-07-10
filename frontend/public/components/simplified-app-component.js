@@ -140,6 +140,11 @@ window.SimplifiedApp = function() {
   window.appState.viewMode = state.viewMode || 'leads';
   window.appState.leads = state.leads || [];
 
+  // ✅ CSV PREVIEW STATE IN APPSTATE - NEWLY ADDED
+  window.appState.showPreview = state.showPreview || false;
+  window.appState.uploadPreview = state.uploadPreview || null;
+  window.appState.previewLoading = state.previewLoading || false;
+
   // ✅ DIRECT WINDOW VARIABLES - FOR COMPONENT COMPATIBILITY
   window.showClientSuggestion = state.showClientSuggestion;
   window.clientSuggestion = state.clientSuggestion;
@@ -543,7 +548,10 @@ window.SimplifiedApp = function() {
     if (state.setShowPreview) {
       state.setShowPreview(show);
     } else {
-      console.warn("⚠️ setShowPreview not implemented in state");
+      // Manual state update as fallback
+      window.appState = window.appState || {};
+      window.appState.showPreview = show;
+      console.warn("⚠️ setShowPreview not implemented in state - using fallback");
     }
   });
 
@@ -564,7 +572,10 @@ window.SimplifiedApp = function() {
     if (state.setUploadPreview) {
       state.setUploadPreview(preview);
     } else {
-      console.warn("⚠️ setUploadPreview not implemented in state");
+      // Manual state update as fallback
+      window.appState = window.appState || {};
+      window.appState.uploadPreview = preview;
+      console.warn("⚠️ setUploadPreview not implemented in state - using fallback");
     }
   });
 
@@ -596,6 +607,7 @@ window.SimplifiedApp = function() {
   window.previewLoading = state.previewLoading || false;
   window.showPreview = state.showPreview || false;
   window.previewData = state.previewData || [];
+  window.uploadPreview = state.uploadPreview || null;
 
   // ✅ CRITICAL FIX: AUTH TOKEN EXPOSURE FOR CSV UPLOAD
   window.authToken = window.authToken || localStorage.getItem('crm_auth_token') || '';
