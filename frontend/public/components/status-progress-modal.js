@@ -3,7 +3,49 @@
 // Uses window.* globals for CDN-based React compatibility
 
 window.renderStatusProgressModal = () => {
-  // NO useState declarations here - they're now at top level!
+  // Extract state variables from window globals (Pattern 1: State Variable Extraction)
+  const {
+    showStatusProgressModal = window.appState?.showStatusProgressModal,
+    selectedStatus = window.appState?.selectedStatus || '',
+    followUpDate = window.appState?.followUpDate || '',
+    followUpNotes = window.appState?.followUpNotes || '',
+    currentLead = window.currentLead || window.appState?.currentLead,
+    loading = window.appState?.loading || false,
+    showLeadDetail = window.appState?.showLeadDetail,
+    statusProgressOptions = window.appState?.statusProgressOptions || [],
+    leads = window.appState?.leads || []
+  } = window.appState || {};
+
+  // Extract setter functions from window globals (Pattern 2: Function References)
+  const setShowStatusProgressModal = window.setShowStatusProgressModal || (() => {
+    console.warn("setShowStatusProgressModal not implemented");
+  });
+  const setSelectedStatus = window.setSelectedStatus || (() => {
+    console.warn("setSelectedStatus not implemented");
+  });
+  const setFollowUpDate = window.setFollowUpDate || (() => {
+    console.warn("setFollowUpDate not implemented");
+  });
+  const setFollowUpNotes = window.setFollowUpNotes || (() => {
+    console.warn("setFollowUpNotes not implemented");
+  });
+  const setLoading = window.setLoading || (() => {
+    console.warn("setLoading not implemented");
+  });
+  const setLeads = window.setLeads || (() => {
+    console.warn("setLeads not implemented");
+  });
+  const setCurrentLead = window.setCurrentLead || (() => {
+    console.warn("setCurrentLead not implemented");
+  });
+
+  // Extract business logic functions from window globals
+  const openPaymentForm = window.openPaymentForm || (() => {
+    console.warn("openPaymentForm not implemented");
+  });
+  const openPaymentPostServiceForm = window.openPaymentPostServiceForm || (() => {
+    console.warn("openPaymentPostServiceForm not implemented");
+  });
 
   const handleStatusUpdate = async () => {
     if (!selectedStatus) {
@@ -105,7 +147,7 @@ window.renderStatusProgressModal = () => {
     setFollowUpNotes('');
   };
 
-  if (!window.showStatusProgressModal) return null;
+  if (!showStatusProgressModal) return null;
 
   return React.createElement('div', { 
     className: 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50' 
