@@ -100,7 +100,7 @@ window.renderPaymentSubmitHandler = () => {
         });
 
         // FIXED: Correct API call format
-        const updateResponse = await window.apicall(`/orders/${existingOrder.id}`, {
+        const updateResponse = await window.apiCall(`/orders/${existingOrder.id}`, {
           method: 'PUT',
           body: JSON.stringify({
             // Start with existing order data
@@ -187,7 +187,7 @@ window.renderPaymentSubmitHandler = () => {
           if (paidAmount >= receivableAmount) {
             // Full payment - delete the receivable
             try {
-              await window.apicall(`/receivables/${window.paymentData.receivable_id}`, {
+              await window.apiCall(`/receivables/${window.paymentData.receivable_id}`, {
                 method: 'DELETE'
               });
 
@@ -212,7 +212,7 @@ window.renderPaymentSubmitHandler = () => {
             if (userChoice) {
               // Update receivable with remaining amount
               try {
-                await window.apicall(`/receivables/${window.paymentData.receivable_id}`, {
+                await window.apiCall(`/receivables/${window.paymentData.receivable_id}`, {
                   method: 'PUT',
                   body: JSON.stringify({
                     balance_amount: remainingAmount,
@@ -241,12 +241,12 @@ window.renderPaymentSubmitHandler = () => {
               // Close receivable and update order total
               try {
                 // Delete the receivable
-                await window.apicall(`/receivables/${window.paymentData.receivable_id}`, {
+                await window.apiCall(`/receivables/${window.paymentData.receivable_id}`, {
                   method: 'DELETE'
                 });
 
                 // FIXED: Use existingOrder.id instead of undefined existingOrderId
-                await window.apicall(`/orders/${existingOrder.id}`, {
+                await window.apiCall(`/orders/${existingOrder.id}`, {
                   method: 'PUT',
                   body: JSON.stringify({
                     total_amount: paidAmount,
@@ -279,7 +279,7 @@ window.renderPaymentSubmitHandler = () => {
         // FIXED: Refresh orders data to ensure updated order shows correctly
         try {
           console.log('Refreshing orders after update...');
-          const freshOrdersResponse = await window.apicall('/orders');
+          const freshOrdersResponse = await window.apiCall('/orders');
           const freshOrders = freshOrdersResponse.data || freshOrdersResponse || [];
           window.setOrders(freshOrders);
           console.log('Orders refreshed after update:', freshOrders.length);
@@ -355,8 +355,8 @@ window.renderPaymentSubmitHandler = () => {
       try {
         console.log('=== CREATING ORDER WITH FIXED API CALL ===');
 
-        // FIXED: Use correct window.apicall format
-        orderResponse = await window.apicall('/orders', {
+        // FIXED: Use correct window.apiCall format
+        orderResponse = await window.apiCall('/orders', {
           method: 'POST',
           body: JSON.stringify(orderData)
         });
@@ -418,8 +418,8 @@ window.renderPaymentSubmitHandler = () => {
       try {
         console.log('Verifying order was actually saved...');
 
-        // FIXED: Use correct window.apicall format for verification
-        const verifyResponse = await window.apicall('/orders');
+        // FIXED: Use correct window.apiCall format for verification
+        const verifyResponse = await window.apiCall('/orders');
         const allOrders = verifyResponse.data || verifyResponse;
 
         console.log('Total orders in backend after creation:', allOrders.length);
@@ -452,9 +452,9 @@ window.renderPaymentSubmitHandler = () => {
       } catch (verifyError) {
         console.error('Failed to verify order creation:', verifyError);
 
-        // Fallback: try using window.apicall for refresh
+        // Fallback: try using window.apiCall for refresh
         try {
-          const fallbackResponse = await window.apicall('/orders');
+          const fallbackResponse = await window.apiCall('/orders');
           const fallbackOrders = fallbackResponse.data || fallbackResponse || [];
           window.setOrders(fallbackOrders);
           console.log('Fallback refresh completed, orders:', fallbackOrders.length);
