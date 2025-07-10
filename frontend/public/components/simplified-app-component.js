@@ -114,6 +114,52 @@ window.SimplifiedApp = function() {
     return user ? user.name : userId;
   });
 
+// ✅ NEW: Add these missing function exposures
+window.getInventoryDueInDays = (eventDate) => {
+  const today = new Date();
+  const event = new Date(eventDate);
+  const diffTime = event - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+window.formatRelativeTime = (dateString) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = date - now;
+  const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMs < 0) {
+    const pastHours = Math.abs(diffHours);
+    const pastDays = Math.abs(diffDays);
+
+    if (pastDays > 0) {
+      return `${pastDays} day${pastDays > 1 ? 's' : ''} overdue`;
+    } else {
+      return `${pastHours} hour${pastHours > 1 ? 's' : ''} overdue`;
+    }
+  } else {
+    if (diffDays > 0) {
+      return `in ${diffDays} day${diffDays > 1 ? 's' : ''}`;
+    } else if (diffHours > 0) {
+      return `in ${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+    } else {
+      return 'now';
+    }
+  }
+};
+
+window.getPriorityColor = (priority) => {
+  switch (priority) {
+    case 'urgent': return 'text-red-600 bg-red-100';
+    case 'high': return 'text-orange-600 bg-orange-100';
+    case 'medium': return 'text-blue-600 bg-blue-100';
+    case 'low': return 'text-gray-600 bg-gray-100';
+    default: return 'text-gray-600 bg-gray-100';
+  }
+};
+  
   // ✅ STATE EXPOSURES - COMPLETE SET
   window.appState = window.appState || {};
   
