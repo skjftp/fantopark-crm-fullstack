@@ -600,6 +600,43 @@ window.SimplifiedApp = function() {
   // ✅ CRITICAL FIX: AUTH TOKEN EXPOSURE FOR CSV UPLOAD
   window.authToken = window.authToken || localStorage.getItem('crm_auth_token') || '';
   window.API_URL = window.API_URL || 'https://fantopark-backend-150582227311.us-central1.run.app/api';
+  
+  // ✅ CRITICAL FIX: API CONFIG OBJECT - NEWLY ADDED
+  window.API_CONFIG = window.API_CONFIG || {
+    API_URL: window.API_URL
+  };
+
+  // ✅ CSV UPLOAD ADDITIONAL FUNCTIONS - NEWLY ADDED
+  window.setClientDetectionResults = state.setClientDetectionResults || ((results) => {
+    console.log("🔍 setClientDetectionResults called with:", results?.length || 0, "results");
+    window.clientDetectionResults = results;
+    if (state.setClientDetectionResults) {
+      state.setClientDetectionResults(results);
+    } else {
+      console.warn("⚠️ setClientDetectionResults not implemented in state");
+    }
+  });
+
+  window.setShowClientDetectionResults = state.setShowClientDetectionResults || ((show) => {
+    console.log("👁️ setShowClientDetectionResults called with:", show);
+    window.showClientDetectionResults = show;
+    if (state.setShowClientDetectionResults) {
+      state.setShowClientDetectionResults(show);
+    } else {
+      console.warn("⚠️ setShowClientDetectionResults not implemented in state");
+    }
+  });
+
+  // ✅ CRITICAL FIX: PROCEED FROM PREVIEW FUNCTION - NEWLY ADDED
+  window.handleProceedFromPreview = handlers.handleProceedFromPreview || (() => {
+    console.log("🚀 handleProceedFromPreview called");
+    window.setShowPreview(false);
+    console.warn("⚠️ handleProceedFromPreview not fully implemented in handlers");
+  });
+
+  // ✅ CLIENT DETECTION STATE VARIABLES
+  window.clientDetectionResults = state.clientDetectionResults || [];
+  window.showClientDetectionResults = state.showClientDetectionResults || false;
 
   // ✅ FETCHING FUNCTIONS
   window.fetchUsers = handlers.fetchUsers || (() => {
