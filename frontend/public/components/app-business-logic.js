@@ -104,6 +104,36 @@ window.renderAppBusinessLogic = function() {
     }
   };
 
+  // ✅ NEW: togglePremiumStatus function - FOLLOWING INTEGRATION PATTERN
+  const togglePremiumStatus = async (leadId, isPremium) => {
+    try {
+      setLoading(true);
+      
+      const response = await window.apiCall(`/leads/${leadId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_premium: isPremium })
+      });
+      
+      // Update the leads list
+      setLeads(prev => prev.map(lead => 
+        lead.id === leadId ? { ...lead, is_premium: isPremium } : lead
+      ));
+      
+      // Update currentLead if viewing the lead details
+      if (showLeadDetail && currentLead?.id === leadId) {
+        setCurrentLead(prev => ({ ...prev, is_premium: isPremium }));
+      }
+      
+      console.log(`✅ Lead ${leadId} premium status updated to ${isPremium}`);
+      
+    } catch (error) {
+      console.error('Error updating premium status:', error);
+      alert('Failed to update premium status: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ✅ CRITICAL: Enhanced Choice Modal Handler (ORIGINAL SOPHISTICATED LOGIC RESTORED)
   const handleChoiceSelection = async (choice) => {
     try {
@@ -1264,7 +1294,7 @@ window.renderAppBusinessLogic = function() {
     setDeliveryFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // ✅ RETURN ALL HANDLERS INCLUDING THE RESTORED SOPHISTICATED WORKFLOW WITH MODAL SWITCHING
+  // ✅ RETURN ALL HANDLERS INCLUDING THE NEW togglePremiumStatus FUNCTION
   return {
     // ✅ CRITICAL SOPHISTICATED WORKFLOW FUNCTIONS RESTORED WITH PROPER MODAL SWITCHING
     updateLeadStatus,
@@ -1277,6 +1307,7 @@ window.renderAppBusinessLogic = function() {
     fetchUsers,
     fetchLeads,
     getStatusIcon,
+    togglePremiumStatus, // ✅ NEW: Added togglePremiumStatus function
     
     // ✅ ALL WORKING FUNCTIONS FROM ORIGINAL FILE
     openEditOrderForm,
@@ -1328,4 +1359,4 @@ window.renderAppBusinessLogic = function() {
   };
 };
 
-console.log('✅ App Business Logic Handlers loaded successfully with FIXED MODAL SWITCHING WORKFLOW (earlyStageStatuses + useChoiceModal logic restored)');
+console.log('✅ App Business Logic Handlers loaded successfully with FIXED MODAL SWITCHING WORKFLOW + togglePremiumStatus function added');
