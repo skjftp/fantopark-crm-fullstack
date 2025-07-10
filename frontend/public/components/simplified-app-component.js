@@ -499,6 +499,46 @@ window.SimplifiedApp = function() {
   window.showCSVUploadModal = state.showCSVUploadModal || false;
   window.showBulkAssignModal = state.showBulkAssignModal || false;
 
+  // ✅ CRITICAL FIX: CSV PREVIEW AND LOADING FUNCTIONS - NEWLY ADDED
+  window.setPreviewLoading = state.setPreviewLoading || ((loading) => {
+    console.log("⏳ setPreviewLoading called with:", loading);
+    window.previewLoading = loading;
+    if (state.setPreviewLoading) {
+      state.setPreviewLoading(loading);
+    } else {
+      console.warn("⚠️ setPreviewLoading not implemented in state");
+    }
+  });
+
+  window.setShowPreview = state.setShowPreview || ((show) => {
+    console.log("👁️ setShowPreview called with:", show);
+    window.showPreview = show;
+    if (state.setShowPreview) {
+      state.setShowPreview(show);
+    } else {
+      console.warn("⚠️ setShowPreview not implemented in state");
+    }
+  });
+
+  window.setPreviewData = state.setPreviewData || ((data) => {
+    console.log("📊 setPreviewData called with:", data?.length || 0, "items");
+    window.previewData = data;
+    if (state.setPreviewData) {
+      state.setPreviewData(data);
+    } else {
+      console.warn("⚠️ setPreviewData not implemented in state");
+    }
+  });
+
+  // ✅ CSV PREVIEW STATE VARIABLES
+  window.previewLoading = state.previewLoading || false;
+  window.showPreview = state.showPreview || false;
+  window.previewData = state.previewData || [];
+
+  // ✅ CRITICAL FIX: AUTH TOKEN EXPOSURE FOR CSV UPLOAD
+  window.authToken = window.authToken || localStorage.getItem('crm_auth_token') || '';
+  window.API_URL = window.API_URL || 'https://fantopark-backend-150582227311.us-central1.run.app/api';
+
   // ✅ FETCHING FUNCTIONS
   window.fetchUsers = handlers.fetchUsers || (() => {
     console.log("👥 fetchUsers called");
