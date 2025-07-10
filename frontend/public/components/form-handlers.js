@@ -2,24 +2,27 @@
 // Extracted from index.html - maintains 100% functionality
 // Handles all major form submissions including leads, inventory, orders, and allocations
 
-// Main universal form submission handler
+// ✅ MAIN UNIVERSAL FORM SUBMISSION HANDLER - CLEANED AND FIXED
 window.handleFormSubmit = async function(e) {
   console.log("🔍 Form submission started - showAddForm:", window.appState.showAddForm, "showEditForm:", window.appState.showEditForm);
   e.preventDefault();
   window.setLoading(true);
 
   try {
+    // ✅ EDIT LEAD PATH (WORKING)
     if (window.appState.showEditForm) {
-      // Update lead via API
+      console.log("📝 Processing Edit Lead with data:", window.formData);
+      
       const response = await window.apiCall('/leads/' + window.currentLead.id, {
         method: 'PUT',
         body: JSON.stringify(window.formData)
       });
+      
       window.setLeads(prev => prev.map(lead => 
         lead.id === window.currentLead.id ? response.data : lead
       ));
 
-      // ✅ ADD: Refresh assignment rules after lead update
+      // ✅ Refresh assignment rules after lead update
       if (window.refreshAssignmentRules && typeof window.refreshAssignmentRules === 'function') {
         try {
           await window.refreshAssignmentRules();
@@ -30,34 +33,11 @@ window.handleFormSubmit = async function(e) {
       }
 
       alert('Lead updated successfully!');
-
-    } else if (window.showEditInventoryForm) {
-      // Add debug logging
-      console.log('=== FRONTEND INVENTORY UPDATE DEBUG (Regular Form) ===');
-      console.log('Inventory ID being updated:', window.currentInventory.id);
-      console.log('Complete form data being sent:', window.formData);
-      console.log('Payment fields specifically:', {
-        totalPurchaseAmount: window.formData.totalPurchaseAmount,
-        amountPaid: window.formData.amountPaid,
-        paymentStatus: window.formData.paymentStatus,
-        supplierName: window.formData.supplierName,
-        supplierInvoice: window.formData.supplierInvoice
-      });
-
-      // Update inventory via API
-      const response = await window.apiCall('/inventory/' + window.currentInventory.id, {
-        method: 'PUT',
-        body: JSON.stringify(window.formData)
-      });
-
-      console.log('Backend response:', response);
-
-      window.setInventory(prev => prev.map(item => 
-        item.id === window.currentInventory.id ? response.data : item
-      ));
-      alert('Inventory updated successfully!');
-    } else if (window.appState.showAddForm) {
-      // Create new lead
+    }
+    // ✅ CREATE NEW LEAD PATH (FIXED)
+    else if (window.appState.showAddForm) {
+      console.log("📝 Processing Create Lead with data:", window.formData);
+      
       const leadResponse = await window.apiCall("/leads", {
         method: "POST",
         body: JSON.stringify({
@@ -67,12 +47,43 @@ window.handleFormSubmit = async function(e) {
           created_date: new Date().toISOString()
         })
       });
+      
       window.setLeads(prev => [...prev, leadResponse.data]);
-      alert("Lead added successfully!");
-    } else {
-      // Create new items
+      alert("Lead created successfully!");
+    }
+    // ✅ EDIT INVENTORY PATH
+    else if (window.showEditInventoryForm) {
+      console.log('=== FRONTEND INVENTORY UPDATE DEBUG ===');
+      console.log('Inventory ID being updated:', window.currentInventory.id);
+      console.log('Complete form data being sent:', window.formData);
+
+      const response = await window.apiCall('/inventory/' + window.currentInventory.id, {
+        method: 'PUT',
+        body: JSON.stringify(window.formData)
+      });
+
+      window.setInventory(prev => prev.map(item => 
+        item.id === window.currentInventory.id ? response.data : item
+      ));
+      alert('Inventory updated successfully!');
+    }
+    // ✅ CREATE NEW ITEMS BY TYPE
+    else if (window.currentForm) {
+      console.log("📝 Processing new item creation for type:", window.currentForm);
+      
       switch (window.currentForm) {
+        case 'inventory':
+          console.log("Creating inventory with data:", JSON.stringify(window.formData, null, 2));
+          
+          const invResponse = await window.apiCall('/inventory', {
+            method: 'POST',
+            body: JSON.stringify({
+              ...window.formData,
+              created_by: window.user.name,
+              created_date: new Date().toISOString()
+            })
           });
+          
           console.log("Inventory API Response:", invResponse);
           window.setInventory(prev => [...prev, invResponse.data]);
           alert('Inventory added successfully!');
@@ -87,13 +98,11 @@ window.handleFormSubmit = async function(e) {
                   supplierName: window.formData.supplierName || 'Unknown Supplier',
                   invoiceNumber: window.formData.supplierInvoice || 'INV-' + Date.now(),
                   amount: pendingAmount,
-                  dueDate: window.formData.paymentDueDate || new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0], // 30 days from now
+                  dueDate: window.formData.paymentDueDate || new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
                   description: 'Inventory purchase: ' + (window.formData.event_name || 'Event') + ' - ' + (window.formData.category_of_ticket || 'Tickets'),
                   inventoryId: invResponse.data?.id || invResponse.id,
                   status: 'pending'
                 };
-
-                console.log('Creating payable for inventory:', payableData);
 
                 const payableResponse = await window.apiCall('/finance/payables', {
                   method: 'POST',
@@ -110,13 +119,8 @@ window.handleFormSubmit = async function(e) {
           break;
 
         case 'order':
-          console.log('Creating order with data:', JSON.stringify(window.orderData, null, 2));
-          console.log('Key fields:', {
-            event_name: window.orderData.event_name,
-            tickets_allocated: window.orderData.tickets_allocated,
-            ticket_category: window.orderData.ticket_category,
-            total_amount: window.orderData.total_amount
-          });
+          console.log('Creating order with data:', JSON.stringify(window.formData, null, 2));
+          
           const orderResponse = await window.apiCall('/orders', {
             method: 'POST',
             body: JSON.stringify({
@@ -129,27 +133,38 @@ window.handleFormSubmit = async function(e) {
               created_date: new Date().toISOString()
             })
           });
-          window.setOrders(prev => [...prev, orderResponse]);
+          
+          window.setOrders(prev => [...prev, orderResponse.data]);
           alert('Order created successfully!');
+          break;
+
+        default:
+          console.warn('Unknown form type:', window.currentForm);
+          alert('Unknown form type: ' + window.currentForm);
           break;
       }
     }
+    else {
+      console.warn('No valid form state detected');
+      alert('No valid form state detected');
+    }
 
+    // ✅ Close form after successful submission
     window.closeForm();
   } catch (error) {
+    console.error('Form submission error:', error);
     alert('Operation failed: ' + error.message);
   } finally {
     window.setLoading(false);
   }
 };
 
-// Enhanced order editing submission handler
+// ✅ ENHANCED ORDER EDITING SUBMISSION HANDLER
 window.handleEditOrderSubmit = async function(e) {
   e.preventDefault();
   window.setLoading(true);
 
   try {
-    // Prepare update data
     const updateData = {
       ...window.orderEditData,
       updated_date: new Date().toISOString(),
@@ -162,7 +177,6 @@ window.handleEditOrderSubmit = async function(e) {
       updateData.rejected_date = null;
       updateData.rejected_by = null;
     } else if (window.orderEditData.status === 'rejected' && window.orderEditData.rejection_reason) {
-      // Set rejection metadata if status is rejected
       updateData.rejected_date = new Date().toISOString();
       updateData.rejected_by = window.user.name;
     }
@@ -172,7 +186,6 @@ window.handleEditOrderSubmit = async function(e) {
       body: JSON.stringify(updateData)
     });
 
-    // Update local state
     window.setOrders(prev => prev.map(order => 
       order.id === window.currentOrderForEdit.id 
         ? { ...order, ...updateData }
@@ -189,7 +202,7 @@ window.handleEditOrderSubmit = async function(e) {
   }
 };
 
-// Enhanced inventory allocation handler with permission check
+// ✅ INVENTORY ALLOCATION HANDLER WITH PERMISSION CHECK
 window.handleAllocation = async function(e) {
   e.preventDefault();
   if (!window.hasPermission('inventory', 'allocate')) {
@@ -200,20 +213,18 @@ window.handleAllocation = async function(e) {
   window.setLoading(true);
 
   try {
-    // FIX: Don't use parseInt for lead ID comparison
     const selectedLead = window.leads.find(lead => lead.id === window.allocationData.lead_id);
 
     if (!selectedLead) {
       throw new Error('Lead not found');
     }
 
-    // Define the validation function
+    // Validate lead status
     const isConvertedOrLater = (status) => {
       const postConvertedStages = ['converted', 'payment', 'payment_post_service', 'payment_received'];
       return postConvertedStages.includes(status);
     };
 
-    // Use it in the validation
     if (!isConvertedOrLater(selectedLead.status)) {
       throw new Error('Lead must be in converted status or later to allocate inventory');
     }
@@ -222,7 +233,6 @@ window.handleAllocation = async function(e) {
       throw new Error('Not enough tickets available');
     }
 
-    // Call the fixed backend endpoint
     const response = await window.apiCall(`/inventory/${window.currentInventory.id}/allocate`, {
       method: 'POST',
       body: JSON.stringify({
@@ -237,7 +247,6 @@ window.handleAllocation = async function(e) {
       throw new Error(response.error);
     }
 
-    // Update local inventory state
     window.setInventory(prev => 
       prev.map(item => 
         item.id === window.currentInventory.id 
@@ -246,7 +255,6 @@ window.handleAllocation = async function(e) {
       )
     );
 
-    // Close the allocation form and show success
     window.setShowAllocationForm(false);
     alert('Inventory allocated successfully!');
 
@@ -258,7 +266,7 @@ window.handleAllocation = async function(e) {
   }
 };
 
-// Assignment handler with permission check
+// ✅ ASSIGNMENT HANDLER WITH PERMISSION CHECK
 window.handleAssignLead = async function(e) {
   e.preventDefault();
 
@@ -266,76 +274,103 @@ window.handleAssignLead = async function(e) {
   console.log('1. Form Data:', window.formData);
   console.log('3. Current dropdown value (assigned_to):', window.formData.assigned_to);
 
-  // Check what type of value we have
-  if (window.formData.assigned_to) {
-    if (window.formData.assigned_to.includes('@')) {
-      console.log('✅ Value contains @ - appears to be an email');
-    } else if (window.appState.showAddForm) {
-      // Create new lead
-      const leadResponse = await window.apiCall("/leads", {
-        method: "POST",
-        body: JSON.stringify({
-          ...window.formData,
-          status: "unassigned",
-          created_by: window.user.name,
-          created_date: new Date().toISOString()
-        })
-      });
-      window.setLeads(prev => [...prev, leadResponse.data]);
-      alert("Lead added successfully!");
-    } else {
-      // Create new items
-      switch (window.currentForm) {
-        })
-      });
-      window.setLeads(prev => [...prev, leadResponse.data]);
-      alert("Lead added successfully!");
-    } else {
-      // Create new items
-      switch (window.currentForm) {
+  if (!window.hasPermission('leads', 'assign')) {
+    alert('You do not have permission to assign leads');
+    return;
+  }
+
+  window.setLoading(true);
+
+  try {
+    if (window.formData.assigned_to) {
+      if (window.formData.assigned_to.includes('@')) {
+        console.log('✅ Value contains @ - appears to be an email');
+      } else {
+        console.log('⚠️ Value does not contain @ - may be a name');
+      }
+    }
+
+    const response = await window.apiCall(`/leads/${window.currentLead.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        assigned_to: window.formData.assigned_to,
+        status: 'assigned'
+      })
+    });
+
+    window.setLeads(prev => prev.map(lead => 
+      lead.id === window.currentLead.id 
+        ? { ...lead, assigned_to: window.formData.assigned_to, status: 'assigned' }
+        : lead
+    ));
+
+    alert('Lead assigned successfully!');
+    window.closeForm();
+  } catch (error) {
+    console.error('Assignment error:', error);
+    alert('Failed to assign lead: ' + error.message);
+  } finally {
+    window.setLoading(false);
+  }
+};
+
+// ✅ PAYMENT POST SERVICE HANDLER
+window.handlePaymentPostService = async function(lead) {
+  if (!window.hasPermission('orders', 'create')) {
+    alert('You do not have permission to create orders');
+    return;
+  }
+
+  window.setLoading(true);
+
+  try {
+    const newOrder = {
+      order_number: 'PST-' + Date.now(),
+      client_name: lead.name,
+      client_email: lead.email,
+      client_phone: lead.phone,
+      lead_id: lead.id,
+      service_date: new Date().toISOString().split('T')[0],
+      description: 'Post-service payment for: ' + lead.name,
+      status: 'pending_approval',
+      requires_gst_invoice: true,
+      total_amount: lead.potential_value || 0,
+      created_date: new Date().toISOString(),
       created_by: window.user.name,
-      assigned_to: ''  // Will be assigned later
+      assigned_to: ''
     };
 
-    // Create order in backend
     try {
       console.log('Creating payment post service order:', JSON.stringify(newOrder, null, 2));
       const orderResponse = await window.apiCall('/orders', {
         method: 'POST',
         body: JSON.stringify(newOrder)
       });
-      console.log('Order created in backend (Post Service):', orderResponse);
 
-      // Use the response data or fallback to newOrder
       const finalOrder = orderResponse.data || orderResponse || newOrder;
       if (!finalOrder.id && newOrder.order_number) {
         finalOrder.id = newOrder.order_number;
       }
 
       window.setOrders(prev => [...prev, finalOrder]);
-
-      window.setLoading(false);
       alert('Payment Post Service order created successfully! Awaiting approval.');
       window.closeForm();
     } catch (orderError) {
       console.error('Failed to create order in backend:', orderError);
-
-      // Add to local state with the order_number as id
       newOrder.id = newOrder.order_number;
       window.setOrders(prev => [...prev, newOrder]);
-
-      window.setLoading(false);
       alert('Warning: Order may not have been saved to server. Please check orders page.');
       window.closeForm();
     }
   } catch (error) {
-    window.setLoading(false);
     alert('Failed to process payment post service. Please try again.');
     console.error('Payment post service error:', error);
+  } finally {
+    window.setLoading(false);
   }
 };
 
-// Delivery submission handler
+// ✅ DELIVERY SUBMISSION HANDLER
 window.handleDeliverySubmit = async function(e) {
   e.preventDefault();
   if (!window.hasPermission('delivery', 'write')) {
@@ -346,23 +381,15 @@ window.handleDeliverySubmit = async function(e) {
   window.setLoading(true);
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Update delivery in backend
-    try {
-      await window.apiCall('/deliveries/' + window.currentDelivery.id, {
-        method: 'PUT',
-        body: JSON.stringify({
-          ...window.currentDelivery,
-          ...window.deliveryFormData,
-          status: 'scheduled',
-          scheduled_date: new Date().toISOString()
-        })
-      });
-      console.log('Delivery updated in backend');
-    } catch (error) {
-      console.error('Failed to update delivery in backend:', error);
-    }
+    await window.apiCall('/deliveries/' + window.currentDelivery.id, {
+      method: 'PUT',
+      body: JSON.stringify({
+        ...window.currentDelivery,
+        ...window.deliveryFormData,
+        status: 'scheduled',
+        scheduled_date: new Date().toISOString()
+      })
+    });
 
     window.setDeliveries(prev => 
       prev.map(delivery => 
@@ -377,16 +404,16 @@ window.handleDeliverySubmit = async function(e) {
       )
     );
 
-    window.setLoading(false);
     alert('Delivery scheduled successfully!');
     window.closeForm();
   } catch (error) {
-    window.setLoading(false);
     alert('Failed to schedule delivery. Please try again.');
+  } finally {
+    window.setLoading(false);
   }
 };
 
-// User form submission handler
+// ✅ USER FORM SUBMISSION HANDLER
 window.handleUserSubmit = async function(e) {
   e.preventDefault();
   window.setLoading(true);
@@ -405,11 +432,8 @@ window.handleUserSubmit = async function(e) {
     }
 
     console.log(window.editingUser ? 'User updated successfully' : 'User created successfully');
-
-    // Refresh users list
     window.fetchUsers();
 
-    // Close form
     window.setShowUserForm(false);
     window.setEditingUser(null);
     window.setUserFormData({
@@ -428,7 +452,7 @@ window.handleUserSubmit = async function(e) {
   }
 };
 
-// Enhanced order approval function
+// ✅ ENHANCED ORDER APPROVAL FUNCTION
 window.handleEnhancedOrderApproval = async function(orderId, action, notes = '') {
   if (!window.hasPermission('orders', 'approve')) {
     alert('You do not have permission to approve orders');
@@ -462,8 +486,6 @@ window.handleEnhancedOrderApproval = async function(orderId, action, notes = '')
               order_number: order.order_number,
               client_name: order.legal_name || order.client_name,
               client_email: order.client_email,
-
-              // GST Details
               gstin: order.gstin,
               legal_name: order.legal_name,
               category_of_sale: order.category_of_sale,
@@ -471,14 +493,11 @@ window.handleEnhancedOrderApproval = async function(orderId, action, notes = '')
               registered_address: order.registered_address,
               indian_state: order.indian_state,
               is_outside_india: order.is_outside_india,
-
-              // Invoice calculation
               invoice_items: order.invoice_items,
               base_amount: order.base_amount,
               gst_calculation: order.gst_calculation,
               total_tax: order.total_tax,
               final_amount: order.final_amount,
-
               invoice_date: new Date().toISOString().split('T')[0],
               due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
               status: 'generated',
@@ -496,18 +515,18 @@ window.handleEnhancedOrderApproval = async function(orderId, action, notes = '')
       })
     );
 
-    window.setLoading(false);
     alert(action === 'approve' 
       ? 'Order approved successfully! GST Invoice has been generated.' 
       : 'Order rejected successfully.'
     );
   } catch (error) {
-    window.setLoading(false);
     alert('Failed to update order status');
+  } finally {
+    window.setLoading(false);
   }
 };
 
-// Bulk assignment handler
+// ✅ BULK ASSIGNMENT HANDLER
 window.handleBulkAssignSubmit = async function() {
   if (Object.keys(window.bulkAssignSelections).length === 0) {
     alert('Please select at least one lead to assign.');
@@ -532,40 +551,27 @@ window.handleBulkAssignSubmit = async function() {
         if (response.error) {
           console.error(`Failed to assign lead ${leadId}:`, response.error);
           errorCount++;
-        } else if (window.appState.showAddForm) {
-      // Create new lead
-      const leadResponse = await window.apiCall("/leads", {
-        method: "POST",
-        body: JSON.stringify({
-          ...window.formData,
-          status: "unassigned",
-          created_by: window.user.name,
-          created_date: new Date().toISOString()
-        })
-      });
-      window.setLeads(prev => [...prev, leadResponse.data]);
-      alert("Lead added successfully!");
-    } else {
-      // Create new items
-      switch (window.currentForm) {
-        })
-      });
-      window.setLeads(prev => [...prev, leadResponse.data]);
-      alert("Lead added successfully!");
-    } else {
-      // Create new items
-      switch (window.currentForm) {
-        })
-      });
-      window.setLeads(prev => [...prev, leadResponse.data]);
-      alert("Lead added successfully!");
-    } else {
-      // Create new items
-      switch (window.currentForm) {
-        })
-      });
-      window.setLeads(prev => [...prev, leadResponse.data]);
-      alert("Lead added successfully!");
-    } else {
-      // Create new items
-      switch (window.currentForm) {
+        } else {
+          successCount++;
+        }
+      } catch (error) {
+        console.error(`Error assigning lead ${leadId}:`, error);
+        errorCount++;
+      }
+    }
+
+    // Refresh leads list
+    window.fetchLeads();
+
+    alert(`Bulk assignment completed! ${successCount} leads assigned successfully. ${errorCount} failed.`);
+    window.setBulkAssignSelections({});
+    window.setShowBulkAssignModal(false);
+  } catch (error) {
+    console.error('Bulk assignment error:', error);
+    alert('Bulk assignment failed: ' + error.message);
+  } finally {
+    window.setBulkAssignLoading(false);
+  }
+};
+
+console.log("🔧 form-handlers.js loaded - All form submission handlers ready");
