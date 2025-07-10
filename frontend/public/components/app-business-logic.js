@@ -174,7 +174,7 @@ window.renderAppBusinessLogic = function() {
     return statusMap[status] || '📋';
   };
 
-  // ✅ CRITICAL: handleLeadProgression with ORIGINAL SOPHISTICATED MODAL SWITCHING LOGIC + ALL WORKING FUNCTIONS
+  // ✅ CRITICAL: handleLeadProgression with FIXED MODAL SWITCHING LOGIC 
   const handleLeadProgression = (lead) => {
     // FIXED: Handle unassigned leads first - open assignment form instead of progressing
     if (lead.status === 'unassigned' && !lead.assigned_to) {
@@ -201,12 +201,18 @@ window.renderAppBusinessLogic = function() {
       window.LEAD_STATUSES[status]?.requires_followup_date
     );
 
-    // ✅ CRITICAL: ORIGINAL MODAL SWITCHING LOGIC RESTORED
+    // ✅ CRITICAL FIX: ADD MISSING MODAL SWITCHING LOGIC
     // Early stages (unassigned, assigned, attempts) → Use Choice Modal (button list)  
     // After contacted → Use Status Progress Modal (dropdown system)
-    
     const earlyStageStatuses = ['unassigned', 'assigned', 'attempt_1', 'attempt_2', 'attempt_3'];
     const useChoiceModal = earlyStageStatuses.includes(currentStatus);
+
+    console.log('🎯 Modal decision:', {
+      currentStatus,
+      isEarlyStage: useChoiceModal,
+      nextOptions,
+      modalType: useChoiceModal ? 'Choice Modal (Buttons)' : 'Status Progress Modal (Dropdown)'
+    });
 
     if (nextOptions.length === 1) {
       const nextStatus = nextOptions[0];
@@ -282,10 +288,10 @@ window.renderAppBusinessLogic = function() {
           icon: getStatusIcon(status) // Helper function for icons
         })));
       } 
-      // ✅ CRITICAL: ORIGINAL MODAL SWITCHING LOGIC
-      // Early stages use Choice Modal, later stages use Status Progress Modal
+      // ✅ CRITICAL FIX: ADD THE MISSING MODAL SWITCHING LOGIC
       else if (useChoiceModal) {
-        // Early stages: Show Choice Modal with button list (beautiful icons)
+        // Early stages: Show Choice Modal with button list (beautiful icons ✏️📞⏰)
+        console.log('✨ Using Choice Modal for early stage:', currentStatus);
         setCurrentLeadForChoice(lead);
         setChoiceOptions(nextOptions.map(status => ({
           value: status,
@@ -294,7 +300,8 @@ window.renderAppBusinessLogic = function() {
         })));
         setShowChoiceModal(true);
       } else {
-        // Later stages: Show Status Progress Modal with dropdown system
+        // Later stages: Show Status Progress Modal with dropdown system  
+        console.log('📋 Using Status Progress Modal for later stage:', currentStatus);
         setCurrentLead(lead);
         setShowStatusProgressModal(true);
         setStatusProgressOptions(nextOptions.map(status => ({
@@ -381,7 +388,7 @@ window.renderAppBusinessLogic = function() {
     }
   };
 
-  // [ALL THE WORKING FUNCTIONS FROM YOUR ORIGINAL FILE]
+  // [ALL THE WORKING FUNCTIONS FROM YOUR ORIGINAL FILE - UNCHANGED]
   const openEditOrderForm = (order) => {
     if (!order) {
       alert('Order data not found');
@@ -1207,6 +1214,7 @@ window.renderAppBusinessLogic = function() {
     setShowAllocationForm(false);
     setShowEditInventoryForm(false);
     setShowChoiceModal(false);
+    setShowStatusProgressModal(false); // ✅ ADD: Close Status Progress Modal too
     setShowInvoicePreview(false);
     setShowDeliveryForm(false);
     setShowPaymentPostServiceForm(false);
@@ -1217,6 +1225,7 @@ window.renderAppBusinessLogic = function() {
     setCurrentInvoice(null);
     setCurrentDelivery(null);
     setChoiceOptions([]);
+    setStatusProgressOptions([]); // ✅ ADD: Clear Status Progress Options
     setFormData({});
     setPaymentData({});
     setAllocationData({});
@@ -1319,4 +1328,4 @@ window.renderAppBusinessLogic = function() {
   };
 };
 
-console.log('✅ App Business Logic Handlers loaded successfully with ORIGINAL SOPHISTICATED MODAL SWITCHING WORKFLOW + ALL WORKING DATA FUNCTIONS RESTORED');
+console.log('✅ App Business Logic Handlers loaded successfully with FIXED MODAL SWITCHING WORKFLOW (earlyStageStatuses + useChoiceModal logic restored)');
