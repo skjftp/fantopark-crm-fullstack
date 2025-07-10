@@ -21,6 +21,12 @@ window.SimplifiedApp = function() {
   window.assignLead = handlers.assignLead;
   window.progressLead = handlers.progressLead;
   
+  // ✅ NEW: togglePremiumStatus function exposure - ADDED
+  window.togglePremiumStatus = handlers.togglePremiumStatus || ((leadId, isPremium) => {
+    console.log("⭐ togglePremiumStatus called:", leadId, isPremium);
+    console.warn("⚠️ togglePremiumStatus not implemented in handlers");
+  });
+  
   // ✅ CRITICAL FIX: Lead progression functions - properly connected
   window.handleLeadProgression = handlers.handleLeadProgression || handlers.progressLead || ((leadId, newStatus) => {
     console.log("🔄 handleLeadProgression called:", leadId, newStatus);
@@ -1164,4 +1170,4 @@ window.SimplifiedApp = function() {
   );
 };
 
-console.log('✅ Simplified App Component loaded successfully with LEADS FILTER FUNCTION EXPOSURES FIXED');
+console.log('✅ Simplified App Component loaded successfully with LEADS FILTER FUNCTION EXPOSURES FIXED + togglePremiumStatus exposure added');
