@@ -43,10 +43,11 @@ window.renderAppBusinessLogic = function() {
     showUserManagement, setShowUserManagement, showAddForm, setShowAddForm, currentForm, setCurrentForm,
     showEditForm, setShowEditForm, showAssignForm, setShowAssignForm, showPaymentForm, setShowPaymentForm,
     showChoiceModal, setShowChoiceModal, currentLeadForChoice, setCurrentLeadForChoice,
-    choiceOptions, setChoiceOptions, userFormData, setUserFormData, showUserForm, setShowUserForm
+    choiceOptions, setChoiceOptions, userFormData, setUserFormData, showUserForm, setShowUserForm,
+    showStatusProgressModal, setShowStatusProgressModal, statusProgressOptions, setStatusProgressOptions
   } = state;
 
-  // ✅ CRITICAL MISSING FUNCTION: updateLeadStatus
+  // ✅ CRITICAL: updateLeadStatus function
   const updateLeadStatus = async (leadId, newStatus) => {
     if (!window.hasPermission('leads', 'progress')) {
       alert('You do not have permission to progress leads');
@@ -103,54 +104,188 @@ window.renderAppBusinessLogic = function() {
     }
   };
 
-  // ✅ CRITICAL MISSING FUNCTION: handleLeadProgression  
-  const handleLeadProgression = async (leadOrId, newStatus) => {
-    console.log("🔄 handleLeadProgression called with:", leadOrId, newStatus);
-    
-    // Handle both lead object and leadId formats
-    let leadId;
-    let leadData;
-    
-    if (typeof leadOrId === 'object' && leadOrId.id) {
-      // Called with lead object
-      leadId = leadOrId.id;
-      leadData = leadOrId;
-    } else {
-      // Called with just leadId
-      leadId = leadOrId;
-      leadData = leads.find(l => l.id === leadId);
-    }
+  // ✅ CRITICAL: Enhanced Choice Modal Handler (ORIGINAL SOPHISTICATED LOGIC RESTORED)
+  const handleChoiceSelection = async (choice) => {
+    try {
+      setLoading(true);
 
-    if (!leadData) {
-      console.error('Lead not found for progression');
-      return;
-    }
-
-    // If newStatus is undefined, we need to determine it from context
-    if (!newStatus) {
-      console.warn('No new status provided - this might be a UI interaction issue');
-      // For now, just open the choice modal or status progression
-      if (window.renderStatusProgressModal && window.LEAD_STATUSES[leadData.status]) {
-        const status = window.LEAD_STATUSES[leadData.status];
-        const nextActions = status.next || [];
-        
-        if (nextActions.length > 0) {
-          setCurrentLeadForChoice(leadData);
-          setChoiceOptions(nextActions.map(action => ({
-            value: action,
-            label: window.LEAD_STATUSES[action]?.label || action,
-            color: window.LEAD_STATUSES[action]?.color || 'bg-gray-100 text-gray-800'
-          })));
-          setShowChoiceModal(true);
-          return;
-        }
+      // If choice requires follow-up date, switch to the enhanced modal
+      if (choice.requires_followup_date) {
+        setShowChoiceModal(false);
+        setCurrentLead(currentLeadForChoice);
+        setShowStatusProgressModal(true);
+        setStatusProgressOptions([{
+          value: choice.value,
+          label: choice.label,
+          color: window.LEAD_STATUSES[choice.value]?.color || 'bg-gray-100 text-gray-800',
+          requires_followup_date: true
+        }]);
+        setLoading(false);
+        return;
       }
-      console.warn('No progression options available for lead status:', leadData.status);
+
+      // Handle payment choices (existing logic)
+      if (choice.value === 'payment') {
+        setShowChoiceModal(false);
+        openPaymentForm(currentLeadForChoice);
+        setLoading(false);
+        return;
+      }
+
+      if (choice.value === 'payment_post_service') {
+        setShowChoiceModal(false);
+        openPaymentPostServiceForm(currentLeadForChoice);
+        setLoading(false);
+        return;
+      }
+
+      // For regular status updates
+      await updateLeadStatus(currentLeadForChoice.id, choice.value);
+      setShowChoiceModal(false);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error handling choice selection:', error);
+      setLoading(false);
+      alert('Failed to update lead status: ' + error.message);
+    }
+  };
+
+  // Helper function for status icons
+  const getStatusIcon = (status) => {
+    const statusMap = {
+      'unassigned': '📝',
+      'assigned': '👤',
+      'contacted': '📞',
+      'attempt_1': '📞',
+      'attempt_2': '📞',
+      'attempt_3': '📞',
+      'qualified': '✅',
+      'junk': '🗑️',
+      'hot': '🔥',
+      'warm': '🌟',
+      'cold': '❄️',
+      'converted': '💰',
+      'dropped': '❌',
+      'payment': '💳',
+      'payment_post_service': '📅',
+      'payment_received': '✅',
+      'pickup_later': '⏰'
+    };
+    return statusMap[status] || '📋';
+  };
+
+  // ✅ CRITICAL: handleLeadProgression with ORIGINAL SOPHISTICATED LOGIC RESTORED
+  const handleLeadProgression = (lead) => {
+    // FIXED: Handle unassigned leads first - open assignment form instead of progressing
+    if (lead.status === 'unassigned' && !lead.assigned_to) {
+      console.log('📝 Opening assignment form for unassigned lead:', lead.name);
+      openAssignForm(lead);
       return;
     }
 
-    // Call updateLeadStatus with the determined values
-    await updateLeadStatus(leadId, newStatus);
+    if (!window.hasPermission('leads', 'progress')) {
+      alert('You do not have permission to progress leads');
+      return;
+    }
+
+    const currentStatus = lead.status;
+    const nextOptions = window.LEAD_STATUSES[currentStatus]?.next || [];
+
+    if (nextOptions.length === 0) {
+      alert('This lead is already at the final stage.');
+      return;
+    }
+
+    // Check if any of the next options require follow-up date (like pickup_later)
+    const hasFollowUpOptions = nextOptions.some(status => 
+      window.LEAD_STATUSES[status]?.requires_followup_date
+    );
+
+    if (nextOptions.length === 1) {
+      const nextStatus = nextOptions[0];
+
+      // Handle pickup_later status (requires follow-up date)
+      if (nextStatus === 'pickup_later') {
+        setCurrentLead(lead);
+        setShowStatusProgressModal(true);
+        setStatusProgressOptions([{
+          value: 'pickup_later',
+          label: window.LEAD_STATUSES['pickup_later'].label,
+          color: window.LEAD_STATUSES['pickup_later'].color,
+          requires_followup_date: true
+        }]);
+        return;
+      }
+
+      // Handle payment status (existing logic)
+      if (nextStatus === 'payment') {
+        if (currentStatus === 'payment_post_service') {
+          // Coming from payment_post_service, collect payment
+          const receivable = receivables.find(r => r.lead_id === lead.id && r.status === 'pending');
+          if (receivable) {
+            collectPostServicePayment(receivable);
+          } else {
+            openPaymentForm(lead);
+          }
+        } else {
+          openPaymentForm(lead);
+        }
+        return;
+      }
+
+      // For other single status transitions (including attempts)
+      updateLeadStatus(lead.id, nextStatus);
+    } else {
+      // Multiple options available - need to show choice modal
+
+      // Handle special case for converted status with payment options (existing logic)
+      if (currentStatus === 'converted' && 
+          nextOptions.includes('payment') && 
+          nextOptions.includes('payment_post_service')) {
+
+        // Check if pickup_later is also an option
+        if (nextOptions.includes('pickup_later')) {
+          // Show enhanced choice modal with pickup_later option
+          setCurrentLeadForChoice(lead);
+          setChoiceOptions([
+            { value: 'payment', label: 'Collect Payment Now', icon: '💳' },
+            { value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' },
+            { value: 'pickup_later', label: 'Pick Up Later', icon: '⏰', requires_followup_date: true }
+          ]);
+          setShowChoiceModal(true);
+        } else {
+          // Original logic for payment choices
+          setCurrentLeadForChoice(lead);
+          setChoiceOptions([
+            { value: 'payment', label: 'Collect Payment Now', icon: '💳' },
+            { value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' }
+          ]);
+          setShowChoiceModal(true);
+        }
+      } 
+      // If any option requires follow-up date, use the enhanced modal
+      else if (hasFollowUpOptions) {
+        setCurrentLead(lead);
+        setShowStatusProgressModal(true);
+        setStatusProgressOptions(nextOptions.map(status => ({
+          value: status,
+          label: window.LEAD_STATUSES[status].label,
+          color: window.LEAD_STATUSES[status].color,
+          requires_followup_date: window.LEAD_STATUSES[status].requires_followup_date,
+          icon: getStatusIcon(status) // Helper function for icons
+        })));
+      } 
+      // Otherwise use the existing choice modal (this handles attempts and all other flows)
+      else {
+        setCurrentLeadForChoice(lead);
+        setChoiceOptions(nextOptions.map(status => ({
+          value: status,
+          label: window.LEAD_STATUSES[status].label,
+          icon: getStatusIcon(status)
+        })));
+        setShowChoiceModal(true);
+      }
+    }
   };
 
   // ✅ MISSING FUNCTION: progressLead (alias for handleLeadProgression)
@@ -226,6 +361,7 @@ window.renderAppBusinessLogic = function() {
     }
   };
 
+  // [Rest of the existing functions remain unchanged - just adding to the end of return statement]
   const openEditOrderForm = (order) => {
     if (!order) {
       alert('Order data not found');
@@ -1099,11 +1235,12 @@ window.renderAppBusinessLogic = function() {
     setDeliveryFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // ✅ RETURN ALL HANDLERS INCLUDING THE MISSING ONES
+  // ✅ RETURN ALL HANDLERS INCLUDING THE RESTORED SOPHISTICATED WORKFLOW
   return {
-    // ✅ CRITICAL MISSING FUNCTIONS NOW INCLUDED
+    // ✅ CRITICAL SOPHISTICATED WORKFLOW FUNCTIONS RESTORED
     updateLeadStatus,
     handleLeadProgression,
+    handleChoiceSelection,
     progressLead,
     editLead,
     deleteLead,
@@ -1161,4 +1298,4 @@ window.renderAppBusinessLogic = function() {
   };
 };
 
-console.log('✅ App Business Logic Handlers loaded successfully with lead progression functions');
+console.log('✅ App Business Logic Handlers loaded successfully with ORIGINAL SOPHISTICATED WORKFLOW RESTORED');
