@@ -262,6 +262,31 @@ window.SimplifiedApp = function() {
     console.warn("⚠️ setViewMode not implemented in state");
   });
 
+  // ✅ CRITICAL FIX: CLIENT SUGGESTION FUNCTIONS - NEWLY ADDED
+  window.applyClientSuggestion = handlers.applyClientSuggestion || (() => {
+    console.log("🎯 applyClientSuggestion called");
+    
+    if (window.clientSuggestion && window.setFormData) {
+      // Apply the suggested assignment
+      window.setFormData(prev => ({
+        ...prev,
+        assigned_to: window.clientSuggestion.suggested_assigned_to
+      }));
+      
+      // Hide the client suggestion banner
+      window.setShowClientSuggestion && window.setShowClientSuggestion(false);
+      
+      console.log("✅ Applied client suggestion:", window.clientSuggestion.suggested_assigned_to);
+    } else {
+      console.warn("⚠️ No client suggestion available or setFormData not found");
+    }
+  });
+
+  window.setShowClientSuggestion = state.setShowClientSuggestion || ((show) => {
+    console.log("👁️ setShowClientSuggestion called with:", show);
+    console.warn("⚠️ setShowClientSuggestion not implemented in state");
+  });
+
   // ✅ ADDITIONAL VARIABLES NEEDED BY COMPONENTS
   window.phoneCheckTimeout = state.phoneCheckTimeout;
   window.allocationData = state.allocationData;
