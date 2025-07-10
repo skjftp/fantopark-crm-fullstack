@@ -3,7 +3,29 @@
 // Uses window.* globals for CDN-based React compatibility
 
 window.renderPaymentPostServiceForm = () => {
-  if (!window.showPaymentPostServiceForm || !window.currentLead) return null;
+  // ✅ COMPONENT INTEGRATION PATTERN: Extract state from window globals
+  const {
+    showPaymentPostServiceForm = window.showPaymentPostServiceForm,
+    currentLead = window.currentLead,
+    paymentPostServiceData = window.paymentPostServiceData || {},
+    loading = window.loading
+  } = window.appState || {};
+
+  // ✅ COMPONENT INTEGRATION PATTERN: Function references with fallbacks
+  const handlePaymentPostServiceSubmit = window.handlePaymentPostServiceSubmit || ((e) => {
+    e.preventDefault();
+    console.warn("⚠️ handlePaymentPostServiceSubmit not implemented");
+  });
+
+  const handlePaymentPostServiceInputChange = window.handlePaymentPostServiceInputChange || ((field, value) => {
+    console.warn("⚠️ handlePaymentPostServiceInputChange not implemented:", field, value);
+  });
+
+  const closeForm = window.closeForm || (() => {
+    console.warn("⚠️ closeForm not implemented");
+  });
+
+  if (!showPaymentPostServiceForm || !currentLead) return null;
 
   return React.createElement('div', { 
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
@@ -134,4 +156,4 @@ window.renderPaymentPostServiceForm = () => {
   );
 };
 
-console.log('✅ Payment Post Service Form component loaded successfully');
+console.log('✅ Payment Post Service Form component loaded successfully with window function references');
