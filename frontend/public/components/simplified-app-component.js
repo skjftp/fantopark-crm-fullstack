@@ -571,6 +571,27 @@ window.SimplifiedApp = function() {
   // ✅ POTENTIAL TYPO FIX: setuploadpreview (lowercase, no camelCase)
   window.setuploadpreview = window.setUploadPreview;
 
+  // ✅ CRITICAL FIX: PREVIEW UPLOAD HANDLER FUNCTIONS - NEWLY ADDED
+  window.handlePreview = handlers.handlePreview || (() => {
+    console.log("🔍 handlePreview called");
+    console.warn("⚠️ handlePreview not implemented in handlers");
+  });
+
+  window.previewUpload = handlers.previewUpload || (() => {
+    console.log("📋 previewUpload called");
+    console.warn("⚠️ previewUpload not implemented in handlers");
+  });
+
+  window.handleUploadPreview = handlers.handleUploadPreview || (() => {
+    console.log("📊 handleUploadPreview called");
+    console.warn("⚠️ handleUploadPreview not implemented in handlers");
+  });
+
+  window.handlePreviewClick = handlers.handlePreviewClick || (() => {
+    console.log("👆 handlePreviewClick called");
+    console.warn("⚠️ handlePreviewClick not implemented in handlers");
+  });
+
   // ✅ CSV PREVIEW STATE VARIABLES
   window.previewLoading = state.previewLoading || false;
   window.showPreview = state.showPreview || false;
