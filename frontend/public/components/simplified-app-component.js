@@ -127,7 +127,19 @@ window.SimplifiedApp = function() {
   window.appState.formData = state.formData;
   window.appState.currentLead = state.currentLead;
   window.appState.phoneCheckLoading = state.phoneCheckLoading;
-  
+
+  // ✅ CRITICAL FIX: MISSING LEADS FILTER STATE VARIABLES - NEWLY ADDED
+  window.appState.searchQuery = state.searchQuery || '';
+  window.appState.leadsSourceFilter = state.leadsSourceFilter || 'all';
+  window.appState.leadsBusinessTypeFilter = state.leadsBusinessTypeFilter || 'all';
+  window.appState.leadsEventFilter = state.leadsEventFilter || 'all';
+  window.appState.leadsSortField = state.leadsSortField || 'date_of_enquiry';
+  window.appState.leadsSortDirection = state.leadsSortDirection || 'desc';
+  window.appState.currentLeadsPage = state.currentLeadsPage || 1;
+  window.appState.itemsPerPage = state.itemsPerPage || 20;
+  window.appState.viewMode = state.viewMode || 'leads';
+  window.appState.leads = state.leads || [];
+
   // ✅ DIRECT WINDOW VARIABLES - FOR COMPONENT COMPATIBILITY
   window.showClientSuggestion = state.showClientSuggestion;
   window.clientSuggestion = state.clientSuggestion;
@@ -212,6 +224,43 @@ window.SimplifiedApp = function() {
   window.setSelectedStatus = state.setSelectedStatus;
   window.setFollowUpDate = state.setFollowUpDate;
   window.setFollowUpNotes = state.setFollowUpNotes;
+
+  // ✅ CRITICAL FIX: MISSING LEADS FILTER FUNCTION EXPOSURES - NEWLY ADDED
+  window.setSearchQuery = state.setSearchQuery || ((query) => {
+    console.log("🔍 setSearchQuery called with:", query);
+    console.warn("⚠️ setSearchQuery not implemented in state");
+  });
+  
+  window.setLeadsSourceFilter = state.setLeadsSourceFilter || ((filter) => {
+    console.log("🏷️ setLeadsSourceFilter called with:", filter);
+    console.warn("⚠️ setLeadsSourceFilter not implemented in state");
+  });
+  
+  window.setLeadsBusinessTypeFilter = state.setLeadsBusinessTypeFilter || ((filter) => {
+    console.log("🏢 setLeadsBusinessTypeFilter called with:", filter);
+    console.warn("⚠️ setLeadsBusinessTypeFilter not implemented in state");
+  });
+  
+  window.setLeadsEventFilter = state.setLeadsEventFilter || ((filter) => {
+    console.log("📅 setLeadsEventFilter called with:", filter);
+    console.warn("⚠️ setLeadsEventFilter not implemented in state");
+  });
+  
+  window.setLeadsSortField = state.setLeadsSortField || ((field) => {
+    console.log("📊 setLeadsSortField called with:", field);
+    console.warn("⚠️ setLeadsSortField not implemented in state");
+  });
+  
+  window.setLeadsSortDirection = state.setLeadsSortDirection || ((direction) => {
+    console.log("🔄 setLeadsSortDirection called with:", direction);
+    console.warn("⚠️ setLeadsSortDirection not implemented in state");
+  });
+
+  // ✅ CRITICAL FIX: VIEW MODE SETTER - NEWLY ADDED  
+  window.setViewMode = state.setViewMode || ((mode) => {
+    console.log("👁️ setViewMode called with:", mode);
+    console.warn("⚠️ setViewMode not implemented in state");
+  });
 
   // ✅ ADDITIONAL VARIABLES NEEDED BY COMPONENTS
   window.phoneCheckTimeout = state.phoneCheckTimeout;
@@ -739,4 +788,4 @@ window.SimplifiedApp = function() {
   );
 };
 
-console.log('✅ Simplified App Component loaded successfully with PAYMENT POST SERVICE FORM EXPOSURES FIXED');
+console.log('✅ Simplified App Component loaded successfully with LEADS FILTER FUNCTION EXPOSURES FIXED');
