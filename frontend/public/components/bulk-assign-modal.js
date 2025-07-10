@@ -3,10 +3,33 @@
 // Uses window.* globals for CDN-based React compatibility
 
 window.renderBulkAssignModal = () => {
-  if (!window.showBulkAssignModal) return null;
+  // ✅ PATTERN 1: State Variable Extraction from window globals
+  const {
+    showBulkAssignModal = window.showBulkAssignModal || window.appState?.showBulkAssignModal,
+    leads = window.leads || window.appState?.leads || [],
+    users = window.users || window.appState?.users || [],
+    bulkAssignSelections = window.bulkAssignSelections || window.appState?.bulkAssignSelections || {},
+    bulkAssignLoading = window.bulkAssignLoading || window.appState?.bulkAssignLoading || false,
+  } = window.appState || {};
 
-  const unassignedLeads = (window.leads || []).filter(lead => !lead.assigned_to || lead.assigned_to === '' || lead.status === 'unassigned');
-  const salesUsers = users.filter(u => 
+  // ✅ PATTERN 2: Function References with fallbacks
+  const setShowBulkAssignModal = window.setShowBulkAssignModal || (() => {
+    console.warn("⚠️ setShowBulkAssignModal not implemented");
+  });
+  const setBulkAssignSelections = window.setBulkAssignSelections || (() => {
+    console.warn("⚠️ setBulkAssignSelections not implemented");
+  });
+  const handleBulkAssignSubmit = window.handleBulkAssignSubmit || (() => {
+    console.warn("⚠️ handleBulkAssignSubmit not implemented");
+    alert("Bulk assign functionality will be implemented in next update!");
+  });
+
+  console.log("🔍 Bulk Assign Modal - showBulkAssignModal:", showBulkAssignModal, "leads count:", leads.length);
+
+  if (!showBulkAssignModal) return null;
+
+  const unassignedLeads = (leads || []).filter(lead => !lead.assigned_to || lead.assigned_to === '' || lead.status === 'unassigned');
+  const salesUsers = (users || []).filter(u => 
     ['sales_executive', 'sales_manager', 'supply_executive', 'supply_sales_service_manager'].includes(u.role) && 
     u.status === 'active'
   );
@@ -108,4 +131,4 @@ window.renderBulkAssignModal = () => {
   );
 };
 
-console.log('✅ Bulk Assign Modal component loaded successfully');
+console.log('✅ Bulk Assign Modal component loaded successfully with proper state integration');
