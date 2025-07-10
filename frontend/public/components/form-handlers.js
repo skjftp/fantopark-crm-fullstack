@@ -818,3 +818,227 @@ window.handlePaymentSubmit = async function(e) {
 };
 
 console.log("🔧 Payment handler functions added to form-handlers.js");
+
+// ✅ PAYMENT POST SERVICE INPUT CHANGE HANDLER
+window.handlePaymentPostServiceInputChange = function(field, value) {
+  console.log("📝 Payment Post Service Input Change:", field, value);
+  window.setPaymentPostServiceData(prev => ({ ...prev, [field]: value }));
+};
+
+// ✅ PAYMENT POST SERVICE FORM SUBMISSION HANDLER  
+window.handlePaymentPostServiceSubmit = async function(e) {
+  e.preventDefault();
+  if (!window.hasPermission('leads', 'write')) {
+    alert('You do not have permission to manage payment post service');
+    return;
+  }
+  window.setLoading(true);
+  try {
+    // Update lead status
+    const leadResponse = await window.apiCall('/leads/' + window.currentLead.id, {
+      method: 'PUT',
+      body: JSON.stringify({
+        ...window.currentLead,
+        status: 'payment_post_service',
+        payment_post_service_details: window.paymentPostServiceData,
+        payment_post_service_date: new Date().toISOString()
+      })
+    });
+
+    window.setLeads(prev => prev.map(lead => 
+      lead.id === window.currentLead.id ? leadResponse.data : lead
+    ));
+
+    // Create order
+    const newOrder = {
+      order_number: 'ORD-' + Date.now(),
+      lead_id: window.currentLead.id,
+      client_name: window.currentLead.name,
+      client_email: window.currentLead.email,
+      client_phone: window.currentLead.phone,
+      event_name: window.currentLead?.lead_for_event || 'Post Service Payment',
+      event_date: window.paymentPostServiceData.service_date || new Date().toISOString().split('T')[0],
+      tickets_allocated: 1,
+      ticket_category: 'Post Service',
+      price_per_ticket: parseFloat(window.paymentPostServiceData.expected_amount) || 0,
+      total_amount: parseFloat(window.paymentPostServiceData.expected_amount) || 0,
+      expected_amount: parseFloat(window.paymentPostServiceData.expected_amount),
+      expected_payment_date: window.paymentPostServiceData.expected_payment_date,
+      service_description: window.paymentPostServiceData.service_details,
+      notes: window.paymentPostServiceData.notes,
+      payment_terms: window.paymentPostServiceData.payment_terms,
+      order_type: 'payment_post_service',
+      payment_status: 'pending',
+      status: 'pending_approval',
+      requires_gst_invoice: true,
+      created_date: new Date().toISOString(),
+      created_by: window.user.name,
+      assigned_to: ''
+    };
+
+    const orderResponse = await window.apiCall('/orders', {
+      method: 'POST',
+      body: JSON.stringify(newOrder)
+    });
+
+    const finalOrder = orderResponse.data || orderResponse || newOrder;
+    if (!finalOrder.id && newOrder.order_number) {
+      finalOrder.id = newOrder.order_number;
+    }
+    window.setOrders(prev => [...prev, finalOrder]);
+    
+    alert('Payment Post Service order created successfully! Awaiting approval.');
+    window.closeForm();
+  } catch (error) {
+    alert('Failed to process payment post service. Please try again.');
+    console.error('Payment post service error:', error);
+  } finally {
+    window.setLoading(false);
+  }
+};
+
+// ✅ PAYMENT INPUT CHANGE HANDLER
+window.handlePaymentInputChange = function(field, value) {
+  console.log("📝 Payment Input Change:", field, value);
+  window.setPaymentData(prev => ({ ...prev, [field]: value }));
+};
+
+// ✅ PAYMENT FORM SUBMISSION HANDLER
+window.handlePaymentSubmit = async function(e) {
+  e.preventDefault();
+  if (!window.hasPermission('orders', 'create')) {
+    alert('You do not have permission to create orders');
+    return;
+  }
+  window.setLoading(true);
+  try {
+    const invoiceTotal = window.paymentData.invoice_items?.reduce((sum, item) => 
+      sum + ((item.quantity || 0) * (item.rate || 0)), 0
+    ) || 0;
+    const baseAmount = window.paymentData.type_of_sale === 'Service Fee' 
+      ? (parseFloat(window.paymentData.service_fee_amount) || 0) : invoiceTotal;
+    const calculation = window.calculateGSTAndTCS(baseAmount, window.paymentData);
+    
+    const newOrder = {
+      order_number: 'ORD-' + Date.now(),
+      lead_id: window.currentLead.id,
+      client_name: window.paymentData.legal_name || window.currentLead.name,
+      client_email: window.currentLead.email,
+      client_phone: window.currentLead.phone,
+      payment_method: window.paymentData.payment_method,
+      transaction_id: window.paymentData.transaction_id,
+      payment_date: window.paymentData.payment_date,
+      advance_amount: parseFloat(window.paymentData.advance_amount) || 0,
+      gstin: window.paymentData.gstin,
+      legal_name: window.paymentData.legal_name,
+      category_of_sale: window.paymentData.category_of_sale,
+      type_of_sale: window.paymentData.type_of_sale,
+      registered_address: window.paymentData.registered_address,
+      indian_state: window.paymentData.indian_state,
+      is_outside_india: window.paymentData.is_outside_india,
+      customer_type: window.paymentData.customer_type,
+      event_location: window.paymentData.event_location,
+      payment_currency: window.paymentData.payment_currency,
+      invoice_items: window.paymentData.invoice_items || [],
+      base_amount: baseAmount,
+      gst_calculation: calculation.gst,
+      tcs_calculation: calculation.tcs,
+      total_tax: calculation.gst.amount + calculation.tcs.amount,
+      final_amount: calculation.finalAmount,
+      service_fee_amount: window.paymentData.service_fee_amount ? parseFloat(window.paymentData.service_fee_amount) : null,
+      gst_certificate: window.paymentData.gst_certificate,
+      pan_card: window.paymentData.pan_card,
+      status: 'pending_approval',
+      requires_gst_invoice: true,
+      payment_status: window.paymentData.from_receivable ? 'completed' : 'partial',
+      created_date: new Date().toISOString(),
+      created_by: window.user.name,
+      notes: window.paymentData.notes
+    };
+
+    const orderResponse = await window.apiCall('/orders', {
+      method: 'POST',
+      body: JSON.stringify(newOrder)
+    });
+
+    const finalOrder = orderResponse.data || orderResponse || newOrder;
+    if (!finalOrder.id && newOrder.order_number) {
+      finalOrder.id = newOrder.order_number;
+    }
+    window.setOrders(prev => [...prev, finalOrder]);
+
+    const leadUpdateResponse = await window.apiCall('/leads/' + window.currentLead.id, {
+      method: 'PUT',
+      body: JSON.stringify({
+        ...window.currentLead,
+        status: window.paymentData.from_receivable ? 'payment_received' : 'payment_partial',
+        payment_date: window.paymentData.payment_date,
+        advance_amount: parseFloat(window.paymentData.advance_amount) || 0,
+        final_amount: calculation.finalAmount
+      })
+    });
+
+    window.setLeads(prev => prev.map(lead => 
+      lead.id === window.currentLead.id ? leadUpdateResponse.data : lead
+    ));
+
+    alert('Payment processed successfully! Order created and awaiting approval.');
+    window.closeForm();
+  } catch (error) {
+    console.error('Payment processing error:', error);
+    alert('Failed to process payment: ' + error.message);
+  } finally {
+    window.setLoading(false);
+  }
+};
+
+// ✅ GST AND TCS CALCULATION HELPER FUNCTION  
+window.calculateGSTAndTCS = function(baseAmount, paymentData) {
+  const result = {
+    gst: { applicable: false, rate: 0, amount: 0, cgst: 0, sgst: 0, igst: 0 },
+    tcs: { applicable: false, rate: 0, amount: 0 },
+    finalAmount: baseAmount
+  };
+
+  if (paymentData.type_of_sale === 'Service Fee') {
+    result.gst.applicable = true;
+    result.gst.rate = 18;
+  } else {
+    const isIndian = paymentData.customer_type === 'indian';
+    const isCorporate = paymentData.category_of_sale === 'Corporate';
+    const isOutsideIndia = paymentData.event_location === 'outside_india';
+    const isINRPayment = paymentData.payment_currency === 'INR';
+
+    if (isIndian || (!isOutsideIndia) || (isOutsideIndia && isINRPayment)) {
+      result.gst.applicable = true;
+      result.gst.rate = (isIndian && isCorporate) ? 18 : 5;
+    }
+  }
+
+  if (result.gst.applicable) {
+    result.gst.amount = (baseAmount * result.gst.rate) / 100;
+    const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
+    
+    if (isIntraState) {
+      result.gst.cgst = result.gst.amount / 2;
+      result.gst.sgst = result.gst.amount / 2;
+    } else {
+      result.gst.igst = result.gst.amount;
+    }
+  }
+
+  const isOutsideIndia = paymentData.event_location === 'outside_india';
+  const isIndian = paymentData.customer_type === 'indian';
+  const isINRPayment = paymentData.payment_currency === 'INR';
+  
+  if (isOutsideIndia && (isIndian || isINRPayment)) {
+    result.tcs.applicable = true;
+    result.tcs.rate = paymentData.tcs_rate || 5;
+    result.tcs.amount = (baseAmount * result.tcs.rate) / 100;
+  }
+
+  result.finalAmount = baseAmount + result.gst.amount + result.tcs.amount;
+  return result;
+};
+
+console.log("🔧 Payment handler functions added to form-handlers.js");
