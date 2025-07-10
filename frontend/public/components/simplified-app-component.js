@@ -292,25 +292,91 @@ window.SimplifiedApp = function() {
     console.log("👥 fetchClients called");
     // Return a promise for compatibility with .then() chains
     return new Promise((resolve, reject) => {
-      console.warn("⚠️ fetchClients not implemented in handlers");
-      // Resolve with empty array as fallback
-      window.clients = window.clients || [];
-      resolve(window.clients);
+      if (handlers.fetchClients && typeof handlers.fetchClients === 'function') {
+        return handlers.fetchClients().then(resolve).catch(reject);
+      } else {
+        console.warn("⚠️ fetchClients not implemented in handlers");
+        // Resolve with existing clients array as fallback
+        window.clients = window.clients || [];
+        resolve(window.clients);
+      }
     });
   });
 
   window.setSelectedClient = state.setSelectedClient || ((client) => {
     console.log("👤 setSelectedClient called with:", client);
-    console.warn("⚠️ setSelectedClient not implemented in state");
+    window.selectedClient = client;
+    if (state.setSelectedClient) {
+      state.setSelectedClient(client);
+    } else {
+      console.warn("⚠️ setSelectedClient not implemented in state");
+    }
   });
 
   window.setShowClientDetail = state.setShowClientDetail || ((show) => {
     console.log("👁️ setShowClientDetail called with:", show);
-    console.warn("⚠️ setShowClientDetail not implemented in state");
+    window.showClientDetail = show;
+    if (state.setShowClientDetail) {
+      state.setShowClientDetail(show);
+    } else {
+      console.warn("⚠️ setShowClientDetail not implemented in state");
+    }
   });
 
   // ✅ CLIENT DATA VARIABLE
   window.clients = state.clients || [];
+  window.selectedClient = state.selectedClient || null;
+  window.showClientDetail = state.showClientDetail || false;
+
+  // ✅ ENHANCED CLIENT FINDER FUNCTION - WORKS WITH MULTIPLE DATA STRUCTURES
+  window.findClientByPhone = (phone) => {
+    console.log("🔍 Looking for client with phone:", phone);
+    
+    if (!window.clients || !phone) {
+      console.log("❌ No clients data or phone number provided");
+      return null;
+    }
+
+    // Try multiple data structure patterns
+    let foundClient = null;
+
+    // Pattern 1: Direct phone match in client object
+    foundClient = window.clients.find(c => c.phone === phone);
+    if (foundClient) {
+      console.log("✅ Found client by direct phone match:", foundClient.name || foundClient.id);
+      return foundClient;
+    }
+
+    // Pattern 2: Client has leads array with phone numbers
+    foundClient = window.clients.find(c => 
+      c.leads && Array.isArray(c.leads) && c.leads.some(l => l.phone === phone)
+    );
+    if (foundClient) {
+      console.log("✅ Found client by leads phone match:", foundClient.name || foundClient.id);
+      return foundClient;
+    }
+
+    // Pattern 3: Check if clients is grouped by phone (common pattern)
+    foundClient = window.clients.find(c => c.client_phone === phone);
+    if (foundClient) {
+      console.log("✅ Found client by client_phone match:", foundClient.name || foundClient.id);
+      return foundClient;
+    }
+
+    // Pattern 4: Search in nested contact information
+    foundClient = window.clients.find(c => 
+      (c.contact && c.contact.phone === phone) ||
+      (c.contactInfo && c.contactInfo.phone === phone)
+    );
+    if (foundClient) {
+      console.log("✅ Found client by nested contact phone:", foundClient.name || foundClient.id);
+      return foundClient;
+    }
+
+    console.log("❌ Client not found for phone:", phone);
+    console.log("📊 Available clients sample:", window.clients.slice(0, 2));
+    return null;
+  };
 
   // ✅ ADDITIONAL VARIABLES NEEDED BY COMPONENTS
   window.phoneCheckTimeout = state.phoneCheckTimeout;
