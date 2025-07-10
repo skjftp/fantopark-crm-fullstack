@@ -159,6 +159,38 @@ window.getPriorityColor = (priority) => {
     default: return 'text-gray-600 bg-gray-100';
   }
 };
+
+  // ✅ INVENTORY FUNCTION EXPOSURES - NEWLY ADDED
+window.openInventoryDetail = handlers.openInventoryDetail || ((inventory) => {
+  console.log("📦 openInventoryDetail called with:", inventory);
+  state.setCurrentInventoryDetail && state.setCurrentInventoryDetail(inventory);
+  state.setShowInventoryDetail && state.setShowInventoryDetail(true);
+});
+
+window.openEditInventoryForm = handlers.openEditInventoryForm || ((inventory) => {
+  console.log("✏️ openEditInventoryForm called with:", inventory);
+  state.setCurrentInventory && state.setCurrentInventory(inventory);
+  state.setShowEditInventoryForm && state.setShowEditInventoryForm(true);
+});
+
+window.handleDeleteInventory = handlers.handleDeleteInventory || ((inventoryId) => {
+  console.log("🗑️ handleDeleteInventory called with:", inventoryId);
+  if (window.handleDelete) {
+    return window.handleDelete('inventory', inventoryId, 'inventory item');
+  } else {
+    console.warn("⚠️ handleDeleteInventory not implemented");
+  }
+});
+
+window.handleCopyInventory = handlers.handleCopyInventory || ((inventory) => {
+  console.log("📋 handleCopyInventory called with:", inventory);
+  console.warn("⚠️ handleCopyInventory not implemented in handlers");
+});
+
+window.openAddInventoryForm = handlers.openAddInventoryForm || (() => {
+  console.log("➕ openAddInventoryForm called");
+  state.setShowInventoryForm && state.setShowInventoryForm(true);
+});
   
   // ✅ STATE EXPOSURES - COMPLETE SET
   window.appState = window.appState || {};
