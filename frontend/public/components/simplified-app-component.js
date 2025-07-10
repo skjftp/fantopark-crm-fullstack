@@ -557,6 +557,20 @@ window.SimplifiedApp = function() {
     }
   });
 
+  // ✅ CRITICAL FIX: UPLOAD PREVIEW FUNCTION - LIKELY MISSING
+  window.setUploadPreview = state.setUploadPreview || ((preview) => {
+    console.log("📤 setUploadPreview called with:", preview);
+    window.uploadPreview = preview;
+    if (state.setUploadPreview) {
+      state.setUploadPreview(preview);
+    } else {
+      console.warn("⚠️ setUploadPreview not implemented in state");
+    }
+  });
+
+  // ✅ POTENTIAL TYPO FIX: setuploadpreview (lowercase, no camelCase)
+  window.setuploadpreview = window.setUploadPreview;
+
   // ✅ CSV PREVIEW STATE VARIABLES
   window.previewLoading = state.previewLoading || false;
   window.showPreview = state.showPreview || false;
