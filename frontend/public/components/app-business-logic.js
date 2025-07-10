@@ -46,6 +46,186 @@ window.renderAppBusinessLogic = function() {
     choiceOptions, setChoiceOptions, userFormData, setUserFormData, showUserForm, setShowUserForm
   } = state;
 
+  // ✅ CRITICAL MISSING FUNCTION: updateLeadStatus
+  const updateLeadStatus = async (leadId, newStatus) => {
+    if (!window.hasPermission('leads', 'progress')) {
+      alert('You do not have permission to progress leads');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Get the full lead object first
+      const currentLeadData = leads.find(l => l.id === leadId);
+      if (!currentLeadData) {
+        alert('Lead not found');
+        setLoading(false);
+        return;
+      }
+
+      // Include ALL fields from current lead
+      const updateData = {
+        ...currentLeadData,  // This includes EVERYTHING
+        status: newStatus,
+        last_contact_date: new Date().toISOString(),
+        [(newStatus) + '_date']: new Date().toISOString(),
+        updated_date: new Date().toISOString()
+      };
+
+      console.log('Updating lead with full data:', updateData);
+
+      // API call to update lead status
+      const response = await window.apiCall('/leads/' + leadId, {
+        method: 'PUT',
+        body: JSON.stringify(updateData)
+      });
+
+      // Update local state with response from server
+      console.log("Status update response:", response);
+      setLeads(prevLeads => 
+        prevLeads.map(lead => 
+          lead.id === leadId ? response.data : lead
+        )
+      );
+
+      // Update current lead if in detail view
+      if (showLeadDetail && currentLead?.id === leadId) {
+        setCurrentLead(response.data);
+      }
+
+      setLoading(false);
+      alert('Lead status updated successfully!');
+    } catch (error) {
+      console.error('Error updating lead status:', error);
+      setLoading(false);
+      alert('Failed to update lead status: ' + error.message);
+    }
+  };
+
+  // ✅ CRITICAL MISSING FUNCTION: handleLeadProgression  
+  const handleLeadProgression = async (leadOrId, newStatus) => {
+    console.log("🔄 handleLeadProgression called with:", leadOrId, newStatus);
+    
+    // Handle both lead object and leadId formats
+    let leadId;
+    let leadData;
+    
+    if (typeof leadOrId === 'object' && leadOrId.id) {
+      // Called with lead object
+      leadId = leadOrId.id;
+      leadData = leadOrId;
+    } else {
+      // Called with just leadId
+      leadId = leadOrId;
+      leadData = leads.find(l => l.id === leadId);
+    }
+
+    if (!leadData) {
+      console.error('Lead not found for progression');
+      return;
+    }
+
+    // If newStatus is undefined, we need to determine it from context
+    if (!newStatus) {
+      console.warn('No new status provided - this might be a UI interaction issue');
+      // For now, just open the choice modal or status progression
+      if (window.renderStatusProgressModal && window.LEAD_STATUSES[leadData.status]) {
+        const status = window.LEAD_STATUSES[leadData.status];
+        const nextActions = status.next || [];
+        
+        if (nextActions.length > 0) {
+          setCurrentLeadForChoice(leadData);
+          setChoiceOptions(nextActions.map(action => ({
+            value: action,
+            label: window.LEAD_STATUSES[action]?.label || action,
+            color: window.LEAD_STATUSES[action]?.color || 'bg-gray-100 text-gray-800'
+          })));
+          setShowChoiceModal(true);
+          return;
+        }
+      }
+      console.warn('No progression options available for lead status:', leadData.status);
+      return;
+    }
+
+    // Call updateLeadStatus with the determined values
+    await updateLeadStatus(leadId, newStatus);
+  };
+
+  // ✅ MISSING FUNCTION: progressLead (alias for handleLeadProgression)
+  const progressLead = handleLeadProgression;
+
+  // ✅ MISSING FUNCTION: editLead 
+  const editLead = (lead) => {
+    console.log("📝 editLead called with:", lead);
+    openEditForm(lead);
+  };
+
+  // ✅ MISSING FUNCTION: deleteLead
+  const deleteLead = async (leadId) => {
+    if (!window.hasPermission('leads', 'write')) {
+      alert('You do not have permission to delete leads');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this lead? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      await window.apiCall('/leads/' + leadId, {
+        method: 'DELETE'
+      });
+
+      setLeads(prev => prev.filter(lead => lead.id !== leadId));
+      
+      // Close lead detail if it's the one being deleted
+      if (showLeadDetail && currentLead?.id === leadId) {
+        setShowLeadDetail(false);
+        setCurrentLead(null);
+      }
+
+      alert('Lead deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting lead:', error);
+      alert('Failed to delete lead: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ MISSING FUNCTION: assignLead
+  const assignLead = (lead) => {
+    console.log("👤 assignLead called with:", lead);
+    openAssignForm(lead);
+  };
+
+  // ✅ MISSING FUNCTION: fetchUsers
+  const fetchUsers = async () => {
+    try {
+      const response = await window.apiCall('/users');
+      setUsers(response.data || []);
+      setAllUsers(response.data || []);
+      console.log(`Fetched ${response.data?.length || 0} users`);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    }
+  };
+
+  // ✅ MISSING FUNCTION: fetchLeads
+  const fetchLeads = async () => {
+    try {
+      const response = await window.apiCall('/leads');
+      setLeads(response.data || []);
+      console.log(`Fetched ${response.data?.length || 0} leads`);
+    } catch (error) {
+      console.error('Failed to fetch leads:', error);
+    }
+  };
+
   const openEditOrderForm = (order) => {
     if (!order) {
       alert('Order data not found');
@@ -919,8 +1099,19 @@ window.renderAppBusinessLogic = function() {
     setDeliveryFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Return all handlers
+  // ✅ RETURN ALL HANDLERS INCLUDING THE MISSING ONES
   return {
+    // ✅ CRITICAL MISSING FUNCTIONS NOW INCLUDED
+    updateLeadStatus,
+    handleLeadProgression,
+    progressLead,
+    editLead,
+    deleteLead,
+    assignLead,
+    fetchUsers,
+    fetchLeads,
+    
+    // ✅ EXISTING FUNCTIONS
     openEditOrderForm,
     fetchClients,
     fetchUserRoles,
@@ -970,4 +1161,4 @@ window.renderAppBusinessLogic = function() {
   };
 };
 
-console.log('✅ App Business Logic Handlers loaded successfully');
+console.log('✅ App Business Logic Handlers loaded successfully with lead progression functions');
