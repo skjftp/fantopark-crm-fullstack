@@ -121,23 +121,45 @@ window.renderForm = () => {
                   onClick: () => setShowClientSuggestion(false),
                   className: 'bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium'
                 }, 'Continue Anyway'),
-                React.createElement('button', {
-                  onClick: () => {
-                    setShowClientSuggestion(false);
-                    // Open client detail for this client
-                    fetchClients().then(() => {
-                      const client = clients.find(c => 
-                        c.leads.some(l => l.phone === formData.phone)
-                      );
-                      if (client) {
-                        setSelectedClient(client);
-                        setShowClientDetail(true);
-                        closeForm();
-                      }
-                    });
-                  },
-                  className: 'bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium'
-                }, '👁️ View Client Details')
+React.createElement('button', {
+  onClick: () => {
+    console.log("👁️ View Client Details clicked");
+    console.log("📞 Current phone:", formData.phone);
+    
+    // Hide the client suggestion banner first
+    setShowClientSuggestion(false);
+    
+    // Fetch clients and then find the specific client
+    fetchClients().then(() => {
+      console.log("📊 Total clients available:", window.clients?.length || 0);
+      
+      // Use the enhanced client finder function
+      const client = window.findClientByPhone(formData.phone);
+      
+      if (client) {
+        console.log("✅ Found client, opening detail modal:", client);
+        // Set the selected client using window function
+        window.setSelectedClient(client);
+        // Show the client detail modal using window function
+        window.setShowClientDetail(true);
+        // Close the lead form
+        closeForm();
+      } else {
+        console.log("❌ Client not found, showing alert");
+        // Show user-friendly message instead of silent failure
+        alert(`No client details found for phone number ${formData.phone}.\n\nThis might be due to:\n• Data synchronization issue\n• Client data stored in different format\n\nYou can still create the lead normally.`);
+        
+        // Don't close the form, let user continue
+        setShowClientSuggestion(true); // Show the suggestion back
+      }
+    }).catch(error => {
+      console.error("❌ Error fetching clients:", error);
+      alert("Error loading client details. Please try again later.");
+      setShowClientSuggestion(true); // Show the suggestion back
+    });
+  },
+  className: 'bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium'
+}, '👁️ View Client Details')
               )
             )
           )
