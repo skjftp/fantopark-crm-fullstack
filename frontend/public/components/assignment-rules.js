@@ -194,6 +194,11 @@ window.AssignmentRulesManager = React.memo(({ currentUser }) => {
     return parts.join(', ') || 'No conditions';
   };
 
+  // Add this debug section right before the return statement
+if (showForm) {
+  console.log('🔍 showForm is true - form should be visible but form component is missing');
+}
+  
   // Render main component
   return React.createElement('div', { className: 'space-y-6' },
     // Header
@@ -214,7 +219,11 @@ window.AssignmentRulesManager = React.memo(({ currentUser }) => {
           className: 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400'
         }, testingRule ? 'Testing...' : '🧪 Test Rules'),
         React.createElement('button', {
-          onClick: () => setShowForm(true),
+          onClick: () => { 
+  console.log('🔍 Add New Rule clicked!'); 
+  alert('Form functionality temporarily disabled - form component missing'); 
+  setShowForm(true); 
+},
           className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
         }, '+ Add New Rule')
       )
@@ -249,7 +258,11 @@ window.AssignmentRulesManager = React.memo(({ currentUser }) => {
           React.createElement('div', { className: 'text-4xl mb-2' }, '⚙️'),
           React.createElement('p', { className: 'mb-4' }, 'No assignment rules configured'),
           React.createElement('button', {
-            onClick: () => setShowForm(true),
+            onClick: () => { 
+  console.log('🔍 Create First Rule clicked!'); 
+  alert('Form functionality temporarily disabled - form component missing'); 
+  setShowForm(true); 
+},
             className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
           }, 'Create First Rule')
         ) :
