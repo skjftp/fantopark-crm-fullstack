@@ -7,6 +7,7 @@ window.renderMainApp = function() {
 
   // Extract all useState declarations
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showReminderForm, setShowReminderForm] = useState(false);
   const [testMode, setTestMode] = useState(() => {
     return localStorage.getItem('testMode') === 'true';
   });
@@ -428,6 +429,8 @@ eventsPerPage,
   window.setFinancialData = setFinancialData;
   window.financialStats = financialStats;
   window.setFinancialStats = setFinancialStats;
+  window.setShowReminderForm = setShowReminderForm;
+window.showReminderForm = showReminderForm;
 
   // Return the state object to be used by App component
   window.setViewMode = setViewMode;
