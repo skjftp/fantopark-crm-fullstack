@@ -105,14 +105,18 @@ window.deleteReminder = async function(reminderId) {
   }
 };
 
-// Additional reminder management utilities
 window.createReminder = async function(reminderData) {
+  // Validate lead_id is provided
+  if (!reminderData.lead_id) {
+    throw new Error('Lead ID is required for all reminders');
+  }
+
   try {
     const response = await window.apiCall('/reminders', {
       method: 'POST',
       body: JSON.stringify({
         ...reminderData,
-        created_by: window.user.email,
+        created_by: window.user.name || window.user.email,
         created_date: new Date().toISOString(),
         status: 'pending'
       })
