@@ -1,8 +1,3 @@
-// Simplified App Component for FanToPark CRM
-// Extracted from index.html - maintains 100% functionality
-// Uses window.* globals for CDN-based React compatibility
-// ORGANIZED VERSION - Related functionality grouped together
-
 window.SimplifiedApp = function() {
   // ===== CORE SETUP & INITIALIZATION =====
   const state = window.renderMainApp();
@@ -51,6 +46,10 @@ window.SimplifiedApp = function() {
   window.appState.currentInventory = state.currentInventory;
   window.appState.currentDelivery = state.currentDelivery;
   window.appState.phoneCheckLoading = state.phoneCheckLoading;
+
+  // ✅ CRITICAL MISSING: Allocation Management Inventory
+  window.appState.allocationManagementInventory = state.allocationManagementInventory;
+  window.appState.currentAllocations = state.currentAllocations;
 
   // Leads Filter States
   window.appState.searchQuery = state.searchQuery || '';
@@ -177,6 +176,31 @@ window.SimplifiedApp = function() {
   window.showEditOrderForm = state.showEditOrderForm;
   window.userFormData = state.userFormData;
   window.editingUser = state.editingUser;
+
+  // ✅ CRITICAL MISSING: Allocation Management Variables
+  window.allocationManagementInventory = state.allocationManagementInventory || null;
+  window.currentAllocations = state.currentAllocations || [];
+
+  // ✅ CRITICAL MISSING: State Setters for Allocation Management
+  window.setAllocationManagementInventory = state.setAllocationManagementInventory || ((inventory) => {
+    console.log("📦 setAllocationManagementInventory called with:", inventory);
+    window.allocationManagementInventory = inventory;
+    if (state.setAllocationManagementInventory) {
+      state.setAllocationManagementInventory(inventory);
+    } else {
+      console.warn("⚠️ setAllocationManagementInventory not implemented in state");
+    }
+  });
+
+  window.setCurrentAllocations = state.setCurrentAllocations || ((allocations) => {
+    console.log("📋 setCurrentAllocations called with:", allocations?.length || 0, "allocations");
+    window.currentAllocations = allocations;
+    if (state.setCurrentAllocations) {
+      state.setCurrentAllocations(allocations);
+    } else {
+      console.warn("⚠️ setCurrentAllocations not implemented in state");
+    }
+  });
 
   // ===== STATE SETTERS =====
 
@@ -653,6 +677,7 @@ window.SimplifiedApp = function() {
     console.log("🔧 Setting editingInventory to:", defaultInventory);
     if (window.setEditingInventory) {
       window.setEditingInventory(defaultInventory);
+      console.log("✅ setEditingInventory called successfully");
     } else {
       console.error("❌ setEditingInventory not available!");
     }
@@ -661,9 +686,29 @@ window.SimplifiedApp = function() {
     console.log("🔧 Setting showInventoryForm to true");
     if (window.setShowInventoryForm) {
       window.setShowInventoryForm(true);
+      console.log("✅ setShowInventoryForm called successfully");
     } else {
       console.error("❌ setShowInventoryForm not available!");
     }
+    
+    // ✅ DIAGNOSTIC: Check if state was actually updated
+    setTimeout(() => {
+      console.log("🔍 DIAGNOSTIC - State after setting:");
+      console.log("window.showInventoryForm:", window.showInventoryForm);
+      console.log("window.editingInventory:", window.editingInventory);
+      console.log("window.appState.showInventoryForm:", window.appState?.showInventoryForm);
+      console.log("window.appState.editingInventory:", window.appState?.editingInventory);
+      
+      // Check if modal render function exists
+      console.log("window.renderInventoryForm exists:", typeof window.renderInventoryForm);
+      
+      // Try calling the modal directly
+      if (window.renderInventoryForm) {
+        console.log("🧪 Testing modal render function...");
+        const modalResult = window.renderInventoryForm();
+        console.log("Modal render result:", modalResult ? "Generated element" : "Returned null");
+      }
+    }, 100);
     
     console.log("✅ openAddInventoryForm completed");
   });
@@ -680,11 +725,40 @@ window.SimplifiedApp = function() {
 
   window.openEditInventoryForm = handlers.openEditInventoryForm || ((inventory) => {
     console.log("✏️ openEditInventoryForm called with:", inventory);
-    if (window.setCurrentInventory && window.setShowEditInventoryForm) {
-      window.setCurrentInventory(inventory);
-      window.setShowEditInventoryForm(true);
+    
+    // ✅ CRITICAL FIX: Edit uses the same renderInventoryForm, not a separate edit form
+    if (window.setEditingInventory && window.setFormData && window.setShowInventoryForm) {
+      
+      // Set the inventory for editing  
+      window.setEditingInventory(inventory);
+      
+      // Pre-fill form data with existing inventory data
+      window.setFormData(inventory);
+      
+      // Show the inventory form (same as add, but with existing data)
+      window.setShowInventoryForm(true);
+      
+      console.log("✅ Edit inventory form should show with pre-filled data");
+      
+      // ✅ DIAGNOSTIC: Check if state was properly set
+      setTimeout(() => {
+        console.log("🔍 EDIT DIAGNOSTIC:");
+        console.log("editingInventory:", window.editingInventory);
+        console.log("formData:", window.formData);
+        console.log("showInventoryForm:", window.showInventoryForm);
+        
+        // Test modal render
+        if (window.renderInventoryForm) {
+          const modalResult = window.renderInventoryForm();
+          console.log("Edit modal result:", modalResult ? "SUCCESS!" : "FAILED");
+        }
+      }, 100);
+      
     } else {
       console.error("❌ Edit inventory setters not available!");
+      console.log("setEditingInventory:", typeof window.setEditingInventory);
+      console.log("setFormData:", typeof window.setFormData);
+      console.log("setShowInventoryForm:", typeof window.setShowInventoryForm);
     }
   });
 
@@ -704,11 +778,39 @@ window.SimplifiedApp = function() {
 
   window.openAllocationManagement = handlers.openAllocationManagement || ((inventory) => {
     console.log("👁️ openAllocationManagement called with:", inventory);
-    if (window.setCurrentInventory && window.setShowAllocationManagement) {
-      window.setCurrentInventory(inventory);
+    
+    // ✅ CRITICAL FIX: Set the correct state variable that the modal checks
+    if (window.setAllocationManagementInventory && window.setCurrentAllocations && window.setShowAllocationManagement) {
+      // Set the inventory for allocation management (this is what the modal checks!)
+      window.setAllocationManagementInventory(inventory);
+      
+      // Initialize with empty allocations (will be loaded by the modal)
+      window.setCurrentAllocations([]);
+      
+      // Show the modal
       window.setShowAllocationManagement(true);
+      
+      console.log("✅ Allocation management modal should show now");
+      
+      // ✅ DIAGNOSTIC: Check if state was properly set
+      setTimeout(() => {
+        console.log("🔍 ALLOCATION DIAGNOSTIC:");
+        console.log("allocationManagementInventory:", window.allocationManagementInventory);
+        console.log("currentAllocations:", window.currentAllocations);
+        console.log("showAllocationManagement:", window.showAllocationManagement);
+        
+        // Test modal render
+        if (window.renderAllocationManagement) {
+          const modalResult = window.renderAllocationManagement();
+          console.log("Allocation modal result:", modalResult ? "SUCCESS!" : "FAILED");
+        }
+      }, 100);
+      
     } else {
       console.error("❌ Allocation management setters not available!");
+      console.log("setAllocationManagementInventory:", typeof window.setAllocationManagementInventory);
+      console.log("setCurrentAllocations:", typeof window.setCurrentAllocations);
+      console.log("setShowAllocationManagement:", typeof window.setShowAllocationManagement);
     }
   });
 
@@ -1116,6 +1218,19 @@ window.SimplifiedApp = function() {
     console.log("📞 checkPhoneForClient called with:", phone);
   });
 
+  // ✅ CRITICAL MISSING: Allocation Management Functions
+  window.handleUnallocate = handlers.handleUnallocate || ((allocationId, ticketsToReturn) => {
+    console.log("🗑️ handleUnallocate called with:", allocationId, ticketsToReturn);
+    console.warn("⚠️ handleUnallocate not implemented in handlers");
+    alert("Unallocate functionality will be implemented in next update!");
+  });
+
+  window.openAllocationForm = handlers.openAllocationForm || ((inventory) => {
+    console.log("📦 openAllocationForm called with inventory:", inventory);
+    state.setCurrentInventory && state.setCurrentInventory(inventory);
+    state.setShowAllocationForm && state.setShowAllocationForm(true);
+  });
+
   window.apiCall = window.apiCall || ((endpoint, options) => {
     console.log("🌐 apiCall:", endpoint, options);
     return window.fetch(window.API_URL + endpoint, {
@@ -1189,9 +1304,80 @@ window.SimplifiedApp = function() {
     state.setCurrentLeadForChoice && state.setCurrentLeadForChoice(null);
     state.setChoiceOptions && state.setChoiceOptions([]);
     state.setStatusProgressOptions && state.setStatusProgressOptions([]);
+    window.setEditingInventory && window.setEditingInventory(null);
   };
 
-  // ===== HELPER FUNCTIONS FOR MAIN APP =====
+  // ✅ CRITICAL MISSING FUNCTIONS - ADD THESE
+  window.closeInventoryForm = () => {
+    console.log("🔄 closeInventoryForm called");
+    window.setShowInventoryForm(false);
+    window.setEditingInventory(null);
+    window.setFormData && window.setFormData({});
+  };
+
+  window.closeEditInventoryForm = () => {
+    console.log("🔄 closeEditInventoryForm called");
+    window.setShowEditInventoryForm(false);
+    window.setCurrentInventory(null);
+    window.setFormData && window.setFormData({});
+  };
+
+  window.closeAllocationManagement = () => {
+    console.log("🔄 closeAllocationManagement called");
+    window.setShowAllocationManagement(false);
+    window.setCurrentInventory(null);
+  };
+
+  // ===== INVENTORY FORM CONFIGURATION =====
+
+  // ✅ CRITICAL MISSING: Inventory Form Fields Definition
+  window.inventoryFormFields = [
+    { name: 'event_name', label: 'Event Name', type: 'text', required: true },
+    { name: 'event_date', label: 'Event Date', type: 'date', required: true },
+    { name: 'event_type', label: 'Event Type', type: 'select', options: ['Cricket', 'Football', 'Tennis', 'Basketball', 'Hockey', 'Kabaddi', 'Wrestling', 'Boxing', 'Other'], required: true },
+    { name: 'sports', label: 'Sports', type: 'text', required: true },
+    { name: 'venue', label: 'Venue', type: 'select', options: 'dynamic', required: true },
+    { name: 'day_of_match', label: 'Day of Match', type: 'text' },
+    { name: 'category_of_ticket', label: 'Category', type: 'select', options: ['VIP', 'Premium', 'Gold', 'Silver', 'Bronze', 'General'], required: true },
+    { name: 'total_tickets', label: 'Total Tickets', type: 'number', required: true },
+    { name: 'available_tickets', label: 'Available Tickets', type: 'number', required: true },
+    { name: 'mrp_of_ticket', label: 'MRP per Ticket (₹)', type: 'number' },
+    { name: 'buying_price', label: 'Buying Price (₹)', type: 'number', required: true },
+    { name: 'selling_price', label: 'Selling Price (₹)', type: 'number', required: true },
+    { name: 'stand', label: 'Stand/Section', type: 'text' },
+    { name: 'inclusions', label: 'Inclusions', type: 'textarea' },
+    { name: 'booking_person', label: 'Booking Person', type: 'text' },
+    { name: 'procurement_type', label: 'Procurement Type', type: 'select', options: ['Direct', 'Agent', 'Online', 'Partner'] },
+    { name: 'notes', label: 'Notes', type: 'textarea' },
+    { name: 'paymentStatus', label: 'Payment Status', type: 'select', options: ['pending', 'partial', 'paid'], required: true },
+    { name: 'supplierName', label: 'Supplier Name', type: 'text' },
+    { name: 'supplierInvoice', label: 'Supplier Invoice', type: 'text' },
+    { name: 'totalPurchaseAmount', label: 'Total Purchase Amount (₹)', type: 'number' },
+    { name: 'amountPaid', label: 'Amount Paid (₹)', type: 'number' },
+    { name: 'paymentDueDate', label: 'Payment Due Date', type: 'date' }
+  ];
+
+  // ✅ CRITICAL MISSING: Form Data Change Handler
+  window.handleFormDataChange = (fieldName, value) => {
+    console.log(`📝 Form field changed: ${fieldName} = ${value}`);
+    if (window.setFormData) {
+      window.setFormData(prev => ({
+        ...prev,
+        [fieldName]: value
+      }));
+    } else {
+      console.warn("⚠️ setFormData not available");
+    }
+  };
+
+  // ✅ CRITICAL MISSING: Form Submit Handler
+  window.handleInventoryFormSubmit = handlers.handleInventoryFormSubmit || ((e) => {
+    e.preventDefault();
+    console.log("📤 Inventory form submitted");
+    console.log("Form data:", window.formData);
+    console.warn("⚠️ handleInventoryFormSubmit not implemented in handlers");
+    alert("Form submission will be implemented in next update!");
+  });
 
   const getFilteredLeads = () => {
     let filteredLeads = [...state.leads];
