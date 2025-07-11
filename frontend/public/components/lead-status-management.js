@@ -178,7 +178,7 @@ window.handleQuoteRequestStage = async function(lead, newStatus) {
       dual_assignment: true
     };
 
-    const response = await window.apicall(`/leads/${lead.id}`, {
+    const response = await window.apiCall(`/leads/${lead.id}`, {
       method: 'PUT',
       body: JSON.stringify(updateData)
     });
@@ -330,7 +330,7 @@ window.addStatusHistoryEntry = async function(leadId, oldStatus, newStatus, reas
       user_name: window.user.name
     };
 
-    const response = await window.apicall('/leads/status-history', {
+    const response = await window.apiCall('/leads/status-history', {
       method: 'POST',
       body: JSON.stringify(historyEntry)
     });
@@ -423,7 +423,7 @@ window.sendStatusChangeNotification = async function(lead, oldStatus, newStatus)
       recipient: lead.assigned_to || window.user.email
     };
 
-    const response = await window.apicall('/notifications/status-change', {
+    const response = await window.apiCall('/notifications/status-change', {
       method: 'POST',
       body: JSON.stringify(notificationData)
     });
@@ -448,7 +448,7 @@ window.createStatusChangeReminder = async function(lead, newStatus) {
       auto_generated: true
     };
 
-    const response = await window.apicall('/reminders', {
+    const response = await window.apiCall('/reminders', {
       method: 'POST',
       body: JSON.stringify(reminderData)
     });
