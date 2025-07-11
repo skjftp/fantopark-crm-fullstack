@@ -588,26 +588,31 @@ window.renderAppBusinessLogic = function() {
   };
 
   const fetchData = async () => {
-    if (!state.isLoggedIn || !authToken) return;
-    try {
-      const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData, clientsData] = await Promise.all([
-        window.apiCall('/leads').catch(() => ({ data: [] })),
-        window.apiCall('/inventory').catch(() => ({ data: [] })),
-        window.apiCall('/orders').catch(() => ({ data: [] })),
-        window.apiCall('/invoices').catch(() => ({ data: [] })),
-        window.apiCall('/deliveries').catch(() => ({ data: [] })),
-        window.apiCall('/clients').catch(() => ({ data: [] }))
-      ]);
-      setLeads(leadsData.data || []);
-      setInventory(inventoryData.data || []);
-      setOrders(ordersData.data || []);
-      setInvoices(invoicesData.data || []);
-      setDeliveries(deliveriesData.data || []);
-      setClients(clientsData.data || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-  };
+  // ✅ FIX: Get authToken from localStorage instead of referencing undefined variable
+  const authToken = localStorage.getItem('crm_auth_token') || window.authToken;
+  
+  if (!state.isLoggedIn || !authToken) return;
+  
+  try {
+    const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData, clientsData] = await Promise.all([
+      window.apiCall('/leads').catch(() => ({ data: [] })),
+      window.apiCall('/inventory').catch(() => ({ data: [] })),
+      window.apiCall('/orders').catch(() => ({ data: [] })),
+      window.apiCall('/invoices').catch(() => ({ data: [] })),
+      window.apiCall('/deliveries').catch(() => ({ data: [] })),
+      window.apiCall('/clients').catch(() => ({ data: [] }))
+    ]);
+    setLeads(leadsData.data || []);
+    setInventory(inventoryData.data || []);
+    setOrders(ordersData.data || []);
+    setInvoices(invoicesData.data || []);
+    setDeliveries(deliveriesData.data || []);
+    setClients(clientsData.data || []);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+};
+
 
   const assignOrderToService = async (orderId, assignee) => {
     setLoading(true);
@@ -724,50 +729,52 @@ window.renderAppBusinessLogic = function() {
 
   // Authentication handlers
   const handleLogin = async (e) => {
-    window.debugLog('LOGIN_START', { email: state.email, timestamp: Date.now() });
-    e.preventDefault();
-    setLoading(true);
+  window.debugLog('LOGIN_START', { email: state.email, timestamp: Date.now() });
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const response = await window.apiCall('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email: state.email, password: state.password })
-      });
+  try {
+    const response = await window.apiCall('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: state.email, password: state.password })
+    });
 
-      if (response.token && response.user) {
-        authToken = response.token;
-        localStorage.setItem('crm_auth_token', response.token);
-        localStorage.setItem('crm_user', JSON.stringify(response.user));
-        setUser(response.user);
-        setCurrentUser(response.user);
-        setIsLoggedIn(true);
-        await fetchUserRoles();
-        setUsers([]);
-        setEmail('');
-        setPassword('');
-      }
-    } catch (error) {
-      console.error("Login failed:", error.message || "Invalid credentials");
-    } finally {
-      setLoading(false);
+    if (response.token && response.user) {
+      // ✅ FIX: Set authToken properly in localStorage and window object
+      localStorage.setItem('crm_auth_token', response.token);
+      window.authToken = response.token; // Also set on window object for consistency
+      localStorage.setItem('crm_user', JSON.stringify(response.user));
+      setUser(response.user);
+      setCurrentUser(response.user);
+      setIsLoggedIn(true);
+      await fetchUserRoles();
+      setUsers([]);
+      setEmail('');
+      setPassword('');
     }
-  };
+  } catch (error) {
+    console.error("Login failed:", error.message || "Invalid credentials");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUser(null);
-    setCurrentUser(null);
-    setEmail('');
-    setPassword('');
-    setActiveTab('dashboard');
-    try {
-      localStorage.removeItem('crm_user');
-      localStorage.removeItem('crm_auth_token');
-      authToken = null;
-    } catch (e) {
-      console.log('Failed to clear auth state:', e);
-    }
-  };
+  setIsLoggedIn(false);
+  setUser(null);
+  setCurrentUser(null);
+  setEmail('');
+  setPassword('');
+  setActiveTab('dashboard');
+  try {
+    localStorage.removeItem('crm_user');
+    localStorage.removeItem('crm_auth_token');
+    // ✅ FIX: Clear window.authToken instead of undefined authToken variable
+    window.authToken = null;
+  } catch (e) {
+    console.log('Failed to clear auth state:', e);
+  }
+};
 
   const openUserManagement = () => {
     if (!window.hasPermission('users', 'read')) {
