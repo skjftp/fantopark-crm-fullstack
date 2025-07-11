@@ -4,17 +4,20 @@
 // Main Sports Calendar Content Function - FIXED WITH INTEGRATION PATTERN
 window.renderSportsCalendarContent = () => {
   // ✅ STEP 1: Extract state with fallbacks (CRITICAL PATTERN)
-  const {
-    sportsEvents = window.sportsEvents || [],
-    selectedDate = window.selectedDate || new Date(),
-    calendarView = window.calendarView || "month",
-    calendarFilters = window.calendarFilters || {},
-    showEventForm = window.appState?.showEventForm || false,
-    showImportModal = window.appState?.showImportModal || false,
-    currentEvent = window.appState?.currentEvent || null,
-    showEventDetail = window.appState?.showEventDetail || false,
-    loading = window.loading || false
-  } = window.appState || {};
+ const {
+  sportsEvents = window.sportsEvents || [],
+  selectedDate = window.selectedDate || new Date(),
+  calendarView = window.calendarView || "month",
+  calendarFilters = window.calendarFilters || {},
+  showEventForm = window.appState?.showEventForm || false,
+  showImportModal = window.appState?.showImportModal || false,
+  currentEvent = window.appState?.currentEvent || null,
+  showEventDetail = window.appState?.showEventDetail || false,
+  loading = window.loading || false,
+  // ✅ NEW: Pagination state
+  currentEventsPage = window.appState?.currentEventsPage || 1,
+  eventsPerPage = window.appState?.eventsPerPage || 10
+} = window.appState || {};
 
   // ✅ STEP 2: Extract functions with enhanced fallbacks (CRITICAL PATTERN)
   const {
@@ -411,9 +414,25 @@ window.renderMonthView = (events) => {
   );
 };
 
-// ✅ ENHANCED List View Function with proper event handling
-// ✅ ENHANCED List View Function with View Details button
+// ✅ ENHANCED List View Function with Pagination and View Details
 window.renderListView = (events) => {
+  // Get pagination state
+  const currentEventsPage = window.currentEventsPage || 1;
+  const eventsPerPage = window.eventsPerPage || 10;
+  
+  // Get pagination functions
+  const setCurrentEventsPage = window.setCurrentEventsPage || ((page) => {
+    console.log("🔍 setCurrentEventsPage called:", page);
+    window.currentEventsPage = page;
+  });
+  
+  const setEventsPerPage = window.setEventsPerPage || ((perPage) => {
+    console.log("🔍 setEventsPerPage called:", perPage);
+    window.eventsPerPage = perPage;
+    window.currentEventsPage = 1; // Reset to first page
+  });
+
+  // Sort events
   const sortedEvents = events.sort((a, b) => {
     try {
       return new Date(a.date || a.start_date) - new Date(b.date || b.start_date);
@@ -423,11 +442,93 @@ window.renderListView = (events) => {
     }
   });
 
+  // Calculate pagination
+  const totalEvents = sortedEvents.length;
+  const totalPages = Math.ceil(totalEvents / eventsPerPage);
+  const startIndex = (currentEventsPage - 1) * eventsPerPage;
+  const endIndex = startIndex + eventsPerPage;
+  const paginatedEvents = sortedEvents.slice(startIndex, endIndex);
+
+  // Get other functions
   const setCurrentEvent = window.setCurrentEvent || (() => {});
   const setShowEventDetail = window.setShowEventDetail || (() => {});
   const deleteEvent = window.deleteEvent || (() => {});
 
+  // Pagination component
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const pageNumbers = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentEventsPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+
+    return React.createElement('div', { className: 'flex items-center justify-between px-6 py-3 bg-gray-50 border-t' },
+      // Left: Results info
+      React.createElement('div', { className: 'flex items-center text-sm text-gray-700' },
+        React.createElement('span', null, `Showing ${startIndex + 1}-${Math.min(endIndex, totalEvents)} of ${totalEvents} events`),
+        React.createElement('select', {
+          value: eventsPerPage,
+          onChange: (e) => setEventsPerPage(parseInt(e.target.value)),
+          className: 'ml-2 px-2 py-1 border border-gray-300 rounded text-sm'
+        },
+          React.createElement('option', { value: 5 }, '5 per page'),
+          React.createElement('option', { value: 10 }, '10 per page'),
+          React.createElement('option', { value: 20 }, '20 per page'),
+          React.createElement('option', { value: 50 }, '50 per page')
+        )
+      ),
+
+      // Right: Pagination controls
+      React.createElement('div', { className: 'flex items-center space-x-1' },
+        // Previous button
+        React.createElement('button', {
+          onClick: () => setCurrentEventsPage(currentEventsPage - 1),
+          disabled: currentEventsPage <= 1,
+          className: `px-3 py-1 rounded text-sm ${currentEventsPage <= 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-100 border'}`
+        }, '← Previous'),
+
+        // Page numbers
+        ...pageNumbers.map(pageNum =>
+          React.createElement('button', {
+            key: pageNum,
+            onClick: () => setCurrentEventsPage(pageNum),
+            className: `px-3 py-1 rounded text-sm ${pageNum === currentEventsPage ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100 border'}`
+          }, pageNum)
+        ),
+
+        // Next button
+        React.createElement('button', {
+          onClick: () => setCurrentEventsPage(currentEventsPage + 1),
+          disabled: currentEventsPage >= totalPages,
+          className: `px-3 py-1 rounded text-sm ${currentEventsPage >= totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-100 border'}`
+        }, 'Next →')
+      )
+    );
+  };
+
   return React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
+    // Table header with pagination info
+    React.createElement('div', { className: 'px-6 py-4 border-b border-gray-200' },
+      React.createElement('div', { className: 'flex items-center justify-between' },
+        React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
+          `Events List (${totalEvents} total)`
+        ),
+        React.createElement('div', { className: 'text-sm text-gray-500' },
+          `Page ${currentEventsPage} of ${totalPages}`
+        )
+      )
+    ),
+
+    // Table
     React.createElement('div', { className: 'overflow-x-auto' },
       React.createElement('table', { className: 'w-full' },
         React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
@@ -441,14 +542,14 @@ window.renderListView = (events) => {
           )
         ),
         React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
-          sortedEvents.length > 0 ?
-            sortedEvents.map((event, index) => {
+          paginatedEvents.length > 0 ?
+            paginatedEvents.map((event, index) => {
               const eventDate = new Date(event.date || event.start_date);
               const formattedDate = eventDate.toLocaleDateString();
               const formattedTime = event.start_time || eventDate.toLocaleTimeString();
               
               return React.createElement('tr', { 
-                key: event.id || index, 
+                key: event.id || `${startIndex + index}`, 
                 className: 'hover:bg-gray-50 dark:hover:bg-gray-700' 
               },
                 // Event Name column
@@ -488,10 +589,10 @@ window.renderListView = (events) => {
                   }, event.priority || 'P3')
                 ),
                 
-                // Actions column - CHANGED: View Details instead of Edit
+                // Actions column
                 React.createElement('td', { className: 'px-6 py-4' },
                   React.createElement('div', { className: 'flex items-center space-x-2' },
-                    // View Details Button (CHANGED from Edit)
+                    // View Details Button
                     React.createElement('button', {
                       onClick: () => {
                         console.log('🔍 View Details clicked for event:', event.title || event.event_name);
@@ -501,7 +602,7 @@ window.renderListView = (events) => {
                       className: 'text-blue-600 hover:text-blue-900 text-sm px-3 py-1 rounded border border-blue-200 hover:bg-blue-50 font-medium'
                     }, '👁️ View Details'),
                     
-                    // Delete Button (Optional - keep or remove as needed)
+                    // Delete Button (Optional)
                     window.hasPermission && window.hasPermission('events', 'delete') && 
                     React.createElement('button', {
                       onClick: () => {
@@ -519,12 +620,21 @@ window.renderListView = (events) => {
             React.createElement('tr', null,
               React.createElement('td', { 
                 colSpan: 6, 
-                className: 'px-6 py-4 text-center text-gray-500' 
-              }, 'No events found for selected filters')
+                className: 'px-6 py-8 text-center text-gray-500' 
+              }, 
+                React.createElement('div', { className: 'text-center' },
+                  React.createElement('div', { className: 'text-4xl mb-2' }, '📅'),
+                  React.createElement('div', { className: 'text-lg font-medium' }, 'No events found'),
+                  React.createElement('div', { className: 'text-sm' }, 'Try adjusting your filters or add new events')
+                )
+              )
             )
         )
       )
-    )
+    ),
+
+    // Pagination footer
+    renderPagination()
   );
 };
 
