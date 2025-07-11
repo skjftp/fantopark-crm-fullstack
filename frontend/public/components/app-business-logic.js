@@ -1313,6 +1313,18 @@ window.renderAppBusinessLogic = function() {
     openEditOrderForm,
     fetchClients,
     fetchUserRoles,
+        fetchStadiums: async () => {
+      try {
+        const response = await window.apiCall('/stadiums');
+        setStadiums(response.data || []);
+        console.log('✅ Loaded', response.data?.length || 0, 'stadiums');
+        return response.data || [];
+      } catch (error) {
+        console.error('❌ Error fetching stadiums:', error);
+        setStadiums([]);
+        return [];
+      }
+    },
     handleStatusFilterToggle,
     handleSelectAllStatuses,
     checkPhoneForClient,
