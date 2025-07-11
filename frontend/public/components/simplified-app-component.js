@@ -1056,39 +1056,64 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     }
   });
 
-  // ✅ IMPORT EVENTS FROM EXCEL FUNCTION
-  window.importEventsFromExcel = handlers.importEventsFromExcel || (async (file) => {
-    console.log("📅 importEventsFromExcel called with file:", file?.name);
-    try {
-      window.setLoading && window.setLoading(true);
-      
-      const formData = new FormData();
-      formData.append('file', file);
+// ✅ IMPORT EVENTS FROM EXCEL FUNCTION - FIXED
+window.importEventsFromExcel = handlers.importEventsFromExcel || (async (file) => {
+  console.log("📅 importEventsFromExcel called with file:", file?.name);
+  try {
+    window.setLoading && window.setLoading(true);
+    
+    // Parse Excel file on frontend first
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        // Parse Excel file using XLSX library
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      const response = await fetch(`${window.API_CONFIG.API_URL}/events/import/excel`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${window.authToken}`
-        },
-        body: formData
-      });
+        console.log('📊 Parsed Excel data:', jsonData.length, 'rows');
+        console.log('🔍 Sample data:', jsonData.slice(0, 2));
 
-      const result = await response.json();
-      
-      if (response.ok) {
-        alert(`✅ Successfully imported ${result.imported_count || 'unknown number of'} events!`);
-        window.setShowImportModal && window.setShowImportModal(false);
-        await window.fetchAllEvents(); // Refresh the events
-      } else {
-        throw new Error(result.message || 'Import failed');
+        // Send parsed JSON data to backend
+        const response = await fetch(`${window.API_CONFIG.API_URL}/events/import/excel`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${window.authToken}`
+          },
+          body: JSON.stringify({ excelData: jsonData })
+        });
+
+        console.log('📤 Response status:', response.status, response.statusText);
+        const result = await response.json();
+        console.log('📥 Response data:', result);
+        
+        if (result.success || response.ok) {
+          alert(`✅ Successfully imported ${result.imported_count || jsonData.length || 'unknown number of'} events!`);
+          window.setShowImportModal && window.setShowImportModal(false);
+          await window.fetchAllEvents(); // Refresh the events
+        } else {
+          throw new Error(result.error || result.message || 'Import failed');
+        }
+      } catch (error) {
+        console.error('❌ Import processing error:', error);
+        alert('Failed to process Excel file: ' + error.message);
+      } finally {
+        window.setLoading && window.setLoading(false);
       }
-    } catch (error) {
-      console.error('❌ Import error:', error);
-      alert('Failed to import events: ' + error.message);
-    } finally {
-      window.setLoading && window.setLoading(false);
-    }
-  });
+    };
+    
+    // Read the file as array buffer
+    reader.readAsArrayBuffer(file);
+    
+  } catch (error) {
+    console.error('❌ Import error:', error);
+    alert('Failed to import events: ' + error.message);
+    window.setLoading && window.setLoading(false);
+  }
+});
 
   // ✅ DELETE EVENT FUNCTION
   window.deleteEvent = handlers.deleteEvent || (async (eventId) => {
