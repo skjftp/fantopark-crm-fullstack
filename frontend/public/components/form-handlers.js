@@ -556,8 +556,26 @@ window.handleOrderApproval = async function(orderId, action, notes = '') {
           generated_by: window.user.name
         };
 
-        window.setInvoices(prev => [...prev, newInvoice]);
-        console.log('📄 Invoice generated locally:', invoiceNumber);
+        // ✅ FIX: Save invoice to backend AND local state
+try {
+  console.log('📄 Saving invoice to backend:', invoiceNumber);
+  const invoiceResponse = await window.apiCall('/invoices', {
+    method: 'POST',
+    body: JSON.stringify(newInvoice)
+  });
+  
+  // Use the response data or fallback to newInvoice
+  const savedInvoice = invoiceResponse.data || invoiceResponse || newInvoice;
+  
+  // Add to local state
+  window.setInvoices(prev => [...prev, savedInvoice]);
+  console.log('📄 Invoice saved successfully:', invoiceNumber);
+} catch (invoiceError) {
+  console.error('❌ Failed to save invoice to backend:', invoiceError);
+  // Still add to local state as fallback
+  window.setInvoices(prev => [...prev, newInvoice]);
+  console.log('📄 Invoice generated locally only:', invoiceNumber);
+}
       } catch (invoiceError) {
         console.error('Failed to generate invoice:', invoiceError);
         // Don't fail the approval for invoice generation issues
