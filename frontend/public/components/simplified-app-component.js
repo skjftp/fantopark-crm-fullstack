@@ -185,9 +185,107 @@ window.SimplifiedApp = function() {
   window.editingInventory = state.editingInventory || null;
   window.currentInventoryDetail = state.currentInventoryDetail || null;
 
-  // ===== STATE SETTERS =====
+  // ===== COMPREHENSIVE STATE SETTERS FIX =====
 
-  // Core State Setters
+  // ✅ ENHANCED SYNC FUNCTION - handles ALL modal states
+  const syncStateToWindow = () => {
+    setTimeout(() => {
+      // Preserve ALL modal states during sync (CRITICAL)
+      const modalStates = {
+        // Inventory modals
+        showInventoryForm: window.appState?.showInventoryForm,
+        showEditInventoryForm: window.appState?.showEditInventoryForm,
+        showAllocationManagement: window.appState?.showAllocationManagement,
+        showInventoryDetail: window.appState?.showInventoryDetail,
+        showAllocationForm: window.appState?.showAllocationForm,
+        
+        // Lead modals 
+        showAddForm: window.appState?.showAddForm,
+        showEditForm: window.appState?.showEditForm,
+        showAssignForm: window.appState?.showAssignForm,
+        showLeadDetail: window.appState?.showLeadDetail,
+        
+        // Payment modals
+        showPaymentForm: window.appState?.showPaymentForm,
+        showPaymentPostServiceForm: window.appState?.showPaymentPostServiceForm,
+        
+        // Other modals
+        showDeliveryForm: window.appState?.showDeliveryForm,
+        showChoiceModal: window.appState?.showChoiceModal,
+        showStatusProgressModal: window.appState?.showStatusProgressModal,
+        showBulkAssignModal: window.appState?.showBulkAssignModal,
+        showCSVUploadModal: window.appState?.showCSVUploadModal,
+        showStadiumForm: window.appState?.showStadiumForm,
+        showClientDetail: window.appState?.showClientDetail,
+        showClientSuggestion: window.appState?.showClientSuggestion,
+        showPreview: window.appState?.showPreview,
+        showClientDetectionResults: window.appState?.showClientDetectionResults,
+        showEditOrderForm: window.appState?.showEditOrderForm,
+        showUserForm: window.appState?.showUserForm
+      };
+
+      // Apply all modal states to window
+      Object.keys(modalStates).forEach(key => {
+        window[key] = modalStates[key];
+      });
+
+      // Apply data states
+      window.editingInventory = window.appState?.editingInventory;
+      window.allocationManagementInventory = window.appState?.allocationManagementInventory;
+      window.currentAllocations = window.appState?.currentAllocations;
+      window.currentInventoryDetail = window.appState?.currentInventoryDetail;
+      
+      console.log("🔄 Enhanced syncStateToWindow completed for all modals");
+    }, 10);
+  };
+
+  // ✅ UNIVERSAL MODAL STATE SETTER FACTORY
+  const createEnhancedModalSetter = (setterName, stateKey, reactStateSetter) => {
+    return reactStateSetter ? (value) => {
+      console.log(`🎯 ENHANCED ${setterName} called with:`, value);
+      
+      // Step 1: Set React state
+      reactStateSetter(value);
+      
+      // Step 2: Set window globals immediately
+      window.appState[stateKey] = value;
+      window[stateKey] = value;
+      
+      // Step 3: Force immediate sync for modals (CRITICAL FIX)
+      if (value && stateKey.includes('show')) {
+        setTimeout(() => {
+          window.appState[stateKey] = value;
+          window[stateKey] = value;
+          console.log(`🔄 ${setterName} force-synced to:`, value);
+        }, 10);
+        
+        // Step 4: Force React re-render if opening modal
+        console.log(`🚀 Forcing React re-render for ${setterName}...`);
+        const currentLoading = window.loading;
+        window.setLoading && window.setLoading(true);
+        setTimeout(() => {
+          window.setLoading && window.setLoading(currentLoading);
+          setTimeout(() => {
+            window.appState[stateKey] = value;
+            window[stateKey] = value;
+            console.log(`✅ ${setterName} final state check:`, {
+              window: window[stateKey],
+              appState: window.appState?.[stateKey]
+            });
+          }, 20);
+        }, 50);
+      } else {
+        syncStateToWindow();
+      }
+      
+    } : (value) => {
+      console.log(`🎯 ${setterName} FALLBACK called with:`, value);
+      window[stateKey] = value;
+      window.appState[stateKey] = value;
+    };
+  };
+
+  // Core State Setters (keep as-is)
   window.setLoading = state.setLoading;
   window.setLeads = state.setLeads;
   window.setInventory = state.setInventory;
@@ -201,23 +299,38 @@ window.SimplifiedApp = function() {
   window.setCurrentForm = state.setCurrentForm;
   window.setFormData = state.setFormData;
 
-  // ✅ CRITICAL: Enhanced State Setters with Sync Function
-  const syncStateToWindow = () => {
-    setTimeout(() => {
-      window.showInventoryForm = window.appState?.showInventoryForm;
-      window.showEditInventoryForm = window.appState?.showEditInventoryForm;
-      window.showAllocationManagement = window.appState?.showAllocationManagement;
-      window.showInventoryDetail = window.appState?.showInventoryDetail;
-      window.editingInventory = window.appState?.editingInventory;
-      window.allocationManagementInventory = window.appState?.allocationManagementInventory;
-      window.currentAllocations = window.appState?.currentAllocations;
-      window.currentInventoryDetail = window.appState?.currentInventoryDetail;
-    }, 10);
-  };
+  // ✅ ENHANCED MODAL STATE SETTERS - Lead Management
+  window.setShowAddForm = createEnhancedModalSetter('setShowAddForm', 'showAddForm', state.setShowAddForm);
+  window.setShowEditForm = createEnhancedModalSetter('setShowEditForm', 'showEditForm', state.setShowEditForm);
+  window.setShowAssignForm = createEnhancedModalSetter('setShowAssignForm', 'showAssignForm', state.setShowAssignForm);
+  window.setShowLeadDetail = createEnhancedModalSetter('setShowLeadDetail', 'showLeadDetail', state.setShowLeadDetail);
 
-  // ✅ CRITICAL: Enhanced setEditingInventory with sync
+  // ✅ ENHANCED MODAL STATE SETTERS - Payment Forms  
+  window.setShowPaymentForm = createEnhancedModalSetter('setShowPaymentForm', 'showPaymentForm', state.setShowPaymentForm);
+  window.setShowPaymentPostServiceForm = createEnhancedModalSetter('setShowPaymentPostServiceForm', 'showPaymentPostServiceForm', state.setShowPaymentPostServiceForm);
+
+  // ✅ ENHANCED MODAL STATE SETTERS - Inventory Forms (already working but standardizing)
+  window.setShowInventoryForm = createEnhancedModalSetter('setShowInventoryForm', 'showInventoryForm', state.setShowInventoryForm);
+  window.setShowEditInventoryForm = createEnhancedModalSetter('setShowEditInventoryForm', 'showEditInventoryForm', state.setShowEditInventoryForm);
+  window.setShowAllocationManagement = createEnhancedModalSetter('setShowAllocationManagement', 'showAllocationManagement', state.setShowAllocationManagement);
+  window.setShowInventoryDetail = createEnhancedModalSetter('setShowInventoryDetail', 'showInventoryDetail', state.setShowInventoryDetail);
+  window.setShowAllocationForm = createEnhancedModalSetter('setShowAllocationForm', 'showAllocationForm', state.setShowAllocationForm);
+
+  // ✅ ENHANCED MODAL STATE SETTERS - Other Forms
+  window.setShowDeliveryForm = createEnhancedModalSetter('setShowDeliveryForm', 'showDeliveryForm', state.setShowDeliveryForm);
+  window.setShowChoiceModal = createEnhancedModalSetter('setShowChoiceModal', 'showChoiceModal', state.setShowChoiceModal);
+  window.setShowStatusProgressModal = createEnhancedModalSetter('setShowStatusProgressModal', 'showStatusProgressModal', state.setShowStatusProgressModal);
+  window.setShowBulkAssignModal = createEnhancedModalSetter('setShowBulkAssignModal', 'showBulkAssignModal', state.setShowBulkAssignModal);
+  window.setShowCSVUploadModal = createEnhancedModalSetter('setShowCSVUploadModal', 'showCSVUploadModal', state.setShowCSVUploadModal);
+  window.setShowStadiumForm = createEnhancedModalSetter('setShowStadiumForm', 'showStadiumForm', state.setShowStadiumForm);
+  window.setShowClientDetail = createEnhancedModalSetter('setShowClientDetail', 'showClientDetail', state.setShowClientDetail);
+  window.setShowClientSuggestion = createEnhancedModalSetter('setShowClientSuggestion', 'showClientSuggestion', state.setShowClientSuggestion);
+  window.setShowEditOrderForm = createEnhancedModalSetter('setShowEditOrderForm', 'showEditOrderForm', state.setShowEditOrderForm);
+  window.setShowUserForm = createEnhancedModalSetter('setShowUserForm', 'showUserForm', state.setShowUserForm);
+
+  // ✅ ENHANCED DATA STATE SETTERS
   window.setEditingInventory = state.setEditingInventory ? (inventory) => {
-    console.log("📝 setEditingInventory called with:", inventory);
+    console.log("📝 ENHANCED setEditingInventory called with:", inventory);
     state.setEditingInventory(inventory);
     window.appState.editingInventory = inventory;
     window.editingInventory = inventory;
@@ -228,100 +341,38 @@ window.SimplifiedApp = function() {
     window.appState.editingInventory = inventory;
   };
 
-  // Modal State Setters
-  window.setShowClientDetail = state.setShowClientDetail;
-  window.setShowClientSuggestion = state.setShowClientSuggestion;
-  window.setShowPaymentForm = state.setShowPaymentForm;
-  window.setShowPaymentPostServiceForm = state.setShowPaymentPostServiceForm;
-  window.setShowAssignForm = state.setShowAssignForm;
-  window.setShowAddForm = state.setShowAddForm;
-  window.setShowEditForm = state.setShowEditForm;
-  window.setShowLeadDetail = state.setShowLeadDetail;
-  window.setShowDeliveryForm = state.setShowDeliveryForm;
-  window.setShowAllocationForm = state.setShowAllocationForm;
-
-  // ✅ CRITICAL FIX: Enhanced Inventory Modal State Setters with Sync
-  window.setShowInventoryForm = state.setShowInventoryForm ? (show) => {
-    console.log("📦 setShowInventoryForm called with:", show);
-    state.setShowInventoryForm(show);
-    window.appState.showInventoryForm = show;
-    window.showInventoryForm = show;
-    syncStateToWindow();
-  } : (show) => {
-    console.log("📦 setShowInventoryForm FALLBACK called with:", show);
-    window.showInventoryForm = show;
-    window.appState.showInventoryForm = show;
-  };
-
-  window.setShowEditInventoryForm = state.setShowEditInventoryForm ? (show) => {
-    console.log("✏️ setShowEditInventoryForm called with:", show);
-    state.setShowEditInventoryForm(show);
-    window.appState.showEditInventoryForm = show;
-    window.showEditInventoryForm = show;
-    syncStateToWindow();
-  } : (show) => {
-    console.log("✏️ setShowEditInventoryForm FALLBACK called with:", show);
-    window.showEditInventoryForm = show;
-    window.appState.showEditInventoryForm = show;
-  };
-
-  window.setShowAllocationManagement = state.setShowAllocationManagement ? (show) => {
-    console.log("👁️ setShowAllocationManagement called with:", show);
-    state.setShowAllocationManagement(show);
-    window.appState.showAllocationManagement = show;
-    window.showAllocationManagement = show;
-    syncStateToWindow();
-  } : (show) => {
-    console.log("👁️ setShowAllocationManagement FALLBACK called with:", show);
-    window.showAllocationManagement = show;
-    window.appState.showAllocationManagement = show;
-  };
-
-  window.setShowInventoryDetail = state.setShowInventoryDetail ? (show) => {
-    console.log("📄 setShowInventoryDetail called with:", show);
-    state.setShowInventoryDetail(show);
-    window.appState.showInventoryDetail = show;
-    window.showInventoryDetail = show;
-    syncStateToWindow();
-  } : (show) => {
-    console.log("📄 setShowInventoryDetail FALLBACK called with:", show);
-    window.showInventoryDetail = show;
-    window.appState.showInventoryDetail = show;
-  };
-
-  // ✅ CRITICAL MISSING: Additional State Setters for Allocation Management
   window.setAllocationManagementInventory = state.setAllocationManagementInventory ? (inventory) => {
-    console.log("📦 setAllocationManagementInventory called with:", inventory);
+    console.log("📦 ENHANCED setAllocationManagementInventory called with:", inventory);
     state.setAllocationManagementInventory(inventory);
     window.appState.allocationManagementInventory = inventory;
     window.allocationManagementInventory = inventory;
     syncStateToWindow();
   } : (inventory) => {
-    console.log("📦 setAllocationManagementInventory FALLBACK called with:", inventory);
+    console.log("📦 FALLBACK setAllocationManagementInventory called with:", inventory);
     window.allocationManagementInventory = inventory;
     window.appState.allocationManagementInventory = inventory;
   };
 
   window.setCurrentAllocations = state.setCurrentAllocations ? (allocations) => {
-    console.log("📋 setCurrentAllocations called with:", allocations?.length || 0, "allocations");
+    console.log("📋 ENHANCED setCurrentAllocations called with:", allocations?.length || 0, "allocations");
     state.setCurrentAllocations(allocations);
     window.appState.currentAllocations = allocations;
     window.currentAllocations = allocations;
     syncStateToWindow();
   } : (allocations) => {
-    console.log("📋 setCurrentAllocations FALLBACK called with:", allocations?.length || 0, "allocations");
+    console.log("📋 FALLBACK setCurrentAllocations called with:", allocations?.length || 0, "allocations");
     window.currentAllocations = allocations;
     window.appState.currentAllocations = allocations;
   };
 
   window.setCurrentInventoryDetail = state.setCurrentInventoryDetail ? (inventory) => {
-    console.log("📄 setCurrentInventoryDetail called with:", inventory);
+    console.log("📄 ENHANCED setCurrentInventoryDetail called with:", inventory);
     state.setCurrentInventoryDetail(inventory);
     window.appState.currentInventoryDetail = inventory;
     window.currentInventoryDetail = inventory;
     syncStateToWindow();
   } : (inventory) => {
-    console.log("📄 setCurrentInventoryDetail FALLBACK called with:", inventory);
+    console.log("📄 FALLBACK setCurrentInventoryDetail called with:", inventory);
     window.currentInventoryDetail = inventory;
     window.appState.currentInventoryDetail = inventory;
   };
@@ -329,10 +380,8 @@ window.SimplifiedApp = function() {
   // Choice Modal State Setters
   window.setCurrentLeadForChoice = state.setCurrentLeadForChoice;
   window.setChoiceOptions = state.setChoiceOptions;
-  window.setShowChoiceModal = state.setShowChoiceModal;
 
   // Status Progress Modal State Setters
-  window.setShowStatusProgressModal = state.setShowStatusProgressModal;
   window.setStatusProgressOptions = state.setStatusProgressOptions;
   window.setSelectedStatus = state.setSelectedStatus;
   window.setFollowUpDate = state.setFollowUpDate;
@@ -342,7 +391,6 @@ window.SimplifiedApp = function() {
   window.setStadiums = state.setStadiums;
   window.setEditingStadium = state.setEditingStadium;
   window.setStadiumFormData = state.setStadiumFormData;
-  window.setShowStadiumForm = state.setShowStadiumForm;
 
   // Client State Setters
   window.setSelectedClient = state.setSelectedClient || ((client) => {
@@ -365,10 +413,8 @@ window.SimplifiedApp = function() {
   window.setOrderData = state.setOrderData;
   window.setOrderEditData = state.setOrderEditData;
   window.setCurrentOrderForEdit = state.setCurrentOrderForEdit;
-  window.setShowEditOrderForm = state.setShowEditOrderForm;
   window.setUserFormData = state.setUserFormData;
   window.setEditingUser = state.setEditingUser;
-  window.setShowUserForm = state.setShowUserForm;
 
   // Filter State Setters (with fallbacks)
   window.setSearchQuery = state.setSearchQuery || ((query) => {
@@ -471,11 +517,6 @@ window.SimplifiedApp = function() {
     console.log("⏳ setBulkAssignLoading called with:", loading);
     window.bulkAssignLoading = loading;
   });
-  
-  window.setShowBulkAssignModal = state.setShowBulkAssignModal || ((show) => {
-    console.log("👥 setShowBulkAssignModal called with:", show);
-    window.showBulkAssignModal = show;
-  });
 
   // CSV Upload State Setters (with fallbacks)
   window.setCSVUploadType = state.setCSVUploadType || ((type) => {
@@ -483,21 +524,12 @@ window.SimplifiedApp = function() {
     window.csvUploadType = type;
   });
 
-  window.setShowCSVUploadModal = state.setShowCSVUploadModal || ((show) => {
-    console.log("📤 setShowCSVUploadModal called with:", show);
-    window.showCSVUploadModal = show;
-  });
-
   window.setPreviewLoading = state.setPreviewLoading || ((loading) => {
     console.log("⏳ setPreviewLoading called with:", loading);
     window.previewLoading = loading;
   });
 
-  window.setShowPreview = state.setShowPreview || ((show) => {
-    console.log("👁️ setShowPreview called with:", show);
-    window.showPreview = show;
-    window.appState.showPreview = show;
-  });
+  window.setShowPreview = createEnhancedModalSetter('setShowPreview', 'showPreview', state.setShowPreview);
 
   window.setPreviewData = state.setPreviewData || ((data) => {
     console.log("📊 setPreviewData called with:", data?.length || 0, "items");
@@ -515,10 +547,7 @@ window.SimplifiedApp = function() {
     window.clientDetectionResults = results;
   });
 
-  window.setShowClientDetectionResults = state.setShowClientDetectionResults || ((show) => {
-    console.log("👁️ setShowClientDetectionResults called with:", show);
-    window.showClientDetectionResults = show;
-  });
+  window.setShowClientDetectionResults = createEnhancedModalSetter('setShowClientDetectionResults', 'showClientDetectionResults', state.setShowClientDetectionResults);
 
   window.setUploading = state.setUploading || ((uploading) => {
     console.log("⏳ setUploading called with:", uploading);
@@ -1144,7 +1173,8 @@ window.SimplifiedApp = function() {
 
   window.apiCall = window.apiCall || ((endpoint, options) => {
     console.log("🌐 apiCall:", endpoint, options);
-    return window.fetch(window.API_URL + endpoint, {
+    const url = (window.API_CONFIG?.API_URL || window.API_URL) + endpoint;
+    return fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -1252,172 +1282,132 @@ window.SimplifiedApp = function() {
 
   // ===== INVENTORY FORM CONFIGURATION =====
 
-// ===== INVENTORY FORM CONFIGURATION =====
+  // ✅ YOUR ORIGINAL PRODUCTION FORM FIELDS (from index.html)
+  window.inventoryFormFields = [
+    { name: 'event_name', label: 'Event Name', type: 'text', required: true },
+    { name: 'event_date', label: 'Event Date', type: 'date', required: true },
+    { name: 'event_type', label: 'Event Type', type: 'select', options: ['IPL', 'India Cricket + ICC', 'Football', 'Tennis', 'F1', 'Miscellaneous'], required: true },
+    { name: 'sports', label: 'Sports Category', type: 'select', options: ['Cricket', 'Football', 'Tennis', 'Formula 1', 'Olympics', 'Basketball', 'Badminton', 'Hockey', 'Golf', 'Wrestling'], required: true },
+    { name: 'venue', label: 'Venue', type: 'select', options: 'dynamic', required: true },
+    { name: 'day_of_match', label: 'Day of Match (for Test/Multi-day)', type: 'select', options: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Not Applicable'], required: false },
+    { name: 'category_of_ticket', label: 'Category of Ticket', type: 'select', options: ['VIP', 'Premium', 'Gold', 'Silver', 'Bronze', 'General', 'Corporate Box', 'Hospitality'], required: true },
+    { name: 'stand', label: 'Stand/Section', type: 'text', required: false, placeholder: 'e.g., North Stand, East Pavilion' },
+    { name: 'total_tickets', label: 'Total Tickets', type: 'number', required: true },
+    { name: 'available_tickets', label: 'Available Tickets', type: 'number', required: true },
+    { name: 'mrp_of_ticket', label: 'MRP of Ticket (₹)', type: 'number', required: true },
+    { name: 'buying_price', label: 'Buying Price (₹)', type: 'number', required: true },
+    { name: 'selling_price', label: 'Selling Price (₹)', type: 'number', required: true },
+    { name: 'inclusions', label: 'Inclusions', type: 'textarea', required: false, placeholder: 'e.g., Food, Beverages, Parking, Merchandise, Meet & Greet' },
+    { name: 'booking_person', label: 'Booking Person (Who Purchased)', type: 'text', required: true, placeholder: 'Name of person/company who purchased inventory' },
+    { name: 'procurement_type', label: 'Procurement Type', type: 'select', options: ['pre_inventory', 'on_demand', 'partnership', 'direct_booking'], required: true },
+    { name: 'notes', label: 'Additional Notes', type: 'textarea', required: false, placeholder: 'Any special conditions, restrictions, or notes' },
+    { name: 'paymentStatus', label: 'Payment Status', type: 'select', options: ['paid', 'pending'], required: true },
+    { name: 'supplierName', label: 'Supplier Name', type: 'text', required: false },
+    { name: 'supplierInvoice', label: 'Supplier Invoice #', type: 'text', required: false },
+    { name: 'purchasePrice', label: 'Purchase Price (per ticket)', type: 'number', required: false },
+    { name: 'totalPurchaseAmount', label: 'Total Purchase Amount', type: 'number', required: false },
+    { name: 'amountPaid', label: 'Amount Paid', type: 'number', required: false },
+    { name: 'paymentDueDate', label: 'Payment Due Date', type: 'date', required: false }
+  ];
 
-// ✅ YOUR ORIGINAL PRODUCTION FORM FIELDS (from index.html)
-window.inventoryFormFields = [
-  { name: 'event_name', label: 'Event Name', type: 'text', required: true },
-  { name: 'event_date', label: 'Event Date', type: 'date', required: true },
-  { name: 'event_type', label: 'Event Type', type: 'select', options: ['IPL', 'India Cricket + ICC', 'Football', 'Tennis', 'F1', 'Miscellaneous'], required: true },
-  { name: 'sports', label: 'Sports Category', type: 'select', options: ['Cricket', 'Football', 'Tennis', 'Formula 1', 'Olympics', 'Basketball', 'Badminton', 'Hockey', 'Golf', 'Wrestling'], required: true },
-  { name: 'venue', label: 'Venue', type: 'select', options: 'dynamic', required: true },
-  { name: 'day_of_match', label: 'Day of Match (for Test/Multi-day)', type: 'select', options: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Not Applicable'], required: false },
-  { name: 'category_of_ticket', label: 'Category of Ticket', type: 'select', options: ['VIP', 'Premium', 'Gold', 'Silver', 'Bronze', 'General', 'Corporate Box', 'Hospitality'], required: true },
-  { name: 'stand', label: 'Stand/Section', type: 'text', required: false, placeholder: 'e.g., North Stand, East Pavilion' },
-  { name: 'total_tickets', label: 'Total Tickets', type: 'number', required: true },
-  { name: 'available_tickets', label: 'Available Tickets', type: 'number', required: true },
-  { name: 'mrp_of_ticket', label: 'MRP of Ticket (₹)', type: 'number', required: true },
-  { name: 'buying_price', label: 'Buying Price (₹)', type: 'number', required: true },
-  { name: 'selling_price', label: 'Selling Price (₹)', type: 'number', required: true },
-  { name: 'inclusions', label: 'Inclusions', type: 'textarea', required: false, placeholder: 'e.g., Food, Beverages, Parking, Merchandise, Meet & Greet' },
-  { name: 'booking_person', label: 'Booking Person (Who Purchased)', type: 'text', required: true, placeholder: 'Name of person/company who purchased inventory' },
-  { name: 'procurement_type', label: 'Procurement Type', type: 'select', options: ['pre_inventory', 'on_demand', 'partnership', 'direct_booking'], required: true },
-  { name: 'notes', label: 'Additional Notes', type: 'textarea', required: false, placeholder: 'Any special conditions, restrictions, or notes' },
-  { name: 'paymentStatus', label: 'Payment Status', type: 'select', options: ['paid', 'pending'], required: true },
-  { name: 'supplierName', label: 'Supplier Name', type: 'text', required: false },
-  { name: 'supplierInvoice', label: 'Supplier Invoice #', type: 'text', required: false },
-  { name: 'purchasePrice', label: 'Purchase Price (per ticket)', type: 'number', required: false },
-  { name: 'totalPurchaseAmount', label: 'Total Purchase Amount', type: 'number', required: false },
-  { name: 'amountPaid', label: 'Amount Paid', type: 'number', required: false },
-  { name: 'paymentDueDate', label: 'Payment Due Date', type: 'date', required: false }
-];
-
-// ✅ FORM DATA CHANGE HANDLER
-window.handleFormDataChange = (fieldName, value) => {
-  console.log(`📝 Form field changed: ${fieldName} = ${value}`);
-  if (window.setFormData) {
-    window.setFormData(prev => ({
-      ...prev,
-      [fieldName]: value
-    }));
-  } else {
-    console.warn("⚠️ setFormData not available");
-  }
-};
-
-// ✅ FORM SUBMIT HANDLER (basic version - can be enhanced with backend logic)
-window.handleInventoryFormSubmit = (e) => {
-  e.preventDefault();
-  console.log("📤 Inventory form submitted with data:", window.formData);
-  console.log("🔧 This needs your original backend submission logic");
-  alert("Form submission ready! (Connect your backend logic here)");
-};
-
-console.log("✅ Original inventory form fields loaded:", window.inventoryFormFields.length, "fields");
-
-  // Only add form handlers if they don't exist
-  if (!window.handleFormDataChange) {
-    window.handleFormDataChange = (fieldName, value) => {
-      console.log(`📝 Form field changed: ${fieldName} = ${value}`);
-      if (window.setFormData) {
-        window.setFormData(prev => ({
-          ...prev,
-          [fieldName]: value
-        }));
-      } else {
-        console.warn("⚠️ setFormData not available");
-      }
-    };
-  }
-
-  window.handleInventoryFormSubmit = async (e) => {
-  e.preventDefault();
-  
-  try {
-    window.setLoading(true);
-    
-    // Enhanced debug logging
-    console.log('=== FRONTEND INVENTORY SUBMISSION DEBUG ===');
-    console.log('Inventory ID:', window.editingInventory?.id);
-    console.log('Complete form data being sent:', window.formData);
-    console.log('Payment fields specifically:', {
-      totalPurchaseAmount: window.formData?.totalPurchaseAmount,
-      amountPaid: window.formData?.amountPaid,
-      paymentStatus: window.formData?.paymentStatus,
-      supplierName: window.formData?.supplierName,
-      supplierInvoice: window.formData?.supplierInvoice
-    });
-    console.log('Is from payables?', window.editingInventory?._payableContext?.fromPayables);
-    console.log('Payable amount:', window.editingInventory?._payableContext?.payableAmount);
-    
-    if (!window.editingInventory?.id || window.editingInventory.id === null || window.editingInventory.id === undefined) {
-      // CREATE NEW INVENTORY
-      console.log('Creating new inventory item...');
-      
-      const response = await window.apiCall('/inventory', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...window.formData,
-          created_by: window.user?.name || 'Unknown User',
-          created_date: new Date().toISOString()
-        })
-      });
-      
-      console.log('Backend response:', response);
-      
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      
-      // Add to local state
-      window.setInventory(prev => [...prev, response.data || response]);
-      alert('✅ Inventory created successfully!');
-      
+  // ✅ FORM DATA CHANGE HANDLER
+  window.handleFormDataChange = (fieldName, value) => {
+    console.log(`📝 Form field changed: ${fieldName} = ${value}`);
+    if (window.setFormData) {
+      window.setFormData(prev => ({
+        ...prev,
+        [fieldName]: value
+      }));
     } else {
-      // UPDATE EXISTING INVENTORY
-      console.log('Updating existing inventory...');
+      console.warn("⚠️ setFormData not available");
+    }
+  };
+
+  // ✅ FIXED FORM SUBMIT HANDLER
+  window.handleInventoryFormSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      window.setLoading(true);
       
-      const response = await window.apiCall(`/inventory/${window.editingInventory.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(window.formData)
+      // Enhanced debug logging
+      console.log('=== FRONTEND INVENTORY SUBMISSION DEBUG ===');
+      console.log('Inventory ID:', window.editingInventory?.id);
+      console.log('Complete form data being sent:', window.formData);
+      console.log('Payment fields specifically:', {
+        totalPurchaseAmount: window.formData?.totalPurchaseAmount,
+        amountPaid: window.formData?.amountPaid,
+        paymentStatus: window.formData?.paymentStatus,
+        supplierName: window.formData?.supplierName,
+        supplierInvoice: window.formData?.supplierInvoice
       });
+      console.log('Is from payables?', window.editingInventory?._payableContext?.fromPayables);
+      console.log('Payable amount:', window.editingInventory?._payableContext?.payableAmount);
       
-      console.log('Backend response:', response);
-      
-      if (response.error) {
-        throw new Error(response.error);
+      if (!window.editingInventory?.id || window.editingInventory.id === null || window.editingInventory.id === undefined) {
+        // CREATE NEW INVENTORY
+        console.log('Creating new inventory item...');
+        
+        const response = await window.apiCall('/inventory', {
+          method: 'POST',
+          body: JSON.stringify({
+            ...window.formData,
+            created_by: window.user?.name || 'Unknown User',
+            created_date: new Date().toISOString()
+          })
+        });
+        
+        console.log('Backend response:', response);
+        
+        if (response.error) {
+          throw new Error(response.error);
+        }
+        
+        // Add to local state
+        window.setInventory(prev => [...prev, response.data || response]);
+        alert('✅ Inventory created successfully!');
+        
+      } else {
+        // UPDATE EXISTING INVENTORY
+        console.log('Updating existing inventory...');
+        
+        const response = await window.apiCall(`/inventory/${window.editingInventory.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(window.formData)
+        });
+        
+        console.log('Backend response:', response);
+        
+        if (response.error) {
+          throw new Error(response.error);
+        }
+        
+        // Update local state
+        window.setInventory(prev => prev.map(item => 
+          item.id === window.editingInventory.id ? { ...item, ...window.formData } : item
+        ));
+        
+        // Refresh financial data to show updated payables
+        if (window.fetchFinancialData) {
+          await window.fetchFinancialData();
+        }
+        
+        alert('✅ Inventory updated successfully! Payables have been synced automatically.');
       }
       
-      // Update local state
-      window.setInventory(prev => prev.map(item => 
-        item.id === window.editingInventory.id ? { ...item, ...window.formData } : item
-      ));
+      // Close the form
+      window.closeInventoryForm();
       
-      // Refresh financial data to show updated payables
-      if (window.fetchFinancialData) {
-        await window.fetchFinancialData();
-      }
-      
-      alert('✅ Inventory updated successfully! Payables have been synced automatically.');
+    } catch (error) {
+      console.error('❌ Error with inventory submission:', error);
+      alert('❌ Error saving inventory: ' + error.message);
+    } finally {
+      window.setLoading(false);
     }
-    
-    // Close the form
-    window.closeInventoryForm();
-    
-  } catch (error) {
-    console.error('❌ Error with inventory submission:', error);
-    alert('❌ Error saving inventory: ' + error.message);
-  } finally {
-    window.setLoading(false);
-  }
-};
+  };
 
-// 3. ALSO FIX: Ensure apiCall function is properly referenced
-// The submit handler uses window.apiCall but make sure it's defined correctly
-window.apiCall = window.apiCall || window.apicall || ((endpoint, options) => {
-  console.log("🌐 apiCall:", endpoint, options);
-  const url = (window.API_CONFIG?.API_URL || window.API_URL) + endpoint;
-  return fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': window.authToken ? 'Bearer ' + window.authToken : '',
-      ...options.headers
-    }
-  }).then(response => response.json());
-});
-
-console.log("✅ Fixed inventory form submission - removed placeholder, added complete implementation");
+  console.log("✅ Original inventory form fields loaded:", window.inventoryFormFields.length, "fields");
+  console.log("✅ Fixed inventory form submission - removed placeholder, added complete implementation");
 
   const getFilteredLeads = () => {
     let filteredLeads = [...state.leads];
@@ -1732,4 +1722,4 @@ console.log("✅ Fixed inventory form submission - removed placeholder, added co
   );
 };
 
-console.log('✅ Complete Fixed Simplified App Component loaded with INVENTORY MODAL FIXES and FORCE RE-RENDER');
+console.log('✅ COMPREHENSIVE MODAL STATE SYNCHRONIZATION FIX APPLIED - All modal state setters enhanced with React sync protection');
