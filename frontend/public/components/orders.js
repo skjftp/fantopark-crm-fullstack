@@ -1,5 +1,5 @@
 // ============================================================================
-// ORDERS COMPONENT - Extracted from index.html
+// ORDERS COMPONENT - Extracted from index.html - FIXED VIEW INVOICE BUTTON
 // ============================================================================
 // This component manages order management system with status tracking, 
 // approvals, invoice generation, and comprehensive workflow processing.
@@ -78,6 +78,46 @@ window.renderOrdersContent = () => {
                             const clientName = order.client_name || order.lead_name || 'Unknown Client';
                             const clientEmail = order.client_email || order.lead_email || '';
                             const clientPhone = order.client_phone || order.lead_phone || '';
+
+                            // ✅ CRITICAL FIX: Check if invoice exists for this order
+                            const hasInvoice = order.invoice_number || 
+                                              (window.invoices || []).some(inv => inv.order_id === order.id);
+                            
+                            // ✅ ENHANCED: Find the actual invoice object for this order
+                            const orderInvoice = order.invoice_number ? 
+                                // If order has invoice_number, reconstruct from order data
+                                {
+                                    id: order.invoice_id || order.id,
+                                    invoice_number: order.invoice_number,
+                                    order_id: order.id,
+                                    order_number: order.order_number,
+                                    client_name: order.legal_name || order.client_name,
+                                    client_email: order.client_email,
+                                    gstin: order.gstin,
+                                    legal_name: order.legal_name,
+                                    category_of_sale: order.category_of_sale,
+                                    type_of_sale: order.type_of_sale,
+                                    registered_address: order.registered_address,
+                                    indian_state: order.indian_state,
+                                    is_outside_india: order.is_outside_india,
+                                    invoice_items: order.invoice_items || [{
+                                        description: order.event_name || 'Service',
+                                        quantity: order.tickets_allocated || 1,
+                                        rate: order.price_per_ticket || (order.total_amount || 0)
+                                    }],
+                                    base_amount: order.base_amount || order.total_amount || order.amount || 0,
+                                    gst_calculation: order.gst_calculation || { applicable: false, rate: 0, cgst: 0, sgst: 0, igst: 0, total: 0 },
+                                    tcs_calculation: order.tcs_calculation || { applicable: false, rate: 0, amount: 0 },
+                                    total_tax: order.total_tax || 0,
+                                    final_amount: order.final_amount || order.total_amount || order.amount || 0,
+                                    invoice_date: order.approved_date || new Date().toISOString().split('T')[0],
+                                    due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                                    status: 'generated',
+                                    generated_by: order.approved_by || 'System',
+                                    payment_currency: order.payment_currency || 'INR'
+                                } :
+                                // Otherwise find in invoices array
+                                (window.invoices || []).find(inv => inv.order_id === order.id);
 
                             // ENHANCED: Handle event display for multi-item orders
                             const getEventDisplay = (order) => {
@@ -231,62 +271,20 @@ window.renderOrdersContent = () => {
                                             }, '❌ Reject')
                                         ],
 
-                                        // PRESERVED: View Invoice button
-                                        order.invoice_number && React.createElement('button', {
+                                        // ✅ CRITICAL FIX: View Invoice button - now checks both order.invoice_number AND invoices array
+                                        hasInvoice && React.createElement('button', {
                                             key: 'view-invoice',
                                             className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
                                             onClick: () => {
-                                                console.log('Looking for invoice for order:', order.id);
+                                                console.log('🔍 Looking for invoice for order:', order.id);
+                                                console.log('🔍 Order invoice object:', orderInvoice);
+                                                console.log('🔍 Available invoices:', window.invoices);
 
-                                                // ENHANCED: Better invoice reconstruction for new format
-                                                if (order.invoice_number) {
-                                                    const reconstructedInvoice = {
-                                                        id: order.invoice_id || order.id,
-                                                        invoice_number: order.invoice_number,
-                                                        order_id: order.id,
-                                                        order_number: order.order_number,
-                                                        client_name: order.legal_name || order.client_name,
-                                                        client_email: order.client_email,
-                                                        gstin: order.gstin,
-                                                        legal_name: order.legal_name,
-                                                        category_of_sale: order.category_of_sale,
-                                                        type_of_sale: order.type_of_sale,
-                                                        registered_address: order.registered_address,
-                                                        indian_state: order.indian_state,
-                                                        is_outside_india: order.is_outside_india,
-                                                        // ENHANCED: Handle both old and new invoice formats
-                                                        invoice_items: order.invoice_items || [{
-                                                            description: order.event_name || 'Service',
-                                                            quantity: order.tickets_allocated || 1,
-                                                            rate: order.price_per_ticket || (order.total_amount || 0)
-                                                        }],
-                                                        base_amount: order.base_amount || order.total_amount || order.amount || 0,
-                                                        gst_calculation: order.gst_calculation || {
-                                                            applicable: false,
-                                                            rate: 0,
-                                                            cgst: 0,
-                                                            sgst: 0,
-                                                            igst: 0,
-                                                            total: 0
-                                                        },
-                                                        tcs_calculation: order.tcs_calculation || {
-                                                            applicable: false,
-                                                            rate: 0,
-                                                            amount: 0
-                                                        },
-                                                        total_tax: order.total_tax || 0,
-                                                        final_amount: order.final_amount || order.total_amount || order.amount || 0,
-                                                        invoice_date: order.approved_date || new Date().toISOString().split('T')[0],
-                                                        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                                                        status: 'generated',
-                                                        generated_by: order.approved_by || 'System',
-                                                        // ENHANCED: Add payment currency for new format
-                                                        payment_currency: order.payment_currency || 'INR'
-                                                    };
-
-                                                    console.log('Reconstructed invoice:', reconstructedInvoice);
-                                                    openInvoicePreview(reconstructedInvoice);
+                                                if (orderInvoice) {
+                                                    console.log('✅ Found invoice, opening preview:', orderInvoice);
+                                                    openInvoicePreview(orderInvoice);
                                                 } else {
+                                                    console.log('❌ No invoice found for order:', order.id);
                                                     alert('Invoice not found for this order');
                                                 }
                                             }
@@ -309,7 +307,7 @@ window.renderOrdersContent = () => {
                                             onClick: () => {
                                                 setOrders(prev => 
                                                     prev.map(o => 
-                                                        o.id === order.id 
+                                                        o.id === orderId 
                                                             ? { ...o, status: 'completed', completed_date: new Date().toISOString().split('T')[0] }
                                                             : o
                                                     )
@@ -458,4 +456,4 @@ window.assignOrderToUser = async (orderId, user) => {
     }
 };
 
-console.log('✅ Orders component loaded successfully - uses existing order-detail-modal.js');
+console.log('✅ Orders component loaded successfully - FIXED VIEW INVOICE BUTTON LOGIC');
