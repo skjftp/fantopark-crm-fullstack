@@ -98,6 +98,13 @@ window.appState.showRoleForm = state.showRoleForm || false;
 window.appState.editingRole = state.editingRole || null;
 window.appState.roleFormData = state.roleFormData || {};
 
+ // ✅ ADD THESE LINES: User Management States
+window.appState.showUserManagement = state.showUserManagement || false;
+window.appState.showUserForm = state.showUserForm || false;
+window.appState.editingUser = state.editingUser || null;
+window.appState.userFormData = state.userFormData || {};
+window.appState.currentUser = state.currentUser || null; 
+
   // CSV Upload States
   window.appState.showPreview = state.showPreview || false;
   window.appState.uploadPreview = state.uploadPreview || null;
@@ -166,6 +173,13 @@ window.rolesInitialized = state.rolesInitialized || false;
 window.showRoleForm = state.showRoleForm || false;
 window.editingRole = state.editingRole || null;
 window.roleFormData = state.roleFormData || {};
+
+// ✅ ADD THESE LINES: User Management States
+window.showUserManagement = state.showUserManagement || false;
+window.showUserForm = state.showUserForm || false;
+window.editingUser = state.editingUser || null;
+window.userFormData = state.userFormData || {};
+window.currentUser = state.currentUser || null;  
 
 // Sports Calendar States
 window.sportsEvents = state.sportsEvents || [];
@@ -311,6 +325,138 @@ window.eventsPerPage = state.eventsPerPage || 10;
     }, 10);
   };
 
+
+  // ✅ ADD THIS FUNCTION: User Management Page Component (not modal)
+window.renderUserManagementContent = () => {
+  console.log("🔍 renderUserManagementContent called");
+  
+  // Fetch users if not already loaded
+  if (!window.users || window.users.length === 0) {
+    window.fetchUsers && window.fetchUsers();
+  }
+
+  return React.createElement('div', { className: 'space-y-6' },
+    // Header
+    React.createElement('div', { className: 'flex justify-between items-center' },
+      React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'User Management'),
+      React.createElement('div', { className: 'flex space-x-2' },
+        window.hasPermission('users', 'write') && React.createElement('button', {
+          onClick: () => {
+            console.log('🔍 Add User button clicked');
+            window.openUserForm && window.openUserForm();
+          },
+          className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
+        }, '+ Add User'),
+        React.createElement('button', {
+          onClick: () => {
+            console.log('🔍 Export Users button clicked');
+            window.exportUsersData && window.exportUsersData(window.users || []);
+          },
+          className: 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700'
+        }, '📥 Export Users')
+      )
+    ),
+
+    // Users Table
+    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
+      React.createElement('div', { className: 'overflow-x-auto' },
+        React.createElement('table', { className: 'w-full' },
+          React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
+            React.createElement('tr', null,
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'User'),
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Role'),
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Created'),
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
+            )
+          ),
+          React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
+            (window.users || []).length > 0 ?
+              (window.users || []).map((user, index) => 
+                React.createElement('tr', { key: user.id || index, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
+                  // User Info
+                  React.createElement('td', { className: 'px-6 py-4' },
+                    React.createElement('div', null,
+                      React.createElement('div', { className: 'text-sm font-medium text-gray-900 dark:text-white' }, user.name),
+                      React.createElement('div', { className: 'text-sm text-gray-500' }, user.email)
+                    )
+                  ),
+                  
+                  // Role
+                  React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' },
+                    window.getRoleDisplayName ? window.getRoleDisplayName(user.role) : user.role
+                  ),
+                  
+                  // Status
+                  React.createElement('td', { className: 'px-6 py-4' },
+                    React.createElement('span', { 
+                      className: `px-2 py-1 text-xs font-medium rounded-full ${
+                        user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`
+                    }, user.status || 'active')
+                  ),
+                  
+                  // Created Date
+                  React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' },
+                    user.created_date ? new Date(user.created_date).toLocaleDateString() : 'N/A'
+                  ),
+                  
+                  // Actions
+                  React.createElement('td', { className: 'px-6 py-4' },
+                    React.createElement('div', { className: 'flex items-center space-x-2' },
+                      // Edit Button
+                      window.hasPermission('users', 'write') && React.createElement('button', {
+                        onClick: () => {
+                          console.log('🔍 Edit User clicked:', user.name);
+                          window.openUserForm && window.openUserForm(user);
+                        },
+                        className: 'text-blue-600 hover:text-blue-900 text-sm px-3 py-1 rounded border border-blue-200 hover:bg-blue-50'
+                      }, '✏️ Edit'),
+                      
+                      // Toggle Status Button
+                      window.hasPermission('users', 'write') && React.createElement('button', {
+                        onClick: () => {
+                          console.log('🔍 Toggle Status clicked for:', user.name);
+                          window.toggleUserStatus && window.toggleUserStatus(user.id, user.status);
+                        },
+                        className: `text-sm px-3 py-1 rounded border ${
+                          user.status === 'active' 
+                            ? 'text-red-600 border-red-200 hover:bg-red-50' 
+                            : 'text-green-600 border-green-200 hover:bg-green-50'
+                        }`
+                      }, user.status === 'active' ? '🚫 Deactivate' : '✅ Activate'),
+                      
+                      // Delete Button
+                      window.hasPermission('users', 'delete') && React.createElement('button', {
+                        onClick: () => {
+                          console.log('🔍 Delete User clicked:', user.name);
+                          window.handleDeleteUser && window.handleDeleteUser(user.id, user.name);
+                        },
+                        className: 'text-red-600 hover:text-red-900 text-sm px-3 py-1 rounded border border-red-200 hover:bg-red-50'
+                      }, '🗑️ Delete')
+                    )
+                  )
+                )
+              ) :
+              React.createElement('tr', null,
+                React.createElement('td', { 
+                  colSpan: 5, 
+                  className: 'px-6 py-8 text-center text-gray-500' 
+                }, 
+                  React.createElement('div', { className: 'text-center' },
+                    React.createElement('div', { className: 'text-4xl mb-2' }, '👥'),
+                    React.createElement('div', { className: 'text-lg font-medium' }, 'No users found'),
+                    React.createElement('div', { className: 'text-sm' }, 'Add new users to get started')
+                  )
+                )
+              )
+          )
+        )
+      )
+    )
+  );
+};
+  
   // ✅ UNIVERSAL MODAL STATE SETTER FACTORY
   const createEnhancedModalSetter = (setterName, stateKey, reactStateSetter) => {
     return reactStateSetter ? (value) => {
@@ -582,6 +728,13 @@ window.setEventsPerPage = (perPage) => {
   window.setShowRoleForm = state.setShowRoleForm;
   window.setEditingRole = state.setEditingRole;
   window.setRoleFormData = state.setRoleFormData;
+
+  // ✅ ADD THESE LINES: User Management State Setters
+window.setShowUserManagement = state.setShowUserManagement;
+window.setShowUserForm = state.setShowUserForm;
+window.setEditingUser = state.setEditingUser;
+window.setUserFormData = state.setUserFormData;
+window.setCurrentUser = state.setCurrentUser;
 
   // ✅ STADIUM FILTER STATE SETTERS
   window.setStadiumSearchQuery = state.setStadiumSearchQuery || ((query) => {
