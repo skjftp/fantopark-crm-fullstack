@@ -3,9 +3,20 @@
 // Uses window.* globals for CDN-based React compatibility
 
 window.renderGSTInvoicePreview = () => {
-  if (!window.showInvoicePreview || !window.currentInvoice) return null;
+  // ✅ EXTRACT STATE FROM APP STATE (Fix integration pattern)
+  const {
+    showInvoicePreview = false,
+    currentInvoice = null,
+    setCurrentInvoice = window.setCurrentInvoice || (() => {}),
+    setShowInvoicePreview = window.setShowInvoicePreview || (() => {}),
+    closeForm = window.closeForm || (() => {
+      console.warn("closeForm not implemented");
+    })
+  } = window.appState || {};
 
-  const invoice = window.currentInvoice;
+  if (!showInvoicePreview || !currentInvoice) return null;
+
+  const invoice = currentInvoice;
   const isIntraState = invoice.indian_state === 'Haryana' && !invoice.is_outside_india;
 
   // FIX 1: Calculate baseAmount FIRST before using it anywhere
@@ -376,14 +387,14 @@ ${invoiceContent}
                   )
                 ),
                 React.createElement('td', { style: { textAlign: 'center' }}, item.quantity),
-                React.createElement('td', { style: { textAlign: 'center' }}, formatCurrency(item.rate)),
-                React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(item.quantity * item.rate))
+                React.createElement('td', { style: { textAlign: 'center' }}, window.formatCurrency ? window.formatCurrency(item.rate) : '₹' + item.rate),
+                React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(item.quantity * item.rate) : '₹' + (item.quantity * item.rate))
               )
             ),
             // Service Charge row for Service Fee type (when base amount > 0)
             invoice.type_of_sale === 'Service Fee' && invoice.base_amount > 0 && React.createElement('tr', null,
               React.createElement('td', { colSpan: 3, style: { textAlign: 'right', fontWeight: 'bold' }}, 'Service Charge'),
-              React.createElement('td', { style: { textAlign: 'right', fontWeight: 'bold' }}, formatCurrency(invoice.base_amount))
+              React.createElement('td', { style: { textAlign: 'right', fontWeight: 'bold' }}, window.formatCurrency ? window.formatCurrency(invoice.base_amount) : '₹' + invoice.base_amount)
             )
           )
         ),
@@ -406,7 +417,7 @@ ${invoiceContent}
                   React.createElement('tr', { key: 'cgst' },
                     React.createElement('td', null, invoice.type_of_sale === 'Service Fee' ? 'CGST on Service Charge' : 'CGST'),
                     React.createElement('td', { style: { textAlign: 'center' }}, (calculation.gst.rate/2).toFixed(2) + '%'),
-                    React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(calculation.gst.cgst))
+                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.cgst) : '₹' + calculation.gst.cgst)
                   )
                 );
                 // SGST Row
@@ -414,7 +425,7 @@ ${invoiceContent}
                   React.createElement('tr', { key: 'sgst' },
                     React.createElement('td', null, invoice.type_of_sale === 'Service Fee' ? 'SGST on Service Charge' : 'SGST'),
                     React.createElement('td', { style: { textAlign: 'center' }}, (calculation.gst.rate/2).toFixed(2) + '%'),
-                    React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(calculation.gst.sgst))
+                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.sgst) : '₹' + calculation.gst.sgst)
                   )
                 );
               } else {
@@ -423,7 +434,7 @@ ${invoiceContent}
                   React.createElement('tr', { key: 'igst' },
                     React.createElement('td', null, invoice.type_of_sale === 'Service Fee' ? 'IGST on Service Charge' : 'IGST'),
                     React.createElement('td', { style: { textAlign: 'center' }}, calculation.gst.rate.toFixed(2) + '%'),
-                    React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(calculation.gst.igst))
+                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.igst) : '₹' + calculation.gst.igst)
                   )
                 );
               }
@@ -435,7 +446,7 @@ ${invoiceContent}
                 React.createElement('tr', { key: 'tcs' },
                   React.createElement('td', null, `TCS (${calculation.tcs.rate}%)`), // Show actual rate
                   React.createElement('td', { style: { textAlign: 'center' }}, calculation.tcs.rate.toFixed(2) + '%'),
-                  React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(calculation.tcs.amount))
+                  React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.tcs.amount) : '₹' + calculation.tcs.amount)
                 )
               );
             } else {
@@ -453,7 +464,7 @@ ${invoiceContent}
               React.createElement('tr', { key: 'grand-total', style: { fontWeight: 'bold' }},
                 React.createElement('td', null, 'Grand Total'),
                 React.createElement('td', null),
-                React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(calculation.finalAmount))
+                React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.finalAmount) : '₹' + calculation.finalAmount)
               )
             );
 
@@ -471,7 +482,7 @@ ${invoiceContent}
               React.createElement('tr', { key: 'invoice-value', style: { fontWeight: 'bold' }},
                 React.createElement('td', null, 'Invoice Value'),
                 React.createElement('td', null),
-                React.createElement('td', { style: { textAlign: 'right' }}, formatCurrency(calculation.finalAmount))
+                React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.finalAmount) : '₹' + calculation.finalAmount)
               )
             );
 
@@ -530,4 +541,4 @@ ${invoiceContent}
   );
 };
 
-console.log('✅ GST Invoice Preview component loaded successfully');
+console.log('✅ GST Invoice Preview component loaded successfully with integration pattern applied');
