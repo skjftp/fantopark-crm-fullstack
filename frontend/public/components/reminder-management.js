@@ -7,7 +7,7 @@ window.fetchReminders = async function() {
   if (!window.isLoggedIn) return;
 
   try {
-    const response = await window.apicall('/reminders');
+    const response = await window.apiCall('/reminders');
     if (response.data) {
       const userReminders = response.data.filter(r => 
         r.assigned_to === window.user.email || 
@@ -40,7 +40,7 @@ window.fetchReminders = async function() {
 // Complete a reminder with optional notes
 window.completeReminder = async function(reminderId, notes = '') {
   try {
-    await window.apicall(`/reminders/${reminderId}/complete`, {
+    await window.apiCall(`/reminders/${reminderId}/complete`, {
       method: 'POST',
       body: JSON.stringify({ notes })
     });
@@ -65,7 +65,7 @@ window.snoozeReminder = async function(reminderId, hours = 24) {
     const snoozeUntil = new Date();
     snoozeUntil.setHours(snoozeUntil.getHours() + hours);
 
-    await window.apicall(`/reminders/${reminderId}/snooze`, {
+    await window.apiCall(`/reminders/${reminderId}/snooze`, {
       method: 'POST',
       body: JSON.stringify({ snooze_until: snoozeUntil.toISOString() })
     });
@@ -86,7 +86,7 @@ window.deleteReminder = async function(reminderId) {
   }
 
   try {
-    await window.apicall(`/reminders/${reminderId}`, {
+    await window.apiCall(`/reminders/${reminderId}`, {
       method: 'DELETE'
     });
 
@@ -108,7 +108,7 @@ window.deleteReminder = async function(reminderId) {
 // Additional reminder management utilities
 window.createReminder = async function(reminderData) {
   try {
-    const response = await window.apicall('/reminders', {
+    const response = await window.apiCall('/reminders', {
       method: 'POST',
       body: JSON.stringify({
         ...reminderData,
@@ -134,7 +134,7 @@ window.createReminder = async function(reminderData) {
 // Update reminder details
 window.updateReminder = async function(reminderId, updateData) {
   try {
-    const response = await window.apicall(`/reminders/${reminderId}`, {
+    const response = await window.apiCall(`/reminders/${reminderId}`, {
       method: 'PUT',
       body: JSON.stringify({
         ...updateData,
