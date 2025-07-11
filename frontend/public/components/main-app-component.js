@@ -32,6 +32,8 @@ window.renderMainApp = function() {
   const [orderToAssign, setOrderToAssign] = useState(null);
   const [reminders, setReminders] = useState([]);
   const [showReminderDashboard, setShowReminderDashboard] = useState(false);
+  const [currentEventsPage, setCurrentEventsPage] = useState(1);
+const [eventsPerPage, setEventsPerPage] = useState(10);
   const [reminderStats, setReminderStats] = useState({
     total: 0,
     overdue: 0,
@@ -410,7 +412,11 @@ window.renderMainApp = function() {
     selectedEvent, setSelectedEvent,
     events, setEvents,
     salesPeople, setSalesPeople,
-    chartInstances, setChartInstances
+    chartInstances, setChartInstances,
+    setCurrentEventsPage,
+setEventsPerPage,
+currentEventsPage,
+eventsPerPage,
   };
 
   // ✅ EXPOSE FINANCIAL VARIABLES DIRECTLY TO WINDOW (for financials.js component)
