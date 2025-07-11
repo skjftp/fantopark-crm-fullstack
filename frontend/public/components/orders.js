@@ -1,5 +1,5 @@
 // ============================================================================
-// ORDERS COMPONENT - Extracted from index.html - FIXED VIEW INVOICE BUTTON
+// ORDERS COMPONENT - Extracted from index.html - FIXED VIEW INVOICE BUTTON + GST DATA
 // ============================================================================
 // This component manages order management system with status tracking, 
 // approvals, invoice generation, and comprehensive workflow processing.
@@ -83,7 +83,7 @@ window.renderOrdersContent = () => {
                             const hasInvoice = order.invoice_number || 
                                               (window.invoices || []).some(inv => inv.order_id === order.id);
                             
-                            // ✅ ENHANCED: Find the actual invoice object for this order
+                            // ✅ ENHANCED: Find the actual invoice object for this order WITH PROPER GST DATA
                             const orderInvoice = order.invoice_number ? 
                                 // If order has invoice_number, reconstruct from order data
                                 {
@@ -106,7 +106,26 @@ window.renderOrdersContent = () => {
                                         rate: order.price_per_ticket || (order.total_amount || 0)
                                     }],
                                     base_amount: order.base_amount || order.total_amount || order.amount || 0,
-                                    gst_calculation: order.gst_calculation || { applicable: false, rate: 0, cgst: 0, sgst: 0, igst: 0, total: 0 },
+                                    // ✅ CRITICAL FIX: Preserve actual GST data from order, don't override with defaults
+                                    gst_calculation: order.gst_calculation ? {
+                                        applicable: order.gst_calculation.applicable !== false && (order.gst_calculation.total > 0 || order.total_tax > 0),
+                                        rate: order.gst_calculation.rate || order.gst_rate || 18,
+                                        cgst: order.gst_calculation.cgst || 0,
+                                        sgst: order.gst_calculation.sgst || 0,
+                                        igst: order.gst_calculation.igst || 0,
+                                        total: order.gst_calculation.total || order.total_tax || 0
+                                    } : (order.total_tax > 0 ? {
+                                        // Fallback: reconstruct from total_tax if gst_calculation is missing
+                                        applicable: true,
+                                        rate: order.gst_rate || 18,
+                                        cgst: (order.indian_state === 'Haryana' && !order.is_outside_india) ? (order.total_tax / 2) : 0,
+                                        sgst: (order.indian_state === 'Haryana' && !order.is_outside_india) ? (order.total_tax / 2) : 0,
+                                        igst: (order.indian_state !== 'Haryana' || order.is_outside_india) ? order.total_tax : 0,
+                                        total: order.total_tax
+                                    } : {
+                                        applicable: false, rate: 0, cgst: 0, sgst: 0, igst: 0, total: 0
+                                    }),
+                                    // ✅ PRESERVE TCS DATA
                                     tcs_calculation: order.tcs_calculation || { applicable: false, rate: 0, amount: 0 },
                                     total_tax: order.total_tax || 0,
                                     final_amount: order.final_amount || order.total_amount || order.amount || 0,
@@ -307,7 +326,7 @@ window.renderOrdersContent = () => {
                                             onClick: () => {
                                                 setOrders(prev => 
                                                     prev.map(o => 
-                                                        o.id === orderId 
+                                                        o.id === order.id 
                                                             ? { ...o, status: 'completed', completed_date: new Date().toISOString().split('T')[0] }
                                                             : o
                                                     )
@@ -456,4 +475,4 @@ window.assignOrderToUser = async (orderId, user) => {
     }
 };
 
-console.log('✅ Orders component loaded successfully - FIXED VIEW INVOICE BUTTON LOGIC');
+console.log('✅ Orders component loaded successfully - FIXED VIEW INVOICE BUTTON + GST DATA PRESERVATION');
