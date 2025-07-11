@@ -14,13 +14,6 @@ window.renderGSTInvoicePreview = () => {
     })
   } = window.appState || {};
 
-  // ✅ SPECIFIC CLOSE FUNCTION FOR INVOICE MODAL
-  const closeInvoicePreview = () => {
-    console.log('📄 Closing invoice preview modal');
-    setShowInvoicePreview(false);
-    setCurrentInvoice(null);
-  };
-
   if (!showInvoicePreview || !currentInvoice) return null;
 
   const invoice = currentInvoice;
@@ -71,7 +64,13 @@ window.renderGSTInvoicePreview = () => {
 
   return React.createElement('div', {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-backdrop',
-    onClick: (e) => e.target === e.currentTarget && closeForm()
+    onClick: (e) => {
+      if (e.target === e.currentTarget) {
+        console.log('📄 Backdrop clicked!');
+        setShowInvoicePreview(false);
+        setCurrentInvoice(null);
+      }
+    }
   },
     React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[95vh] overflow-y-auto' },
       React.createElement('div', { className: 'sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center action-buttons' },
@@ -297,7 +296,11 @@ ${invoiceContent}
             className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
           }, '🖨️ Print'),
           React.createElement('button', {
-            onClick: closeForm,
+            onClick: () => {
+              console.log('📄 Close button clicked!');
+              setShowInvoicePreview(false);
+              setCurrentInvoice(null);
+            },
             className: 'text-gray-400 hover:text-gray-600 text-2xl'
           }, '✕')
         )
