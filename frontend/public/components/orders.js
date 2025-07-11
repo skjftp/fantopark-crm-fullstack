@@ -342,7 +342,7 @@ window.renderOrdersContent = () => {
     );
 };
 
-// Order Assignment Modal Renderer
+// Order Assignment Modal Renderer (uses existing window.renderOrderAssignmentModal)
 window.renderOrderAssignmentModal = () => {
     if (!window.showOrderAssignmentModal || !window.selectedOrderForAssignment) return null;
 
@@ -458,4 +458,4 @@ window.assignOrderToUser = async (orderId, user) => {
     }
 };
 
-console.log('✅ Orders component loaded successfully with function reference fixes');
+console.log('✅ Orders component loaded successfully - uses existing order-detail-modal.js');
