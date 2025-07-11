@@ -38,6 +38,16 @@ window.SimplifiedApp = function() {
   window.appState.showChoiceModal = state.showChoiceModal;
   window.appState.showStatusProgressModal = state.showStatusProgressModal;
 
+  // ✅ SPORTS CALENDAR MODAL STATES
+  window.appState.showEventForm = state.showEventForm || false;
+  window.appState.showImportModal = state.showImportModal || false;
+  window.appState.showEventDetail = state.showEventDetail || false;
+  window.appState.currentEvent = state.currentEvent || null;
+  window.appState.sportsEvents = state.sportsEvents || [];
+  window.appState.calendarView = state.calendarView || 'month';
+  window.appState.selectedDate = state.selectedDate || new Date();
+  window.appState.calendarFilters = state.calendarFilters || {};
+
   // Form Data States
   window.appState.showClientSuggestion = state.showClientSuggestion;
   window.appState.clientSuggestion = state.clientSuggestion;
@@ -103,6 +113,13 @@ window.SimplifiedApp = function() {
   window.events = state.events || [];
   window.invoices = state.invoices || [];
 
+  // ✅ SPORTS CALENDAR DIRECT WINDOW VARIABLES
+  window.sportsEvents = state.sportsEvents || [];
+  window.currentEvent = state.currentEvent || null;
+  window.calendarView = state.calendarView || 'month';
+  window.selectedDate = state.selectedDate || new Date();
+  window.calendarFilters = state.calendarFilters || {};
+
   // Modal States - Direct Window Variables
   window.showAddForm = state.showAddForm;
   window.showEditForm = state.showEditForm;
@@ -116,6 +133,11 @@ window.SimplifiedApp = function() {
   window.showAllocationManagement = state.showAllocationManagement || false;
   window.showDeliveryForm = state.showDeliveryForm;
   window.showInventoryDetail = state.showInventoryDetail || false;
+
+  // ✅ SPORTS CALENDAR MODAL STATES - DIRECT WINDOW VARIABLES
+  window.showEventForm = state.showEventForm || false;
+  window.showImportModal = state.showImportModal || false;
+  window.showEventDetail = state.showEventDetail || false;
 
   // Choice Modal States
   window.currentLeadForChoice = state.currentLeadForChoice;
@@ -230,6 +252,11 @@ window.SimplifiedApp = function() {
         showEditOrderForm: window.appState?.showEditOrderForm,
         showOrderAssignmentModal: window.appState?.showOrderAssignmentModal,
         
+        // Sports Calendar modals
+        showEventForm: window.appState?.showEventForm,
+        showImportModal: window.appState?.showImportModal,
+        showEventDetail: window.appState?.showEventDetail,
+        
         // Other modals
         showDeliveryForm: window.appState?.showDeliveryForm,
         showChoiceModal: window.appState?.showChoiceModal,
@@ -256,6 +283,13 @@ window.SimplifiedApp = function() {
       window.currentInventoryDetail = window.appState?.currentInventoryDetail;
       window.currentOrderDetail = window.appState?.currentOrderDetail;
       window.selectedOrderForAssignment = window.appState?.selectedOrderForAssignment;
+      
+      // Sports Calendar data states
+      window.currentEvent = window.appState?.currentEvent;
+      window.sportsEvents = window.appState?.sportsEvents;
+      window.calendarView = window.appState?.calendarView;
+      window.selectedDate = window.appState?.selectedDate;
+      window.calendarFilters = window.appState?.calendarFilters;
       
       console.log("🔄 Enhanced syncStateToWindow completed for all modals");
     }, 10);
@@ -342,6 +376,11 @@ window.SimplifiedApp = function() {
   window.setShowOrderDetail = createEnhancedModalSetter('setShowOrderDetail', 'showOrderDetail', state.setShowOrderDetail);
   window.setShowEditOrderForm = createEnhancedModalSetter('setShowEditOrderForm', 'showEditOrderForm', state.setShowEditOrderForm);
   window.setShowOrderAssignmentModal = createEnhancedModalSetter('setShowOrderAssignmentModal', 'showOrderAssignmentModal', state.setShowOrderAssignmentModal);
+
+  // ✅ ENHANCED MODAL STATE SETTERS - Sports Calendar
+  window.setShowEventForm = createEnhancedModalSetter('setShowEventForm', 'showEventForm', state.setShowEventForm);
+  window.setShowImportModal = createEnhancedModalSetter('setShowImportModal', 'showImportModal', state.setShowImportModal);
+  window.setShowEventDetail = createEnhancedModalSetter('setShowEventDetail', 'showEventDetail', state.setShowEventDetail);
 
   // ✅ ENHANCED MODAL STATE SETTERS - Other Forms
   window.setShowDeliveryForm = createEnhancedModalSetter('setShowDeliveryForm', 'showDeliveryForm', state.setShowDeliveryForm);
@@ -439,6 +478,67 @@ window.SimplifiedApp = function() {
     window.orderEditData = data;
     window.appState.orderEditData = data;
   });
+
+  // ✅ SPORTS CALENDAR DATA STATE SETTERS
+  window.setCurrentEvent = state.setCurrentEvent ? (event) => {
+    console.log("🔍 ENHANCED setCurrentEvent called with:", event?.title || event?.event_name);
+    state.setCurrentEvent(event);
+    window.appState.currentEvent = event;
+    window.currentEvent = event;
+    syncStateToWindow();
+  } : (event) => {
+    console.log("🔍 FALLBACK setCurrentEvent called with:", event?.title || event?.event_name);
+    window.currentEvent = event;
+    window.appState.currentEvent = event;
+  };
+
+  window.setSportsEvents = state.setSportsEvents ? (events) => {
+    console.log("🔍 ENHANCED setSportsEvents called with:", events?.length, 'events');
+    state.setSportsEvents(events);
+    window.appState.sportsEvents = events;
+    window.sportsEvents = events;
+    syncStateToWindow();
+  } : (events) => {
+    console.log("🔍 FALLBACK setSportsEvents called with:", events?.length, 'events');
+    window.sportsEvents = events;
+    window.appState.sportsEvents = events;
+  };
+
+  window.setCalendarView = state.setCalendarView ? (view) => {
+    console.log("🔍 ENHANCED setCalendarView called with:", view);
+    state.setCalendarView(view);
+    window.appState.calendarView = view;
+    window.calendarView = view;
+    syncStateToWindow();
+  } : (view) => {
+    console.log("🔍 FALLBACK setCalendarView called with:", view);
+    window.calendarView = view;
+    window.appState.calendarView = view;
+  };
+
+  window.setSelectedDate = state.setSelectedDate ? (date) => {
+    console.log("🔍 ENHANCED setSelectedDate called with:", date);
+    state.setSelectedDate(date);
+    window.appState.selectedDate = date;
+    window.selectedDate = date;
+    syncStateToWindow();
+  } : (date) => {
+    console.log("🔍 FALLBACK setSelectedDate called with:", date);
+    window.selectedDate = date;
+    window.appState.selectedDate = date;
+  };
+
+  window.setCalendarFilters = state.setCalendarFilters ? (filters) => {
+    console.log("🔍 ENHANCED setCalendarFilters called with:", filters);
+    state.setCalendarFilters(filters);
+    window.appState.calendarFilters = filters;
+    window.calendarFilters = filters;
+    syncStateToWindow();
+  } : (filters) => {
+    console.log("🔍 FALLBACK setCalendarFilters called with:", filters);
+    window.calendarFilters = filters;
+    window.appState.calendarFilters = filters;
+  };
 
   // Choice Modal State Setters
   window.setCurrentLeadForChoice = state.setCurrentLeadForChoice;
@@ -740,22 +840,22 @@ window.SimplifiedApp = function() {
     state.setShowAllocationForm(true);
   });
   
-// ✅ FIXED: Delivery Form Functions - Use Enhanced Window Setters
-window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
-  console.log("🚚 ENHANCED openDeliveryForm called with delivery:", delivery);
-  
-  // ✅ Permission check
-  if (!window.hasPermission('delivery', 'write')) {
-    alert('You do not have permission to manage deliveries');
-    return;
-  }
-  
-  // ✅ Use enhanced window setters (not direct state setters)
-  window.setCurrentDelivery(delivery);
-  window.setShowDeliveryForm(true);
-  
-  console.log("✅ Enhanced delivery form opened with sync and re-render logic");
-});
+  // ✅ FIXED: Delivery Form Functions - Use Enhanced Window Setters
+  window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
+    console.log("🚚 ENHANCED openDeliveryForm called with delivery:", delivery);
+    
+    // ✅ Permission check
+    if (!window.hasPermission('delivery', 'write')) {
+      alert('You do not have permission to manage deliveries');
+      return;
+    }
+    
+    // ✅ Use enhanced window setters (not direct state setters)
+    window.setCurrentDelivery(delivery);
+    window.setShowDeliveryForm(true);
+    
+    console.log("✅ Enhanced delivery form opened with sync and re-render logic");
+  });
 
   // ✅ INVENTORY FUNCTIONS - FIXED WITH FORCE RE-RENDER
   window.openInventoryForm = handlers.openInventoryForm || (() => {
@@ -893,6 +993,91 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     console.log("📄 openInvoicePreview called with:", invoice);
     console.warn("⚠️ openInvoicePreview not implemented in handlers");
   });
+
+  // ✅ SPORTS CALENDAR FUNCTIONS - NEW INTEGRATION
+  window.openEventForm = handlers.openEventForm || ((event = null) => {
+    console.log("🔍 ENHANCED openEventForm called with:", event?.title || 'new event');
+    
+    // ✅ Use enhanced window setters (not direct state setters)
+    if (event) {
+      window.setCurrentEvent(event);        // ✅ CORRECT
+    }
+    window.setShowEventForm(true);          // ✅ CORRECT
+  });
+
+  window.openEventDetail = handlers.openEventDetail || ((event) => {
+    console.log("🔍 ENHANCED openEventDetail called with:", event?.title || event?.event_name);
+    
+    // ✅ Use enhanced window setters (not direct state setters)
+    window.setCurrentEvent(event);          // ✅ CORRECT
+    window.setShowEventDetail(true);        // ✅ CORRECT
+  });
+
+  window.openImportModal = handlers.openImportModal || (() => {
+    console.log("🔍 ENHANCED openImportModal called");
+    
+    // ✅ Use enhanced window setters
+    window.setShowImportModal(true);        // ✅ CORRECT
+  });
+
+  // Delete Event Function with Enhanced Error Handling
+  window.deleteEvent = handlers.deleteEvent || async (eventId) => {
+    console.log("🔍 ENHANCED deleteEvent called with ID:", eventId);
+    
+    try {
+      const response = await window.apiCall(`/events/${eventId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.success) {
+        console.log("✅ Event deleted successfully");
+        
+        // Refresh events list
+        if (window.fetchAllEvents) {
+          await window.fetchAllEvents();
+        }
+        
+        alert('Event deleted successfully!');
+      } else {
+        throw new Error(response.message || 'Delete failed');
+      }
+    } catch (error) {
+      console.error("❌ Delete event error:", error);
+      alert('Failed to delete event: ' + error.message);
+    }
+  };
+
+  // Enhanced Fetch Events with Better State Management
+  const originalFetchAllEvents = window.fetchAllEvents;
+  window.fetchAllEvents = async function() {
+    try {
+      console.log("🔍 ENHANCED fetchAllEvents starting...");
+      
+      // Set loading state if available
+      if (window.setLoading) {
+        window.setLoading(true);
+      }
+      
+      const response = await window.apiCall("/events");
+      const events = response.data || response.events || [];
+      
+      console.log("✅ Sports events fetched:", events.length);
+      
+      // ✅ Use enhanced setter for proper state sync
+      window.setSportsEvents(events);
+      
+      return events;
+    } catch (error) {
+      console.error("❌ Error fetching sports events:", error);
+      window.setSportsEvents([]);
+      throw error;
+    } finally {
+      // Clear loading state if available
+      if (window.setLoading) {
+        window.setLoading(false);
+      }
+    }
+  };
 
   // Stadium Functions
   window.fetchStadiums = handlers.fetchStadiums || (() => {
@@ -1171,8 +1356,8 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
   window.handlePaymentSubmit = handlers.handlePaymentSubmit || window.handlePaymentSubmit;
   window.handlePaymentInputChange = handlers.handlePaymentInputChange || window.handlePaymentInputChange;
   window.handleMarkPaymentFromReceivable = handlers.handleMarkPaymentFromReceivable || (() => {
-  console.warn("handleMarkPaymentFromReceivable not implemented");
-});
+    console.warn("handleMarkPaymentFromReceivable not implemented");
+  });
 
   // Bulk Operations Functions
   window.handleBulkAssignSubmit = handlers.handleBulkAssignSubmit || (() => {
@@ -1598,6 +1783,10 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     window.setShowEditOrderForm(false);
     window.setShowOrderAssignmentModal(false);
     window.setShowStadiumForm(false);
+    // ✅ Sports Calendar Forms
+    window.setShowEventForm(false);
+    window.setShowImportModal(false);
+    window.setShowEventDetail(false);
     state.setFormData && state.setFormData({});
     state.setCurrentLead && state.setCurrentLead(null);
     state.setCurrentInventory && state.setCurrentInventory(null);
@@ -1614,6 +1803,8 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     window.setSelectedOrderForAssignment && window.setSelectedOrderForAssignment(null);
     window.setEditingStadium && window.setEditingStadium(null);
     window.setStadiumFormData && window.setStadiumFormData({});
+    // ✅ Sports Calendar Data
+    window.setCurrentEvent && window.setCurrentEvent(null);
   };
 
   // ✅ CRITICAL MISSING FUNCTIONS - Enhanced with State Sync
@@ -1642,6 +1833,24 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     console.log("🔄 closeInventoryDetail called");
     window.setShowInventoryDetail(false);
     window.setCurrentInventoryDetail(null);
+  };
+
+  // ✅ SPORTS CALENDAR CLOSE FUNCTIONS
+  window.closeEventForm = () => {
+    console.log("🔄 closeEventForm called");
+    window.setShowEventForm(false);
+    window.setCurrentEvent(null);
+  };
+
+  window.closeImportModal = () => {
+    console.log("🔄 closeImportModal called");
+    window.setShowImportModal(false);
+  };
+
+  window.closeEventDetail = () => {
+    console.log("🔄 closeEventDetail called");
+    window.setShowEventDetail(false);
+    window.setCurrentEvent(null);
   };
 
   // ===== FORM CONFIGURATIONS =====
@@ -2094,11 +2303,30 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     window.renderDeleteHandler && window.renderDeleteHandler(),
     window.renderHelpGuide && window.renderHelpGuide(),
     state.showClientDetail && window.renderClientDetailModal && window.renderClientDetailModal(),
+    // ✅ SPORTS CALENDAR MODALS
     state.showEventDetail && window.renderEventDetailModal && window.renderEventDetailModal(),
+    state.showEventForm && window.renderEventFormModal && window.renderEventFormModal(),
     state.showPreview && React.createElement(window.UploadPreviewModal),
-    state.showClientDetectionResults && React.createElement(window.ClientDetectionResultsModal),
-    state.showEventForm && window.renderEventFormModal && window.renderEventFormModal()
+    state.showClientDetectionResults && React.createElement(window.ClientDetectionResultsModal)
   );
 };
 
-console.log('✅ COMPREHENSIVE STADIUM INTEGRATION COMPLETE - All stadium functions, setters, and form handlers loaded successfully');
+// ✅ SPORTS CALENDAR DEBUG LOGGING
+console.log('✅ COMPREHENSIVE SPORTS CALENDAR INTEGRATION COMPLETE - All setters, functions, and form handlers loaded successfully');
+
+// Debug: Log available sports calendar functions
+console.log('🔍 Available Sports Calendar functions:', {
+  setShowEventForm: typeof window.setShowEventForm === 'function',
+  setShowImportModal: typeof window.setShowImportModal === 'function',
+  setShowEventDetail: typeof window.setShowEventDetail === 'function',
+  setCurrentEvent: typeof window.setCurrentEvent === 'function',
+  setCalendarView: typeof window.setCalendarView === 'function',
+  setSelectedDate: typeof window.setSelectedDate === 'function',
+  setCalendarFilters: typeof window.setCalendarFilters === 'function',
+  setSportsEvents: typeof window.setSportsEvents === 'function',
+  fetchAllEvents: typeof window.fetchAllEvents === 'function',
+  deleteEvent: typeof window.deleteEvent === 'function',
+  openEventForm: typeof window.openEventForm === 'function',
+  openEventDetail: typeof window.openEventDetail === 'function',
+  openImportModal: typeof window.openImportModal === 'function'
+});
