@@ -1,11 +1,33 @@
 // ============================================================================
-// DELIVERY COMPONENT - Extracted from index.html
+// DELIVERY COMPONENT - Extracted from index.html - FIXED INTEGRATION PATTERN
 // ============================================================================
 // This component manages delivery tracking and management with logistics,
 // scheduling, and comprehensive delivery workflow processing.
 
 // Main Delivery Content Renderer
 window.renderDeliveryContent = () => {
+    // ✅ EXTRACT FUNCTIONS WITH FALLBACKS (Fix integration pattern)
+    const {
+        openDeliveryForm = window.openDeliveryForm || (() => {
+            console.warn("openDeliveryForm not implemented");
+        }),
+        deleteDelivery = window.deleteDelivery || (() => {
+            console.warn("deleteDelivery not implemented");
+        }),
+        setDeliveries = window.setDeliveries || (() => {
+            console.warn("setDeliveries not implemented");
+        }),
+        hasPermission = window.hasPermission || (() => false),
+        loading = window.loading || false
+    } = window.appState || {};
+
+    // ✅ EXTRACT STATE VARIABLES WITH FALLBACKS (Fix integration pattern)
+    const {
+        deliveries = window.deliveries || [],
+        showDeliveryScheduleModal = window.appState?.showDeliveryScheduleModal || false,
+        currentDeliveryOrder = window.appState?.currentDeliveryOrder || null
+    } = window.appState || {};
+
     const DELIVERY_STATUSES = {
         pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
         scheduled: { label: 'Scheduled', color: 'bg-blue-100 text-blue-800' },
@@ -13,6 +35,12 @@ window.renderDeliveryContent = () => {
         delivered: { label: 'Delivered', color: 'bg-green-100 text-green-800' },
         failed: { label: 'Failed', color: 'bg-red-100 text-red-800' }
     };
+
+    // 🔍 DEBUG: Log delivery state
+    console.log('🔍 DELIVERY DEBUG:');
+    console.log('🔍 deliveries count:', (deliveries || []).length);
+    console.log('🔍 hasPermission function available:', typeof hasPermission === 'function');
+    console.log('🔍 openDeliveryForm function available:', typeof openDeliveryForm === 'function');
 
     return React.createElement('div', { className: 'space-y-6' },
         React.createElement('div', { className: 'flex justify-between items-center' },
@@ -23,7 +51,7 @@ window.renderDeliveryContent = () => {
         ),
 
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border' },
-            (window.deliveries || []).length > 0 ? React.createElement('div', { className: 'overflow-x-auto' },
+            (deliveries || []).length > 0 ? React.createElement('div', { className: 'overflow-x-auto' },
                 React.createElement('table', { className: 'w-full' },
                     React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
                         React.createElement('tr', null,
@@ -37,7 +65,7 @@ window.renderDeliveryContent = () => {
                         )
                     ),
                     React.createElement('tbody', { className: 'bg-white divide-y divide-gray-200' },
-                        (window.deliveries || []).map(delivery => {
+                        (deliveries || []).map(delivery => {
                             const status = DELIVERY_STATUSES[delivery.status] || { label: delivery.status, color: 'bg-gray-100 text-gray-800' };
 
                             return React.createElement('tr', { key: delivery.id, className: 'hover:bg-gray-50' },
@@ -77,22 +105,35 @@ window.renderDeliveryContent = () => {
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4' },
                                     React.createElement('div', { className: 'flex flex-wrap gap-1' },
-                                        window.hasPermission('delivery', 'write') && delivery.status === 'pending' && 
+                                        // ✅ FIXED: Schedule button with proper function reference and debug
+                                        hasPermission('delivery', 'write') && delivery.status === 'pending' && 
                                         React.createElement('button', {
                                             className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
-                                            onClick: () => window.openDeliveryForm(delivery)
+                                            onClick: () => {
+                                                console.log('🔍 Schedule button clicked for delivery:', delivery.id);
+                                                console.log('🔍 openDeliveryForm function:', openDeliveryForm);
+                                                openDeliveryForm(delivery);
+                                            }
                                         }, '📅 Schedule'),
-                                        window.hasPermission('delivery', 'write') && 
+
+                                        // ✅ FIXED: Delete button with proper function reference
+                                        hasPermission('delivery', 'write') && 
                                         React.createElement('button', {
                                             className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
-                                            onClick: () => window.deleteDelivery(delivery.id),
-                                            disabled: window.loading
+                                            onClick: () => {
+                                                console.log('🔍 Delete button clicked for delivery:', delivery.id);
+                                                deleteDelivery(delivery.id);
+                                            },
+                                            disabled: loading
                                         }, '🗑️ Delete'),
-                                        window.hasPermission('delivery', 'write') && delivery.status === 'scheduled' && 
+
+                                        // ✅ FIXED: Start Transit button with proper function reference
+                                        hasPermission('delivery', 'write') && delivery.status === 'scheduled' && 
                                         React.createElement('button', {
                                             className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
                                             onClick: () => {
-                                                window.setDeliveries(prev => 
+                                                console.log('🔍 Start Transit button clicked for delivery:', delivery.id);
+                                                setDeliveries(prev => 
                                                     prev.map(d => 
                                                         d.id === delivery.id 
                                                             ? { ...d, status: 'in_transit' }
@@ -102,11 +143,14 @@ window.renderDeliveryContent = () => {
                                                 alert('Delivery marked as in transit!');
                                             }
                                         }, '🚚 Start'),
-                                        window.hasPermission('delivery', 'write') && delivery.status === 'in_transit' && 
+
+                                        // ✅ FIXED: Complete button with proper function reference
+                                        hasPermission('delivery', 'write') && delivery.status === 'in_transit' && 
                                         React.createElement('button', {
                                             className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
                                             onClick: () => {
-                                                window.setDeliveries(prev => 
+                                                console.log('🔍 Complete button clicked for delivery:', delivery.id);
+                                                setDeliveries(prev => 
                                                     prev.map(d => 
                                                         d.id === delivery.id 
                                                             ? { ...d, status: 'delivered', delivered_date: new Date().toISOString().split('T')[0] }
@@ -116,10 +160,13 @@ window.renderDeliveryContent = () => {
                                                 alert('Delivery completed successfully!');
                                             }
                                         }, '✅ Complete'),
+
+                                        // ✅ FIXED: View Details button with enhanced functionality
                                         delivery.status === 'scheduled' && delivery.delivery_type && 
                                         React.createElement('button', {
                                             className: 'text-gray-600 hover:text-gray-900 text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-50',
                                             onClick: () => {
+                                                console.log('🔍 View Details button clicked for delivery:', delivery.id);
                                                 let details = 'Delivery Type: ' + (delivery.delivery_type) + '\n';
                                                 if (delivery.delivery_type === 'online') {
                                                     details += 'Platform: ' + (delivery.online_platform) + '\n';
@@ -147,4 +194,4 @@ window.renderDeliveryContent = () => {
     );
 };
 
-console.log('✅ Delivery component loaded successfully');
+console.log('✅ Delivery component loaded successfully - INTEGRATION PATTERN APPLIED');
