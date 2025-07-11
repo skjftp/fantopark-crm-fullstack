@@ -28,19 +28,19 @@ window.fetchMyActions = async function() {
 
     // Fetch all data in parallel
     const [leadsResponse, ordersResponse, deliveriesResponse, receivablesResponse] = await Promise.all([
-      window.apicall('/leads').catch(err => { 
+      window.apiCall('/leads').catch(err => { 
         console.error('Failed to fetch leads:', err); 
         return { data: [] }; 
       }),
-      window.apicall('/orders').catch(err => { 
+      window.apiCall('/orders').catch(err => { 
         console.error('Failed to fetch orders:', err); 
         return { data: [] }; 
       }),
-      window.apicall('/deliveries').catch(err => { 
+      window.apiCall('/deliveries').catch(err => { 
         console.error('Failed to fetch deliveries:', err); 
         return { data: [] }; 
       }),
-      window.apicall('/receivables').catch(err => { 
+      window.apiCall('/receivables').catch(err => { 
         console.error('Failed to fetch receivables:', err); 
         return { data: [] }; 
       })
