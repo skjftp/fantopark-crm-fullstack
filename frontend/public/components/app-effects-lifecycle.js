@@ -43,15 +43,13 @@ window.renderAppEffects = function() {
   }, [isLoggedIn, activeTab]);
 
   // Reminders fetching and auto-refresh
-  useEffect(() => {
-    if (isLoggedIn) {
-      window.fetchReminders && window.fetchReminders();
-      const interval = setInterval(() => {
-        window.fetchReminders && window.fetchReminders();
-      }, 5 * 60 * 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isLoggedIn]);
+// Add this useEffect for automatic reminder loading
+useEffect(() => {
+  if (activeTab === 'reminders' && isLoggedIn && window.fetchReminders) {
+    console.log('🔔 Auto-loading reminders...');
+    window.fetchReminders();
+  }
+}, [activeTab, isLoggedIn]);
 
   // Client data fetching
   useEffect(() => {
