@@ -287,6 +287,19 @@ window.setShowStadiumForm = state.setShowStadiumForm;
     state.setCurrentInventory && state.setCurrentInventory(inventory);
     state.setShowAllocationManagement && state.setShowAllocationManagement(true);
   });
+
+  // ✅ ENSURE INVENTORY FORM STATE SETTERS ARE EXPOSED
+window.setShowInventoryForm = state.setShowInventoryForm || ((show) => {
+  console.log("📦 setShowInventoryForm called with:", show);
+  window.showInventoryForm = show;
+  if (state.setShowInventoryForm) {
+    state.setShowInventoryForm(show);
+  } else {
+    console.warn("⚠️ setShowInventoryForm not implemented in state");
+  }
+});
+
+window.showInventoryForm = state.showInventoryForm || false;
   
   // ✅ STATE EXPOSURES - COMPLETE SET
   window.appState = window.appState || {};
