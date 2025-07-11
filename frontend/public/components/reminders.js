@@ -35,12 +35,12 @@ window.renderRemindersContent = () => {
     // Quick stats
     React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
       React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
-        React.createElement('div', { className: 'text-3xl font-bold text-blue-600' }, window.reminderStats.totalReminders),
-        React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Total Reminders')
+       React.createElement('div', { className: 'text-3xl font-bold text-blue-600' }, window.reminderStats.total || 0),
+React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Total Reminders')
       ),
       React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
-        React.createElement('div', { className: 'text-3xl font-bold text-red-600' }, window.reminderStats.overdueReminders),
-        React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Overdue')
+        React.createElement('div', { className: 'text-3xl font-bold text-red-600' }, window.reminderStats.overdue || 0),
+React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Overdue')
       ),
       React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
         React.createElement('div', { className: 'text-3xl font-bold text-orange-600' }, reminderStats.due_today),
