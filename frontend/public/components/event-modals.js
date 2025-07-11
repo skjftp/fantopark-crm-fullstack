@@ -1,5 +1,40 @@
-// Event Modal Components - Exact Pattern from production.html
-// ✅ Using your established modal structure and patterns
+// Complete Event Modal Components - Exact Production Structure
+// ✅ All fields from production.html with proper sections and styling
+
+// ===== COMPLETE EVENT FORM FIELDS =====
+const eventFormFields = [
+  // Basic Information
+  { name: 'event_name', label: 'Event Name', type: 'text', required: true, section: 'basic' },
+  { name: 'event_type', label: 'Event Type', type: 'select', options: ['upcoming', 'live', 'completed', 'postponed'], required: true, section: 'basic' },
+  { name: 'sport_type', label: 'Sport Type', type: 'select', options: ['Cricket', 'Football', 'Tennis', 'Formula 1', 'Olympics', 'Basketball', 'Badminton', 'Hockey', 'Golf', 'Wrestling', 'Cycling'], required: true, section: 'basic' },
+  { name: 'geography', label: 'Geography', type: 'select', options: ['India', 'UAE - Dubai', 'UAE - Abu Dhabi', 'UK', 'USA', 'Australia', 'Europe', 'Asia', 'Other'], required: true, section: 'basic' },
+  
+  // Date and Time
+  { name: 'start_date', label: 'Start Date', type: 'date', required: true, section: 'datetime' },
+  { name: 'end_date', label: 'End Date', type: 'date', required: false, section: 'datetime' },
+  { name: 'start_time', label: 'Start Time', type: 'time', required: false, section: 'datetime' },
+  { name: 'end_time', label: 'End Time', type: 'time', required: false, section: 'datetime' },
+  
+  // Venue Information
+  { name: 'venue', label: 'Venue Name', type: 'text', required: true, section: 'venue' },
+  { name: 'venue_capacity', label: 'Venue Capacity', type: 'number', required: false, section: 'venue' },
+  { name: 'venue_address', label: 'Venue Address', type: 'textarea', required: false, section: 'venue' },
+  
+  // Ticketing Information
+  { name: 'official_ticketing_partners', label: 'Official Ticketing Partners', type: 'textarea', required: false, section: 'ticketing' },
+  { name: 'primary_source', label: 'Primary Source', type: 'text', required: false, section: 'ticketing' },
+  { name: 'secondary_source', label: 'Secondary Source', type: 'text', required: false, section: 'ticketing' },
+  { name: 'ticket_available', label: 'Tickets Available for Sale', type: 'checkbox', required: false, section: 'ticketing' },
+  
+  // Priority and Status
+  { name: 'priority', label: 'Priority', type: 'select', options: ['P1', 'P2', 'P3'], required: true, section: 'status' },
+  { name: 'status', label: 'Status', type: 'select', options: ['upcoming', 'live', 'completed', 'cancelled', 'postponed'], required: true, section: 'status' },
+  { name: 'sold_out_potential', label: 'Sold Out Potential', type: 'select', options: ['High', 'Medium', 'Low', 'No'], required: false, section: 'status' },
+  
+  // Additional Information
+  { name: 'remarks', label: 'Remarks/Description', type: 'textarea', required: false, section: 'additional' },
+  { name: 'fantopark_package', label: 'FanToPark Package Details', type: 'textarea', required: false, section: 'additional' }
+];
 
 // ===== EVENT FORM MODAL =====
 window.renderEventFormModal = () => {
@@ -22,26 +57,6 @@ window.renderEventFormModal = () => {
 
   if (!showEventForm) return null;
 
-  // Event form fields (based on your production.html pattern)
-  const eventFormFields = [
-    { name: 'event_name', label: 'Event Name', type: 'text', required: true, placeholder: 'e.g., England vs India - 2nd Test' },
-    { name: 'sport_type', label: 'Sport Type', type: 'select', required: true, options: ['Cricket', 'Football', 'Tennis', 'Formula 1', 'Basketball', 'Golf', 'Hockey', 'Other'] },
-    { name: 'geography', label: 'Geography', type: 'select', required: true, options: ['India', 'UAE - Dubai', 'UAE - Abu Dhabi', 'UK', 'USA', 'Australia', 'Other'] },
-    { name: 'start_date', label: 'Start Date', type: 'date', required: true },
-    { name: 'end_date', label: 'End Date', type: 'date', required: false },
-    { name: 'start_time', label: 'Start Time', type: 'time', required: false },
-    { name: 'end_time', label: 'End Time', type: 'time', required: false },
-    { name: 'venue', label: 'Venue', type: 'text', required: true, placeholder: 'e.g., Lord\'s Cricket Ground' },
-    { name: 'priority', label: 'Priority', type: 'select', required: true, options: ['P1', 'P2', 'P3'] },
-    { name: 'status', label: 'Status', type: 'select', required: false, options: ['upcoming', 'ongoing', 'completed', 'cancelled'] },
-    { name: 'ticket_available', label: 'Tickets Available', type: 'checkbox', required: false },
-    { name: 'official_ticketing_partners', label: 'Official Ticketing Partners', type: 'text', required: false },
-    { name: 'fantopark_package', label: 'FanToPark Package', type: 'text', required: false },
-    { name: 'sold_out_potential', label: 'Sold Out Potential', type: 'text', required: false },
-    { name: 'remarks', label: 'Remarks', type: 'textarea', required: false },
-    { name: 'description', label: 'Description', type: 'textarea', required: false }
-  ];
-
   const handleEventSubmit = async (e) => {
     e.preventDefault();
     
@@ -54,18 +69,40 @@ window.renderEventFormModal = () => {
         return;
       }
 
-      const submitData = {
-        ...eventFormData,
-        title: eventFormData.event_name, // Sync title with event_name
+      // Clean event data (from production.html pattern)
+      const cleanEventData = {
+        event_name: eventFormData.event_name.trim(),
+        title: eventFormData.event_name.trim(), // Sync title
+        sport_type: eventFormData.sport_type || '',
+        geography: eventFormData.geography || '',
+        start_date: eventFormData.start_date || '',
+        priority: eventFormData.priority || 'P3',
+        status: eventFormData.status || 'upcoming',
+        ticket_available: Boolean(eventFormData.ticket_available),
         created_by: window.user?.name || 'Unknown User',
         created_date: new Date().toISOString()
       };
+
+      // Add optional fields only if they have values
+      const optionalFields = [
+        'end_date', 'start_time', 'end_time', 'venue', 'venue_capacity', 'venue_address',
+        'official_ticketing_partners', 'primary_source', 'secondary_source', 
+        'sold_out_potential', 'remarks', 'fantopark_package', 'event_type'
+      ];
+
+      optionalFields.forEach(field => {
+        if (eventFormData[field] && eventFormData[field].toString().trim()) {
+          cleanEventData[field] = eventFormData[field].toString().trim();
+        }
+      });
+
+      console.log('Sending clean event data:', cleanEventData);
 
       if (currentEvent && currentEvent.id) {
         // Update existing event
         const response = await apiCall(`/events/${currentEvent.id}`, {
           method: 'PUT',
-          body: JSON.stringify(submitData)
+          body: JSON.stringify(cleanEventData)
         });
         
         if (response.error) {
@@ -77,7 +114,7 @@ window.renderEventFormModal = () => {
         // Create new event
         const response = await apiCall('/events', {
           method: 'POST',
-          body: JSON.stringify(submitData)
+          body: JSON.stringify(cleanEventData)
         });
         
         if (response.error) {
@@ -101,105 +138,131 @@ window.renderEventFormModal = () => {
     }
   };
 
-  // Helper function to render form fields (your pattern)
-  const renderFormFields = () => {
-    return React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
-      eventFormFields.map(field => {
-        if (field.type === 'textarea') {
-          return React.createElement('div', { key: field.name, className: 'md:col-span-2' },
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-              field.label + (field.required ? ' *' : '')
-            ),
-            React.createElement('textarea', {
-              value: eventFormData[field.name] || '',
-              onChange: (e) => setEventFormData({...eventFormData, [field.name]: e.target.value}),
-              className: 'w-full p-2 border border-gray-300 rounded-lg',
-              required: field.required,
-              placeholder: field.placeholder || '',
-              rows: 3
-            })
-          );
-        } else if (field.type === 'select') {
-          return React.createElement('div', { key: field.name },
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-              field.label + (field.required ? ' *' : '')
-            ),
-            React.createElement('select', {
-              value: eventFormData[field.name] || '',
-              onChange: (e) => setEventFormData({...eventFormData, [field.name]: e.target.value}),
-              className: 'w-full p-2 border border-gray-300 rounded-lg',
-              required: field.required
-            },
-              React.createElement('option', { value: '' }, `Select ${field.label}`),
-              ...field.options.map(option =>
-                React.createElement('option', { key: option, value: option }, option)
+  // Helper function to render form fields by section
+  const renderSection = (sectionName, title, icon) => {
+    const sectionFields = eventFormFields.filter(field => field.section === sectionName);
+    if (sectionFields.length === 0) return null;
+
+    return React.createElement('div', { className: 'mb-8' },
+      React.createElement('h3', { className: 'text-lg font-semibold mb-4 flex items-center text-gray-900' },
+        React.createElement('span', { className: 'mr-2 text-xl' }, icon),
+        title
+      ),
+      React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+        sectionFields.map(field => {
+          if (field.type === 'textarea') {
+            return React.createElement('div', { key: field.name, className: 'md:col-span-2' },
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                field.label + (field.required ? ' *' : '')
+              ),
+              React.createElement('textarea', {
+                value: eventFormData[field.name] || '',
+                onChange: (e) => setEventFormData({...eventFormData, [field.name]: e.target.value}),
+                className: 'w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                required: field.required,
+                placeholder: field.placeholder || '',
+                rows: 3
+              })
+            );
+          } else if (field.type === 'select') {
+            return React.createElement('div', { key: field.name },
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                field.label + (field.required ? ' *' : '')
+              ),
+              React.createElement('select', {
+                value: eventFormData[field.name] || '',
+                onChange: (e) => setEventFormData({...eventFormData, [field.name]: e.target.value}),
+                className: 'w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                required: field.required
+              },
+                React.createElement('option', { value: '' }, `Select ${field.label}`),
+                ...field.options.map(option =>
+                  React.createElement('option', { key: option, value: option }, option)
+                )
               )
-            )
-          );
-        } else if (field.type === 'checkbox') {
-          return React.createElement('div', { key: field.name, className: 'flex items-center' },
-            React.createElement('input', {
-              type: 'checkbox',
-              checked: eventFormData[field.name] || false,
-              onChange: (e) => setEventFormData({...eventFormData, [field.name]: e.target.checked}),
-              className: 'mr-2',
-              id: field.name
-            }),
-            React.createElement('label', { 
-              htmlFor: field.name,
-              className: 'text-sm font-medium text-gray-700' 
-            }, field.label)
-          );
-        } else {
-          return React.createElement('div', { key: field.name },
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-              field.label + (field.required ? ' *' : '')
-            ),
-            React.createElement('input', {
-              type: field.type,
-              value: eventFormData[field.name] || '',
-              onChange: (e) => setEventFormData({...eventFormData, [field.name]: e.target.value}),
-              className: 'w-full p-2 border border-gray-300 rounded-lg',
-              required: field.required,
-              placeholder: field.placeholder || ''
-            })
-          );
-        }
-      })
+            );
+          } else if (field.type === 'checkbox') {
+            return React.createElement('div', { key: field.name, className: 'flex items-center p-3 bg-gray-50 rounded-lg' },
+              React.createElement('input', {
+                type: 'checkbox',
+                checked: eventFormData[field.name] || false,
+                onChange: (e) => setEventFormData({...eventFormData, [field.name]: e.target.checked}),
+                className: 'mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded',
+                id: field.name
+              }),
+              React.createElement('label', { 
+                htmlFor: field.name,
+                className: 'text-sm font-medium text-gray-700' 
+              }, field.label)
+            );
+          } else {
+            return React.createElement('div', { key: field.name },
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                field.label + (field.required ? ' *' : '')
+              ),
+              React.createElement('input', {
+                type: field.type,
+                value: eventFormData[field.name] || '',
+                onChange: (e) => setEventFormData({...eventFormData, [field.name]: e.target.value}),
+                className: 'w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                required: field.required,
+                placeholder: field.placeholder || ''
+              })
+            );
+          }
+        })
+      )
     );
   };
 
   return React.createElement('div', {
-    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
+    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4',
     onClick: () => setShowEventForm(false)
   },
     React.createElement('div', {
-      className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto',
+      className: 'bg-white rounded-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto shadow-2xl',
       onClick: (e) => e.stopPropagation()
     },
-      React.createElement('form', { onSubmit: handleEventSubmit, className: 'p-6' },
-        React.createElement('div', { className: 'flex justify-between items-center mb-6' },
-          React.createElement('h2', { className: 'text-2xl font-bold' }, 
-            currentEvent ? `Edit Event: ${currentEvent.event_name || currentEvent.title}` : 'Add New Event'
-          ),
-          React.createElement('button', {
-            type: 'button',
-            onClick: () => setShowEventForm(false),
-            className: 'text-gray-400 hover:text-gray-600 text-2xl'
-          }, '✕')
+      React.createElement('form', { onSubmit: handleEventSubmit },
+        // Header
+        React.createElement('div', { className: 'sticky top-0 bg-white border-b p-6 rounded-t-xl' },
+          React.createElement('div', { className: 'flex justify-between items-center' },
+            React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 
+              currentEvent ? `Edit Event: ${currentEvent.event_name || currentEvent.title}` : 'Add New Event'
+            ),
+            React.createElement('button', {
+              type: 'button',
+              onClick: () => setShowEventForm(false),
+              className: 'text-gray-400 hover:text-gray-600 text-3xl font-light'
+            }, '×')
+          )
         ),
-        renderFormFields(),
-        React.createElement('div', { className: 'flex justify-end space-x-3 mt-6' },
+        
+        // Form Content
+        React.createElement('div', { className: 'p-6 space-y-8' },
+          renderSection('basic', 'Basic Information', '📋'),
+          renderSection('datetime', 'Date & Time', '📅'),
+          renderSection('venue', 'Venue Information', '🏟️'),
+          renderSection('ticketing', 'Ticketing Information', '🎫'),
+          renderSection('status', 'Status & Priority', '📊'),
+          renderSection('additional', 'Additional Information', '📝')
+        ),
+        
+        // Footer
+        React.createElement('div', { className: 'sticky bottom-0 bg-gray-50 border-t p-6 flex justify-end space-x-4 rounded-b-xl' },
           React.createElement('button', {
             type: 'button',
             onClick: () => setShowEventForm(false),
-            className: 'px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50'
+            className: 'px-6 py-3 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 font-medium'
           }, 'Cancel'),
           React.createElement('button', {
             type: 'submit',
             disabled: loading,
-            className: 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50'
-          }, loading ? 'Saving...' : 'Save Event')
+            className: 'px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium flex items-center gap-2'
+          }, 
+            loading && React.createElement('div', { className: 'animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full' }),
+            loading ? 'Saving...' : (currentEvent ? 'Update Event' : 'Create Event')
+          )
         )
       )
     )
@@ -217,12 +280,13 @@ window.renderEventDetailModal = () => {
     setShowEventDetail = window.setShowEventDetail || (() => {}),
     setShowEventForm = window.setShowEventForm || (() => {}),
     setEventFormData = window.setEventFormData || (() => {}),
-    setCurrentEvent = window.setCurrentEvent || (() => {})
+    setCurrentEvent = window.setCurrentEvent || (() => {}),
+    deleteEvent = window.deleteEvent || (() => {})
   } = window;
 
   if (!showEventDetail || !currentEvent) return null;
 
-  // Priority styles helper (from your production.html)
+  // Priority styles (from production.html)
   const getPriorityStyles = (priority) => {
     switch (priority) {
       case 'P1': return 'bg-red-50 border-red-200';
@@ -241,6 +305,17 @@ window.renderEventDetailModal = () => {
     }
   };
 
+  const getStatusBadgeColor = (status) => {
+    switch (status) {
+      case 'live': return 'bg-red-500 text-white animate-pulse';
+      case 'upcoming': return 'bg-blue-500 text-white';
+      case 'completed': return 'bg-gray-500 text-white';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'postponed': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-400 text-white';
+    }
+  };
+
   return React.createElement('div', {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4',
     style: { backdropFilter: 'blur(4px)' },
@@ -249,34 +324,45 @@ window.renderEventDetailModal = () => {
     }
   },
     React.createElement('div', {
-      className: 'bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-auto shadow-2xl',
+      className: 'bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-auto shadow-2xl',
       onClick: (e) => e.stopPropagation()
     },
+      // Header with Priority Badge
       React.createElement('div', {
         className: `p-6 border-b ${getPriorityStyles(currentEvent.priority)}`
       },
         React.createElement('div', { className: 'flex justify-between items-start' },
           React.createElement('div', { className: 'flex-1' },
-            React.createElement('div', { className: 'flex items-center gap-3 mb-2' },
-              React.createElement('h2', { className: 'text-2xl font-bold' },
+            React.createElement('div', { className: 'flex items-center gap-3 mb-3' },
+              React.createElement('h2', { className: 'text-3xl font-bold text-gray-900' },
                 currentEvent.event_name || currentEvent.title
               ),
               React.createElement('span', {
                 className: `px-3 py-1 text-sm font-semibold rounded-full ${getPriorityBadgeColor(currentEvent.priority)}`
-              }, currentEvent.priority || 'N/A')
+              }, currentEvent.priority || 'P3')
             ),
-            React.createElement('p', { className: 'text-sm opacity-75' },
+            React.createElement('p', { className: 'text-lg text-gray-600 mb-2' },
               `${currentEvent.sport_type || currentEvent.category || 'Event'} • ${currentEvent.geography || 'Location TBD'}`
+            ),
+            // Status Badge
+            React.createElement('div', { className: 'flex items-center gap-2' },
+              React.createElement('span', {
+                className: `px-3 py-1 text-sm font-semibold rounded-full ${getStatusBadgeColor(currentEvent.status)}`
+              }, (currentEvent.status || 'upcoming').toUpperCase())
             )
           ),
           React.createElement('button', {
             onClick: () => setShowEventDetail(false),
-            className: 'text-gray-500 hover:text-gray-700 text-2xl p-2 rounded-lg hover:bg-gray-100'
-          }, '✕')
+            className: 'text-gray-500 hover:text-gray-700 text-3xl p-2 rounded-lg hover:bg-gray-100'
+          }, '×')
         )
       ),
-      React.createElement('div', { className: 'p-6 grid md:grid-cols-2 gap-6' },
+      
+      // Content Grid
+      React.createElement('div', { className: 'p-6 grid md:grid-cols-2 gap-8' },
+        // Left Column
         React.createElement('div', { className: 'space-y-6' },
+          // Date & Time
           React.createElement('div', null,
             React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
               React.createElement('span', { className: 'mr-2' }, '📅'),
@@ -286,15 +372,13 @@ window.renderEventDetailModal = () => {
               React.createElement('div', { className: 'flex justify-between' },
                 React.createElement('span', { className: 'font-medium text-gray-700' }, 'Start Date:'),
                 React.createElement('span', { className: 'text-gray-900' },
-                  new Date(currentEvent.start_date || currentEvent.date).toLocaleDateString()
+                  currentEvent.start_date ? new Date(currentEvent.start_date).toLocaleDateString() : 'TBD'
                 )
               ),
               React.createElement('div', { className: 'flex justify-between' },
                 React.createElement('span', { className: 'font-medium text-gray-700' }, 'End Date:'),
                 React.createElement('span', { className: 'text-gray-900' },
-                  currentEvent.end_date ? 
-                    new Date(currentEvent.end_date).toLocaleDateString() : 
-                    'Same day'
+                  currentEvent.end_date ? new Date(currentEvent.end_date).toLocaleDateString() : 'Same day'
                 )
               ),
               currentEvent.start_time && React.createElement('div', { className: 'flex justify-between' },
@@ -307,22 +391,55 @@ window.renderEventDetailModal = () => {
               )
             )
           ),
+          
+          // Venue & Location
           React.createElement('div', null,
             React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
               React.createElement('span', { className: 'mr-2' }, '🏟️'),
               'Venue & Location'
             ),
             React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg' },
-              React.createElement('p', { className: 'text-gray-900 font-medium' }, currentEvent.venue || 'TBD'),
-              React.createElement('p', { className: 'text-gray-600 text-sm' }, currentEvent.geography || 'Location TBD')
+              React.createElement('p', { className: 'text-gray-900 font-medium text-lg' }, currentEvent.venue || 'TBD'),
+              React.createElement('p', { className: 'text-gray-600 text-sm mt-1' }, currentEvent.geography || 'Location TBD'),
+              currentEvent.venue_address && React.createElement('p', { className: 'text-gray-600 text-sm mt-2' }, currentEvent.venue_address),
+              currentEvent.venue_capacity && React.createElement('p', { className: 'text-blue-600 text-sm mt-2' }, `Capacity: ${currentEvent.venue_capacity.toLocaleString()}`)
             )
           )
         ),
+        
+        // Right Column
         React.createElement('div', { className: 'space-y-6' },
-          currentEvent.ticket_available !== undefined && React.createElement('div', null,
+          // Primary Source
+          currentEvent.primary_source && React.createElement('div', null,
             React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
-              React.createElement('span', { className: 'mr-2' }, '🎫'),
-              'Ticket Status'
+              React.createElement('span', { className: 'mr-2' }, '🔗'),
+              'Primary Source'
+            ),
+            React.createElement('div', { className: 'bg-green-50 p-4 rounded-lg border border-green-200' },
+              React.createElement('p', { className: 'text-green-900 text-sm font-medium' },
+                currentEvent.primary_source
+              )
+            )
+          ),
+          
+          // Secondary Source
+          currentEvent.secondary_source && React.createElement('div', null,
+            React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+              React.createElement('span', { className: 'mr-2' }, '🔗'),
+              'Secondary Source'
+            ),
+            React.createElement('div', { className: 'bg-purple-50 p-4 rounded-lg border border-purple-200' },
+              React.createElement('p', { className: 'text-purple-900 text-sm font-medium' },
+                currentEvent.secondary_source
+              )
+            )
+          ),
+          
+          // Ticket Availability
+          React.createElement('div', null,
+            React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+              React.createElement('span', { className: 'mr-2' }, '🎟️'),
+              'Ticket Availability'
             ),
             React.createElement('div', { 
               className: `p-4 rounded-lg border ${currentEvent.ticket_available ? 
@@ -336,6 +453,8 @@ window.renderEventDetailModal = () => {
               )
             )
           ),
+          
+          // Additional Information
           currentEvent.sold_out_potential && React.createElement('div', null,
             React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
               React.createElement('span', { className: 'mr-2' }, '📊'),
@@ -346,45 +465,62 @@ window.renderEventDetailModal = () => {
                 currentEvent.sold_out_potential
               )
             )
+          )
+        )
+      ),
+      
+      // Additional Sections (Full Width)
+      React.createElement('div', { className: 'px-6 pb-4' },
+        // Official Ticketing Partners
+        currentEvent.official_ticketing_partners && React.createElement('div', { className: 'mb-6' },
+          React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+            React.createElement('span', { className: 'mr-2' }, '🎫'),
+            'Official Ticketing Partners'
           ),
-          currentEvent.remarks && React.createElement('div', null,
-            React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
-              React.createElement('span', { className: 'mr-2' }, '📝'),
-              'Remarks'
-            ),
-            React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg border border-gray-200' },
-              React.createElement('p', { className: 'text-gray-700 text-sm' },
-                currentEvent.remarks
-              )
+          React.createElement('div', { className: 'bg-yellow-50 p-4 rounded-lg border border-yellow-200' },
+            React.createElement('p', { className: 'text-yellow-900 text-sm' },
+              currentEvent.official_ticketing_partners
             )
+          )
+        ),
+        
+        // FanToPark Package
+        currentEvent.fantopark_package && React.createElement('div', { className: 'mb-6' },
+          React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+            React.createElement('span', { className: 'mr-2' }, '📦'),
+            'FanToPark Package'
           ),
-          currentEvent.description && React.createElement('div', null,
-            React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
-              React.createElement('span', { className: 'mr-2' }, '📝'),
-              'Description'
-            ),
-            React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg' },
-              React.createElement('p', { className: 'text-gray-700 text-sm' },
-                currentEvent.description
-              )
+          React.createElement('div', { className: 'bg-blue-50 p-4 rounded-lg border border-blue-200' },
+            React.createElement('p', { className: 'text-blue-900 text-sm' },
+              currentEvent.fantopark_package
+            )
+          )
+        ),
+        
+        // Remarks
+        currentEvent.remarks && React.createElement('div', { className: 'mb-6' },
+          React.createElement('h3', { className: 'text-lg font-semibold mb-3 flex items-center' },
+            React.createElement('span', { className: 'mr-2' }, '📝'),
+            'Remarks'
+          ),
+          React.createElement('div', { className: 'bg-gray-50 p-4 rounded-lg border border-gray-200' },
+            React.createElement('p', { className: 'text-gray-700 text-sm' },
+              currentEvent.remarks
             )
           )
         )
       ),
-      React.createElement('div', { className: 'px-6 pb-6 flex flex-wrap gap-3' },
+      
+      // Action Buttons Footer
+      React.createElement('div', { className: 'border-t bg-gray-50 px-6 py-4 flex flex-wrap gap-3 rounded-b-xl' },
         React.createElement('button', {
           onClick: () => {
+            // Pre-fill form with current event data
             setEventFormData({
               ...currentEvent,
               event_name: currentEvent.event_name || currentEvent.title,
               start_date: currentEvent.start_date || currentEvent.date,
-              start_time: currentEvent.start_time || currentEvent.time,
-              venue: currentEvent.venue,
-              sport_type: currentEvent.sport_type || currentEvent.category,
-              priority: currentEvent.priority,
-              status: currentEvent.status,
-              description: currentEvent.description,
-              fantopark_package: currentEvent.fantopark_package
+              start_time: currentEvent.start_time || currentEvent.time
             });
             setShowEventDetail(false);
             setShowEventForm(true);
@@ -396,7 +532,7 @@ window.renderEventDetailModal = () => {
         ),
         React.createElement('button', {
           onClick: () => {
-            // Pre-fill form data with event information for creating inventory
+            // Pre-fill inventory form with event data
             if (window.openAddInventoryForm) {
               window.setFormData && window.setFormData({
                 event_name: currentEvent.event_name || currentEvent.title,
@@ -416,17 +552,27 @@ window.renderEventDetailModal = () => {
           'Create Inventory'
         ),
         React.createElement('button', {
+          onClick: () => {
+            if (confirm(`Are you sure you want to delete "${currentEvent.event_name || currentEvent.title}"? This action cannot be undone.`)) {
+              deleteEvent(currentEvent.id);
+              setShowEventDetail(false);
+            }
+          },
+          className: 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors flex items-center gap-2'
+        },
+          React.createElement('span', null, '🗑️'),
+          'Delete Event'
+        ),
+        React.createElement('button', {
           onClick: () => setShowEventDetail(false),
-          className: 'px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium transition-colors'
+          className: 'px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium transition-colors ml-auto'
         }, 'Close')
       )
     )
   );
 };
 
-// ===== ENHANCED STATE SETTERS FOR EVENT FORM DATA =====
-// Add to simplified-app-component.js if not already present
-
+// ===== ENHANCED STATE SETTERS =====
 if (!window.setEventFormData) {
   window.setEventFormData = (data) => {
     console.log("📅 setEventFormData called with:", data);
@@ -446,4 +592,4 @@ if (!window.eventFormData) {
   window.appState.eventFormData = {};
 }
 
-console.log('✅ Event Modal Components loaded successfully with exact production.html pattern');
+console.log('✅ Complete Production Event Modal Components loaded successfully with all fields and exact styling');
