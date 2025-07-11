@@ -17,6 +17,9 @@ window.AssignmentRulesManager = React.memo(({ currentUser }) => {
   const [isRunningAssignment, setIsRunningAssignment] = React.useState(false);
   const [assignmentResults, setAssignmentResults] = React.useState(null);
   const [showResults, setShowResults] = React.useState(false);
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = React.useState(false);
+const [newAssigneeId, setNewAssigneeId] = React.useState('');
+const [newAssigneeWeight, setNewAssigneeWeight] = React.useState(50);
 
   const [ruleFormData, setRuleFormData] = React.useState({
     name: '',
@@ -390,68 +393,149 @@ if (showForm) {
             )
           ),
 
-          // Assignees Section
-          React.createElement('div', { className: 'mb-6' },
-            React.createElement('div', { className: 'flex justify-between items-center mb-4' },
-              React.createElement('h3', { className: 'text-lg font-medium text-gray-900' },
-                'Assignees'
-              ),
-              React.createElement('button', {
-                type: 'button',
-                onClick: () => {
-                  console.log('🔍 Add Assignee clicked');
-                  // Add logic to show assignee selection modal or dropdown
-                },
-                className: 'bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700'
-              }, '+ Add Assignee')
+         // Assignees Section
+React.createElement('div', { className: 'mb-6' },
+  React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+    React.createElement('h3', { className: 'text-lg font-medium text-gray-900' },
+      'Assignees'
+    ),
+    React.createElement('div', { className: 'relative' },
+      React.createElement('button', {
+        type: 'button',
+        onClick: () => {
+          console.log('🔍 Add Assignee clicked');
+          setShowAssigneeDropdown(!showAssigneeDropdown);
+        },
+        className: 'bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700'
+      }, '+ Add Assignee'),
+      
+      // Assignee Selection Dropdown
+      showAssigneeDropdown && React.createElement('div', {
+        className: 'absolute top-full right-0 mt-2 w-80 bg-white border border-gray-300 rounded-lg shadow-lg z-10'
+      },
+        React.createElement('div', { className: 'p-4' },
+          React.createElement('div', { className: 'mb-3' },
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' },
+              'Select User'
             ),
-            
-            // Assignees List
-            React.createElement('div', { className: 'space-y-2' },
-              (ruleFormData.assignees || []).length === 0 ? 
-                React.createElement('p', { className: 'text-gray-500 text-sm' },
-                  'No assignees added yet. Click "Add Assignee" to get started.'
-                ) :
-                (ruleFormData.assignees || []).map((assignee, index) => 
-                  React.createElement('div', { 
-                    key: index,
-                    className: 'flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50'
-                  },
-                    React.createElement('div', { className: 'flex items-center space-x-3' },
-                      React.createElement('span', { className: 'font-medium' },
-                        assignee.name || 'Unknown User'
-                      ),
-                      assignee.email && React.createElement('span', { className: 'text-gray-500 text-sm' },
-                        `(${assignee.email})`
-                      )
-                    ),
-                    React.createElement('div', { className: 'flex items-center space-x-3' },
-                      React.createElement('span', { className: 'text-sm text-gray-600' }, 'Weight:'),
-                      React.createElement('input', {
-                        type: 'number',
-                        value: assignee.weight || 50,
-                        onChange: (e) => {
-                          const newAssignees = [...(ruleFormData.assignees || [])];
-                          newAssignees[index] = { ...assignee, weight: parseInt(e.target.value) || 50 };
-                          setRuleFormData(prev => ({ ...prev, assignees: newAssignees }));
-                        },
-                        className: 'w-16 px-2 py-1 border border-gray-300 rounded text-sm',
-                        min: 1,
-                        max: 100
-                      }),
-                      React.createElement('button', {
-                        type: 'button',
-                        onClick: () => {
-                          const newAssignees = (ruleFormData.assignees || []).filter((_, i) => i !== index);
-                          setRuleFormData(prev => ({ ...prev, assignees: newAssignees }));
-                        },
-                        className: 'text-red-600 hover:text-red-800 font-bold text-lg'
-                      }, '✕')
-                    )
-                  )
+            React.createElement('select', {
+              value: newAssigneeId,
+              onChange: (e) => setNewAssigneeId(e.target.value),
+              className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+            },
+              React.createElement('option', { value: '' }, 'Choose a user...'),
+              // Filter out users who are already assigned
+              availableUsers.filter(user => 
+                !(ruleFormData.assignees || []).some(assignee => assignee.id === user.id)
+              ).map(user =>
+                React.createElement('option', { key: user.id, value: user.id },
+                  `${user.name} (${user.email})`
                 )
+              )
             )
           ),
+          React.createElement('div', { className: 'mb-4' },
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' },
+              'Weight'
+            ),
+            React.createElement('input', {
+              type: 'number',
+              value: newAssigneeWeight,
+              onChange: (e) => setNewAssigneeWeight(parseInt(e.target.value) || 50),
+              className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+              min: 1,
+              max: 100,
+              placeholder: '50'
+            })
+          ),
+          React.createElement('div', { className: 'flex justify-end space-x-2' },
+            React.createElement('button', {
+              type: 'button',
+              onClick: () => {
+                setShowAssigneeDropdown(false);
+                setNewAssigneeId('');
+                setNewAssigneeWeight(50);
+              },
+              className: 'px-3 py-1 text-gray-600 bg-gray-100 rounded text-sm hover:bg-gray-200'
+            }, 'Cancel'),
+            React.createElement('button', {
+              type: 'button',
+              onClick: () => {
+                if (newAssigneeId) {
+                  const selectedUser = availableUsers.find(user => user.id === newAssigneeId);
+                  if (selectedUser) {
+                    console.log('🔍 Adding assignee:', selectedUser.name);
+                    const newAssignee = {
+                      id: selectedUser.id,
+                      name: selectedUser.name,
+                      email: selectedUser.email,
+                      weight: newAssigneeWeight
+                    };
+                    setRuleFormData(prev => ({
+                      ...prev,
+                      assignees: [...(prev.assignees || []), newAssignee]
+                    }));
+                    setShowAssigneeDropdown(false);
+                    setNewAssigneeId('');
+                    setNewAssigneeWeight(50);
+                  }
+                }
+              },
+              disabled: !newAssigneeId,
+              className: 'px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:bg-gray-400'
+            }, 'Add')
+          )
+        )
+      )
+    )
+  ),
+  
+  // Assignees List (same as before)
+  React.createElement('div', { className: 'space-y-2' },
+    (ruleFormData.assignees || []).length === 0 ? 
+      React.createElement('p', { className: 'text-gray-500 text-sm' },
+        'No assignees added yet. Click "Add Assignee" to get started.'
+      ) :
+      (ruleFormData.assignees || []).map((assignee, index) => 
+        React.createElement('div', { 
+          key: index,
+          className: 'flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50'
+        },
+          React.createElement('div', { className: 'flex items-center space-x-3' },
+            React.createElement('span', { className: 'font-medium' },
+              assignee.name || 'Unknown User'
+            ),
+            assignee.email && React.createElement('span', { className: 'text-gray-500 text-sm' },
+              `(${assignee.email})`
+            )
+          ),
+          React.createElement('div', { className: 'flex items-center space-x-3' },
+            React.createElement('span', { className: 'text-sm text-gray-600' }, 'Weight:'),
+            React.createElement('input', {
+              type: 'number',
+              value: assignee.weight || 50,
+              onChange: (e) => {
+                const newAssignees = [...(ruleFormData.assignees || [])];
+                newAssignees[index] = { ...assignee, weight: parseInt(e.target.value) || 50 };
+                setRuleFormData(prev => ({ ...prev, assignees: newAssignees }));
+              },
+              className: 'w-16 px-2 py-1 border border-gray-300 rounded text-sm',
+              min: 1,
+              max: 100
+            }),
+            React.createElement('button', {
+              type: 'button',
+              onClick: () => {
+                const newAssignees = (ruleFormData.assignees || []).filter((_, i) => i !== index);
+                setRuleFormData(prev => ({ ...prev, assignees: newAssignees }));
+              },
+              className: 'text-red-600 hover:text-red-800 font-bold text-lg'
+            }, '✕')
+          )
+        )
+      )
+  )
+),
 
           // Form Buttons
           React.createElement('div', { className: 'flex justify-end space-x-3 pt-4 border-t' },
