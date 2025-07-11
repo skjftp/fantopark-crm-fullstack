@@ -47,6 +47,119 @@ window.renderAppBusinessLogic = function() {
     showStatusProgressModal, setShowStatusProgressModal, statusProgressOptions, setStatusProgressOptions
   } = state;
 
+  // ✅ NEW: Order Approval Handler - Following Established Patterns
+  const handleOrderApproval = async (orderId, action) => {
+    console.log(`🔄 handleOrderApproval: ${action} order ${orderId}`);
+
+    // Permission check
+    if (!window.hasPermission('orders', 'approve')) {
+      alert('You do not have permission to approve/reject orders');
+      return;
+    }
+
+    // Validation
+    if (!orderId || !action) {
+      alert('Invalid order or action');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Get current order data
+      const currentOrder = orders.find(order => order.id === orderId);
+      if (!currentOrder) {
+        throw new Error('Order not found');
+      }
+
+      // Prepare approval data
+      const approvalData = {
+        action: action, // 'approve' or 'reject'
+        approved_by: user.email || user.name,
+        approval_date: new Date().toISOString(),
+        approval_notes: '', // Could be enhanced to collect notes from user
+        status: action === 'approve' ? 'approved' : 'rejected'
+      };
+
+      console.log('🔄 Sending approval request:', { orderId, approvalData });
+
+      // API call to approve/reject order
+      const response = await window.apiCall(`/orders/${orderId}/approval`, {
+        method: 'PUT',
+        body: JSON.stringify(approvalData)
+      });
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      console.log('✅ Order approval response:', response);
+
+      // Update local orders state
+      setOrders(prev => prev.map(order => 
+        order.id === orderId 
+          ? { 
+              ...order, 
+              status: approvalData.status,
+              approved_by: approvalData.approved_by,
+              approval_date: approvalData.approval_date,
+              // Include any additional data from server response
+              ...(response.data || {})
+            }
+          : order
+      ));
+
+      // If approved and invoice was generated, add to invoices
+      if (action === 'approve' && response.invoice) {
+        console.log('📄 Invoice generated:', response.invoice);
+        setInvoices(prev => [...prev, response.invoice]);
+      }
+
+      // Update currentOrderDetail if viewing this order
+      if (showOrderDetail && currentOrderDetail?.id === orderId) {
+        setCurrentOrderDetail(prev => ({
+          ...prev,
+          status: approvalData.status,
+          approved_by: approvalData.approved_by,
+          approval_date: approvalData.approval_date,
+          ...(response.data || {})
+        }));
+      }
+
+      // Success feedback
+      const actionText = action === 'approve' ? 'approved' : 'rejected';
+      const message = `✅ Order ${actionText} successfully!${
+        action === 'approve' && response.invoice ? '\n📄 Invoice generated automatically.' : ''
+      }`;
+      
+      alert(message);
+
+      console.log(`✅ Order ${orderId} ${actionText} successfully`);
+
+    } catch (error) {
+      console.error('❌ Error with order approval:', error);
+      alert(`❌ Failed to ${action} order: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ NEW: Invoice Preview Handler
+  const openInvoicePreview = (invoice) => {
+    console.log('📄 openInvoicePreview called with:', invoice);
+    
+    if (!invoice) {
+      alert('Invoice data not found');
+      return;
+    }
+
+    // Set current invoice for preview
+    setCurrentInvoice(invoice);
+    setShowInvoicePreview(true);
+
+    console.log('✅ Invoice preview modal opened');
+  };
+
   // ✅ CRITICAL: updateLeadStatus function
   const updateLeadStatus = async (leadId, newStatus) => {
     if (!window.hasPermission('leads', 'progress')) {
@@ -1294,8 +1407,12 @@ window.renderAppBusinessLogic = function() {
     setDeliveryFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // ✅ RETURN ALL HANDLERS INCLUDING THE NEW togglePremiumStatus FUNCTION
+  // ✅ RETURN ALL HANDLERS INCLUDING THE NEW FUNCTIONS
   return {
+    // ✅ NEW: Order management functions
+    handleOrderApproval,
+    openInvoicePreview,
+    
     // ✅ CRITICAL SOPHISTICATED WORKFLOW FUNCTIONS RESTORED WITH PROPER MODAL SWITCHING
     updateLeadStatus,
     handleLeadProgression,
@@ -1371,4 +1488,4 @@ window.renderAppBusinessLogic = function() {
   };
 };
 
-console.log('✅ App Business Logic Handlers loaded successfully with FIXED MODAL SWITCHING WORKFLOW + togglePremiumStatus function added');
+console.log('✅ App Business Logic Handlers loaded successfully with handleOrderApproval + openInvoicePreview functions added');
