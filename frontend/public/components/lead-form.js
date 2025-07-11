@@ -360,7 +360,7 @@ React.createElement('button', {
                 }`
               },
                 React.createElement('option', { value: '' }, 'Select sales person'),
-                users.filter(u => u.role && ['sales_executive', 'sales_manager', 'admin', 'super_admin'].includes(u.role))
+                users.filter(u => u.status !== 'inactive')
                   .map(user =>
                     React.createElement('option', { 
                       key: user.email, 
