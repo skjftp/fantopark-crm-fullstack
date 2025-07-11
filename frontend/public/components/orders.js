@@ -1,9 +1,8 @@
 // Enhanced Orders Component for FanToPark CRM with Search Filters and Pagination
-// FIXED version - Properly integrates with React state from main-app-component.js
+// Production version with automatic pagination and proper button workflow
 
-// ===== ENHANCED: Orders Content Function - Fixed to work with React state =====
 window.renderOrdersContent = () => {
-  // ✅ FIXED: Get state from window.appState (passed from React components)
+  // Extract state from window.appState (passed from React components)
   const appState = window.appState || {};
   const {
     orders = [],
@@ -35,12 +34,13 @@ window.renderOrdersContent = () => {
     ordersShowFilters = false
   } = appState;
 
-  // ✅ FIXED: Get setter functions from window (set by main-app-component.js)
+  // Get setter functions from window (set by main-app-component.js)
   const setOrdersFilters = window.setOrdersFilters || (() => console.warn("setOrdersFilters not available"));
   const setOrdersPagination = window.setOrdersPagination || (() => console.warn("setOrdersPagination not available"));
   const setOrdersSorting = window.setOrdersSorting || (() => console.warn("setOrdersSorting not available"));
   const setOrdersShowFilters = window.setOrdersShowFilters || (() => console.warn("setOrdersShowFilters not available"));
   
+  // Action handlers
   const hasPermission = window.hasPermission || (() => false);
   const openOrderDetail = window.openOrderDetail || (() => console.warn("openOrderDetail not implemented"));
   const approveOrder = window.approveOrder || (() => console.warn("approveOrder not implemented"));
@@ -51,7 +51,7 @@ window.renderOrdersContent = () => {
   const openEditOrderForm = window.openEditOrderForm || (() => console.warn("openEditOrderForm not implemented"));
   const deleteOrder = window.deleteOrder || (() => console.warn("deleteOrder not implemented"));
 
-  // ===== ENHANCED: Filter and sort orders function =====
+  // Filter and sort orders function
   const getFilteredAndSortedOrders = () => {
     let filteredOrders = [...(orders || [])];
 
@@ -142,7 +142,7 @@ window.renderOrdersContent = () => {
   // Get filtered and sorted orders
   const filteredOrders = getFilteredAndSortedOrders();
 
-  // Update pagination total items
+  // Calculate pagination
   const totalItems = filteredOrders.length;
   const totalPages = Math.ceil(totalItems / ordersPagination.itemsPerPage);
 
@@ -151,7 +151,7 @@ window.renderOrdersContent = () => {
   const endIndex = startIndex + ordersPagination.itemsPerPage;
   const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
-  // ===== ENHANCED: Event handlers =====
+  // Event handlers
   const handleFilterChange = (filterKey, value) => {
     setOrdersFilters({
       ...ordersFilters,
@@ -160,7 +160,9 @@ window.renderOrdersContent = () => {
     // Reset to first page when filtering
     setOrdersPagination({
       ...ordersPagination,
-      currentPage: 1
+      currentPage: 1,
+      totalItems: totalItems,
+      totalPages: Math.ceil(totalItems / ordersPagination.itemsPerPage)
     });
   };
 
@@ -185,7 +187,7 @@ window.renderOrdersContent = () => {
   const uniqueEvents = [...new Set(orders.map(order => order.event_name).filter(Boolean))];
   const uniquePaymentStatuses = [...new Set(orders.map(order => order.payment_status))];
 
-  // ===== RENDER: Main orders content =====
+  // Main orders content
   return React.createElement('div', { className: 'space-y-6' },
     // Header with title and controls
     React.createElement('div', { className: 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4' },
@@ -347,7 +349,9 @@ window.renderOrdersContent = () => {
             });
             setOrdersPagination({ 
               ...ordersPagination,
-              currentPage: 1 
+              currentPage: 1,
+              totalItems: totalItems,
+              totalPages: Math.ceil(totalItems / ordersPagination.itemsPerPage)
             });
           },
           className: 'px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600'
@@ -407,9 +411,11 @@ window.renderOrdersContent = () => {
                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
                   React.createElement('span', {
                     className: `px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      order.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                      order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                      order.status === 'confirmed' || order.status === 'approved' ? 'bg-green-100 text-green-800' :
+                      order.status === 'pending' || order.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
+                      order.status === 'cancelled' || order.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                      order.status === 'assigned' || order.status === 'service_assigned' ? 'bg-purple-100 text-purple-800' :
+                      order.status === 'completed' || order.status === 'delivered' ? 'bg-blue-100 text-blue-800' :
                       'bg-gray-100 text-gray-800'
                     }`
                   }, order.status || 'N/A')
