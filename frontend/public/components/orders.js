@@ -2,30 +2,17 @@
 // Fixed version - Follows project pattern by extracting state from window.appState
 // No React hooks in content rendering function
 
-// ===== ENHANCED: Orders state management (stored in window for persistence) =====
-window.ordersFilters = window.ordersFilters || {
-  searchQuery: '',
-  statusFilter: 'all',
-  assignedToFilter: 'all',
-  eventFilter: 'all',
-  dateFromFilter: '',
-  dateToFilter: '',
-  clientFilter: '',
-  orderNumberFilter: '',
-  paymentStatusFilter: 'all'
-};
+//window.ordersPagination = window.ordersPagination || {
+  //currentPage: 1,
+  //itemsPerPage: 10,
+  //totalItems: 0,
+  //totalPages: 0
+//};
 
-window.ordersPagination = window.ordersPagination || {
-  currentPage: 1,
-  itemsPerPage: 10,
-  totalItems: 0,
-  totalPages: 0
-};
-
-window.ordersSorting = window.ordersSorting || {
-  sortField: 'created_date',
-  sortDirection: 'desc'
-};
+//window.ordersSorting = window.ordersSorting || {
+  //sortField: 'created_date',
+  //sortDirection: 'desc'
+//};
 
 
 // ===== ENHANCED: Orders Content Function - Fixed to work with React state =====
