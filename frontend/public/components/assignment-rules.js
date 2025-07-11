@@ -581,7 +581,7 @@ React.createElement('div', { className: 'mb-6' },
         React.createElement('button', {
           onClick: () => { 
   console.log('🔍 Add New Rule clicked!'); 
-  alert('Form functionality temporarily disabled - form component missing'); 
+ // alert('Form functionality temporarily disabled - form component missing'); 
   setShowForm(true); 
 },
           className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
