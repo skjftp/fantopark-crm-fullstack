@@ -78,14 +78,18 @@ window.SimplifiedApp = function() {
   window.appState.stadiumSortDirection = state.stadiumSortDirection || 'asc';
 
   // Sports Calendar States
-  window.appState.sportsEvents = state.sportsEvents || [];
-  window.appState.selectedDate = state.selectedDate || new Date();
-  window.appState.calendarView = state.calendarView || "month";
-  window.appState.calendarFilters = state.calendarFilters || {};
-  window.appState.currentEvent = state.currentEvent || null;
-  window.appState.showEventForm = state.showEventForm || false;
-  window.appState.showImportModal = state.showImportModal || false;
-  window.appState.showEventDetail = state.showEventDetail || false;
+// Sports Calendar States
+window.appState.sportsEvents = state.sportsEvents || [];
+window.appState.selectedDate = state.selectedDate || new Date();
+window.appState.calendarView = state.calendarView || "month";
+window.appState.calendarFilters = state.calendarFilters || {};
+window.appState.currentEvent = state.currentEvent || null;
+window.appState.showEventForm = state.showEventForm || false;
+window.appState.showImportModal = state.showImportModal || false;
+window.appState.showEventDetail = state.showEventDetail || false;
+// ✅ NEW: Sports Calendar Pagination States
+window.appState.currentEventsPage = state.currentEventsPage || 1;
+window.appState.eventsPerPage = state.eventsPerPage || 10;
 
   // CSV Upload States
   window.appState.showPreview = state.showPreview || false;
@@ -149,15 +153,18 @@ window.SimplifiedApp = function() {
   window.stadiumSortField = state.stadiumSortField || 'name';
   window.stadiumSortDirection = state.stadiumSortDirection || 'asc';
 
-  // Sports Calendar States
-  window.sportsEvents = state.sportsEvents || [];
-  window.selectedDate = state.selectedDate || new Date();
-  window.calendarView = state.calendarView || "month";
-  window.calendarFilters = state.calendarFilters || {};
-  window.currentEvent = state.currentEvent || null;
-  window.showEventForm = state.showEventForm || false;
-  window.showImportModal = state.showImportModal || false;
-  window.showEventDetail = state.showEventDetail || false;
+// Sports Calendar States
+window.sportsEvents = state.sportsEvents || [];
+window.selectedDate = state.selectedDate || new Date();
+window.calendarView = state.calendarView || "month";
+window.calendarFilters = state.calendarFilters || {};
+window.currentEvent = state.currentEvent || null;
+window.showEventForm = state.showEventForm || false;
+window.showImportModal = state.showImportModal || false;
+window.showEventDetail = state.showEventDetail || false;
+// ✅ NEW: Sports Calendar Pagination States
+window.currentEventsPage = state.currentEventsPage || 1;
+window.eventsPerPage = state.eventsPerPage || 10;
 
   // Client States
   window.clients = state.clients || [];
@@ -376,6 +383,22 @@ window.SimplifiedApp = function() {
   window.setShowEventForm = createEnhancedModalSetter('setShowEventForm', 'showEventForm', state.setShowEventForm);
   window.setShowImportModal = createEnhancedModalSetter('setShowImportModal', 'showImportModal', state.setShowImportModal);
   window.setShowEventDetail = createEnhancedModalSetter('setShowEventDetail', 'showEventDetail', state.setShowEventDetail);
+
+  // ✅ NEW: Sports Calendar Pagination Setters
+window.setCurrentEventsPage = (page) => {
+  console.log("🔍 setCurrentEventsPage called:", page);
+  state.setCurrentEventsPage && state.setCurrentEventsPage(page);
+  window.currentEventsPage = page;
+  window.appState.currentEventsPage = page;
+};
+
+window.setEventsPerPage = (perPage) => {
+  console.log("🔍 setEventsPerPage called:", perPage);
+  state.setEventsPerPage && state.setEventsPerPage(perPage);
+  window.eventsPerPage = perPage;
+  window.appState.eventsPerPage = perPage;
+  window.setCurrentEventsPage(1); // Reset to first page when changing items per page
+};
 
   // ✅ ENHANCED MODAL STATE SETTERS - Other Forms
   window.setShowDeliveryForm = createEnhancedModalSetter('setShowDeliveryForm', 'showDeliveryForm', state.setShowDeliveryForm);
