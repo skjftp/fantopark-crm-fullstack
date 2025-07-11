@@ -1,8 +1,8 @@
 // Enhanced Orders Component for FanToPark CRM with Search Filters and Pagination
-// Extracted from index.html - maintains 100% functionality
-// Enhanced with comprehensive filtering and pagination
+// Fixed version - Follows project pattern by extracting state from window.appState
+// No React hooks in content rendering function
 
-// ===== ENHANCED: Orders state management =====
+// ===== ENHANCED: Orders state management (stored in window for persistence) =====
 window.ordersFilters = window.ordersFilters || {
   searchQuery: '',
   statusFilter: 'all',
@@ -22,48 +22,67 @@ window.ordersPagination = window.ordersPagination || {
   totalPages: 0
 };
 
-// ===== ENHANCED: Orders Content Function with Filters and Pagination =====
+window.ordersSorting = window.ordersSorting || {
+  sortField: 'created_date',
+  sortDirection: 'desc'
+};
+
+// ===== ENHANCED: Orders Content Function - Fixed to follow project pattern =====
 window.renderOrdersContent = () => {
-  const [filters, setFilters] = React.useState(window.ordersFilters);
-  const [pagination, setPagination] = React.useState(window.ordersPagination);
-  const [sortField, setSortField] = React.useState('created_date');
-  const [sortDirection, setSortDirection] = React.useState('desc');
-  const [showFilters, setShowFilters] = React.useState(false);
+  // ✅ PATTERN 1: Extract state from window.appState (NO React hooks)
+  const {
+    orders = window.orders || [],
+    loading = window.loading || false,
+    showOrderForm = window.appState?.showOrderForm || false,
+    showOrderDetail = window.appState?.showOrderDetail || false,
+    currentOrder = window.appState?.currentOrder || null
+  } = window.appState || {};
 
-  // Update global state when filters change
-  React.useEffect(() => {
-    window.ordersFilters = filters;
-  }, [filters]);
+  // ✅ PATTERN 2: Extract filters and pagination from window globals
+  const filters = window.ordersFilters;
+  const pagination = window.ordersPagination;
+  const sorting = window.ordersSorting;
+  const showFilters = window.ordersShowFilters || false;
 
-  React.useEffect(() => {
-    window.ordersPagination = pagination;
-  }, [pagination]);
+  // ✅ PATTERN 3: Function references with fallbacks
+  const setOrdersFilters = window.setOrdersFilters || ((newFilters) => {
+    window.ordersFilters = { ...window.ordersFilters, ...newFilters };
+    window.forceUpdate && window.forceUpdate();
+  });
 
-  // ===== ENHANCED: Filter and sort orders =====
-  const getFilteredAndSortedOrders = React.useCallback(() => {
-    let filteredOrders = [...(window.orders || [])];
+  const setOrdersPagination = window.setOrdersPagination || ((newPagination) => {
+    window.ordersPagination = { ...window.ordersPagination, ...newPagination };
+    window.forceUpdate && window.forceUpdate();
+  });
+
+  const setOrdersSorting = window.setOrdersSorting || ((newSorting) => {
+    window.ordersSorting = { ...window.ordersSorting, ...newSorting };
+    window.forceUpdate && window.forceUpdate();
+  });
+
+  const setOrdersShowFilters = window.setOrdersShowFilters || ((show) => {
+    window.ordersShowFilters = show;
+    window.forceUpdate && window.forceUpdate();
+  });
+
+  const hasPermission = window.hasPermission || (() => false);
+  const openOrderDetail = window.openOrderDetail || (() => console.warn("openOrderDetail not implemented"));
+  const approveOrder = window.approveOrder || (() => console.warn("approveOrder not implemented"));
+  const openEditOrderForm = window.openEditOrderForm || (() => console.warn("openEditOrderForm not implemented"));
+  const deleteOrder = window.deleteOrder || (() => console.warn("deleteOrder not implemented"));
+
+  // ===== ENHANCED: Filter and sort orders function =====
+  const getFilteredAndSortedOrders = () => {
+    let filteredOrders = [...(orders || [])];
 
     // Apply filters
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase();
-      filteredOrders = filteredOrders.filter(order => 
-        (order.client_name || '').toLowerCase().includes(query) ||
-        (order.order_number || '').toLowerCase().includes(query) ||
-        (order.event_name || '').toLowerCase().includes(query) ||
-        (order.client_email || '').toLowerCase().includes(query) ||
-        (order.client_phone || '').includes(query)
-      );
-    }
-
-    if (filters.orderNumberFilter) {
-      filteredOrders = filteredOrders.filter(order => 
-        (order.order_number || '').toLowerCase().includes(filters.orderNumberFilter.toLowerCase())
-      );
-    }
-
-    if (filters.clientFilter) {
-      filteredOrders = filteredOrders.filter(order => 
-        (order.client_name || '').toLowerCase().includes(filters.clientFilter.toLowerCase())
+      filteredOrders = filteredOrders.filter(order =>
+        (order.customer_name && order.customer_name.toLowerCase().includes(query)) ||
+        (order.customer_phone && order.customer_phone.includes(query)) ||
+        (order.order_number && order.order_number.toLowerCase().includes(query)) ||
+        (order.event_name && order.event_name.toLowerCase().includes(query))
       );
     }
 
@@ -71,265 +90,206 @@ window.renderOrdersContent = () => {
       filteredOrders = filteredOrders.filter(order => order.status === filters.statusFilter);
     }
 
+    if (filters.assignedToFilter !== 'all') {
+      if (filters.assignedToFilter === 'unassigned') {
+        filteredOrders = filteredOrders.filter(order => !order.assigned_to);
+      } else {
+        filteredOrders = filteredOrders.filter(order => order.assigned_to === filters.assignedToFilter);
+      }
+    }
+
+    if (filters.eventFilter !== 'all') {
+      filteredOrders = filteredOrders.filter(order => order.event_name === filters.eventFilter);
+    }
+
     if (filters.paymentStatusFilter !== 'all') {
       filteredOrders = filteredOrders.filter(order => order.payment_status === filters.paymentStatusFilter);
     }
 
-    if (filters.assignedToFilter !== 'all') {
-      filteredOrders = filteredOrders.filter(order => order.assigned_to === filters.assignedToFilter);
-    }
-
-    if (filters.eventFilter !== 'all') {
+    if (filters.dateFromFilter) {
       filteredOrders = filteredOrders.filter(order => 
-        (order.event_name || '').toLowerCase().includes(filters.eventFilter.toLowerCase())
+        new Date(order.created_date) >= new Date(filters.dateFromFilter)
       );
     }
 
-    if (filters.dateFromFilter) {
-      filteredOrders = filteredOrders.filter(order => {
-        const orderDate = new Date(order.created_date || order.created_at);
-        const fromDate = new Date(filters.dateFromFilter);
-        return orderDate >= fromDate;
-      });
+    if (filters.dateToFilter) {
+      filteredOrders = filteredOrders.filter(order => 
+        new Date(order.created_date) <= new Date(filters.dateToFilter)
+      );
     }
 
-    if (filters.dateToFilter) {
-      filteredOrders = filteredOrders.filter(order => {
-        const orderDate = new Date(order.created_date || order.created_at);
-        const toDate = new Date(filters.dateToFilter);
-        toDate.setHours(23, 59, 59, 999); // End of day
-        return orderDate <= toDate;
-      });
+    if (filters.clientFilter) {
+      const clientQuery = filters.clientFilter.toLowerCase();
+      filteredOrders = filteredOrders.filter(order =>
+        (order.customer_name && order.customer_name.toLowerCase().includes(clientQuery)) ||
+        (order.customer_phone && order.customer_phone.includes(clientQuery))
+      );
+    }
+
+    if (filters.orderNumberFilter) {
+      const orderQuery = filters.orderNumberFilter.toLowerCase();
+      filteredOrders = filteredOrders.filter(order =>
+        order.order_number && order.order_number.toLowerCase().includes(orderQuery)
+      );
     }
 
     // Apply sorting
     filteredOrders.sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sortField) {
-        case 'created_date':
-          aValue = new Date(a.created_date || a.created_at || 0);
-          bValue = new Date(b.created_date || b.created_at || 0);
-          break;
-        case 'client_name':
-          aValue = (a.client_name || '').toLowerCase();
-          bValue = (b.client_name || '').toLowerCase();
-          break;
-        case 'amount':
-          aValue = parseFloat(a.final_amount || a.total_amount || 0);
-          bValue = parseFloat(b.final_amount || b.total_amount || 0);
-          break;
-        case 'event_date':
-          aValue = new Date(a.event_date || 0);
-          bValue = new Date(b.event_date || 0);
-          break;
-        default:
-          aValue = a[sortField] || '';
-          bValue = b[sortField] || '';
+      let aValue = a[sorting.sortField];
+      let bValue = b[sorting.sortField];
+
+      // Handle different data types
+      if (sorting.sortField === 'created_date' || sorting.sortField === 'updated_date') {
+        aValue = new Date(aValue).getTime();
+        bValue = new Date(bValue).getTime();
+      } else if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue && bValue.toLowerCase();
       }
 
-      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
+      if (sorting.sortDirection === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
     });
 
-    return filteredOrders;
-  }, [window.orders, filters, sortField, sortDirection]);
-
-  // ===== ENHANCED: Pagination logic =====
-  const getPaginatedOrders = React.useCallback(() => {
-    const filteredOrders = getFilteredAndSortedOrders();
+    // Update pagination
     const totalItems = filteredOrders.length;
     const totalPages = Math.ceil(totalItems / pagination.itemsPerPage);
-    
-    // Update pagination totals
-    setPagination(prev => ({
-      ...prev,
-      totalItems,
-      totalPages,
-      currentPage: Math.min(prev.currentPage, totalPages || 1)
-    }));
-
     const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
     const endIndex = startIndex + pagination.itemsPerPage;
-    
-    return filteredOrders.slice(startIndex, endIndex);
-  }, [getFilteredAndSortedOrders, pagination.itemsPerPage, pagination.currentPage]);
+    const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
-  const paginatedOrders = getPaginatedOrders();
-
-  // ===== ENHANCED: Filter handlers =====
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setPagination(prev => ({ ...prev, currentPage: 1 })); // Reset to first page
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      searchQuery: '',
-      statusFilter: 'all',
-      assignedToFilter: 'all',
-      eventFilter: 'all',
-      dateFromFilter: '',
-      dateToFilter: '',
-      clientFilter: '',
-      orderNumberFilter: '',
-      paymentStatusFilter: 'all'
-    });
-    setPagination(prev => ({ ...prev, currentPage: 1 }));
-  };
-
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
+    // Update pagination state
+    if (pagination.totalItems !== totalItems || pagination.totalPages !== totalPages) {
+      setOrdersPagination({ totalItems, totalPages });
     }
+
+    return paginatedOrders;
   };
 
-  // ===== ENHANCED: Pagination handlers =====
+  const filteredOrders = getFilteredAndSortedOrders();
+
+  // ===== ENHANCED: Event handlers =====
+  const handleFilterChange = (filterName, value) => {
+    setOrdersFilters({ [filterName]: value });
+    setOrdersPagination({ currentPage: 1 }); // Reset to first page
+  };
+
+  const handleSortChange = (field) => {
+    const newDirection = sorting.sortField === field && sorting.sortDirection === 'asc' ? 'desc' : 'asc';
+    setOrdersSorting({ sortField: field, sortDirection: newDirection });
+  };
+
   const handlePageChange = (page) => {
-    setPagination(prev => ({ ...prev, currentPage: page }));
+    setOrdersPagination({ currentPage: page });
   };
 
-  const handleItemsPerPageChange = (itemsPerPage) => {
-    setPagination(prev => ({ 
-      ...prev, 
-      itemsPerPage, 
-      currentPage: 1 
-    }));
-  };
+  // Get unique values for filter dropdowns
+  const uniqueStatuses = [...new Set(orders.map(order => order.status))];
+  const uniqueAssignees = [...new Set(orders.map(order => order.assigned_to).filter(Boolean))];
+  const uniqueEvents = [...new Set(orders.map(order => order.event_name).filter(Boolean))];
+  const uniquePaymentStatuses = [...new Set(orders.map(order => order.payment_status))];
 
-  // ===== ENHANCED: Get unique filter values =====
-  const getUniqueValues = (key) => {
-    const values = [...new Set((window.orders || [])
-      .map(order => order[key])
-      .filter(Boolean))];
-    return values.sort();
-  };
-
-  const getSortIcon = (field) => {
-    if (sortField !== field) return '↕️';
-    return sortDirection === 'asc' ? '↑' : '↓';
-  };
-
+  // ===== RENDER: Main orders content =====
   return React.createElement('div', { className: 'space-y-6' },
-    // ===== ENHANCED: Header with search and actions =====
+    // Header with title and controls
     React.createElement('div', { className: 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4' },
       React.createElement('div', null,
-        React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Order Management'),
-        React.createElement('p', { className: 'text-gray-600 dark:text-gray-400 mt-1' }, 
-          `${pagination.totalItems} orders found`
+        React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Orders Management'),
+        React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400 mt-1' },
+          `${pagination.totalItems || orders.length} total orders`
         )
       ),
-      React.createElement('div', { className: 'flex gap-3' },
+      React.createElement('div', { className: 'flex gap-2' },
         React.createElement('button', {
-          onClick: () => setShowFilters(!showFilters),
-          className: `px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
-            showFilters ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`
-        }, 
-          React.createElement('span', null, '🔍'),
-          'Filters'
-        ),
-        window.hasPermission && window.hasPermission('orders', 'write') && 
-        React.createElement('button', {
+          onClick: () => setOrdersShowFilters(!showFilters),
+          className: `px-4 py-2 rounded-md border ${showFilters ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-300 text-gray-700'} hover:bg-blue-50`
+        }, showFilters ? '🔽 Hide Filters' : '🔍 Show Filters'),
+        hasPermission('orders', 'write') && React.createElement('button', {
           onClick: () => window.setShowOrderForm && window.setShowOrderForm(true),
-          className: 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2'
-        }, 
-          React.createElement('span', null, '➕'),
-          'Manual Order'
-        )
+          className: 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
+        }, '📝 New Order')
       )
     ),
 
-    // ===== ENHANCED: Search and Filter Section =====
-    showFilters && React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-6' },
+    // Enhanced filters panel
+    showFilters && React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border p-6' },
+      React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, '🔍 Advanced Filters'),
       React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' },
-        // Global search
+        // Search query
         React.createElement('div', null,
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, '🔍 Quick Search'),
+          React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Search'),
           React.createElement('input', {
             type: 'text',
             value: filters.searchQuery,
             onChange: (e) => handleFilterChange('searchQuery', e.target.value),
-            placeholder: 'Search orders, clients, events...',
-            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500'
-          })
-        ),
-
-        // Order number filter
-        React.createElement('div', null,
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, '📋 Order Number'),
-          React.createElement('input', {
-            type: 'text',
-            value: filters.orderNumberFilter,
-            onChange: (e) => handleFilterChange('orderNumberFilter', e.target.value),
-            placeholder: 'Filter by order number...',
-            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500'
-          })
-        ),
-
-        // Client filter
-        React.createElement('div', null,
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, '👤 Client Name'),
-          React.createElement('input', {
-            type: 'text',
-            value: filters.clientFilter,
-            onChange: (e) => handleFilterChange('clientFilter', e.target.value),
-            placeholder: 'Filter by client name...',
-            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500'
+            placeholder: 'Customer, phone, order #, event...',
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
           })
         ),
 
         // Status filter
         React.createElement('div', null,
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, '📊 Order Status'),
+          React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Status'),
           React.createElement('select', {
             value: filters.statusFilter,
             onChange: (e) => handleFilterChange('statusFilter', e.target.value),
-            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500'
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
           },
             React.createElement('option', { value: 'all' }, 'All Statuses'),
-            React.createElement('option', { value: 'pending_approval' }, 'Pending Approval'),
-            React.createElement('option', { value: 'approved' }, 'Approved'),
-            React.createElement('option', { value: 'service_assigned' }, 'Service Assigned'),
-            React.createElement('option', { value: 'in_progress' }, 'In Progress'),
-            React.createElement('option', { value: 'completed' }, 'Completed'),
-            React.createElement('option', { value: 'cancelled' }, 'Cancelled'),
-            React.createElement('option', { value: 'rejected' }, 'Rejected')
-          )
-        ),
-
-        // Payment status filter
-        React.createElement('div', null,
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, '💳 Payment Status'),
-          React.createElement('select', {
-            value: filters.paymentStatusFilter,
-            onChange: (e) => handleFilterChange('paymentStatusFilter', e.target.value),
-            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500'
-          },
-            React.createElement('option', { value: 'all' }, 'All Payment Status'),
-            React.createElement('option', { value: 'pending' }, 'Pending'),
-            React.createElement('option', { value: 'paid' }, 'Paid'),
-            React.createElement('option', { value: 'partial' }, 'Partial'),
-            React.createElement('option', { value: 'refunded' }, 'Refunded')
+            uniqueStatuses.map(status =>
+              React.createElement('option', { key: status, value: status }, status)
+            )
           )
         ),
 
         // Assigned to filter
         React.createElement('div', null,
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, '👨‍💼 Assigned To'),
+          React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Assigned To'),
           React.createElement('select', {
             value: filters.assignedToFilter,
             onChange: (e) => handleFilterChange('assignedToFilter', e.target.value),
-            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500'
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
           },
             React.createElement('option', { value: 'all' }, 'All Assignees'),
-            ...getUniqueValues('assigned_to').map(assignee =>
+            React.createElement('option', { value: 'unassigned' }, 'Unassigned'),
+            uniqueAssignees.map(assignee =>
               React.createElement('option', { key: assignee, value: assignee }, 
-                assignee || 'Unassigned'
+                assignee.split('@')[0]
+              )
+            )
+          )
+        ),
+
+        // Event filter
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Event'),
+          React.createElement('select', {
+            value: filters.eventFilter,
+            onChange: (e) => handleFilterChange('eventFilter', e.target.value),
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+          },
+            React.createElement('option', { value: 'all' }, 'All Events'),
+            uniqueEvents.map(event =>
+              React.createElement('option', { key: event, value: event }, event)
+            )
+          )
+        ),
+
+        // Payment status filter
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Payment Status'),
+          React.createElement('select', {
+            value: filters.paymentStatusFilter,
+            onChange: (e) => handleFilterChange('paymentStatusFilter', e.target.value),
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+          },
+            React.createElement('option', { value: 'all' }, 'All Payment Statuses'),
+            uniquePaymentStatuses.map(status =>
+              React.createElement('option', { key: status, value: status }, 
+                status.charAt(0).toUpperCase() + status.slice(1)
               )
             )
           )
@@ -337,217 +297,117 @@ window.renderOrdersContent = () => {
 
         // Date from filter
         React.createElement('div', null,
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, '📅 From Date'),
+          React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Date From'),
           React.createElement('input', {
             type: 'date',
             value: filters.dateFromFilter,
             onChange: (e) => handleFilterChange('dateFromFilter', e.target.value),
-            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500'
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
           })
         ),
 
         // Date to filter
         React.createElement('div', null,
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, '📅 To Date'),
+          React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Date To'),
           React.createElement('input', {
             type: 'date',
             value: filters.dateToFilter,
             onChange: (e) => handleFilterChange('dateToFilter', e.target.value),
-            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500'
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+          })
+        ),
+
+        // Order number filter
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium mb-1' }, 'Order Number'),
+          React.createElement('input', {
+            type: 'text',
+            value: filters.orderNumberFilter,
+            onChange: (e) => handleFilterChange('orderNumberFilter', e.target.value),
+            placeholder: 'Search by order number...',
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
           })
         )
       ),
 
-      // Filter actions
-      React.createElement('div', { className: 'flex justify-between items-center mt-4 pt-4 border-t' },
-        React.createElement('div', { className: 'text-sm text-gray-600' },
-          `Showing ${paginatedOrders.length} of ${pagination.totalItems} orders`
-        ),
-        React.createElement('div', { className: 'flex gap-2' },
-          React.createElement('button', {
-            onClick: clearFilters,
-            className: 'px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300'
-          }, 'Clear Filters'),
-          React.createElement('button', {
-            onClick: () => setShowFilters(false),
-            className: 'px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700'
-          }, 'Hide Filters')
-        )
+      // Clear filters button
+      React.createElement('div', { className: 'mt-4 flex justify-end' },
+        React.createElement('button', {
+          onClick: () => {
+            setOrdersFilters({
+              searchQuery: '',
+              statusFilter: 'all',
+              assignedToFilter: 'all',
+              eventFilter: 'all',
+              dateFromFilter: '',
+              dateToFilter: '',
+              clientFilter: '',
+              orderNumberFilter: '',
+              paymentStatusFilter: 'all'
+            });
+            setOrdersPagination({ currentPage: 1 });
+          },
+          className: 'px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600'
+        }, '🔄 Clear All Filters')
       )
     ),
 
-    // ===== ENHANCED: Orders Table with Sorting =====
-    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden' },
-      // Pagination controls (top)
-      React.createElement('div', { className: 'px-6 py-4 border-b border-gray-200 flex justify-between items-center' },
-        React.createElement('div', { className: 'flex items-center gap-4' },
-          React.createElement('div', { className: 'text-sm text-gray-600' },
-            `Page ${pagination.currentPage} of ${pagination.totalPages}`
-          ),
-          React.createElement('div', { className: 'flex items-center gap-2' },
-            React.createElement('label', { className: 'text-sm text-gray-600' }, 'Show:'),
-            React.createElement('select', {
-              value: pagination.itemsPerPage,
-              onChange: (e) => handleItemsPerPageChange(parseInt(e.target.value)),
-              className: 'px-2 py-1 border border-gray-300 rounded text-sm'
-            },
-              React.createElement('option', { value: 5 }, '5'),
-              React.createElement('option', { value: 10 }, '10'),
-              React.createElement('option', { value: 20 }, '20'),
-              React.createElement('option', { value: 50 }, '50'),
-              React.createElement('option', { value: 100 }, '100')
-            )
-          )
-        ),
-        React.createElement('div', { className: 'flex gap-1' },
-          React.createElement('button', {
-            onClick: () => handlePageChange(pagination.currentPage - 1),
-            disabled: pagination.currentPage === 1,
-            className: 'px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300'
-          }, '← Previous'),
-          React.createElement('button', {
-            onClick: () => handlePageChange(pagination.currentPage + 1),
-            disabled: pagination.currentPage === pagination.totalPages,
-            className: 'px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300'
-          }, 'Next →')
-        )
-      ),
-
-      React.createElement('div', { className: 'overflow-x-auto' },
-        React.createElement('table', { className: 'w-full' },
+    // Orders table
+    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border overflow-hidden' },
+      loading ? React.createElement('div', { className: 'text-center py-12' },
+        React.createElement('div', { className: 'text-gray-500' }, 'Loading orders...')
+      ) : React.createElement('div', { className: 'overflow-x-auto' },
+        React.createElement('table', { className: 'w-full divide-y divide-gray-200 dark:divide-gray-700' },
           React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
             React.createElement('tr', null,
-              React.createElement('th', { 
-                className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100',
-                onClick: () => handleSort('order_number')
-              }, 
-                React.createElement('div', { className: 'flex items-center gap-1' },
-                  'Order#',
-                  React.createElement('span', null, getSortIcon('order_number'))
+              ['order_number', 'customer_name', 'event_name', 'total_amount', 'status', 'payment_status', 'assigned_to'].map(field =>
+                React.createElement('th', {
+                  key: field,
+                  className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100',
+                  onClick: () => handleSortChange(field)
+                },
+                  React.createElement('div', { className: 'flex items-center space-x-1' },
+                    React.createElement('span', null, field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())),
+                    sorting.sortField === field && React.createElement('span', { className: 'text-blue-500' },
+                      sorting.sortDirection === 'asc' ? '↑' : '↓'
+                    )
+                  )
                 )
               ),
-              React.createElement('th', { 
-                className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100',
-                onClick: () => handleSort('client_name')
-              }, 
-                React.createElement('div', { className: 'flex items-center gap-1' },
-                  'Client',
-                  React.createElement('span', null, getSortIcon('client_name'))
-                )
-              ),
-              React.createElement('th', { 
-                className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100',
-                onClick: () => handleSort('event_name')
-              }, 
-                React.createElement('div', { className: 'flex items-center gap-1' },
-                  'Event',
-                  React.createElement('span', null, getSortIcon('event_name'))
-                )
-              ),
-              window.hasPermission && window.hasPermission('finance', 'read') && React.createElement('th', { 
-                className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100',
-                onClick: () => handleSort('amount')
-              }, 
-                React.createElement('div', { className: 'flex items-center gap-1' },
-                  'Amount',
-                  React.createElement('span', null, getSortIcon('amount'))
-                )
-              ),
-              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
-              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Payment'),
-              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Assigned To'),
-              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Actions')
             )
           ),
-          React.createElement('tbody', { className: 'bg-white divide-y divide-gray-200' },
-            paginatedOrders.length > 0 ? paginatedOrders.map(order => {
-              const status = window.ORDER_STATUSES && window.ORDER_STATUSES[order.status] || { 
-                label: order.status, 
-                color: 'bg-gray-100 text-gray-800', 
-                next: [] 
-              };
-
-              // Handle both old and new order formats
-              const orderNumber = order.order_number || order.id || 'N/A';
-              const clientName = order.client_name || order.lead_name || 'Unknown Client';
-              const clientEmail = order.client_email || order.email || '';
-              const clientPhone = order.client_phone || order.phone || '';
-
-              // Enhanced event display for both formats
-              const getEventDisplay = (order) => {
-                if (order.invoice_items && Array.isArray(order.invoice_items)) {
-                  const itemCount = order.invoice_items.length;
-                  const firstItem = order.invoice_items[0]?.description || 'Item';
-                  return itemCount > 1 ? `${firstItem} (+${itemCount-1} more)` : firstItem;
-                } else {
-                  return order.event_name || 'No Event';
-                }
-              };
-
-              // Enhanced amount display
-              const getAmountDisplay = (order) => {
-                if (order.final_amount) return order.final_amount;
-                if (order.total_amount) return order.total_amount;
-                if (order.amount) return order.amount;
-                if (order.base_amount) return order.base_amount;
-                return 0;
-              };
-
-              // Enhanced tickets display
-              const getTicketDisplay = (order) => {
-                if (order.invoice_items && Array.isArray(order.invoice_items)) {
-                  const totalQuantity = order.invoice_items.reduce((sum, item) => sum + (item.quantity || 0), 0);
-                  return `${totalQuantity} items - ${order.category_of_sale || 'Mixed'}`;
-                } else {
-                  return `${order.tickets_allocated || 0} tickets - ${order.ticket_category || ""}`;
-                }
-              };
-
-              return React.createElement('tr', { 
-                key: order.id, 
-                className: 'hover:bg-gray-50',
-                style: order.invoice_items ? { backgroundColor: '#fefbff' } : {}
-              },
-                React.createElement('td', { className: 'px-6 py-4' },
-                  React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, orderNumber),
-                  React.createElement('div', { className: 'text-xs text-gray-500' }, 
-                    new Date(order.created_date || order.created_at || Date.now()).toLocaleDateString()
-                  ),
-                  order.invoice_items && React.createElement('div', { className: 'text-xs text-blue-600 font-medium' }, 
-                    '✓ Multi-Item'
+          React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700' },
+            filteredOrders.length > 0 ? filteredOrders.map(order => {
+              return React.createElement('tr', { key: order.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
+                React.createElement('td', { className: 'px-6 py-4 text-sm font-medium text-gray-900 dark:text-white' },
+                  order.order_number || `ORD-${order.id}`
+                ),
+                React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-gray-300' },
+                  React.createElement('div', null,
+                    React.createElement('div', { className: 'font-medium' }, order.customer_name || 'N/A'),
+                    React.createElement('div', { className: 'text-xs text-gray-500' }, order.customer_phone || '')
                   )
                 ),
-                React.createElement('td', { className: 'px-6 py-4' },
-                  React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, clientName),
-                  clientEmail && React.createElement('div', { className: 'text-xs text-gray-500' }, clientEmail),
-                  clientPhone && React.createElement('div', { className: 'text-xs text-gray-500' }, clientPhone)
+                React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-gray-300' },
+                  order.event_name || 'N/A'
+                ),
+                React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-gray-300' },
+                  order.total_amount ? `₹${parseFloat(order.total_amount).toLocaleString()}` : 'N/A'
                 ),
                 React.createElement('td', { className: 'px-6 py-4' },
-                  React.createElement('div', { className: 'text-sm text-gray-900' }, getEventDisplay(order)),
-                  React.createElement('div', { className: 'text-xs text-gray-500' }, getTicketDisplay(order)),
-                  order.event_date && React.createElement('div', { className: 'text-xs text-blue-600' }, 
-                    new Date(order.event_date).toLocaleDateString()
-                  )
-                ),
-                window.hasPermission && window.hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
-                  React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, 
-                    '₹' + getAmountDisplay(order).toLocaleString()
-                  ),
-                  order.gst_calculation && React.createElement('div', { className: 'text-xs text-green-600' }, 
-                    `+GST: ₹${(order.gst_calculation.total || 0).toLocaleString()}`
-                  ),
-                  order.tcs_calculation && order.tcs_calculation.applicable && React.createElement('div', { className: 'text-xs text-yellow-600' }, 
-                    `+TCS: ₹${(order.tcs_calculation.amount || 0).toLocaleString()}`
-                  )
+                  React.createElement('span', {
+                    className: `inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      order.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                      order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`
+                  }, order.status ? order.status.charAt(0).toUpperCase() + order.status.slice(1) : 'Unknown')
                 ),
                 React.createElement('td', { className: 'px-6 py-4' },
-                  React.createElement('span', { 
-                    className: `inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${status.color}`
-                  }, status.label)
-                ),
-                React.createElement('td', { className: 'px-6 py-4' },
-                  React.createElement('span', { 
-                    className: `inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  React.createElement('span', {
+                    className: `inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                       order.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
                       order.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
                       order.payment_status === 'refunded' ? 'bg-red-100 text-red-800' :
@@ -557,28 +417,28 @@ window.renderOrdersContent = () => {
                        order.payment_status === 'partial' ? 'Partial' :
                        order.payment_status === 'refunded' ? 'Refunded' : 'Pending')
                 ),
-                React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' },
+                React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-gray-300' },
                   order.assigned_to ? order.assigned_to.split('@')[0] : 'Unassigned'
                 ),
                 React.createElement('td', { className: 'px-6 py-4 text-sm font-medium' },
                   React.createElement('div', { className: 'flex space-x-2' },
                     React.createElement('button', {
-                      onClick: () => window.openOrderDetail && window.openOrderDetail(order),
+                      onClick: () => openOrderDetail(order),
                       className: 'text-blue-600 hover:text-blue-900'
                     }, '👁️ View'),
-                    window.hasPermission && window.hasPermission('orders', 'approve') && order.status === 'pending_approval' && 
+                    hasPermission('orders', 'approve') && order.status === 'pending_approval' && 
                     React.createElement('button', {
-                      onClick: () => window.approveOrder && window.approveOrder(order.id),
+                      onClick: () => approveOrder(order.id),
                       className: 'text-green-600 hover:text-green-900'
                     }, '✅ Approve'),
-                    window.hasPermission && window.hasPermission('orders', 'write') && 
+                    hasPermission('orders', 'write') && 
                     React.createElement('button', {
-                      onClick: () => window.openEditOrderForm && window.openEditOrderForm(order),
+                      onClick: () => openEditOrderForm(order),
                       className: 'text-yellow-600 hover:text-yellow-900'
                     }, '✏️ Edit'),
-                    window.hasPermission && window.hasPermission('orders', 'write') && 
+                    hasPermission('orders', 'write') && 
                     React.createElement('button', {
-                      onClick: () => window.deleteOrder && window.deleteOrder(order.id),
+                      onClick: () => deleteOrder(order.id),
                       className: 'text-red-600 hover:text-red-900'
                     }, '🗑️ Delete')
                   )
@@ -594,84 +454,76 @@ window.renderOrdersContent = () => {
                   React.createElement('div', null, 'No orders found'),
                   React.createElement('div', { className: 'text-sm' }, 
                     filters.searchQuery || filters.statusFilter !== 'all' || filters.clientFilter ?
-                    'Try adjusting your filters' : 'No orders have been created yet'
+                    'Try adjusting your filters to see more orders.' :
+                    'Orders will appear here when customers place orders.'
                   )
                 )
               )
             )
           )
         )
-      ),
-
-      // Pagination controls (bottom)
-      pagination.totalPages > 1 && React.createElement('div', { className: 'px-6 py-4 border-t border-gray-200' },
-        React.createElement('div', { className: 'flex justify-between items-center' },
-          React.createElement('div', { className: 'text-sm text-gray-600' },
-            `Showing ${((pagination.currentPage - 1) * pagination.itemsPerPage) + 1} to ${Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} of ${pagination.totalItems} entries`
-          ),
-          React.createElement('div', { className: 'flex gap-1' },
-            // First page
-            pagination.currentPage > 2 && React.createElement('button', {
-              onClick: () => handlePageChange(1),
-              className: 'px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300'
-            }, '1'),
-            
-            // Previous pages
-            pagination.currentPage > 3 && React.createElement('span', { className: 'px-2 text-gray-500' }, '...'),
-            
-            // Current page - 1
-            pagination.currentPage > 1 && React.createElement('button', {
-              onClick: () => handlePageChange(pagination.currentPage - 1),
-              className: 'px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300'
-            }, pagination.currentPage - 1),
-            
-            // Current page
-            React.createElement('button', {
-              className: 'px-3 py-1 text-sm bg-blue-600 text-white rounded'
-            }, pagination.currentPage),
-            
-            // Current page + 1
-            pagination.currentPage < pagination.totalPages && React.createElement('button', {
-              onClick: () => handlePageChange(pagination.currentPage + 1),
-              className: 'px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300'
-            }, pagination.currentPage + 1),
-            
-            // Next pages
-            pagination.currentPage < pagination.totalPages - 2 && React.createElement('span', { className: 'px-2 text-gray-500' }, '...'),
-            
-            // Last page
-            pagination.currentPage < pagination.totalPages - 1 && React.createElement('button', {
-              onClick: () => handlePageChange(pagination.totalPages),
-              className: 'px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300'
-            }, pagination.totalPages)
-          )
-        )
       )
     ),
 
-    // ===== ENHANCED: Quick Stats =====
-    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-4 shadow' },
-        React.createElement('div', { className: 'text-2xl font-bold text-blue-600' }, pagination.totalItems),
-        React.createElement('div', { className: 'text-sm text-gray-600' }, 'Total Orders')
+    // Enhanced pagination
+    pagination.totalPages > 1 && React.createElement('div', { className: 'bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 rounded-b-lg' },
+      React.createElement('div', { className: 'flex-1 flex justify-between sm:hidden' },
+        React.createElement('button', {
+          onClick: () => pagination.currentPage > 1 && handlePageChange(pagination.currentPage - 1),
+          disabled: pagination.currentPage === 1,
+          className: 'relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50'
+        }, 'Previous'),
+        React.createElement('button', {
+          onClick: () => pagination.currentPage < pagination.totalPages && handlePageChange(pagination.currentPage + 1),
+          disabled: pagination.currentPage === pagination.totalPages,
+          className: 'ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50'
+        }, 'Next')
       ),
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-4 shadow' },
-        React.createElement('div', { className: 'text-2xl font-bold text-yellow-600' }, 
-          (window.orders || []).filter(o => o.status === 'pending_approval').length
+      React.createElement('div', { className: 'hidden sm:flex-1 sm:flex sm:items-center sm:justify-between' },
+        React.createElement('div', null,
+          React.createElement('p', { className: 'text-sm text-gray-700 dark:text-gray-300' },
+            'Showing ', React.createElement('span', { className: 'font-medium' }, (pagination.currentPage - 1) * pagination.itemsPerPage + 1),
+            ' to ', React.createElement('span', { className: 'font-medium' }, Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)),
+            ' of ', React.createElement('span', { className: 'font-medium' }, pagination.totalItems),
+            ' results'
+          )
         ),
-        React.createElement('div', { className: 'text-sm text-gray-600' }, 'Pending Approval')
-      ),
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-4 shadow' },
-        React.createElement('div', { className: 'text-2xl font-bold text-green-600' }, 
-          (window.orders || []).filter(o => o.status === 'approved').length
-        ),
-        React.createElement('div', { className: 'text-sm text-gray-600' }, 'Approved')
-      ),
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-4 shadow' },
-        React.createElement('div', { className: 'text-2xl font-bold text-purple-600' }, 
-          (window.orders || []).filter(o => o.payment_status === 'paid').length
-        ),
-        React.createElement('div', { className: 'text-sm text-gray-600' }, 'Paid Orders')
+        React.createElement('div', null,
+          React.createElement('nav', { className: 'relative z-0 inline-flex rounded-md shadow-sm -space-x-px' },
+            React.createElement('button', {
+              onClick: () => pagination.currentPage > 1 && handlePageChange(pagination.currentPage - 1),
+              disabled: pagination.currentPage === 1,
+              className: 'relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50'
+            }, '‹'),
+            Array.from({ length: Math.min(pagination.totalPages, 7) }, (_, i) => {
+              let pageNum;
+              if (pagination.totalPages <= 7) {
+                pageNum = i + 1;
+              } else if (pagination.currentPage <= 4) {
+                pageNum = i + 1;
+              } else if (pagination.currentPage >= pagination.totalPages - 3) {
+                pageNum = pagination.totalPages - 6 + i;
+              } else {
+                pageNum = pagination.currentPage - 3 + i;
+              }
+              
+              return React.createElement('button', {
+                key: pageNum,
+                onClick: () => handlePageChange(pageNum),
+                className: `relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                  pageNum === pagination.currentPage
+                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                }`
+              }, pageNum);
+            }),
+            React.createElement('button', {
+              onClick: () => pagination.currentPage < pagination.totalPages && handlePageChange(pagination.currentPage + 1),
+              disabled: pagination.currentPage === pagination.totalPages,
+              className: 'relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50'
+            }, '›')
+          )
+        )
       )
     )
   );
