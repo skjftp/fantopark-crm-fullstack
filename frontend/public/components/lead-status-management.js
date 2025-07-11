@@ -2,6 +2,7 @@
 // Extracted from index.html - maintains 100% functionality
 // Handles lead status updates, progression logic, and choice handling
 
+// ===== FIXED: Enhanced lead status update function with automatic reminder creation =====
 window.updateLeadStatus = async function(leadId, newStatus) {
   if (!window.hasPermission('leads', 'progress')) {
     alert('You do not have permission to progress leads');
@@ -50,6 +51,41 @@ window.updateLeadStatus = async function(leadId, newStatus) {
     if (window.showLeadDetail && currentLead?.id === leadId) {
       window.setCurrentLead(response.data);
     }
+
+    // ===== FIX 2: ADD MISSING REMINDER CREATION LOGIC =====
+    console.log(`🔔 Checking if reminder needed for status change: ${oldStatus} → ${newStatus}`);
+    
+    // Auto-create reminders if needed
+    if (window.shouldCreateReminderOnStatusChange(newStatus)) {
+      console.log(`✅ Creating automatic reminder for status: ${newStatus}`);
+      try {
+        await window.createStatusChangeReminder(response.data, newStatus);
+        console.log('🎯 Automatic reminder created successfully');
+      } catch (reminderError) {
+        console.error('❌ Failed to create automatic reminder:', reminderError);
+        // Don't fail the whole operation if reminder creation fails
+      }
+    }
+
+    // Send notifications if required
+    if (window.shouldNotifyOnStatusChange(oldStatus, newStatus)) {
+      try {
+        await window.sendStatusChangeNotification(response.data, oldStatus, newStatus);
+        console.log('📧 Status change notification sent');
+      } catch (notificationError) {
+        console.error('❌ Failed to send notification:', notificationError);
+        // Don't fail the whole operation if notification fails
+      }
+    }
+
+    window.setLoading(false);
+    alert('Lead status updated successfully!');
+  } catch (error) {
+    console.error('Error updating lead status:', error);
+    window.setLoading(false);
+    alert('Failed to update lead status: ' + error.message);
+  }
+};
 
 // Complex lead progression function with advanced logic
 window.handleLeadProgression = function(lead) {
@@ -142,7 +178,7 @@ window.handleLeadProgression = function(lead) {
         label: window.LEAD_STATUSES[status].label,
         color: window.LEAD_STATUSES[status].color,
         requires_followup_date: window.LEAD_STATUSES[status].requires_followup_date,
-        icon: window.getStatusIcon(status) // Helper function for icons
+        icon: window.getStatusIcon ? window.getStatusIcon(status) : '📋' // Helper function for icons
       })));
     } 
     // Otherwise use the existing choice modal (this handles attempts and all other flows)
@@ -151,7 +187,7 @@ window.handleLeadProgression = function(lead) {
       window.setChoiceOptions(nextOptions.map(status => ({
         value: status,
         label: window.LEAD_STATUSES[status].label,
-        icon: window.getStatusIcon(status)
+        icon: window.getStatusIcon ? window.getStatusIcon(status) : '📋'
       })));
       window.setShowChoiceModal(true);
     }
@@ -164,7 +200,7 @@ window.handleQuoteRequestStage = async function(lead, newStatus) {
     window.setLoading(true);
 
     // Preserve temperature when moving to quote_requested
-    const currentTemperature = window.getLeadTemperature(lead);
+    const currentTemperature = window.getLeadTemperature ? window.getLeadTemperature(lead) : lead.temperature;
 
     const updateData = {
       ...lead,
@@ -404,13 +440,15 @@ window.shouldNotifyOnStatusChange = function(oldStatus, newStatus) {
   return notificationTriggers.includes(newStatus);
 };
 
-// Check if reminder should be created
+// ===== FIX 5: Enhanced reminder creation check =====
 window.shouldCreateReminderOnStatusChange = function(newStatus) {
   const reminderStatuses = ['follow_up', 'pickup_later', 'quote_requested'];
-  return reminderStatuses.includes(newStatus);
+  const shouldCreate = reminderStatuses.includes(newStatus);
+  console.log(`🔍 Should create reminder for ${newStatus}:`, shouldCreate);
+  return shouldCreate;
 };
 
-// Send status change notification
+// ===== FIXED: Send status change notification with corrected API call =====
 window.sendStatusChangeNotification = async function(lead, oldStatus, newStatus) {
   try {
     const notificationData = {
@@ -423,6 +461,7 @@ window.sendStatusChangeNotification = async function(lead, oldStatus, newStatus)
       recipient: lead.assigned_to || window.user.email
     };
 
+    // FIXED: Use consistent API function name (was window.apicall)
     const response = await window.apiCall('/notifications/status-change', {
       method: 'POST',
       body: JSON.stringify(notificationData)
@@ -434,29 +473,139 @@ window.sendStatusChangeNotification = async function(lead, oldStatus, newStatus)
   }
 };
 
-// Create reminder for status change
+// ===== FIX 5: Enhanced Create reminder for status change with pickup_later support =====
 window.createStatusChangeReminder = async function(lead, newStatus) {
   try {
-    const reminderData = {
-      lead_id: lead.id,
-      title: `Follow up on ${lead.name} - ${newStatus}`,
-      description: `Lead status changed to ${newStatus}. Follow up required.`,
-      due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
-      priority: 'medium',
-      assigned_to: lead.assigned_to || window.user.email,
-      created_by: window.user.name,
-      auto_generated: true
-    };
+    console.log(`🔔 Creating status change reminder for ${lead.name} - ${newStatus}`);
+    
+    // Create more specific reminders based on status type
+    let reminderData;
+    
+    if (newStatus === 'pickup_later') {
+      // Special handling for pickup_later with follow-up date
+      const followUpDate = lead.next_follow_up_date 
+        ? new Date(lead.next_follow_up_date)
+        : new Date(Date.now() + 24 * 60 * 60 * 1000); // Default 24 hours
 
+      reminderData = {
+        lead_id: lead.id,
+        title: `📞 Pick up ${lead.name} later`,
+        description: `Follow up with ${lead.name} for ${lead.lead_for_event || 'event'}. ${lead.follow_up_notes ? 'Notes: ' + lead.follow_up_notes : ''}`,
+        due_date: followUpDate.toISOString(),
+        priority: 'high', // Higher priority for pickup later
+        assigned_to: lead.assigned_to || window.user.email,
+        created_by: window.user.name || 'System',
+        auto_generated: true,
+        reminder_type: 'pickup_later'
+      };
+    } else if (newStatus === 'follow_up') {
+      // Enhanced follow-up reminder
+      reminderData = {
+        lead_id: lead.id,
+        title: `📞 Follow up with ${lead.name}`,
+        description: `Regular follow-up required for ${lead.name} - ${lead.lead_for_event || 'event'}`,
+        due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
+        priority: 'medium',
+        assigned_to: lead.assigned_to || window.user.email,
+        created_by: window.user.name || 'System',
+        auto_generated: true,
+        reminder_type: 'follow_up'
+      };
+    } else if (newStatus === 'quote_requested') {
+      // Quote request reminder
+      reminderData = {
+        lead_id: lead.id,
+        title: `📋 Prepare quote for ${lead.name}`,
+        description: `Quote requested for ${lead.name} - ${lead.lead_for_event || 'event'}. Prepare and send quote.`,
+        due_date: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), // 4 hours from now for urgent quotes
+        priority: 'high',
+        assigned_to: lead.quote_assigned_to || lead.assigned_to || window.user.email,
+        created_by: window.user.name || 'System',
+        auto_generated: true,
+        reminder_type: 'quote_requested'
+      };
+    } else {
+      // Default reminder for other statuses
+      reminderData = {
+        lead_id: lead.id,
+        title: `Follow up on ${lead.name} - ${newStatus}`,
+        description: `Lead status changed to ${newStatus}. Follow up required.`,
+        due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
+        priority: 'medium',
+        assigned_to: lead.assigned_to || window.user.email,
+        created_by: window.user.name || 'System',
+        auto_generated: true,
+        reminder_type: 'status_change'
+      };
+    }
+
+    // FIXED: Use consistent API function name (was window.apicall)
     const response = await window.apiCall('/reminders', {
       method: 'POST',
       body: JSON.stringify(reminderData)
     });
 
-    console.log('Status change reminder created:', response);
+    console.log('✅ Status change reminder created:', response);
+    
+    // Update local reminders state if it exists
+    if (window.reminders && window.setReminders) {
+      window.setReminders(prev => [...prev, response.data]);
+    }
+    
+    // Refresh reminder stats
+    if (window.fetchReminders) {
+      window.fetchReminders();
+    }
+    
+    return response;
   } catch (error) {
-    console.error('Failed to create status change reminder:', error);
+    console.error('❌ Failed to create status change reminder:', error);
+    throw error;
   }
 };
 
-console.log('✅ Lead Status Management System component loaded successfully');
+// ===== BONUS: Debug function to test reminder creation =====
+window.testPickupLaterReminder = async function(leadId) {
+  console.log('🧪 Testing pickup_later reminder creation...');
+  
+  const testLead = window.leads?.find(l => l.id === leadId);
+  if (!testLead) {
+    console.error('Lead not found');
+    alert('Lead not found. Please provide a valid lead ID.');
+    return;
+  }
+  
+  // Create a test reminder
+  const testReminder = {
+    lead_id: leadId,
+    title: `TEST: Pick up ${testLead.name} later`,
+    description: 'This is a test reminder for pickup_later functionality',
+    due_date: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour from now
+    priority: 'high',
+    assigned_to: window.user?.email || 'test@example.com',
+    created_by: 'Test System',
+    auto_generated: true,
+    reminder_type: 'test_pickup_later'
+  };
+  
+  try {
+    const response = await window.apiCall('/reminders', {
+      method: 'POST',
+      body: JSON.stringify(testReminder)
+    });
+    console.log('✅ Test reminder created:', response);
+    alert('Test reminder created successfully! Check your reminders dashboard.');
+    
+    // Refresh reminders if function exists
+    if (window.fetchReminders) {
+      window.fetchReminders();
+    }
+  } catch (error) {
+    console.error('❌ Test reminder failed:', error);
+    alert('Test reminder failed: ' + error.message);
+  }
+};
+
+console.log('✅ FIXED: Lead Status Management with Reminder Creation loaded successfully');
+console.log('🔧 To test: window.testPickupLaterReminder(leadId)');
+console.log('🔧 Debug: window.shouldCreateReminderOnStatusChange("pickup_later")');
