@@ -30,18 +30,21 @@ window.renderGSTInvoicePreview = () => {
   const baseAmount = window.getBaseAmount ? window.getBaseAmount(invoice) : (invoice.base_amount || 0);
   console.log('🔍 baseAmount:', baseAmount);
 
-  // FIX 2: Enhanced calculation object construction with robust GST total calculation
+  // 🎯 CRITICAL FIX: Simplified calculation construction - prioritize GST data
   let calculation;
-  if (invoice.gst_calculation && invoice.tcs_calculation) {
-    // 🎯 CRITICAL FIX: Calculate GST total if missing
+  if (invoice.gst_calculation) {
+    // 🎯 If we have GST calculation data, use it directly (don't require TCS)
     const gstTotal = invoice.gst_calculation.total || 
                      invoice.total_tax || 
                      ((invoice.gst_calculation.cgst || 0) + (invoice.gst_calculation.sgst || 0) + (invoice.gst_calculation.igst || 0));
     
+    console.log('🔍 Using GST calculation directly:', invoice.gst_calculation);
+    console.log('🔍 gstTotal calculated:', gstTotal);
+    
     // Use the stored calculation from the order
     calculation = {
       gst: {
-        applicable: invoice.gst_calculation.applicable !== false && 
+        applicable: invoice.gst_calculation.applicable === true || 
                    (gstTotal > 0 || invoice.gst_calculation.cgst > 0 || invoice.gst_calculation.sgst > 0 || invoice.gst_calculation.igst > 0),
         rate: invoice.gst_rate || invoice.gst_calculation.rate || 18,
         cgst: invoice.gst_calculation.cgst || 0,
@@ -50,17 +53,21 @@ window.renderGSTInvoicePreview = () => {
         total: gstTotal
       },
       tcs: {
-        applicable: invoice.tcs_calculation.applicable || false,
-        rate: invoice.tcs_rate || invoice.tcs_calculation.rate || 5,
-        amount: invoice.tcs_calculation.amount || 0
+        applicable: (invoice.tcs_calculation && invoice.tcs_calculation.applicable) || false,
+        rate: invoice.tcs_rate || (invoice.tcs_calculation && invoice.tcs_calculation.rate) || 5,
+        amount: (invoice.tcs_calculation && invoice.tcs_calculation.amount) || 0
       },
-      finalAmount: invoice.final_amount || (baseAmount + gstTotal + (invoice.tcs_calculation.amount || 0))
+      finalAmount: invoice.final_amount || (baseAmount + gstTotal + ((invoice.tcs_calculation && invoice.tcs_calculation.amount) || 0))
     };
+    
+    console.log('✅ Constructed calculation from GST data:', calculation);
   } else if (window.calculateGSTAndTCS) {
     // Fallback: recalculate using the function
+    console.log('🔍 Using calculateGSTAndTCS function');
     calculation = window.calculateGSTAndTCS(baseAmount, invoice);
   } else {
     // Fallback: construct from available data
+    console.log('🔍 Using fallback calculation');
     const gstTotal = invoice.total_tax || 0;
     calculation = {
       gst: {
