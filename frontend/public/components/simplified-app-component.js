@@ -208,6 +208,48 @@ window.getPriorityColor = (priority) => {
   }
 };
 
+// ✅ STADIUM FUNCTION EXPOSURES - NEWLY ADDED
+window.fetchStadiums = handlers.fetchStadiums || (() => {
+  console.log("🏟️ fetchStadiums called");
+  // Return a promise for compatibility
+  return new Promise((resolve, reject) => {
+    if (handlers.fetchStadiums && typeof handlers.fetchStadiums === 'function') {
+      return handlers.fetchStadiums().then(resolve).catch(reject);
+    } else {
+      console.warn("⚠️ fetchStadiums not implemented in handlers");
+      // Resolve with existing stadiums array as fallback
+      window.stadiums = window.stadiums || [];
+      resolve(window.stadiums);
+    }
+  });
+});
+
+window.openStadiumForm = handlers.openStadiumForm || ((stadium = null) => {
+  console.log("🏟️ openStadiumForm called with:", stadium);
+  state.setEditingStadium && state.setEditingStadium(stadium);
+  state.setStadiumFormData && state.setStadiumFormData(stadium || {});
+  state.setShowStadiumForm && state.setShowStadiumForm(true);
+});
+
+window.closeStadiumForm = handlers.closeStadiumForm || (() => {
+  console.log("🏟️ closeStadiumForm called");
+  state.setShowStadiumForm && state.setShowStadiumForm(false);
+  state.setEditingStadium && state.setEditingStadium(null);
+  state.setStadiumFormData && state.setStadiumFormData({});
+});
+
+// ✅ STADIUM STATE VARIABLES
+window.stadiums = state.stadiums || [];
+window.editingStadium = state.editingStadium || null;
+window.stadiumFormData = state.stadiumFormData || {};
+window.showStadiumForm = state.showStadiumForm || false;
+
+// ✅ STADIUM STATE SETTERS
+window.setStadiums = state.setStadiums;
+window.setEditingStadium = state.setEditingStadium;
+window.setStadiumFormData = state.setStadiumFormData;
+window.setShowStadiumForm = state.setShowStadiumForm;  
+  
 // ===== INVENTORY ACTION FUNCTION EXPOSURES =====
   window.openInventoryDetail = handlers.openInventoryDetail || ((inventory) => {
     console.log("📦 openInventoryDetail called with:", inventory);
