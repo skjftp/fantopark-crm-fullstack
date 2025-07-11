@@ -8,6 +8,17 @@ window.SimplifiedApp = function() {
   const state = window.renderMainApp();
   const handlers = window.renderAppBusinessLogic();
   
+  // ✅ CRITICAL DEBUG: Check what state setters are available
+  console.log("🔍 DEBUGGING STATE SETTERS:");
+  console.log("state.setShowInventoryForm:", typeof state.setShowInventoryForm, state.setShowInventoryForm);
+  console.log("state.setEditingInventory:", typeof state.setEditingInventory, state.setEditingInventory);
+  console.log("state.setShowAllocationManagement:", typeof state.setShowAllocationManagement, state.setShowAllocationManagement);
+  console.log("state.setShowEditInventoryForm:", typeof state.setShowEditInventoryForm, state.setShowEditInventoryForm);
+  
+  // Log available setters
+  const availableSetters = Object.keys(state).filter(key => key.startsWith('set') && key.includes('Inventory'));
+  console.log("📋 Available inventory-related setters:", availableSetters);
+  
   // Initialize all effects
   window.renderAppEffects();
 
@@ -183,6 +194,17 @@ window.SimplifiedApp = function() {
   window.setCurrentForm = state.setCurrentForm;
   window.setFormData = state.setFormData;
 
+  // ✅ CRITICAL: Ensure setEditingInventory is available globally
+  window.setEditingInventory = state.setEditingInventory;
+  if (!window.setEditingInventory) {
+    console.error("❌ CRITICAL: setEditingInventory not found in state!");
+    window.setEditingInventory = (inventory) => {
+      console.log("⚠️ FALLBACK setEditingInventory called with:", inventory);
+      window.editingInventory = inventory;
+      window.appState.editingInventory = inventory;
+    };
+  }
+
   // Modal State Setters
   window.setShowClientDetail = state.setShowClientDetail;
   window.setShowClientSuggestion = state.setShowClientSuggestion;
@@ -197,40 +219,50 @@ window.SimplifiedApp = function() {
 
   // ✅ CRITICAL FIX: INVENTORY MODAL STATE SETTERS
   window.setShowInventoryForm = state.setShowInventoryForm || ((show) => {
-    console.log("📦 setShowInventoryForm called with:", show);
+    console.log("📦 setShowInventoryForm FALLBACK called with:", show);
+    console.error("❌ CRITICAL: Real React state setter not found! This won't trigger re-renders.");
+    console.log("🔍 Available state setters:", Object.keys(state).filter(key => key.startsWith('set')));
     window.showInventoryForm = show;
-    if (state.setShowInventoryForm) {
-      state.setShowInventoryForm(show);
-    } else {
-      console.warn("⚠️ setShowInventoryForm not implemented in state - using fallback");
-      window.appState = window.appState || {};
-      window.appState.showInventoryForm = show;
-    }
+    window.appState = window.appState || {};
+    window.appState.showInventoryForm = show;
   });
 
   window.setShowEditInventoryForm = state.setShowEditInventoryForm || ((show) => {
-    console.log("✏️ setShowEditInventoryForm called with:", show);
+    console.log("✏️ setShowEditInventoryForm FALLBACK called with:", show);
+    console.error("❌ CRITICAL: Real React state setter not found! This won't trigger re-renders.");
     window.showEditInventoryForm = show;
-    if (state.setShowEditInventoryForm) {
-      state.setShowEditInventoryForm(show);
-    } else {
-      console.warn("⚠️ setShowEditInventoryForm not implemented in state - using fallback");
-      window.appState = window.appState || {};
-      window.appState.showEditInventoryForm = show;
-    }
+    window.appState = window.appState || {};
+    window.appState.showEditInventoryForm = show;
   });
 
   window.setShowAllocationManagement = state.setShowAllocationManagement || ((show) => {
-    console.log("👁️ setShowAllocationManagement called with:", show);
+    console.log("👁️ setShowAllocationManagement FALLBACK called with:", show);
+    console.error("❌ CRITICAL: Real React state setter not found! This won't trigger re-renders.");
     window.showAllocationManagement = show;
-    if (state.setShowAllocationManagement) {
-      state.setShowAllocationManagement(show);
-    } else {
-      console.warn("⚠️ setShowAllocationManagement not implemented in state - using fallback");
-      window.appState = window.appState || {};
-      window.appState.showAllocationManagement = show;
-    }
+    window.appState = window.appState || {};
+    window.appState.showAllocationManagement = show;
   });
+
+  // ✅ DIRECT REACT STATE SETTER ACCESS - BYPASS FALLBACKS
+  if (state.setShowInventoryForm) {
+    window.setShowInventoryForm = state.setShowInventoryForm;
+    console.log("✅ Using REAL React state setter for setShowInventoryForm");
+  }
+  
+  if (state.setShowEditInventoryForm) {
+    window.setShowEditInventoryForm = state.setShowEditInventoryForm;
+    console.log("✅ Using REAL React state setter for setShowEditInventoryForm");
+  }
+  
+  if (state.setShowAllocationManagement) {
+    window.setShowAllocationManagement = state.setShowAllocationManagement;
+    console.log("✅ Using REAL React state setter for setShowAllocationManagement");
+  }
+
+  if (state.setEditingInventory) {
+    window.setEditingInventory = state.setEditingInventory;
+    console.log("✅ Using REAL React state setter for setEditingInventory");
+  }
 
   // Choice Modal State Setters
   window.setCurrentLeadForChoice = state.setCurrentLeadForChoice;
@@ -602,24 +634,58 @@ window.SimplifiedApp = function() {
   // ✅ INVENTORY FUNCTIONS - ORGANIZED TOGETHER
   window.openInventoryForm = handlers.openInventoryForm || (() => {
     console.log("📦 openInventoryForm called");
-    state.setShowInventoryForm(true);
+    window.setShowInventoryForm(true);
   });
 
   window.openAddInventoryForm = handlers.openAddInventoryForm || (() => {
-    console.log("➕ openAddInventoryForm called");
-    state.setShowInventoryForm && state.setShowInventoryForm(true);
+    console.log("➕ openAddInventoryForm called - FIXED VERSION");
+    
+    // Set editing inventory first
+    const defaultInventory = { 
+      id: null,
+      event_name: '',
+      event_date: '',
+      event_type: '',
+      sports: '',
+      venue: ''
+    };
+    
+    console.log("🔧 Setting editingInventory to:", defaultInventory);
+    if (window.setEditingInventory) {
+      window.setEditingInventory(defaultInventory);
+    } else {
+      console.error("❌ setEditingInventory not available!");
+    }
+    
+    // Then show the form
+    console.log("🔧 Setting showInventoryForm to true");
+    if (window.setShowInventoryForm) {
+      window.setShowInventoryForm(true);
+    } else {
+      console.error("❌ setShowInventoryForm not available!");
+    }
+    
+    console.log("✅ openAddInventoryForm completed");
   });
 
   window.openInventoryDetail = handlers.openInventoryDetail || ((inventory) => {
     console.log("📦 openInventoryDetail called with:", inventory);
-    state.setCurrentInventoryDetail && state.setCurrentInventoryDetail(inventory);
-    state.setShowInventoryDetail && state.setShowInventoryDetail(true);
+    if (window.setCurrentInventoryDetail) {
+      window.setCurrentInventoryDetail(inventory);
+      window.setShowInventoryDetail(true);
+    } else {
+      console.error("❌ Inventory detail setters not available!");
+    }
   });
 
   window.openEditInventoryForm = handlers.openEditInventoryForm || ((inventory) => {
     console.log("✏️ openEditInventoryForm called with:", inventory);
-    state.setCurrentInventory && state.setCurrentInventory(inventory);
-    window.setShowEditInventoryForm(true);
+    if (window.setCurrentInventory && window.setShowEditInventoryForm) {
+      window.setCurrentInventory(inventory);
+      window.setShowEditInventoryForm(true);
+    } else {
+      console.error("❌ Edit inventory setters not available!");
+    }
   });
 
   window.handleDeleteInventory = handlers.handleDeleteInventory || ((inventoryId) => {
@@ -638,8 +704,12 @@ window.SimplifiedApp = function() {
 
   window.openAllocationManagement = handlers.openAllocationManagement || ((inventory) => {
     console.log("👁️ openAllocationManagement called with:", inventory);
-    state.setCurrentInventory && state.setCurrentInventory(inventory);
-    window.setShowAllocationManagement(true);
+    if (window.setCurrentInventory && window.setShowAllocationManagement) {
+      window.setCurrentInventory(inventory);
+      window.setShowAllocationManagement(true);
+    } else {
+      console.error("❌ Allocation management setters not available!");
+    }
   });
 
   // Stadium Functions
