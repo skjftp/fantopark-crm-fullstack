@@ -3138,6 +3138,7 @@ console.log("✅ AssignmentRulesTab exposed to window");
 
     // All Modal Forms
     window.renderReminderDashboard && window.renderReminderDashboard(),
+    window.renderReminderForm && window.renderReminderForm(),                         
     window.renderInventoryForm && window.renderInventoryForm(),
     window.renderForm && window.renderForm(),
     state.showCSVUploadModal && React.createElement(window.CSVUploadModal, {
