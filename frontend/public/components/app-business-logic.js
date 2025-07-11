@@ -1333,6 +1333,7 @@ window.renderAppBusinessLogic = function() {
     handlePaymentPostServiceSubmit: window.handlePaymentPostServiceSubmit, // ✅ ADD: Payment post service submit
     calculateGSTAndTCS: window.calculateGSTAndTCS,             // ✅ ADD: GST calculation utility
     openInvoicePreview: openInvoicePreview,                    // ✅ ADD: Invoice preview handler
+    fetchFinancialData: window.fetchFinancialData, // ✅ Reference existing function from financials.js
     
     // ✅ ALL WORKING FUNCTIONS FROM ORIGINAL FILE
     openEditOrderForm,
