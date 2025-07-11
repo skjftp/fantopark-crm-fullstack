@@ -452,10 +452,16 @@ window.handleUserSubmit = async function(e) {
   }
 };
 
-// ✅ ENHANCED ORDER APPROVAL FUNCTION
-window.handleEnhancedOrderApproval = async function(orderId, action, notes = '') {
+// ✅ FIXED ORDER APPROVAL FUNCTION - WITH API CALLS FOR BOTH APPROVE AND REJECT
+window.handleOrderApproval = async function(orderId, action, notes = '') {
+  console.log(`🔄 handleOrderApproval: ${action} order ${orderId}`);
+
   if (!window.hasPermission('orders', 'approve')) {
-    alert('You do not have permission to approve orders');
+    alert('You do not have permission to approve/reject orders');
+    return;
+  }
+
+  if (!confirm(`Are you sure you want to ${action} this order?`)) {
     return;
   }
 
@@ -463,64 +469,112 @@ window.handleEnhancedOrderApproval = async function(orderId, action, notes = '')
 
   try {
     const newStatus = action === 'approve' ? 'approved' : 'rejected';
+    
+    // Get current order for context
+    const currentOrder = window.orders.find(order => order.id === orderId);
+    if (!currentOrder) {
+      throw new Error('Order not found');
+    }
 
+    // Prepare update data
+    const updateData = {
+      status: newStatus,
+      approved_by: window.user.name || window.user.email,
+      approval_date: new Date().toISOString(),
+      updated_date: new Date().toISOString()
+    };
+
+    // Add rejection-specific fields
+    if (action === 'reject') {
+      updateData.rejected_by = window.user.name || window.user.email;
+      updateData.rejected_date = new Date().toISOString();
+      updateData.rejection_reason = notes || 'No reason provided';
+    }
+
+    console.log('🔄 Sending API request to update order:', { orderId, updateData });
+
+    // ✅ API CALL - Using the correct endpoint pattern from your existing code
+    const response = await window.apiCall(`/orders/${orderId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData)
+    });
+
+    console.log('✅ Order approval API response:', response);
+
+    // Update local state after successful API call
     window.setOrders(prev => 
-      prev.map(order => {
-        if (order.id === orderId) {
-          const updatedOrder = { 
-            ...order, 
-            status: newStatus, 
-            approved_date: new Date().toISOString().split('T')[0],
-            approval_notes: notes,
-            approved_by: window.user.name
-          };
-
-          // Generate GST invoice if approved
-          if (action === 'approve' && order.requires_gst_invoice) {
-            const invoiceNumber = 'STTS/INV/' + new Date().getFullYear() + '/' + String(Date.now()).slice(-6);
-
-            const newInvoice = {
-              id: Date.now(),
-              invoice_number: invoiceNumber,
-              order_id: orderId,
-              order_number: order.order_number,
-              client_name: order.legal_name || order.client_name,
-              client_email: order.client_email,
-              gstin: order.gstin,
-              legal_name: order.legal_name,
-              category_of_sale: order.category_of_sale,
-              type_of_sale: order.type_of_sale,
-              registered_address: order.registered_address,
-              indian_state: order.indian_state,
-              is_outside_india: order.is_outside_india,
-              invoice_items: order.invoice_items,
-              base_amount: order.base_amount,
-              gst_calculation: order.gst_calculation,
-              total_tax: order.total_tax,
-              final_amount: order.final_amount,
-              invoice_date: new Date().toISOString().split('T')[0],
-              due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-              status: 'generated',
-              generated_by: window.user.name
-            };
-
-            window.setInvoices(prev => [...prev, newInvoice]);
-            updatedOrder.invoice_id = newInvoice.id;
-            updatedOrder.invoice_number = invoiceNumber;
-          }
-
-          return updatedOrder;
-        }
-        return order;
-      })
+      prev.map(order => 
+        order.id === orderId 
+          ? { 
+              ...order, 
+              ...updateData,
+              // Include any additional data from server response
+              ...(response.data || response)
+            }
+          : order
+      )
     );
 
-    alert(action === 'approve' 
-      ? 'Order approved successfully! GST Invoice has been generated.' 
-      : 'Order rejected successfully.'
-    );
+    // If viewing this order in detail modal, update that too
+    if (window.showOrderDetail && window.currentOrderDetail?.id === orderId) {
+      window.setCurrentOrderDetail(prev => ({
+        ...prev,
+        ...updateData,
+        ...(response.data || response)
+      }));
+    }
+
+    // Generate invoice if approved (following your existing pattern)
+    if (action === 'approve' && currentOrder.requires_gst_invoice) {
+      console.log('📄 Generating invoice for approved order...');
+      
+      try {
+        const invoiceNumber = 'STTS/INV/' + new Date().getFullYear() + '/' + String(Date.now()).slice(-6);
+
+        const newInvoice = {
+          id: Date.now(),
+          invoice_number: invoiceNumber,
+          order_id: orderId,
+          order_number: currentOrder.order_number,
+          client_name: currentOrder.legal_name || currentOrder.client_name,
+          client_email: currentOrder.client_email,
+          gstin: currentOrder.gstin,
+          legal_name: currentOrder.legal_name,
+          category_of_sale: currentOrder.category_of_sale,
+          type_of_sale: currentOrder.type_of_sale,
+          registered_address: currentOrder.registered_address,
+          indian_state: currentOrder.indian_state,
+          is_outside_india: currentOrder.is_outside_india,
+          invoice_items: currentOrder.invoice_items,
+          base_amount: currentOrder.base_amount,
+          gst_calculation: currentOrder.gst_calculation,
+          total_tax: currentOrder.total_tax,
+          final_amount: currentOrder.final_amount,
+          invoice_date: new Date().toISOString().split('T')[0],
+          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: 'generated',
+          generated_by: window.user.name
+        };
+
+        window.setInvoices(prev => [...prev, newInvoice]);
+        console.log('📄 Invoice generated locally:', invoiceNumber);
+      } catch (invoiceError) {
+        console.error('Failed to generate invoice:', invoiceError);
+        // Don't fail the approval for invoice generation issues
+      }
+    }
+
+    const actionText = action === 'approve' ? 'approved' : 'rejected';
+    const message = action === 'approve' 
+      ? 'Order approved successfully! Invoice has been generated.' 
+      : 'Order rejected successfully.';
+    
+    alert(message);
+    console.log(`✅ Order ${orderId} ${actionText} successfully`);
+
   } catch (error) {
-    alert('Failed to update order status');
+    console.error(`❌ Error ${action}ing order:`, error);
+    alert(`Failed to ${action} order: ${error.message}`);
   } finally {
     window.setLoading(false);
   }
@@ -809,181 +863,6 @@ window.handlePaymentSubmit = async function(e) {
     alert('Payment processed successfully! Order created and awaiting approval.');
     window.closeForm();
 
-  } catch (error) {
-    console.error('Payment processing error:', error);
-    alert('Failed to process payment: ' + error.message);
-  } finally {
-    window.setLoading(false);
-  }
-};
-
-console.log("🔧 Payment handler functions added to form-handlers.js");
-
-// ✅ PAYMENT POST SERVICE INPUT CHANGE HANDLER
-window.handlePaymentPostServiceInputChange = function(field, value) {
-  console.log("📝 Payment Post Service Input Change:", field, value);
-  window.setPaymentPostServiceData(prev => ({ ...prev, [field]: value }));
-};
-
-// ✅ PAYMENT POST SERVICE FORM SUBMISSION HANDLER  
-window.handlePaymentPostServiceSubmit = async function(e) {
-  e.preventDefault();
-  if (!window.hasPermission('leads', 'write')) {
-    alert('You do not have permission to manage payment post service');
-    return;
-  }
-  window.setLoading(true);
-  try {
-    // Update lead status
-    const leadResponse = await window.apiCall('/leads/' + window.currentLead.id, {
-      method: 'PUT',
-      body: JSON.stringify({
-        ...window.currentLead,
-        status: 'payment_post_service',
-        payment_post_service_details: window.paymentPostServiceData,
-        payment_post_service_date: new Date().toISOString()
-      })
-    });
-
-    window.setLeads(prev => prev.map(lead => 
-      lead.id === window.currentLead.id ? leadResponse.data : lead
-    ));
-
-    // Create order
-    const newOrder = {
-      order_number: 'ORD-' + Date.now(),
-      lead_id: window.currentLead.id,
-      client_name: window.currentLead.name,
-      client_email: window.currentLead.email,
-      client_phone: window.currentLead.phone,
-      event_name: window.currentLead?.lead_for_event || 'Post Service Payment',
-      event_date: window.paymentPostServiceData.service_date || new Date().toISOString().split('T')[0],
-      tickets_allocated: 1,
-      ticket_category: 'Post Service',
-      price_per_ticket: parseFloat(window.paymentPostServiceData.expected_amount) || 0,
-      total_amount: parseFloat(window.paymentPostServiceData.expected_amount) || 0,
-      expected_amount: parseFloat(window.paymentPostServiceData.expected_amount),
-      expected_payment_date: window.paymentPostServiceData.expected_payment_date,
-      service_description: window.paymentPostServiceData.service_details,
-      notes: window.paymentPostServiceData.notes,
-      payment_terms: window.paymentPostServiceData.payment_terms,
-      order_type: 'payment_post_service',
-      payment_status: 'pending',
-      status: 'pending_approval',
-      requires_gst_invoice: true,
-      created_date: new Date().toISOString(),
-      created_by: window.user.name,
-      assigned_to: ''
-    };
-
-    const orderResponse = await window.apiCall('/orders', {
-      method: 'POST',
-      body: JSON.stringify(newOrder)
-    });
-
-    const finalOrder = orderResponse.data || orderResponse || newOrder;
-    if (!finalOrder.id && newOrder.order_number) {
-      finalOrder.id = newOrder.order_number;
-    }
-    window.setOrders(prev => [...prev, finalOrder]);
-    
-    alert('Payment Post Service order created successfully! Awaiting approval.');
-    window.closeForm();
-  } catch (error) {
-    alert('Failed to process payment post service. Please try again.');
-    console.error('Payment post service error:', error);
-  } finally {
-    window.setLoading(false);
-  }
-};
-
-// ✅ PAYMENT INPUT CHANGE HANDLER
-window.handlePaymentInputChange = function(field, value) {
-  console.log("📝 Payment Input Change:", field, value);
-  window.setPaymentData(prev => ({ ...prev, [field]: value }));
-};
-
-// ✅ PAYMENT FORM SUBMISSION HANDLER
-window.handlePaymentSubmit = async function(e) {
-  e.preventDefault();
-  if (!window.hasPermission('orders', 'create')) {
-    alert('You do not have permission to create orders');
-    return;
-  }
-  window.setLoading(true);
-  try {
-    const invoiceTotal = window.paymentData.invoice_items?.reduce((sum, item) => 
-      sum + ((item.quantity || 0) * (item.rate || 0)), 0
-    ) || 0;
-    const baseAmount = window.paymentData.type_of_sale === 'Service Fee' 
-      ? (parseFloat(window.paymentData.service_fee_amount) || 0) : invoiceTotal;
-    const calculation = window.calculateGSTAndTCS(baseAmount, window.paymentData);
-    
-    const newOrder = {
-      order_number: 'ORD-' + Date.now(),
-      lead_id: window.currentLead.id,
-      client_name: window.paymentData.legal_name || window.currentLead.name,
-      client_email: window.currentLead.email,
-      client_phone: window.currentLead.phone,
-      payment_method: window.paymentData.payment_method,
-      transaction_id: window.paymentData.transaction_id,
-      payment_date: window.paymentData.payment_date,
-      advance_amount: parseFloat(window.paymentData.advance_amount) || 0,
-      gstin: window.paymentData.gstin,
-      legal_name: window.paymentData.legal_name,
-      category_of_sale: window.paymentData.category_of_sale,
-      type_of_sale: window.paymentData.type_of_sale,
-      registered_address: window.paymentData.registered_address,
-      indian_state: window.paymentData.indian_state,
-      is_outside_india: window.paymentData.is_outside_india,
-      customer_type: window.paymentData.customer_type,
-      event_location: window.paymentData.event_location,
-      payment_currency: window.paymentData.payment_currency,
-      invoice_items: window.paymentData.invoice_items || [],
-      base_amount: baseAmount,
-      gst_calculation: calculation.gst,
-      tcs_calculation: calculation.tcs,
-      total_tax: calculation.gst.amount + calculation.tcs.amount,
-      final_amount: calculation.finalAmount,
-      service_fee_amount: window.paymentData.service_fee_amount ? parseFloat(window.paymentData.service_fee_amount) : null,
-      gst_certificate: window.paymentData.gst_certificate,
-      pan_card: window.paymentData.pan_card,
-      status: 'pending_approval',
-      requires_gst_invoice: true,
-      payment_status: window.paymentData.from_receivable ? 'completed' : 'partial',
-      created_date: new Date().toISOString(),
-      created_by: window.user.name,
-      notes: window.paymentData.notes
-    };
-
-    const orderResponse = await window.apiCall('/orders', {
-      method: 'POST',
-      body: JSON.stringify(newOrder)
-    });
-
-    const finalOrder = orderResponse.data || orderResponse || newOrder;
-    if (!finalOrder.id && newOrder.order_number) {
-      finalOrder.id = newOrder.order_number;
-    }
-    window.setOrders(prev => [...prev, finalOrder]);
-
-    const leadUpdateResponse = await window.apiCall('/leads/' + window.currentLead.id, {
-      method: 'PUT',
-      body: JSON.stringify({
-        ...window.currentLead,
-        status: window.paymentData.from_receivable ? 'payment_received' : 'payment_partial',
-        payment_date: window.paymentData.payment_date,
-        advance_amount: parseFloat(window.paymentData.advance_amount) || 0,
-        final_amount: calculation.finalAmount
-      })
-    });
-
-    window.setLeads(prev => prev.map(lead => 
-      lead.id === window.currentLead.id ? leadUpdateResponse.data : lead
-    ));
-
-    alert('Payment processed successfully! Order created and awaiting approval.');
-    window.closeForm();
   } catch (error) {
     console.error('Payment processing error:', error);
     alert('Failed to process payment: ' + error.message);
