@@ -371,11 +371,27 @@ window.renderReceivablesTab = (receivables) => {
                                     React.createElement('div', { className: 'flex space-x-2' },
                                         React.createElement('button', {
                                             className: 'text-blue-600 hover:text-blue-800 font-medium',
-                                            onClick: () => window.handleMarkPaymentFromReceivable && window.handleMarkPaymentFromReceivable(rec),
+                                            onClick: () => {
+                                                console.log('🔍 Mark Payment clicked for receivable:', rec);
+                                                if (window.handleMarkPaymentFromReceivable) {
+                                                    window.handleMarkPaymentFromReceivable(rec);
+                                                } else {
+                                                    console.warn('handleMarkPaymentFromReceivable function not found');
+                                                    alert('Payment function not available. Please refresh the page.');
+                                                }
+                                            },
                                             title: 'Mark Payment Received'
                                         }, 'Mark Payment'),
                                         React.createElement('button', {
-                                            onClick: () => window.deleteReceivable && window.deleteReceivable(rec.id),
+                                            onClick: () => {
+                                                console.log('🔍 Delete receivable clicked for:', rec.id);
+                                                if (window.deleteReceivable) {
+                                                    window.deleteReceivable(rec.id);
+                                                } else {
+                                                    console.warn('deleteReceivable function not found');
+                                                    alert('Delete function not available. Please refresh the page.');
+                                                }
+                                            },
                                             className: 'text-red-600 hover:text-red-800 font-medium',
                                             title: 'Delete Receivable'
                                         }, '🗑️ Delete')
@@ -415,13 +431,13 @@ window.renderPayablesTab = (payables) => {
                     payables.map(payable =>
                         React.createElement('tr', { key: payable.id },
                             React.createElement('td', { className: 'px-4 py-3 text-sm' }, 
-                                new Date(payable.due_date || payable.created_date).toLocaleDateString()
+                                new Date(payable.dueDate || payable.due_date || payable.created_date).toLocaleDateString()
                             ),
                             React.createElement('td', { className: 'px-4 py-3 text-sm' }, 
-                                payable.supplier_name || payable.supplier || 'N/A'
+                                payable.supplierName || payable.supplier_name || payable.supplier || 'N/A'
                             ),
                             React.createElement('td', { className: 'px-4 py-3 text-sm' }, 
-                                payable.supplier_invoice || payable.invoice_number || 'N/A'
+                                payable.invoiceNumber || payable.supplier_invoice || payable.invoice_number || 'N/A'
                             ),
                             React.createElement('td', { className: 'px-4 py-3 text-sm font-medium' }, 
                                 '₹' + parseFloat(payable.amount || 0).toLocaleString()
@@ -429,21 +445,37 @@ window.renderPayablesTab = (payables) => {
                             React.createElement('td', { className: 'px-4 py-3' },
                                 React.createElement('span', {
                                     className: `px-2 py-1 text-xs rounded ${
-                                        payable.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                                        (payable.payment_status || payable.status) === 'paid' ? 'bg-green-100 text-green-800' :
                                         'bg-yellow-100 text-yellow-800'
                                     }`
-                                }, payable.payment_status || 'pending')
+                                }, payable.payment_status || payable.status || 'pending')
                             ),
                             React.createElement('td', { className: 'px-4 py-3' },
                                 React.createElement('div', { className: 'flex space-x-2' },
-                                    payable.payment_status !== 'paid' &&
+                                    (payable.payment_status || payable.status) !== 'paid' &&
                                         React.createElement('button', {
                                             className: 'text-blue-600 hover:text-blue-800 font-medium',
-                                            onClick: () => window.handleMarkAsPaid && window.handleMarkAsPaid(payable.id),
+                                            onClick: () => {
+                                                console.log('🔍 Mark Paid clicked for payable:', payable);
+                                                if (window.handleMarkAsPaid) {
+                                                    window.handleMarkAsPaid(payable.id);
+                                                } else {
+                                                    console.warn('handleMarkAsPaid function not found');
+                                                    alert('Mark Paid function not available. Please refresh the page.');
+                                                }
+                                            },
                                             title: 'Mark as Paid'
                                         }, 'Mark Paid'),
                                     React.createElement('button', {
-                                        onClick: () => window.deletePayable && window.deletePayable(payable.id),
+                                        onClick: () => {
+                                            console.log('🔍 Delete payable clicked for:', payable.id);
+                                            if (window.deletePayable) {
+                                                window.deletePayable(payable.id);
+                                            } else {
+                                                console.warn('deletePayable function not found');
+                                                alert('Delete function not available. Please refresh the page.');
+                                            }
+                                        },
                                         className: 'text-red-600 hover:text-red-800 font-medium',
                                         title: 'Delete Payable'
                                     }, '🗑️ Delete')
