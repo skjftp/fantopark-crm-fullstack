@@ -20,6 +20,12 @@ window.SimplifiedApp = function() {
   // Make handlers available globally
   window.appHandlers = handlers;
 
+  // ✅ ENSURE USER FORM GLOBALS ARE AVAILABLE
+window.loading = state.loading || false;
+window.currentUser = state.currentUser || null;
+window.userFormData = state.userFormData || {};
+window.roles = state.roles || [];
+
   // ===== STATE VARIABLES =====
   
   // Modal States
@@ -794,6 +800,28 @@ window.setCurrentUser = state.setCurrentUser;
   window.setOrderData = state.setOrderData;
   window.setUserFormData = state.setUserFormData;
   window.setEditingUser = state.setEditingUser;
+  // ✅ ADD THESE MISSING USER FORM FUNCTIONS:
+window.handleUserInputChange = (field, value) => {
+  console.log("📝 User input change:", field, value);
+  window.setUserFormData(prev => ({ ...prev, [field]: value }));
+};
+
+window.closeUserForm = () => {
+  console.log("🔄 closeUserForm called");
+  window.setShowUserForm(false);
+  window.setEditingUser(null);
+  window.setUserFormData({
+    name: '',
+    email: '',
+    password: '',
+    role: 'viewer',
+    department: '',
+    status: 'active'
+  });
+};
+
+window.currentUser = state.currentUser || null;
+window.userFormData = state.userFormData || {};
 
   // Filter State Setters (with fallbacks)
   window.setSearchQuery = state.setSearchQuery || ((query) => {
