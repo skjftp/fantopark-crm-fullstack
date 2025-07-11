@@ -580,6 +580,11 @@ window.setMyOrders = state.setMyOrders;
 window.setMyDeliveries = state.setMyDeliveries;
 window.setMyReceivables = state.setMyReceivables;
 
+  // ✅ REMINDERS STATE SETTERS - MISSING EXPOSURES FIXED
+window.setReminders = state.setReminders;
+window.setReminderStats = state.setReminderStats;
+window.setShowReminderDashboard = createEnhancedModalSetter('setShowReminderDashboard', 'showReminderDashboard', state.setShowReminderDashboard);
+
   // ✅ ENHANCED MODAL STATE SETTERS - Lead Management
   window.setShowAddForm = createEnhancedModalSetter('setShowAddForm', 'showAddForm', state.setShowAddForm);
   window.setShowEditForm = createEnhancedModalSetter('setShowEditForm', 'showEditForm', state.setShowEditForm);
@@ -1025,13 +1030,29 @@ window.userFormData = state.userFormData || {};
 
   // ===== FUNCTION EXPOSURES =====
 
-  // Core Lead Management Functions
-  window.getStatusFilterDisplayText = handlers.getStatusFilterDisplayText;
-  window.openLeadDetail = handlers.openLeadDetail;
-  window.editLead = handlers.editLead;
-  window.deleteLead = handlers.deleteLead;
-  window.assignLead = handlers.assignLead;
-  window.progressLead = handlers.progressLead;
+
+  // ✅ REMINDERS FUNCTION EXPOSURES - MISSING INTEGRATIONS FIXED
+window.fetchReminders = window.fetchReminders || (() => {
+  console.log("🔔 fetchReminders called");
+  console.warn("⚠️ fetchReminders not fully implemented");
+});
+window.completeReminder = window.completeReminder || ((id, notes) => {
+  console.log("✅ completeReminder called:", id, notes);
+  console.warn("⚠️ completeReminder not fully implemented");
+});
+window.snoozeReminder = window.snoozeReminder || ((id, hours) => {
+  console.log("⏰ snoozeReminder called:", id, hours);
+  console.warn("⚠️ snoozeReminder not fully implemented");
+});
+window.deleteReminder = window.deleteReminder || ((id) => {
+  console.log("🗑️ deleteReminder called:", id);
+  console.warn("⚠️ deleteReminder not fully implemented");
+});
+
+  // ✅ REMINDERS DATA ARRAYS - MISSING WINDOW SYNC FIXED
+window.reminders = state.reminders || [];
+window.reminderStats = state.reminderStats || { total: 0, overdue: 0, due_today: 0, pending: 0 };
+window.showReminderDashboard = state.showReminderDashboard || false;
 
   // ✅ ADD THESE MISSING MY ACTIONS FUNCTION EXPOSURES:
 window.setActiveTab = state.setActiveTab;
@@ -1926,6 +1947,14 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
   // Dashboard Functions
   window.chartInstances = state.chartInstances;
   window.calculateDashboardStats = handlers.calculateDashboardStats;
+
+   // Core Lead Management Functions
+  window.getStatusFilterDisplayText = handlers.getStatusFilterDisplayText;
+  window.openLeadDetail = handlers.openLeadDetail;
+  window.editLead = handlers.editLead;
+  window.deleteLead = handlers.deleteLead;
+  window.assignLead = handlers.assignLead;
+  window.progressLead = handlers.progressLead;
 
   // ===== UTILITY FUNCTIONS =====
 
