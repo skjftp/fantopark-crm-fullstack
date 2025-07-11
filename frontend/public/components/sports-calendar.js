@@ -301,11 +301,11 @@ window.renderSportsCalendar = () => {
 
       // Events Display - FIXED: use consistent extracted functions
       calendarView === 'month' ? 
-        renderMonthView(filteredEvents, setCurrentEvent, setShowEventDetail, getPriorityStyles, selectedDate) : 
-        renderListView(filteredEvents, setCurrentEvent, setShowEventDetail, setShowEventForm, getPriorityStyles),
+        window.renderMonthView(filteredEvents, setCurrentEvent, setShowEventDetail, getPriorityStyles, selectedDate) : 
+        window.renderListView(filteredEvents, setCurrentEvent, setShowEventDetail, setShowEventForm, getPriorityStyles),
 
       // Import Modal - FIXED: use extracted functions
-      renderImportModal(showImportModal, setShowImportModal, importEventsFromExcel)
+      window.renderImportModal(showImportModal, setShowImportModal, importEventsFromExcel)
     )
   );
 };
