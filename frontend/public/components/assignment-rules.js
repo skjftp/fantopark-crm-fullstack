@@ -198,7 +198,283 @@ window.AssignmentRulesManager = React.memo(({ currentUser }) => {
 if (showForm) {
   console.log('🔍 showForm is true - form should be visible but form component is missing');
 }
-  
+
+  // ✅ COMPLETE ASSIGNMENT RULES FORM - EXACT PRODUCTION MATCH
+// Add this code to your assignment-rules.js file, RIGHT BEFORE the main return statement
+
+// Form rendering function (add this before the main return)
+if (showForm) {
+  return React.createElement('div', {
+    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
+    onClick: () => {
+      console.log('🔍 Modal overlay clicked - closing form');
+      setShowForm(false);
+      setEditingRule(null);
+      resetForm();
+    }
+  },
+    React.createElement('div', {
+      className: 'bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto',
+      onClick: (e) => e.stopPropagation()
+    },
+      // Header
+      React.createElement('div', { className: 'flex justify-between items-center p-6 border-b' },
+        React.createElement('h2', { className: 'text-xl font-bold text-gray-900' },
+          editingRule ? 'Edit Assignment Rule' : 'Create Assignment Rule'
+        ),
+        React.createElement('button', {
+          onClick: () => {
+            console.log('🔍 Close button clicked');
+            setShowForm(false);
+            setEditingRule(null);
+            resetForm();
+          },
+          className: 'text-gray-400 hover:text-gray-600 text-2xl font-bold'
+        }, '✕')
+      ),
+
+      // Form Content
+      React.createElement('div', { className: 'p-6' },
+        React.createElement('form', {
+          onSubmit: (e) => {
+            e.preventDefault();
+            console.log('🔍 Assignment rule form submitted');
+            saveRule();
+          }
+        },
+          // Rule Name and Priority Row
+          React.createElement('div', { className: 'grid grid-cols-2 gap-6 mb-6' },
+            // Rule Name
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' },
+                'Rule Name *'
+              ),
+              React.createElement('input', {
+                type: 'text',
+                value: ruleFormData.name || '',
+                onChange: (e) => setRuleFormData(prev => ({ ...prev, name: e.target.value })),
+                className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                placeholder: '',
+                required: true
+              })
+            ),
+            // Priority
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' },
+                'Priority'
+              ),
+              React.createElement('input', {
+                type: 'number',
+                value: ruleFormData.priority || 1,
+                onChange: (e) => setRuleFormData(prev => ({ ...prev, priority: parseInt(e.target.value) || 1 })),
+                className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                min: 1,
+                max: 100
+              })
+            )
+          ),
+
+          // Description
+          React.createElement('div', { className: 'mb-6' },
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' },
+              'Description'
+            ),
+            React.createElement('textarea', {
+              value: ruleFormData.description || '',
+              onChange: (e) => setRuleFormData(prev => ({ ...prev, description: e.target.value })),
+              className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+              placeholder: '',
+              rows: 4
+            })
+          ),
+
+          // Conditions Section
+          React.createElement('div', { className: 'mb-6' },
+            React.createElement('h3', { className: 'text-lg font-medium text-gray-900 mb-4' },
+              'Conditions'
+            ),
+            React.createElement('div', { className: 'grid grid-cols-3 gap-4' },
+              // Potential Value
+              React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' },
+                  'Potential Value'
+                ),
+                React.createElement('div', { className: 'flex' },
+                  React.createElement('select', {
+                    value: ruleFormData.conditions?.potential_value_operator || 'gte',
+                    onChange: (e) => setRuleFormData(prev => ({
+                      ...prev,
+                      conditions: { ...prev.conditions, potential_value_operator: e.target.value }
+                    })),
+                    className: 'px-3 py-2 border border-gray-300 rounded-l-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50'
+                  },
+                    React.createElement('option', { value: 'gte' }, '≥'),
+                    React.createElement('option', { value: 'lte' }, '≤'),
+                    React.createElement('option', { value: 'eq' }, '='),
+                    React.createElement('option', { value: 'gt' }, '>'),
+                    React.createElement('option', { value: 'lt' }, '<')
+                  ),
+                  React.createElement('input', {
+                    type: 'text',
+                    value: ruleFormData.conditions?.potential_value || '',
+                    onChange: (e) => setRuleFormData(prev => ({
+                      ...prev,
+                      conditions: { ...prev.conditions, potential_value: e.target.value }
+                    })),
+                    className: 'flex-1 px-3 py-2 border border-l-0 border-gray-300 rounded-r-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                    placeholder: 'e.g., 100000'
+                  })
+                )
+              ),
+              // Business Type
+              React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' },
+                  'Business Type'
+                ),
+                React.createElement('select', {
+                  value: ruleFormData.conditions?.business_type || '',
+                  onChange: (e) => setRuleFormData(prev => ({
+                    ...prev,
+                    conditions: { ...prev.conditions, business_type: e.target.value }
+                  })),
+                  className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                },
+                  React.createElement('option', { value: '' }, 'Any'),
+                  React.createElement('option', { value: 'B2C' }, 'B2C'),
+                  React.createElement('option', { value: 'B2B' }, 'B2B')
+                )
+              ),
+              // Lead Source
+              React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' },
+                  'Lead Source'
+                ),
+                React.createElement('select', {
+                  value: ruleFormData.conditions?.lead_source || '',
+                  onChange: (e) => setRuleFormData(prev => ({
+                    ...prev,
+                    conditions: { ...prev.conditions, lead_source: e.target.value }
+                  })),
+                  className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                },
+                  React.createElement('option', { value: '' }, 'Any'),
+                  React.createElement('option', { value: 'Facebook' }, 'Facebook'),
+                  React.createElement('option', { value: 'Instagram' }, 'Instagram'),
+                  React.createElement('option', { value: 'LinkedIn' }, 'LinkedIn'),
+                  React.createElement('option', { value: 'Website' }, 'Website'),
+                  React.createElement('option', { value: 'Friends and Family' }, 'Friends and Family'),
+                  React.createElement('option', { value: 'Through Champion' }, 'Through Champion'),
+                  React.createElement('option', { value: 'Existing Client' }, 'Existing Client'),
+                  React.createElement('option', { value: 'WhatsApp' }, 'WhatsApp'),
+                  React.createElement('option', { value: 'Email Campaign' }, 'Email Campaign'),
+                  React.createElement('option', { value: 'Cold Call' }, 'Cold Call'),
+                  React.createElement('option', { value: 'Other' }, 'Other')
+                )
+              )
+            )
+          ),
+
+          // Assignment Strategy
+          React.createElement('div', { className: 'mb-6' },
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' },
+              'Assignment Strategy'
+            ),
+            React.createElement('select', {
+              value: ruleFormData.assignment_strategy || 'weighted_round_robin',
+              onChange: (e) => setRuleFormData(prev => ({ ...prev, assignment_strategy: e.target.value })),
+              className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+            },
+              React.createElement('option', { value: 'weighted_round_robin' }, 'Weighted Round Robin'),
+              React.createElement('option', { value: 'round_robin' }, 'Round Robin'),
+              React.createElement('option', { value: 'least_busy' }, 'Least Busy')
+            )
+          ),
+
+          // Assignees Section
+          React.createElement('div', { className: 'mb-6' },
+            React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+              React.createElement('h3', { className: 'text-lg font-medium text-gray-900' },
+                'Assignees'
+              ),
+              React.createElement('button', {
+                type: 'button',
+                onClick: () => {
+                  console.log('🔍 Add Assignee clicked');
+                  // Add logic to show assignee selection modal or dropdown
+                },
+                className: 'bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700'
+              }, '+ Add Assignee')
+            ),
+            
+            // Assignees List
+            React.createElement('div', { className: 'space-y-2' },
+              (ruleFormData.assignees || []).length === 0 ? 
+                React.createElement('p', { className: 'text-gray-500 text-sm' },
+                  'No assignees added yet. Click "Add Assignee" to get started.'
+                ) :
+                (ruleFormData.assignees || []).map((assignee, index) => 
+                  React.createElement('div', { 
+                    key: index,
+                    className: 'flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50'
+                  },
+                    React.createElement('div', { className: 'flex items-center space-x-3' },
+                      React.createElement('span', { className: 'font-medium' },
+                        assignee.name || 'Unknown User'
+                      ),
+                      assignee.email && React.createElement('span', { className: 'text-gray-500 text-sm' },
+                        `(${assignee.email})`
+                      )
+                    ),
+                    React.createElement('div', { className: 'flex items-center space-x-3' },
+                      React.createElement('span', { className: 'text-sm text-gray-600' }, 'Weight:'),
+                      React.createElement('input', {
+                        type: 'number',
+                        value: assignee.weight || 50,
+                        onChange: (e) => {
+                          const newAssignees = [...(ruleFormData.assignees || [])];
+                          newAssignees[index] = { ...assignee, weight: parseInt(e.target.value) || 50 };
+                          setRuleFormData(prev => ({ ...prev, assignees: newAssignees }));
+                        },
+                        className: 'w-16 px-2 py-1 border border-gray-300 rounded text-sm',
+                        min: 1,
+                        max: 100
+                      }),
+                      React.createElement('button', {
+                        type: 'button',
+                        onClick: () => {
+                          const newAssignees = (ruleFormData.assignees || []).filter((_, i) => i !== index);
+                          setRuleFormData(prev => ({ ...prev, assignees: newAssignees }));
+                        },
+                        className: 'text-red-600 hover:text-red-800 font-bold text-lg'
+                      }, '✕')
+                    )
+                  )
+                )
+            )
+          ),
+
+          // Form Buttons
+          React.createElement('div', { className: 'flex justify-end space-x-3 pt-4 border-t' },
+            React.createElement('button', {
+              type: 'button',
+              onClick: () => {
+                setShowForm(false);
+                setEditingRule(null);
+                resetForm();
+              },
+              className: 'px-6 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 font-medium'
+            }, 'Cancel'),
+            React.createElement('button', {
+              type: 'submit',
+              disabled: loading,
+              className: 'px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 font-medium'
+            }, loading ? 'Saving...' : (editingRule ? 'Update Rule' : 'Create Rule'))
+          )
+        )
+      )
+    )
+  );
+}
   // Render main component
   return React.createElement('div', { className: 'space-y-6' },
     // Header
