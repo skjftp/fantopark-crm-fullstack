@@ -1294,6 +1294,16 @@ window.renderAppBusinessLogic = function() {
     setDeliveryFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // ✅ ADD: openInvoicePreview function
+  const openInvoicePreview = (invoice) => {
+    console.log('📄 Opening invoice preview for:', invoice);
+    window.setCurrentInvoice(invoice);
+    window.setShowInvoicePreview(true);
+  };
+
+  // Expose the function to window
+  window.openInvoicePreview = openInvoicePreview;
+
   // ✅ RETURN ALL HANDLERS INCLUDING THE MISSING FORM HANDLER REFERENCES
   return {
     // ✅ CRITICAL SOPHISTICATED WORKFLOW FUNCTIONS RESTORED WITH PROPER MODAL SWITCHING
@@ -1322,6 +1332,7 @@ window.renderAppBusinessLogic = function() {
     handlePaymentSubmit: window.handlePaymentSubmit,           // ✅ ADD: Payment submit handler
     handlePaymentPostServiceSubmit: window.handlePaymentPostServiceSubmit, // ✅ ADD: Payment post service submit
     calculateGSTAndTCS: window.calculateGSTAndTCS,             // ✅ ADD: GST calculation utility
+    openInvoicePreview: openInvoicePreview,                    // ✅ ADD: Invoice preview handler
     
     // ✅ ALL WORKING FUNCTIONS FROM ORIGINAL FILE
     openEditOrderForm,
