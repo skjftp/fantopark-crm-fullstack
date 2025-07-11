@@ -911,6 +911,9 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
   window.handlePaymentPostServiceInputChange = handlers.handlePaymentPostServiceInputChange || window.handlePaymentPostServiceInputChange;
   window.handlePaymentSubmit = handlers.handlePaymentSubmit || window.handlePaymentSubmit;
   window.handlePaymentInputChange = handlers.handlePaymentInputChange || window.handlePaymentInputChange;
+  window.handleMarkPaymentFromReceivable = handlers.handleMarkPaymentFromReceivable || (() => {
+  console.warn("handleMarkPaymentFromReceivable not implemented");
+});
 
   // Bulk Operations Functions
   window.handleBulkAssignSubmit = handlers.handleBulkAssignSubmit || (() => {
