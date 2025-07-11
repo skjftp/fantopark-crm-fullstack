@@ -135,13 +135,13 @@ window.renderRemindersContent = () => {
                       className: 'text-red-600 hover:text-red-900'
                     }, '🗑️ Delete'),
                     lead && React.createElement('button', {
-                      onClick: () => {
-                        setCurrentLead(lead);
-                        setShowEditForm(true);
-                        setActiveTab('leads');
-                      },
-                      className: 'text-indigo-600 hover:text-indigo-900'
-                    }, '👤 View Lead')
+  onClick: () => {
+    window.setCurrentLead(lead);
+    window.setShowLeadDetail(true);  // ← Open detail view instead of edit form
+    window.setActiveTab('leads');
+  },
+  className: 'text-indigo-600 hover:text-indigo-900'
+}, '👤 View Lead')
                   )
                 )
               );
