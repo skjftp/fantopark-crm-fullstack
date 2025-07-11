@@ -693,11 +693,22 @@ window.SimplifiedApp = function() {
     state.setShowAllocationForm(true);
   });
   
-  window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
-    console.log("🚚 openDeliveryForm called with delivery:", delivery);
-    state.setCurrentDelivery(delivery);
-    state.setShowDeliveryForm(true);
-  });
+// ✅ FIXED: Delivery Form Functions - Use Enhanced Window Setters
+window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
+  console.log("🚚 ENHANCED openDeliveryForm called with delivery:", delivery);
+  
+  // ✅ Permission check
+  if (!window.hasPermission('delivery', 'write')) {
+    alert('You do not have permission to manage deliveries');
+    return;
+  }
+  
+  // ✅ Use enhanced window setters (not direct state setters)
+  window.setCurrentDelivery(delivery);
+  window.setShowDeliveryForm(true);
+  
+  console.log("✅ Enhanced delivery form opened with sync and re-render logic");
+});
 
   // ✅ INVENTORY FUNCTIONS - FIXED WITH FORCE RE-RENDER
   window.openInventoryForm = handlers.openInventoryForm || (() => {
