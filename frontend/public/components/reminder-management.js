@@ -4,7 +4,7 @@
 
 // In components/reminder-management.js - UPDATE the fetchReminders function
 window.fetchReminders = async function() {
-  if (!window.isLoggedIn) return;
+  if (!window.appState?.isLoggedIn) return;
 
   try {
     const response = await window.apiCall('/reminders'); // ← Fixed: was window.apicall
