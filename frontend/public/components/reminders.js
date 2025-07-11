@@ -18,7 +18,14 @@ window.renderRemindersContent = () => {
     React.createElement('div', { className: 'flex justify-between items-center' },
       React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Reminders'),
       React.createElement('div', { className: 'flex gap-3' },
-        React.createElement('button', {
+      React.createElement('button', {
+      onClick: () => window.setShowReminderForm(true),
+      className: 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2'
+    }, 
+      React.createElement('span', null, '➕'),
+      'Create Reminder'
+    ),
+       React.createElement('button', {
           onClick: () => fetchReminders(),
           className: 'px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700'
         }, '🔄 Refresh')
