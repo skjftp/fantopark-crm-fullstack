@@ -139,14 +139,6 @@ window.renderSportsCalendarContent = () => {
           React.createElement('span', { 
             className: `px-2 py-1 rounded-full text-xs ${(sportsEvents || []).length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`
           }, (sportsEvents || []).length > 0 ? `${filteredEvents.length}/${(sportsEvents || []).length} Events` : 'Loading Events...'),
-          React.createElement('button', {
-            onClick: () => {
-              console.log('🔍 Refresh button clicked');
-              fetchAllEvents();
-            },
-            disabled: loading,
-            className: 'ml-3 text-blue-600 hover:text-blue-800 text-sm underline disabled:opacity-50'
-          }, loading ? 'Refreshing...' : '🔄 Refresh Events')
         )
       ),
       React.createElement('div', { className: 'flex flex-wrap gap-2' },
@@ -244,18 +236,22 @@ window.renderSportsCalendarContent = () => {
             React.createElement('option', { value: 'P3' }, 'P3 - Low')
           )
         ),
-        // Clear Filters Button
-        React.createElement('div', { className: 'flex items-end' },
-          React.createElement('button', {
+            // Clear Filters Button
+            React.createElement('button', {
             onClick: () => {
-              console.log('🔍 Clear filters clicked');
-              setCalendarFilters({});
+            console.log('🔍 Clear filters clicked');
+            // Reset all filter values individually
+            setCalendarFilters({
+            geography: '',
+            sport_type: '',
+            priority: ''
+            });
             },
             className: 'w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg'
-          }, 'Clear Filters')
-        )
-      )
-    ),
+            }, 'Reset Filters')
+            )
+            )
+            ),
                                
     // Calendar Controls with enhanced navigation
     React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4' },
