@@ -24,22 +24,24 @@ window.renderUserForm = () => {
           React.createElement('div', null,
             React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Full Name *'),
             React.createElement('input', {
-              type: 'text',
-              value: userFormData.name || '',
-              onChange: (e) => handleUserInputChange('name', e.target.value),
-              className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-              required: true
-            })
+            type: 'text',
+            autoComplete: 'name',
+            value: userFormData.name || '',
+            onChange: (e) => handleUserInputChange('name', e.target.value),
+            className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+            required: true
+          })
           ),
           React.createElement('div', null,
             React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Email *'),
             React.createElement('input', {
-              type: 'email',
-              value: userFormData.email || '',
-              onChange: (e) => handleUserInputChange('email', e.target.value),
-              className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-              required: true
-            })
+            type: 'email',
+            autoComplete: 'email',
+            value: userFormData.email || '',
+            onChange: (e) => handleUserInputChange('email', e.target.value),
+            className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+            required: true
+          })
           ),
           React.createElement('div', null,
             React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
