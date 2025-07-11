@@ -90,7 +90,7 @@ window.renderContent = () => {
             // PRESERVED: Complete existing roles logic
             if (window.user?.role === 'super_admin' && !window.rolesInitialized) {
                 window.setRolesInitialized(true);
-                window.apicall('/roles').then(response => {
+                window.apiCall('/roles').then(response => {
                     window.setRoles(response.data || []);
                 }).catch(error => {
                     console.error('Failed to fetch roles:', error);
@@ -130,7 +130,7 @@ window.renderContent = () => {
                     React.createElement('button', {
                         onClick: async () => {
                             try {
-                                const response = await window.apicall('/roles/initialize', { method: 'POST', body: JSON.stringify({}) });
+                                const response = await window.apiCall('/roles/initialize', { method: 'POST', body: JSON.stringify({}) });
                                 console.log('Default roles initialized successfully');
                                 window.setRoles(response.data || []);
                             } catch (error) {
@@ -173,7 +173,7 @@ window.renderContent = () => {
                                     onClick: async () => {
                                         if (!confirm('Are you sure you want to delete this role?')) return;
                                         try {
-                                            await window.apicall('/roles/' + (role.id), { method: 'DELETE' });
+                                            await window.apiCall('/roles/' + (role.id), { method: 'DELETE' });
                                             alert('Role deleted successfully!');
                                             window.roles = window.roles.filter(r => r._id !== role.id);
                                         } catch (error) {
@@ -221,15 +221,15 @@ window.renderContent = () => {
                                 e.preventDefault();
                                 try {
                                     if (window.editingRole) {
-                                        await window.apicall('/roles/' + (window.editingRole.id), { method: 'PUT', body: JSON.stringify(window.roleFormData) });
+                                        await window.apiCall('/roles/' + (window.editingRole.id), { method: 'PUT', body: JSON.stringify(window.roleFormData) });
                                         console.log('Role updated successfully');
                                     } else {
-                                        await window.apicall('/roles', { method: 'POST', body: JSON.stringify(window.roleFormData) });
+                                        await window.apiCall('/roles', { method: 'POST', body: JSON.stringify(window.roleFormData) });
                                         console.log('Role created successfully');
                                     }
 
                                     // Refresh roles
-                                    const response = await window.apicall('/roles');
+                                    const response = await window.apiCall('/roles');
                                     window.setRoles(response.data || []);
                                     window.setShowRoleForm(false);
                                     window.setEditingRole(null);
