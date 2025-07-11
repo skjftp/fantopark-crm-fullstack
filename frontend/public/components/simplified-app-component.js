@@ -1154,18 +1154,72 @@ window.importEventsFromExcel = handlers.importEventsFromExcel || (async (file) =
     }
   });
 
-  // ✅ EVENT FORM HANDLERS
-  window.openEventForm = handlers.openEventForm || ((event = null) => {
-    console.log("📅 openEventForm called with:", event?.title || 'new event');
-    
-    // Set current event for editing (null for new event)
-    window.setCurrentEvent(event);
-    
-    // Show the event form
-    window.setShowEventForm(true);
-    
-    console.log("✅ Event form opened");
-  });
+ // ✅ EVENT FORM HANDLERS - FIXED WITH FORM DATA POPULATION
+window.openEventForm = handlers.openEventForm || ((event = null) => {
+  console.log("📅 openEventForm called with:", event?.title || event?.event_name || 'new event');
+  
+  // Set current event for editing (null for new event)
+  window.setCurrentEvent(event);
+  
+  // ✅ FIX: Pre-populate form data when editing
+  if (event && window.setEventFormData) {
+    console.log("🔧 Pre-populating form data for edit:", event.event_name || event.title);
+    window.setEventFormData({
+      event_name: event.event_name || event.title || '',
+      event_type: event.event_type || '',
+      sport_type: event.sport_type || event.category || '',
+      geography: event.geography || '',
+      start_date: event.start_date || event.date || '',
+      end_date: event.end_date || '',
+      start_time: event.start_time || event.time || '',
+      end_time: event.end_time || '',
+      venue: event.venue || '',
+      venue_capacity: event.venue_capacity || '',
+      venue_address: event.venue_address || '',
+      official_ticketing_partners: event.official_ticketing_partners || '',
+      primary_source: event.primary_source || '',
+      secondary_source: event.secondary_source || '',
+      ticket_available: event.ticket_available || false,
+      priority: event.priority || '',
+      status: event.status || 'upcoming',
+      sold_out_potential: event.sold_out_potential || '',
+      remarks: event.remarks || '',
+      fantopark_package: event.fantopark_package || '',
+      description: event.description || ''
+    });
+  } else if (!event && window.setEventFormData) {
+    // Reset form for new event
+    console.log("🔧 Resetting form data for new event");
+    window.setEventFormData({
+      event_name: '',
+      event_type: '',
+      sport_type: '',
+      geography: '',
+      start_date: '',
+      end_date: '',
+      start_time: '',
+      end_time: '',
+      venue: '',
+      venue_capacity: '',
+      venue_address: '',
+      official_ticketing_partners: '',
+      primary_source: '',
+      secondary_source: '',
+      ticket_available: false,
+      priority: '',
+      status: 'upcoming',
+      sold_out_potential: '',
+      remarks: '',
+      fantopark_package: '',
+      description: ''
+    });
+  }
+  
+  // Show the event form
+  window.setShowEventForm(true);
+  
+  console.log("✅ Event form opened with form data populated");
+});
 
   window.closeEventForm = handlers.closeEventForm || (() => {
     console.log("📅 closeEventForm called");
