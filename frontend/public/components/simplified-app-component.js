@@ -10,7 +10,7 @@ window.SimplifiedApp = function() {
   console.log("state.setShowAllocationManagement:", typeof state.setShowAllocationManagement, state.setShowAllocationManagement);
   console.log("state.setShowEditInventoryForm:", typeof state.setShowEditInventoryForm, state.setShowEditInventoryForm);
   
-  // Log available setters
+  // Log available setter
   const availableSetters = Object.keys(state).filter(key => key.startsWith('set') && key.includes('Inventory'));
   console.log("📋 Available inventory-related setters:", availableSetters);
   
