@@ -1032,6 +1032,14 @@ window.userFormData = state.userFormData || {};
   window.deleteLead = handlers.deleteLead;
   window.assignLead = handlers.assignLead;
   window.progressLead = handlers.progressLead;
+
+  // ✅ ADD THESE MISSING MY ACTIONS FUNCTION EXPOSURES:
+window.setActiveTab = state.setActiveTab;
+window.viewLeadDetails = handlers.openLeadDetail || window.openLeadDetail || ((lead) => {
+  console.log("🔍 viewLeadDetails called with lead:", lead);
+  window.setCurrentLead(lead);
+  window.setShowLeadDetail(true);
+});
   
   // Lead Progression Functions
   window.handleLeadProgression = handlers.handleLeadProgression || handlers.progressLead || ((leadId, newStatus) => {
