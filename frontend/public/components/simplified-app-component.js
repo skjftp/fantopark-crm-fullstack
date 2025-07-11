@@ -249,6 +249,34 @@ window.setStadiums = state.setStadiums;
 window.setEditingStadium = state.setEditingStadium;
 window.setStadiumFormData = state.setStadiumFormData;
 window.setShowStadiumForm = state.setShowStadiumForm;  
+
+// ✅ MISSING MODAL STATE SETTERS - ADD TO simplified-app-component.js
+
+// Edit Inventory Form Modal
+window.setShowEditInventoryForm = state.setShowEditInventoryForm || ((show) => {
+  console.log("✏️ setShowEditInventoryForm called with:", show);
+  window.showEditInventoryForm = show;
+  if (state.setShowEditInventoryForm) {
+    state.setShowEditInventoryForm(show);
+  } else {
+    console.warn("⚠️ setShowEditInventoryForm not implemented in state");
+  }
+});
+
+// Allocation Management Modal
+window.setShowAllocationManagement = state.setShowAllocationManagement || ((show) => {
+  console.log("👁️ setShowAllocationManagement called with:", show);
+  window.showAllocationManagement = show;
+  if (state.setShowAllocationManagement) {
+    state.setShowAllocationManagement(show);
+  } else {
+    console.warn("⚠️ setShowAllocationManagement not implemented in state");
+  }
+});
+
+// Modal State Variables
+window.showEditInventoryForm = state.showEditInventoryForm || false;
+window.showAllocationManagement = state.showAllocationManagement || false;  
   
 // ===== INVENTORY ACTION FUNCTION EXPOSURES =====
   window.openInventoryDetail = handlers.openInventoryDetail || ((inventory) => {
@@ -300,6 +328,8 @@ window.setShowInventoryForm = state.setShowInventoryForm || ((show) => {
 });
 
 window.showInventoryForm = state.showInventoryForm || false;
+
+  
   
   // ✅ STATE EXPOSURES - COMPLETE SET
   window.appState = window.appState || {};
