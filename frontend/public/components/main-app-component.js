@@ -5,6 +5,15 @@
 window.renderMainApp = function() {
   const { useState, useEffect, useRef } = React;
 
+
+  window.forceUpdate = () => {
+  // This will be called from the fixed orders.js when filters change
+  setOrdersFilters({...window.ordersFilters});
+  setOrdersPagination({...window.ordersPagination});
+  setOrdersSorting({...window.ordersSorting});
+  setOrdersShowFilters(window.ordersShowFilters);
+};
+  
   // Extract all useState declarations
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showReminderForm, setShowReminderForm] = useState(false);
@@ -262,6 +271,36 @@ const [eventsPerPage, setEventsPerPage] = useState(10);
     tempValue: null
   });
 
+  // Orders filtering state
+const [ordersFilters, setOrdersFilters] = useState({
+  searchQuery: '',
+  statusFilter: 'all',
+  assignedToFilter: 'all',
+  eventFilter: 'all',
+  dateFromFilter: '',
+  dateToFilter: '',
+  clientFilter: '',
+  orderNumberFilter: '',
+  paymentStatusFilter: 'all'
+});
+
+// Orders pagination state
+const [ordersPagination, setOrdersPagination] = useState({
+  currentPage: 1,
+  itemsPerPage: 10,
+  totalItems: 0,
+  totalPages: 0
+});
+
+// Orders sorting state
+const [ordersSorting, setOrdersSorting] = useState({
+  sortField: 'created_date',
+  sortDirection: 'desc'
+});
+
+// Orders UI state
+const [ordersShowFilters, setOrdersShowFilters] = useState(false);
+
   // Make state available globally for other components
   window.appState = {
     isLoggedIn, setIsLoggedIn,
@@ -271,6 +310,10 @@ const [eventsPerPage, setEventsPerPage] = useState(10);
     password, setPassword,
     activeTab, setActiveTab,
     loading, setLoading,
+      ordersFilters, setOrdersFilters,
+  ordersPagination, setOrdersPagination,
+  ordersSorting, setOrdersSorting,
+  ordersShowFilters, setOrdersShowFilters,
     leads, setLeads,
     inventory, setInventory,
     editingInventory, setEditingInventory,
@@ -431,6 +474,14 @@ eventsPerPage,
   window.setFinancialStats = setFinancialStats;
   window.setShowReminderForm = setShowReminderForm;
 window.showReminderForm = showReminderForm;
+  window.ordersFilters = ordersFilters;
+window.setOrdersFilters = setOrdersFilters;
+window.ordersPagination = ordersPagination;
+window.setOrdersPagination = setOrdersPagination;
+window.ordersSorting = ordersSorting;
+window.setOrdersSorting = setOrdersSorting;
+window.ordersShowFilters = ordersShowFilters;
+window.setOrdersShowFilters = setOrdersShowFilters;
 
   // Return the state object to be used by App component
   window.setViewMode = setViewMode;
