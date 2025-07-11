@@ -391,6 +391,7 @@ window.renderMonthView = (events) => {
 };
 
 // ✅ ENHANCED List View Function with proper event handling
+// Fix: Updated renderListView function with View Details button instead of Edit
 window.renderListView = (events) => {
   const sortedEvents = events.sort((a, b) => {
     try {
@@ -403,7 +404,6 @@ window.renderListView = (events) => {
 
   const setCurrentEvent = window.setCurrentEvent || (() => {});
   const setShowEventDetail = window.setShowEventDetail || (() => {});
-  const setShowEventForm = window.setShowEventForm || (() => {});
   const deleteEvent = window.deleteEvent || (() => {});
 
   return React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
@@ -421,84 +421,85 @@ window.renderListView = (events) => {
         ),
         React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
           sortedEvents.length > 0 ?
-            sortedEvents.map((event, index) => 
-              React.createElement('tr', { 
-                key: event.id || index,
-                className: 'hover:bg-gray-50 cursor-pointer',
-                onClick: () => {
-                  console.log('🔍 Table row clicked:', event.title || event.event_name);
-                  setCurrentEvent(event);
-                  setShowEventDetail(true);
-                }
+            sortedEvents.map((event, index) => {
+              const eventDate = new Date(event.date || event.start_date);
+              const formattedDate = eventDate.toLocaleDateString();
+              const formattedTime = event.start_time || eventDate.toLocaleTimeString();
+              
+              return React.createElement('tr', { 
+                key: event.id || index, 
+                className: 'hover:bg-gray-50 dark:hover:bg-gray-700' 
               },
-                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
-                  React.createElement('div', { className: 'flex items-center' },
-                    React.createElement('div', { 
-                      className: `w-3 h-3 rounded mr-3 ${
-                        event.priority === 'P1' ? 'bg-red-500' :
-                        event.priority === 'P2' ? 'bg-yellow-500' : 'bg-green-500'
-                      }`
-                    }),
-                    React.createElement('div', null,
-                      React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, event.title || event.event_name || 'Unnamed Event'),
-                      React.createElement('div', { className: 'text-sm text-gray-500' }, event.sport_type || event.category || 'Unknown')
+                // Event Name column
+                React.createElement('td', { className: 'px-6 py-4' },
+                  React.createElement('div', null,
+                    React.createElement('div', { className: 'text-sm font-medium text-gray-900 dark:text-white' }, 
+                      event.title || event.event_name || 'Unnamed Event'
+                    ),
+                    React.createElement('div', { className: 'text-sm text-gray-500' }, 
+                      event.event_type || event.category || 'N/A'
                     )
                   )
                 ),
-                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900' },
-                  (() => {
-                    try {
-                      const date = new Date(event.date || event.start_date);
-                      return date.toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      });
-                    } catch (error) {
-                      return 'Invalid Date';
-                    }
-                  })(),
-                  event.start_time && React.createElement('div', { className: 'text-xs text-gray-500' }, event.start_time)
+                
+                // Date & Time column
+                React.createElement('td', { className: 'px-6 py-4' },
+                  React.createElement('div', null,
+                    React.createElement('div', { className: 'text-sm text-gray-900 dark:text-white' }, formattedDate),
+                    React.createElement('div', { className: 'text-sm text-gray-500' }, formattedTime)
+                  )
                 ),
-                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900' }, event.venue || '-'),
-                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900' }, event.sport_type || event.category || '-'),
-                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                
+                // Venue column
+                React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' },
+                  event.venue || 'TBD'
+                ),
+                
+                // Sport column
+                React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' },
+                  event.sport_type || event.category || 'N/A'
+                ),
+                
+                // Priority column
+                React.createElement('td', { className: 'px-6 py-4' },
                   React.createElement('span', { 
-                    className: `px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      event.priority === 'P1' ? 'bg-red-100 text-red-800' :
-                      event.priority === 'P2' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-green-100 text-green-800'
-                    }`
+                    className: `px-2 py-1 text-xs font-medium rounded-full ${window.getPriorityStyles ? window.getPriorityStyles(event.priority) : 'bg-gray-100 text-gray-800'}`
                   }, event.priority || 'P3')
                 ),
-                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm font-medium' },
-                  React.createElement('button', {
-                    onClick: (e) => {
-                      e.stopPropagation();
-                      console.log('🔍 Edit event clicked:', event.title || event.event_name);
-                      setCurrentEvent(event);
-                      setShowEventForm(true);
-                    },
-                    className: 'text-indigo-600 hover:text-indigo-900 mr-4'
-                  }, 'Edit'),
-                  React.createElement('button', {
-                    onClick: (e) => {
-                      e.stopPropagation();
-                      console.log('🔍 Delete event clicked:', event.title || event.event_name);
-                      if (confirm('Delete this event?')) {
-                        deleteEvent(event.id);
-                      }
-                    },
-                    className: 'text-red-600 hover:text-red-900'
-                  }, 'Delete')
+                
+                // Actions column - CHANGED: View Details instead of Edit
+                React.createElement('td', { className: 'px-6 py-4' },
+                  React.createElement('div', { className: 'flex items-center space-x-2' },
+                    // View Details Button (CHANGED from Edit)
+                    React.createElement('button', {
+                      onClick: () => {
+                        console.log('🔍 View Details clicked for event:', event.title || event.event_name);
+                        setCurrentEvent(event);
+                        setShowEventDetail(true);
+                      },
+                      className: 'text-blue-600 hover:text-blue-900 text-sm px-3 py-1 rounded border border-blue-200 hover:bg-blue-50 font-medium'
+                    }, '👁️ View Details'),
+                    
+                    // Delete Button (Optional - keep or remove as needed)
+                    window.hasPermission && window.hasPermission('events', 'delete') && 
+                    React.createElement('button', {
+                      onClick: () => {
+                        if (confirm('Are you sure you want to delete this event?')) {
+                          console.log('🔍 Delete clicked for event:', event.id);
+                          deleteEvent(event.id);
+                        }
+                      },
+                      className: 'text-red-600 hover:text-red-900 text-sm px-3 py-1 rounded border border-red-200 hover:bg-red-50'
+                    }, '🗑️ Delete')
+                  )
                 )
-              )
-            ) :
+              );
+            }) :
             React.createElement('tr', null,
               React.createElement('td', { 
-                className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center',
-                colSpan: 6
-              }, 'No events found for the selected filters')
+                colSpan: 6, 
+                className: 'px-6 py-4 text-center text-gray-500' 
+              }, 'No events found for selected filters')
             )
         )
       )
