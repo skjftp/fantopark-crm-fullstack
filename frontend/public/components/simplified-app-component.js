@@ -2176,6 +2176,7 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
   window.getFilteredLeads = getFilteredLeads;
 
   // ✅ SPORTS CALENDAR FALLBACK FUNCTION - Ensures always available
+// ✅ SPORTS CALENDAR FALLBACK FUNCTION - FULL WORKING VERSION
 window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() => {
   console.log("🔍 FALLBACK: renderSportsCalendarContent called");
   
@@ -2183,7 +2184,7 @@ window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() =
   const {
     sportsEvents = window.sportsEvents || [],
     selectedDate = window.selectedDate || new Date(),
-    calendarView = window.calendarView || "month",
+    calendarView = window.calendarView || "list", // Default to list view
     calendarFilters = window.calendarFilters || {},
     showEventForm = window.appState?.showEventForm || false,
     showImportModal = window.appState?.showImportModal || false,
@@ -2192,27 +2193,45 @@ window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() =
     loading = window.loading || false
   } = window.appState || {};
 
+  // Auto-load events if none exist
+  React.useEffect(() => {
+    if (sportsEvents.length === 0 && !loading && window.fetchAllEvents) {
+      console.log("📅 Auto-loading events...");
+      window.fetchAllEvents();
+    }
+  }, []);
+
   // Extract functions with enhanced fallbacks
   const {
     setShowEventForm = window.setShowEventForm || ((show) => {
       console.log("🔍 setShowEventForm called:", show);
       window.showEventForm = show;
-      window.appState.showEventForm = show;
+      if (window.appState) window.appState.showEventForm = show;
     }),
     setShowImportModal = window.setShowImportModal || ((show) => {
       console.log("🔍 setShowImportModal called:", show);
       window.showImportModal = show;
-      window.appState.showImportModal = show;
+      if (window.appState) window.appState.showImportModal = show;
     }),
     setCurrentEvent = window.setCurrentEvent || ((event) => {
       console.log("🔍 setCurrentEvent called:", event);
       window.currentEvent = event;
-      window.appState.currentEvent = event;
+      if (window.appState) window.appState.currentEvent = event;
     }),
     setCalendarFilters = window.setCalendarFilters || ((filters) => {
       console.log("🔍 setCalendarFilters called:", filters);
       window.calendarFilters = { ...window.calendarFilters, ...filters };
-      window.appState.calendarFilters = window.calendarFilters;
+      if (window.appState) window.appState.calendarFilters = window.calendarFilters;
+    }),
+    setCalendarView = window.setCalendarView || ((view) => {
+      console.log("🔍 setCalendarView called:", view);
+      window.calendarView = view;
+      if (window.appState) window.appState.calendarView = view;
+    }),
+    setSelectedDate = window.setSelectedDate || ((date) => {
+      console.log("🔍 setSelectedDate called:", date);
+      window.selectedDate = date;
+      if (window.appState) window.appState.selectedDate = date;
     }),
     fetchAllEvents = window.fetchAllEvents || (() => {
       console.log("🔍 fetchAllEvents called");
@@ -2264,7 +2283,7 @@ window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() =
         React.createElement('div', { className: 'flex items-center mt-2 text-sm' },
           React.createElement('span', { 
             className: `px-2 py-1 rounded-full text-xs ${(sportsEvents || []).length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`
-          }, (sportsEvents || []).length > 0 ? `${filteredEvents.length}/${(sportsEvents || []).length} Events` : 'Loading Events...')
+          }, (sportsEvents || []).length > 0 ? `${filteredEvents.length}/${(sportsEvents || []).length} Events` : loading ? 'Loading Events...' : 'No Events')
         )
       ),
       React.createElement('div', { className: 'flex flex-wrap gap-2' },
@@ -2378,49 +2397,144 @@ window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() =
       )
     ),
 
-    // Basic Events List
+    // Calendar Navigation
     React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4' },
-      React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Events'),
-      filteredEvents.length > 0 ? 
-        React.createElement('div', { className: 'space-y-2' },
-          filteredEvents.map(event =>
-            React.createElement('div', { 
-              key: event.id,
-              className: 'p-3 border border-gray-200 rounded-lg hover:bg-gray-50'
+      React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+        React.createElement('div', { className: 'flex items-center space-x-4' },
+          React.createElement('button', {
+            onClick: () => {
+              console.log('🔍 Previous month clicked');
+              const newDate = new Date(selectedDate);
+              newDate.setMonth(newDate.getMonth() - 1);
+              setSelectedDate(newDate);
             },
-              React.createElement('div', { className: 'flex justify-between items-start' },
-                React.createElement('div', null,
-                  React.createElement('h4', { className: 'font-medium' }, event.event_name || event.title),
-                  React.createElement('p', { className: 'text-sm text-gray-500' }, event.venue),
-                  React.createElement('p', { className: 'text-sm text-gray-500' }, 
-                    new Date(event.start_date || event.date).toLocaleDateString()
+            className: 'p-2 hover:bg-gray-100 rounded'
+          }, '←'),
+          React.createElement('h2', { className: 'text-xl font-semibold' }, 
+            selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+          ),
+          React.createElement('button', {
+            onClick: () => {
+              console.log('🔍 Next month clicked');
+              const newDate = new Date(selectedDate);
+              newDate.setMonth(newDate.getMonth() + 1);
+              setSelectedDate(newDate);
+            },
+            className: 'p-2 hover:bg-gray-100 rounded'
+          }, '→')
+        ),
+        React.createElement('div', { className: 'flex space-x-2' },
+          ['month', 'list'].map(view =>
+            React.createElement('button', {
+              key: view,
+              onClick: () => {
+                console.log('🔍 View changed to:', view);
+                setCalendarView(view);
+              },
+              className: `px-3 py-1 rounded text-sm ${calendarView === view ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`
+            }, view.charAt(0).toUpperCase() + view.slice(1))
+          )
+        )
+      ),
+
+      // Events Display
+      React.createElement('div', { className: 'min-h-[400px]' },
+        loading ? 
+          React.createElement('div', { className: 'flex items-center justify-center h-64' },
+            React.createElement('div', { className: 'text-gray-500' }, 'Loading events...')
+          ) :
+        filteredEvents.length > 0 ? 
+          // Events List
+          calendarView === 'list' ?
+            React.createElement('div', { className: 'space-y-3' },
+              filteredEvents.map(event =>
+                React.createElement('div', { 
+                  key: event.id,
+                  className: 'p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer',
+                  onClick: () => {
+                    setCurrentEvent(event);
+                    window.setShowEventDetail && window.setShowEventDetail(true);
+                  }
+                },
+                  React.createElement('div', { className: 'flex justify-between items-start' },
+                    React.createElement('div', { className: 'flex-1' },
+                      React.createElement('h4', { className: 'font-semibold text-lg' }, event.event_name || event.title),
+                      React.createElement('p', { className: 'text-gray-600' }, `${event.sport_type || event.category} • ${event.venue}`),
+                      React.createElement('p', { className: 'text-sm text-gray-500' }, 
+                        new Date(event.start_date || event.date).toLocaleDateString()
+                      ),
+                      event.priority && React.createElement('span', {
+                        className: `inline-block px-2 py-1 text-xs rounded mt-2 ${
+                          event.priority === 'P1' ? 'bg-red-100 text-red-800' :
+                          event.priority === 'P2' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800'
+                        }`
+                      }, event.priority)
+                    ),
+                    React.createElement('div', { className: 'flex gap-2' },
+                      React.createElement('button', {
+                        onClick: (e) => {
+                          e.stopPropagation();
+                          console.log('🔍 Edit event clicked:', event.event_name || event.title);
+                          window.openEventForm(event);
+                        },
+                        className: 'text-indigo-600 hover:text-indigo-900 text-sm px-2 py-1'
+                      }, 'Edit'),
+                      React.createElement('button', {
+                        onClick: (e) => {
+                          e.stopPropagation();
+                          console.log('🔍 Delete event clicked:', event.event_name || event.title);
+                          if (confirm('Delete this event?')) {
+                            window.deleteEvent && window.deleteEvent(event.id);
+                          }
+                        },
+                        className: 'text-red-600 hover:text-red-900 text-sm px-2 py-1'
+                      }, 'Delete')
+                    )
                   )
-                ),
-                React.createElement('div', { className: 'flex gap-2' },
-                  React.createElement('button', {
-                    onClick: () => {
-                      console.log('🔍 Edit event clicked:', event.event_name || event.title);
-                      window.openEventForm(event);
-                    },
-                    className: 'text-indigo-600 hover:text-indigo-900 text-sm'
-                  }, 'Edit'),
-                  React.createElement('button', {
-                    onClick: () => {
-                      console.log('🔍 Delete event clicked:', event.event_name || event.title);
-                      if (confirm('Delete this event?')) {
-                        window.deleteEvent(event.id);
-                      }
-                    },
-                    className: 'text-red-600 hover:text-red-900 text-sm'
-                  }, 'Delete')
                 )
               )
+            ) :
+            // Month View - Basic Calendar Grid
+            React.createElement('div', { className: 'grid grid-cols-7 gap-1' },
+              // Calendar headers
+              ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day =>
+                React.createElement('div', { key: day, className: 'p-2 text-center font-medium text-gray-500' }, day)
+              ),
+              // Calendar days (simplified)
+              Array.from({ length: 35 }, (_, i) => {
+                const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), i - 6);
+                const dayEvents = filteredEvents.filter(event => {
+                  const eventDate = new Date(event.start_date || event.date);
+                  return eventDate.toDateString() === date.toDateString();
+                });
+                
+                return React.createElement('div', { 
+                  key: i,
+                  className: `p-2 h-24 border border-gray-200 ${
+                    date.getMonth() !== selectedDate.getMonth() ? 'bg-gray-50 text-gray-400' : 'bg-white'
+                  }`
+                },
+                  React.createElement('div', { className: 'text-sm font-medium' }, date.getDate()),
+                  dayEvents.length > 0 && React.createElement('div', { className: 'text-xs text-blue-600 mt-1' },
+                    `${dayEvents.length} event${dayEvents.length > 1 ? 's' : ''}`
+                  )
+                );
+              })
             )
-          )
-        ) :
-        React.createElement('div', { className: 'text-center py-8 text-gray-500' },
-          'No events found for the selected filters'
+        :
+        // No events message
+        React.createElement('div', { className: 'text-center py-12 text-gray-500' },
+          React.createElement('p', { className: 'text-lg mb-2' }, 'No events found for the selected filters'),
+          React.createElement('button', {
+            onClick: () => {
+              console.log('🔍 Manual fetch clicked');
+              fetchAllEvents();
+            },
+            className: 'text-blue-600 hover:text-blue-800 underline'
+          }, 'Click to load events')
         )
+      )
     )
   );
 });
