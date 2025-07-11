@@ -45,6 +45,12 @@ window.renderAppEffects = function() {
   // Reminders fetching and auto-refresh
 // Add this useEffect for automatic reminder loading
 useEffect(() => {
+  console.log('🔍 useEffect conditions:', {
+    activeTab,
+    isLoggedIn,
+    fetchRemindersExists: !!window.fetchReminders
+  });
+  
   if (activeTab === 'reminders' && isLoggedIn && window.fetchReminders) {
     console.log('🔔 Auto-loading reminders...');
     window.fetchReminders();
