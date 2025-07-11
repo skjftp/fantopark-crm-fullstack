@@ -185,6 +185,12 @@ window.SimplifiedApp = function() {
   window.editingInventory = state.editingInventory || null;
   window.currentInventoryDetail = state.currentInventoryDetail || null;
 
+  // ✅ CRITICAL MISSING: Order Management Variables
+  window.currentOrderDetail = state.currentOrderDetail || null;
+  window.showOrderDetail = state.showOrderDetail || false;
+  window.selectedOrderForAssignment = state.selectedOrderForAssignment || null;
+  window.showOrderAssignmentModal = state.showOrderAssignmentModal || false;
+
   // ===== COMPREHENSIVE STATE SETTERS FIX =====
 
   // ✅ ENHANCED SYNC FUNCTION - handles ALL modal states
@@ -209,6 +215,11 @@ window.SimplifiedApp = function() {
         showPaymentForm: window.appState?.showPaymentForm,
         showPaymentPostServiceForm: window.appState?.showPaymentPostServiceForm,
         
+        // Order modals
+        showOrderDetail: window.appState?.showOrderDetail,
+        showEditOrderForm: window.appState?.showEditOrderForm,
+        showOrderAssignmentModal: window.appState?.showOrderAssignmentModal,
+        
         // Other modals
         showDeliveryForm: window.appState?.showDeliveryForm,
         showChoiceModal: window.appState?.showChoiceModal,
@@ -220,7 +231,6 @@ window.SimplifiedApp = function() {
         showClientSuggestion: window.appState?.showClientSuggestion,
         showPreview: window.appState?.showPreview,
         showClientDetectionResults: window.appState?.showClientDetectionResults,
-        showEditOrderForm: window.appState?.showEditOrderForm,
         showUserForm: window.appState?.showUserForm
       };
 
@@ -234,6 +244,8 @@ window.SimplifiedApp = function() {
       window.allocationManagementInventory = window.appState?.allocationManagementInventory;
       window.currentAllocations = window.appState?.currentAllocations;
       window.currentInventoryDetail = window.appState?.currentInventoryDetail;
+      window.currentOrderDetail = window.appState?.currentOrderDetail;
+      window.selectedOrderForAssignment = window.appState?.selectedOrderForAssignment;
       
       console.log("🔄 Enhanced syncStateToWindow completed for all modals");
     }, 10);
@@ -316,6 +328,11 @@ window.SimplifiedApp = function() {
   window.setShowInventoryDetail = createEnhancedModalSetter('setShowInventoryDetail', 'showInventoryDetail', state.setShowInventoryDetail);
   window.setShowAllocationForm = createEnhancedModalSetter('setShowAllocationForm', 'showAllocationForm', state.setShowAllocationForm);
 
+  // ✅ ENHANCED MODAL STATE SETTERS - Order Management
+  window.setShowOrderDetail = createEnhancedModalSetter('setShowOrderDetail', 'showOrderDetail', state.setShowOrderDetail);
+  window.setShowEditOrderForm = createEnhancedModalSetter('setShowEditOrderForm', 'showEditOrderForm', state.setShowEditOrderForm);
+  window.setShowOrderAssignmentModal = createEnhancedModalSetter('setShowOrderAssignmentModal', 'showOrderAssignmentModal', state.setShowOrderAssignmentModal);
+
   // ✅ ENHANCED MODAL STATE SETTERS - Other Forms
   window.setShowDeliveryForm = createEnhancedModalSetter('setShowDeliveryForm', 'showDeliveryForm', state.setShowDeliveryForm);
   window.setShowChoiceModal = createEnhancedModalSetter('setShowChoiceModal', 'showChoiceModal', state.setShowChoiceModal);
@@ -325,7 +342,6 @@ window.SimplifiedApp = function() {
   window.setShowStadiumForm = createEnhancedModalSetter('setShowStadiumForm', 'showStadiumForm', state.setShowStadiumForm);
   window.setShowClientDetail = createEnhancedModalSetter('setShowClientDetail', 'showClientDetail', state.setShowClientDetail);
   window.setShowClientSuggestion = createEnhancedModalSetter('setShowClientSuggestion', 'showClientSuggestion', state.setShowClientSuggestion);
-  window.setShowEditOrderForm = createEnhancedModalSetter('setShowEditOrderForm', 'showEditOrderForm', state.setShowEditOrderForm);
   window.setShowUserForm = createEnhancedModalSetter('setShowUserForm', 'showUserForm', state.setShowUserForm);
 
   // ✅ ENHANCED DATA STATE SETTERS
@@ -377,6 +393,43 @@ window.SimplifiedApp = function() {
     window.appState.currentInventoryDetail = inventory;
   };
 
+  // ✅ NEW: Order Management Data Setters
+  window.setCurrentOrderDetail = state.setCurrentOrderDetail ? (order) => {
+    console.log("📋 ENHANCED setCurrentOrderDetail called with:", order);
+    state.setCurrentOrderDetail(order);
+    window.appState.currentOrderDetail = order;
+    window.currentOrderDetail = order;
+    syncStateToWindow();
+  } : (order) => {
+    console.log("📋 FALLBACK setCurrentOrderDetail called with:", order);
+    window.currentOrderDetail = order;
+    window.appState.currentOrderDetail = order;
+  };
+
+  window.setSelectedOrderForAssignment = state.setSelectedOrderForAssignment ? (order) => {
+    console.log("📋 ENHANCED setSelectedOrderForAssignment called with:", order);
+    state.setSelectedOrderForAssignment(order);
+    window.appState.selectedOrderForAssignment = order;
+    window.selectedOrderForAssignment = order;
+    syncStateToWindow();
+  } : (order) => {
+    console.log("📋 FALLBACK setSelectedOrderForAssignment called with:", order);
+    window.selectedOrderForAssignment = order;
+    window.appState.selectedOrderForAssignment = order;
+  };
+
+  window.setCurrentOrderForEdit = state.setCurrentOrderForEdit || ((order) => {
+    console.log("✏️ setCurrentOrderForEdit called with:", order);
+    window.currentOrderForEdit = order;
+    window.appState.currentOrderForEdit = order;
+  });
+
+  window.setOrderEditData = state.setOrderEditData || ((data) => {
+    console.log("📝 setOrderEditData called with:", data);
+    window.orderEditData = data;
+    window.appState.orderEditData = data;
+  });
+
   // Choice Modal State Setters
   window.setCurrentLeadForChoice = state.setCurrentLeadForChoice;
   window.setChoiceOptions = state.setChoiceOptions;
@@ -411,8 +464,6 @@ window.SimplifiedApp = function() {
   window.setPaymentPostServiceData = state.setPaymentPostServiceData;
   window.setDeliveryFormData = state.setDeliveryFormData;
   window.setOrderData = state.setOrderData;
-  window.setOrderEditData = state.setOrderEditData;
-  window.setCurrentOrderForEdit = state.setCurrentOrderForEdit;
   window.setUserFormData = state.setUserFormData;
   window.setEditingUser = state.setEditingUser;
 
@@ -760,6 +811,31 @@ window.SimplifiedApp = function() {
     console.warn("⚠️ handleCopyInventory not implemented in handlers");
   });
 
+  // ✅ ORDER MANAGEMENT FUNCTIONS (CRITICAL - Fix current errors)
+  window.openOrderDetail = handlers.openOrderDetail || ((order) => {
+    console.log("📋 openOrderDetail called with:", order);
+    window.setCurrentOrderDetail(order);
+    window.setShowOrderDetail(true);
+  });
+
+  window.openEditOrderForm = handlers.openEditOrderForm || ((order) => {
+    console.log("✏️ openEditOrderForm called with:", order);
+    window.setCurrentOrderForEdit(order);
+    window.setOrderEditData(order);
+    window.setShowEditOrderForm(true);
+  });
+
+  // ✅ ORDER WORKFLOW FUNCTIONS
+  window.handleOrderApproval = handlers.handleOrderApproval || ((orderId, action) => {
+    console.log("✅ handleOrderApproval called:", orderId, action);
+    console.warn("⚠️ handleOrderApproval not implemented in handlers");
+  });
+
+  window.openInvoicePreview = handlers.openInvoicePreview || ((invoice) => {
+    console.log("📄 openInvoicePreview called with:", invoice);
+    console.warn("⚠️ openInvoicePreview not implemented in handlers");
+  });
+
   // Stadium Functions
   window.fetchStadiums = handlers.fetchStadiums || (() => {
     console.log("🏟️ fetchStadiums called");
@@ -920,6 +996,12 @@ window.SimplifiedApp = function() {
   
   window.fetchLeads = handlers.fetchLeads || (() => {
     console.log("👥 fetchLeads called");
+  });
+
+  // ✅ FINANCIAL FUNCTIONS
+  window.fetchFinancialData = handlers.fetchFinancialData || (() => {
+    console.log("💰 fetchFinancialData called");
+    console.warn("⚠️ fetchFinancialData not implemented in handlers");
   });
 
   // Status Filter Functions
@@ -1239,6 +1321,9 @@ window.SimplifiedApp = function() {
     state.setShowDeliveryForm && state.setShowDeliveryForm(false);
     state.setShowChoiceModal && state.setShowChoiceModal(false);
     state.setShowStatusProgressModal && state.setShowStatusProgressModal(false);
+    window.setShowOrderDetail(false);
+    window.setShowEditOrderForm(false);
+    window.setShowOrderAssignmentModal(false);
     state.setFormData && state.setFormData({});
     state.setCurrentLead && state.setCurrentLead(null);
     state.setCurrentInventory && state.setCurrentInventory(null);
@@ -1250,6 +1335,9 @@ window.SimplifiedApp = function() {
     window.setCurrentInventoryDetail && window.setCurrentInventoryDetail(null);
     window.setAllocationManagementInventory && window.setAllocationManagementInventory(null);
     window.setCurrentAllocations && window.setCurrentAllocations([]);
+    window.setCurrentOrderDetail && window.setCurrentOrderDetail(null);
+    window.setCurrentOrderForEdit && window.setCurrentOrderForEdit(null);
+    window.setSelectedOrderForAssignment && window.setSelectedOrderForAssignment(null);
   };
 
   // ✅ CRITICAL MISSING FUNCTIONS - Enhanced with State Sync
