@@ -482,7 +482,7 @@ currentEventsPage,
 eventsPerPage,
   };
 
-  // ✅ EXPOSE FINANCIAL VARIABLES DIRECTLY TO WINDOW (for financials.js component)
+  // ✅ EXPOSE INANCIAL VARIABLES DIRECTLY TO WINDOW (for financials.js component)
   window.activeFinancialTab = activeFinancialTab;
   window.setActiveFinancialTab = setActiveFinancialTab;
   window.financialFilters = financialFilters;
