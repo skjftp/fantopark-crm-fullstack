@@ -180,6 +180,13 @@ window.appState.currentUser = state.currentUser || null;
   window.events = state.events || [];
   window.invoices = state.invoices || [];
 
+  // ✅ ADD THE MY ACTIONS ARRAYS HERE:
+window.myLeads = state.myLeads || [];
+window.myQuoteRequested = state.myQuoteRequested || [];
+window.myOrders = state.myOrders || [];
+window.myDeliveries = state.myDeliveries || [];
+window.myReceivables = state.myReceivables || [];
+
   // Modal States - Direct Window Variables
   window.showAddForm = state.showAddForm;
   window.showEditForm = state.showEditForm;
