@@ -17,7 +17,7 @@ window.SimplifiedApp = function() {
   // Initialize all effects
   window.renderAppEffects();
 
-  // Make handlers available globally
+  // Make handlers available globall
   window.appHandlers = handlers;
 
   // ✅ ENSURE USER FORM GLOBALS ARE AVAILABLE
