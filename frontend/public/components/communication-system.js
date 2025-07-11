@@ -1,8 +1,8 @@
-// Communication Timeline System Component for FanToPark CRM
+// Enhanced Communication Timeline System Component for FanToPark CRM
 // Extracted from index.html - maintains 100% functionality
-// Handles communication tracking, timeline display, and form management
+// Handles communication tracking, timeline display, and AUTOMATIC REMINDER CREATION
 
-// Communication Timeline Component
+// ===== ENHANCED: Communication Timeline Component with Automatic Reminder Creation =====
 window.CommunicationTimeline = ({ leadId, leadName }) => {
   const [communications, setCommunications] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
@@ -26,20 +26,56 @@ window.CommunicationTimeline = ({ leadId, leadName }) => {
     fetchCommunications();
   }, [leadId]);
 
+  // ===== ENHANCED: addCommunication with automatic reminder creation =====
   const addCommunication = async (commData) => {
     try {
+      console.log('📞 Adding communication:', commData);
+      
+      // Create the communication first
       const response = await window.apiCall('/communications', {
         method: 'POST',
         body: JSON.stringify({
           ...commData,
-          lead_id: leadId
+          lead_id: leadId,
+          created_by: window.user?.name || window.user?.email || 'User',
+          created_date: new Date().toISOString()
         })
       });
 
       if (response.data) {
         setCommunications(prev => [response.data, ...prev]);
         setShowAddForm(false);
-        alert('Communication logged successfully!');
+        
+        // ===== NEW: Auto-create reminder for follow-up communications =====
+        if (commData.outcome === 'follow_up') {
+          console.log('🔔 Communication requires follow-up, creating automatic reminder...');
+          
+          try {
+            // Get current lead data for reminder creation
+            const currentLead = window.currentLead || window.leads?.find(l => l.id === leadId);
+            
+            if (currentLead) {
+              await window.createCommunicationFollowUpReminder(response.data, currentLead);
+              console.log('✅ Follow-up reminder created successfully');
+              
+              // Show enhanced success message
+              alert(`Communication logged successfully!\n🔔 Automatic follow-up reminder created.`);
+              
+              // Refresh reminders dashboard if available
+              if (window.fetchReminders) {
+                window.fetchReminders();
+              }
+            } else {
+              console.warn('⚠️ Could not find lead data for reminder creation');
+              alert('Communication logged successfully, but could not create automatic reminder.');
+            }
+          } catch (reminderError) {
+            console.error('❌ Failed to create follow-up reminder:', reminderError);
+            alert('Communication logged successfully, but reminder creation failed: ' + reminderError.message);
+          }
+        } else {
+          alert('Communication logged successfully!');
+        }
       }
     } catch (error) {
       console.error('Error adding communication:', error);
@@ -62,7 +98,8 @@ window.CommunicationTimeline = ({ leadId, leadName }) => {
     showAddForm && React.createElement('div', { className: 'p-4 bg-gray-50 border-b' },
       React.createElement(window.CommunicationForm, {
         onSubmit: addCommunication,
-        onCancel: () => setShowAddForm(false)
+        onCancel: () => setShowAddForm(false),
+        leadName: leadName // Pass lead name for better UX
       })
     ),
 
@@ -106,6 +143,14 @@ window.CommunicationTimeline = ({ leadId, leadName }) => {
                   className: `px-2 py-1 text-xs rounded ${window.getOutcomeColor(comm.outcome)}` 
                 }, comm.outcome.replace('_', ' ')),
                 
+                // Show reminder indicator for follow-up communications
+                comm.outcome === 'follow_up' && React.createElement('span', { 
+                  className: 'px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded flex items-center gap-1' 
+                }, 
+                  React.createElement('span', null, '🔔'),
+                  'Reminder Created'
+                ),
+                
                 comm.temperature && comm.temperature !== 'warm' && React.createElement('span', { 
                   className: `px-2 py-1 text-xs rounded ${
                     comm.temperature === 'hot' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
@@ -128,8 +173,8 @@ window.CommunicationTimeline = ({ leadId, leadName }) => {
   );
 };
 
-// Communication Form Component
-window.CommunicationForm = ({ onSubmit, onCancel }) => {
+// ===== ENHANCED: Communication Form Component with better UX =====
+window.CommunicationForm = ({ onSubmit, onCancel, leadName }) => {
   const [formData, setFormData] = React.useState({
     communication_type: 'call',
     direction: 'outbound',
@@ -189,7 +234,7 @@ window.CommunicationForm = ({ onSubmit, onCancel }) => {
         value: formData.subject,
         onChange: (e) => setFormData(prev => ({ ...prev, subject: e.target.value })),
         className: 'w-full p-2 border border-gray-300 rounded text-sm',
-        placeholder: 'Brief summary...'
+        placeholder: `Brief summary of communication with ${leadName || 'lead'}...`
       })
     ),
 
@@ -200,7 +245,7 @@ window.CommunicationForm = ({ onSubmit, onCancel }) => {
         onChange: (e) => setFormData(prev => ({ ...prev, content: e.target.value })),
         className: 'w-full p-2 border border-gray-300 rounded text-sm',
         rows: 3,
-        placeholder: 'Detailed notes...'
+        placeholder: 'Detailed notes about the conversation, next steps, etc...'
       })
     ),
 
@@ -215,7 +260,8 @@ window.CommunicationForm = ({ onSubmit, onCancel }) => {
           React.createElement('option', { value: '' }, 'Select outcome...'),
           React.createElement('option', { value: 'interested' }, '✅ Interested'),
           React.createElement('option', { value: 'not_interested' }, '❌ Not Interested'),
-          React.createElement('option', { value: 'follow_up' }, '🔄 Follow Up Required')
+          React.createElement('option', { value: 'follow_up' }, '🔄 Follow Up Required'),
+          React.createElement('option', { value: 'closed' }, '✅ Closed')
         )
       ),
 
@@ -244,6 +290,22 @@ window.CommunicationForm = ({ onSubmit, onCancel }) => {
       )
     ),
 
+    // Enhanced info section for follow-up outcome
+    formData.outcome === 'follow_up' && 
+    React.createElement('div', { className: 'p-3 bg-yellow-50 border border-yellow-200 rounded-md' },
+      React.createElement('div', { className: 'flex items-start' },
+        React.createElement('div', { className: 'flex-shrink-0' },
+          React.createElement('span', { className: 'text-yellow-400 text-lg' }, '🔔')
+        ),
+        React.createElement('div', { className: 'ml-3' },
+          React.createElement('h4', { className: 'text-sm font-medium text-yellow-800' }, 'Automatic Reminder'),
+          React.createElement('p', { className: 'text-sm text-yellow-700 mt-1' },
+            'A follow-up reminder will be automatically created based on this communication.'
+          )
+        )
+      )
+    ),
+
     React.createElement('div', { className: 'flex gap-2 justify-end' },
       React.createElement('button', {
         type: 'button',
@@ -258,7 +320,82 @@ window.CommunicationForm = ({ onSubmit, onCancel }) => {
   );
 };
 
-// Communication helper functions
+// ===== NEW: Enhanced reminder creation for communications =====
+window.createCommunicationFollowUpReminder = async function(communication, leadData) {
+  try {
+    console.log('🔔 Creating communication follow-up reminder...');
+    
+    // Calculate smart due date based on communication type and temperature
+    let hoursFromNow = 48; // Default 48 hours
+    
+    if (communication.temperature === 'hot') {
+      hoursFromNow = 4; // 4 hours for hot leads
+    } else if (communication.temperature === 'warm') {
+      hoursFromNow = 24; // 24 hours for warm leads
+    } else if (communication.temperature === 'cold') {
+      hoursFromNow = 72; // 72 hours for cold leads
+    }
+    
+    // Adjust based on communication type
+    if (communication.communication_type === 'meeting') {
+      hoursFromNow = Math.min(hoursFromNow, 24); // Max 24 hours for meeting follow-ups
+    }
+    
+    const dueDate = new Date(Date.now() + hoursFromNow * 60 * 60 * 1000);
+    
+    // Create detailed reminder based on communication
+    const reminderData = {
+      lead_id: communication.lead_id,
+      title: `📞 Follow up: ${communication.subject || communication.communication_type}`,
+      description: `Follow up required from ${communication.communication_type} with ${leadData.name}.\n\n` +
+                  `Original communication: ${communication.content || 'No details provided'}\n` +
+                  `Temperature: ${communication.temperature}\n` +
+                  `Logged by: ${communication.created_by}`,
+      due_date: dueDate.toISOString(),
+      priority: communication.temperature === 'hot' ? 'urgent' : 
+               communication.temperature === 'warm' ? 'high' : 'medium',
+      assigned_to: leadData.assigned_to || communication.created_by || window.user?.email,
+      created_by: 'Communication System',
+      auto_generated: true,
+      communication_id: communication.id,
+      reminder_type: 'communication_followup'
+    };
+
+    console.log('Creating reminder with data:', reminderData);
+
+    const response = await window.apiCall('/reminders', {
+      method: 'POST',
+      body: JSON.stringify(reminderData)
+    });
+
+    // Mark communication as having reminder created
+    try {
+      await window.apiCall(`/communications/${communication.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          ...communication,
+          follow_up_reminder_created: true,
+          reminder_id: response.data?.id
+        })
+      });
+    } catch (updateError) {
+      console.warn('Could not update communication with reminder info:', updateError);
+    }
+
+    // Update local reminders state if it exists
+    if (window.reminders && window.setReminders) {
+      window.setReminders(prev => [...prev, response.data]);
+    }
+
+    console.log('✅ Communication follow-up reminder created:', response);
+    return response;
+  } catch (error) {
+    console.error('❌ Failed to create communication follow-up reminder:', error);
+    throw error;
+  }
+};
+
+// ===== EXISTING: Communication helper functions (keep all existing) =====
 window.getCommIcon = (type) => {
   const icons = {
     call: '📞',
@@ -281,7 +418,7 @@ window.getOutcomeColor = (outcome) => {
   return colors[outcome] || 'bg-blue-100 text-blue-800';
 };
 
-// Communication utilities
+// ===== EXISTING: Communication utilities (keep all existing) =====
 window.formatCommunicationDate = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -319,6 +456,7 @@ window.getCommunicationSummary = (communications) => {
   return summary;
 };
 
+// ===== EXISTING: Keep all other helper functions =====
 window.getLastCommunicationOfType = (communications, type) => {
   return communications
     .filter(c => c.communication_type === type)
@@ -407,45 +545,63 @@ window.getCommunicationAnalytics = (communications) => {
   return analytics;
 };
 
-// Communication reminder helper
+// ===== LEGACY: Keep existing functions for backward compatibility =====
 window.shouldCreateFollowUpReminder = (communication) => {
   return communication.outcome === 'follow_up' && 
          !communication.follow_up_reminder_created;
 };
 
 window.createFollowUpReminder = async (communication, leadData) => {
+  // Use the new enhanced function
+  return await window.createCommunicationFollowUpReminder(communication, leadData);
+};
+
+// ===== DEBUG: Test function for communication reminders =====
+window.testCommunicationReminder = async function(leadId) {
+  console.log('🧪 Testing communication reminder creation...');
+  
+  const testLead = window.leads?.find(l => l.id === leadId) || window.currentLead;
+  if (!testLead) {
+    console.error('Lead not found');
+    alert('Lead not found. Please provide a valid lead ID or open a lead detail page.');
+    return;
+  }
+  
+  // Create a test communication with follow-up outcome
+  const testCommunication = {
+    lead_id: leadId,
+    communication_type: 'call',
+    direction: 'outbound',
+    subject: 'TEST: Follow-up call needed',
+    content: 'This is a test communication to verify reminder creation functionality.',
+    outcome: 'follow_up',
+    temperature: 'warm',
+    created_by: 'Test System',
+    created_date: new Date().toISOString()
+  };
+  
   try {
-    const reminderData = {
-      lead_id: communication.lead_id,
-      title: `Follow up on ${communication.communication_type}`,
-      description: `Follow up required from communication: ${communication.subject || communication.content}`,
-      due_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
-      priority: 'medium',
-      assigned_to: leadData.assigned_to || communication.created_by,
-      created_by: 'System',
-      auto_generated: true,
-      communication_id: communication.id
-    };
-
-    const response = await window.apiCall('/reminders', {
+    const response = await window.apiCall('/communications', {
       method: 'POST',
-      body: JSON.stringify(reminderData)
+      body: JSON.stringify(testCommunication)
     });
-
-    // Mark communication as having reminder created
-    await window.apiCall(`/communications/${communication.id}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        ...communication,
-        follow_up_reminder_created: true
-      })
-    });
-
-    console.log('Follow-up reminder created:', response);
-    return response;
+    
+    console.log('✅ Test communication created:', response);
+    
+    // Create reminder
+    await window.createCommunicationFollowUpReminder(response.data, testLead);
+    
+    alert('Test communication and reminder created successfully! Check your reminders dashboard.');
+    
+    // Refresh if available
+    if (window.fetchReminders) {
+      window.fetchReminders();
+    }
   } catch (error) {
-    console.error('Failed to create follow-up reminder:', error);
+    console.error('❌ Test failed:', error);
+    alert('Test failed: ' + error.message);
   }
 };
 
-console.log('✅ Communication Timeline System component loaded successfully');
+console.log('✅ ENHANCED: Communication Timeline System with Automatic Reminders loaded successfully');
+console.log('🔧 To test: window.testCommunicationReminder(leadId)');
