@@ -1297,8 +1297,8 @@ window.renderAppBusinessLogic = function() {
   // ✅ ADD: openInvoicePreview function
   const openInvoicePreview = (invoice) => {
     console.log('📄 Opening invoice preview for:', invoice);
-    window.setCurrentInvoice(invoice);
-    window.setShowInvoicePreview(true);
+    setCurrentInvoice(invoice);
+    setShowInvoicePreview(true);
   };
 
   // Expose the function to window
