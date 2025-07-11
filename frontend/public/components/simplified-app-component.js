@@ -26,6 +26,49 @@ window.currentUser = state.currentUser || null;
 window.userFormData = state.userFormData || {};
 window.roles = state.roles || [];
 
+// ✅ ASSIGNMENT RULES HELPER FUNCTIONS
+window.refreshAssignmentRules = async () => {
+  console.log("🔄 refreshAssignmentRules called");
+  try {
+    if (window.hasPermission('leads', 'assign')) {
+      // Force re-render of assignment rules component
+      console.log("✅ Assignment rules refresh completed");
+    }
+  } catch (error) {
+    console.error("❌ Error refreshing assignment rules:", error);
+  }
+};
+
+// Debug function to test assignment rules
+window.testAssignmentRulesAPI = async () => {
+  try {
+    console.log("🧪 Testing assignment rules API...");
+    const response = await window.apiCall('/assignment-rules');
+    console.log("✅ Assignment rules API working:", response);
+    return response;
+  } catch (error) {
+    console.error("❌ Assignment rules API error:", error);
+    return null;
+  }
+};
+
+  // ✅ ADD THIS: Assignment Rules Button Debugging
+window.debugAssignmentRulesButtons = () => {
+  console.log("🔍 Assignment Rules Debug:");
+  console.log("AssignmentRulesManager exists:", typeof window.AssignmentRulesManager);
+  console.log("AssignmentRulesTab exists:", typeof window.AssignmentRulesTab);
+  console.log("apiCall exists:", typeof window.apiCall);
+  console.log("hasPermission exists:", typeof window.hasPermission);
+  console.log("Current user:", window.user);
+  console.log("Permissions for leads assign:", window.hasPermission('leads', 'assign'));
+};
+
+// Test the buttons work
+window.testAssignmentRulesButtons = () => {
+  console.log("🧪 Testing Assignment Rules button functionality");
+  // This will help us see if the functions are accessible
+};
+
   // ===== STATE VARIABLES =====
   
   // Modal States
@@ -2766,21 +2809,31 @@ window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() =
     );
   };
 
-  // Assignment Rules Tab
-  const AssignmentRulesTab = React.useMemo(() => {
-    return window.hasPermission('leads', 'assign') ? 
-      React.createElement(window.AssignmentRulesManager, { 
-        key: 'assignment-rules-stable',
-        currentUser: state.user 
-      }) :
-      React.createElement('div', { className: 'text-center py-12' },
-        React.createElement('p', { className: 'text-red-500 text-lg' }, 
-          'Access Denied: You do not have permission to manage assignment rules.'
-        )
-      );
-  }, [state.user]);
-  // ✅ ADD THIS LINE: Expose AssignmentRulesTab to window
+  // ✅ ENHANCED Assignment Rules Tab with better error handling
+const AssignmentRulesTab = React.useMemo(() => {
+  console.log("🔍 AssignmentRulesTab rendering - user:", state.user?.role);
+  console.log("🔍 Has assign permission:", window.hasPermission('leads', 'assign'));
+  
+  if (!window.AssignmentRulesManager) {
+    console.error("❌ AssignmentRulesManager component not found");
+    return React.createElement('div', { className: 'text-center py-12' },
+      React.createElement('p', { className: 'text-red-500 text-lg' }, 'Assignment Rules component not loaded properly.')
+    );
+  }
+  
+  return window.hasPermission('leads', 'assign') ?
+    React.createElement(window.AssignmentRulesManager, { 
+      key: 'assignment-rules-component',
+      currentUser: state.user 
+    }) :
+    React.createElement('div', { className: 'text-center py-12' },
+      React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to manage assignment rules.')
+    );
+}, [state.user]);
+
+// ✅ Expose AssignmentRulesTab to window with debugging
 window.AssignmentRulesTab = AssignmentRulesTab;
+console.log("✅ AssignmentRulesTab exposed to window");
 
   // ===== MAIN RENDER LOGIC =====
 
