@@ -566,6 +566,13 @@ window.renderUserManagementContent = () => {
   window.setCurrentForm = state.setCurrentForm;
   window.setFormData = state.setFormData;
 
+// ✅ ADD THE MY ACTIONS SETTERS HERE:  
+window.setMyLeads = state.setMyLeads;
+window.setMyQuoteRequested = state.setMyQuoteRequested;
+window.setMyOrders = state.setMyOrders;
+window.setMyDeliveries = state.setMyDeliveries;
+window.setMyReceivables = state.setMyReceivables;
+
   // ✅ ENHANCED MODAL STATE SETTERS - Lead Management
   window.setShowAddForm = createEnhancedModalSetter('setShowAddForm', 'showAddForm', state.setShowAddForm);
   window.setShowEditForm = createEnhancedModalSetter('setShowEditForm', 'showEditForm', state.setShowEditForm);
