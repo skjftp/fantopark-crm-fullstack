@@ -1,114 +1,63 @@
-// Sports Calendar Component for FanToPark CRM - FIXED INTEGRATION
-// Following proven systematic integration pattern
-
-// ✅ PATTERN 1: STATE VARIABLE EXTRACTION WITH FALLBACKS
-window.renderSportsCalendar = () => {
-  console.log('🔍 SPORTS CALENDAR DEBUG:');
-  
-  // Extract state with fallbacks
-  const {
-    showEventForm = window.appState?.showEventForm || false,
-    showImportModal = window.appState?.showImportModal || false,
-    showEventDetail = window.appState?.showEventDetail || false,
-    currentEvent = window.appState?.currentEvent || null,
-    sportsEvents = window.appState?.sportsEvents || window.sportsEvents || [],
-    calendarView = window.appState?.calendarView || window.calendarView || 'month',
-    selectedDate = window.appState?.selectedDate || window.selectedDate || new Date(),
-    calendarFilters = window.appState?.calendarFilters || window.calendarFilters || {},
-    loading = window.appState?.loading || false,
-    
-    // State setters with enhanced fallbacks
-    setShowEventForm = window.setShowEventForm || (() => {
-      console.warn("setShowEventForm not implemented");
-      console.log("🔍 Add Event button clicked");
-    }),
-    setShowImportModal = window.setShowImportModal || (() => {
-      console.warn("setShowImportModal not implemented");  
-      console.log("🔍 Import Excel button clicked");
-    }),
-    setCurrentEvent = window.setCurrentEvent || ((event) => {
-      console.warn("setCurrentEvent not implemented");
-      console.log("🔍 Event selected:", event);
-    }),
-    setShowEventDetail = window.setShowEventDetail || ((show) => {
-      console.warn("setShowEventDetail not implemented");
-      console.log("🔍 Show event detail:", show);
-    }),
-    setCalendarView = window.setCalendarView || ((view) => {
-      console.warn("setCalendarView not implemented");
-      console.log("🔍 Calendar view changed:", view);
-    }),
-    setSelectedDate = window.setSelectedDate || ((date) => {
-      console.warn("setSelectedDate not implemented");
-      console.log("🔍 Selected date changed:", date);
-    }),
-    setCalendarFilters = window.setCalendarFilters || ((filters) => {
-      console.warn("setCalendarFilters not implemented");
-      console.log("🔍 Calendar filters changed:", filters);
-    })
-  } = window.appState || {};
-
-  // ✅ PATTERN 2: FUNCTION REFERENCES WITH ENHANCED FALLBACKS
-  const fetchAllEvents = window.fetchAllEvents || (() => {
-    console.warn("fetchAllEvents not implemented");
-    console.log("🔍 Refresh Events clicked");
-  });
-  
-  const exportEventsToExcel = window.exportEventsToExcel || (() => {
-    console.warn("exportEventsToExcel not implemented");
-    console.log("🔍 Export Excel clicked");
-  });
-  
-  const importEventsFromExcel = window.importEventsFromExcel || ((file) => {
-    console.warn("importEventsFromExcel not implemented");
-    console.log("🔍 Import Excel file:", file);
-  });
-  
-  const getPriorityStyles = window.getPriorityStyles || ((priority) => {
-    switch (priority) {
-      case 'P1': return 'bg-red-100 text-red-800 border-red-200';
-      case 'P2': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'P3':
-      default: return 'bg-green-100 text-green-800 border-green-200';
+// Sports Calendar Component for FanToPark CRM
+// Calendar view state
+window.calendarView = window.calendarView || "month";
+window.setCalendarView = window.setCalendarView || function(view) {
+    window.calendarView = view;
+    console.log("Calendar view updated:", window.calendarView);
+};
+// Selected date state for calendar
+window.selectedDate = window.selectedDate || new Date();
+window.setSelectedDate = window.setSelectedDate || function(date) {
+    window.selectedDate = date;
+    console.log("Selected date updated:", window.selectedDate);
+};
+// Calendar filters state
+window.calendarFilters = window.calendarFilters || {};
+window.setCalendarFilters = window.setCalendarFilters || function(newFilters) {
+    window.calendarFilters = { ...window.calendarFilters, ...newFilters };
+    console.log("Calendar filters updated:", window.calendarFilters);
+};
+// Fetch all sports events function
+window.fetchAllEvents = async function() {
+    try {
+        console.log("Fetching sports events...");
+        const response = await window.apiCall("/events");
+        window.sportsEvents = response.data || [];
+        console.log("Sports events loaded:", window.sportsEvents.length);
+    } catch (error) {
+        console.error("Error fetching sports events:", error);
+        window.sportsEvents = [];
     }
-  });
+};
+// Extracted from index.html - maintains 100% functionality
+// Uses window.* globals for CDN-based React compatibility
 
-  // ✅ ENHANCED DEBUG LOGGING
-  console.log('🔍 showEventForm:', showEventForm);
-  console.log('🔍 showImportModal:', showImportModal);
-  console.log('🔍 sportsEvents count:', sportsEvents.length);
-  console.log('🔍 calendarView:', calendarView);
-  console.log('🔍 functions available:', {
-    fetchAllEvents: typeof fetchAllEvents === 'function',
-    exportEventsToExcel: typeof exportEventsToExcel === 'function',
-    setShowEventForm: typeof setShowEventForm === 'function',
-    setShowImportModal: typeof setShowImportModal === 'function'
-  });
-
-  // Filter events with consistent variable usage
-  const filteredEvents = sportsEvents.filter(event => {
+// Main Sports Calendar Content Function
+window.renderSportsCalendarContent = () => {
+  const filteredEvents = (window.sportsEvents || []).filter(event => {
     const eventDate = new Date(event.date || event.start_date);
-    const selectedMonth = selectedDate.getMonth();
-    const selectedYear = selectedDate.getFullYear();
+    const selectedMonth = window.selectedDate.getMonth();
+    const selectedYear = window.selectedDate.getFullYear();
 
+    // Apply filters
     let passesFilter = true;
 
     // Date filter for month view
-    if (calendarView === 'month') {
+    if (window.calendarView === 'month') {
       passesFilter = eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear;
     }
 
-    // Geography filter - FIXED: consistent variable usage
-    if (calendarFilters.geography && passesFilter) {
-      passesFilter = event.geography === calendarFilters.geography;
+    // Geography filter
+    if (window.calendarFilters.geography && passesFilter) {
+      passesFilter = event.geography === window.calendarFilters.geography;
     }
 
-    // Sport type filter - FIXED: consistent variable usage
+    // Sport type filter
     if (calendarFilters.sport_type && passesFilter) {
       passesFilter = event.sport_type === calendarFilters.sport_type || event.category === calendarFilters.sport_type;
     }
 
-    // Priority filter - FIXED: consistent variable usage
+    // Priority filter
     if (calendarFilters.priority && passesFilter) {
       passesFilter = event.priority === calendarFilters.priority;
     }
@@ -139,44 +88,32 @@ window.renderSportsCalendar = () => {
         ),
         React.createElement('div', { className: 'flex items-center mt-2 text-sm' },
           React.createElement('span', { 
-            className: `px-2 py-1 rounded-full text-xs ${sportsEvents.length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`
-          }, sportsEvents.length > 0 ? `${filteredEvents.length}/${sportsEvents.length} Events` : 'Loading Events...'),
+            className: `px-2 py-1 rounded-full text-xs ${(window.sportsEvents || []).length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`
+          }, (window.sportsEvents || []).length > 0 ? `${filteredEvents.length}/${(window.sportsEvents || []).length} Events` : 'Loading Events...'),
           React.createElement('button', {
-            onClick: () => {
-              console.log('🔍 Refresh Events button clicked');
-              fetchAllEvents();
-            },
-            disabled: loading,
+            onClick: fetchAllEvents,
+            disabled: window.loading || false,
             className: 'ml-3 text-blue-600 hover:text-blue-800 text-sm underline disabled:opacity-50'
-          }, loading ? 'Refreshing...' : '🔄 Refresh Events')
+          }, window.loading ? 'Refreshing...' : '🔄 Refresh Events')
         )
       ),
       React.createElement('div', { className: 'flex flex-wrap gap-2' },
         React.createElement('button', {
-          onClick: () => {
-            console.log('🔍 Add Event button clicked');
-            setShowEventForm(true);
-          },
+          onClick: () => setShowEventForm(true),
           className: 'bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
         }, 
           React.createElement('span', null, '➕'),
           'Add Event'
         ),
         React.createElement('button', {
-          onClick: () => {
-            console.log('🔍 Export Excel button clicked');
-            exportEventsToExcel();
-          },
+          onClick: window.exportEventsToExcel,
           className: 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
         }, 
           React.createElement('span', null, '📥'),
           'Export Excel'
         ),
         React.createElement('button', {
-          onClick: () => {
-            console.log('🔍 Import Excel button clicked');
-            setShowImportModal(true);
-          },
+          onClick: () => setShowImportModal(true),
           className: 'bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
         }, 
           React.createElement('span', null, '📤'),
@@ -189,15 +126,12 @@ window.renderSportsCalendar = () => {
     React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4' },
       React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '🔍 Filters'),
       React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
-        // Geography Filter - FIXED: consistent variable usage
+        // Geography Filter
         React.createElement('div', null,
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Geography'),
           React.createElement('select', {
-            value: calendarFilters.geography || '',
-            onChange: (e) => {
-              console.log('🔍 Geography filter changed:', e.target.value);
-              setCalendarFilters({...calendarFilters, geography: e.target.value});
-            },
+            value: window.calendarFilters.geography || '',
+            onChange: (e) => window.setCalendarFilters({...calendarFilters, geography: e.target.value}),
             className: 'w-full p-2 border border-gray-300 rounded-lg'
           },
             React.createElement('option', { value: '' }, 'All Locations'),
@@ -209,15 +143,12 @@ window.renderSportsCalendar = () => {
             React.createElement('option', { value: 'Australia' }, 'Australia')
           )
         ),
-        // Sport Type Filter - FIXED: consistent variable usage
+        // Sport Type Filter
         React.createElement('div', null,
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Sport Type'),
           React.createElement('select', {
             value: calendarFilters.sport_type || '',
-            onChange: (e) => {
-              console.log('🔍 Sport type filter changed:', e.target.value);
-              setCalendarFilters({...calendarFilters, sport_type: e.target.value});
-            },
+            onChange: (e) => window.setCalendarFilters({...calendarFilters, sport_type: e.target.value}),
             className: 'w-full p-2 border border-gray-300 rounded-lg'
           },
             React.createElement('option', { value: '' }, 'All Sports'),
@@ -229,15 +160,12 @@ window.renderSportsCalendar = () => {
             React.createElement('option', { value: 'Basketball' }, 'Basketball')
           )
         ),
-        // Priority Filter - FIXED: consistent variable usage
+        // Priority Filter
         React.createElement('div', null,
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Priority'),
           React.createElement('select', {
             value: calendarFilters.priority || '',
-            onChange: (e) => {
-              console.log('🔍 Priority filter changed:', e.target.value);
-              setCalendarFilters({...calendarFilters, priority: e.target.value});
-            },
+            onChange: (e) => window.setCalendarFilters({...calendarFilters, priority: e.target.value}),
             className: 'w-full p-2 border border-gray-300 rounded-lg'
           },
             React.createElement('option', { value: '' }, 'All Priorities'),
@@ -249,10 +177,7 @@ window.renderSportsCalendar = () => {
         // Clear Filters Button
         React.createElement('div', { className: 'flex items-end' },
           React.createElement('button', {
-            onClick: () => {
-              console.log('🔍 Clear filters clicked');
-              setCalendarFilters({});
-            },
+            onClick: () => window.setCalendarFilters({}),
             className: 'w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg'
           }, 'Clear Filters')
         )
@@ -265,10 +190,9 @@ window.renderSportsCalendar = () => {
         React.createElement('div', { className: 'flex items-center space-x-4' },
           React.createElement('button', {
             onClick: () => {
-              console.log('🔍 Previous month clicked');
               const newDate = new Date(selectedDate);
               newDate.setMonth(newDate.getMonth() - 1);
-              setSelectedDate(newDate);
+              window.setSelectedDate(newDate);
             },
             className: 'p-2 hover:bg-gray-100 rounded'
           }, '←'),
@@ -277,10 +201,9 @@ window.renderSportsCalendar = () => {
           ),
           React.createElement('button', {
             onClick: () => {
-              console.log('🔍 Next month clicked');
               const newDate = new Date(selectedDate);
               newDate.setMonth(newDate.getMonth() + 1);
-              setSelectedDate(newDate);
+              window.setSelectedDate(newDate);
             },
             className: 'p-2 hover:bg-gray-100 rounded'
           }, '→')
@@ -289,32 +212,27 @@ window.renderSportsCalendar = () => {
           ['month', 'list'].map(view =>
             React.createElement('button', {
               key: view,
-              onClick: () => {
-                console.log('🔍 Calendar view changed:', view);
-                setCalendarView(view);
-              },
-              className: `px-3 py-1 rounded text-sm ${calendarView === view ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`
+              onClick: () => window.setCalendarView(view),
+              className: `px-3 py-1 rounded text-sm ${window.calendarView === view ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`
             }, view.charAt(0).toUpperCase() + view.slice(1))
           )
         )
       ),
 
-      // Events Display - FIXED: use consistent extracted functions
-      calendarView === 'month' ? 
-        window.renderMonthView(filteredEvents, setCurrentEvent, setShowEventDetail, getPriorityStyles, selectedDate) : 
-        window.renderListView(filteredEvents, setCurrentEvent, setShowEventDetail, setShowEventForm, getPriorityStyles),
+      // Events Display
+      window.calendarView === 'month' ? window.renderMonthView(filteredEvents) : window.renderListView(filteredEvents),
 
-      // Import Modal - FIXED: use extracted functions
-      window.renderImportModal(showImportModal, setShowImportModal, importEventsFromExcel)
+      // Import Modal
+      window.renderImportModal()
     )
   );
 };
 
-// ✅ ENHANCED MONTH VIEW WITH FUNCTION PARAMETERS
-window.renderMonthView = (events, setCurrentEvent, setShowEventDetail, getPriorityStyles, selectedDate) => {
+// Month View Function
+window.renderMonthView = (events) => {
   const today = new Date();
-  const year = selectedDate.getFullYear();
-  const month = selectedDate.getMonth();
+  const year = window.selectedDate.getFullYear();
+  const month = window.selectedDate.getMonth();
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   const daysInMonth = lastDay.getDate();
@@ -344,7 +262,6 @@ window.renderMonthView = (events, setCurrentEvent, setShowEventDetail, getPriori
         className: `p-2 h-24 border border-gray-200 ${isToday ? 'bg-blue-50' : 'bg-white'} hover:bg-gray-50 cursor-pointer`,
         onClick: () => {
           if (dayEvents.length > 0) {
-            console.log('🔍 Day clicked with events:', dayEvents.length);
             setCurrentEvent(dayEvents[0]);
             setShowEventDetail(true);
           }
@@ -354,14 +271,13 @@ window.renderMonthView = (events, setCurrentEvent, setShowEventDetail, getPriori
         dayEvents.map(event =>
           React.createElement('div', {
             key: event.id,
-            className: `text-xs p-1 mt-1 rounded truncate cursor-pointer ${getPriorityStyles(event.priority)}`,
+            className: `text-xs p-1 mt-1 rounded truncate cursor-pointer ${window.getPriorityStyles(event.priority)}`,
             onClick: (e) => {
               e.stopPropagation();
-              console.log('🔍 Event clicked:', event.title);
               setCurrentEvent(event);
               setShowEventDetail(true);
             }
-          }, event.title || event.event_name)
+          }, event.title)
         )
       )
     );
@@ -380,14 +296,9 @@ window.renderMonthView = (events, setCurrentEvent, setShowEventDetail, getPriori
   );
 };
 
-// ✅ ENHANCED LIST VIEW WITH FUNCTION PARAMETERS
-window.renderListView = (events, setCurrentEvent, setShowEventDetail, setShowEventForm, getPriorityStyles) => {
+// List View Function
+window.renderListView = (events) => {
   const sortedEvents = events.sort((a, b) => new Date(a.date || a.start_date) - new Date(b.date || b.start_date));
-  
-  const deleteEvent = window.deleteEvent || ((eventId) => {
-    console.warn("deleteEvent not implemented");
-    console.log("🔍 Delete event clicked:", eventId);
-  });
 
   return React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
     React.createElement('div', { className: 'overflow-x-auto' },
@@ -409,14 +320,13 @@ window.renderListView = (events, setCurrentEvent, setShowEventDetail, setShowEve
                 key: event.id,
                 className: 'hover:bg-gray-50 cursor-pointer',
                 onClick: () => {
-                  console.log('🔍 Table row clicked for event:', event.title);
                   setCurrentEvent(event);
                   setShowEventDetail(true);
                 }
               },
                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
                   React.createElement('div', { className: 'flex items-center' },
-                    React.createElement('div', { className: `w-3 h-3 rounded mr-3 ${getPriorityStyles(event.priority).includes('bg-red') ? 'bg-red-500' : getPriorityStyles(event.priority).includes('bg-yellow') ? 'bg-yellow-500' : 'bg-green-500'}` }),
+                    React.createElement('div', { className: `w-3 h-3 rounded mr-3 ${window.getPriorityStyles(event.priority).includes('bg-red') ? 'bg-red-500' : window.getPriorityStyles(event.priority).includes('bg-yellow') ? 'bg-yellow-500' : 'bg-green-500'}` }),
                     React.createElement('div', null,
                       React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, event.title || event.event_name),
                       React.createElement('div', { className: 'text-sm text-gray-500' }, event.sport_type || event.category)
@@ -446,7 +356,6 @@ window.renderListView = (events, setCurrentEvent, setShowEventDetail, setShowEve
                   React.createElement('button', {
                     onClick: (e) => {
                       e.stopPropagation();
-                      console.log('🔍 Edit event clicked:', event.title);
                       setCurrentEvent(event);
                       setShowEventForm(true);
                     },
@@ -455,9 +364,8 @@ window.renderListView = (events, setCurrentEvent, setShowEventDetail, setShowEve
                   React.createElement('button', {
                     onClick: (e) => {
                       e.stopPropagation();
-                      console.log('🔍 Delete event clicked:', event.title);
                       if (confirm('Delete this event?')) {
-                        deleteEvent(event.id);
+                        window.deleteEvent(event.id);
                       }
                     },
                     className: 'text-red-600 hover:text-red-900'
@@ -477,16 +385,13 @@ window.renderListView = (events, setCurrentEvent, setShowEventDetail, setShowEve
   );
 };
 
-// ✅ ENHANCED IMPORT MODAL WITH FUNCTION PARAMETERS
-window.renderImportModal = (showImportModal, setShowImportModal, importEventsFromExcel) => {
-  if (!showImportModal) return null;
+// Import Modal Function
+window.renderImportModal = () => {
+  if (!window.showImportModal) return null;
 
   return React.createElement('div', {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
-    onClick: () => {
-      console.log('🔍 Import modal backdrop clicked');
-      setShowImportModal(false);
-    }
+    onClick: () => setShowImportModal(false)
   },
     React.createElement('div', {
       className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-md p-6',
@@ -501,8 +406,7 @@ window.renderImportModal = (showImportModal, setShowImportModal, importEventsFro
           onChange: (e) => {
             const file = e.target.files[0];
             if (file) {
-              console.log('🔍 Excel file selected:', file.name);
-              importEventsFromExcel(file);
+              window.importEventsFromExcel(file);
             }
           },
           className: 'w-full p-2 border border-gray-300 rounded-lg'
@@ -526,10 +430,7 @@ window.renderImportModal = (showImportModal, setShowImportModal, importEventsFro
       ),
       React.createElement('div', { className: 'flex justify-end space-x-2' },
         React.createElement('button', {
-          onClick: () => {
-            console.log('🔍 Import modal cancelled');
-            setShowImportModal(false);
-          },
+          onClick: () => setShowImportModal(false),
           className: 'px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50'
         }, 'Cancel')
       )
@@ -537,51 +438,16 @@ window.renderImportModal = (showImportModal, setShowImportModal, importEventsFro
   );
 };
 
-// ✅ PRESERVE EXISTING WINDOW FUNCTIONS FOR BACKWARDS COMPATIBILITY
-// Calendar view state
-window.calendarView = window.calendarView || "month";
-window.setCalendarView = window.setCalendarView || function(view) {
-    window.calendarView = view;
-    console.log("Calendar view updated:", window.calendarView);
-};
-
-// Selected date state for calendar
-window.selectedDate = window.selectedDate || new Date();
-window.setSelectedDate = window.setSelectedDate || function(date) {
-    window.selectedDate = date;
-    console.log("Selected date updated:", window.selectedDate);
-};
-
-// Calendar filters state
-window.calendarFilters = window.calendarFilters || {};
-window.setCalendarFilters = window.setCalendarFilters || function(newFilters) {
-    window.calendarFilters = { ...window.calendarFilters, ...newFilters };
-    console.log("Calendar filters updated:", window.calendarFilters);
-};
-
-// Fetch all sports events function
-window.fetchAllEvents = window.fetchAllEvents || async function() {
-    try {
-        console.log("Fetching sports events...");
-        const response = await window.apiCall("/events");
-        window.sportsEvents = response.data || [];
-        console.log("Sports events loaded:", window.sportsEvents.length);
-    } catch (error) {
-        console.error("Error fetching sports events:", error);
-        window.sportsEvents = [];
-    }
-};
-
 // Export Events to Excel Function
-window.exportEventsToExcel = window.exportEventsToExcel || async () => {
+window.exportEventsToExcel = async () => {
   try {
     const params = new URLSearchParams();
     if (window.calendarFilters.geography) params.append('geography', window.calendarFilters.geography);
-    if (window.calendarFilters.sport_type) params.append('sport_type', window.calendarFilters.sport_type);
-    if (window.calendarFilters.priority) params.append('priority', window.calendarFilters.priority);
-    params.append('sort_by', 'date');
+    if (calendarFilters.sport_type) params.append('sport_type', calendarFilters.sport_type);
+    if (calendarFilters.priority) params.append('priority', calendarFilters.priority);
+    params.append('sort_by', 'date'); // Default sort by date
 
-    const response = await fetch(`${window.API_CONFIG?.API_URL || API_URL}/events/export/excel?${params.toString()}`, {
+    const response = await fetch(`${API_URL}/events/export/excel?${params.toString()}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
@@ -609,12 +475,12 @@ window.exportEventsToExcel = window.exportEventsToExcel || async () => {
 };
 
 // Import Events from Excel Function
-window.importEventsFromExcel = window.importEventsFromExcel || async (file) => {
+window.importEventsFromExcel = async (file) => {
   try {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${window.API_CONFIG?.API_URL || API_URL}/events/import/excel`, {
+    const response = await fetch(`${API_URL}/events/import/excel`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
@@ -626,8 +492,8 @@ window.importEventsFromExcel = window.importEventsFromExcel || async (file) => {
     
     if (response.ok) {
       alert(`Successfully imported ${result.imported_count} events!`);
-      if (window.setShowImportModal) window.setShowImportModal(false);
-      if (window.fetchAllEvents) window.fetchAllEvents();
+      setShowImportModal(false);
+      fetchAllEvents(); // Refresh the events
     } else {
       throw new Error(result.message || 'Import failed');
     }
@@ -638,7 +504,7 @@ window.importEventsFromExcel = window.importEventsFromExcel || async (file) => {
 };
 
 // Priority Styles Helper Function
-window.getPriorityStyles = window.getPriorityStyles || ((priority) => {
+window.getPriorityStyles = (priority) => {
   switch (priority) {
     case 'P1':
       return 'bg-red-100 text-red-800 border-red-200';
@@ -648,9 +514,6 @@ window.getPriorityStyles = window.getPriorityStyles || ((priority) => {
     default:
       return 'bg-green-100 text-green-800 border-green-200';
   }
-});
+};
 
-// ✅ BACKWARDS COMPATIBILITY: Keep original renderSportsCalendarContent
-window.renderSportsCalendarContent = window.renderSportsCalendar;
-
-console.log('✅ Sports Calendar component loaded successfully - INTEGRATION PATTERN APPLIED');
+console.log('✅ Sports Calendar component loaded successfully');
