@@ -59,7 +59,7 @@ window.renderContent = () => {
                 );
 
         case 'users':
-            return window.hasPermission('users', 'read') ? window.renderUserManagement() : 
+    return window.hasPermission('users', 'read') ? window.renderUserManagementContent() : 
                 React.createElement('div', { className: 'text-center py-12' },
                     React.createElement('p', { className: 'text-red-500 text-lg' }, 
                         'Access Denied: You do not have permission to view users.'
