@@ -2,7 +2,6 @@
 // Extracted from index.html - maintains 100% functionality
 // Handles lead status updates, progression logic, and choice handling
 
-// Enhanced lead status update function with permission check
 window.updateLeadStatus = async function(leadId, newStatus) {
   if (!window.hasPermission('leads', 'progress')) {
     alert('You do not have permission to progress leads');
@@ -14,11 +13,13 @@ window.updateLeadStatus = async function(leadId, newStatus) {
 
     // CRITICAL: Get the full lead object first
     const currentLead = window.leads.find(l => l.id === leadId);
-    if (!window.currentLead) {
+    if (!currentLead) {
       alert('Lead not found');
       window.setLoading(false);
       return;
     }
+
+    const oldStatus = currentLead.status; // Store old status for reminder logic
 
     // Include ALL fields from current lead
     const updateData = {
@@ -32,7 +33,7 @@ window.updateLeadStatus = async function(leadId, newStatus) {
     console.log('Updating lead with full data:', updateData);
 
     // API call to update lead status
-    const response = await window.apicall('/leads/' + leadId, {
+    const response = await window.apiCall('/leads/' + leadId, {
       method: 'PUT',
       body: JSON.stringify(updateData)
     });
@@ -49,15 +50,6 @@ window.updateLeadStatus = async function(leadId, newStatus) {
     if (window.showLeadDetail && currentLead?.id === leadId) {
       window.setCurrentLead(response.data);
     }
-
-    window.setLoading(false);
-    alert('Lead status updated successfully!');
-  } catch (error) {
-    console.error('Error updating lead status:', error);
-    window.setLoading(false);
-    alert('Failed to update lead status: ' + error.message);
-  }
-};
 
 // Complex lead progression function with advanced logic
 window.handleLeadProgression = function(lead) {
