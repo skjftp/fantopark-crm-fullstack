@@ -1159,10 +1159,13 @@ window.userFormData = state.userFormData || {};
 
 
   // ✅ REMINDERS FUNCTION EXPOSURES - MISSING INTEGRATIONS FIXED
-window.fetchReminders = window.fetchReminders || (() => {
-  console.log("🔔 fetchReminders called");
-  console.warn("⚠️ fetchReminders not fully implemented");
-});
+// Don't override fetchReminders if it already exists from reminder-management.js
+if (!window.fetchReminders) {
+  window.fetchReminders = (() => {
+    console.log("🔔 fetchReminders fallback called");
+    console.warn("⚠️ fetchReminders not fully implemented");
+  });
+}
 window.completeReminder = window.completeReminder || ((id, notes) => {
   console.log("✅ completeReminder called:", id, notes);
   console.warn("⚠️ completeReminder not fully implemented");
