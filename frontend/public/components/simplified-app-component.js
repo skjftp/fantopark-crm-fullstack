@@ -2175,6 +2175,256 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
 
   window.getFilteredLeads = getFilteredLeads;
 
+  // ✅ SPORTS CALENDAR FALLBACK FUNCTION - Ensures always available
+window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() => {
+  console.log("🔍 FALLBACK: renderSportsCalendarContent called");
+  
+  // Extract state with fallbacks
+  const {
+    sportsEvents = window.sportsEvents || [],
+    selectedDate = window.selectedDate || new Date(),
+    calendarView = window.calendarView || "month",
+    calendarFilters = window.calendarFilters || {},
+    showEventForm = window.appState?.showEventForm || false,
+    showImportModal = window.appState?.showImportModal || false,
+    currentEvent = window.appState?.currentEvent || null,
+    showEventDetail = window.appState?.showEventDetail || false,
+    loading = window.loading || false
+  } = window.appState || {};
+
+  // Extract functions with enhanced fallbacks
+  const {
+    setShowEventForm = window.setShowEventForm || ((show) => {
+      console.log("🔍 setShowEventForm called:", show);
+      window.showEventForm = show;
+      window.appState.showEventForm = show;
+    }),
+    setShowImportModal = window.setShowImportModal || ((show) => {
+      console.log("🔍 setShowImportModal called:", show);
+      window.showImportModal = show;
+      window.appState.showImportModal = show;
+    }),
+    setCurrentEvent = window.setCurrentEvent || ((event) => {
+      console.log("🔍 setCurrentEvent called:", event);
+      window.currentEvent = event;
+      window.appState.currentEvent = event;
+    }),
+    setCalendarFilters = window.setCalendarFilters || ((filters) => {
+      console.log("🔍 setCalendarFilters called:", filters);
+      window.calendarFilters = { ...window.calendarFilters, ...filters };
+      window.appState.calendarFilters = window.calendarFilters;
+    }),
+    fetchAllEvents = window.fetchAllEvents || (() => {
+      console.log("🔍 fetchAllEvents called");
+      console.warn("⚠️ fetchAllEvents not implemented");
+    }),
+    exportEventsToExcel = window.exportEventsToExcel || (() => {
+      console.log("🔍 exportEventsToExcel called");
+      console.warn("⚠️ exportEventsToExcel not implemented");
+    })
+  } = window;
+
+  // Filter events
+  const filteredEvents = sportsEvents.filter(event => {
+    const eventDate = new Date(event.date || event.start_date);
+    const selectedMonth = selectedDate.getMonth();
+    const selectedYear = selectedDate.getFullYear();
+
+    let passesFilter = true;
+
+    // Date filter for month view
+    if (calendarView === 'month') {
+      passesFilter = eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear;
+    }
+
+    // Geography filter
+    if (calendarFilters.geography && passesFilter) {
+      passesFilter = event.geography === calendarFilters.geography;
+    }
+
+    // Sport type filter
+    if (calendarFilters.sport_type && passesFilter) {
+      passesFilter = event.sport_type === calendarFilters.sport_type || event.category === calendarFilters.sport_type;
+    }
+
+    // Priority filter
+    if (calendarFilters.priority && passesFilter) {
+      passesFilter = event.priority === calendarFilters.priority;
+    }
+
+    return passesFilter;
+  });
+
+  return React.createElement('div', { className: 'space-y-6' },
+    // Header
+    React.createElement('div', { className: 'flex justify-between items-center' },
+      React.createElement('div', null,
+        React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, '📅 Sports Calendar'),
+        React.createElement('p', { className: 'text-gray-600 dark:text-gray-400 mt-1' }, 'Manage your sporting events with advanced filters and Excel integration'),
+        React.createElement('div', { className: 'flex items-center mt-2 text-sm' },
+          React.createElement('span', { 
+            className: `px-2 py-1 rounded-full text-xs ${(sportsEvents || []).length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`
+          }, (sportsEvents || []).length > 0 ? `${filteredEvents.length}/${(sportsEvents || []).length} Events` : 'Loading Events...')
+        )
+      ),
+      React.createElement('div', { className: 'flex flex-wrap gap-2' },
+        React.createElement('button', {
+          onClick: () => {
+            console.log('🔍 Add Event button clicked');
+            window.openEventForm();
+          },
+          className: 'bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
+        }, 
+          React.createElement('span', null, '➕'),
+          'Add Event'
+        ),
+        React.createElement('button', {
+          onClick: () => {
+            console.log('🔍 Export Excel button clicked');
+            exportEventsToExcel();
+          },
+          className: 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
+        }, 
+          React.createElement('span', null, '📥'),
+          'Export Excel'
+        ),
+        React.createElement('button', {
+          onClick: () => {
+            console.log('🔍 Import Excel button clicked');
+            setShowImportModal(true);
+          },
+          className: 'bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
+        }, 
+          React.createElement('span', null, '📤'),
+          'Import Excel'
+        )
+      )
+    ),
+
+    // Calendar Filters
+    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4' },
+      React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '🔍 Filters'),
+      React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
+        // Geography Filter
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Geography'),
+          React.createElement('select', {
+            value: calendarFilters.geography || '',
+            onChange: (e) => {
+              console.log('🔍 Geography filter changed:', e.target.value);
+              setCalendarFilters({...calendarFilters, geography: e.target.value});
+            },
+            className: 'w-full p-2 border border-gray-300 rounded-lg'
+          },
+            React.createElement('option', { value: '' }, 'All Locations'),
+            React.createElement('option', { value: 'India' }, 'India'),
+            React.createElement('option', { value: 'UAE - Dubai' }, 'UAE - Dubai'),
+            React.createElement('option', { value: 'UK' }, 'UK'),
+            React.createElement('option', { value: 'USA' }, 'USA'),
+            React.createElement('option', { value: 'Australia' }, 'Australia')
+          )
+        ),
+        // Sport Type Filter
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Sport Type'),
+          React.createElement('select', {
+            value: calendarFilters.sport_type || '',
+            onChange: (e) => {
+              console.log('🔍 Sport type filter changed:', e.target.value);
+              setCalendarFilters({...calendarFilters, sport_type: e.target.value});
+            },
+            className: 'w-full p-2 border border-gray-300 rounded-lg'
+          },
+            React.createElement('option', { value: '' }, 'All Sports'),
+            React.createElement('option', { value: 'Cricket' }, 'Cricket'),
+            React.createElement('option', { value: 'Football' }, 'Football'),
+            React.createElement('option', { value: 'Tennis' }, 'Tennis'),
+            React.createElement('option', { value: 'Golf' }, 'Golf'),
+            React.createElement('option', { value: 'Formula 1' }, 'Formula 1'),
+            React.createElement('option', { value: 'Basketball' }, 'Basketball')
+          )
+        ),
+        // Priority Filter
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Priority'),
+          React.createElement('select', {
+            value: calendarFilters.priority || '',
+            onChange: (e) => {
+              console.log('🔍 Priority filter changed:', e.target.value);
+              setCalendarFilters({...calendarFilters, priority: e.target.value});
+            },
+            className: 'w-full p-2 border border-gray-300 rounded-lg'
+          },
+            React.createElement('option', { value: '' }, 'All Priorities'),
+            React.createElement('option', { value: 'P1' }, 'P1 - High'),
+            React.createElement('option', { value: 'P2' }, 'P2 - Medium'),
+            React.createElement('option', { value: 'P3' }, 'P3 - Low')
+          )
+        ),
+        // Reset Filters Button
+        React.createElement('div', { className: 'flex items-end' },
+          React.createElement('button', {
+            onClick: () => {
+              console.log('🔍 Reset filters clicked');
+              setCalendarFilters({
+                geography: '',
+                sport_type: '',
+                priority: ''
+              });
+            },
+            className: 'w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg'
+          }, 'Reset Filters')
+        )
+      )
+    ),
+
+    // Basic Events List
+    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4' },
+      React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Events'),
+      filteredEvents.length > 0 ? 
+        React.createElement('div', { className: 'space-y-2' },
+          filteredEvents.map(event =>
+            React.createElement('div', { 
+              key: event.id,
+              className: 'p-3 border border-gray-200 rounded-lg hover:bg-gray-50'
+            },
+              React.createElement('div', { className: 'flex justify-between items-start' },
+                React.createElement('div', null,
+                  React.createElement('h4', { className: 'font-medium' }, event.event_name || event.title),
+                  React.createElement('p', { className: 'text-sm text-gray-500' }, event.venue),
+                  React.createElement('p', { className: 'text-sm text-gray-500' }, 
+                    new Date(event.start_date || event.date).toLocaleDateString()
+                  )
+                ),
+                React.createElement('div', { className: 'flex gap-2' },
+                  React.createElement('button', {
+                    onClick: () => {
+                      console.log('🔍 Edit event clicked:', event.event_name || event.title);
+                      window.openEventForm(event);
+                    },
+                    className: 'text-indigo-600 hover:text-indigo-900 text-sm'
+                  }, 'Edit'),
+                  React.createElement('button', {
+                    onClick: () => {
+                      console.log('🔍 Delete event clicked:', event.event_name || event.title);
+                      if (confirm('Delete this event?')) {
+                        window.deleteEvent(event.id);
+                      }
+                    },
+                    className: 'text-red-600 hover:text-red-900 text-sm'
+                  }, 'Delete')
+                )
+              )
+            )
+          )
+        ) :
+        React.createElement('div', { className: 'text-center py-8 text-gray-500' },
+          'No events found for the selected filters'
+        )
+    )
+  );
+});
+
   // ===== RENDER FUNCTIONS =====
 
   const renderOrderAssignmentModal = () => {
@@ -2472,4 +2722,4 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
   );
 };
 
-console.log('✅ COMPLETE SPORTS CALENDAR INTEGRATION - All sports calendar functions, setters, and form handlers loaded successfully with comprehensive stadium integration');
+console.log('✅ SPORTS CALENDAR FALLBACK FUNCTION - Added to ensure renderSportsCalendarContent is always available');
