@@ -91,6 +91,13 @@ window.appState.showEventDetail = state.showEventDetail || false;
 window.appState.currentEventsPage = state.currentEventsPage || 1;
 window.appState.eventsPerPage = state.eventsPerPage || 10;
 
+  // ✅ ADD THESE LINES: Roles Management States
+window.appState.roles = state.roles || [];
+window.appState.rolesInitialized = state.rolesInitialized || false;
+window.appState.showRoleForm = state.showRoleForm || false;
+window.appState.editingRole = state.editingRole || null;
+window.appState.roleFormData = state.roleFormData || {};
+
   // CSV Upload States
   window.appState.showPreview = state.showPreview || false;
   window.appState.uploadPreview = state.uploadPreview || null;
@@ -152,6 +159,13 @@ window.appState.eventsPerPage = state.eventsPerPage || 10;
   window.stadiumSportFilter = state.stadiumSportFilter || 'all';
   window.stadiumSortField = state.stadiumSortField || 'name';
   window.stadiumSortDirection = state.stadiumSortDirection || 'asc';
+
+  // ✅ ADD THESE LINES: Roles States
+window.roles = state.roles || [];
+window.rolesInitialized = state.rolesInitialized || false;
+window.showRoleForm = state.showRoleForm || false;
+window.editingRole = state.editingRole || null;
+window.roleFormData = state.roleFormData || {};
 
 // Sports Calendar States
 window.sportsEvents = state.sportsEvents || [];
@@ -561,6 +575,13 @@ window.setEventsPerPage = (perPage) => {
   window.setStadiums = state.setStadiums;
   window.setEditingStadium = state.setEditingStadium;
   window.setStadiumFormData = state.setStadiumFormData;
+
+  // ✅ ADD THESE LINES: Roles State Setters
+  window.setRoles = state.setRoles;
+  window.setRolesInitialized = state.setRolesInitialized;
+  window.setShowRoleForm = state.setShowRoleForm;
+  window.setEditingRole = state.setEditingRole;
+  window.setRoleFormData = state.setRoleFormData;
 
   // ✅ STADIUM FILTER STATE SETTERS
   window.setStadiumSearchQuery = state.setStadiumSearchQuery || ((query) => {
