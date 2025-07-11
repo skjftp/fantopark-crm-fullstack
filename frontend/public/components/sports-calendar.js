@@ -469,15 +469,14 @@ window.renderListView = (events) => {
                 ),
                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm font-medium' },
                   React.createElement('button', {
-                 React.createElement('button', {
-                  onClick: (e) => {
-                    e.stopPropagation();
-                    console.log('🔍 Edit event clicked:', event.title || event.event_name);
-                    // Use the enhanced openEventForm function
-                    window.openEventForm(event);
-                  },
-                  className: 'text-indigo-600 hover:text-indigo-900 mr-4'
-                }, 'Edit'),
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      console.log('🔍 Edit event clicked:', event.title || event.event_name);
+                      setCurrentEvent(event);
+                      setShowEventForm(true);
+                    },
+                    className: 'text-indigo-600 hover:text-indigo-900 mr-4'
+                  }, 'Edit'),
                   React.createElement('button', {
                     onClick: (e) => {
                       e.stopPropagation();
