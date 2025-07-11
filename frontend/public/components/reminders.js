@@ -138,7 +138,6 @@ window.renderRemindersContent = () => {
   onClick: () => {
     window.setCurrentLead(lead);
     window.setShowLeadDetail(true);  // ← Open detail view instead of edit form
-    window.setActiveTab('leads');
   },
   className: 'text-indigo-600 hover:text-indigo-900'
 }, '👤 View Lead')
