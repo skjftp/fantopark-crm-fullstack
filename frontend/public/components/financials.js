@@ -1,19 +1,64 @@
 // ============================================================================
-// FINANCIALS COMPONENT - Extracted from index.html
+// FINANCIALS COMPONENT - INTEGRATION PATTERN APPLIED - FIXED DATA FLOW
 // ============================================================================
 // This component manages the financial dashboard with sales, receivables, payables,
 // and expiring inventory tracking with comprehensive filtering and tabbed interface.
 
-// Main render function for financials dashboard
+// Main render function for financials dashboard - FIXED STATE EXTRACTION
 window.renderFinancials = () => {
-    // Filter data based on filters
+    console.log('🔍 FINANCIALS COMPONENT DEBUG: Starting render');
+    
+    // 1. Extract state with fallbacks - PROVEN PATTERN
+    const {
+        financialData = window.appState?.financialData || {
+            activeSales: [],
+            sales: [],
+            receivables: [],
+            payables: [],
+            expiringInventory: []
+        },
+        financialFilters = window.appState?.financialFilters || {
+            clientName: '',
+            assignedPerson: '',
+            dateFrom: '',
+            dateTo: '',
+            status: 'all'
+        },
+        activeFinancialTab = window.appState?.activeFinancialTab || 'activesales',
+        financialStats = window.appState?.financialStats || {
+            expiringValue: 0
+        },
+        setFinancialFilters = window.setFinancialFilters || (() => {
+            console.warn("setFinancialFilters not implemented");
+        }),
+        setActiveFinancialTab = window.setActiveFinancialTab || (() => {
+            console.warn("setActiveFinancialTab not implemented");
+        })
+    } = window.appState || {};
+
+    // 2. Enhanced debugging logs - CRITICAL FOR DEBUGGING
+    console.log('🔍 FINANCIALS COMPONENT DEBUG:');
+    console.log('🔍 financialData:', financialData);
+    console.log('🔍 activeSales count:', financialData?.activeSales?.length || 0);
+    console.log('🔍 sales count:', financialData?.sales?.length || 0);
+    console.log('🔍 receivables count:', financialData?.receivables?.length || 0);
+    console.log('🔍 payables count:', financialData?.payables?.length || 0);
+    console.log('🔍 activeFinancialTab:', activeFinancialTab);
+    console.log('🔍 financialFilters:', financialFilters);
+
+    // Filter data based on filters - ENHANCED PATTERN
     const applyFilters = (data) => {
+        if (!data || !Array.isArray(data)) {
+            console.log('🔍 No data to filter or data is not array:', data);
+            return [];
+        }
+        
         return data.filter(item => {
-            if ((window.financialFilters || {}).clientName || "" && !item.clientName?.toLowerCase().includes((window.financialFilters || {}).clientName || "".toLowerCase())) return false;
-            if ((window.financialFilters || {}).assignedPerson || "" && !item.assignedTo?.toLowerCase().includes((window.financialFilters || {}).assignedPerson || "".toLowerCase())) return false;
-            if ((window.financialFilters || {}).dateFrom || "" && new Date(item.date) < new Date((window.financialFilters || {}).dateFrom || "")) return false;
-            if ((window.financialFilters || {}).dateTo || "" && new Date(item.date) > new Date((window.financialFilters || {}).dateTo || "")) return false;
-            if ((window.financialFilters || {}).status || "" !== 'all' && item.status !== (window.financialFilters || {}).status || "") return false;
+            if (financialFilters.clientName && !item.clientName?.toLowerCase().includes(financialFilters.clientName.toLowerCase())) return false;
+            if (financialFilters.assignedPerson && !item.assignedTo?.toLowerCase().includes(financialFilters.assignedPerson.toLowerCase())) return false;
+            if (financialFilters.dateFrom && new Date(item.date) < new Date(financialFilters.dateFrom)) return false;
+            if (financialFilters.dateTo && new Date(item.date) > new Date(financialFilters.dateTo)) return false;
+            if (financialFilters.status !== 'all' && item.status !== financialFilters.status) return false;
             return true;
         });
     };
@@ -25,7 +70,7 @@ window.renderFinancials = () => {
             React.createElement('div', { className: 'bg-green-50 dark:bg-green-900 p-4 rounded-lg' },
                 React.createElement('h3', { className: 'text-sm font-medium text-green-800 dark:text-green-200' }, 'Total Sales'),
                 React.createElement('p', { className: 'text-2xl font-bold text-green-600' }, 
-                    '₹' + (((window.financialData || {}).sales || []).reduce((sum, sale) => 
+                    '₹' + ((financialData.sales || []).reduce((sum, sale) => 
                         sum + parseFloat(sale.amount || sale.total_amount || sale.final_amount || 0), 0
                     )).toLocaleString()
                 )
@@ -34,7 +79,7 @@ window.renderFinancials = () => {
             React.createElement('div', { className: 'bg-purple-50 dark:bg-purple-900 p-4 rounded-lg' },
                 React.createElement('h3', { className: 'text-sm font-medium text-purple-800 dark:text-purple-200' }, 'Total Active Sales'),
                 React.createElement('p', { className: 'text-2xl font-bold text-purple-600' }, 
-                    '₹' + (((window.financialData || {}).activeSales || []).reduce((sum, sale) => 
+                    '₹' + ((financialData.activeSales || []).reduce((sum, sale) => 
                         sum + parseFloat(sale.amount || 0), 0
                     )).toLocaleString()
                 )
@@ -43,7 +88,7 @@ window.renderFinancials = () => {
             React.createElement('div', { className: 'bg-blue-50 dark:bg-blue-900 p-4 rounded-lg' },
                 React.createElement('h3', { className: 'text-sm font-medium text-blue-800 dark:text-blue-200' }, 'Total Receivables'),
                 React.createElement('p', { className: 'text-2xl font-bold text-blue-600' }, 
-                    '₹' + (((window.financialData || {}).receivables || []).reduce((sum, rec) => 
+                    '₹' + ((financialData.receivables || []).reduce((sum, rec) => 
                         sum + parseFloat(rec.balance_amount || rec.expected_amount || rec.amount || 0), 0
                     )).toLocaleString()
                 )
@@ -52,17 +97,19 @@ window.renderFinancials = () => {
             React.createElement('div', { className: 'bg-red-50 dark:bg-red-900 p-4 rounded-lg' },
                 React.createElement('h3', { className: 'text-sm font-medium text-red-800 dark:text-red-200' }, 'Total Payables'),
                 React.createElement('p', { className: 'text-2xl font-bold text-red-600' }, 
-                    '₹' + (((window.financialData || {}).payables || []).reduce((sum, pay) => 
+                    '₹' + ((financialData.payables || []).reduce((sum, pay) => 
                         sum + parseFloat(pay.amount || 0), 0
                     )).toLocaleString()
                 )
-            ),
+            )
+        ),
 
-            // Expiring Inventory Card
+        // Expiring Inventory Card (conditional)
+        financialStats.expiringValue > 0 && React.createElement('div', { className: 'grid grid-cols-1 gap-4 mb-6' },
             React.createElement('div', { className: 'bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg' },
                 React.createElement('h3', { className: 'text-sm font-medium text-yellow-800 dark:text-yellow-200' }, 'Expiring Inventory Value'),
                 React.createElement('p', { className: 'text-2xl font-bold text-yellow-900 dark:text-yellow-100' }, 
-                    '₹' + ((window.financialStats || {}).expiringValue || 0).toLocaleString()
+                    '₹' + financialStats.expiringValue.toLocaleString()
                 )
             )
         ),
@@ -74,37 +121,52 @@ window.renderFinancials = () => {
                 React.createElement('input', {
                     type: 'text',
                     placeholder: 'Client Name',
-                    value: (window.financialFilters || {}).clientName || "",
-                    onChange: (e) => window.setFinancialFilters(prev => ({ ...prev, clientName: e.target.value })),
+                    value: financialFilters.clientName,
+                    onChange: (e) => {
+                        console.log('🔍 Client name filter changed:', e.target.value);
+                        setFinancialFilters(prev => ({ ...prev, clientName: e.target.value }));
+                    },
                     className: 'px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600'
                 }),
                 React.createElement('input', {
                     type: 'text',
                     placeholder: 'Assigned Person',
-                    value: (window.financialFilters || {}).assignedPerson || "",
-                    onChange: (e) => window.setFinancialFilters(prev => ({ ...prev, assignedPerson: e.target.value })),
+                    value: financialFilters.assignedPerson,
+                    onChange: (e) => {
+                        console.log('🔍 Assigned person filter changed:', e.target.value);
+                        setFinancialFilters(prev => ({ ...prev, assignedPerson: e.target.value }));
+                    },
                     className: 'px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600'
                 }),
                 React.createElement('input', {
                     type: 'date',
-                    value: (window.financialFilters || {}).dateFrom || "",
-                    onChange: (e) => window.setFinancialFilters(prev => ({ ...prev, dateFrom: e.target.value })),
+                    value: financialFilters.dateFrom,
+                    onChange: (e) => {
+                        console.log('🔍 Date from filter changed:', e.target.value);
+                        setFinancialFilters(prev => ({ ...prev, dateFrom: e.target.value }));
+                    },
                     className: 'px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600'
                 }),
                 React.createElement('input', {
                     type: 'date',
-                    value: (window.financialFilters || {}).dateTo || "",
-                    onChange: (e) => window.setFinancialFilters(prev => ({ ...prev, dateTo: e.target.value })),
+                    value: financialFilters.dateTo,
+                    onChange: (e) => {
+                        console.log('🔍 Date to filter changed:', e.target.value);
+                        setFinancialFilters(prev => ({ ...prev, dateTo: e.target.value }));
+                    },
                     className: 'px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600'
                 }),
                 React.createElement('button', {
-                    onClick: () => window.setFinancialFilters({
-                        clientName: '',
-                        assignedPerson: '',
-                        dateFrom: '',
-                        dateTo: '',
-                        status: 'all'
-                    }),
+                    onClick: () => {
+                        console.log('🔍 Clearing filters');
+                        setFinancialFilters({
+                            clientName: '',
+                            assignedPerson: '',
+                            dateFrom: '',
+                            dateTo: '',
+                            status: 'all'
+                        });
+                    },
                     className: 'bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600'
                 }, 'Clear Filters')
             )
@@ -117,9 +179,12 @@ window.renderFinancials = () => {
                     ['activesales', 'sales', 'receivables', 'payables', 'expiring'].map(tab =>
                         React.createElement('button', {
                             key: tab,
-                            onClick: () => window.setActiveFinancialTab(tab),
+                            onClick: () => {
+                                console.log('🔍 Tab clicked:', tab);
+                                setActiveFinancialTab(tab);
+                            },
                             className: `px-4 py-2 font-medium ${
-                                window.activeFinancialTab === tab
+                                activeFinancialTab === tab
                                     ? 'text-blue-600 border-b-2 border-blue-600'
                                     : 'text-gray-500 hover:text-gray-700'
                             }`
@@ -128,20 +193,38 @@ window.renderFinancials = () => {
                 )
             ),
 
-            // Tab Content
+            // Tab Content - FIXED DATA PASSING
             React.createElement('div', { className: 'p-6' },
-                window.activeFinancialTab === 'activesales' && window.renderActiveSalesTab(applyFilters((window.financialData || {}).activeSales || [])),
-                window.activeFinancialTab === 'sales' && window.renderSalesTab(applyFilters((window.financialData || {}).sales)),
-                window.activeFinancialTab === 'receivables' && window.renderReceivablesTab(applyFilters((window.financialData || {}).receivables)),
-                window.activeFinancialTab === 'payables' && window.renderPayablesTab(applyFilters((window.financialData || {}).payables)),
-                window.activeFinancialTab === 'expiring' && window.renderExpiringTab((window.financialData || {}).expiringInventory)
+                activeFinancialTab === 'activesales' && (() => {
+                    console.log('🔍 Calling renderActiveSalesTab with data:', applyFilters(financialData.activeSales || []));
+                    return window.renderActiveSalesTab(applyFilters(financialData.activeSales || []));
+                })(),
+                activeFinancialTab === 'sales' && (() => {
+                    console.log('🔍 Calling renderSalesTab with data:', applyFilters(financialData.sales || []));
+                    return window.renderSalesTab(applyFilters(financialData.sales || []));
+                })(),
+                activeFinancialTab === 'receivables' && (() => {
+                    console.log('🔍 Calling renderReceivablesTab with data:', applyFilters(financialData.receivables || []));
+                    return window.renderReceivablesTab(applyFilters(financialData.receivables || []));
+                })(),
+                activeFinancialTab === 'payables' && (() => {
+                    console.log('🔍 Calling renderPayablesTab with data:', applyFilters(financialData.payables || []));
+                    return window.renderPayablesTab(applyFilters(financialData.payables || []));
+                })(),
+                activeFinancialTab === 'expiring' && (() => {
+                    console.log('🔍 Calling renderExpiringTab with data:', financialData.expiringInventory || []);
+                    return window.renderExpiringTab(financialData.expiringInventory || []);
+                })()
             )
         )
     );
 };
 
-// Active Sales Tab Renderer
+// Active Sales Tab Renderer - ENHANCED DEBUG LOGGING
 window.renderActiveSalesTab = (activeSales) => {
+    console.log('🔍 renderActiveSalesTab called with:', activeSales);
+    console.log('🔍 activeSales.length:', activeSales?.length || 0);
+    
     return React.createElement('div', { className: 'space-y-4' },
         React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Active Sales (Post-Service Payment Orders)'),
 
@@ -157,9 +240,10 @@ window.renderActiveSalesTab = (activeSales) => {
                     )
                 ),
                 React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
-                    activeSales.length > 0 ?
-                        activeSales.map(sale =>
-                            React.createElement('tr', { key: sale.id },
+                    activeSales && activeSales.length > 0 ?
+                        activeSales.map(sale => {
+                            console.log('🔍 Rendering active sale:', sale);
+                            return React.createElement('tr', { key: sale.id },
                                 React.createElement('td', { className: 'px-4 py-2' }, 
                                     new Date(sale.date).toLocaleDateString()
                                 ),
@@ -169,8 +253,8 @@ window.renderActiveSalesTab = (activeSales) => {
                                 React.createElement('td', { className: 'px-4 py-2' }, 
                                     '₹' + sale.amount.toLocaleString()
                                 )
-                            )
-                        )
+                            );
+                        })
                         : React.createElement('tr', null,
                             React.createElement('td', { 
                                 colSpan: 5, 
@@ -185,6 +269,8 @@ window.renderActiveSalesTab = (activeSales) => {
 
 // Sales Tab Renderer
 window.renderSalesTab = (sales) => {
+    console.log('🔍 renderSalesTab called with:', sales);
+    
     return React.createElement('div', { className: 'space-y-4' },
         // Sales Chart
         React.createElement('div', { className: 'h-64 bg-gray-50 dark:bg-gray-700 rounded-lg p-4' },
@@ -208,7 +294,7 @@ window.renderSalesTab = (sales) => {
                     )
                 ),
                 React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
-                    sales.length > 0 ?
+                    sales && sales.length > 0 ?
                         sales.map(sale =>
                             React.createElement('tr', { key: sale.id },
                                 React.createElement('td', { className: 'px-4 py-3 text-sm' }, 
@@ -244,6 +330,8 @@ window.renderSalesTab = (sales) => {
 
 // Receivables Tab Renderer
 window.renderReceivablesTab = (receivables) => {
+    console.log('🔍 renderReceivablesTab called with:', receivables);
+    
     return React.createElement('div', { className: 'space-y-4' },
         React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Receivables'),
 
@@ -260,7 +348,7 @@ window.renderReceivablesTab = (receivables) => {
                     )
                 ),
                 React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
-                    receivables.length > 0 ?
+                    receivables && receivables.length > 0 ?
                         receivables.map(rec => {
                             const dueDate = new Date(rec.due_date);
                             const today = new Date();
@@ -283,11 +371,11 @@ window.renderReceivablesTab = (receivables) => {
                                     React.createElement('div', { className: 'flex space-x-2' },
                                         React.createElement('button', {
                                             className: 'text-blue-600 hover:text-blue-800 font-medium',
-                                            onClick: () => window.handleMarkPaymentFromReceivable(rec),
+                                            onClick: () => window.handleMarkPaymentFromReceivable && window.handleMarkPaymentFromReceivable(rec),
                                             title: 'Mark Payment Received'
                                         }, 'Mark Payment'),
                                         React.createElement('button', {
-                                            onClick: () => window.deleteReceivable(rec.id),
+                                            onClick: () => window.deleteReceivable && window.deleteReceivable(rec.id),
                                             className: 'text-red-600 hover:text-red-800 font-medium',
                                             title: 'Delete Receivable'
                                         }, '🗑️ Delete')
@@ -306,8 +394,10 @@ window.renderReceivablesTab = (receivables) => {
     );
 };
 
-// Payables Tab Renderer
+// Payables Tab Renderer - FIXED DATA ACCESS
 window.renderPayablesTab = (payables) => {
+    console.log('🔍 renderPayablesTab called with:', payables);
+    
     return React.createElement('div', { className: 'overflow-x-auto' },
         React.createElement('table', { className: 'w-full' },
             React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
@@ -321,8 +411,8 @@ window.renderPayablesTab = (payables) => {
                 )
             ),
             React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
-                (window.financialData || {}).payables && (window.financialData || {}).payables.length > 0 ?
-                    (window.financialData || {}).payables.map(payable =>
+                payables && payables.length > 0 ?
+                    payables.map(payable =>
                         React.createElement('tr', { key: payable.id },
                             React.createElement('td', { className: 'px-4 py-3 text-sm' }, 
                                 new Date(payable.due_date || payable.created_date).toLocaleDateString()
@@ -349,11 +439,11 @@ window.renderPayablesTab = (payables) => {
                                     payable.payment_status !== 'paid' &&
                                         React.createElement('button', {
                                             className: 'text-blue-600 hover:text-blue-800 font-medium',
-                                            onClick: () => window.handleMarkAsPaid(payable.id),
+                                            onClick: () => window.handleMarkAsPaid && window.handleMarkAsPaid(payable.id),
                                             title: 'Mark as Paid'
                                         }, 'Mark Paid'),
                                     React.createElement('button', {
-                                        onClick: () => window.deletePayable(payable.id),
+                                        onClick: () => window.deletePayable && window.deletePayable(payable.id),
                                         className: 'text-red-600 hover:text-red-800 font-medium',
                                         title: 'Delete Payable'
                                     }, '🗑️ Delete')
@@ -373,6 +463,8 @@ window.renderPayablesTab = (payables) => {
 
 // Expiring Inventory Tab Renderer
 window.renderExpiringTab = (expiringInventory) => {
+    console.log('🔍 renderExpiringTab called with:', expiringInventory);
+    
     return React.createElement('div', { className: 'space-y-4' },
         React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Expiring Inventory (Next 7 Days)'),
 
@@ -423,7 +515,7 @@ window.renderExpiringTab = (expiringInventory) => {
     );
 };
 
-// Fetch Financial Data Function
+// Keep existing fetch function unchanged
 window.fetchFinancialData = async () => {
     try {
         console.log('Fetching financial data...');
@@ -542,18 +634,20 @@ window.fetchFinancialData = async () => {
         console.log(`Receivables: ${unpaidReceivables.length} entries, Total: ₹${totalReceivables.toLocaleString()}`);
         console.log(`Payables: ${payablesData.length} entries, Total: ₹${totalPayables.toLocaleString()}`);
 
-        // Update state
-        window.setFinancialData({
-            activeSales: activeSalesData,
-            sales: salesData,
-            receivables: unpaidReceivables,
-            payables: payablesData,
-            expiringInventory: inventoryData.filter(item => {
-                if (!item.event_date || item.allocated) return false;
-                const days = Math.ceil((new Date(item.event_date) - new Date()) / (1000 * 60 * 60 * 24));
-                return days <= 7 && days >= 0;
-            })
-        });
+        // Update state - FIXED TO USE ENHANCED SETTERS
+        if (window.setFinancialData) {
+            window.setFinancialData({
+                activeSales: activeSalesData,
+                sales: salesData,
+                receivables: unpaidReceivables,
+                payables: payablesData,
+                expiringInventory: inventoryData.filter(item => {
+                    if (!item.event_date || item.allocated) return false;
+                    const days = Math.ceil((new Date(item.event_date) - new Date()) / (1000 * 60 * 60 * 24));
+                    return days <= 7 && days >= 0;
+                })
+            });
+        }
 
         console.log('Financial data set:', {
             activeSales: activeSalesData.length,
@@ -568,4 +662,4 @@ window.fetchFinancialData = async () => {
     }
 };
 
-console.log('✅ Financial component loaded successfully');
+console.log('✅ FIXED Financial component loaded successfully - Integration pattern applied');
