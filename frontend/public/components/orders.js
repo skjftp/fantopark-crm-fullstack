@@ -10,13 +10,46 @@ window.renderOrdersContent = () => {
     console.log("Orders with is_deleted:", (window.orders || []).filter(o => o.is_deleted));
     console.log("Orders with status deleted:", (window.orders || []).filter(o => o.status === "deleted"));
     
+    // ✅ EXTRACT FUNCTIONS WITH FALLBACKS (Fix integration pattern)
+    const {
+        openOrderDetail = window.openOrderDetail || (() => {
+            console.warn("openOrderDetail not implemented");
+        }),
+        openEditOrderForm = window.openEditOrderForm || (() => {
+            console.warn("openEditOrderForm not implemented");
+        }),
+        handleOrderApproval = window.handleOrderApproval || (() => {
+            console.warn("handleOrderApproval not implemented");
+        }),
+        openInvoicePreview = window.openInvoicePreview || (() => {
+            console.warn("openInvoicePreview not implemented");
+        }),
+        setSelectedOrderForAssignment = window.setSelectedOrderForAssignment || (() => {
+            console.warn("setSelectedOrderForAssignment not implemented");
+        }),
+        setShowOrderAssignmentModal = window.setShowOrderAssignmentModal || (() => {
+            console.warn("setShowOrderAssignmentModal not implemented");
+        }),
+        setOrders = window.setOrders || (() => {
+            console.warn("setOrders not implemented");
+        }),
+        handleDelete = window.handleDelete || (() => {
+            console.warn("handleDelete not implemented");
+        }),
+        hasPermission = window.hasPermission || (() => false),
+        openAddForm = window.openAddForm || (() => {
+            console.warn("openAddForm not implemented");
+        }),
+        loading = window.loading || false
+    } = window.appState || {};
+    
     return React.createElement('div', { className: 'space-y-6' },
         React.createElement('div', { className: 'flex justify-between items-center' },
             React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Order Management'),
             React.createElement('div', { className: 'flex space-x-2' },
-                window.hasPermission('orders', 'write') && React.createElement('button', { 
+                hasPermission('orders', 'write') && React.createElement('button', { 
                     className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
-                    onClick: () => window.openAddForm('order')
+                    onClick: () => openAddForm('order')
                 }, '+ Manual Order')
             )
         ),
@@ -29,7 +62,7 @@ window.renderOrdersContent = () => {
                             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Order#'),
                             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Client'),
                             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event'),
-                            window.hasPermission('finance', 'read') && React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
+                            hasPermission('finance', 'read') && React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
                             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
                             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Payment'),
                             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Assigned To'),
@@ -109,7 +142,7 @@ window.renderOrdersContent = () => {
                                         new Date(order.event_date).toLocaleDateString()
                                     )
                                 ),
-                                window.hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
+                                hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
                                     React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, 
                                         '₹' + getAmountDisplay(order).toLocaleString()
                                     ),
@@ -174,11 +207,11 @@ window.renderOrdersContent = () => {
                                         React.createElement('button', {
                                             key: 'view',
                                             className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
-                                            onClick: () => window.openOrderDetail(order)
+                                            onClick: () => openOrderDetail(order)
                                         }, '👁️ View'),
 
                                         // PRESERVED: Finance approval buttons
-                                        window.hasPermission('orders', 'approve') && order.status === 'pending_approval' && [
+                                        hasPermission('orders', 'approve') && order.status === 'pending_approval' && [
                                             // Show if this requires sales head approval
                                             order.order_type === 'payment_post_service' && React.createElement('span', {
                                                 key: 'sales-head-label',
@@ -187,14 +220,14 @@ window.renderOrdersContent = () => {
                                             React.createElement('button', {
                                                 key: 'approve',
                                                 className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
-                                                onClick: () => window.handleOrderApproval(order.id, 'approve'),
-                                                disabled: window.loading
+                                                onClick: () => handleOrderApproval(order.id, 'approve'),
+                                                disabled: loading
                                             }, '✅ Approve'),
                                             React.createElement('button', {
                                                 key: 'reject',
                                                 className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
-                                                onClick: () => window.handleOrderApproval(order.id, 'reject'),
-                                                disabled: window.loading
+                                                onClick: () => handleOrderApproval(order.id, 'reject'),
+                                                disabled: loading
                                             }, '❌ Reject')
                                         ],
 
@@ -252,7 +285,7 @@ window.renderOrdersContent = () => {
                                                     };
 
                                                     console.log('Reconstructed invoice:', reconstructedInvoice);
-                                                    window.openInvoicePreview(reconstructedInvoice);
+                                                    openInvoicePreview(reconstructedInvoice);
                                                 } else {
                                                     alert('Invoice not found for this order');
                                                 }
@@ -260,21 +293,21 @@ window.renderOrdersContent = () => {
                                         }, '📄 View Invoice'),
 
                                         // PRESERVED: Service assignment
-                                        window.hasPermission('orders', 'assign') && order.status === 'approved' && !order.assigned_to &&
+                                        hasPermission('orders', 'assign') && order.status === 'approved' && !order.assigned_to &&
                                         React.createElement('button', {
                                             className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
                                             onClick: () => {
-                                                window.setSelectedOrderForAssignment(order);
-                                                window.setShowOrderAssignmentModal(true);
+                                                setSelectedOrderForAssignment(order);
+                                                setShowOrderAssignmentModal(true);
                                             },
-                                            disabled: window.loading
+                                            disabled: loading
                                         }, '→ Assign'),
 
                                         // PRESERVED: Complete order
-                                        window.hasPermission('orders', 'write') && order.status === 'service_assigned' && React.createElement('button', {
+                                        hasPermission('orders', 'write') && order.status === 'service_assigned' && React.createElement('button', {
                                             className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
                                             onClick: () => {
-                                                window.setOrders(prev => 
+                                                setOrders(prev => 
                                                     prev.map(o => 
                                                         o.id === order.id 
                                                             ? { ...o, status: 'completed', completed_date: new Date().toISOString().split('T')[0] }
@@ -283,20 +316,20 @@ window.renderOrdersContent = () => {
                                                 );
                                                 alert('Order marked as completed!');
                                             },
-                                            disabled: window.loading
+                                            disabled: loading
                                         }, '✅ Complete'),
 
                                         // PRESERVED: Edit button
-                                        window.hasPermission('orders', 'write') && React.createElement('button', {
+                                        hasPermission('orders', 'write') && React.createElement('button', {
                                             className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
-                                            onClick: () => window.openEditOrderForm(order)
+                                            onClick: () => openEditOrderForm(order)
                                         }, '✏️ Edit'),
 
                                         // PRESERVED: Delete button
-                                        window.hasPermission('orders', 'delete') && React.createElement('button', { 
+                                        hasPermission('orders', 'delete') && React.createElement('button', { 
                                             className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
-                                            onClick: () => window.handleDelete('orders', order.id, order.order_number),
-                                            disabled: window.loading
+                                            onClick: () => handleDelete('orders', order.id, order.order_number),
+                                            disabled: loading
                                         }, '🗑️ Delete')
                                     )
                                 )
@@ -313,11 +346,22 @@ window.renderOrdersContent = () => {
 window.renderOrderDetail = () => {
     if (!window.showOrderDetail || !window.currentOrderDetail) return null;
 
+    // ✅ EXTRACT FUNCTIONS WITH FALLBACKS
+    const {
+        setShowOrderDetail = window.setShowOrderDetail || (() => {
+            console.warn("setShowOrderDetail not implemented");
+        }),
+        handleOrderApproval = window.handleOrderApproval || (() => {
+            console.warn("handleOrderApproval not implemented");
+        }),
+        hasPermission = window.hasPermission || (() => false)
+    } = window.appState || {};
+
     return React.createElement('div', { 
         className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
         onClick: (e) => {
             if (e.target === e.currentTarget) {
-                window.setShowOrderDetail(false);
+                setShowOrderDetail(false);
             }
         }
     },
@@ -329,7 +373,7 @@ window.renderOrderDetail = () => {
                     'Order Details - #' + (window.currentOrderDetail.order_number || window.currentOrderDetail.id)
                 ),
                 React.createElement('button', {
-                    onClick: () => window.setShowOrderDetail(false),
+                    onClick: () => setShowOrderDetail(false),
                     className: 'text-gray-400 hover:text-gray-600 text-2xl'
                 }, '✕')
             ),
@@ -354,21 +398,21 @@ window.renderOrderDetail = () => {
                 ),
 
                 React.createElement('div', { className: 'flex justify-end space-x-2 mt-6' },
-                    window.currentOrderDetail.status === 'pending_approval' && window.hasPermission('orders', 'approve') && [
+                    window.currentOrderDetail.status === 'pending_approval' && hasPermission('orders', 'approve') && [
                         React.createElement('button', {
                             key: 'approve',
                             className: 'bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700',
                             onClick: () => {
-                                window.handleOrderApproval(window.currentOrderDetail.id, 'approve');
-                                window.setShowOrderDetail(false);
+                                handleOrderApproval(window.currentOrderDetail.id, 'approve');
+                                setShowOrderDetail(false);
                             }
                         }, 'Approve Order'),
                         React.createElement('button', {
                             key: 'reject',
                             className: 'bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700',
                             onClick: () => {
-                                window.handleOrderApproval(window.currentOrderDetail.id, 'reject');
-                                window.setShowOrderDetail(false);
+                                handleOrderApproval(window.currentOrderDetail.id, 'reject');
+                                setShowOrderDetail(false);
                             }
                         }, 'Reject Order')
                     ]
@@ -382,6 +426,19 @@ window.renderOrderDetail = () => {
 window.renderOrderAssignmentModal = () => {
     if (!window.showOrderAssignmentModal || !window.selectedOrderForAssignment) return null;
 
+    // ✅ EXTRACT FUNCTIONS WITH FALLBACKS
+    const {
+        setShowOrderAssignmentModal = window.setShowOrderAssignmentModal || (() => {
+            console.warn("setShowOrderAssignmentModal not implemented");
+        }),
+        setSelectedOrderForAssignment = window.setSelectedOrderForAssignment || (() => {
+            console.warn("setSelectedOrderForAssignment not implemented");
+        }),
+        assignOrderToUser = window.assignOrderToUser || (() => {
+            console.warn("assignOrderToUser not implemented");
+        })
+    } = window.appState || {};
+
     const supplyTeamUsers = (window.users || []).filter(u => 
         ['supply_executive', 'supply_sales_service_manager'].includes(u.role)
     );
@@ -390,8 +447,8 @@ window.renderOrderAssignmentModal = () => {
         className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
         onClick: (e) => {
             if (e.target === e.currentTarget) {
-                window.setShowOrderAssignmentModal(false);
-                window.setSelectedOrderForAssignment(null);
+                setShowOrderAssignmentModal(false);
+                setSelectedOrderForAssignment(null);
             }
         }
     },
@@ -404,7 +461,7 @@ window.renderOrderAssignmentModal = () => {
                     React.createElement('button', {
                         key: user.email,
                         className: 'w-full text-left px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
-                        onClick: () => window.assignOrderToUser(window.selectedOrderForAssignment.id, user)
+                        onClick: () => assignOrderToUser(window.selectedOrderForAssignment.id, user)
                     },
                         React.createElement('div', { className: 'font-medium' }, user.name),
                         React.createElement('div', { className: 'text-sm text-gray-500' }, user.email)
@@ -414,8 +471,8 @@ window.renderOrderAssignmentModal = () => {
             React.createElement('div', { className: 'mt-4 pt-4 border-t' },
                 React.createElement('button', {
                     onClick: () => {
-                        window.setShowOrderAssignmentModal(false);
-                        window.setSelectedOrderForAssignment(null);
+                        setShowOrderAssignmentModal(false);
+                        setSelectedOrderForAssignment(null);
                     },
                     className: 'w-full px-4 py-2 text-gray-600 hover:bg-gray-100 rounded'
                 }, 'Cancel')
@@ -426,10 +483,25 @@ window.renderOrderAssignmentModal = () => {
 
 // Order assignment function
 window.assignOrderToUser = async (orderId, user) => {
-    try {
-        window.setLoading(true);
+    // ✅ EXTRACT FUNCTIONS WITH FALLBACKS
+    const {
+        setLoading = window.setLoading || (() => {}),
+        apiCall = window.apiCall || (() => Promise.reject(new Error("apiCall not implemented"))),
+        setOrders = window.setOrders || (() => {
+            console.warn("setOrders not implemented");
+        }),
+        setShowOrderAssignmentModal = window.setShowOrderAssignmentModal || (() => {
+            console.warn("setShowOrderAssignmentModal not implemented");
+        }),
+        setSelectedOrderForAssignment = window.setSelectedOrderForAssignment || (() => {
+            console.warn("setSelectedOrderForAssignment not implemented");
+        })
+    } = window.appState || {};
 
-        const response = await window.apiCall(`/orders/${orderId}`, {
+    try {
+        setLoading(true);
+
+        const response = await apiCall(`/orders/${orderId}`, {
             method: 'PUT',
             body: JSON.stringify({
                 assigned_to: user.name,
@@ -444,7 +516,7 @@ window.assignOrderToUser = async (orderId, user) => {
         }
 
         // Update local state
-        window.setOrders(prev => 
+        setOrders(prev => 
             prev.map(order => 
                 order.id === orderId 
                     ? { ...order, assigned_to: user.name, status: 'service_assigned' }
@@ -453,8 +525,8 @@ window.assignOrderToUser = async (orderId, user) => {
         );
 
         // Close modal
-        window.setShowOrderAssignmentModal(false);
-        window.setSelectedOrderForAssignment(null);
+        setShowOrderAssignmentModal(false);
+        setSelectedOrderForAssignment(null);
 
         alert(`Order assigned to ${user.name} successfully!`);
 
@@ -462,8 +534,8 @@ window.assignOrderToUser = async (orderId, user) => {
         console.error('Error assigning order:', error);
         alert('Failed to assign order: ' + error.message);
     } finally {
-        window.setLoading(false);
+        setLoading(false);
     }
 };
 
-console.log('✅ Orders component loaded successfully');
+console.log('✅ Orders component loaded successfully with function reference fixes');
