@@ -71,6 +71,12 @@ window.SimplifiedApp = function() {
   window.appState.inventorySortField = state.inventorySortField || 'event_date';
   window.appState.inventorySortDirection = state.inventorySortDirection || 'asc';
 
+  // Stadium Filter States
+  window.appState.stadiumSearchQuery = state.stadiumSearchQuery || '';
+  window.appState.stadiumSportFilter = state.stadiumSportFilter || 'all';
+  window.appState.stadiumSortField = state.stadiumSortField || 'name';
+  window.appState.stadiumSortDirection = state.stadiumSortDirection || 'asc';
+
   // CSV Upload States
   window.appState.showPreview = state.showPreview || false;
   window.appState.uploadPreview = state.uploadPreview || null;
@@ -128,6 +134,10 @@ window.SimplifiedApp = function() {
   window.editingStadium = state.editingStadium || null;
   window.stadiumFormData = state.stadiumFormData || {};
   window.showStadiumForm = state.showStadiumForm || false;
+  window.stadiumSearchQuery = state.stadiumSearchQuery || '';
+  window.stadiumSportFilter = state.stadiumSportFilter || 'all';
+  window.stadiumSortField = state.stadiumSortField || 'name';
+  window.stadiumSortDirection = state.stadiumSortDirection || 'asc';
 
   // Client States
   window.clients = state.clients || [];
@@ -444,6 +454,43 @@ window.SimplifiedApp = function() {
   window.setStadiums = state.setStadiums;
   window.setEditingStadium = state.setEditingStadium;
   window.setStadiumFormData = state.setStadiumFormData;
+
+  // ✅ STADIUM FILTER STATE SETTERS
+  window.setStadiumSearchQuery = state.setStadiumSearchQuery || ((query) => {
+    console.log("🔍 setStadiumSearchQuery called with:", query);
+    window.stadiumSearchQuery = query;
+    window.appState.stadiumSearchQuery = query;
+    if (state.setStadiumSearchQuery) {
+      state.setStadiumSearchQuery(query);
+    }
+  });
+
+  window.setStadiumSportFilter = state.setStadiumSportFilter || ((filter) => {
+    console.log("🏷️ setStadiumSportFilter called with:", filter);
+    window.stadiumSportFilter = filter;
+    window.appState.stadiumSportFilter = filter;
+    if (state.setStadiumSportFilter) {
+      state.setStadiumSportFilter(filter);
+    }
+  });
+
+  window.setStadiumSortField = state.setStadiumSortField || ((field) => {
+    console.log("📊 setStadiumSortField called with:", field);
+    window.stadiumSortField = field;
+    window.appState.stadiumSortField = field;
+    if (state.setStadiumSortField) {
+      state.setStadiumSortField(field);
+    }
+  });
+
+  window.setStadiumSortDirection = state.setStadiumSortDirection || ((direction) => {
+    console.log("🔄 setStadiumSortDirection called with:", direction);
+    window.stadiumSortDirection = direction;
+    window.appState.stadiumSortDirection = direction;
+    if (state.setStadiumSortDirection) {
+      state.setStadiumSortDirection(direction);
+    }
+  });
 
   // Client State Setters
   window.setSelectedClient = state.setSelectedClient || ((client) => {
@@ -874,6 +921,218 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     state.setEditingStadium && state.setEditingStadium(null);
     state.setStadiumFormData && state.setStadiumFormData({});
   });
+
+  // ✅ STADIUM FORM HANDLERS
+  window.handleStadiumInputChange = (fieldName, value) => {
+    console.log(`📝 Stadium field changed: ${fieldName} = ${value}`);
+    const newFormData = { ...window.stadiumFormData, [fieldName]: value };
+    window.stadiumFormData = newFormData;
+    window.appState.stadiumFormData = newFormData;
+    if (window.setStadiumFormData) {
+      window.setStadiumFormData(newFormData);
+    }
+  };
+
+  window.handleStadiumFormSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      window.setLoading(true);
+      
+      console.log('🏟️ Stadium form submission started');
+      console.log('Editing stadium:', window.editingStadium);
+      console.log('Form data:', window.stadiumFormData);
+      
+      if (!window.editingStadium || !window.editingStadium.id) {
+        // CREATE NEW STADIUM
+        console.log('Creating new stadium...');
+        
+        const response = await window.apiCall('/stadiums', {
+          method: 'POST',
+          body: JSON.stringify({
+            ...window.stadiumFormData,
+            created_by: window.user?.name || 'Unknown User',
+            created_date: new Date().toISOString()
+          })
+        });
+        
+        if (response.error) {
+          throw new Error(response.error);
+        }
+        
+        // Add to local state
+        window.setStadiums(prev => [...prev, response.data || response]);
+        alert('✅ Stadium created successfully!');
+        
+      } else {
+        // UPDATE EXISTING STADIUM
+        console.log('Updating existing stadium...');
+        
+        const response = await window.apiCall(`/stadiums/${window.editingStadium.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(window.stadiumFormData)
+        });
+        
+        if (response.error) {
+          throw new Error(response.error);
+        }
+        
+        // Update local state
+        window.setStadiums(prev => prev.map(stadium => 
+          stadium.id === window.editingStadium.id ? { ...stadium, ...window.stadiumFormData } : stadium
+        ));
+        
+        alert('✅ Stadium updated successfully!');
+      }
+      
+      // Close the form
+      window.closeStadiumForm();
+      
+    } catch (error) {
+      console.error('❌ Error with stadium submission:', error);
+      alert('❌ Error saving stadium: ' + error.message);
+    } finally {
+      window.setLoading(false);
+    }
+  };
+
+  // ✅ STADIUM CRUD FUNCTIONS
+  window.handleDeleteStadium = async (stadiumId, stadiumName) => {
+    console.log("🗑️ handleDeleteStadium called:", stadiumId, stadiumName);
+    
+    if (!window.hasPermission('admin', 'delete')) {
+      alert('You do not have permission to delete stadiums');
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to delete "${stadiumName}"? This action cannot be undone.`)) {
+      return;
+    }
+    
+    try {
+      window.setLoading(true);
+      
+      const response = await window.apiCall(`/stadiums/${stadiumId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      // Remove from local state
+      window.setStadiums(prev => prev.filter(stadium => stadium.id !== stadiumId));
+      
+      alert('✅ Stadium deleted successfully!');
+      
+    } catch (error) {
+      console.error('❌ Error deleting stadium:', error);
+      alert('❌ Error deleting stadium: ' + error.message);
+    } finally {
+      window.setLoading(false);
+    }
+  };
+
+  window.populateDefaultStadiums = async () => {
+    console.log("🏟️ populateDefaultStadiums called");
+    
+    if (!window.hasPermission('admin', 'write')) {
+      alert('You do not have permission to add stadiums');
+      return;
+    }
+    
+    const defaultStadiums = [
+      {
+        name: "Wankhede Stadium",
+        city: "Mumbai",
+        state: "Maharashtra", 
+        country: "India",
+        capacity: 33108,
+        sport_type: "Cricket",
+        opened_year: 1974,
+        nickname: "Home of Indian Cricket"
+      },
+      {
+        name: "Eden Gardens",
+        city: "Kolkata",
+        state: "West Bengal",
+        country: "India", 
+        capacity: 66000,
+        sport_type: "Cricket",
+        opened_year: 1864,
+        nickname: "Cricket's Colosseum"
+      },
+      {
+        name: "M. Chinnaswamy Stadium",
+        city: "Bangalore",
+        state: "Karnataka",
+        country: "India",
+        capacity: 40000,
+        sport_type: "Cricket",
+        opened_year: 1969
+      },
+      {
+        name: "Camp Nou",
+        city: "Barcelona",
+        state: "Catalonia",
+        country: "Spain",
+        capacity: 99354,
+        sport_type: "Football",
+        opened_year: 1957,
+        nickname: "Més que un club"
+      },
+      {
+        name: "Wembley Stadium",
+        city: "London",
+        state: "England", 
+        country: "United Kingdom",
+        capacity: 90000,
+        sport_type: "Football",
+        opened_year: 2007,
+        nickname: "The Home of Football"
+      }
+    ];
+    
+    try {
+      window.setLoading(true);
+      
+      let addedCount = 0;
+      for (const stadiumData of defaultStadiums) {
+        // Check if stadium already exists
+        const exists = window.stadiums.some(s => 
+          s.name === stadiumData.name && s.city === stadiumData.city
+        );
+        
+        if (!exists) {
+          const response = await window.apiCall('/stadiums', {
+            method: 'POST',
+            body: JSON.stringify({
+              ...stadiumData,
+              created_by: window.user?.name || 'System',
+              created_date: new Date().toISOString()
+            })
+          });
+          
+          if (!response.error) {
+            window.setStadiums(prev => [...prev, response.data || response]);
+            addedCount++;
+          }
+        }
+      }
+      
+      if (addedCount > 0) {
+        alert(`✅ Added ${addedCount} popular stadiums successfully!`);
+      } else {
+        alert('ℹ️ All popular stadiums are already in your database.');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error adding default stadiums:', error);
+      alert('❌ Error adding stadiums: ' + error.message);
+    } finally {
+      window.setLoading(false);
+    }
+  };
 
   // Client Management Functions
   window.fetchClients = handlers.fetchClients || (() => {
@@ -1338,6 +1597,7 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     window.setShowOrderDetail(false);
     window.setShowEditOrderForm(false);
     window.setShowOrderAssignmentModal(false);
+    window.setShowStadiumForm(false);
     state.setFormData && state.setFormData({});
     state.setCurrentLead && state.setCurrentLead(null);
     state.setCurrentInventory && state.setCurrentInventory(null);
@@ -1352,6 +1612,8 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     window.setCurrentOrderDetail && window.setCurrentOrderDetail(null);
     window.setCurrentOrderForEdit && window.setCurrentOrderForEdit(null);
     window.setSelectedOrderForAssignment && window.setSelectedOrderForAssignment(null);
+    window.setEditingStadium && window.setEditingStadium(null);
+    window.setStadiumFormData && window.setStadiumFormData({});
   };
 
   // ✅ CRITICAL MISSING FUNCTIONS - Enhanced with State Sync
@@ -1382,9 +1644,24 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     window.setCurrentInventoryDetail(null);
   };
 
-  // ===== INVENTORY FORM CONFIGURATION =====
+  // ===== FORM CONFIGURATIONS =====
 
-  // ✅ YOUR ORIGINAL PRODUCTION FORM FIELDS (from index.html)
+  // ✅ STADIUM FORM FIELDS CONFIGURATION
+  window.stadiumFormFields = [
+    { name: 'name', label: 'Stadium Name', type: 'text', required: true, placeholder: 'e.g., Wankhede Stadium' },
+    { name: 'nickname', label: 'Nickname', type: 'text', required: false, placeholder: 'e.g., Home of Cricket' },
+    { name: 'city', label: 'City', type: 'text', required: true, placeholder: 'e.g., Mumbai' },
+    { name: 'state', label: 'State/Province', type: 'text', required: false, placeholder: 'e.g., Maharashtra' },
+    { name: 'country', label: 'Country', type: 'text', required: true, placeholder: 'e.g., India' },
+    { name: 'capacity', label: 'Capacity', type: 'number', required: false, placeholder: 'Total seating capacity' },
+    { name: 'sport_type', label: 'Primary Sport', type: 'select', required: true, options: ['Cricket', 'Football', 'Basketball', 'Tennis', 'Hockey', 'Formula 1', 'Multi-Sport', 'Other'] },
+    { name: 'opened_year', label: 'Opened Year', type: 'number', required: false, placeholder: 'e.g., 1974' },
+    { name: 'website', label: 'Official Website', type: 'url', required: false, placeholder: 'https://...' },
+    { name: 'address', label: 'Address', type: 'textarea', required: false, placeholder: 'Full address of the stadium' },
+    { name: 'description', label: 'Description', type: 'textarea', required: false, placeholder: 'Brief description or notable features' }
+  ];
+
+  // ✅ INVENTORY FORM CONFIGURATION
   window.inventoryFormFields = [
     { name: 'event_name', label: 'Event Name', type: 'text', required: true },
     { name: 'event_date', label: 'Event Date', type: 'date', required: true },
@@ -1824,4 +2101,4 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
   );
 };
 
-console.log('✅ COMPREHENSIVE MODAL STATE SYNCHRONIZATION FIX APPLIED - All modal state setters enhanced with React sync protection');
+console.log('✅ COMPREHENSIVE STADIUM INTEGRATION COMPLETE - All stadium functions, setters, and form handlers loaded successfully');
