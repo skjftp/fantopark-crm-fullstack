@@ -193,7 +193,8 @@ window.renderMainApp = function() {
     status: 'all',
     expiringDays: 7,
   });
-  const [activeFinancialTab, setActiveFinancialTab] = useState('sales');
+  // ✅ FIX: Change default from 'sales' to 'activesales' to match financials.js tabs
+  const [activeFinancialTab, setActiveFinancialTab] = useState('activesales');
   const [financialStats, setFinancialStats] = useState({
     totalSales: 0,
     totalReceivables: 0,
@@ -411,6 +412,16 @@ window.renderMainApp = function() {
     salesPeople, setSalesPeople,
     chartInstances, setChartInstances
   };
+
+  // ✅ EXPOSE FINANCIAL VARIABLES DIRECTLY TO WINDOW (for financials.js component)
+  window.activeFinancialTab = activeFinancialTab;
+  window.setActiveFinancialTab = setActiveFinancialTab;
+  window.financialFilters = financialFilters;
+  window.setFinancialFilters = setFinancialFilters;
+  window.financialData = financialData;
+  window.setFinancialData = setFinancialData;
+  window.financialStats = financialStats;
+  window.setFinancialStats = setFinancialStats;
 
   // Return the state object to be used by App component
   window.setViewMode = setViewMode;
