@@ -1,19 +1,5 @@
 // Enhanced Orders Component for FanToPark CRM with Search Filters and Pagination
-// Fixed version - Follows project pattern by extracting state from window.appState
-// No React hooks in content rendering function
-
-//window.ordersPagination = window.ordersPagination || {
-  //currentPage: 1,
-  //itemsPerPage: 10,
-  //totalItems: 0,
-  //totalPages: 0
-//};
-
-//window.ordersSorting = window.ordersSorting || {
-  //sortField: 'created_date',
-  //sortDirection: 'desc'
-//};
-
+// FIXED version - Properly integrates with React state from main-app-component.js
 
 // ===== ENHANCED: Orders Content Function - Fixed to work with React state =====
 window.renderOrdersContent = () => {
@@ -58,6 +44,10 @@ window.renderOrdersContent = () => {
   const hasPermission = window.hasPermission || (() => false);
   const openOrderDetail = window.openOrderDetail || (() => console.warn("openOrderDetail not implemented"));
   const approveOrder = window.approveOrder || (() => console.warn("approveOrder not implemented"));
+  const rejectOrder = window.rejectOrder || (() => console.warn("rejectOrder not implemented"));
+  const assignOrder = window.assignOrder || (() => console.warn("assignOrder not implemented"));
+  const completeOrder = window.completeOrder || (() => console.warn("completeOrder not implemented"));
+  const viewInvoice = window.viewInvoice || (() => console.warn("viewInvoice not implemented"));
   const openEditOrderForm = window.openEditOrderForm || (() => console.warn("openEditOrderForm not implemented"));
   const deleteOrder = window.deleteOrder || (() => console.warn("deleteOrder not implemented"));
 
@@ -69,8 +59,8 @@ window.renderOrdersContent = () => {
     if (ordersFilters.searchQuery) {
       const query = ordersFilters.searchQuery.toLowerCase();
       filteredOrders = filteredOrders.filter(order =>
-        (order.customer_name && order.customer_name.toLowerCase().includes(query)) ||
-        (order.customer_phone && order.customer_phone.includes(query)) ||
+        (order.client_name && order.client_name.toLowerCase().includes(query)) ||
+        (order.client_phone && order.client_phone.includes(query)) ||
         (order.order_number && order.order_number.toLowerCase().includes(query)) ||
         (order.event_name && order.event_name.toLowerCase().includes(query))
       );
@@ -95,7 +85,7 @@ window.renderOrdersContent = () => {
     if (ordersFilters.clientFilter) {
       const clientQuery = ordersFilters.clientFilter.toLowerCase();
       filteredOrders = filteredOrders.filter(order =>
-        order.customer_name && order.customer_name.toLowerCase().includes(clientQuery)
+        order.client_name && order.client_name.toLowerCase().includes(clientQuery)
       );
     }
 
@@ -228,7 +218,7 @@ window.renderOrdersContent = () => {
             type: 'text',
             value: ordersFilters.searchQuery,
             onChange: (e) => handleFilterChange('searchQuery', e.target.value),
-            placeholder: 'Customer, phone, order #, event...',
+            placeholder: 'Client name, phone, order #, event...',
             className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
           })
         ),
@@ -373,7 +363,7 @@ window.renderOrdersContent = () => {
         React.createElement('table', { className: 'w-full divide-y divide-gray-200 dark:divide-gray-700' },
           React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
             React.createElement('tr', null,
-              ['order_number', 'customer_name', 'event_name', 'total_amount', 'status', 'payment_status', 'assigned_to'].map(field =>
+              ['order_number', 'client_name', 'event_name', 'total_amount', 'status', 'payment_status', 'assigned_to'].map(field =>
                 React.createElement('th', {
                   key: field,
                   className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100',
@@ -406,7 +396,7 @@ window.renderOrdersContent = () => {
                   order.order_number || 'N/A'
                 ),
                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white' },
-                  order.customer_name || 'N/A'
+                  order.client_name || 'N/A'
                 ),
                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white' },
                   order.event_name || 'N/A'
@@ -438,23 +428,130 @@ window.renderOrdersContent = () => {
                   order.assigned_to || 'Unassigned'
                 ),
                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm font-medium' },
-                  React.createElement('div', { className: 'flex space-x-2' },
+                  React.createElement('div', { className: 'flex flex-wrap gap-1' },
+                    // Always show View button first
                     React.createElement('button', {
                       onClick: () => openOrderDetail(order),
-                      className: 'text-blue-600 hover:text-blue-900'
+                      className: 'px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200',
+                      title: 'View order details'
                     }, 'View'),
-                    hasPermission('orders', 'write') && React.createElement('button', {
-                      onClick: () => openEditOrderForm(order),
-                      className: 'text-green-600 hover:text-green-900'
-                    }, 'Edit'),
-                    hasPermission('orders', 'approve') && order.status === 'pending' && React.createElement('button', {
-                      onClick: () => approveOrder(order.id),
-                      className: 'text-purple-600 hover:text-purple-900'
-                    }, 'Approve'),
-                    hasPermission('orders', 'delete') && React.createElement('button', {
-                      onClick: () => deleteOrder(order.id),
-                      className: 'text-red-600 hover:text-red-900'
-                    }, 'Delete')
+                    
+                    // STAGE 1: Before approval (pending/new orders) - View, Edit, Approve, Reject, Delete
+                    (order.status === 'pending' || order.status === 'new' || order.status === 'pending_approval') && [
+                      hasPermission('orders', 'write') && React.createElement('button', {
+                        key: 'edit',
+                        onClick: () => openEditOrderForm(order),
+                        className: 'px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200',
+                        title: 'Edit order details'
+                      }, 'Edit'),
+                      
+                      hasPermission('orders', 'approve') && React.createElement('button', {
+                        key: 'approve',
+                        onClick: () => approveOrder(order.id),
+                        className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
+                        title: 'Approve this order'
+                      }, 'Approve'),
+                      
+                      hasPermission('orders', 'approve') && React.createElement('button', {
+                        key: 'reject',
+                        onClick: () => rejectOrder(order.id),
+                        className: 'px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200',
+                        title: 'Reject this order'
+                      }, 'Reject'),
+                      
+                      hasPermission('orders', 'delete') && React.createElement('button', {
+                        key: 'delete',
+                        onClick: () => deleteOrder(order.id),
+                        className: 'px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200',
+                        title: 'Delete this order'
+                      }, 'Delete')
+                    ],
+                    
+                    // STAGE 2: After approval (approved/confirmed) - View, View Invoice, Assign, Edit, Delete
+                    (order.status === 'approved' || order.status === 'confirmed') && [
+                      hasPermission('orders', 'read') && React.createElement('button', {
+                        key: 'invoice',
+                        onClick: () => viewInvoice(order),
+                        className: 'px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200',
+                        title: 'View/Generate invoice'
+                      }, 'View Invoice'),
+                      
+                      hasPermission('orders', 'assign') && React.createElement('button', {
+                        key: 'assign',
+                        onClick: () => assignOrder(order),
+                        className: 'px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200',
+                        title: 'Assign to service team'
+                      }, 'Assign'),
+                      
+                      hasPermission('orders', 'write') && React.createElement('button', {
+                        key: 'edit',
+                        onClick: () => openEditOrderForm(order),
+                        className: 'px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200',
+                        title: 'Edit order details'
+                      }, 'Edit'),
+                      
+                      hasPermission('orders', 'delete') && React.createElement('button', {
+                        key: 'delete',
+                        onClick: () => deleteOrder(order.id),
+                        className: 'px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200',
+                        title: 'Delete this order'
+                      }, 'Delete')
+                    ],
+                    
+                    // STAGE 3: After assign (assigned/service_assigned) - View, View Invoice, Complete, Edit, Delete
+                    (order.status === 'assigned' || order.status === 'service_assigned' || order.status === 'in_progress') && [
+                      hasPermission('orders', 'read') && React.createElement('button', {
+                        key: 'invoice',
+                        onClick: () => viewInvoice(order),
+                        className: 'px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200',
+                        title: 'View invoice'
+                      }, 'View Invoice'),
+                      
+                      hasPermission('orders', 'write') && React.createElement('button', {
+                        key: 'complete',
+                        onClick: () => completeOrder(order.id),
+                        className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
+                        title: 'Mark as completed'
+                      }, 'Complete'),
+                      
+                      hasPermission('orders', 'write') && React.createElement('button', {
+                        key: 'edit',
+                        onClick: () => openEditOrderForm(order),
+                        className: 'px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200',
+                        title: 'Edit order details'
+                      }, 'Edit'),
+                      
+                      hasPermission('orders', 'delete') && React.createElement('button', {
+                        key: 'delete',
+                        onClick: () => deleteOrder(order.id),
+                        className: 'px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200',
+                        title: 'Delete this order'
+                      }, 'Delete')
+                    ],
+                    
+                    // STAGE 4: After completion (completed/delivered) - View, View Invoice, Edit, Delete
+                    (order.status === 'completed' || order.status === 'delivered') && [
+                      hasPermission('orders', 'read') && React.createElement('button', {
+                        key: 'invoice',
+                        onClick: () => viewInvoice(order),
+                        className: 'px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200',
+                        title: 'View invoice'
+                      }, 'View Invoice'),
+                      
+                      hasPermission('orders', 'write') && React.createElement('button', {
+                        key: 'edit',
+                        onClick: () => openEditOrderForm(order),
+                        className: 'px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200',
+                        title: 'Edit order details'
+                      }, 'Edit'),
+                      
+                      hasPermission('orders', 'delete') && React.createElement('button', {
+                        key: 'delete',
+                        onClick: () => deleteOrder(order.id),
+                        className: 'px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200',
+                        title: 'Delete this order'
+                      }, 'Delete')
+                    ]
                   )
                 )
               )
