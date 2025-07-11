@@ -115,51 +115,52 @@ window.SimplifiedApp = function() {
   });
 
   // ✅ MISSING UTILITY FUNCTION EXPOSURES - NEWLY ADDED
-window.formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric' 
-  });
-};
+  window.formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
 
   // ✅ FINAL MISSING UTILITY FUNCTIONS - NEWLY ADDED
-window.getStatusColor = (status) => {
-  if (!status) return 'bg-gray-100 text-gray-800';
-  const statusColors = {
-    'Available': 'bg-green-100 text-green-800',
-    'Low Stock': 'bg-yellow-100 text-yellow-800', 
-    'Sold Out': 'bg-red-100 text-red-800',
-    'Coming Soon': 'bg-blue-100 text-blue-800'
+  window.getStatusColor = (status) => {
+    if (!status) return 'bg-gray-100 text-gray-800';
+    const statusColors = {
+      'Available': 'bg-green-100 text-green-800',
+      'Low Stock': 'bg-yellow-100 text-yellow-800', 
+      'Sold Out': 'bg-red-100 text-red-800',
+      'Coming Soon': 'bg-blue-100 text-blue-800'
+    };
+    return statusColors[status] || 'bg-gray-100 text-gray-800';
   };
-  return statusColors[status] || 'bg-gray-100 text-gray-800';
-};
 
-window.formatNumber = (number) => {
-  if (number === null || number === undefined) return '0';
-  return Number(number).toLocaleString();
-};
+  window.formatNumber = (number) => {
+    if (number === null || number === undefined) return '0';
+    return Number(number).toLocaleString();
+  };
   
   
-window.getInventoryStatus = (item) => {
-  if (!item) return 'Unknown';
-  if (item.available_tickets <= 0) return 'Sold Out';
-  if (item.available_tickets < 10) return 'Low Stock';
-  return 'Available';
-};
+  window.getInventoryStatus = (item) => {
+    if (!item) return 'Unknown';
+    if (item.available_tickets <= 0) return 'Sold Out';
+    if (item.available_tickets < 10) return 'Low Stock';
+    return 'Available';
+  };
 
-window.calculateMargin = (item) => {
-  if (!item || !item.selling_price || !item.buying_price) return 0;
-  return ((item.selling_price - item.buying_price) / item.selling_price * 100).toFixed(1);
-};
+  window.calculateMargin = (item) => {
+    if (!item || !item.selling_price || !item.buying_price) return 0;
+    return ((item.selling_price - item.buying_price) / item.selling_price * 100).toFixed(1);
+  };
 
-window.getUserName = (email) => {
-  if (!email) return 'Unknown';
-  const user = window.users?.find(u => u.email === email);
-  return user ? user.name : email.split('@')[0];
-};
+  window.getUserName = (email) => {
+    if (!email) return 'Unknown';
+    const user = window.users?.find(u => u.email === email);
+    return user ? user.name : email.split('@')[0];
+  };
 
 // ✅ NEW: Add these missing function exposures
 window.getInventoryDueInDays = (eventDate) => {
@@ -207,37 +208,43 @@ window.getPriorityColor = (priority) => {
   }
 };
 
-  // ✅ INVENTORY FUNCTION EXPOSURES - NEWLY ADDED
-window.openInventoryDetail = handlers.openInventoryDetail || ((inventory) => {
-  console.log("📦 openInventoryDetail called with:", inventory);
-  state.setCurrentInventoryDetail && state.setCurrentInventoryDetail(inventory);
-  state.setShowInventoryDetail && state.setShowInventoryDetail(true);
-});
+// ===== INVENTORY ACTION FUNCTION EXPOSURES =====
+  window.openInventoryDetail = handlers.openInventoryDetail || ((inventory) => {
+    console.log("📦 openInventoryDetail called with:", inventory);
+    state.setCurrentInventoryDetail && state.setCurrentInventoryDetail(inventory);
+    state.setShowInventoryDetail && state.setShowInventoryDetail(true);
+  });
 
-window.openEditInventoryForm = handlers.openEditInventoryForm || ((inventory) => {
-  console.log("✏️ openEditInventoryForm called with:", inventory);
-  state.setCurrentInventory && state.setCurrentInventory(inventory);
-  state.setShowEditInventoryForm && state.setShowEditInventoryForm(true);
-});
+  window.openEditInventoryForm = handlers.openEditInventoryForm || ((inventory) => {
+    console.log("✏️ openEditInventoryForm called with:", inventory);
+    state.setCurrentInventory && state.setCurrentInventory(inventory);
+    state.setShowEditInventoryForm && state.setShowEditInventoryForm(true);
+  });
 
-window.handleDeleteInventory = handlers.handleDeleteInventory || ((inventoryId) => {
-  console.log("🗑️ handleDeleteInventory called with:", inventoryId);
-  if (window.handleDelete) {
-    return window.handleDelete('inventory', inventoryId, 'inventory item');
-  } else {
-    console.warn("⚠️ handleDeleteInventory not implemented");
-  }
-});
+  window.handleDeleteInventory = handlers.handleDeleteInventory || ((inventoryId) => {
+    console.log("🗑️ handleDeleteInventory called with:", inventoryId);
+    if (window.handleDelete) {
+      return window.handleDelete('inventory', inventoryId, 'inventory item');
+    } else {
+      console.warn("⚠️ handleDeleteInventory not implemented");
+    }
+  });
 
-window.handleCopyInventory = handlers.handleCopyInventory || ((inventory) => {
-  console.log("📋 handleCopyInventory called with:", inventory);
-  console.warn("⚠️ handleCopyInventory not implemented in handlers");
-});
+  window.handleCopyInventory = handlers.handleCopyInventory || ((inventory) => {
+    console.log("📋 handleCopyInventory called with:", inventory);
+    console.warn("⚠️ handleCopyInventory not implemented in handlers");
+  });
 
-window.openAddInventoryForm = handlers.openAddInventoryForm || (() => {
-  console.log("➕ openAddInventoryForm called");
-  state.setShowInventoryForm && state.setShowInventoryForm(true);
-});
+  window.openAddInventoryForm = handlers.openAddInventoryForm || (() => {
+    console.log("➕ openAddInventoryForm called");
+    state.setShowInventoryForm && state.setShowInventoryForm(true);
+  });
+
+  window.openAllocationManagement = handlers.openAllocationManagement || ((inventory) => {
+    console.log("👁️ openAllocationManagement called with:", inventory);
+    state.setCurrentInventory && state.setCurrentInventory(inventory);
+    state.setShowAllocationManagement && state.setShowAllocationManagement(true);
+  });
   
   // ✅ STATE EXPOSURES - COMPLETE SET
   window.appState = window.appState || {};
@@ -478,7 +485,7 @@ window.updateCurrentInventoryItems = () => {
   });
 
   // ✅ CRITICAL FIX: MISSING INVENTORY FILTER FUNCTION EXPOSURES - NEWLY ADDED
-  window.setInventoryEventFilter = state.setInventoryEventFilter || ((filter) => {
+ window.setInventoryEventFilter = state.setInventoryEventFilter || ((filter) => {
     console.log("🎫 setInventoryEventFilter called with:", filter);
     window.inventoryEventFilter = filter;
     if (state.setInventoryEventFilter) {
@@ -525,6 +532,19 @@ window.updateCurrentInventoryItems = () => {
       state.setInventorySortDirection(direction);
     } else {
       console.warn("⚠️ setInventorySortDirection not implemented in state");
+    }
+  });
+
+    window.currentInventoryPage = state.currentInventoryPage || 1;
+  window.itemsPerPage = state.itemsPerPage || 20;
+
+  window.setCurrentInventoryPage = state.setCurrentInventoryPage || ((page) => {
+    console.log("📄 setCurrentInventoryPage called with:", page);
+    window.currentInventoryPage = typeof page === 'function' ? page(window.currentInventoryPage) : page;
+    if (state.setCurrentInventoryPage) {
+      state.setCurrentInventoryPage(page);
+    } else {
+      console.warn("⚠️ setCurrentInventoryPage not implemented in state");
     }
   });
 
