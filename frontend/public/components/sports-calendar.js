@@ -212,10 +212,11 @@ window.renderSportsCalendarContent = () => {
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Geography'),
           React.createElement('select', {
             value: calendarFilters.geography || '',
-            onChange: (e) => {
-              console.log('🔍 Geography filter changed:', e.target.value);
-              setCalendarFilters({geography: e.target.value});
-            },
+onChange: (e) => {
+  console.log('🔍 Geography filter changed:', e.target.value);
+  setCalendarFilters({geography: e.target.value});
+  window.setCurrentEventsPage && window.setCurrentEventsPage(1); // Reset to page 1
+},
             className: 'w-full p-2 border border-gray-300 rounded-lg'
           },
             React.createElement('option', { value: '' }, 'All Locations'),
@@ -232,10 +233,11 @@ window.renderSportsCalendarContent = () => {
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Sport Type'),
           React.createElement('select', {
             value: calendarFilters.sport_type || '',
-            onChange: (e) => {
-              console.log('🔍 Sport type filter changed:', e.target.value);
-              setCalendarFilters({sport_type: e.target.value});
-            },
+onChange: (e) => {
+  console.log('🔍 Sport type filter changed:', e.target.value);
+  setCalendarFilters({sport_type: e.target.value});
+  window.setCurrentEventsPage && window.setCurrentEventsPage(1); // Reset to page 1
+},
             className: 'w-full p-2 border border-gray-300 rounded-lg'
           },
             React.createElement('option', { value: '' }, 'All Sports'),
@@ -252,10 +254,11 @@ window.renderSportsCalendarContent = () => {
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Priority'),
           React.createElement('select', {
             value: calendarFilters.priority || '',
-            onChange: (e) => {
-              console.log('🔍 Priority filter changed:', e.target.value);
-              setCalendarFilters({priority: e.target.value});
-            },
+             onChange: (e) => {
+          console.log('🔍 Priority filter changed:', e.target.value);
+          setCalendarFilters({priority: e.target.value});
+          window.setCurrentEventsPage && window.setCurrentEventsPage(1); // Reset to page 1
+        },
             className: 'w-full p-2 border border-gray-300 rounded-lg'
           },
             React.createElement('option', { value: '' }, 'All Priorities'),
