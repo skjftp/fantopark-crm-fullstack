@@ -19,33 +19,73 @@ window.renderGSTInvoicePreview = () => {
   const invoice = currentInvoice;
   const isIntraState = invoice.indian_state === 'Haryana' && !invoice.is_outside_india;
 
-  // FIX 1: Calculate baseAmount FIRST before using it anywhere
-  const baseAmount = window.getBaseAmount(invoice);
+  // 🔍 DEBUG LOGGING - Add extensive debugging
+  console.log('🔍 GST INVOICE PREVIEW DEBUG:');
+  console.log('🔍 invoice:', invoice);
+  console.log('🔍 invoice.gst_calculation:', invoice.gst_calculation);
+  console.log('🔍 invoice.total_tax:', invoice.total_tax);
+  console.log('🔍 isIntraState:', isIntraState);
 
-  // FIX 2: Use the stored calculation from the invoice, or recalculate if needed
+  // FIX 1: Calculate baseAmount FIRST before using it anywhere
+  const baseAmount = window.getBaseAmount ? window.getBaseAmount(invoice) : (invoice.base_amount || 0);
+  console.log('🔍 baseAmount:', baseAmount);
+
+  // FIX 2: Enhanced calculation object construction with robust GST total calculation
   let calculation;
   if (invoice.gst_calculation && invoice.tcs_calculation) {
+    // 🎯 CRITICAL FIX: Calculate GST total if missing
+    const gstTotal = invoice.gst_calculation.total || 
+                     invoice.total_tax || 
+                     ((invoice.gst_calculation.cgst || 0) + (invoice.gst_calculation.sgst || 0) + (invoice.gst_calculation.igst || 0));
+    
     // Use the stored calculation from the order
     calculation = {
       gst: {
-        applicable: invoice.gst_calculation.applicable || (invoice.gst_calculation.total > 0),
-        rate: invoice.gst_rate || invoice.gst_calculation.rate || 5,
+        applicable: invoice.gst_calculation.applicable !== false && 
+                   (gstTotal > 0 || invoice.gst_calculation.cgst > 0 || invoice.gst_calculation.sgst > 0 || invoice.gst_calculation.igst > 0),
+        rate: invoice.gst_rate || invoice.gst_calculation.rate || 18,
         cgst: invoice.gst_calculation.cgst || 0,
         sgst: invoice.gst_calculation.sgst || 0,
         igst: invoice.gst_calculation.igst || 0,
-        total: invoice.gst_calculation.total || invoice.total_tax || 0
+        total: gstTotal
       },
       tcs: {
         applicable: invoice.tcs_calculation.applicable || false,
-        rate: invoice.tcs_rate || invoice.tcs_calculation.rate || 5, // Use stored rate
+        rate: invoice.tcs_rate || invoice.tcs_calculation.rate || 5,
         amount: invoice.tcs_calculation.amount || 0
       },
-      finalAmount: invoice.final_amount || (baseAmount + (invoice.total_tax || 0))
+      finalAmount: invoice.final_amount || (baseAmount + gstTotal + (invoice.tcs_calculation.amount || 0))
     };
-  } else {
+  } else if (window.calculateGSTAndTCS) {
     // Fallback: recalculate using the function
-    calculation = calculateGSTAndTCS(baseAmount, invoice);
+    calculation = window.calculateGSTAndTCS(baseAmount, invoice);
+  } else {
+    // Fallback: construct from available data
+    const gstTotal = invoice.total_tax || 0;
+    calculation = {
+      gst: {
+        applicable: gstTotal > 0,
+        rate: invoice.gst_rate || 18,
+        cgst: isIntraState ? gstTotal / 2 : 0,
+        sgst: isIntraState ? gstTotal / 2 : 0,
+        igst: isIntraState ? 0 : gstTotal,
+        total: gstTotal
+      },
+      tcs: {
+        applicable: false,
+        rate: 5,
+        amount: 0
+      },
+      finalAmount: baseAmount + gstTotal
+    };
   }
+
+  // 🔍 DEBUG: Log the constructed calculation object
+  console.log('🔍 calculation object:', calculation);
+  console.log('🔍 calculation.gst.applicable:', calculation.gst.applicable);
+  console.log('🔍 calculation.gst.total:', calculation.gst.total);
+  console.log('🔍 calculation.gst.cgst:', calculation.gst.cgst);
+  console.log('🔍 calculation.gst.sgst:', calculation.gst.sgst);
 
   const gstRate = calculation.gst.rate;
 
@@ -409,7 +449,7 @@ ${invoiceContent}
           )
         ),
 
-        // FIX 3: Enhanced Tax Table with better calculation handling
+        // 🎯 CRITICAL FIX: Enhanced Tax Table with robust GST row rendering
         React.createElement('table', { className: 'totals-table' },
           React.createElement('tr', null,
             React.createElement('td', { style: { width: '60%' }}),
@@ -418,16 +458,34 @@ ${invoiceContent}
           ),
           (() => {
             const taxRows = [];
+            
+            // 🔍 DEBUG: Log GST row rendering decision
+            console.log('🔍 GST ROW RENDERING CHECK:');
+            console.log('🔍 calculation.gst.applicable:', calculation.gst.applicable);
+            console.log('🔍 calculation.gst.total > 0:', calculation.gst.total > 0);
+            console.log('🔍 calculation.gst.cgst > 0:', calculation.gst.cgst > 0);
+            console.log('🔍 calculation.gst.sgst > 0:', calculation.gst.sgst > 0);
+            console.log('🔍 calculation.gst.igst > 0:', calculation.gst.igst > 0);
+            
+            // 🎯 ENHANCED GST CONDITION: More robust check for GST applicability
+            const shouldShowGST = calculation.gst.applicable && 
+                                 (calculation.gst.total > 0 || 
+                                  calculation.gst.cgst > 0 || 
+                                  calculation.gst.sgst > 0 || 
+                                  calculation.gst.igst > 0);
+            
+            console.log('🔍 shouldShowGST:', shouldShowGST);
 
-            // FIX 4: GST Rows - ensure they show when GST is applicable
-            if (calculation.gst.applicable && calculation.gst.total > 0) {
+            // FIX 4: GST Rows - more robust condition
+            if (shouldShowGST) {
+              console.log('✅ RENDERING GST ROWS!');
               if (isIntraState) {
                 // CGST Row
                 taxRows.push(
                   React.createElement('tr', { key: 'cgst' },
                     React.createElement('td', null, invoice.type_of_sale === 'Service Fee' ? 'CGST on Service Charge' : 'CGST'),
                     React.createElement('td', { style: { textAlign: 'center' }}, (calculation.gst.rate/2).toFixed(2) + '%'),
-                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.cgst) : '₹' + calculation.gst.cgst)
+                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.cgst) : '₹' + calculation.gst.cgst.toFixed(2))
                   )
                 );
                 // SGST Row
@@ -435,7 +493,7 @@ ${invoiceContent}
                   React.createElement('tr', { key: 'sgst' },
                     React.createElement('td', null, invoice.type_of_sale === 'Service Fee' ? 'SGST on Service Charge' : 'SGST'),
                     React.createElement('td', { style: { textAlign: 'center' }}, (calculation.gst.rate/2).toFixed(2) + '%'),
-                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.sgst) : '₹' + calculation.gst.sgst)
+                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.sgst) : '₹' + calculation.gst.sgst.toFixed(2))
                   )
                 );
               } else {
@@ -444,10 +502,12 @@ ${invoiceContent}
                   React.createElement('tr', { key: 'igst' },
                     React.createElement('td', null, invoice.type_of_sale === 'Service Fee' ? 'IGST on Service Charge' : 'IGST'),
                     React.createElement('td', { style: { textAlign: 'center' }}, calculation.gst.rate.toFixed(2) + '%'),
-                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.igst) : '₹' + calculation.gst.igst)
+                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.igst) : '₹' + calculation.gst.igst.toFixed(2))
                   )
                 );
               }
+            } else {
+              console.log('❌ NOT RENDERING GST ROWS - conditions not met');
             }
 
             // TCS Row - Use stored rate from invoice
@@ -474,7 +534,7 @@ ${invoiceContent}
               React.createElement('tr', { key: 'grand-total', style: { fontWeight: 'bold' }},
                 React.createElement('td', null, 'Grand Total'),
                 React.createElement('td', null),
-                React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.finalAmount) : '₹' + calculation.finalAmount)
+                React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.finalAmount) : '₹' + calculation.finalAmount.toFixed(2))
               )
             );
 
@@ -492,7 +552,7 @@ ${invoiceContent}
               React.createElement('tr', { key: 'invoice-value', style: { fontWeight: 'bold' }},
                 React.createElement('td', null, 'Invoice Value'),
                 React.createElement('td', null),
-                React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.finalAmount) : '₹' + calculation.finalAmount)
+                React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.finalAmount) : '₹' + calculation.finalAmount.toFixed(2))
               )
             );
 
@@ -551,4 +611,4 @@ ${invoiceContent}
   );
 };
 
-console.log('✅ GST Invoice Preview component loaded successfully with integration pattern applied');
+console.log('✅ GST Invoice Preview component loaded successfully - FIXED GST ROW RENDERING!');
