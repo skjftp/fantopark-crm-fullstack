@@ -1,6 +1,11 @@
 // Complete Event Modal Components - Exact Production Structure
 // ✅ All fields from production.html with proper sections and styling
 
+// ✅ SAFETY: Ensure window.appState exists
+if (!window.appState) {
+  window.appState = {};
+}
+
 // ===== COMPLETE EVENT FORM FIELDS =====
 const eventFormFields = [
   // Basic Information
@@ -577,6 +582,11 @@ if (!window.setEventFormData) {
   window.setEventFormData = (data) => {
     console.log("📅 setEventFormData called with:", data);
     window.eventFormData = data;
+    
+    // Initialize appState if it doesn't exist
+    if (!window.appState) {
+      window.appState = {};
+    }
     window.appState.eventFormData = data;
     
     // Sync with React state if available
@@ -586,9 +596,14 @@ if (!window.setEventFormData) {
   };
 }
 
-// Initialize eventFormData if not present
+// Initialize eventFormData if not present - FIXED
 if (!window.eventFormData) {
   window.eventFormData = {};
+  
+  // Ensure appState exists before setting properties
+  if (!window.appState) {
+    window.appState = {};
+  }
   window.appState.eventFormData = {};
 }
 
