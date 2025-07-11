@@ -23,9 +23,9 @@ window.renderAssignForm = () => {
   console.log("🔍 Current form data:", formData);
 
   // ✅ FIXED: Get team members with proper filtering
-  const teamMembers = (formData.assigned_team === 'supply' || formData.assigned_team === 'Supply')
-    ? users.filter(u => ['supply_executive', 'supply_sales_service_manager'].includes(u.role)) 
-    : users.filter(u => ['sales_executive', 'sales_manager'].includes(u.role));
+ const teamMembers = users.filter(u => 
+  u.status === 'active' || !u.status // Include users without status field for backward compatibility
+);
 
   console.log("👥 Team members for", formData.assigned_team || 'sales', "team:", teamMembers.length);
 
