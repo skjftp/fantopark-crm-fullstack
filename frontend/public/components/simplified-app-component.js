@@ -1235,30 +1235,30 @@ window.SimplifiedApp = function() {
 
   // ✅ CRITICAL MISSING: Inventory Form Fields Definition
   window.inventoryFormFields = [
-    { name: 'event_name', label: 'Event Name', type: 'text', required: true },
-    { name: 'event_date', label: 'Event Date', type: 'date', required: true },
-    { name: 'event_type', label: 'Event Type', type: 'select', options: ['Cricket', 'Football', 'Tennis', 'Basketball', 'Hockey', 'Kabaddi', 'Wrestling', 'Boxing', 'Other'], required: true },
-    { name: 'sports', label: 'Sports', type: 'text', required: true },
-    { name: 'venue', label: 'Venue', type: 'select', options: 'dynamic', required: true },
-    { name: 'day_of_match', label: 'Day of Match', type: 'text' },
-    { name: 'category_of_ticket', label: 'Category', type: 'select', options: ['VIP', 'Premium', 'Gold', 'Silver', 'Bronze', 'General'], required: true },
-    { name: 'total_tickets', label: 'Total Tickets', type: 'number', required: true },
-    { name: 'available_tickets', label: 'Available Tickets', type: 'number', required: true },
-    { name: 'mrp_of_ticket', label: 'MRP per Ticket (₹)', type: 'number' },
-    { name: 'buying_price', label: 'Buying Price (₹)', type: 'number', required: true },
-    { name: 'selling_price', label: 'Selling Price (₹)', type: 'number', required: true },
-    { name: 'stand', label: 'Stand/Section', type: 'text' },
-    { name: 'inclusions', label: 'Inclusions', type: 'textarea' },
-    { name: 'booking_person', label: 'Booking Person', type: 'text' },
-    { name: 'procurement_type', label: 'Procurement Type', type: 'select', options: ['Direct', 'Agent', 'Online', 'Partner'] },
-    { name: 'notes', label: 'Notes', type: 'textarea' },
-    { name: 'paymentStatus', label: 'Payment Status', type: 'select', options: ['pending', 'partial', 'paid'], required: true },
-    { name: 'supplierName', label: 'Supplier Name', type: 'text' },
-    { name: 'supplierInvoice', label: 'Supplier Invoice', type: 'text' },
-    { name: 'totalPurchaseAmount', label: 'Total Purchase Amount (₹)', type: 'number' },
-    { name: 'amountPaid', label: 'Amount Paid (₹)', type: 'number' },
-    { name: 'paymentDueDate', label: 'Payment Due Date', type: 'date' }
-  ];
+  { name: 'event_name', label: 'Event Name', type: 'text', required: true },
+  { name: 'event_date', label: 'Event Date', type: 'date', required: true },
+  { name: 'event_type', label: 'Event Type', type: 'select', options: ['IPL', 'India Cricket + ICC', 'Football', 'Tennis', 'F1', 'Miscellaneous'], required: true },
+  { name: 'sports', label: 'Sports Category', type: 'select', options: ['Cricket', 'Football', 'Tennis', 'Formula 1', 'Olympics', 'Basketball', 'Badminton', 'Hockey', 'Golf', 'Wrestling'], required: true },
+  { name: 'venue', label: 'Venue', type: 'select', options: 'dynamic', required: true },
+  { name: 'day_of_match', label: 'Day of Match (for Test/Multi-day)', type: 'select', options: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Not Applicable'], required: false },
+  { name: 'category_of_ticket', label: 'Category of Ticket', type: 'select', options: ['VIP', 'Premium', 'Gold', 'Silver', 'Bronze', 'General', 'Corporate Box', 'Hospitality'], required: true },
+  { name: 'stand', label: 'Stand/Section', type: 'text', required: false, placeholder: 'e.g., North Stand, East Pavilion' },
+  { name: 'total_tickets', label: 'Total Tickets', type: 'number', required: true },
+  { name: 'available_tickets', label: 'Available Tickets', type: 'number', required: true },
+  { name: 'mrp_of_ticket', label: 'MRP of Ticket (₹)', type: 'number', required: true },
+  { name: 'buying_price', label: 'Buying Price (₹)', type: 'number', required: true },
+  { name: 'selling_price', label: 'Selling Price (₹)', type: 'number', required: true },
+  { name: 'inclusions', label: 'Inclusions', type: 'textarea', required: false, placeholder: 'e.g., Food, Beverages, Parking, Merchandise, Meet & Greet' },
+  { name: 'booking_person', label: 'Booking Person (Who Purchased)', type: 'text', required: true, placeholder: 'Name of person/company who purchased inventory' },
+  { name: 'procurement_type', label: 'Procurement Type', type: 'select', options: ['pre_inventory', 'on_demand', 'partnership', 'direct_booking'], required: true },
+  { name: 'notes', label: 'Additional Notes', type: 'textarea', required: false, placeholder: 'Any special conditions, restrictions, or notes' },
+  { name: 'paymentStatus', label: 'Payment Status', type: 'select', options: ['paid', 'pending'], required: true },
+  { name: 'supplierName', label: 'Supplier Name', type: 'text', required: false },
+  { name: 'supplierInvoice', label: 'Supplier Invoice #', type: 'text', required: false },
+  { name: 'totalPurchaseAmount', label: 'Total Purchase Amount', type: 'number', required: false },
+  { name: 'amountPaid', label: 'Amount Paid', type: 'number', required: false },
+  { name: 'paymentDueDate', label: 'Payment Due Date', type: 'date', required: false }
+];
 
   // ✅ CRITICAL MISSING: Form Data Change Handler
   window.handleFormDataChange = (fieldName, value) => {
