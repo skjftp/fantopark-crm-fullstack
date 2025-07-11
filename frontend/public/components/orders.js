@@ -1,5 +1,5 @@
 // ============================================================================
-// ORDERS COMPONENT - Extracted from index.html - FIXED VIEW INVOICE BUTTON + GST DATA
+// ORDERS COMPONENT - Extracted from index.html - FIXED GST DATA RECONSTRUCTION 
 // ============================================================================
 // This component manages order management system with status tracking, 
 // approvals, invoice generation, and comprehensive workflow processing.
@@ -83,6 +83,12 @@ window.renderOrdersContent = () => {
                             const hasInvoice = order.invoice_number || 
                                               (window.invoices || []).some(inv => inv.order_id === order.id);
                             
+                            // 🎯 CRITICAL GST FIX: Proper GST data reconstruction logic
+                            console.log('🔍 GST DEBUG for order:', order.id);
+                            console.log('🔍 order.gst_calculation:', order.gst_calculation);
+                            console.log('🔍 order.total_tax:', order.total_tax);
+                            console.log('🔍 order.gst_rate:', order.gst_rate);
+                            
                             // ✅ ENHANCED: Find the actual invoice object for this order WITH PROPER GST DATA
                             const orderInvoice = order.invoice_number ? 
                                 // If order has invoice_number, reconstruct from order data
@@ -106,25 +112,64 @@ window.renderOrdersContent = () => {
                                         rate: order.price_per_ticket || (order.total_amount || 0)
                                     }],
                                     base_amount: order.base_amount || order.total_amount || order.amount || 0,
-                                    // ✅ CRITICAL FIX: Preserve actual GST data from order, don't override with defaults
-                                    gst_calculation: order.gst_calculation ? {
-                                        applicable: order.gst_calculation.applicable !== false && (order.gst_calculation.total > 0 || order.total_tax > 0),
-                                        rate: order.gst_calculation.rate || order.gst_rate || 18,
-                                        cgst: order.gst_calculation.cgst || 0,
-                                        sgst: order.gst_calculation.sgst || 0,
-                                        igst: order.gst_calculation.igst || 0,
-                                        total: order.gst_calculation.total || order.total_tax || 0
-                                    } : (order.total_tax > 0 ? {
-                                        // Fallback: reconstruct from total_tax if gst_calculation is missing
-                                        applicable: true,
-                                        rate: order.gst_rate || 18,
-                                        cgst: (order.indian_state === 'Haryana' && !order.is_outside_india) ? (order.total_tax / 2) : 0,
-                                        sgst: (order.indian_state === 'Haryana' && !order.is_outside_india) ? (order.total_tax / 2) : 0,
-                                        igst: (order.indian_state !== 'Haryana' || order.is_outside_india) ? order.total_tax : 0,
-                                        total: order.total_tax
-                                    } : {
-                                        applicable: false, rate: 0, cgst: 0, sgst: 0, igst: 0, total: 0
-                                    }),
+                                    
+                                    // 🎯 CRITICAL GST FIX: Simplified and robust GST data preservation
+                                    gst_calculation: (() => {
+                                        console.log('🔍 Constructing GST calculation...');
+                                        
+                                        // Check if we have valid GST data
+                                        const hasGSTData = order.gst_calculation && 
+                                                          (order.gst_calculation.applicable === true || 
+                                                           order.total_tax > 0 || 
+                                                           order.gst_calculation.cgst > 0 || 
+                                                           order.gst_calculation.sgst > 0 || 
+                                                           order.gst_calculation.igst > 0);
+                                        
+                                        console.log('🔍 hasGSTData:', hasGSTData);
+                                        console.log('🔍 order.gst_calculation.applicable:', order.gst_calculation?.applicable);
+                                        console.log('🔍 order.total_tax > 0:', order.total_tax > 0);
+                                        
+                                        if (hasGSTData) {
+                                            // Use existing GST data, preserving all values
+                                            const gstCalc = {
+                                                applicable: true, // Force true if we have any GST data
+                                                rate: order.gst_calculation.rate || order.gst_rate || 18,
+                                                cgst: order.gst_calculation.cgst || 0,
+                                                sgst: order.gst_calculation.sgst || 0,
+                                                igst: order.gst_calculation.igst || 0,
+                                                total: order.gst_calculation.total || order.total_tax || 
+                                                       (order.gst_calculation.cgst + order.gst_calculation.sgst + order.gst_calculation.igst)
+                                            };
+                                            console.log('✅ Constructed GST calculation:', gstCalc);
+                                            return gstCalc;
+                                        } else if (order.total_tax > 0) {
+                                            // Fallback: reconstruct from total_tax
+                                            const isIntraState = order.indian_state === 'Haryana' && !order.is_outside_india;
+                                            const gstCalc = {
+                                                applicable: true,
+                                                rate: order.gst_rate || 18,
+                                                cgst: isIntraState ? (order.total_tax / 2) : 0,
+                                                sgst: isIntraState ? (order.total_tax / 2) : 0,
+                                                igst: isIntraState ? 0 : order.total_tax,
+                                                total: order.total_tax
+                                            };
+                                            console.log('✅ Reconstructed GST calculation from total_tax:', gstCalc);
+                                            return gstCalc;
+                                        } else {
+                                            // No GST applicable
+                                            const gstCalc = {
+                                                applicable: false, 
+                                                rate: 0, 
+                                                cgst: 0, 
+                                                sgst: 0, 
+                                                igst: 0, 
+                                                total: 0
+                                            };
+                                            console.log('✅ No GST applicable:', gstCalc);
+                                            return gstCalc;
+                                        }
+                                    })(),
+                                    
                                     // ✅ PRESERVE TCS DATA
                                     tcs_calculation: order.tcs_calculation || { applicable: false, rate: 0, amount: 0 },
                                     total_tax: order.total_tax || 0,
@@ -137,6 +182,11 @@ window.renderOrdersContent = () => {
                                 } :
                                 // Otherwise find in invoices array
                                 (window.invoices || []).find(inv => inv.order_id === order.id);
+
+                            // Add debug logging for the final invoice object
+                            if (orderInvoice) {
+                                console.log('🎯 FINAL orderInvoice.gst_calculation:', orderInvoice.gst_calculation);
+                            }
 
                             // ENHANCED: Handle event display for multi-item orders
                             const getEventDisplay = (order) => {
@@ -300,7 +350,7 @@ window.renderOrdersContent = () => {
                                                 console.log('🔍 Available invoices:', window.invoices);
 
                                                 if (orderInvoice) {
-                                                    console.log('✅ Found invoice, opening preview:', orderInvoice);
+                                                    console.log('✅ Found invoice, opening preview with GST data:', orderInvoice.gst_calculation);
                                                     openInvoicePreview(orderInvoice);
                                                 } else {
                                                     console.log('❌ No invoice found for order:', order.id);
@@ -475,4 +525,4 @@ window.assignOrderToUser = async (orderId, user) => {
     }
 };
 
-console.log('✅ Orders component loaded successfully - FIXED VIEW INVOICE BUTTON + GST DATA PRESERVATION');
+console.log('✅ Orders component loaded successfully - FIXED GST DATA RECONSTRUCTION LOGIC');
