@@ -512,6 +512,133 @@ window.renderUserManagementContent = () => {
     )
   );
 };
+
+  // ✅ REMINDER DASHBOARD MODAL - EXTRACTED FROM EXISTING REMINDERS.JS
+window.renderReminderDashboard = () => {
+  if (!window.showReminderDashboard) {
+    return null;
+  }
+
+  return React.createElement('div', {
+    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
+    onClick: (e) => {
+      if (e.target === e.currentTarget) {
+        window.setShowReminderDashboard(false);
+      }
+    }
+  },
+    React.createElement('div', {
+      className: 'bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden',
+      onClick: (e) => e.stopPropagation()
+    },
+      // Header
+      React.createElement('div', {
+        className: 'flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700'
+      },
+        React.createElement('h2', {
+          className: 'text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2'
+        },
+          React.createElement('span', null, '🔔'),
+          'Reminder Dashboard'
+        ),
+        React.createElement('button', {
+          onClick: () => window.setShowReminderDashboard(false),
+          className: 'text-gray-400 hover:text-gray-600 text-2xl'
+        }, '×')
+      ),
+      
+      // Content - Using existing reminder content structure
+      React.createElement('div', { className: 'p-6 overflow-y-auto max-h-[80vh]' },
+        // Quick stats (copied from reminders.js)
+        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4 mb-6' },
+          React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
+            React.createElement('div', { className: 'text-3xl font-bold text-blue-600' }, window.reminderStats?.total || 0),
+            React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Total Reminders')
+          ),
+          React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
+            React.createElement('div', { className: 'text-3xl font-bold text-red-600' }, window.reminderStats?.overdue || 0),
+            React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Overdue')
+          ),
+          React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
+            React.createElement('div', { className: 'text-3xl font-bold text-orange-600' }, window.reminderStats?.due_today || 0),
+            React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Due Today')
+          ),
+          React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
+            React.createElement('div', { className: 'text-3xl font-bold text-green-600' }, window.reminderStats?.pending || 0),
+            React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Pending')
+          )
+        ),
+
+        // Action buttons
+        React.createElement('div', { className: 'flex gap-3 mb-6' },
+          React.createElement('button', {
+            onClick: () => window.fetchReminders && window.fetchReminders(),
+            className: 'px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700'
+          }, '🔄 Refresh')
+        ),
+
+        // Reminders table (copied structure from reminders.js)
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
+          React.createElement('div', { className: 'px-6 py-4 border-b border-gray-200 dark:border-gray-700' },
+            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 'All Reminders')
+          ),
+          React.createElement('div', { className: 'overflow-x-auto' },
+            (window.reminders && window.reminders.length > 0) ? 
+              // Use existing table structure from reminders.js
+              React.createElement('table', { className: 'w-full' },
+                React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
+                  React.createElement('tr', null,
+                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Title'),
+                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Due Date'),
+                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Priority'),
+                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Actions')
+                  )
+                ),
+                React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700' },
+                  window.reminders.map((reminder, index) => 
+                    React.createElement('tr', { key: reminder.id || index, className: 'hover:bg-gray-50 dark:hover:bg-gray-600' },
+                      React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white' }, 
+                        reminder.title || 'No title'
+                      ),
+                      React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white' }, 
+                        reminder.due_date ? new Date(reminder.due_date).toLocaleDateString() : 'No date'
+                      ),
+                      React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                        React.createElement('span', { 
+                          className: `px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            reminder.priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                            reminder.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                            reminder.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                          }`
+                        }, (reminder.priority || 'low').toUpperCase())
+                      ),
+                      React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm font-medium' },
+                        React.createElement('div', { className: 'flex space-x-2' },
+                          reminder.status === 'pending' && React.createElement('button', {
+                            onClick: () => window.completeReminder && window.completeReminder(reminder.id, 'Completed'),
+                            className: 'text-green-600 hover:text-green-900'
+                          }, '✓ Complete'),
+                          React.createElement('button', {
+                            onClick: () => window.deleteReminder && window.deleteReminder(reminder.id),
+                            className: 'text-red-600 hover:text-red-900'
+                          }, '🗑️ Delete')
+                        )
+                      )
+                    )
+                  )
+                )
+              ) :
+              React.createElement('div', { className: 'p-8 text-center text-gray-500' },
+                React.createElement('p', null, 'No reminders found'),
+                React.createElement('p', { className: 'text-sm mt-2' }, 'Click "🔄 Refresh" to load your reminders')
+              )
+          )
+        )
+      )
+    )
+  );
+};
   
   // ✅ UNIVERSAL MODAL STATE SETTER FACTORY
   const createEnhancedModalSetter = (setterName, stateKey, reactStateSetter) => {
