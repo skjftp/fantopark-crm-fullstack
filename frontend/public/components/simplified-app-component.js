@@ -2779,6 +2779,8 @@ window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() =
         )
       );
   }, [state.user]);
+  // ✅ ADD THIS LINE: Expose AssignmentRulesTab to window
+window.AssignmentRulesTab = AssignmentRulesTab;
 
   // ===== MAIN RENDER LOGIC =====
 
