@@ -113,37 +113,32 @@ window.renderOrdersContent = () => {
                                     }],
                                     base_amount: order.base_amount || order.total_amount || order.amount || 0,
                                     
-                                    // 🎯 CRITICAL GST FIX: Simplified and robust GST data preservation
+                                    // 🎯 CRITICAL GST FIX: Direct GST data preservation - bypass complex logic
                                     gst_calculation: (() => {
                                         console.log('🔍 Constructing GST calculation...');
+                                        console.log('🔍 order.gst_calculation:', order.gst_calculation);
+                                        console.log('🔍 order.total_tax:', order.total_tax);
                                         
-                                        // Check if we have valid GST data
-                                        const hasGSTData = order.gst_calculation && 
-                                                          (order.gst_calculation.applicable === true || 
-                                                           order.total_tax > 0 || 
-                                                           order.gst_calculation.cgst > 0 || 
-                                                           order.gst_calculation.sgst > 0 || 
-                                                           order.gst_calculation.igst > 0);
-                                        
-                                        console.log('🔍 hasGSTData:', hasGSTData);
-                                        console.log('🔍 order.gst_calculation.applicable:', order.gst_calculation?.applicable);
-                                        console.log('🔍 order.total_tax > 0:', order.total_tax > 0);
-                                        
-                                        if (hasGSTData) {
-                                            // Use existing GST data, preserving all values
+                                        // 🎯 SIMPLIFIED: If order has gst_calculation data, use it directly
+                                        if (order.gst_calculation && typeof order.gst_calculation === 'object') {
                                             const gstCalc = {
-                                                applicable: true, // Force true if we have any GST data
+                                                applicable: order.gst_calculation.applicable !== false && 
+                                                           (order.total_tax > 0 || 
+                                                            order.gst_calculation.cgst > 0 || 
+                                                            order.gst_calculation.sgst > 0 || 
+                                                            order.gst_calculation.igst > 0),
                                                 rate: order.gst_calculation.rate || order.gst_rate || 18,
                                                 cgst: order.gst_calculation.cgst || 0,
                                                 sgst: order.gst_calculation.sgst || 0,
                                                 igst: order.gst_calculation.igst || 0,
                                                 total: order.gst_calculation.total || order.total_tax || 
-                                                       (order.gst_calculation.cgst + order.gst_calculation.sgst + order.gst_calculation.igst)
+                                                       ((order.gst_calculation.cgst || 0) + (order.gst_calculation.sgst || 0) + (order.gst_calculation.igst || 0))
                                             };
-                                            console.log('✅ Constructed GST calculation:', gstCalc);
+                                            console.log('✅ Using direct GST data:', gstCalc);
                                             return gstCalc;
-                                        } else if (order.total_tax > 0) {
-                                            // Fallback: reconstruct from total_tax
+                                        }
+                                        // 🎯 FALLBACK: If no gst_calculation but has total_tax, reconstruct
+                                        else if (order.total_tax && order.total_tax > 0) {
                                             const isIntraState = order.indian_state === 'Haryana' && !order.is_outside_india;
                                             const gstCalc = {
                                                 applicable: true,
@@ -153,10 +148,11 @@ window.renderOrdersContent = () => {
                                                 igst: isIntraState ? 0 : order.total_tax,
                                                 total: order.total_tax
                                             };
-                                            console.log('✅ Reconstructed GST calculation from total_tax:', gstCalc);
+                                            console.log('✅ Reconstructed from total_tax:', gstCalc);
                                             return gstCalc;
-                                        } else {
-                                            // No GST applicable
+                                        }
+                                        // 🎯 DEFAULT: No GST
+                                        else {
                                             const gstCalc = {
                                                 applicable: false, 
                                                 rate: 0, 
