@@ -2,12 +2,12 @@
 // Extracted from index.html - maintains 100% functionality
 // Handles reminder fetching, completion, snoozing, and deletion
 
-// Comprehensive reminder fetching function with role-based filtering
+// In components/reminder-management.js - UPDATE the fetchReminders function
 window.fetchReminders = async function() {
   if (!window.isLoggedIn) return;
 
   try {
-    const response = await window.apiCall('/reminders');
+    const response = await window.apiCall('/reminders'); // ← Fixed: was window.apicall
     if (response.data) {
       const userReminders = response.data.filter(r => 
         r.assigned_to === window.user.email || 
