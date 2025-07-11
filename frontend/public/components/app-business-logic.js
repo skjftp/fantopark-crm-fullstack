@@ -587,19 +587,20 @@ window.renderAppBusinessLogic = function() {
     }));
   };
 
-  const fetchData = async () => {
-  console.log("🔍 fetchData starting");
+  // Add this to your existing app-business-logic.js file
+
+// Enhanced fetchData with automatic pagination update
+const fetchData = async () => {
   const authToken = localStorage.getItem('crm_auth_token') || window.authToken;
-  console.log("🔍 authToken:", !!authToken);
-  console.log("🔍 isLoggedIn:", state.isLoggedIn);
   
-  if (!state.isLoggedIn || !authToken) {
-    console.log("🔍 Exiting early - not logged in or no token");
-    return;
-  }
+  if (!state.isLoggedIn || !authToken) return;
   
   try {
-    console.log("🔍 About to start API calls");
+    console.log('🔍 fetchData starting');
+    console.log('🔍 authToken:', !!authToken);
+    console.log('🔍 isLoggedIn:', state.isLoggedIn);
+    console.log('🔍 About to start API calls');
+    
     const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData, clientsData] = await Promise.all([
       window.apiCall('/leads').catch(() => ({ data: [] })),
       window.apiCall('/inventory').catch(() => ({ data: [] })),
@@ -609,14 +610,121 @@ window.renderAppBusinessLogic = function() {
       window.apiCall('/clients').catch(() => ({ data: [] }))
     ]);
     
-    console.log("🔍 API calls completed, about to set state");
+    console.log('🔍 API calls completed, about to set state');
+    
+    // Set leads and inventory
     setLeads(leadsData.data || []);
-    console.log("🔍 setLeads completed");
+    console.log('🔍 setLeads completed');
+    
     setInventory(inventoryData.data || []);
-    console.log("🔍 setInventory completed");
-    // ... etc
+    console.log('🔍 setInventory completed');
+    
+    // Enhanced setOrders with automatic pagination
+    const ordersToSet = ordersData.data || [];
+    setOrders(ordersToSet);
+    console.log('🔍 setOrders completed');
+    
+    // Auto-update orders pagination after orders are set
+    setTimeout(() => {
+      updateOrdersPagination(ordersToSet);
+    }, 100);
+    
+    // Set other data
+    setInvoices(invoicesData.data || []);
+    setDeliveries(deliveriesData.data || []);
+    setClients(clientsData.data || []);
+    
   } catch (error) {
-    console.error('🔍 Error in fetchData:', error);
+    console.error('Error fetching data:', error);
+  }
+};
+
+// Function to automatically update orders pagination
+const updateOrdersPagination = (orders) => {
+  if (!window.appState?.ordersFilters || !window.appState?.ordersPagination) {
+    return;
+  }
+  
+  const ordersFilters = window.appState.ordersFilters;
+  const ordersPagination = window.appState.ordersPagination;
+  
+  // Apply the same filtering logic as the component
+  let filteredOrders = [...(orders || [])];
+  
+  // Apply filters
+  if (ordersFilters.searchQuery) {
+    const query = ordersFilters.searchQuery.toLowerCase();
+    filteredOrders = filteredOrders.filter(order =>
+      (order.client_name && order.client_name.toLowerCase().includes(query)) ||
+      (order.client_phone && order.client_phone.includes(query)) ||
+      (order.order_number && order.order_number.toLowerCase().includes(query)) ||
+      (order.event_name && order.event_name.toLowerCase().includes(query))
+    );
+  }
+  
+  if (ordersFilters.statusFilter !== 'all') {
+    filteredOrders = filteredOrders.filter(order => order.status === ordersFilters.statusFilter);
+  }
+  
+  if (ordersFilters.assignedToFilter !== 'all') {
+    if (ordersFilters.assignedToFilter === 'unassigned') {
+      filteredOrders = filteredOrders.filter(order => !order.assigned_to);
+    } else {
+      filteredOrders = filteredOrders.filter(order => order.assigned_to === ordersFilters.assignedToFilter);
+    }
+  }
+  
+  if (ordersFilters.eventFilter !== 'all') {
+    filteredOrders = filteredOrders.filter(order => order.event_name === ordersFilters.eventFilter);
+  }
+  
+  if (ordersFilters.clientFilter) {
+    const clientQuery = ordersFilters.clientFilter.toLowerCase();
+    filteredOrders = filteredOrders.filter(order =>
+      order.client_name && order.client_name.toLowerCase().includes(clientQuery)
+    );
+  }
+  
+  if (ordersFilters.orderNumberFilter) {
+    const orderQuery = ordersFilters.orderNumberFilter.toLowerCase();
+    filteredOrders = filteredOrders.filter(order =>
+      order.order_number && order.order_number.toLowerCase().includes(orderQuery)
+    );
+  }
+  
+  if (ordersFilters.paymentStatusFilter !== 'all') {
+    filteredOrders = filteredOrders.filter(order => order.payment_status === ordersFilters.paymentStatusFilter);
+  }
+  
+  if (ordersFilters.dateFromFilter) {
+    filteredOrders = filteredOrders.filter(order => 
+      new Date(order.created_date) >= new Date(ordersFilters.dateFromFilter)
+    );
+  }
+  
+  if (ordersFilters.dateToFilter) {
+    filteredOrders = filteredOrders.filter(order => 
+      new Date(order.created_date) <= new Date(ordersFilters.dateToFilter)
+    );
+  }
+  
+  // Calculate correct pagination
+  const totalItems = filteredOrders.length;
+  const itemsPerPage = ordersPagination.itemsPerPage || 10;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const currentPage = Math.min(ordersPagination.currentPage || 1, totalPages || 1);
+  
+  // Update pagination state
+  const newPagination = {
+    ...ordersPagination,
+    totalItems,
+    totalPages,
+    currentPage
+  };
+  
+  if (window.appState?.setOrdersPagination) {
+    window.appState.setOrdersPagination(newPagination);
+    console.log('📈 Auto-updated orders pagination:', { totalItems, totalPages, currentPage });
   }
 };
 
@@ -1375,7 +1483,8 @@ window.renderAppBusinessLogic = function() {
     openStadiumForm,
     closeStadiumForm,
     handleStadiumInputChange,
-    fetchData,
+      fetchData,
+  updateOrdersPagination,
     assignOrderToService,
     openOrderDetail,
     calculateDashboardStats,
