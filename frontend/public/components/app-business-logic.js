@@ -1294,7 +1294,7 @@ window.renderAppBusinessLogic = function() {
     setDeliveryFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // ✅ RETURN ALL HANDLERS INCLUDING THE NEW togglePremiumStatus FUNCTION
+  // ✅ RETURN ALL HANDLERS INCLUDING THE MISSING FORM HANDLER REFERENCES
   return {
     // ✅ CRITICAL SOPHISTICATED WORKFLOW FUNCTIONS RESTORED WITH PROPER MODAL SWITCHING
     updateLeadStatus,
@@ -1309,11 +1309,25 @@ window.renderAppBusinessLogic = function() {
     getStatusIcon,
     togglePremiumStatus, // ✅ NEW: Added togglePremiumStatus function
     
+    // ✅ MISSING: ADD FORM HANDLER REFERENCES FROM window OBJECT
+    handleOrderApproval: window.handleOrderApproval,           // ✅ FIX: Reference to window function
+    handleFormSubmit: window.handleFormSubmit,                 // ✅ ADD: Universal form submit handler  
+    handleEditOrderSubmit: window.handleEditOrderSubmit,       // ✅ ADD: Order edit handler
+    handleAllocation: window.handleAllocation,                 // ✅ ADD: Allocation handler
+    handleAssignLead: window.handleAssignLead,                 // ✅ ADD: Lead assignment handler
+    handlePaymentPostService: window.handlePaymentPostService, // ✅ ADD: Payment post service handler
+    handleDeliverySubmit: window.handleDeliverySubmit,         // ✅ ADD: Delivery submit handler
+    handleUserSubmit: window.handleUserSubmit,                 // ✅ ADD: User submit handler
+    handleBulkAssignSubmit: window.handleBulkAssignSubmit,     // ✅ ADD: Bulk assign handler
+    handlePaymentSubmit: window.handlePaymentSubmit,           // ✅ ADD: Payment submit handler
+    handlePaymentPostServiceSubmit: window.handlePaymentPostServiceSubmit, // ✅ ADD: Payment post service submit
+    calculateGSTAndTCS: window.calculateGSTAndTCS,             // ✅ ADD: GST calculation utility
+    
     // ✅ ALL WORKING FUNCTIONS FROM ORIGINAL FILE
     openEditOrderForm,
     fetchClients,
     fetchUserRoles,
-        fetchStadiums: async () => {
+    fetchStadiums: async () => {
       try {
         const response = await window.apiCall('/stadiums');
         setStadiums(response.data || []);
@@ -1371,4 +1385,4 @@ window.renderAppBusinessLogic = function() {
   };
 };
 
-console.log('✅ App Business Logic Handlers loaded successfully with FIXED MODAL SWITCHING WORKFLOW + togglePremiumStatus function added');
+console.log('✅ App Business Logic Handlers loaded successfully with FIXED MODAL SWITCHING WORKFLOW + ALL MISSING FORM HANDLER REFERENCES ADDED');
