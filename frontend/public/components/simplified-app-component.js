@@ -77,6 +77,16 @@ window.SimplifiedApp = function() {
   window.appState.stadiumSortField = state.stadiumSortField || 'name';
   window.appState.stadiumSortDirection = state.stadiumSortDirection || 'asc';
 
+  // Sports Calendar States
+  window.appState.sportsEvents = state.sportsEvents || [];
+  window.appState.selectedDate = state.selectedDate || new Date();
+  window.appState.calendarView = state.calendarView || "month";
+  window.appState.calendarFilters = state.calendarFilters || {};
+  window.appState.currentEvent = state.currentEvent || null;
+  window.appState.showEventForm = state.showEventForm || false;
+  window.appState.showImportModal = state.showImportModal || false;
+  window.appState.showEventDetail = state.showEventDetail || false;
+
   // CSV Upload States
   window.appState.showPreview = state.showPreview || false;
   window.appState.uploadPreview = state.uploadPreview || null;
@@ -138,6 +148,16 @@ window.SimplifiedApp = function() {
   window.stadiumSportFilter = state.stadiumSportFilter || 'all';
   window.stadiumSortField = state.stadiumSortField || 'name';
   window.stadiumSortDirection = state.stadiumSortDirection || 'asc';
+
+  // Sports Calendar States
+  window.sportsEvents = state.sportsEvents || [];
+  window.selectedDate = state.selectedDate || new Date();
+  window.calendarView = state.calendarView || "month";
+  window.calendarFilters = state.calendarFilters || {};
+  window.currentEvent = state.currentEvent || null;
+  window.showEventForm = state.showEventForm || false;
+  window.showImportModal = state.showImportModal || false;
+  window.showEventDetail = state.showEventDetail || false;
 
   // Client States
   window.clients = state.clients || [];
@@ -230,6 +250,11 @@ window.SimplifiedApp = function() {
         showEditOrderForm: window.appState?.showEditOrderForm,
         showOrderAssignmentModal: window.appState?.showOrderAssignmentModal,
         
+        // Sports Calendar modals
+        showEventForm: window.appState?.showEventForm,
+        showImportModal: window.appState?.showImportModal,
+        showEventDetail: window.appState?.showEventDetail,
+        
         // Other modals
         showDeliveryForm: window.appState?.showDeliveryForm,
         showChoiceModal: window.appState?.showChoiceModal,
@@ -256,8 +281,12 @@ window.SimplifiedApp = function() {
       window.currentInventoryDetail = window.appState?.currentInventoryDetail;
       window.currentOrderDetail = window.appState?.currentOrderDetail;
       window.selectedOrderForAssignment = window.appState?.selectedOrderForAssignment;
+      window.currentEvent = window.appState?.currentEvent;
+      window.selectedDate = window.appState?.selectedDate;
+      window.calendarView = window.appState?.calendarView;
+      window.calendarFilters = window.appState?.calendarFilters;
       
-      console.log("🔄 Enhanced syncStateToWindow completed for all modals");
+      console.log("🔄 Enhanced syncStateToWindow completed for all modals including sports calendar");
     }, 10);
   };
 
@@ -343,6 +372,11 @@ window.SimplifiedApp = function() {
   window.setShowEditOrderForm = createEnhancedModalSetter('setShowEditOrderForm', 'showEditOrderForm', state.setShowEditOrderForm);
   window.setShowOrderAssignmentModal = createEnhancedModalSetter('setShowOrderAssignmentModal', 'showOrderAssignmentModal', state.setShowOrderAssignmentModal);
 
+  // ✅ ENHANCED MODAL STATE SETTERS - Sports Calendar
+  window.setShowEventForm = createEnhancedModalSetter('setShowEventForm', 'showEventForm', state.setShowEventForm);
+  window.setShowImportModal = createEnhancedModalSetter('setShowImportModal', 'showImportModal', state.setShowImportModal);
+  window.setShowEventDetail = createEnhancedModalSetter('setShowEventDetail', 'showEventDetail', state.setShowEventDetail);
+
   // ✅ ENHANCED MODAL STATE SETTERS - Other Forms
   window.setShowDeliveryForm = createEnhancedModalSetter('setShowDeliveryForm', 'showDeliveryForm', state.setShowDeliveryForm);
   window.setShowChoiceModal = createEnhancedModalSetter('setShowChoiceModal', 'showChoiceModal', state.setShowChoiceModal);
@@ -401,6 +435,56 @@ window.SimplifiedApp = function() {
     console.log("📄 FALLBACK setCurrentInventoryDetail called with:", inventory);
     window.currentInventoryDetail = inventory;
     window.appState.currentInventoryDetail = inventory;
+  };
+
+  // ✅ SPORTS CALENDAR DATA STATE SETTERS
+  window.setCurrentEvent = state.setCurrentEvent ? (event) => {
+    console.log("📅 ENHANCED setCurrentEvent called with:", event?.title || event?.event_name);
+    state.setCurrentEvent(event);
+    window.appState.currentEvent = event;
+    window.currentEvent = event;
+    syncStateToWindow();
+  } : (event) => {
+    console.log("📅 FALLBACK setCurrentEvent called with:", event?.title || event?.event_name);
+    window.currentEvent = event;
+    window.appState.currentEvent = event;
+  };
+
+  window.setSelectedDate = state.setSelectedDate ? (date) => {
+    console.log("📅 ENHANCED setSelectedDate called with:", date);
+    state.setSelectedDate(date);
+    window.appState.selectedDate = date;
+    window.selectedDate = date;
+    syncStateToWindow();
+  } : (date) => {
+    console.log("📅 FALLBACK setSelectedDate called with:", date);
+    window.selectedDate = date;
+    window.appState.selectedDate = date;
+  };
+
+  window.setCalendarView = state.setCalendarView ? (view) => {
+    console.log("📅 ENHANCED setCalendarView called with:", view);
+    state.setCalendarView(view);
+    window.appState.calendarView = view;
+    window.calendarView = view;
+    syncStateToWindow();
+  } : (view) => {
+    console.log("📅 FALLBACK setCalendarView called with:", view);
+    window.calendarView = view;
+    window.appState.calendarView = view;
+  };
+
+  window.setCalendarFilters = state.setCalendarFilters ? (filters) => {
+    console.log("📅 ENHANCED setCalendarFilters called with:", filters);
+    const newFilters = { ...window.calendarFilters, ...filters };
+    state.setCalendarFilters(newFilters);
+    window.appState.calendarFilters = newFilters;
+    window.calendarFilters = newFilters;
+    syncStateToWindow();
+  } : (filters) => {
+    console.log("📅 FALLBACK setCalendarFilters called with:", filters);
+    window.calendarFilters = { ...window.calendarFilters, ...filters };
+    window.appState.calendarFilters = window.calendarFilters;
   };
 
   // ✅ NEW: Order Management Data Setters
@@ -894,6 +978,194 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     console.warn("⚠️ openInvoicePreview not implemented in handlers");
   });
 
+  // ===== SPORTS CALENDAR BUSINESS LOGIC FUNCTIONS =====
+
+  // ✅ FETCH ALL EVENTS FUNCTION
+  window.fetchAllEvents = handlers.fetchAllEvents || (async () => {
+    console.log("📅 fetchAllEvents called");
+    try {
+      window.setLoading && window.setLoading(true);
+      
+      const response = await window.apiCall("/events");
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      window.sportsEvents = response.data || response || [];
+      window.appState.sportsEvents = window.sportsEvents;
+      
+      console.log("✅ Sports events loaded:", window.sportsEvents.length);
+      
+      // Update React state if available
+      if (state.setSportsEvents) {
+        state.setSportsEvents(window.sportsEvents);
+      }
+      
+    } catch (error) {
+      console.error("❌ Error fetching sports events:", error);
+      window.sportsEvents = [];
+      window.appState.sportsEvents = [];
+      alert("Failed to fetch events: " + error.message);
+    } finally {
+      window.setLoading && window.setLoading(false);
+    }
+  });
+
+  // ✅ EXPORT EVENTS TO EXCEL FUNCTION
+  window.exportEventsToExcel = handlers.exportEventsToExcel || (async () => {
+    console.log("📅 exportEventsToExcel called");
+    try {
+      // Build query parameters from current filters
+      const params = new URLSearchParams();
+      if (window.calendarFilters?.geography) {
+        params.append('geography', window.calendarFilters.geography);
+      }
+      if (window.calendarFilters?.sport_type) {
+        params.append('sport_type', window.calendarFilters.sport_type);
+      }
+      if (window.calendarFilters?.priority) {
+        params.append('priority', window.calendarFilters.priority);
+      }
+      params.append('sort_by', 'date'); // Default sort by date
+
+      const response = await fetch(`${window.API_CONFIG.API_URL}/events/export/excel?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${window.authToken}`
+        }
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `events_calendar_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        alert('✅ Events exported successfully!');
+      } else {
+        throw new Error('Export failed');
+      }
+    } catch (error) {
+      console.error('❌ Export error:', error);
+      alert('Failed to export events: ' + error.message);
+    }
+  });
+
+  // ✅ IMPORT EVENTS FROM EXCEL FUNCTION
+  window.importEventsFromExcel = handlers.importEventsFromExcel || (async (file) => {
+    console.log("📅 importEventsFromExcel called with file:", file?.name);
+    try {
+      window.setLoading && window.setLoading(true);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${window.API_CONFIG.API_URL}/events/import/excel`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.authToken}`
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert(`✅ Successfully imported ${result.imported_count || 'unknown number of'} events!`);
+        window.setShowImportModal && window.setShowImportModal(false);
+        await window.fetchAllEvents(); // Refresh the events
+      } else {
+        throw new Error(result.message || 'Import failed');
+      }
+    } catch (error) {
+      console.error('❌ Import error:', error);
+      alert('Failed to import events: ' + error.message);
+    } finally {
+      window.setLoading && window.setLoading(false);
+    }
+  });
+
+  // ✅ DELETE EVENT FUNCTION
+  window.deleteEvent = handlers.deleteEvent || (async (eventId) => {
+    console.log("📅 deleteEvent called with ID:", eventId);
+    
+    if (!window.hasPermission('events', 'delete')) {
+      alert('You do not have permission to delete events');
+      return;
+    }
+    
+    try {
+      window.setLoading && window.setLoading(true);
+      
+      const response = await window.apiCall(`/events/${eventId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      // Remove from local state
+      window.sportsEvents = window.sportsEvents.filter(event => event.id !== eventId);
+      window.appState.sportsEvents = window.sportsEvents;
+      
+      // Update React state if available
+      if (state.setSportsEvents) {
+        state.setSportsEvents(window.sportsEvents);
+      }
+      
+      alert('✅ Event deleted successfully!');
+      
+    } catch (error) {
+      console.error('❌ Error deleting event:', error);
+      alert('❌ Error deleting event: ' + error.message);
+    } finally {
+      window.setLoading && window.setLoading(false);
+    }
+  });
+
+  // ✅ EVENT FORM HANDLERS
+  window.openEventForm = handlers.openEventForm || ((event = null) => {
+    console.log("📅 openEventForm called with:", event?.title || 'new event');
+    
+    // Set current event for editing (null for new event)
+    window.setCurrentEvent(event);
+    
+    // Show the event form
+    window.setShowEventForm(true);
+    
+    console.log("✅ Event form opened");
+  });
+
+  window.closeEventForm = handlers.closeEventForm || (() => {
+    console.log("📅 closeEventForm called");
+    window.setShowEventForm(false);
+    window.setCurrentEvent(null);
+  });
+
+  window.openEventDetail = handlers.openEventDetail || ((event) => {
+    console.log("📅 openEventDetail called with:", event?.title || event?.event_name);
+    
+    // Set current event
+    window.setCurrentEvent(event);
+    
+    // Show event detail modal
+    window.setShowEventDetail(true);
+    
+    console.log("✅ Event detail opened");
+  });
+
+  window.closeEventDetail = handlers.closeEventDetail || (() => {
+    console.log("📅 closeEventDetail called");
+    window.setShowEventDetail(false);
+    window.setCurrentEvent(null);
+  });
+
   // Stadium Functions
   window.fetchStadiums = handlers.fetchStadiums || (() => {
     console.log("🏟️ fetchStadiums called");
@@ -1383,6 +1655,19 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     }
   };
 
+  // ✅ SPORTS CALENDAR PRIORITY STYLES
+  window.getPriorityStyles = window.getPriorityStyles || ((priority) => {
+    switch (priority) {
+      case 'P1':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'P2':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'P3':
+      default:
+        return 'bg-green-100 text-green-800 border-green-200';
+    }
+  });
+
   window.findClientByPhone = (phone) => {
     console.log("🔍 Looking for client with phone:", phone);
     
@@ -1598,6 +1883,11 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     window.setShowEditOrderForm(false);
     window.setShowOrderAssignmentModal(false);
     window.setShowStadiumForm(false);
+    // ✅ Sports Calendar modals
+    window.setShowEventForm(false);
+    window.setShowImportModal(false);
+    window.setShowEventDetail(false);
+    
     state.setFormData && state.setFormData({});
     state.setCurrentLead && state.setCurrentLead(null);
     state.setCurrentInventory && state.setCurrentInventory(null);
@@ -1614,6 +1904,8 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     window.setSelectedOrderForAssignment && window.setSelectedOrderForAssignment(null);
     window.setEditingStadium && window.setEditingStadium(null);
     window.setStadiumFormData && window.setStadiumFormData({});
+    // ✅ Sports Calendar data reset
+    window.setCurrentEvent && window.setCurrentEvent(null);
   };
 
   // ✅ CRITICAL MISSING FUNCTIONS - Enhanced with State Sync
@@ -2101,4 +2393,4 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
   );
 };
 
-console.log('✅ COMPREHENSIVE STADIUM INTEGRATION COMPLETE - All stadium functions, setters, and form handlers loaded successfully');
+console.log('✅ COMPLETE SPORTS CALENDAR INTEGRATION - All sports calendar functions, setters, and form handlers loaded successfully with comprehensive stadium integration');
