@@ -49,10 +49,27 @@ window.renderSportsCalendarContent = () => {
       window.appState.calendarView = view;
     }),
     setCalendarFilters = window.setCalendarFilters || ((filters) => {
-      console.log("🔍 setCalendarFilters called:", filters);
-      window.calendarFilters = { ...window.calendarFilters, ...filters };
-      window.appState.calendarFilters = window.calendarFilters;
-    }),
+  console.log("🔍 setCalendarFilters called:", filters);
+  
+  // If filters is an empty object or has reset flag, clear all filters
+  if (Object.keys(filters).length === 0 || filters._reset) {
+    window.calendarFilters = {
+      geography: '',
+      sport_type: '',
+      priority: ''
+    };
+  } else {
+    // Merge with existing filters
+    window.calendarFilters = { ...window.calendarFilters, ...filters };
+  }
+  
+  window.appState.calendarFilters = window.calendarFilters;
+  
+  // Trigger re-render if needed
+  if (window.renderApp) {
+    window.renderApp();
+  }
+}),
     fetchAllEvents = window.fetchAllEvents || (() => {
       console.log("🔍 fetchAllEvents called");
       console.warn("⚠️ fetchAllEvents not implemented");
@@ -247,12 +264,16 @@ window.renderSportsCalendarContent = () => {
         // Clear Filters Button
         React.createElement('div', { className: 'flex items-end' },
           React.createElement('button', {
-            onClick: () => {
-              console.log('🔍 Clear filters clicked');
-              setCalendarFilters({});
-            },
-            className: 'w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg'
-          }, 'Clear Filters')
+  onClick: () => {
+    console.log('🔍 Reset filters clicked');
+    setCalendarFilters({
+      geography: '',
+      sport_type: '',
+      priority: ''
+    });
+  },
+  className: 'w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium'
+}, '🔄 Reset Filters')
         )
       )
     ),
@@ -391,7 +412,7 @@ window.renderMonthView = (events) => {
 };
 
 // ✅ ENHANCED List View Function with proper event handling
-// Fix: Updated renderListView function with View Details button instead of Edit
+// ✅ ENHANCED List View Function with View Details button
 window.renderListView = (events) => {
   const sortedEvents = events.sort((a, b) => {
     try {
