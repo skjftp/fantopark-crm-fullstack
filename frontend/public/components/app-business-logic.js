@@ -588,12 +588,18 @@ window.renderAppBusinessLogic = function() {
   };
 
   const fetchData = async () => {
-  // ✅ FIX: Get authToken from localStorage instead of referencing undefined variable
+  console.log("🔍 fetchData starting");
   const authToken = localStorage.getItem('crm_auth_token') || window.authToken;
+  console.log("🔍 authToken:", !!authToken);
+  console.log("🔍 isLoggedIn:", state.isLoggedIn);
   
-  if (!state.isLoggedIn || !authToken) return;
+  if (!state.isLoggedIn || !authToken) {
+    console.log("🔍 Exiting early - not logged in or no token");
+    return;
+  }
   
   try {
+    console.log("🔍 About to start API calls");
     const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData, clientsData] = await Promise.all([
       window.apiCall('/leads').catch(() => ({ data: [] })),
       window.apiCall('/inventory').catch(() => ({ data: [] })),
@@ -602,14 +608,15 @@ window.renderAppBusinessLogic = function() {
       window.apiCall('/deliveries').catch(() => ({ data: [] })),
       window.apiCall('/clients').catch(() => ({ data: [] }))
     ]);
+    
+    console.log("🔍 API calls completed, about to set state");
     setLeads(leadsData.data || []);
+    console.log("🔍 setLeads completed");
     setInventory(inventoryData.data || []);
-    setOrders(ordersData.data || []);
-    setInvoices(invoicesData.data || []);
-    setDeliveries(deliveriesData.data || []);
-    setClients(clientsData.data || []);
+    console.log("🔍 setInventory completed");
+    // ... etc
   } catch (error) {
-    console.error('Error fetching data:', error);
+    console.error('🔍 Error in fetchData:', error);
   }
 };
 
