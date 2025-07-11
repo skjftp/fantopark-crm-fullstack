@@ -14,6 +14,13 @@ window.renderGSTInvoicePreview = () => {
     })
   } = window.appState || {};
 
+  // ✅ SPECIFIC CLOSE FUNCTION FOR INVOICE MODAL
+  const closeInvoicePreview = () => {
+    console.log('📄 Closing invoice preview modal');
+    setShowInvoicePreview(false);
+    setCurrentInvoice(null);
+  };
+
   if (!showInvoicePreview || !currentInvoice) return null;
 
   const invoice = currentInvoice;
