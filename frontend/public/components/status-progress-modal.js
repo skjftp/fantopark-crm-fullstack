@@ -47,6 +47,7 @@ window.renderStatusProgressModal = () => {
     console.warn("openPaymentPostServiceForm not implemented");
   });
 
+  // ===== FIXED: Enhanced handleStatusUpdate with automatic reminder creation =====
   const handleStatusUpdate = async () => {
     if (!selectedStatus) {
       alert('Please select a status');
@@ -118,6 +119,18 @@ window.renderStatusProgressModal = () => {
         setCurrentLead(response.data);
       }
 
+      // ===== FIX 4: CREATE REMINDER WITH CUSTOM FOLLOW-UP DATE =====
+      if (window.shouldCreateReminderOnStatusChange && window.shouldCreateReminderOnStatusChange(selectedStatus)) {
+        console.log(`🎯 Creating reminder for ${selectedStatus} with custom follow-up date`);
+        try {
+          await window.createStatusChangeReminder(response.data, selectedStatus);
+          console.log('✅ Custom reminder created successfully');
+        } catch (reminderError) {
+          console.error('❌ Failed to create custom reminder:', reminderError);
+          // Don't fail the operation if reminder creation fails
+        }
+      }
+
       setLoading(false);
       setShowStatusProgressModal(false);
 
@@ -161,7 +174,7 @@ window.renderStatusProgressModal = () => {
 
       React.createElement('p', { 
         className: 'text-sm text-gray-600 mb-4' 
-      }, 'Current Status: ' + window.LEAD_STATUSES[currentLead?.status]?.label),
+      }, 'Current Status: ' + (window.LEAD_STATUSES[currentLead?.status]?.label || currentLead?.status)),
 
       // Status selection
       React.createElement('div', { className: 'mb-4' },
@@ -216,6 +229,22 @@ window.renderStatusProgressModal = () => {
         })
       ),
 
+      // Enhanced info section for pickup_later
+      selectedStatus === 'pickup_later' && 
+      React.createElement('div', { className: 'mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md' },
+        React.createElement('div', { className: 'flex items-start' },
+          React.createElement('div', { className: 'flex-shrink-0' },
+            React.createElement('span', { className: 'text-yellow-400 text-lg' }, '⏰')
+          ),
+          React.createElement('div', { className: 'ml-3' },
+            React.createElement('h4', { className: 'text-sm font-medium text-yellow-800' }, 'Pick Up Later'),
+            React.createElement('p', { className: 'text-sm text-yellow-700 mt-1' },
+              'This will create a high-priority reminder and preserve the current status for easy reactivation.'
+            )
+          )
+        )
+      ),
+
       // Action buttons
       React.createElement('div', { className: 'flex justify-end space-x-3 mt-6' },
         React.createElement('button', {
@@ -234,4 +263,4 @@ window.renderStatusProgressModal = () => {
   );
 };
 
-console.log('✅ Status Progress Modal component loaded successfully');
+console.log('✅ FIXED: Status Progress Modal with Reminder Creation loaded successfully');
