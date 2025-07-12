@@ -2941,12 +2941,21 @@ window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() =
 
     return React.createElement('div', { className: 'w-64 bg-white shadow-lg' },
       React.createElement('div', { className: 'p-4' },
-        React.createElement('div', { className: 'flex items-center space-x-3' },
-          React.createElement('div', { className: 'w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center' },
-            React.createElement('span', { className: 'text-white' }, '🏆')
-          ),
-          React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 'FanToPark CRM')
-        ),
+React.createElement('div', { className: 'flex items-center space-x-3' },
+  React.createElement('div', { className: 'w-12 h-8 bg-white rounded flex items-center justify-center p-1 shadow-sm border' },
+    React.createElement('img', { 
+      src: 'images/logo.png',
+      alt: 'FanToPark Logo',
+      className: 'w-full h-full object-contain',
+      onError: (e) => {
+        e.target.style.display = 'none';
+        e.target.parentElement.className = 'w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center';
+        e.target.parentElement.innerHTML = '<span class="text-white text-lg">🏆</span>';
+      }
+    })
+  ),
+  React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 'FanToPark CRM')
+),
         state.user && React.createElement('div', { className: 'mt-4 p-3 bg-blue-50 rounded-lg' },
           React.createElement('div', { className: 'text-sm font-medium text-blue-900' }, state.user.name),
           React.createElement('div', { className: 'text-xs text-blue-600' }, window.USER_ROLES[state.user.role]?.label || state.user.role),
