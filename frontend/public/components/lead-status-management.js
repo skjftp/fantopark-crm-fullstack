@@ -118,12 +118,49 @@ window.updateLeadStatus = async function(leadId, newStatus) {
 
     // Handle quote_received -> restore original assignee  
     if (oldStatus === 'quote_requested' && newStatus === 'quote_received') {
-      console.log('🔍 ENTERING QUOTE_RECEIVED LOGIC');
-      updateData.assigned_to = currentLead.original_assignee || currentLead.assigned_to;
-      window.setLoading(false);
-      window.openQuoteUploadModal(currentLead);
-      return;
-    }
+  console.log('🔍 === QUOTE_RECEIVED WORKFLOW DEBUG ===');
+  console.log('🔍 oldStatus:', oldStatus);
+  console.log('🔍 newStatus:', newStatus);
+  console.log('🔍 About to open quote upload modal...');
+  
+  updateData.assigned_to = currentLead.original_assignee || currentLead.assigned_to;
+  console.log('🔍 Restored assigned_to:', updateData.assigned_to);
+  
+  // Check if openQuoteUploadModal function exists
+  if (typeof window.openQuoteUploadModal !== 'function') {
+    console.error('❌ window.openQuoteUploadModal function does NOT exist!');
+    console.log('🔍 Available window functions with "quote":', 
+      Object.keys(window).filter(key => key.toLowerCase().includes('quote')));
+    alert('ERROR: Quote upload modal function not found!');
+    window.setLoading(false);
+    return;
+  }
+  
+  console.log('✅ window.openQuoteUploadModal function exists');
+  
+  // Check if modal state variables exist
+  const modalStates = {
+    showQuoteUploadModal: typeof window.showQuoteUploadModal,
+    setShowQuoteUploadModal: typeof window.setShowQuoteUploadModal,
+    quoteUploadData: typeof window.quoteUploadData,
+    setQuoteUploadData: typeof window.setQuoteUploadData
+  };
+  
+  console.log('🔍 Modal state variables:', modalStates);
+  
+  window.setLoading(false);
+  
+  console.log('🚀 Calling window.openQuoteUploadModal...');
+  try {
+    window.openQuoteUploadModal(currentLead);
+    console.log('✅ window.openQuoteUploadModal called successfully');
+  } catch (error) {
+    console.error('❌ Error calling openQuoteUploadModal:', error);
+    alert('Error opening quote upload modal: ' + error.message);
+  }
+  
+  return;
+}
 
     console.log('🔍 Final updateData before API call:', updateData);
 
