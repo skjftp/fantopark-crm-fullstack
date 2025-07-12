@@ -1373,7 +1373,6 @@ const updateOrdersPagination = (orders) => {
   // ✅ RETURN ALL HANDLERS INCLUDING THE MISSING FORM HANDLER REFERENCES
   return {
     // ✅ CRITICAL SOPHISTICATED WORKFLOW FUNCTIONS RESTORED WITH PROPER MODAL SWITCHING
-    updateLeadStatus,
     handleLeadProgression,
     handleChoiceSelection,
     progressLead,
