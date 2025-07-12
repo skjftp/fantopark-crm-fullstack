@@ -7,16 +7,13 @@ window.SimplifiedApp = function() {
   const state = window.renderMainApp();
   const handlers = window.renderAppBusinessLogic();
   
-  // ✅ CRITICAL DEBUG: Check what state setters are available
-  window.debugLog("🔍 DEBUGGING STATE SETTERS:");
-  console.log("state.setShowInventoryForm:", typeof state.setShowInventoryForm, state.setShowInventoryForm);
-  console.log("state.setEditingInventory:", typeof state.setEditingInventory, state.setEditingInventory);
-  console.log("state.setShowAllocationManagement:", typeof state.setShowAllocationManagement, state.setShowAllocationManagement);
-  console.log("state.setShowEditInventoryForm:", typeof state.setShowEditInventoryForm, state.setShowEditInventoryForm);
-  
+  const ENABLE_DEBUG_LOGS = false; // Turn off debug logs
+if (ENABLE_DEBUG_LOGS && !window._stateSettersLogged) {
+  console.log("🔍 State setters available:", Object.keys(state).filter(k => k.startsWith('set')));
+  window._stateSettersLogged = true;
+}
   // Log available setter
   const availableSetters = Object.keys(state).filter(key => key.startsWith('set') && key.includes('Inventory'));
-  console.log("📋 Available inventory-related setters:", availableSetters);
   
   // Initialize all effects
   window.renderAppEffects();
