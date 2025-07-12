@@ -17,7 +17,6 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 (function() {
   'use strict';
   
-  console.log('🚨 Applying emergency performance fixes...');
   
   // GLOBAL LOG SUPPRESSION
   window.EMERGENCY_MODE = true;
@@ -197,9 +196,6 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
     errorCounts = {};
   });
   
-  console.log('✅ Emergency fixes applied! Console spam should be greatly reduced.');
-  console.log('📊 Performance monitoring enabled for operations > 200ms');
-  console.log('🔧 To disable emergency mode: window.EMERGENCY_MODE = false');
   
 })();
 </script>
@@ -295,12 +291,11 @@ window.optimizeLoginPerformance = function() {
     window.setIsLoggedIn = function(value) {
       if (value) {
         loginOptimizationActive = true;
-        console.log('🔄 Login optimization active - reducing re-renders');
         
         // Disable optimization after 3 seconds
         setTimeout(() => {
           loginOptimizationActive = false;
-          console.log('✅ Login optimization complete');
+          
         }, 3000);
       }
       
@@ -331,7 +326,7 @@ window.optimizeLoginPerformance = function() {
 
 // Apply optimization
 window.optimizeLoginPerformance();
-console.log('🚀 Login performance optimization applied');
+
 </script>  
 
 <!-- CSS Styles -->
@@ -1117,7 +1112,7 @@ console.log('🚀 Login performance optimization applied');
 window.addEventListener('load', () => {
   const logs = JSON.parse(sessionStorage.getItem('debugLogs') || '[]');
   if (logs.length > 0) {
-    console.log('=== Previous Session Logs ===');
+    
     logs.forEach(log => console.log('[' + (log.time) + '] ' + (log.key) + ':', log.data));
     console.log('=== End Previous Logs ===');
   }
