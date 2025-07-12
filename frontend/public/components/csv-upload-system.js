@@ -584,4 +584,132 @@ window.ClientDetectionResultsModal = () => {
   );
 };
 
+// CORRECTED: Inventory CSV Template with actual FanToPark CRM fields
+// Replace your existing downloadSampleCSV function with this:
+
+window.downloadSampleCSV = function() {
+  const type = window.csvUploadType || 'inventory';
+  
+  if (type === 'inventory') {
+    downloadInventoryCSVTemplate();
+  } else if (type === 'leads') {
+    // Keep existing leads function since user said it's working fine
+    if (typeof window.downloadLeadsCSVTemplate === 'function') {
+      window.downloadLeadsCSVTemplate();
+    } else {
+      alert('Leads CSV template not found. Please use the existing working template.');
+    }
+  }
+};
+
+// CORRECTED: Actual inventory fields from your form
+function downloadInventoryCSVTemplate() {
+  // These are the EXACT fields from your inventory form
+  const headers = [
+    'event_name',           // Event Name (required)
+    'event_date',           // Event Date (required) - YYYY-MM-DD format
+    'event_type',           // Event Type (required) - IPL, India Cricket + ICC, Football, Tennis, F1, Miscellaneous
+    'sports',               // Sports Category (required) - Cricket, Football, Tennis, etc.
+    'venue',                // Venue (required) - Stadium name
+    'day_of_match',         // Day of Match - Day 1, Day 2, Day 3, Day 4, Day 5, Not Applicable
+    'category_of_ticket',   // Category of Ticket (required) - VIP, Premium, Gold, Silver, Bronze, General, Corporate Box, Hospitality
+    'stand',                // Stand/Section - e.g., North Stand, East Pavilion
+    'total_tickets',        // Total Tickets (required) - number
+    'available_tickets',    // Available Tickets (required) - number
+    'mrp_of_ticket',        // MRP of Ticket (₹) (required) - number
+    'buying_price',         // Buying Price (₹) (required) - number
+    'selling_price',        // Selling Price (₹) (required) - number
+    'inclusions',           // Inclusions - Food, Beverages, Parking, etc.
+    'booking_person',       // Booking Person (required) - Who purchased
+    'procurement_type',     // Procurement Type - pre_inventory, on_demand, partnership, direct_booking
+    'notes',                // Additional Notes
+    'paymentStatus',        // Payment Status - paid, pending
+    'supplierName',         // Supplier Name
+    'supplierInvoice',      // Supplier Invoice #
+    'totalPurchaseAmount',  // Total Purchase Amount - number
+    'amountPaid',           // Amount Paid - number
+    'paymentDueDate'        // Payment Due Date - YYYY-MM-DD format
+  ];
+  
+  // Sample data with your actual field values
+  const sampleData = [
+    [
+      'IPL Mumbai vs Chennai Final',           // event_name
+      '2024-12-25',                           // event_date
+      'IPL',                                  // event_type
+      'Cricket',                              // sports
+      'Wankhede Stadium',                     // venue
+      'Not Applicable',                       // day_of_match
+      'VIP',                                  // category_of_ticket
+      'North Stand',                          // stand
+      '100',                                  // total_tickets
+      '100',                                  // available_tickets
+      '8000',                                 // mrp_of_ticket
+      '6000',                                 // buying_price
+      '7500',                                 // selling_price
+      'Premium food, beverages, parking',     // inclusions
+      'Sports Events Ltd',                    // booking_person
+      'pre_inventory',                        // procurement_type
+      'Premium match tickets with hospitality', // notes
+      'paid',                                 // paymentStatus
+      'Mumbai Sports Supplier',               // supplierName
+      'INV-2024-001',                        // supplierInvoice
+      '600000',                              // totalPurchaseAmount
+      '600000',                              // amountPaid
+      '2024-12-20'                           // paymentDueDate
+    ],
+    [
+      'Tennis Grand Slam Quarterfinal',       // event_name
+      '2024-12-31',                          // event_date
+      'Tennis',                              // event_type
+      'Tennis',                              // sports
+      'Delhi Tennis Complex',                // venue
+      'Not Applicable',                      // day_of_match
+      'Premium',                             // category_of_ticket
+      'Center Court',                        // stand
+      '50',                                  // total_tickets
+      '45',                                  // available_tickets
+      '5000',                                // mrp_of_ticket
+      '3500',                                // buying_price
+      '4500',                                // selling_price
+      'Refreshments, reserved seating',      // inclusions
+      'Tennis Pro Events',                   // booking_person
+      'on_demand',                           // procurement_type
+      'Center court premium seating',        // notes
+      'pending',                             // paymentStatus
+      'Delhi Sports Distributor',           // supplierName
+      '',                                    // supplierInvoice
+      '175000',                              // totalPurchaseAmount
+      '100000',                              // amountPaid
+      '2024-12-28'                          // paymentDueDate
+    ]
+  ];
+
+  let csvContent = "data:text/csv;charset=utf-8,";
+  
+  // Add headers
+  csvContent += headers.join(',') + '\n';
+  
+  // Add sample data
+  sampleData.forEach(row => {
+    csvContent += row.map(field => `"${field}"`).join(',') + '\n';
+  });
+
+  // Create download
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "fantopark_inventory_template.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  console.log("✅ Corrected inventory CSV template downloaded with actual FanToPark fields");
+}
+
+// Make sure this function is available globally
+window.downloadInventoryCSVTemplate = downloadInventoryCSVTemplate;
+
+console.log('✅ Corrected CSV Download Functions loaded with actual inventory fields');
+
 console.log('✅ CSV Upload System component loaded successfully');
