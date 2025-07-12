@@ -6,13 +6,6 @@
 <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FanToPark CRM Pro</title>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FanToPark CRM Pro</title>
 
 <!-- PERFORMANCE OPTIMIZATION SCRIPTS - PLACE FIRST -->
 <script>
@@ -216,14 +209,6 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- Your existing script tags continue here... -->
-<!-- Load all constant files -->
-<script src="constants/config.js"></script>
-<script src="constants/status-config.js"></script> 
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-
 <!-- Load all constant files -->
 <script src="constants/config.js"></script>
 <script src="constants/status-config.js"></script>
@@ -293,371 +278,741 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 <script src="components/app-effects-lifecycle.js"></script>
 <script src="components/simplified-app-component.js"></script>
 
+<!-- External Libraries -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>  
 
-<!-- API Configuration-->
-<script>
-// Configure API endpoint
-window.handleProceedFromPreview = () => {
-  if (window.currentUploadFile) {
-    console.log("🚀 Starting upload with file:", window.currentUploadFile.name);
-
-    const cancelBtn = Array.from(document.querySelectorAll("button")).find(b => b.textContent === "Cancel");
-    if (cancelBtn) cancelBtn.click();
-
-    const formData = new FormData();
-    formData.append("file", window.currentUploadFile);
-    fetch(window.API_CONFIG.API_URL + "/upload/leads/csv", {
-      method: "POST",
-      headers: { Authorization: authToken ? "Bearer " + authToken : undefined },
-      body: formData
-    }).then(response => response.json()).then(result => {
-      console.log("✅ Upload successful:", result);
-      alert("✅ Upload successful: " + result.message);
-      window.currentUploadFile = null;
-      location.reload();
-    }).catch(error => {
-      console.error("❌ Upload failed:", error);
-      alert("❌ Upload failed: " + error.message);
-    });
-  } else {
-    alert("No file selected for upload");
-  }
-};
-
-console.log("🔗 window.API_CONFIG.API_URL set to:", window.API_CONFIG.API_URL);
-let authToken = localStorage.getItem("crm_auth_token");
-
-if (authToken) {
-  console.log("Auth token loaded from localStorage");
-}
-</script>
-
+<!-- CSS Styles -->
 <style>
-/* Dark mode base styles */
+/* Global Styles */
 .dark {
   color-scheme: dark;
 }
 
-.dark body {
-  background-color: #111827;
-  color: #f3f4f6;
-}
-
-/* Dark mode for main containers */
-.dark .bg-white {
-  background-color: #1f2937 !important;
-}
-
-.dark .bg-gray-50 {
-  background-color: #111827 !important;
-}
-
-.dark .bg-gray-100 {
-  background-color: #0f172a !important;
-}
-
-/* Dark mode for text */
-.dark .text-gray-900 {
-  color: #f3f4f6 !important;
-}
-
-.dark .text-gray-800 {
-  color: #e5e7eb !important;
-}
-
-.dark .text-gray-700 {
-  color: #d1d5db !important;
-}
-
-.dark .text-gray-600 {
-  color: #9ca3af !important;
-}
-
-.dark .text-gray-500 {
-  color: #6b7280 !important;
-}
-
-/* Dark mode for borders */
-.dark .border-gray-200 {
-  border-color: #374151 !important;
-}
-
-.dark .border-gray-300 {
-  border-color: #4b5563 !important;
-}
-
-.dark .border-b {
-  border-color: #374151 !important;
-}
-
-/* Dark mode for inputs and forms */
-.dark input, .dark select, .dark textarea {
-  background-color: #374151 !important;
-  border-color: #4b5563 !important;
-  color: #f3f4f6 !important;
-}
-
-.dark input:focus, .dark select:focus, .dark textarea:focus {
-  border-color: #3b82f6 !important;
-  background-color: #4b5563 !important;
-}
-
-/* Dark mode for hover states */
-.dark .hover\:bg-gray-50:hover {
-  background-color: #374151 !important;
-}
-
-.dark .hover\:bg-gray-100:hover {
-  background-color: #4b5563 !important;
-}
-
-/* Dark mode for tables */
-.dark table {
-  background-color: #1f2937 !important;
-}
-
-.dark thead {
-  background-color: #111827 !important;
-}
-
-.dark tbody tr:hover {
-  background-color: #374151 !important;
-}
-
-/* Dark mode for modals */
-.dark .bg-black.bg-opacity-50 {
-  background-color: rgba(0, 0, 0, 0.75) !important;
-}
-
-/* Dark mode for shadows */
-.dark .shadow-sm {
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.5) !important;
-}
-
-.dark .shadow-md {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
-}
-
-/* Dark mode for sidebar */
-.dark .bg-gray-900 {
-  background-color: #0f172a !important;
-}
-
-/* Dark mode scrollbars */
-.dark ::-webkit-scrollbar {
-  background-color: #1f2937;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background-color: #4b5563;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background-color: #6b7280;
-}
-
-/* Invoice Styles */
-.invoice-preview {
-  background: white;
-  border: 2px solid #000;
-  font-family: Arial, sans-serif;
-  font-size: 10px;
-  line-height: 1.2;
-  margin: 0 auto;
-  max-width: 210mm;
-  height: fit-content;
-  padding: 8mm;
-  box-sizing: border-box;
-  display: block;
-  overflow: hidden;
-}
-
-.invoice-header-row {
-  display: grid;
-  grid-template-columns: 300px 1fr auto;
-  padding: 10px 8px;
-  border-bottom: 2px solid #000;
-  align-items: center;
-  margin-bottom: 10px;
-  background: #f8f9fa;
-}
-
-.company-logo {
-  width: 210px;
-  height: 150px;
-  margin: 0;
-}
-
-.company-logo img {
-  max-width: 210px;
-  max-height: 150px;
-  object-fit: contain;
-}
-
-.invoice-title {
-  text-align: right;
-  font-size: 16px;
-  font-weight: bold;
-  padding-top: 10px;
-  color: #2c3e50;
-}
-
-.invoice-meta {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  padding: 8px;
-  border-bottom: 1px solid #000;
-  font-size: 10px;
-  margin-bottom: 10px;
-  background: #f8f9fa;
-}
-
-.customer-section {
-  padding: 10px 8px;
-  border-bottom: 1px solid #000;
-  margin-bottom: 12px;
-  background: #f8f9fa;
-}
-
-.customer-title {
-  font-weight: bold;
-  margin-bottom: 4px;
-  font-size: 10px;
-}
-
-.invoice-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 10px;
-  margin-bottom: 12px;
-}
-
-.invoice-table th {
-  background: #2c3e50;
-  color: white;
-  padding: 6px 4px;
-  text-align: left;
-  border: 1px solid #000;
-  font-weight: bold;
-  font-size: 10px;
-}
-
-.invoice-table td {
-  padding: 6px 4px;
-  border: 1px solid #000;
-  text-align: left;
-  background: white;
-}
-
-.totals-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 10px;
-  margin-bottom: 12px;
-}
-
-.totals-table td {
-  padding: 4px;
-  border: 1px solid #000;
-}
-
-.bank-details {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  padding: 10px 8px;
-  border: 2px solid #2c3e50;
-  font-size: 9px;
-  gap: 10px;
-  background: #f8f9fa;
-  margin-top: 10px;
-}
-
-.bank-info h4 {
-  margin-bottom: 6px;
-  font-size: 10px;
-  color: #2c3e50;
-  border-bottom: 1px solid #2c3e50;
-  padding-bottom: 2px;
-}
-
-.bank-info div {
-  margin-bottom: 2px;
-  line-height: 1.1;
-}
-
-.payment-qr {
-  text-align: center;
-}
-
-.payment-qr img {
-  width: 120px;
-  height: 120px;
-  border: 2px solid #ddd;
-  padding: 5px;
-  background: white;
-}
-
-.invoice-footer {
-  margin-top: 10px;
-  text-align: center;
-  font-size: 8px;
-  color: #666;
-}
-
-.company-info-section {
-  background: white;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 3px;
-  margin-bottom: 8px;
-}
-
-.company-info-section h4 {
-  color: #2c3e50;
-  margin-bottom: 6px;
-  border-bottom: 1px solid #2c3e50;
-  padding-bottom: 2px;
-  text-align: center;
-  font-size: 9px;
-}
-
-@media print {
-  body { background: white; padding: 0; margin: 0; }
-  .invoice-preview { border: none; box-shadow: none; margin: 0; padding: 5mm; }
-  .modal-backdrop { display: none; }
-  .sticky { position: relative !important; }
-  @page { margin: 10mm; size: A4; }
-}
-
-/* Fix for action buttons */
-.action-buttons button {
+.sidebar-container {
   position: relative;
-  z-index: 10;
-  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 
-td .flex button {
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar-bottom {
+  margin-top: auto;
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Dark mode styles */
+.dark .sidebar-bottom {
+  border-top-color: #374151;
+}
+
+/* Sidebar logout section adjustments */
+.sidebar-logout {
+  position: sticky;
+  bottom: 0;
+  background: inherit;
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.dark .sidebar-logout {
+  border-top-color: #374151;
+}
+
+/* For mobile responsiveness */
+@media (max-width: 768px) {
+  .sidebar-container {
+    height: auto;
+    min-height: 100vh;
+  }
+}
+
+/* Scrollbar styling */
+.sidebar-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 2px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Dark mode scrollbar */
+.dark .sidebar-content::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.dark .sidebar-content::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+/* Prevent sidebar overlap issues */
+.sidebar-navigation {
+  overflow: visible !important;
+  position: static !important;
+}
+
+/* Fix for modal z-index issues */
+.modal-backdrop {
+  z-index: 1000;
+}
+
+.modal-content {
+  z-index: 1001;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Additional overflow and positioning fixes */
+.sidebar-container {
   position: relative;
-  z-index: 10;
+  overflow: visible;
 }
 
-/* Logout button fix */
-.logout-button-fix {
+.sidebar-container .fixed {
   position: relative !important;
-  width: auto !important;
+}
+
+.sidebar-container .absolute {
+  position: relative !important;
+}
+
+/* Prevent negative margins and overlaps */
+.sidebar-container > div {
+  margin: 0 !important;
+}
+
+/* Ensure content doesn't get cut off */
+.sidebar-content {
+  padding-bottom: 80px; /* Make room for logout button */
+}
+
+/* Position logout area properly */
+.sidebar-logout {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: inherit;
+}
+
+/* Override any problematic positioning */
+.sidebar-container .bottom-0 {
+  position: static !important;
+}
+
+.sidebar-container .left-0 {
+  position: static !important;
+}
+
+.sidebar-container .right-0 {
+  position: static !important;
+}
+
+/* Dark theme logout area */
+.dark .sidebar-logout {
+  background: #1f2937;
+  border-top: 1px solid #374151;
+}
+
+/* Light theme logout area */
+.sidebar-logout {
+  background: white;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Fix overflow issues in the container */
+.sidebar-container {
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+/* Make sure navigation doesn't get hidden */
+.sidebar-navigation {
+  position: relative;
+  z-index: 1;
+}
+
+/* Logout button positioning */
+.sidebar-logout {
+  position: relative;
+  z-index: 2;
+}
+
+/* Responsive fixes */
+@media (min-width: 1024px) {
+  .sidebar-container {
+    height: 100vh;
+    position: sticky;
+    top: 0;
+  }
+}
+
+/* Fix for small screens */
+@media (max-width: 1023px) {
+  .sidebar-logout {
+    position: relative;
+    margin-top: 2rem;
+  }
+  
+  .sidebar-content {
+    padding-bottom: 0;
+  }
+}
+
+/* Additional positioning fixes */
+.sidebar-container > div:last-child {
+  margin-top: auto;
+}
+
+/* Override any transform or positioning that might cause issues */
+.sidebar-container * {
+  transform: none !important;
+}
+
+.sidebar-container .transform {
+  transform: none !important;
+}
+
+/* Ensure proper layout flow */
+.sidebar-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-navigation {
+  flex: 1;
+  min-height: 0;
+}
+
+.sidebar-logout {
+  flex-shrink: 0;
+}
+
+/* More specific positioning override */
+.sidebar-container [style*="position: fixed"],
+.sidebar-container [style*="position: absolute"] {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+
+/* Force relative positioning for problematic elements */
+.sidebar-container .absolute,
+.sidebar-container .fixed {
+  position: relative !important;
+  inset: auto !important;
+}
+
+/* Alternative approach - hide problematic positioning */
+.sidebar-container > div[class*="fixed"],
+.sidebar-container > div[class*="absolute"] {
+  position: relative !important;
+  top: unset !important;
+  left: unset !important;
+  right: unset !important;
+  bottom: unset !important;
+}
+
+/* Make logout area visible and prevent hiding */
+.sidebar-logout {
+  visibility: visible !important;
+  display: block !important;
+  opacity: 1 !important;
+  position: relative !important;
+  transform: none !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Ensure container doesn't hide content */
+.sidebar-container {
+  max-height: none !important;
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
+
+/* Force visibility for navigation items */
+.sidebar-navigation > * {
+  visibility: visible !important;
+  position: relative !important;
+}
+
+/* Specific fix for logout button container */
+.sidebar-container > div:has(.sidebar-logout),
+.sidebar-container > div[class*="logout"] {
+  position: relative !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+/* Last resort - force display */
+.sidebar-logout,
+.sidebar-logout * {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 999 !important;
+}
+
+/* Alternative container structure fix */
+.sidebar-container {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100vh !important;
+  overflow: visible !important;
+}
+
+.sidebar-navigation {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  position: relative !important;
+}
+
+.sidebar-logout {
+  flex-shrink: 0 !important;
+  position: relative !important;
+  margin-top: auto !important;
+}
+
+/* Prevent any CSS that might hide the logout */
+.sidebar-container * {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Ensure proper spacing */
+.sidebar-logout {
+  padding: 1rem !important;
+  margin: 0 !important;
+  border-top: 1px solid #e5e7eb !important;
+}
+
+.dark .sidebar-logout {
+  border-top-color: #374151 !important;
+}
+
+/* Remove any transforms or positions that could cause issues */
+.sidebar-container * {
+  position: static !important;
+  transform: none !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+}
+
+/* Exception for the specific layout we want */
+.sidebar-container {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.sidebar-logout {
+  position: relative !important;
+  margin-top: auto !important;
+}
+
+/* Force visibility for all sidebar elements */
+.sidebar-container,
+.sidebar-container *,
+.sidebar-navigation,
+.sidebar-navigation *,
+.sidebar-logout,
+.sidebar-logout * {
+  visibility: visible !important;
+  display: block !important;
+  opacity: 1 !important;
+}
+
+.sidebar-container button,
+.sidebar-logout button {
+  display: inline-flex !important;
+}
+
+/* Ensure no content is cut off */
+.sidebar-container {
+  min-height: 100vh !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+}
+
+/* Final positioning fix */
+.sidebar-container > div:last-child {
+  position: relative !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  margin-top: auto !important;
+}
+
+/* Ensure the logout button area is always visible */
+.sidebar-logout {
+  background: inherit !important;
+  position: relative !important;
+  z-index: 10 !important;
+  margin-top: auto !important;
+  flex-shrink: 0 !important;
+}
+
+/* Ensure proper stacking context */
+.sidebar-container {
+  z-index: 1 !important;
+}
+
+.sidebar-navigation {
+  z-index: 2 !important;
+  flex: 1 !important;
+  overflow-y: auto !important;
+}
+
+.sidebar-logout {
+  z-index: 3 !important;
+  flex-shrink: 0 !important;
+}
+
+/* Remove problematic CSS classes that might interfere */
+.sidebar-container .fixed,
+.sidebar-container .absolute,
+.sidebar-container .sticky {
+  position: relative !important;
+}
+
+.sidebar-container .inset-0,
+.sidebar-container .top-0,
+.sidebar-container .bottom-0,
+.sidebar-container .left-0,
+.sidebar-container .right-0 {
+  top: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  inset: auto !important;
+}
+
+/* Override Tailwind positioning utilities specifically in sidebar */
+.sidebar-container .absolute {
+  position: relative !important;
+}
+
+.sidebar-container .fixed {
+  position: relative !important;
+}
+
+.sidebar-container .inset-x-0 {
+  left: auto !important;
+  right: auto !important;
+}
+
+.sidebar-container .inset-y-0 {
+  top: auto !important;
+  bottom: auto !important;
+}
+
+/* Make sure logout area has proper background */
+.sidebar-logout {
+  background-color: inherit !important;
+}
+
+/* Dark mode background fix */
+.dark .sidebar-logout {
+  background-color: #1f2937 !important;
+}
+
+/* Light mode background fix */
+.sidebar-logout {
+  background-color: white !important;
+}
+
+/* Additional safety measures */
+.sidebar-container {
+  contain: layout !important;
+}
+
+.sidebar-navigation {
+  contain: layout !important;
+}
+
+/* Prevent any overflow issues */
+.sidebar-container {
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+}
+
+/* Make sure content flows properly */
+.sidebar-container > * {
+  position: relative !important;
+  width: 100% !important;
+  flex-shrink: 0 !important;
+}
+
+.sidebar-navigation {
+  flex-shrink: 1 !important;
+  min-height: 0 !important;
+}
+
+.sidebar-logout {
+  flex-shrink: 0 !important;
+}
+
+/* Final override for any problematic styles */
+.sidebar-container * [class*="absolute"],
+.sidebar-container * [class*="fixed"],
+.sidebar-container * [style*="position: absolute"],
+.sidebar-container * [style*="position: fixed"] {
+  position: relative !important;
+}
+
+/* Emergency visibility fix */
+.sidebar-container,
+.sidebar-navigation,
+.sidebar-logout {
+  visibility: visible !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.sidebar-container button,
+.sidebar-navigation button,
+.sidebar-logout button {
+  display: inline-flex !important;
+  visibility: visible !important;
+}
+
+/* Prevent hidden overflow */
+.sidebar-container,
+.sidebar-navigation {
+  overflow: visible !important;
+}
+
+/* One more positioning fix attempt */
+.sidebar-container > div:not(.sidebar-navigation):not(.sidebar-logout) {
+  position: relative !important;
+}
+
+/* Fix for flex container */
+.sidebar-container {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100vh !important;
+}
+
+.sidebar-navigation {
+  flex: 1 !important;
+  display: block !important;
+}
+
+.sidebar-logout {
+  display: block !important;
+  margin-top: auto !important;
+}
+
+/* Ensure no elements are positioned outside the container */
+.sidebar-container * {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Prevent any negative margins */
+.sidebar-container * {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Ensure logout button container is part of the flow */
+.sidebar-logout {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 1rem !important;
+}
+
+/* Override any external positioning */
+.sidebar-container [style] {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+}
+
+/* Exception for the container itself */
+.sidebar-container {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  transform: none !important;
+}
+
+/* Specific fix for any absolutely positioned children */
+.sidebar-container > div {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+}
+
+/* Ensure logout section is always at the bottom but visible */
+.sidebar-logout {
+  order: 999 !important;
+  position: relative !important;
+  margin-top: auto !important;
+  background: inherit !important;
+  border-top: 1px solid #e5e7eb !important;
+}
+
+.dark .sidebar-logout {
+  border-top-color: #374151 !important;
+  background: #1f2937 !important;
+}
+
+/* Override any CSS that might be hiding content */
+.sidebar-container * {
+  overflow: visible !important;
+  clip: none !important;
+  clip-path: none !important;
+}
+
+/* Ensure all content is accessible */
+.sidebar-container * {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+/* Specific height for the navigation area */
+.sidebar-navigation {
+  min-height: 0 !important;
+  height: auto !important;
+  flex: 1 !important;
+}
+
+/* Specific height for logout area */
+.sidebar-logout {
+  height: auto !important;
+  min-height: auto !important;
+  flex: none !important;
+}
+
+/* Remove any CSS that might interfere with layout */
+.sidebar-container .overflow-hidden {
+  overflow: visible !important;
+}
+
+.sidebar-container .h-full {
   height: auto !important;
 }
 
-/* Prevent invisible overlays */
-button:not(:hover) {
-  z-index: auto !important;
+.sidebar-container .w-full {
+  width: 100% !important;
 }
 
-/* Ensure sidebar stays contained */
+/* Force proper display properties */
 .sidebar-container {
-  overflow: hidden;
+  display: flex !important;
+}
+
+.sidebar-navigation {
+  display: block !important;
+  flex: 1 !important;
+}
+
+.sidebar-logout {
+  display: block !important;
+  flex: none !important;
+}
+
+/* Final attempt - use grid layout as backup */
+.sidebar-container {
+  display: grid !important;
+  grid-template-rows: 1fr auto !important;
+  height: 100vh !important;
+}
+
+.sidebar-navigation {
+  grid-row: 1 !important;
+  overflow-y: auto !important;
+}
+
+.sidebar-logout {
+  grid-row: 2 !important;
+}
+
+/* Revert to flex if grid doesn't work */
+.sidebar-container {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Make absolutely sure logout is visible */
+.sidebar-logout {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  position: relative !important;
+  z-index: 9999 !important;
+  background: white !important;
+  border-top: 1px solid #e5e7eb !important;
+  padding: 1rem !important;
+  margin: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.dark .sidebar-logout {
+  background: #1f2937 !important;
+  border-top-color: #374151 !important;
+}
+
+/* Ensure container doesn't cut off content */
+.sidebar-container {
+  overflow: visible !important;
+  min-height: 100vh !important;
+  height: auto !important;
+  position: relative !important;
+}
+
+/* Force layout recalculation if needed */
+.sidebar-container::after {
+  content: "";
+  display: block;
+  clear: both;
+  height: 0;
+  visibility: hidden;
 }
 
 /* Logout button area fix */
@@ -704,6 +1059,7 @@ button:not(:hover) {
 <div id="root"></div>
 <div id="error-message" style="position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 12px 20px; border-radius: 6px; display: none; z-index: 9999;"></div>
 
+<!-- API Configuration and Main App Script -->
 <script>
 // Show previous logs on page load
 window.addEventListener('load', () => {
@@ -731,81 +1087,192 @@ window.getRoleDisplayLabel = function(roleName) {
     'admin': 'Admin', 
     'sales_manager': 'Sales Manager',
     'sales_executive': 'Sales Executive',
-    'supply_manager': 'Supply Manager',
-    'supply_sales_service_manager': 'Supply Sales Service Manager',
-    'finance_manager': 'Finance Manager',
-    'viewer': 'Viewer'
+    'finance': 'Finance',
+    'supply': 'Supply',
+    'warehouse': 'Warehouse'
   };
-  return roleLabels[roleName] || roleName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  return roleLabels[roleName] || roleName;
 };
 
-// Helper function to format date for display (DD/MM/YYYY)
-const formatDateForDisplay = (dateValue) => {
-  if (!dateValue) return 'Not Set';
+// Configure API endpoint
+window.handleProceedFromPreview = () => {
+  if (window.currentUploadFile) {
+    console.log("🚀 Starting upload with file:", window.currentUploadFile.name);
 
-  try {
-    let date;
+    const cancelBtn = Array.from(document.querySelectorAll("button")).find(b => b.textContent === "Cancel");
+    if (cancelBtn) cancelBtn.click();
 
-    if (dateValue instanceof Date) {
-      date = dateValue;
-    } else if (typeof dateValue === 'string' && dateValue.includes('T')) {
-      date = new Date(dateValue);
-    } else if (typeof dateValue === 'string') {
-      date = new Date(dateValue);
-    } else if (typeof dateValue === 'object' && dateValue._seconds) {
-      date = new Date(dateValue._seconds * 1000);
-    } else {
-      return 'Invalid Date';
-    }
-
-    if (isNaN(date.getTime())) {
-      return 'Invalid Date';
-    }
-
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-
-    return `${day}/${month}/${year}`;
-  } catch (error) {
-    return 'Error';
+    const formData = new FormData();
+    formData.append("file", window.currentUploadFile);
+    fetch(window.API_CONFIG.API_URL + "/upload/leads/csv", {
+      method: "POST",
+      headers: { Authorization: authToken ? 'Bearer ' + authToken : '' },
+      body: formData
+    }).then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert("✅ Upload successful!");
+        window.location.reload();
+      } else {
+        alert("❌ Upload failed: " + (data.message || "Unknown error"));
+      }
+    }).catch(error => {
+      console.error("Upload error:", error);
+      alert("❌ Upload failed: " + error.message);
+    });
   }
 };
 
-// Helper function to get lead temperature
-const getLeadTemperature = (lead) => {
-  if (window.LEAD_STATUSES[lead.status]?.temperature) {
-    return window.LEAD_STATUSES[lead.status].temperature;
-  }
-
-  if (lead.temperature) {
-    return lead.temperature;
-  }
-
-  if (['hot', 'warm', 'cold'].includes(lead.status)) {
-    return lead.status;
-  }
-
-  return null;
-};
-
-// Helper function to get display temperature for dashboard
-const getDisplayTemperature = (lead) => {
-  const temp = getLeadTemperature(lead);
-  if (temp && ['hot', 'warm', 'cold'].includes(temp)) {
-    return temp;
-  }
-  if (lead.status === 'quote_requested' && lead.temperature) {
-    return lead.temperature;
-  }
-  return null;
-};
-
-
-// Render the simplified app
-ReactDOM.render(React.createElement(window.SimplifiedApp), document.getElementById('root'));
+// ✅ Initialize the SimplifiedApp
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(window.SimplifiedApp));
 </script>
 
-<script src="components/test-mode-system.js"></script>
+<!-- CHART INITIALIZATION PATCH - PLACE AT THE END -->
+<script>
+// ===============================================
+// EMERGENCY CHART INITIALIZATION PATCH
+// ===============================================
+
+window.fixChartInitialization = function() {
+  console.log('🔧 Applying chart initialization fix...');
+  
+  // Clear any existing chart state
+  if (window.chartState) {
+    window.chartState.initialized = false;
+    window.chartState.initializing = false;
+    window.chartState.initAttempts = 0;
+  }
+  
+  // Create a smart chart initializer that waits for proper DOM state
+  window.smartChartInit = function() {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+      const maxAttempts = 15; // Reduced from 20
+      
+      const checkAndInit = () => {
+        attempts++;
+        
+        // Check if we're on the dashboard tab
+        if (window.activeTab !== 'dashboard') {
+          console.log('⏭️ Not on dashboard tab, skipping chart init');
+          resolve();
+          return;
+        }
+        
+        // Check for Chart.js
+        if (typeof Chart === 'undefined') {
+          if (attempts < maxAttempts) {
+            setTimeout(checkAndInit, 500);
+            return;
+          } else {
+            console.warn('⚠️ Chart.js not available after max attempts');
+            resolve(); // Don't reject, just resolve without charts
+            return;
+          }
+        }
+        
+        // Check for DOM containers with more specific selectors
+        const containers = {
+          leadSplit: document.querySelector('#leadSplitChart'),
+          tempCount: document.querySelector('#tempCountChart'),
+          tempValue: document.querySelector('#tempValueChart')
+        };
+        
+        const missingContainers = Object.entries(containers)
+          .filter(([key, element]) => !element)
+          .map(([key]) => key);
+        
+        if (missingContainers.length > 0) {
+          if (attempts < maxAttempts) {
+            console.log(`⏳ Waiting for containers: ${missingContainers.join(', ')} (attempt ${attempts})`);
+            setTimeout(checkAndInit, 500);
+            return;
+          } else {
+            console.warn('⚠️ Chart containers not found after max attempts');
+            resolve(); // Don't reject, just resolve without charts
+            return;
+          }
+        }
+        
+        // All good - initialize charts
+        try {
+          console.log('✅ All chart prerequisites met, initializing...');
+          
+          // Use the fixed chart initialization
+          if (window.initializeCharts) {
+            window.initializeCharts()
+              .then(() => {
+                console.log('✅ Charts initialized successfully via smartChartInit');
+                resolve();
+              })
+              .catch(error => {
+                console.warn('⚠️ Chart initialization failed, but continuing:', error.message);
+                resolve(); // Don't reject, just resolve without charts
+              });
+          } else {
+            console.warn('⚠️ initializeCharts function not available');
+            resolve();
+          }
+          
+        } catch (error) {
+          console.warn('⚠️ Chart initialization error:', error.message);
+          resolve(); // Don't reject, just resolve without charts
+        }
+      };
+      
+      // Start the check
+      checkAndInit();
+    });
+  };
+  
+  // Override the auto-initialization to use our smart version
+  const originalInit = window.addEventListener;
+  
+  // Clear any existing event listeners for chart init
+  window.removeEventListener('DOMContentLoaded', window.smartChartInit);
+  
+  // Add our fixed initialization
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        window.smartChartInit().catch(console.warn);
+      }, 1000); // Wait 1 second after DOM ready
+    });
+  } else {
+    // DOM already ready
+    setTimeout(() => {
+      window.smartChartInit().catch(console.warn);
+    }, 1000);
+  }
+  
+  console.log('✅ Chart initialization fix applied');
+};
+
+// Auto-apply the fix
+window.fixChartInitialization();
+
+// Also add a manual trigger for dashboard tab switches
+const originalSetActiveTab = window.setActiveTab;
+if (originalSetActiveTab) {
+  window.setActiveTab = function(tab) {
+    originalSetActiveTab(tab);
+    
+    // If switching to dashboard, try to init charts
+    if (tab === 'dashboard') {
+      setTimeout(() => {
+        if (!window.chartState?.initialized) {
+          console.log('🎯 Dashboard activated, attempting chart initialization...');
+          window.smartChartInit().catch(console.warn);
+        }
+      }, 500);
+    }
+  };
+}
+
+console.log('🔧 Emergency chart patch loaded');
+console.log('🚀 FanToPark CRM - Fully Optimized & Fixed');
+</script>
+
 </body>
 </html>
