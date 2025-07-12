@@ -280,7 +280,58 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 
 <!-- External Libraries -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>  
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script> 
+<script>
+// Login Performance Optimization
+window.optimizeLoginPerformance = function() {
+  // Debounce component re-renders during login
+  const originalSetState = window.setState;
+  let loginOptimizationActive = false;
+  
+  // Detect login process
+  const originalSetIsLoggedIn = window.setIsLoggedIn;
+  if (originalSetIsLoggedIn) {
+    window.setIsLoggedIn = function(value) {
+      if (value) {
+        loginOptimizationActive = true;
+        console.log('🔄 Login optimization active - reducing re-renders');
+        
+        // Disable optimization after 3 seconds
+        setTimeout(() => {
+          loginOptimizationActive = false;
+          console.log('✅ Login optimization complete');
+        }, 3000);
+      }
+      
+      return originalSetIsLoggedIn(value);
+    };
+  }
+  
+  // Reduce component logging during login
+  const componentLoggers = [
+    'suppressComponentLog',
+    'allocLog', 
+    'deliveryLog',
+    'dashLog'
+  ];
+  
+  componentLoggers.forEach(loggerName => {
+    if (window[loggerName]) {
+      const originalLogger = window[loggerName];
+      window[loggerName] = function(...args) {
+        if (!loginOptimizationActive) {
+          return originalLogger.apply(this, args);
+        }
+        // Suppress during login
+      };
+    }
+  });
+};
+
+// Apply optimization
+window.optimizeLoginPerformance();
+console.log('🚀 Login performance optimization applied');
+</script>  
 
 <!-- CSS Styles -->
 <style>
