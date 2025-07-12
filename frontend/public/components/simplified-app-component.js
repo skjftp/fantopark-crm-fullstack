@@ -19,6 +19,11 @@ if (ENABLE_DEBUG_LOGS && !window._stateSettersLogged) {
   window.renderAppEffects();
 
   // Make handlers available globall
+window.setShowQuoteUploadModal = setShowQuoteUploadModal;
+window.setQuoteUploadData = setQuoteUploadData;
+window.showQuoteUploadModal = showQuoteUploadModal;
+window.quoteUploadData = quoteUploadData;
+  
   window.appHandlers = handlers;
 
   // ✅ ENSURE USER FORM GLOBALS ARE AVAILABLE
@@ -2510,6 +2515,10 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
     { name: 'paymentDueDate', label: 'Payment Due Date', type: 'date', required: false }
   ];
 
+
+ const [showQuoteUploadModal, setShowQuoteUploadModal] = useState(false);
+const [quoteUploadData, setQuoteUploadData] = useState({ notes: '', pdf: null });
+ 
   // ✅ FORM DATA CHANGE HANDLER
   window.handleFormDataChange = (fieldName, value) => {
     console.log(`📝 Form field changed: ${fieldName} = ${value}`);
@@ -3199,6 +3208,7 @@ console.log("✅ AssignmentRulesTab exposed to window");
     state.showEventDetail && window.renderEventDetailModal && window.renderEventDetailModal(),
     state.showPreview && React.createElement(window.UploadPreviewModal),
     state.showClientDetectionResults && React.createElement(window.ClientDetectionResultsModal),
-    state.showEventForm && window.renderEventFormModal && window.renderEventFormModal()
+    state.showEventForm && window.renderEventFormModal && window.renderEventFormModal(),
+    window.renderQuoteUploadModal && window.renderQuoteUploadModal(),
   );
 };
