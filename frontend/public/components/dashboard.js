@@ -309,44 +309,51 @@ window.renderDashboardContent = () => {
             )
         ),
 
-        // Recent Activity Section
+         // Enhanced Recent Activity Section
+        window.renderEnhancedRecentActivity ? window.renderEnhancedRecentActivity() :
+        // Fallback to basic Recent Activity if enhanced component not loaded
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border' },
             React.createElement('div', { className: 'p-6 border-b border-gray-200 dark:border-gray-700' },
                 React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
                     'Recent Activity'
+                ),
+                React.createElement('div', { className: 'text-xs text-yellow-600' }, 
+                    'Enhanced component not loaded - using basic version'
                 )
             ),
             React.createElement('div', { className: 'p-6' },
                 (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || []).length > 0 ?
                 React.createElement('div', { className: 'space-y-4' },
-                    (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
+                    (window.getFilteredLeads ?
+                        window.getFilteredLeads() : window.leads || [])
                         .slice(0, 5)
                         .map((lead, index) => 
-                            React.createElement('div', { key: index, className: 'flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0' },
-                                React.createElement('div', { className: 'flex-1' },
-                                    React.createElement('p', { className: 'font-medium text-gray-900 dark:text-white' }, lead.name),
-                                    React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 
-                                        `${lead.company || 'Unknown Company'} - ₹${(parseFloat(lead.potential_value) || 0).toLocaleString()}`
-                                    )
+                            React.createElement('div', {
+                                key: lead.id || index,
+                                className: 'flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 cursor-pointer',
+                                onClick: () => window.openLeadDetail && window.openLeadDetail(lead)
+                            },
+                                React.createElement('div', null,
+                                    React.createElement('div', { 
+                                        className: 'font-medium text-gray-900 dark:text-white' 
+                                    }, lead.name || 'Unknown'),
+                                    React.createElement('div', { 
+                                        className: 'text-sm text-gray-500' 
+                                    }, lead.company || 'Unknown Company'),
+                                    React.createElement('div', { 
+                                        className: 'text-xs text-gray-400' 
+                                    }, lead.status || 'Unknown Status')
                                 ),
                                 React.createElement('span', {
-                                    className: `px-2 py-1 text-xs font-medium rounded-full ${
-                                        (lead.temperature || lead.status) === 'hot' ? 
-                                        'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                                        (lead.temperature || lead.status) === 'warm' ? 
-                                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                                        (lead.temperature || lead.status) === 'cold' ? 
-                                        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                                        lead.status === 'qualified' ? 
-                                        'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                                    }`
-                                }, (lead.temperature || lead.status || 'unknown'))
+                                    className: 'text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded'
+                                }, 'View Details')
                             )
                         )
                 ) :
-                React.createElement('p', { className: 'text-gray-500 dark:text-gray-400 text-center py-8' },
-                    'No recent activity'
+                React.createElement('div', { className: 'text-center py-8' },
+                    React.createElement('div', { className: 'text-gray-500 dark:text-gray-400' }, 
+                        'No recent activity to show'
+                    )
                 )
             )
         )
