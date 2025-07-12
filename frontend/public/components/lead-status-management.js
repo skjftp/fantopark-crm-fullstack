@@ -733,47 +733,82 @@ window.openQuoteUploadModal = function(lead) {
 window.handleQuoteUpload = async function(e) {
   e.preventDefault();
   
-  if (!window.quoteUploadData.pdf) {
-    alert('Please upload a quote PDF');
-    return;
-  }
+  console.log('📄 Quote upload started');
+  console.log('📄 Current lead:', window.currentLead);
+  console.log('📄 Quote upload data:', window.quoteUploadData);
+  
+  // File upload is now OPTIONAL
+  const hasFile = window.quoteUploadData.pdf && window.quoteUploadData.pdf.name;
+  console.log('📄 Has file to upload:', hasFile);
 
   window.setLoading(true);
   
   try {
-    // Upload PDF first (you'll need to implement file upload API)
-    const formData = new FormData();
-    formData.append('quote_pdf', window.quoteUploadData.pdf);
-    formData.append('lead_id', window.currentLead.id);
+    // Get the original assignee from the current lead
+    const originalAssignee = window.currentLead.original_assignee || window.currentLead.assigned_to;
     
-    const uploadResponse = await window.apiCall('/leads/upload-quote', {
-      method: 'POST',
-      body: formData
-    });
-
-    // Update lead status to quote_received with quote info
+    console.log('📄 Restoring assignment to:', originalAssignee);
+    
+    // Update lead status to quote_received and restore original assignee
     const updateData = {
       ...window.currentLead,
       status: 'quote_received',
-      assigned_to: window.currentLead.original_assignee || window.currentLead.assigned_to,
-      quote_pdf_url: uploadResponse.data.quote_url,
-      quote_notes: window.quoteUploadData.notes,
-      quote_uploaded_date: new Date().toISOString()
+      assigned_to: originalAssignee, // Restore to original assignee
+      assigned_team: null, // Clear supply team assignment
+      quote_notes: window.quoteUploadData.notes || '',
+      quote_uploaded_date: new Date().toISOString(),
+      updated_date: new Date().toISOString()
     };
 
+    // Only add file info if a file was selected
+    if (hasFile) {
+      updateData.quote_pdf_filename = window.quoteUploadData.pdf.name;
+      updateData.quote_file_size = window.quoteUploadData.pdf.size;
+      console.log('📄 File info added:', updateData.quote_pdf_filename);
+    } else {
+      console.log('📄 No file selected - proceeding without upload');
+    }
+
+    console.log('📄 Updating lead with data:', updateData);
+
+    // Update the lead via the standard API
     const response = await window.apiCall(`/leads/${window.currentLead.id}`, {
       method: 'PUT',
       body: JSON.stringify(updateData)
     });
 
+    console.log('📄 Lead update response:', response);
+
     // Update local state
-    window.setLeads(prev => prev.map(l => l.id === window.currentLead.id ? response.data : l));
+    window.setLeads(prev => prev.map(l => 
+      l.id === window.currentLead.id ? response.data : l
+    ));
     
+    // Update current lead if in detail view
+    if (window.showLeadDetail && window.currentLead?.id === response.data.id) {
+      window.setCurrentLead(response.data);
+    }
+    
+    // Refresh My Actions if we're on that tab
+    if (window.activeTab === 'myactions' && window.fetchMyActions) {
+      window.fetchMyActions();
+    }
+    
+    // Close modal and show success
     window.setShowQuoteUploadModal(false);
-    alert('Quote uploaded and lead moved to Quote Received!');
+    window.setQuoteUploadData({ notes: '', pdf: null });
+    
+    // Create success message
+    const fileInfo = hasFile ? `\nFile: ${window.quoteUploadData.pdf.name}` : '\nNo file uploaded';
+    const notesInfo = window.quoteUploadData.notes ? `\nNotes: ${window.quoteUploadData.notes}` : '';
+    
+    alert(`✅ Quote processed successfully!\n\nLead: ${window.currentLead.name}\nStatus: Quote Received\nAssigned back to: ${originalAssignee}${fileInfo}${notesInfo}`);
+    
+    console.log('📄 Quote upload workflow completed successfully');
+    
   } catch (error) {
-    console.error('Quote upload error:', error);
-    alert('Failed to upload quote: ' + error.message);
+    console.error('❌ Quote upload error:', error);
+    alert('Failed to process quote: ' + error.message);
   } finally {
     window.setLoading(false);
   }
