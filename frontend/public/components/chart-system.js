@@ -371,11 +371,33 @@ window.calculateChartMetrics = function(leads) {
   }
   
   try {
+    console.log('🔍 Calculating metrics for', leads.length, 'leads');
+    
+    // Helper function to get temperature - check multiple fields
+    const getTemperature = (lead) => {
+      // Check temperature field first, then status, then fallback
+      let temp = lead.temperature || lead.status || '';
+      return temp.toLowerCase();
+    };
+    
     // Use reduce for efficient single-pass calculation
     const metrics = leads.reduce((acc, lead) => {
       const status = (lead.status || '').toLowerCase();
-      const temperature = (lead.temperature || lead.status || '').toLowerCase(); // Check both fields
+      const temperature = getTemperature(lead);
       const value = parseFloat(lead.potential_value) || 0;
+      
+      // Debug log for first few leads
+      if (acc.debugCount < 3) {
+        console.log('🔍 Lead debug:', {
+          name: lead.name,
+          status: status,
+          temperature: temperature,
+          potential_value: value,
+          raw_temperature_field: lead.temperature,
+          raw_status_field: lead.status
+        });
+        acc.debugCount++;
+      }
       
       // Lead split metrics (based on status)
       if (status === 'qualified') acc.qualified++;
@@ -397,7 +419,14 @@ window.calculateChartMetrics = function(leads) {
     }, {
       qualified: 0, junk: 0,
       hotCount: 0, warmCount: 0, coldCount: 0,
-      hotValue: 0, warmValue: 0, coldValue: 0
+      hotValue: 0, warmValue: 0, coldValue: 0,
+      debugCount: 0
+    });
+    
+    console.log('📊 Calculated metrics:', {
+      leadSplit: { qualified: metrics.qualified, junk: metrics.junk },
+      tempCount: { hot: metrics.hotCount, warm: metrics.warmCount, cold: metrics.coldCount },
+      tempValue: { hot: metrics.hotValue, warm: metrics.warmValue, cold: metrics.coldValue }
     });
     
     return {
