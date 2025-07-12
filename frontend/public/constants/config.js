@@ -76,7 +76,7 @@ window.LEAD_STATUSES = {
     parallel: true
   },
     quote_received: {
-    label: 'Quote Requested',
+    label: 'Quote Received',
     color: 'bg-purple-100 text-purple-800',
     next: ['converted', 'dropped', 'pickup_later'],
     parallel: true
