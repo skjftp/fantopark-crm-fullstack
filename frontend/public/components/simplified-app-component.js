@@ -8,7 +8,7 @@ window.SimplifiedApp = function() {
   const handlers = window.renderAppBusinessLogic();
   
   // ✅ CRITICAL DEBUG: Check what state setters are available
-  console.log("🔍 DEBUGGING STATE SETTERS:");
+  window.debugLog("🔍 DEBUGGING STATE SETTERS:");
   console.log("state.setShowInventoryForm:", typeof state.setShowInventoryForm, state.setShowInventoryForm);
   console.log("state.setEditingInventory:", typeof state.setEditingInventory, state.setEditingInventory);
   console.log("state.setShowAllocationManagement:", typeof state.setShowAllocationManagement, state.setShowAllocationManagement);
@@ -3188,4 +3188,3 @@ console.log("✅ AssignmentRulesTab exposed to window");
   );
 };
 
-console.log('✅ SPORTS CALENDAR FALLBACK FUNCTION - Added to ensure renderSportsCalendarContent is always available');
