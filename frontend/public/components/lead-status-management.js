@@ -22,15 +22,29 @@ window.updateLeadStatus = async function(leadId, newStatus) {
 
     const oldStatus = currentLead.status; // Store old status for reminder logic
 
-    // Include ALL fields from current lead
-    const updateData = {
-      ...currentLead,  // This includes EVERYTHING
-      status: newStatus,
-      last_contact_date: new Date().toISOString(),
-      [newStatus + '_date']: new Date().toISOString(),
-      updated_date: new Date().toISOString()
-    };
+    // ✅ QUOTE WORKFLOW LOGIC
+let updateData = {
+  ...currentLead,
+  status: newStatus,
+  last_contact_date: new Date().toISOString(),
+  [newStatus + '_date']: new Date().toISOString(),
+  updated_date: new Date().toISOString()
+};
 
+// Handle quote_requested -> auto-assign to Akshay and store original assignee
+if (newStatus === 'quote_requested') {
+  updateData.original_assignee = currentLead.assigned_to; // Store who it was assigned to
+  updateData.assigned_to = 'akshay@fantopark.com'; // Auto-assign to Akshay
+}
+
+// Handle quote_received -> restore original assignee  
+if (oldStatus === 'quote_requested' && newStatus === 'quote_received') {
+  updateData.assigned_to = currentLead.original_assignee || currentLead.assigned_to;
+  // Don't proceed with normal update - open quote upload modal instead
+  window.setLoading(false);
+  window.openQuoteUploadModal(currentLead);
+  return;
+}
     console.log('Updating lead with full data:', updateData);
 
     // API call to update lead status
@@ -606,6 +620,58 @@ window.testPickupLaterReminder = async function(leadId) {
   }
 };
 
-console.log('✅ FIXED: Lead Status Management with Reminder Creation loaded successfully');
-console.log('🔧 To test: window.testPickupLaterReminder(leadId)');
-console.log('🔧 Debug: window.shouldCreateReminderOnStatusChange("pickup_later")');
+// ===== QUOTE UPLOAD MODAL =====
+window.openQuoteUploadModal = function(lead) {
+  window.setCurrentLead(lead);
+  window.setShowQuoteUploadModal(true);
+  window.setQuoteUploadData({ notes: '', pdf: null });
+};
+
+window.handleQuoteUpload = async function(e) {
+  e.preventDefault();
+  
+  if (!window.quoteUploadData.pdf) {
+    alert('Please upload a quote PDF');
+    return;
+  }
+
+  window.setLoading(true);
+  
+  try {
+    // Upload PDF first (you'll need to implement file upload API)
+    const formData = new FormData();
+    formData.append('quote_pdf', window.quoteUploadData.pdf);
+    formData.append('lead_id', window.currentLead.id);
+    
+    const uploadResponse = await window.apiCall('/leads/upload-quote', {
+      method: 'POST',
+      body: formData
+    });
+
+    // Update lead status to quote_received with quote info
+    const updateData = {
+      ...window.currentLead,
+      status: 'quote_received',
+      assigned_to: window.currentLead.original_assignee || window.currentLead.assigned_to,
+      quote_pdf_url: uploadResponse.data.quote_url,
+      quote_notes: window.quoteUploadData.notes,
+      quote_uploaded_date: new Date().toISOString()
+    };
+
+    const response = await window.apiCall(`/leads/${window.currentLead.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData)
+    });
+
+    // Update local state
+    window.setLeads(prev => prev.map(l => l.id === window.currentLead.id ? response.data : l));
+    
+    window.setShowQuoteUploadModal(false);
+    alert('Quote uploaded and lead moved to Quote Received!');
+  } catch (error) {
+    console.error('Quote upload error:', error);
+    alert('Failed to upload quote: ' + error.message);
+  } finally {
+    window.setLoading(false);
+  }
+};
