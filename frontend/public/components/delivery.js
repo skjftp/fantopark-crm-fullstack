@@ -337,5 +337,400 @@ window.handleDeliverySubmit = async (e) => {
   }
 };
 
-deliveryLog('✅ Optimized Delivery Form component loaded');
-console.log('🚚 Delivery Form v2.0 - Performance Optimized');
+// Main Delivery Content Renderer - THE MISSING FUNCTION
+window.renderDeliveryContent = () => {
+  console.log('🚚 Rendering Delivery Content');
+
+  // Get state from app or use defaults
+  const {
+    deliveries = [],
+    setDeliveries = window.setDeliveries || (() => {}),
+    loading = false,
+    setLoading = window.setLoading || (() => {}),
+    user = window.user,
+    activeTab = window.activeTab
+  } = window.appState || {};
+
+  // Initialize deliveries state if not exists
+  React.useEffect(() => {
+    if (!window.deliveries) {
+      window.deliveries = [];
+    }
+  }, []);
+
+  // Local state for delivery management
+  const [deliveryFilters, setDeliveryFilters] = React.useState({
+    searchQuery: '',
+    statusFilter: 'all',
+    deliveryDateFilter: '',
+    assignedToFilter: 'all'
+  });
+
+  const [deliveryPagination, setDeliveryPagination] = React.useState({
+    currentPage: 1,
+    itemsPerPage: 10,
+    totalItems: 0,
+    totalPages: 0
+  });
+
+  const [showDeliveryFilters, setShowDeliveryFilters] = React.useState(false);
+  const [selectedDeliveries, setSelectedDeliveries] = React.useState([]);
+
+  // Fetch deliveries function
+  const fetchDeliveries = React.useCallback(async () => {
+    if (!window.hasPermission('delivery', 'read')) {
+      console.log('❌ No permission to fetch deliveries');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      console.log('🔍 Fetching deliveries...');
+      const response = await window.apiCall('/deliveries');
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      const deliveriesData = response.data || [];
+      setDeliveries(deliveriesData);
+      window.deliveries = deliveriesData;
+      
+      // Update pagination
+      setDeliveryPagination(prev => ({
+        ...prev,
+        totalItems: deliveriesData.length,
+        totalPages: Math.ceil(deliveriesData.length / prev.itemsPerPage)
+      }));
+
+      console.log('✅ Deliveries fetched:', deliveriesData.length);
+    } catch (error) {
+      console.error('❌ Error fetching deliveries:', error);
+      // Set empty array as fallback
+      setDeliveries([]);
+      window.deliveries = [];
+    } finally {
+      setLoading(false);
+    }
+  }, [setDeliveries, setLoading]);
+
+  // Fetch deliveries on component mount
+  React.useEffect(() => {
+    if (activeTab === 'delivery') {
+      fetchDeliveries();
+    }
+  }, [activeTab, fetchDeliveries]);
+
+  // Filter and paginate deliveries
+  const filteredDeliveries = React.useMemo(() => {
+    let filtered = deliveries || [];
+
+    // Apply search filter
+    if (deliveryFilters.searchQuery) {
+      const query = deliveryFilters.searchQuery.toLowerCase();
+      filtered = filtered.filter(delivery =>
+        (delivery.order_id && delivery.order_id.toString().includes(query)) ||
+        (delivery.customer_name && delivery.customer_name.toLowerCase().includes(query)) ||
+        (delivery.delivery_address && delivery.delivery_address.toLowerCase().includes(query)) ||
+        (delivery.contact_details && delivery.contact_details.toLowerCase().includes(query))
+      );
+    }
+
+    // Apply status filter
+    if (deliveryFilters.statusFilter !== 'all') {
+      filtered = filtered.filter(delivery => delivery.status === deliveryFilters.statusFilter);
+    }
+
+    // Apply assigned to filter
+    if (deliveryFilters.assignedToFilter !== 'all') {
+      filtered = filtered.filter(delivery => delivery.assigned_to === deliveryFilters.assignedToFilter);
+    }
+
+    // Apply date filter
+    if (deliveryFilters.deliveryDateFilter) {
+      filtered = filtered.filter(delivery => {
+        const deliveryDate = new Date(delivery.delivery_date);
+        const filterDate = new Date(deliveryFilters.deliveryDateFilter);
+        return deliveryDate.toDateString() === filterDate.toDateString();
+      });
+    }
+
+    return filtered;
+  }, [deliveries, deliveryFilters]);
+
+  // Get current page deliveries
+  const currentDeliveries = React.useMemo(() => {
+    const startIndex = (deliveryPagination.currentPage - 1) * deliveryPagination.itemsPerPage;
+    const endIndex = startIndex + deliveryPagination.itemsPerPage;
+    return filteredDeliveries.slice(startIndex, endIndex);
+  }, [filteredDeliveries, deliveryPagination.currentPage, deliveryPagination.itemsPerPage]);
+
+  // Handle delivery status update
+  const handleStatusUpdate = async (deliveryId, newStatus) => {
+    if (!window.hasPermission('delivery', 'update')) {
+      alert('You do not have permission to update delivery status');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await window.apiCall(`/deliveries/${deliveryId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      // Update local state
+      setDeliveries(prev => prev.map(delivery =>
+        delivery.id === deliveryId ? { ...delivery, status: newStatus } : delivery
+      ));
+
+      console.log('✅ Delivery status updated:', deliveryId, newStatus);
+    } catch (error) {
+      console.error('❌ Error updating delivery status:', error);
+      alert('Error updating delivery status: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle delivery deletion
+  const handleDeleteDelivery = async (deliveryId) => {
+    if (!window.hasPermission('delivery', 'delete')) {
+      alert('You do not have permission to delete deliveries');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this delivery?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await window.apiCall(`/deliveries/${deliveryId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      // Update local state
+      setDeliveries(prev => prev.filter(delivery => delivery.id !== deliveryId));
+      console.log('✅ Delivery deleted:', deliveryId);
+    } catch (error) {
+      console.error('❌ Error deleting delivery:', error);
+      alert('Error deleting delivery: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get status badge style
+  const getStatusBadgeStyle = (status) => {
+    const styles = {
+      'pending': 'bg-yellow-100 text-yellow-800',
+      'scheduled': 'bg-blue-100 text-blue-800',
+      'in_transit': 'bg-purple-100 text-purple-800',
+      'delivered': 'bg-green-100 text-green-800',
+      'cancelled': 'bg-red-100 text-red-800',
+      'failed': 'bg-red-100 text-red-800'
+    };
+    return styles[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  // Format date display
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Render main delivery content
+  return React.createElement('div', { className: 'space-y-6' },
+    // Header
+    React.createElement('div', { className: 'flex justify-between items-center' },
+      React.createElement('div', null,
+        React.createElement('h1', { className: 'text-2xl font-bold text-gray-900 dark:text-white' }, 'Delivery Management'),
+        React.createElement('p', { className: 'text-gray-600 dark:text-gray-400' }, 
+          `Manage and track all deliveries (${filteredDeliveries.length} total)`
+        )
+      ),
+      React.createElement('div', { className: 'flex space-x-3' },
+        React.createElement('button', {
+          onClick: () => setShowDeliveryFilters(!showDeliveryFilters),
+          className: 'px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200'
+        }, showDeliveryFilters ? 'Hide Filters' : 'Show Filters'),
+        React.createElement('button', {
+          onClick: fetchDeliveries,
+          className: 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
+        }, 'Refresh')
+      )
+    ),
+
+    // Filters (if shown)
+    showDeliveryFilters && React.createElement('div', { 
+      className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' 
+    },
+      React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
+        // Search Query
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Search'),
+          React.createElement('input', {
+            type: 'text',
+            value: deliveryFilters.searchQuery,
+            onChange: (e) => setDeliveryFilters(prev => ({ ...prev, searchQuery: e.target.value })),
+            placeholder: 'Search deliveries...',
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500'
+          })
+        ),
+        
+        // Status Filter
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Status'),
+          React.createElement('select', {
+            value: deliveryFilters.statusFilter,
+            onChange: (e) => setDeliveryFilters(prev => ({ ...prev, statusFilter: e.target.value })),
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500'
+          },
+            React.createElement('option', { value: 'all' }, 'All Status'),
+            React.createElement('option', { value: 'pending' }, 'Pending'),
+            React.createElement('option', { value: 'scheduled' }, 'Scheduled'),
+            React.createElement('option', { value: 'in_transit' }, 'In Transit'),
+            React.createElement('option', { value: 'delivered' }, 'Delivered'),
+            React.createElement('option', { value: 'cancelled' }, 'Cancelled')
+          )
+        ),
+
+        // Assigned To Filter
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Assigned To'),
+          React.createElement('select', {
+            value: deliveryFilters.assignedToFilter,
+            onChange: (e) => setDeliveryFilters(prev => ({ ...prev, assignedToFilter: e.target.value })),
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500'
+          },
+            React.createElement('option', { value: 'all' }, 'All Users'),
+            React.createElement('option', { value: user?.email }, 'My Deliveries')
+          )
+        ),
+
+        // Date Filter
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Delivery Date'),
+          React.createElement('input', {
+            type: 'date',
+            value: deliveryFilters.deliveryDateFilter,
+            onChange: (e) => setDeliveryFilters(prev => ({ ...prev, deliveryDateFilter: e.target.value })),
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500'
+          })
+        )
+      )
+    ),
+
+    // Deliveries Table
+    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden' },
+      // Table Header
+      React.createElement('div', { className: 'px-6 py-4 border-b border-gray-200' },
+        React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
+          `Deliveries (${currentDeliveries.length} of ${filteredDeliveries.length})`
+        )
+      ),
+
+      // Table
+      React.createElement('div', { className: 'overflow-x-auto' },
+        React.createElement('table', { className: 'w-full' },
+          React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
+            React.createElement('tr', null,
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Order ID'),
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Customer'),
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Delivery Date'),
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Assigned To'),
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
+            )
+          ),
+          React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
+            loading ? 
+              React.createElement('tr', null,
+                React.createElement('td', { colSpan: 6, className: 'px-6 py-8 text-center' },
+                  React.createElement('div', { className: 'text-gray-500' }, 'Loading deliveries...')
+                )
+              ) :
+            currentDeliveries.length > 0 ?
+              currentDeliveries.map(delivery => 
+                React.createElement('tr', { key: delivery.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-600' },
+                  React.createElement('td', { className: 'px-6 py-4 font-medium' }, 
+                    '#' + (delivery.order_id || delivery.id)
+                  ),
+                  React.createElement('td', { className: 'px-6 py-4' }, 
+                    delivery.customer_name || delivery.client_name || '-'
+                  ),
+                  React.createElement('td', { className: 'px-6 py-4' }, 
+                    formatDate(delivery.delivery_date)
+                  ),
+                  React.createElement('td', { className: 'px-6 py-4' },
+                    React.createElement('span', { 
+                      className: `px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeStyle(delivery.status)}` 
+                    }, delivery.status || 'pending')
+                  ),
+                  React.createElement('td', { className: 'px-6 py-4 text-sm' }, 
+                    delivery.assigned_to || '-'
+                  ),
+                  React.createElement('td', { className: 'px-6 py-4' },
+                    React.createElement('div', { className: 'flex space-x-2' },
+                      React.createElement('button', {
+                        onClick: () => handleStatusUpdate(delivery.id, 'delivered'),
+                        className: 'text-green-600 hover:text-green-800 text-sm'
+                      }, 'Mark Delivered'),
+                      window.hasPermission('delivery', 'delete') && React.createElement('button', {
+                        onClick: () => handleDeleteDelivery(delivery.id),
+                        className: 'text-red-600 hover:text-red-800 text-sm'
+                      }, 'Delete')
+                    )
+                  )
+                )
+              ) :
+              React.createElement('tr', null,
+                React.createElement('td', { colSpan: 6, className: 'px-6 py-8 text-center' },
+                  React.createElement('div', { className: 'text-gray-500' }, 
+                    filteredDeliveries.length === 0 ? 'No deliveries found' : 'No deliveries match the current filters'
+                  )
+                )
+              )
+          )
+        )
+      )
+    ),
+
+    // Pagination
+    filteredDeliveries.length > deliveryPagination.itemsPerPage && React.createElement('div', { 
+      className: 'flex justify-between items-center' 
+    },
+      React.createElement('div', { className: 'text-sm text-gray-600' },
+        `Showing ${(deliveryPagination.currentPage - 1) * deliveryPagination.itemsPerPage + 1} to ${Math.min(deliveryPagination.currentPage * deliveryPagination.itemsPerPage, filteredDeliveries.length)} of ${filteredDeliveries.length} deliveries`
+      ),
+      React.createElement('div', { className: 'flex space-x-2' },
+        React.createElement('button', {
+          onClick: () => setDeliveryPagination(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) })),
+          disabled: deliveryPagination.currentPage === 1,
+          className: 'px-3 py-1 bg-gray-100 text-gray-700 rounded disabled:opacity-50'
+        }, 'Previous'),
+        React.createElement('span', { className: 'px-3 py-1' },
+          `Page ${deliveryPagination.currentPage} of ${Math.ceil(filteredDeliveries.length / deliveryPagination.itemsPerPage)}`
+        ),
+        React.createElement('button', {
+          onClick: () => setDeliveryPagination(prev => ({ ...prev, currentPage: Math.min(Math.ceil(filteredDeliveries.length / deliveryPagination.itemsPerPage), prev.currentPage + 1) })),
+          disabled: deliveryPagination.currentPage >= Math.ceil(filteredDeliveries.length / deliveryPagination.itemsPerPage),
+          className: 'px-3 py-1 bg-gray-100 text-gray-700 rounded disabled:opacity-50'
+        }, 'Next')
+      )
+    )
+  );
+};
