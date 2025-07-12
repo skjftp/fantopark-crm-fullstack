@@ -148,12 +148,29 @@ window.renderDashboardContent = () => {
                     className: 'px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                     value: window.dashboardFilter || 'overall',
                     onChange: (e) => {
-                        dashLog('📊 Dashboard filter changed:', e.target.value);
+                        const newValue = e.target.value;
+                        console.log('📊 Dashboard filter changed to:', newValue);
+                        dashLog('📊 Dashboard filter changed:', newValue);
                         
-                        // Update state
-                        if (window.setDashboardFilter) window.setDashboardFilter(e.target.value);
-                        if (window.setSelectedSalesPerson) window.setSelectedSalesPerson('');
-                        if (window.setSelectedEvent) window.setSelectedEvent('');
+                        // Update global variables immediately
+                        window.dashboardFilter = newValue;
+                        window.selectedSalesPerson = '';
+                        window.selectedEvent = '';
+                        
+                        // Update state functions if available
+                        try {
+                            if (window.setDashboardFilter) window.setDashboardFilter(newValue);
+                            if (window.setSelectedSalesPerson) window.setSelectedSalesPerson('');
+                            if (window.setSelectedEvent) window.setSelectedEvent('');
+                        } catch (error) {
+                            console.log('State setter error (non-critical):', error);
+                        }
+                        
+                        // Force a re-render by updating a dummy state
+                        if (window.setLoading) {
+                            window.setLoading(true);
+                            setTimeout(() => window.setLoading(false), 10);
+                        }
                         
                         // FIXED: Trigger chart update immediately
                         setTimeout(() => {
@@ -169,14 +186,29 @@ window.renderDashboardContent = () => {
                     React.createElement('option', { value: 'event' }, 'Event')
                 ),
 
-                window.dashboardFilter === 'salesPerson' && React.createElement('select', {
+                (window.dashboardFilter === 'salesPerson') && React.createElement('select', {
                     className: 'px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                     value: window.selectedSalesPerson || '',
                     onChange: (e) => {
-                        dashLog('👤 Sales person filter changed:', e.target.value);
+                        const newValue = e.target.value;
+                        console.log('👤 Sales person filter changed to:', newValue);
+                        dashLog('👤 Sales person filter changed:', newValue);
+                        
+                        // Update global variable immediately
+                        window.selectedSalesPerson = newValue;
                         
                         // Update state
-                        if (window.setSelectedSalesPerson) window.setSelectedSalesPerson(e.target.value);
+                        try {
+                            if (window.setSelectedSalesPerson) window.setSelectedSalesPerson(newValue);
+                        } catch (error) {
+                            console.log('State setter error (non-critical):', error);
+                        }
+                        
+                        // Force a re-render by updating a dummy state
+                        if (window.setLoading) {
+                            window.setLoading(true);
+                            setTimeout(() => window.setLoading(false), 10);
+                        }
                         
                         // FIXED: Trigger chart update immediately
                         setTimeout(() => {
@@ -189,18 +221,33 @@ window.renderDashboardContent = () => {
                 },
                     React.createElement('option', { value: '' }, 'All Sales People'),
                     (window.users || []).map(user =>
-                        React.createElement('option', { key: user.id, value: user.id }, user.name)
+                        React.createElement('option', { key: user.id || user.email, value: user.id || user.email }, user.name)
                     )
                 ),
 
-                window.dashboardFilter === 'event' && React.createElement('select', {
+                (window.dashboardFilter === 'event') && React.createElement('select', {
                     className: 'px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                     value: window.selectedEvent || '',
                     onChange: (e) => {
-                        dashLog('🎯 Event filter changed:', e.target.value);
+                        const newValue = e.target.value;
+                        console.log('🎯 Event filter changed to:', newValue);
+                        dashLog('🎯 Event filter changed:', newValue);
+                        
+                        // Update global variable immediately
+                        window.selectedEvent = newValue;
                         
                         // Update state
-                        if (window.setSelectedEvent) window.setSelectedEvent(e.target.value);
+                        try {
+                            if (window.setSelectedEvent) window.setSelectedEvent(newValue);
+                        } catch (error) {
+                            console.log('State setter error (non-critical):', error);
+                        }
+                        
+                        // Force a re-render by updating a dummy state
+                        if (window.setLoading) {
+                            window.setLoading(true);
+                            setTimeout(() => window.setLoading(false), 10);
+                        }
                         
                         // FIXED: Trigger chart update immediately
                         setTimeout(() => {
@@ -315,7 +362,7 @@ window.getFilteredLeads = function() {
     let filteredLeads = [...(window.leads || [])];
     
     try {
-        dashLog('🔍 Filtering leads:', {
+        console.log('🔍 Starting filter with:', {
             total: filteredLeads.length,
             filter: window.dashboardFilter,
             salesPerson: window.selectedSalesPerson,
@@ -323,16 +370,45 @@ window.getFilteredLeads = function() {
         });
         
         if (window.dashboardFilter === 'salesPerson' && window.selectedSalesPerson) {
-            filteredLeads = filteredLeads.filter(lead => 
-                lead.assigned_to === window.selectedSalesPerson
-            );
-            dashLog('🔍 After sales person filter:', filteredLeads.length);
+            const beforeCount = filteredLeads.length;
+            filteredLeads = filteredLeads.filter(lead => {
+                // Try multiple fields for sales person matching
+                const matches = lead.assigned_to === window.selectedSalesPerson || 
+                               lead.assigned_to_email === window.selectedSalesPerson ||
+                               lead.created_by === window.selectedSalesPerson;
+                return matches;
+            });
+            console.log('🔍 After sales person filter:', filteredLeads.length, 'from', beforeCount);
+            
+            // Debug: Log some sample leads and their assignment fields
+            if (filteredLeads.length === 0 && beforeCount > 0) {
+                console.log('🔍 No matches found. Sample lead assignment fields:');
+                filteredLeads = [...(window.leads || [])]; // Reset for debugging
+                filteredLeads.slice(0, 3).forEach((lead, i) => {
+                    console.log(`Lead ${i}:`, {
+                        name: lead.name,
+                        assigned_to: lead.assigned_to,
+                        assigned_to_email: lead.assigned_to_email,
+                        created_by: lead.created_by
+                    });
+                });
+                // Re-apply filter
+                filteredLeads = filteredLeads.filter(lead => {
+                    const matches = lead.assigned_to === window.selectedSalesPerson || 
+                                   lead.assigned_to_email === window.selectedSalesPerson ||
+                                   lead.created_by === window.selectedSalesPerson;
+                    return matches;
+                });
+            }
         } else if (window.dashboardFilter === 'event' && window.selectedEvent) {
+            const beforeCount = filteredLeads.length;
             filteredLeads = filteredLeads.filter(lead => 
                 lead.lead_for_event === window.selectedEvent
             );
-            dashLog('🔍 After event filter:', filteredLeads.length);
+            console.log('🔍 After event filter:', filteredLeads.length, 'from', beforeCount);
         }
+        
+        console.log('🔍 Final filtered leads:', filteredLeads.length);
     } catch (error) {
         console.error('Error filtering leads:', error);
     }
@@ -340,19 +416,48 @@ window.getFilteredLeads = function() {
     return filteredLeads;
 };
 
-// Dashboard metrics calculation - FIXED: Use filtered leads
+// Dashboard metrics calculation - FIXED: Use filtered leads and consistent temperature detection
 window.calculateDashboardMetrics = function() {
     const leads = window.getFilteredLeads();
     
+    // Helper function to get temperature - matches chart calculation
+    const getTemperature = (lead) => {
+        let temp = lead.temperature || lead.status || '';
+        return temp.toLowerCase();
+    };
+    
     return {
         total: leads.length,
-        hot: leads.filter(l => (l.temperature || l.status || '').toLowerCase() === 'hot').length,
-        warm: leads.filter(l => (l.temperature || l.status || '').toLowerCase() === 'warm').length,
-        cold: leads.filter(l => (l.temperature || l.status || '').toLowerCase() === 'cold').length,
+        hot: leads.filter(l => getTemperature(l) === 'hot').length,
+        warm: leads.filter(l => getTemperature(l) === 'warm').length,
+        cold: leads.filter(l => getTemperature(l) === 'cold').length,
         qualified: leads.filter(l => (l.status || '').toLowerCase() === 'qualified').length,
         junk: leads.filter(l => (l.status || '').toLowerCase() === 'junk').length,
         totalValue: leads.reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0)
     };
+};
+
+// ===============================================
+// FORCE DASHBOARD REFRESH FUNCTION
+// ===============================================
+
+window.forceDashboardRefresh = function() {
+    console.log('🔄 Forcing dashboard refresh...');
+    
+    // Update charts with current data
+    if (window.updateChartsWithData && window.leads) {
+        console.log('🔄 Refreshing charts...');
+        window.updateChartsWithData(window.leads);
+    }
+    
+    // Force a small state change to trigger re-render
+    if (window.setLoading) {
+        window.setLoading(true);
+        setTimeout(() => {
+            window.setLoading(false);
+            console.log('✅ Dashboard refresh complete');
+        }, 50);
+    }
 };
 
 // ===============================================
@@ -408,8 +513,62 @@ if (originalSetSelectedEvent) {
     };
 }
 
-console.log('📊 Dashboard v4.1 - FILTERS & TEMPERATURE VALUE FIXED');
+console.log('📊 Dashboard v4.2 - COMPREHENSIVE FIXES APPLIED');
 console.log('✅ Removed ALL React.useEffect calls that caused Error #310');
 console.log('✅ Dashboard component will now render without React errors');
 console.log('🔄 FIXED: Chart filters now trigger immediate chart updates');
 console.log('🔥 FIXED: Temperature Value chart now shows potential_value instead of count');
+console.log('🎯 FIXED: Dropdown selection now works with better state management');
+console.log('🔍 ADDED: Enhanced debugging for filter operations');
+
+// ===============================================
+// DASHBOARD INITIALIZATION
+// ===============================================
+
+window.initializeDashboard = function() {
+    console.log('🚀 Initializing dashboard...');
+    
+    // Set default values if not set
+    if (!window.dashboardFilter) window.dashboardFilter = 'overall';
+    if (!window.selectedSalesPerson) window.selectedSalesPerson = '';
+    if (!window.selectedEvent) window.selectedEvent = '';
+    
+    // Debug current state
+    console.log('📊 Dashboard state:', {
+        filter: window.dashboardFilter,
+        salesPerson: window.selectedSalesPerson,
+        event: window.selectedEvent,
+        leadsCount: (window.leads || []).length,
+        usersCount: (window.users || []).length
+    });
+    
+    // Initialize charts if not already done
+    if (!window.chartState?.initialized && window.initializeCharts) {
+        setTimeout(() => {
+            window.initializeCharts().then(() => {
+                console.log('✅ Charts initialized from dashboard init');
+                window.forceDashboardRefresh();
+            }).catch(error => {
+                console.warn('⚠️ Chart initialization failed:', error);
+            });
+        }, 500);
+    } else if (window.chartState?.initialized) {
+        // Charts already exist, just refresh them
+        setTimeout(() => {
+            window.forceDashboardRefresh();
+        }, 100);
+    }
+};
+
+// Auto-initialize when this script loads
+if (typeof window !== 'undefined') {
+    // Initialize immediately if DOM is ready
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(window.initializeDashboard, 100);
+    } else {
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(window.initializeDashboard, 100);
+        });
+    }
+}
