@@ -19,10 +19,6 @@ if (ENABLE_DEBUG_LOGS && !window._stateSettersLogged) {
   window.renderAppEffects();
 
   // Make handlers available globall
-window.setShowQuoteUploadModal = setShowQuoteUploadModal;
-window.setQuoteUploadData = setQuoteUploadData;
-window.showQuoteUploadModal = showQuoteUploadModal;
-window.quoteUploadData = quoteUploadData;
   
   window.appHandlers = handlers;
 
@@ -2516,8 +2512,7 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
   ];
 
 
- const [showQuoteUploadModal, setShowQuoteUploadModal] = useState(false);
-const [quoteUploadData, setQuoteUploadData] = useState({ notes: '', pdf: null });
+
  
   // ✅ FORM DATA CHANGE HANDLER
   window.handleFormDataChange = (fieldName, value) => {
