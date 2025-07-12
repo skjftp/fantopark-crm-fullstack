@@ -1,6 +1,7 @@
 // Enhanced Communication Timeline System Component for FanToPark CRM
 // Extracted from index.html - maintains 100% functionality
 // Handles communication tracking, timeline display, and AUTOMATIC REMINDER CREATION
+// ENHANCED: Added follow-up date picker and custom reminder dates
 
 // ===== ENHANCED: Communication Timeline Component with Automatic Reminder Creation =====
 window.CommunicationTimeline = ({ leadId, leadName }) => {
@@ -26,7 +27,7 @@ window.CommunicationTimeline = ({ leadId, leadName }) => {
     fetchCommunications();
   }, [leadId]);
 
-  // ===== ENHANCED: addCommunication with automatic reminder creation =====
+  // ===== ENHANCED: addCommunication with custom date support for follow-up =====
   const addCommunication = async (commData) => {
     try {
       console.log('📞 Adding communication:', commData);
@@ -46,20 +47,34 @@ window.CommunicationTimeline = ({ leadId, leadName }) => {
         setCommunications(prev => [response.data, ...prev]);
         setShowAddForm(false);
         
-        // ===== NEW: Auto-create reminder for follow-up communications =====
+        // ===== ENHANCED: Auto-create reminder with custom date for follow-up communications =====
         if (commData.outcome === 'follow_up') {
-          console.log('🔔 Communication requires follow-up, creating automatic reminder...');
+          console.log('🔔 Communication requires follow-up, creating reminder...');
           
           try {
             // Get current lead data for reminder creation
             const currentLead = window.currentLead || window.leads?.find(l => l.id === leadId);
             
             if (currentLead) {
-              await window.createCommunicationFollowUpReminder(response.data, currentLead);
+              // ENHANCED: Pass custom date and notes to reminder creation
+              await window.createCommunicationFollowUpReminder(
+                response.data, 
+                currentLead,
+                commData.follow_up_date,  // NEW: Pass custom follow-up date
+                commData.follow_up_notes  // NEW: Pass custom follow-up notes
+              );
+              
               console.log('✅ Follow-up reminder created successfully');
               
-              // Show enhanced success message
-              alert(`Communication logged successfully!\n🔔 Automatic follow-up reminder created.`);
+              // ENHANCED: Success message with custom date
+              if (commData.follow_up_date) {
+                const followUpDate = new Date(commData.follow_up_date);
+                const dateStr = followUpDate.toLocaleDateString();
+                const timeStr = followUpDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                alert(`Communication logged successfully!\n🔔 Follow-up reminder created for ${dateStr} at ${timeStr}`);
+              } else {
+                alert(`Communication logged successfully!\n🔔 Automatic follow-up reminder created.`);
+              }
               
               // Refresh reminders dashboard if available
               if (window.fetchReminders) {
@@ -173,7 +188,7 @@ window.CommunicationTimeline = ({ leadId, leadName }) => {
   );
 };
 
-// ===== ENHANCED: Communication Form Component with better UX =====
+// ===== ENHANCED: Communication Form Component with Follow-up Date Picker =====
 window.CommunicationForm = ({ onSubmit, onCancel, leadName }) => {
   const [formData, setFormData] = React.useState({
     communication_type: 'call',
@@ -182,13 +197,29 @@ window.CommunicationForm = ({ onSubmit, onCancel, leadName }) => {
     content: '',
     duration_minutes: '',
     outcome: '',
-    temperature: 'warm'
+    temperature: 'warm',
+    follow_up_date: '', // NEW: Store follow-up date
+    follow_up_notes: ''  // NEW: Store follow-up notes
   });
+
+  // NEW: Get current date + 1 day as default
+  const getDefaultFollowUpDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0); // Set to 9 AM tomorrow
+    return tomorrow.toISOString().slice(0, 16); // Format for datetime-local input
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.subject && !formData.content) {
       alert('Please provide a subject or content');
+      return;
+    }
+
+    // NEW: Validate follow-up date if outcome is follow_up
+    if (formData.outcome === 'follow_up' && !formData.follow_up_date) {
+      alert('Please select a follow-up date for this communication.');
       return;
     }
 
@@ -254,7 +285,16 @@ window.CommunicationForm = ({ onSubmit, onCancel, leadName }) => {
         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Outcome'),
         React.createElement('select', {
           value: formData.outcome,
-          onChange: (e) => setFormData(prev => ({ ...prev, outcome: e.target.value })),
+          onChange: (e) => {
+            setFormData(prev => ({ 
+              ...prev, 
+              outcome: e.target.value,
+              // NEW: Auto-set default follow-up date when outcome is selected
+              follow_up_date: e.target.value === 'follow_up' && !prev.follow_up_date 
+                ? getDefaultFollowUpDate() 
+                : prev.follow_up_date
+            }));
+          },
           className: 'w-full p-2 border border-gray-300 rounded text-sm'
         },
           React.createElement('option', { value: '' }, 'Select outcome...'),
@@ -290,18 +330,53 @@ window.CommunicationForm = ({ onSubmit, onCancel, leadName }) => {
       )
     ),
 
-    // Enhanced info section for follow-up outcome
+    // NEW: Enhanced follow-up section with date picker and notes
     formData.outcome === 'follow_up' && 
-    React.createElement('div', { className: 'p-3 bg-yellow-50 border border-yellow-200 rounded-md' },
+    React.createElement('div', { className: 'p-4 bg-yellow-50 border border-yellow-200 rounded-md space-y-4' },
       React.createElement('div', { className: 'flex items-start' },
         React.createElement('div', { className: 'flex-shrink-0' },
           React.createElement('span', { className: 'text-yellow-400 text-lg' }, '🔔')
         ),
         React.createElement('div', { className: 'ml-3' },
-          React.createElement('h4', { className: 'text-sm font-medium text-yellow-800' }, 'Automatic Reminder'),
+          React.createElement('h4', { className: 'text-sm font-medium text-yellow-800' }, 'Follow-up Reminder Setup'),
           React.createElement('p', { className: 'text-sm text-yellow-700 mt-1' },
-            'A follow-up reminder will be automatically created based on this communication.'
+            'A follow-up reminder will be created for the date and time you specify below.'
           )
+        )
+      ),
+      
+      // NEW: Follow-up Date Input
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-yellow-800 mb-2' }, 
+          '📅 Follow-up Date & Time: *'
+        ),
+        React.createElement('input', {
+          type: 'datetime-local',
+          value: formData.follow_up_date,
+          onChange: (e) => setFormData(prev => ({ ...prev, follow_up_date: e.target.value })),
+          className: 'w-full p-2 border border-yellow-300 rounded-md focus:ring-2 focus:ring-yellow-500 bg-white',
+          min: new Date().toISOString().slice(0, 16), // Prevent past dates
+          required: formData.outcome === 'follow_up'
+        }),
+        React.createElement('p', { className: 'text-xs text-yellow-600 mt-1' },
+          'Select when you want to be reminded to follow up with this lead'
+        )
+      ),
+      
+      // NEW: Follow-up Notes Input
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-yellow-800 mb-2' }, 
+          '📝 Follow-up Notes:'
+        ),
+        React.createElement('textarea', {
+          value: formData.follow_up_notes,
+          onChange: (e) => setFormData(prev => ({ ...prev, follow_up_notes: e.target.value })),
+          placeholder: 'Add specific notes for the follow-up reminder (optional)...',
+          rows: 2,
+          className: 'w-full p-2 border border-yellow-300 rounded-md focus:ring-2 focus:ring-yellow-500 bg-white text-sm'
+        }),
+        React.createElement('p', { className: 'text-xs text-yellow-600 mt-1' },
+          'These notes will be included in the reminder description'
         )
       )
     ),
@@ -320,38 +395,55 @@ window.CommunicationForm = ({ onSubmit, onCancel, leadName }) => {
   );
 };
 
-// ===== NEW: Enhanced reminder creation for communications =====
-window.createCommunicationFollowUpReminder = async function(communication, leadData) {
+// ===== ENHANCED: Communication Follow-up Reminder Creation with Custom Date =====
+window.createCommunicationFollowUpReminder = async function(communication, leadData, customFollowUpDate, followUpNotes) {
   try {
     console.log('🔔 Creating communication follow-up reminder...');
     
-    // Calculate smart due date based on communication type and temperature
-    let hoursFromNow = 48; // Default 48 hours
-    
-    if (communication.temperature === 'hot') {
-      hoursFromNow = 4; // 4 hours for hot leads
-    } else if (communication.temperature === 'warm') {
-      hoursFromNow = 24; // 24 hours for warm leads
-    } else if (communication.temperature === 'cold') {
-      hoursFromNow = 72; // 72 hours for cold leads
+    // NEW: Use custom date if provided, otherwise fall back to smart calculation
+    let reminderDate;
+    if (customFollowUpDate) {
+      reminderDate = new Date(customFollowUpDate);
+      console.log('Using custom follow-up date:', customFollowUpDate);
+    } else {
+      // Original logic for backward compatibility
+      let hoursFromNow = 48; // Default 48 hours
+      
+      if (communication.temperature === 'hot') {
+        hoursFromNow = 4; // 4 hours for hot leads
+      } else if (communication.temperature === 'warm') {
+        hoursFromNow = 24; // 24 hours for warm leads
+      } else if (communication.temperature === 'cold') {
+        hoursFromNow = 72; // 72 hours for cold leads
+      }
+      
+      // Adjust based on communication type
+      if (communication.communication_type === 'meeting') {
+        hoursFromNow = Math.min(hoursFromNow, 24); // Max 24 hours for meeting follow-ups
+      }
+      
+      reminderDate = new Date(Date.now() + hoursFromNow * 60 * 60 * 1000);
+      console.log('Using calculated follow-up date based on temperature and type');
     }
     
-    // Adjust based on communication type
-    if (communication.communication_type === 'meeting') {
-      hoursFromNow = Math.min(hoursFromNow, 24); // Max 24 hours for meeting follow-ups
-    }
+    // NEW: Enhanced reminder description with custom notes
+    let reminderDescription = `Follow up required from ${communication.communication_type} with ${leadData.name}.\n\n`;
+    reminderDescription += `📞 Original communication: ${communication.subject || communication.communication_type}\n`;
+    reminderDescription += `💬 Details: ${communication.content || 'No details provided'}\n`;
+    reminderDescription += `🌡️ Temperature: ${communication.temperature}\n`;
+    reminderDescription += `👤 Logged by: ${communication.created_by}`;
     
-    const dueDate = new Date(Date.now() + hoursFromNow * 60 * 60 * 1000);
+    // NEW: Add custom follow-up notes if provided
+    if (followUpNotes && followUpNotes.trim()) {
+      reminderDescription += `\n\n📝 Follow-up Notes: ${followUpNotes}`;
+    }
     
     // Create detailed reminder based on communication
     const reminderData = {
       lead_id: communication.lead_id,
-      title: `📞 Follow up: ${communication.subject || communication.communication_type}`,
-      description: `Follow up required from ${communication.communication_type} with ${leadData.name}.\n\n` +
-                  `Original communication: ${communication.content || 'No details provided'}\n` +
-                  `Temperature: ${communication.temperature}\n` +
-                  `Logged by: ${communication.created_by}`,
-      due_date: dueDate.toISOString(),
+      title: `📞 Follow up: ${communication.subject || communication.communication_type} - ${leadData.name}`,
+      description: reminderDescription,
+      due_date: reminderDate.toISOString(),
       priority: communication.temperature === 'hot' ? 'urgent' : 
                communication.temperature === 'warm' ? 'high' : 'medium',
       assigned_to: leadData.assigned_to || communication.created_by || window.user?.email,
@@ -375,7 +467,8 @@ window.createCommunicationFollowUpReminder = async function(communication, leadD
         body: JSON.stringify({
           ...communication,
           follow_up_reminder_created: true,
-          reminder_id: response.data?.id
+          reminder_id: response.data?.id,
+          custom_follow_up_date: customFollowUpDate // NEW: Store custom date
         })
       });
     } catch (updateError) {
@@ -603,5 +696,6 @@ window.testCommunicationReminder = async function(leadId) {
   }
 };
 
-console.log('✅ ENHANCED: Communication Timeline System with Automatic Reminders loaded successfully');
+console.log('✅ ENHANCED: Communication Timeline System with Follow-up Date Picker loaded successfully');
+console.log('🔧 Features: Custom follow-up dates, enhanced reminders, improved UX');
 console.log('🔧 To test: window.testCommunicationReminder(leadId)');
