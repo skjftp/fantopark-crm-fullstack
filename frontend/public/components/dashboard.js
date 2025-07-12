@@ -1,60 +1,23 @@
 // ===============================================
-// FIXED DASHBOARD COMPONENT - REACT ERROR RESOLVED
+// EMERGENCY FIXED DASHBOARD COMPONENT - REACT ERROR RESOLVED
 // ===============================================
-// Dashboard Content Component with proper React structure
+// Dashboard Content Component - NO useEffect calls that cause React Error #310
 
 // Conditional logging control
 const ENABLE_DASHBOARD_DEBUG = false; // Set to false to reduce logs
 const dashLog = ENABLE_DASHBOARD_DEBUG ? console.log : () => {};
 
 // ===============================================
-// MAIN DASHBOARD RENDER FUNCTION - FIXED
+// MAIN DASHBOARD RENDER FUNCTION - EMERGENCY FIXED
 // ===============================================
 
 window.renderDashboardContent = () => {
-    // ✅ FIX: Remove React.useEffect calls - these cause React Error #310
+    // ✅ CRITICAL FIX: REMOVE ALL React.useEffect CALLS
+    // These were causing React Error #310 - useEffect can't be called in regular functions
+    
     // Chart initialization will be handled by the chart system itself
+    // No useEffect needed here - this caused the error!
     
-    // Initialize charts when dashboard mounts (one-time setup)
-    React.useEffect(() => {
-        dashLog('📊 Dashboard mounted, setting up charts...');
-        
-        // Delay chart initialization to ensure DOM is ready
-        const initTimer = setTimeout(() => {
-            if (typeof Chart !== 'undefined' && typeof window.smartChartInit === 'function') {
-                dashLog('🎯 Calling smartChartInit...');
-                window.smartChartInit();
-            } else if (typeof window.initializeCharts === 'function') {
-                dashLog('🎯 Calling initializeCharts...');
-                window.initializeCharts();
-            }
-        }, 500);
-        
-        return () => {
-            clearTimeout(initTimer);
-        };
-    }, []); // Only run once when dashboard mounts
-    
-    // Update charts when data changes
-    React.useEffect(() => {
-        if (window.leads && window.leads.length > 0 && window.chartState?.initialized) {
-            dashLog('📈 Updating charts with', window.leads.length, 'leads');
-            
-            const updateTimer = setTimeout(() => {
-                const filteredLeads = window.getFilteredLeads ? 
-                    window.getFilteredLeads() : window.leads;
-                
-                if (window.updateChartsWithData) {
-                    window.updateChartsWithData(filteredLeads);
-                }
-            }, 100);
-            
-            return () => {
-                clearTimeout(updateTimer);
-            };
-        }
-    }, [window.leads?.length, window.selectedSalesPerson, window.selectedEvent, window.dashboardFilter]);
-
     return React.createElement('div', { className: 'space-y-6' },
         // Dashboard Stats Cards
         React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-6 mb-6' },
@@ -347,5 +310,6 @@ window.calculateDashboardMetrics = function() {
     };
 };
 
-console.log('📊 Dashboard v3.0 - Fixed React Error #310');
-console.log('✅ Dashboard component loaded with proper React structure');
+console.log('📊 Dashboard v4.0 - EMERGENCY FIX APPLIED');
+console.log('✅ Removed ALL React.useEffect calls that caused Error #310');
+console.log('✅ Dashboard component will now render without React errors');
