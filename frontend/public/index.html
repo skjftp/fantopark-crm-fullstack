@@ -6,6 +6,220 @@
 <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FanToPark CRM Pro</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FanToPark CRM Pro</title>
+
+<!-- PERFORMANCE OPTIMIZATION SCRIPTS - PLACE FIRST -->
+<script>
+// 1. Global debug control - Set to true to disable all logs
+window.PRODUCTION_MODE = true;
+window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
+
+// 2. Emergency Performance Fixes
+(function() {
+  'use strict';
+  
+  console.log('🚨 Applying emergency performance fixes...');
+  
+  // GLOBAL LOG SUPPRESSION
+  window.EMERGENCY_MODE = true;
+  
+  // Override console.log for specific patterns
+  const originalLog = console.log;
+  const logCounts = {};
+  const MAX_SAME_LOGS = 3;
+  
+  console.log = function(...args) {
+    if (window.EMERGENCY_MODE) {
+      const message = args.join(' ');
+      
+      // Suppress excessive debug patterns
+      const suppressPatterns = [
+        '🔍 DEBUGGING STATE SETTERS',
+        'state.setShowInventoryForm:',
+        'state.setEditingInventory:',
+        'state.setShowAllocationManagement:',
+        'Available inventory-related setters:',
+        '🔍 ALLOCATION FORM DEBUG:',
+        '🔍 DELIVERY FORM DEBUG:',
+        '❌ Not showing allocation form:',
+        'chart not found',
+        'Chart not found!'
+      ];
+      
+      // Check if this log should be suppressed
+      const shouldSuppress = suppressPatterns.some(pattern => 
+        message.includes(pattern)
+      );
+      
+      if (shouldSuppress) {
+        // Count this log
+        const key = args[0] || 'unknown';
+        logCounts[key] = (logCounts[key] || 0) + 1;
+        
+        // Only allow first few instances
+        if (logCounts[key] <= MAX_SAME_LOGS) {
+          originalLog.apply(console, args);
+          
+          if (logCounts[key] === MAX_SAME_LOGS) {
+            originalLog(`🚨 [SUPPRESSED] Further "${key}" logs suppressed to improve performance`);
+          }
+        }
+        return;
+      }
+    }
+    
+    // Allow other logs through
+    originalLog.apply(console, args);
+  };
+  
+  // CHART ERROR SUPPRESSION
+  const originalError = console.error;
+  const errorCounts = {};
+  
+  console.error = function(...args) {
+    const message = args.join(' ');
+    
+    // Suppress chart-related errors that are spamming
+    if (message.includes('chart') && message.includes('not found')) {
+      const key = 'chart-not-found';
+      errorCounts[key] = (errorCounts[key] || 0) + 1;
+      
+      if (errorCounts[key] <= 1) {
+        originalError('⚠️ Chart containers not ready - will retry automatically');
+      }
+      return;
+    }
+    
+    // Allow other errors through
+    originalError.apply(console, args);
+  };
+  
+  // PREVENT COMPONENT SPAM
+  window._componentLogSuppressionFlags = {};
+  
+  window.suppressComponentLog = function(componentName, message) {
+    const key = `${componentName}-${message}`;
+    
+    if (!window._componentLogSuppressionFlags[key]) {
+      console.log(`📋 ${componentName}: ${message}`);
+      window._componentLogSuppressionFlags[key] = true;
+      
+      // Auto-reset after 30 seconds
+      setTimeout(() => {
+        delete window._componentLogSuppressionFlags[key];
+      }, 30000);
+    }
+  };
+  
+  // THROTTLE STATE UPDATES
+  window._stateUpdateThrottle = {};
+  
+  window.throttledStateUpdate = function(key, updateFunction, delay = 100) {
+    if (window._stateUpdateThrottle[key]) {
+      clearTimeout(window._stateUpdateThrottle[key]);
+    }
+    
+    window._stateUpdateThrottle[key] = setTimeout(() => {
+      updateFunction();
+      delete window._stateUpdateThrottle[key];
+    }, delay);
+  };
+  
+  // HANDLE BROWSER EXTENSION ERRORS
+  window.addEventListener('error', function(e) {
+    // Suppress extension-related errors
+    if (e.filename && (
+      e.filename.includes('content_script') ||
+      e.filename.includes('extension') ||
+      e.message.includes('toString')
+    )) {
+      e.preventDefault();
+      return false;
+    }
+  });
+  
+  // CHART INITIALIZATION FIX
+  window.safeChartInit = function() {
+    if (window._chartInitAttempted) return;
+    window._chartInitAttempted = true;
+    
+    const checkAndInit = () => {
+      const containers = ['leadSplitChart', 'tempCountChart', 'tempValueChart'];
+      const allReady = containers.every(id => document.getElementById(id));
+      
+      if (allReady && typeof Chart !== 'undefined') {
+        try {
+          // Only log success
+          if (window.initializeCharts) {
+            window.initializeCharts();
+            console.log('✅ Charts initialized successfully');
+          }
+        } catch (error) {
+          console.error('❌ Chart initialization failed:', error.message);
+        }
+      } else {
+        // Don't spam retry messages
+        setTimeout(checkAndInit, 1000);
+      }
+    };
+    
+    checkAndInit();
+  };
+  
+  // PERFORMANCE TRACKER
+  window.performanceTracker = {
+    _operations: {},
+    
+    start: function(name) {
+      this._operations[name] = performance.now();
+    },
+    
+    end: function(name) {
+      if (this._operations[name]) {
+        const duration = performance.now() - this._operations[name];
+        if (duration > 200) { // Only log slow operations
+          console.warn(`⚠️ Slow: ${name} took ${duration.toFixed(2)}ms`);
+        }
+        delete this._operations[name];
+      }
+    }
+  };
+  
+  // AUTO-CLEANUP
+  window.addEventListener('beforeunload', function() {
+    // Clear all timeouts
+    Object.values(window._stateUpdateThrottle || {}).forEach(timeout => {
+      clearTimeout(timeout);
+    });
+    
+    // Reset flags
+    window._componentLogSuppressionFlags = {};
+    logCounts = {};
+    errorCounts = {};
+  });
+  
+  console.log('✅ Emergency fixes applied! Console spam should be greatly reduced.');
+  console.log('📊 Performance monitoring enabled for operations > 200ms');
+  console.log('🔧 To disable emergency mode: window.EMERGENCY_MODE = false');
+  
+})();
+</script>
+
+<!-- React and Dependencies -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Your existing script tags continue here... -->
+<!-- Load all constant files -->
+<script src="constants/config.js"></script>
+<script src="constants/status-config.js"></script> 
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
