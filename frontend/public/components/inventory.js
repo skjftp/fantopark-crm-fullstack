@@ -80,10 +80,7 @@ window.renderInventoryContent = () => {
                 onClick: window.openAddInventoryForm
             }, '+ Add New Event'),
             React.createElement('button', {
-                onClick: () => {
-                    window.setCSVUploadType('inventory');
-                    window.setShowCSVUploadModal(true);
-                },
+                onClick: window.openInventoryCSVUpload,
                 className: 'bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded flex items-center gap-2'
             }, 
                 React.createElement('svg', {
