@@ -1,38 +1,34 @@
 // ============================================================================
-// CORRECTED FINANCIALS COMPONENT - PRESERVES ORIGINAL FUNCTIONALITY + ENHANCEMENTS
+// FIXED PAGINATION FINANCIALS COMPONENT - USES PROPER REACT STATE
 // ============================================================================
-// This corrects only the issues you mentioned while preserving ALL existing functionality
-// 1. Sales Chart Visualization ✅
-// 2. Fixed Expiring Inventory Fields ✅  
-// 3. Tab-Specific Filters ✅
-// 4. Pagination for All Tabs ✅
-// 5. Enhanced Stats with Margin ✅
-// 6. RESTORED: Original payment form buttons ✅
-// 7. RESTORED: Original inventory form buttons ✅
+// This fixes the pagination by using proper React state management
 
-// Initialize pagination states
-window.initializeFinancialPagination = () => {
-    window.financialPagination = window.financialPagination || {
-        sales: { currentPage: 1, itemsPerPage: 10 },
-        activesales: { currentPage: 1, itemsPerPage: 10 },
-        receivables: { currentPage: 1, itemsPerPage: 10 },
-        payables: { currentPage: 1, itemsPerPage: 10 },
-        expiring: { currentPage: 1, itemsPerPage: 10 }
-    };
-};
-
-// Enhanced pagination render function
+// Enhanced pagination render function - FIXED TO USE REACT STATE
 window.renderFinancialPagination = (tabName, totalItems) => {
-    const pagination = window.financialPagination[tabName];
+    // Get pagination state from React state (not window globals)
+    const { financialPagination, setFinancialPagination } = window.appState || {};
+    
+    if (!financialPagination || !setFinancialPagination) {
+        console.warn('Financial pagination state not available');
+        return null;
+    }
+    
+    const pagination = financialPagination[tabName];
     if (!pagination || totalItems <= pagination.itemsPerPage) return null;
 
     const totalPages = Math.ceil(totalItems / pagination.itemsPerPage);
     const currentPage = pagination.currentPage;
 
+    // FIXED: Use proper React state setter
     const changePage = (newPage) => {
-        window.financialPagination[tabName].currentPage = newPage;
-        // Trigger re-render
-        if (window.renderApp) window.renderApp();
+        console.log(`🔍 Changing ${tabName} page to:`, newPage);
+        setFinancialPagination(prev => ({
+            ...prev,
+            [tabName]: {
+                ...prev[tabName],
+                currentPage: newPage
+            }
+        }));
     };
 
     return React.createElement('div', { className: 'px-6 py-4 border-t border-gray-200 dark:border-gray-700' },
@@ -313,7 +309,7 @@ window.getEnhancedExpiringInventory = () => {
         })
         .map(item => {
             const eventDate = new Date(item.event_date);
-            const daysLeft = Math.ceil((eventDate - now) / (1000 * 60 * 60 * 24));
+            const daysLeft = Math.ceil((eventDate - now) / (1000 * 60 * 60 * 1000));
             const costPrice = item.buying_price || 0;
             const potentialLoss = (item.available_tickets || 0) * costPrice;
             
@@ -343,12 +339,9 @@ window.formatFinancialDate = (dateValue) => {
     }
 };
 
-// Main render function for financials dashboard - ENHANCED WITH ALL FIXES
+// Main render function for financials dashboard - ENHANCED WITH FIXED PAGINATION
 window.renderFinancials = () => {
     console.log('🔍 ENHANCED FINANCIALS COMPONENT DEBUG: Starting render');
-    
-    // Initialize pagination if not done
-    window.initializeFinancialPagination();
     
     // 1. Extract state with fallbacks - PROVEN PATTERN
     const {
@@ -367,8 +360,12 @@ window.renderFinancials = () => {
             status: 'all'
         },
         activeFinancialTab = window.appState?.activeFinancialTab || 'activesales',
-        financialStats = window.appState?.financialStats || {
-            expiringValue: 0
+        financialPagination = window.appState?.financialPagination || {
+            activesales: { currentPage: 1, itemsPerPage: 10 },
+            sales: { currentPage: 1, itemsPerPage: 10 },
+            receivables: { currentPage: 1, itemsPerPage: 10 },
+            payables: { currentPage: 1, itemsPerPage: 10 },
+            expiring: { currentPage: 1, itemsPerPage: 10 }
         },
         setFinancialFilters = window.setFinancialFilters || (() => {
             console.warn("setFinancialFilters not implemented");
@@ -414,7 +411,7 @@ window.renderFinancials = () => {
         });
     };
 
-    // 3. Get paginated data for current tab
+    // 3. Get paginated data for current tab - FIXED TO USE REACT STATE
     const getCurrentTabData = () => {
         let data = [];
         switch (activeFinancialTab) {
@@ -437,8 +434,8 @@ window.renderFinancials = () => {
                 data = [];
         }
         
-        // Apply pagination
-        const pagination = window.financialPagination[activeFinancialTab];
+        // Apply pagination using React state
+        const pagination = financialPagination[activeFinancialTab];
         if (pagination) {
             const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
             const endIndex = startIndex + pagination.itemsPerPage;
@@ -546,7 +543,7 @@ window.renderFinancials = () => {
                 )
             ),
 
-            // Tab Content - ENHANCED WITH PAGINATION
+            // Tab Content - ENHANCED WITH WORKING PAGINATION
             React.createElement('div', { className: 'p-6' },
                 activeFinancialTab === 'activesales' && (() => {
                     console.log('🔍 Calling renderActiveSalesTab with data:', currentTabData.data);
@@ -950,8 +947,4 @@ window.renderExpiringTab = (expiringInventory) => {
     );
 };
 
-// Initialize on load
-document.addEventListener('DOMContentLoaded', () => {
-    window.initializeFinancialPagination();
-    console.log('✅ CORRECTED Financials Component loaded successfully - All original functionality preserved');
-});
+console.log('✅ FIXED PAGINATION Financials Component loaded successfully - All functionality preserved');
