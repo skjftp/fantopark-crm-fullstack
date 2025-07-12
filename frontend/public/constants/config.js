@@ -72,6 +72,12 @@ window.LEAD_STATUSES = {
   quote_requested: {
     label: 'Quote Requested',
     color: 'bg-purple-100 text-purple-800',
+    next: ['quote_received'],
+    parallel: true
+  },
+    quote_received: {
+    label: 'Quote Requested',
+    color: 'bg-purple-100 text-purple-800',
     next: ['converted', 'dropped', 'pickup_later'],
     parallel: true
   },
