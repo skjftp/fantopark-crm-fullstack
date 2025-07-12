@@ -8,31 +8,7 @@
 <title>FanToPark CRM Pro</title>
 
 <!-- PERFORMANCE OPTIMIZATION SCRIPTS - PLACE FIRST -->
-<script>
-
-// Console noise reducer - add this at the very top of index.html
-(function() {
-  if (typeof window !== 'undefined') {
-    const originalLog = console.log;
-    console.log = function(...args) {
-      const message = args.join(' ');
-      // Skip noisy emoji-heavy debug messages
-      if (message.includes('✅') || 
-          message.includes('🔍') || 
-          message.includes('📊') || 
-          message.includes('🔄') || 
-          message.includes('🎯') || 
-          message.includes('🚀') ||
-          message.includes('❌ Not showing') ||
-          message.includes('All app effects initialized') ||
-          message.includes('component loaded successfully')) {
-        return; // Suppress these logs
-      }
-      // Allow all other console.log messages through
-      originalLog.apply(console, args);
-    };
-  }
-})();  
+<script> 
   
 // 1. Global debug control - Set to true to disable all logs
 window.PRODUCTION_MODE = true;
