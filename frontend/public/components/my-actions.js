@@ -179,13 +179,15 @@ window.renderMyActionsContent = () => {
             ),
 
             // My Quote Requested Section (for Supply Managers)
-            (window.user.role === 'supply_manager' || window.user.role === 'supply_sales_service_manager') && 
-            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow mb-6' },
-                React.createElement('div', { className: 'p-6' },
+            (window.user.role === 'supply_manager' || 
+ window.user.role === 'supply_service_manager' ||  // ← ADDED THIS LINE
+ window.user.role === 'supply_sales_service_manager') && 
+React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow mb-6' },
+React.createElement('div', { className: 'p-6' },
                     React.createElement('div', { className: 'flex items-center justify-between mb-4' },
                         React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white flex items-center' },
                             React.createElement('span', { className: 'text-purple-500 mr-2' }, '📋'),
-                            'My Quote Requested (',
+                            'Quote Requests - Supply Team (',
                             window.myQuoteRequested.length,
                             ')'
                         )
