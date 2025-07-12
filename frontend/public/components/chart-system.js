@@ -1,5 +1,5 @@
 // ===============================================
-// FANTOPARK CRM - COMPLETE OPTIMIZED CHART SYSTEM
+// FANTOPARK CRM - COMPLETE OPTIMIZED CHART SYSTEM - FIXED
 // Replace your entire chart-system.js with this code
 // ===============================================
 
@@ -273,8 +273,11 @@ window.updateChartsWithData = function(leads) {
       chartLog('📊 Updating charts with', leads.length, 'leads');
       window.chartState.lastUpdate = now;
       
+      // Get filtered leads for dashboard
+      const filteredLeads = window.getFilteredLeads ? window.getFilteredLeads() : leads;
+      
       // Calculate metrics efficiently
-      const metrics = window.calculateChartMetrics(leads);
+      const metrics = window.calculateChartMetrics(filteredLeads);
       
       // Update each chart safely
       const updateResults = {
@@ -355,7 +358,7 @@ function updateChartSafely(chartKey, data, displayName) {
 }
 
 // ===============================================
-// CHART METRICS CALCULATION - OPTIMIZED
+// CHART METRICS CALCULATION - FIXED FOR TEMPERATURE VALUE
 // ===============================================
 
 window.calculateChartMetrics = function(leads) {
@@ -371,22 +374,23 @@ window.calculateChartMetrics = function(leads) {
     // Use reduce for efficient single-pass calculation
     const metrics = leads.reduce((acc, lead) => {
       const status = (lead.status || '').toLowerCase();
+      const temperature = (lead.temperature || lead.status || '').toLowerCase(); // Check both fields
       const value = parseFloat(lead.potential_value) || 0;
       
-      // Lead split metrics
+      // Lead split metrics (based on status)
       if (status === 'qualified') acc.qualified++;
       else if (status === 'junk') acc.junk++;
       
-      // Temperature metrics
-      if (status === 'hot') {
+      // Temperature metrics - FIXED: Use temperature field for both count and value
+      if (temperature === 'hot') {
         acc.hotCount++;
-        acc.hotValue += value;
-      } else if (status === 'warm') {
+        acc.hotValue += value; // This accumulates potential_value
+      } else if (temperature === 'warm') {
         acc.warmCount++;
-        acc.warmValue += value;
-      } else if (status === 'cold') {
+        acc.warmValue += value; // This accumulates potential_value
+      } else if (temperature === 'cold') {
         acc.coldCount++;
-        acc.coldValue += value;
+        acc.coldValue += value; // This accumulates potential_value
       }
       
       return acc;
@@ -526,12 +530,12 @@ document.addEventListener('visibilitychange', () => {
 // Smart initialization based on DOM state
 window.smartChartInit = function() {
   if (window.chartState.initialized || window.chartState.initializing) {
-    return;
+    return Promise.resolve();
   }
   
   chartLog('🎯 Starting smart chart initialization...');
   
-  window.initializeCharts()
+  return window.initializeCharts()
     .then(() => {
       chartLog('✅ Smart chart initialization completed');
     })
@@ -637,6 +641,7 @@ window.processLeadDataForCharts = function(leads, filters = {}) {
 // SUCCESS MESSAGE
 // ===============================================
 
-console.log('📊 FanToPark CRM Chart System v3.0 - Performance Optimized');
+console.log('📊 FanToPark CRM Chart System v3.1 - TEMPERATURE VALUE FIXED');
 console.log('✅ Chart system loaded successfully with enhanced error handling');
 console.log('🎯 Features: Throttled updates, Smart initialization, Auto-retry, Memory cleanup');
+console.log('🔥 FIXED: Temperature Value chart now shows potential_value instead of count');
