@@ -40,6 +40,7 @@ window.apiCall = window.apiCall || ((endpoint, options = {}) => {
     return localStorage.getItem('testMode') === 'true';
   });
   const [user, setUser] = useState(null);
+  const [inventorySearchQuery, setInventorySearchQuery] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState(() => {
@@ -481,6 +482,9 @@ setEventsPerPage,
 currentEventsPage,
 eventsPerPage,
   };
+
+  window.inventorySearchQuery = inventorySearchQuery;
+window.setInventorySearchQuery = setInventorySearchQuery;
 
   // ✅ EXPOSE INANCIAL VARIABLES DIRECTLY TO WINDOW (for financials.js component)
   window.activeFinancialTab = activeFinancialTab;
