@@ -47,62 +47,6 @@ window.renderAppBusinessLogic = function() {
     showStatusProgressModal, setShowStatusProgressModal, statusProgressOptions, setStatusProgressOptions
   } = state;
 
-  // ✅ CRITICAL: updateLeadStatus function
-  const updateLeadStatus = async (leadId, newStatus) => {
-    if (!window.hasPermission('leads', 'progress')) {
-      alert('You do not have permission to progress leads');
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      // Get the full lead object first
-      const currentLeadData = leads.find(l => l.id === leadId);
-      if (!currentLeadData) {
-        alert('Lead not found');
-        setLoading(false);
-        return;
-      }
-
-      // Include ALL fields from current lead
-      const updateData = {
-        ...currentLeadData,  // This includes EVERYTHING
-        status: newStatus,
-        last_contact_date: new Date().toISOString(),
-        [(newStatus) + '_date']: new Date().toISOString(),
-        updated_date: new Date().toISOString()
-      };
-
-      console.log('Updating lead with full data:', updateData);
-
-      // API call to update lead status
-      const response = await window.apiCall('/leads/' + leadId, {
-        method: 'PUT',
-        body: JSON.stringify(updateData)
-      });
-
-      // Update local state with response from server
-      console.log("Status update response:", response);
-      setLeads(prevLeads => 
-        prevLeads.map(lead => 
-          lead.id === leadId ? response.data : lead
-        )
-      );
-
-      // Update current lead if in detail view
-      if (showLeadDetail && currentLead?.id === leadId) {
-        setCurrentLead(response.data);
-      }
-
-      setLoading(false);
-      alert('Lead status updated successfully!');
-    } catch (error) {
-      console.error('Error updating lead status:', error);
-      setLoading(false);
-      alert('Failed to update lead status: ' + error.message);
-    }
-  };
 
   // ✅ NEW: togglePremiumStatus function - FOLLOWING INTEGRATION PATTERN
   const togglePremiumStatus = async (leadId, isPremium) => {
