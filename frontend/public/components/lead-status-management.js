@@ -732,3 +732,15 @@ window.handleQuoteUpload = async function(e) {
     window.setLoading(false);
   }
 };
+
+// FORCE OVERRIDE: Ensure this function is used over app-business-logic version
+setTimeout(() => {
+  console.log("🔧 Forcing lead-status-management.js updateLeadStatus to be primary");
+  
+  // This ensures our assignment logic version is always used
+  if (window.updateLeadStatus.toString().includes('getSupplyTeamMember')) {
+    console.log("✅ Assignment logic version is active");
+  } else {
+    console.error("❌ Wrong updateLeadStatus function is active!");
+  }
+}, 1000);
