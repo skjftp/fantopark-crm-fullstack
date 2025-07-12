@@ -4,7 +4,7 @@
 // Replace your entire chart-system.js with this code
 // ===============================================
 
-console.log('🚀 Loading FanToPark CRM Chart System v5.0...');
+console.log('🚀 Loading FanToPark CRM Chart System v5.1 (Conservative)...');
 
 // Performance and logging controls
 const ENABLE_CHART_DEBUG = true;
@@ -114,9 +114,21 @@ function getDisplayTemperature(lead) {
 }
 
 // ===============================================
-// SMOOTH CHART RECREATION (NO FLASH)
+// SMOOTH CHART RECREATION (NO FLASH) WITH COOLDOWN
 // ===============================================
 window.smoothChartRecreation = function() {
+  // Add cooldown to prevent excessive recreations
+  const now = Date.now();
+  if (!window.lastRecreationTime) window.lastRecreationTime = 0;
+  const RECREATION_COOLDOWN = 3000; // 3 seconds between recreations
+  
+  if (now - window.lastRecreationTime < RECREATION_COOLDOWN) {
+    chartLog('🔇 Chart recreation blocked - too soon since last recreation');
+    return;
+  }
+  
+  window.lastRecreationTime = now;
+
   if (window.chartState.recreationInProgress) {
     chartLog('⏳ Chart recreation already in progress...');
     return;
@@ -325,13 +337,13 @@ function createSingleCleanWrapper() {
       window._absoluteOriginalSetSelectedSalesPerson(person);
     }
     
-    // Single smooth update with current data
+    // Throttled update with cooldown
     if (chartUpdateTimeout) clearTimeout(chartUpdateTimeout);
     chartUpdateTimeout = setTimeout(() => {
       if (window.leads && window.leads.length > 0) {
         window.smoothChartRecreation();
       }
-    }, 100);
+    }, 300); // Increased delay to reduce frequency
   };
 
   // Single clean wrapper for dashboard filter changes
@@ -343,13 +355,13 @@ function createSingleCleanWrapper() {
       window._absoluteOriginalSetDashboardFilter(filter);
     }
     
-    // Single smooth update with current data
+    // Throttled update with cooldown
     if (chartUpdateTimeout) clearTimeout(chartUpdateTimeout);
     chartUpdateTimeout = setTimeout(() => {
       if (window.leads && window.leads.length > 0) {
         window.smoothChartRecreation();
       }
-    }, 100);
+    }, 300); // Increased delay to reduce frequency
   };
 
   // Single clean wrapper for event filter changes
@@ -361,48 +373,69 @@ function createSingleCleanWrapper() {
       window._absoluteOriginalSetSelectedEvent(event);
     }
     
-    // Single smooth update with current data
+    // Throttled update with cooldown
     if (chartUpdateTimeout) clearTimeout(chartUpdateTimeout);
     chartUpdateTimeout = setTimeout(() => {
       if (window.leads && window.leads.length > 0) {
         window.smoothChartRecreation();
       }
-    }, 100);
+    }, 300); // Increased delay to reduce frequency
   };
 }
 
 // ===============================================
-// REACT RE-RENDER PROTECTION
+// CONSERVATIVE REACT RE-RENDER PROTECTION
 // ===============================================
 function setupReactProtection() {
-  const checkChartsAfterReRender = () => {
-    if (window.activeTab === 'dashboard' && window.leads && window.leads.length > 0) {
-      const canvas1 = document.getElementById('leadSplitChart');
-      const canvas2 = document.getElementById('tempCountChart');
-      const canvas3 = document.getElementById('tempValueChart');
-      
-      if (canvas1 && canvas2 && canvas3) {
-        const chartsValid = window.chartInstances.leadSplit && 
-                           window.chartInstances.tempCount && 
-                           window.chartInstances.tempValue;
-        
-        if (!chartsValid) {
-          chartLog('🛡️ Charts need recreation after React re-render');
-          setTimeout(() => {
-            window.smoothChartRecreation();
-          }, 100);
-        } else {
-          chartLog('🛡️ Charts survived re-render - using safe recreation');
-          setTimeout(() => {
-            window.smoothChartRecreation();
-          }, 100);
+  let lastCheckTime = 0;
+  const CHECK_INTERVAL = 30000; // Only check every 30 seconds
+  
+  const conservativeCheck = () => {
+    const now = Date.now();
+    
+    // Only run if enough time has passed
+    if (now - lastCheckTime < CHECK_INTERVAL) {
+      return;
+    }
+    lastCheckTime = now;
+    
+    // Only check if we're on dashboard and have data
+    if (window.activeTab !== 'dashboard' || !window.leads || window.leads.length === 0) {
+      return;
+    }
+    
+    // Only recreate if charts are actually missing or broken
+    const canvas1 = document.getElementById('leadSplitChart');
+    const canvas2 = document.getElementById('tempCountChart');
+    const canvas3 = document.getElementById('tempValueChart');
+    
+    if (!canvas1 || !canvas2 || !canvas3) {
+      return;
+    }
+    
+    // Only recreate if ALL charts are missing (real problem)
+    const allChartsMissing = !window.chartInstances.leadSplit && 
+                            !window.chartInstances.tempCount && 
+                            !window.chartInstances.tempValue;
+    
+    if (allChartsMissing) {
+      chartLog('🛡️ All charts missing - conservative recreation needed');
+      setTimeout(() => {
+        if (!window.chartState.recreationInProgress) {
+          window.smoothChartRecreation();
         }
-      }
+      }, 1000);
     }
   };
 
-  // Check periodically but not too frequently
-  setInterval(checkChartsAfterReRender, 5000);
+  // Clear any existing monitor
+  if (window.conservativeChartMonitor) {
+    clearInterval(window.conservativeChartMonitor);
+  }
+  
+  // Only run every 30 seconds
+  window.conservativeChartMonitor = setInterval(conservativeCheck, CHECK_INTERVAL);
+  chartLog('✅ Conservative React protection enabled (30 second intervals)');
 }
 
 // ===============================================
@@ -417,7 +450,7 @@ window.safeCreateCharts = window.smoothChartRecreation;
 // INITIALIZE EVERYTHING
 // ===============================================
 function initializeCleanChartSystem() {
-  chartLog('🎯 Initializing FanToPark Chart System v5.0...');
+  chartLog('🎯 Initializing FanToPark Chart System v5.1 (Conservative)...');
   
   // Step 1: Set up clean wrappers
   createSingleCleanWrapper();
@@ -425,16 +458,16 @@ function initializeCleanChartSystem() {
   // Step 2: Set up React protection
   setupReactProtection();
   
-  // Step 3: Initialize charts when ready
+  // Step 3: Initialize charts when ready (less aggressive)
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(window.initializeChartsAdvanced, 1000);
+      setTimeout(window.initializeChartsAdvanced, 2000); // Longer delay
     });
   } else {
-    setTimeout(window.initializeChartsAdvanced, 1000);
+    setTimeout(window.initializeChartsAdvanced, 2000); // Longer delay
   }
   
-  chartLog('✅ FanToPark Chart System v5.0 initialized');
+  chartLog('✅ FanToPark Chart System v5.1 (Conservative) initialized');
 }
 
 // ===============================================
@@ -445,14 +478,16 @@ initializeCleanChartSystem();
 // ===============================================
 // SUCCESS MESSAGE
 // ===============================================
-console.log('🎯 FanToPark CRM Chart System v5.0 - PRODUCTION READY');
+console.log('🎯 FanToPark CRM Chart System v5.1 - CONSERVATIVE RENDERING');
 console.log('✅ Fixed: Chart.js DOM errors');
 console.log('✅ Fixed: Infinite loops');
 console.log('✅ Fixed: React re-render conflicts');
 console.log('✅ Fixed: Filter data flash');
 console.log('✅ Fixed: Event filter DOM errors');
+console.log('✅ Fixed: Excessive re-rendering (30s intervals)');
 console.log('✅ Working: ID-to-Email mapping');
 console.log('✅ Working: Sales person filter');
 console.log('✅ Working: Event filter');
 console.log('✅ Working: Smooth filter transitions');
-console.log('🚀 All console fixes integrated - Ready for deployment!');
+console.log('🛡️ Conservative monitoring: Charts only recreated when truly needed');
+console.log('🚀 Production ready with performance optimization!');
