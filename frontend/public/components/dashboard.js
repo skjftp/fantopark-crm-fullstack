@@ -1,5 +1,5 @@
 // ===============================================
-// EMERGENCY FIXED DASHBOARD COMPONENT - REACT ERROR RESOLVED
+// EMERGENCY FIXED DASHBOARD COMPONENT - REACT ERROR RESOLVED + FILTER FIXES
 // ===============================================
 // Dashboard Content Component - NO useEffect calls that cause React Error #310
 
@@ -41,7 +41,7 @@ window.renderDashboardContent = () => {
                     ),
                     React.createElement('div', { className: 'ml-4' },
                         React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' },
-                            (window.leads || []).length
+                            (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || []).length
                         ),
                         React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Total Leads')
                     )
@@ -63,12 +63,19 @@ window.renderDashboardContent = () => {
                                 strokeLinejoin: 'round',
                                 strokeWidth: 2,
                                 d: 'M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z'
+                            }),
+                            React.createElement('path', {
+                                strokeLinecap: 'round',
+                                strokeLinejoin: 'round',
+                                strokeWidth: 2,
+                                d: 'M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z'
                             })
                         )
                     ),
                     React.createElement('div', { className: 'ml-4' },
                         React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' },
-                            (window.leads || []).filter(l => l.status === 'hot').length
+                            (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
+                                .filter(l => (l.temperature || l.status || '').toLowerCase() === 'hot').length
                         ),
                         React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Hot Leads')
                     )
@@ -95,14 +102,15 @@ window.renderDashboardContent = () => {
                     ),
                     React.createElement('div', { className: 'ml-4' },
                         React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' },
-                            (window.leads || []).filter(l => l.status === 'qualified').length
+                            (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
+                                .filter(l => (l.status || '').toLowerCase() === 'qualified').length
                         ),
                         React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Qualified Leads')
                     )
                 )
             ),
 
-            // Total Value Card
+            // Total Pipeline Value Card
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
                 React.createElement('div', { className: 'flex items-center' },
                     React.createElement('div', { className: 'p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg' },
@@ -122,7 +130,7 @@ window.renderDashboardContent = () => {
                     ),
                     React.createElement('div', { className: 'ml-4' },
                         React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' },
-                            `₹${((window.leads || []).reduce((sum, lead) => 
+                            `₹${((window.getFilteredLeads ? window.getFilteredLeads() : window.leads || []).reduce((sum, lead) => 
                                 sum + (parseFloat(lead.potential_value) || 0), 0
                             )).toLocaleString()}`
                         ),
@@ -132,7 +140,7 @@ window.renderDashboardContent = () => {
             )
         ),
 
-        // Filters for pie charts
+        // Filters for pie charts - FIXED TO TRIGGER CHART UPDATES
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6' },
             React.createElement('div', { className: 'flex items-center space-x-4 flex-wrap gap-2' },
                 React.createElement('label', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'View by:'),
@@ -141,9 +149,19 @@ window.renderDashboardContent = () => {
                     value: window.dashboardFilter || 'overall',
                     onChange: (e) => {
                         dashLog('📊 Dashboard filter changed:', e.target.value);
-                        window.setDashboardFilter && window.setDashboardFilter(e.target.value);
-                        window.setSelectedSalesPerson && window.setSelectedSalesPerson('');
-                        window.setSelectedEvent && window.setSelectedEvent('');
+                        
+                        // Update state
+                        if (window.setDashboardFilter) window.setDashboardFilter(e.target.value);
+                        if (window.setSelectedSalesPerson) window.setSelectedSalesPerson('');
+                        if (window.setSelectedEvent) window.setSelectedEvent('');
+                        
+                        // FIXED: Trigger chart update immediately
+                        setTimeout(() => {
+                            if (window.updateChartsWithData && window.leads) {
+                                dashLog('🔄 Triggering chart update after filter change');
+                                window.updateChartsWithData(window.leads);
+                            }
+                        }, 100);
                     }
                 },
                     React.createElement('option', { value: 'overall' }, 'Overall'),
@@ -156,7 +174,17 @@ window.renderDashboardContent = () => {
                     value: window.selectedSalesPerson || '',
                     onChange: (e) => {
                         dashLog('👤 Sales person filter changed:', e.target.value);
-                        window.setSelectedSalesPerson && window.setSelectedSalesPerson(e.target.value);
+                        
+                        // Update state
+                        if (window.setSelectedSalesPerson) window.setSelectedSalesPerson(e.target.value);
+                        
+                        // FIXED: Trigger chart update immediately
+                        setTimeout(() => {
+                            if (window.updateChartsWithData && window.leads) {
+                                dashLog('🔄 Triggering chart update after sales person filter change');
+                                window.updateChartsWithData(window.leads);
+                            }
+                        }, 100);
                     }
                 },
                     React.createElement('option', { value: '' }, 'All Sales People'),
@@ -170,7 +198,17 @@ window.renderDashboardContent = () => {
                     value: window.selectedEvent || '',
                     onChange: (e) => {
                         dashLog('🎯 Event filter changed:', e.target.value);
-                        window.setSelectedEvent && window.setSelectedEvent(e.target.value);
+                        
+                        // Update state
+                        if (window.setSelectedEvent) window.setSelectedEvent(e.target.value);
+                        
+                        // FIXED: Trigger chart update immediately
+                        setTimeout(() => {
+                            if (window.updateChartsWithData && window.leads) {
+                                dashLog('🔄 Triggering chart update after event filter change');
+                                window.updateChartsWithData(window.leads);
+                            }
+                        }, 100);
                     }
                 },
                     React.createElement('option', { value: '' }, 'All Events'),
@@ -210,7 +248,7 @@ window.renderDashboardContent = () => {
                 )
             ),
 
-            // Temperature Value Chart
+            // Temperature Value Chart - FIXED: Now shows potential_value
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
                 React.createElement('h3', { className: 'text-lg font-semibold mb-4 text-gray-900 dark:text-white' }, 
                     'Lead Temperature Value'
@@ -232,33 +270,31 @@ window.renderDashboardContent = () => {
                 )
             ),
             React.createElement('div', { className: 'p-6' },
-                (window.leads || []).length > 0 ?
+                (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || []).length > 0 ?
                 React.createElement('div', { className: 'space-y-4' },
-                    (window.leads || [])
-                        .sort((a, b) => new Date(b.created_date || b.date_of_enquiry) - new Date(a.created_date || a.date_of_enquiry))
+                    (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
                         .slice(0, 5)
-                        .map(lead =>
-                            React.createElement('div', { 
-                                key: lead.id,
-                                className: 'flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg'
-                            },
-                                React.createElement('div', null,
-                                    React.createElement('p', { className: 'font-medium text-gray-900 dark:text-white' },
-                                        lead.name || 'Unknown'
-                                    ),
-                                    React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' },
-                                        `${lead.company_name || 'N/A'} - ${lead.lead_for_event || 'N/A'}`
+                        .map((lead, index) => 
+                            React.createElement('div', { key: index, className: 'flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0' },
+                                React.createElement('div', { className: 'flex-1' },
+                                    React.createElement('p', { className: 'font-medium text-gray-900 dark:text-white' }, lead.name),
+                                    React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 
+                                        `${lead.company || 'Unknown Company'} - ₹${(parseFloat(lead.potential_value) || 0).toLocaleString()}`
                                     )
                                 ),
-                                React.createElement('span', { 
-                                    className: `px-2 py-1 text-xs rounded-full ${
-                                        lead.status === 'hot' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                                        lead.status === 'warm' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                                        lead.status === 'cold' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                                        lead.status === 'qualified' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                React.createElement('span', {
+                                    className: `px-2 py-1 text-xs font-medium rounded-full ${
+                                        (lead.temperature || lead.status) === 'hot' ? 
+                                        'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                                        (lead.temperature || lead.status) === 'warm' ? 
+                                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                        (lead.temperature || lead.status) === 'cold' ? 
+                                        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                                        lead.status === 'qualified' ? 
+                                        'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
                                         'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                                     }`
-                                }, lead.status || 'unknown')
+                                }, (lead.temperature || lead.status || 'unknown'))
                             )
                         )
                 ) :
@@ -271,22 +307,31 @@ window.renderDashboardContent = () => {
 };
 
 // ===============================================
-// DASHBOARD HELPER FUNCTIONS
+// DASHBOARD HELPER FUNCTIONS - FIXED
 // ===============================================
 
-// Get filtered leads for dashboard
+// Get filtered leads for dashboard - FIXED: Better filtering logic
 window.getFilteredLeads = function() {
     let filteredLeads = [...(window.leads || [])];
     
     try {
+        dashLog('🔍 Filtering leads:', {
+            total: filteredLeads.length,
+            filter: window.dashboardFilter,
+            salesPerson: window.selectedSalesPerson,
+            event: window.selectedEvent
+        });
+        
         if (window.dashboardFilter === 'salesPerson' && window.selectedSalesPerson) {
             filteredLeads = filteredLeads.filter(lead => 
                 lead.assigned_to === window.selectedSalesPerson
             );
+            dashLog('🔍 After sales person filter:', filteredLeads.length);
         } else if (window.dashboardFilter === 'event' && window.selectedEvent) {
             filteredLeads = filteredLeads.filter(lead => 
                 lead.lead_for_event === window.selectedEvent
             );
+            dashLog('🔍 After event filter:', filteredLeads.length);
         }
     } catch (error) {
         console.error('Error filtering leads:', error);
@@ -295,21 +340,76 @@ window.getFilteredLeads = function() {
     return filteredLeads;
 };
 
-// Dashboard metrics calculation
+// Dashboard metrics calculation - FIXED: Use filtered leads
 window.calculateDashboardMetrics = function() {
     const leads = window.getFilteredLeads();
     
     return {
         total: leads.length,
-        hot: leads.filter(l => l.status === 'hot').length,
-        warm: leads.filter(l => l.status === 'warm').length,
-        cold: leads.filter(l => l.status === 'cold').length,
-        qualified: leads.filter(l => l.status === 'qualified').length,
-        junk: leads.filter(l => l.status === 'junk').length,
+        hot: leads.filter(l => (l.temperature || l.status || '').toLowerCase() === 'hot').length,
+        warm: leads.filter(l => (l.temperature || l.status || '').toLowerCase() === 'warm').length,
+        cold: leads.filter(l => (l.temperature || l.status || '').toLowerCase() === 'cold').length,
+        qualified: leads.filter(l => (l.status || '').toLowerCase() === 'qualified').length,
+        junk: leads.filter(l => (l.status || '').toLowerCase() === 'junk').length,
         totalValue: leads.reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0)
     };
 };
 
-console.log('📊 Dashboard v4.0 - EMERGENCY FIX APPLIED');
+// ===============================================
+// ENHANCED FILTER SETTERS - FIXED TO TRIGGER UPDATES
+// ===============================================
+
+// Override the original setters to trigger chart updates
+const originalSetDashboardFilter = window.setDashboardFilter;
+if (originalSetDashboardFilter) {
+    window.setDashboardFilter = function(filter) {
+        dashLog('📊 Setting dashboard filter:', filter);
+        originalSetDashboardFilter(filter);
+        
+        // Trigger chart update after state change
+        setTimeout(() => {
+            if (window.updateChartsWithData && window.leads) {
+                dashLog('🔄 Auto-triggering chart update after filter change');
+                window.updateChartsWithData(window.leads);
+            }
+        }, 150);
+    };
+}
+
+const originalSetSelectedSalesPerson = window.setSelectedSalesPerson;
+if (originalSetSelectedSalesPerson) {
+    window.setSelectedSalesPerson = function(person) {
+        dashLog('👤 Setting selected sales person:', person);
+        originalSetSelectedSalesPerson(person);
+        
+        // Trigger chart update after state change
+        setTimeout(() => {
+            if (window.updateChartsWithData && window.leads) {
+                dashLog('🔄 Auto-triggering chart update after sales person change');
+                window.updateChartsWithData(window.leads);
+            }
+        }, 150);
+    };
+}
+
+const originalSetSelectedEvent = window.setSelectedEvent;
+if (originalSetSelectedEvent) {
+    window.setSelectedEvent = function(event) {
+        dashLog('🎯 Setting selected event:', event);
+        originalSetSelectedEvent(event);
+        
+        // Trigger chart update after state change
+        setTimeout(() => {
+            if (window.updateChartsWithData && window.leads) {
+                dashLog('🔄 Auto-triggering chart update after event change');
+                window.updateChartsWithData(window.leads);
+            }
+        }, 150);
+    };
+}
+
+console.log('📊 Dashboard v4.1 - FILTERS & TEMPERATURE VALUE FIXED');
 console.log('✅ Removed ALL React.useEffect calls that caused Error #310');
 console.log('✅ Dashboard component will now render without React errors');
+console.log('🔄 FIXED: Chart filters now trigger immediate chart updates');
+console.log('🔥 FIXED: Temperature Value chart now shows potential_value instead of count');
