@@ -7,48 +7,26 @@ console.log("🚀 Loading Complete Fixed FanToPark CSV Upload System");
 // ===== MAIN CSV DOWNLOAD FUNCTION (ENHANCED WITH FULL DEBUGGING) =====
 
 window.downloadSampleCSV = function(eventOrType) {
-  console.log("🚀 =========================");
-  console.log("🚀 downloadSampleCSV called!");
-  console.log("🚀 =========================");
-  console.log("📥 Parameter received:", eventOrType);
-  console.log("📥 Parameter type:", typeof eventOrType);
-  console.log("📥 Parameter stringified:", JSON.stringify(eventOrType));
-  console.log("📥 window.csvUploadType:", window.csvUploadType);
-  console.log("📥 Current URL:", window.location.href);
+  console.log("📥 FIXED CSV download starting...");
+  console.log("📥 Parameter:", eventOrType);
   
-  // Better parameter handling - THIS WAS THE MAIN ISSUE
-  let type;
-  if (typeof eventOrType === 'string' && eventOrType.trim() !== '') {
-    type = eventOrType;
-    console.log("✅ Using passed parameter as type:", type);
-  } else if (window.csvUploadType && window.csvUploadType.trim() !== '') {
-    type = window.csvUploadType;
-    console.log("✅ Using window.csvUploadType:", type);
-  } else {
-    type = 'inventory'; // Default fallback
-    console.log("⚠️ Using default fallback type:", type);
+  let type = eventOrType;
+  if (typeof eventOrType !== 'string') {
+    type = window.csvUploadType || 'inventory';
   }
   
-  console.log("📋 Final type determined:", type);
+  console.log("📋 Final type:", type);
   
   let csvContent, filename;
   
   if (type === 'leads') {
-    console.log("📊 Generating LEADS template...");
     filename = 'fantopark_leads_template.csv';
-    
-    // ===== COMPLETE LEADS HEADERS (ALL 21 ACTUAL FIELDS FROM YOUR FORMS) =====
     csvContent = 'name,email,phone,company,business_type,source,date_of_enquiry,first_touch_base_done_by,city_of_residence,country_of_residence,lead_for_event,number_of_people,has_valid_passport,visa_available,attended_sporting_event_before,annual_income_bracket,potential_value,status,assigned_to,last_quoted_price,notes\n';
-    
-    // Sample data with all fields populated
-    csvContent += '"John Smith","john.smith@email.com","9876543210","Smith Enterprises","B2B","LinkedIn","2024-12-25","Ankita","Mumbai City North East","India","Cricket Match","4","Yes","Not Required","Yes","₹50-100 Lakhs","150000","contacted","Ankita","140000","Interested in VIP cricket packages for corporate team"\n';
-    csvContent += '"Sarah Johnson","sarah.j@email.com","9876543211","","B2C","Instagram","2024-12-31","Varun","Delhi NCR","India","Tennis Tournament","2","Yes","Yes","No","₹25-50 Lakhs","75000","qualified","Varun","70000","First time sports event attendee, very enthusiastic"\n';
-    csvContent += '"Mike Brown","mike.brown@email.com","9876543212","Tech Solutions Ltd","B2B","Website","2025-01-15","Pratik","Bangalore City","India","Football Match","8","No","Processing","Yes","₹100+ Lakhs","200000","warm","Pratik","190000","Large group booking for international football match"\n';
+    csvContent += '"John Smith","john.smith@email.com","9876543210","Smith Enterprises","B2B","LinkedIn","2024-12-25","Ankita","Mumbai City North East","India","Cricket Match","4","Yes","Not Required","Yes","₹50-100 Lakhs","150000","contacted","Ankita","140000","Interested in VIP cricket packages"\n';
+    csvContent += '"Sarah Johnson","sarah.j@email.com","9876543211","","B2C","Instagram","2024-12-31","Varun","Delhi NCR","India","Tennis Tournament","2","Yes","Yes","No","₹25-50 Lakhs","75000","qualified","Varun","70000","First time sports event attendee"\n';
+    csvContent += '"Mike Brown","mike.brown@email.com","9876543212","Tech Solutions Ltd","B2B","Website","2025-01-15","Pratik","Bangalore City","India","Football Match","8","No","Processing","Yes","₹100+ Lakhs","200000","warm","Pratik","190000","Large group booking for international match"\n';
     csvContent += '"Lisa Davis","lisa.davis@email.com","9876543213","","B2C","Friends and Family","2025-02-20","Rahul","Chennai Metro","India","Basketball Game","1","Yes","Not Required","No","₹10-25 Lakhs","25000","hot","Rahul","24000","Ready to book premium basketball seats"';
-    
   } else {
-    console.log("📦 Generating INVENTORY template...");
-    // INVENTORY FIELDS - UNCHANGED (these were correct)
     filename = 'fantopark_inventory_template.csv';
     csvContent = 'event_name,event_date,event_type,sports,venue,day_of_match,category_of_ticket,stand,total_tickets,available_tickets,mrp_of_ticket,buying_price,selling_price,inclusions,booking_person,procurement_type,notes,paymentStatus,supplierName,supplierInvoice,totalPurchaseAmount,amountPaid,paymentDueDate\n';
     csvContent += '"IPL Mumbai Indians vs Chennai Super Kings Final","2024-12-25","IPL","Cricket","Wankhede Stadium","Not Applicable","VIP","North Stand Premium","100","100","8000","6000","7500","Premium food, beverages, parking, merchandise","Sports Events Pvt Ltd","pre_inventory","Premium match tickets with hospitality package","paid","Mumbai Sports Supplier","INV-2024-001","600000","600000","2024-12-20"\n';
@@ -57,52 +35,29 @@ window.downloadSampleCSV = function(eventOrType) {
     csvContent += '"Basketball Championship Final","2025-02-20","Basketball","Basketball","Indira Gandhi Arena","Not Applicable","Premium","Court Side","80","75","4000","3000","3500","VIP seating, complimentary drinks","Basketball Pro League","on_demand","Championship final premium seats","paid","Delhi Basketball Suppliers","INV-BB-003","240000","240000","2025-02-15"';
   }
   
-  console.log("📁 Generated filename:", filename);
-  console.log("📄 Content length:", csvContent.length);
-  console.log("📄 First 100 chars:", csvContent.substring(0, 100));
+  console.log("📁 Filename:", filename);
   
-  // VALIDATION CHECK TO PREVENT UNDEFINED FILENAME
-  if (!filename || filename.trim() === '' || filename === 'undefined') {
-    console.error("❌ CRITICAL ERROR: Invalid filename!");
-    console.error("❌ filename value:", filename);
-    console.error("❌ type used:", type);
-    alert('❌ CRITICAL ERROR: Could not generate filename.\n\nDebugging info:\n- Type: ' + type + '\n- Filename: ' + filename + '\n\nPlease check browser console for details.');
+  if (!filename) {
+    alert('ERROR: No filename generated!');
     return;
   }
   
   try {
-    console.log("🔧 Creating blob...");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    console.log("🔧 Blob created successfully, size:", blob.size);
-    
-    console.log("🔧 Creating download URL...");
     const url = URL.createObjectURL(blob);
-    console.log("🔧 URL created:", url);
-    
-    console.log("🔧 Creating download element...");
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
     a.style.display = 'none';
-    
-    console.log("🔧 Adding to DOM and clicking...");
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
-    console.log("✅ CSV template downloaded successfully!");
-    console.log("✅ Downloaded file:", filename);
-    
+    console.log("✅ Download completed!");
   } catch (error) {
-    console.error("❌ Download failed with error:", error);
-    console.error("❌ Error stack:", error.stack);
-    alert('❌ Download failed: ' + error.message + '\n\nCheck browser console for details.');
+    console.error("❌ Download error:", error);
+    alert('Download failed: ' + error.message);
   }
-  
-  console.log("🚀 =========================");
-  console.log("🚀 downloadSampleCSV finished");
-  console.log("🚀 =========================");
 };
 
 // ===== ENHANCED STATE SYNCHRONIZATION FUNCTIONS =====
