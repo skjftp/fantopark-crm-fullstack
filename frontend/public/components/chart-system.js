@@ -1,289 +1,456 @@
-// Chart Management System Component for FanToPark CRM
-// Helper function for getting lead temperature
-window.getDisplayTemperature = function(lead) {
-    if (lead.temperature) return lead.temperature;
-    if (lead.status === "hot") return "hot";
-    if (lead.status === "warm") return "warm";
-    if (lead.status === "cold") return "cold";
-    return "warm"; // default
-};
-// Extracted from index.html - maintains 100% functionality
-// Handles all Chart.js initialization, updates, and management
+// ===============================================
+// FANTOPARK CRM - OPTIMIZED CHART SYSTEM
+// Complete chart-system.js with performance optimizations
+// ===============================================
 
-// Advanced Chart Initialization Function
-window.initializeChartsAdvanced = () => {
-  console.log('Initializing advanced charts...');
+// Logging controls
+const ENABLE_CHART_DEBUG = false; // Set to false to reduce chart logs
+const chartLog = ENABLE_CHART_DEBUG ? console.log : () => {};
+const chartError = console.error; // Always log errors
 
-  // Destroy existing charts first
-  Object.keys(window.chartInstances).forEach(key => {
-    if (window.chartInstances[key]) {
-      window.chartInstances[key].destroy();
-      window.chartInstances[key] = null;
-    }
-  });
+// Chart instances storage
+window.chartInstances = window.chartInstances || {};
 
-  // Lead Split Chart 
-  const ctx1 = document.getElementById('leadSplitChart');
-  if (ctx1) {
+// Chart update throttling
+let chartUpdateTimeout = null;
+let isInitializing = false;
+
+// ===============================================
+// CHART INITIALIZATION - OPTIMIZED
+// ===============================================
+
+window.initializeCharts = function() {
+  chartLog('🎯 Starting chart initialization...');
+  
+  // Prevent multiple simultaneous initializations
+  if (isInitializing) {
+    chartLog('⏳ Chart initialization already in progress...');
+    return;
+  }
+  
+  isInitializing = true;
+  
+  const initCharts = () => {
     try {
-      window.chartInstances.leadSplit = new Chart(ctx1, {
-        type: 'pie',
-        data: {
-          labels: ['Qualified', 'Junk'],
-          datasets: [{
-            data: [0, 0],
-            backgroundColor: ['#10b981', '#ef4444'],
-            borderWidth: 2,
-            borderColor: '#ffffff'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                padding: 15,
-                font: { size: 12, weight: 'bold' },
-                usePointStyle: true,
-                pointStyle: 'circle'
+      // Check if Chart.js is available
+      if (typeof Chart === 'undefined') {
+        chartLog('⏳ Chart.js not loaded, waiting...');
+        setTimeout(initCharts, 200);
+        return;
+      }
+      
+      // Check if chart containers exist
+      const leadSplitEl = document.getElementById('leadSplitChart');
+      const tempCountEl = document.getElementById('tempCountChart'); 
+      const tempValueEl = document.getElementById('tempValueChart');
+      
+      if (!leadSplitEl || !tempCountEl || !tempValueEl) {
+        chartLog('⏳ Chart containers not ready, waiting...');
+        setTimeout(initCharts, 200);
+        return;
+      }
+      
+      // Destroy existing charts first
+      window.destroyAllCharts();
+      
+      // Initialize chart instances object
+      window.chartInstances = {};
+      
+      // Chart configuration with performance optimizations
+      const getChartConfig = (title) => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false, // Disable animations for faster loading
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              usePointStyle: true,
+              padding: 15,
+              font: {
+                size: 12
               }
+            }
+          },
+          title: {
+            display: true,
+            text: title,
+            font: {
+              size: 14,
+              weight: 'bold'
             },
-            tooltip: {
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              titleColor: '#ffffff',
-              bodyColor: '#ffffff',
-              borderColor: '#ffffff',
-              borderWidth: 1,
-              cornerRadius: 8,
-              displayColors: true,
-              callbacks: {
-                title: function(context) {
-                  return 'Lead Split Analysis';
-                },
-                label: function(context) {
-                  const label = context.label || '';
-                  const value = context.parsed || 0;
-                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                  const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                  return [
-                    `Status: ${label}`,
-                    `Count: ${value} leads`,
-                    `Percentage: ${percentage}%`
-                  ];
-                }
+            padding: {
+              top: 10,
+              bottom: 20
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return `${label}: ${value} (${percentage}%)`;
               }
             }
           }
         }
       });
-    } catch (error) {
-      console.error('Error creating advanced Lead Split chart:', error);
-    }
-  }
-
-  // Temperature Count Chart
-  const ctx2 = document.getElementById('tempCountChart');
-  if (ctx2) {
-    try {
-      window.chartInstances.tempCount = new Chart(ctx2, {
-        type: 'pie',
-        data: {
-          labels: ['Hot', 'Warm', 'Cold'],
-          datasets: [{
-            data: [0, 0, 0],
-            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
-            borderWidth: 2,
-            borderColor: '#ffffff'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                padding: 15,
-                font: { size: 12, weight: 'bold' },
-                usePointStyle: true,
-                pointStyle: 'circle'
-              }
-            },
-            tooltip: {
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              titleColor: '#ffffff',
-              bodyColor: '#ffffff',
+      
+      // Create Lead Split Chart
+      try {
+        window.chartInstances.leadSplit = new Chart(leadSplitEl, {
+          type: 'pie',
+          data: {
+            labels: ['Qualified', 'Junk'],
+            datasets: [{
+              data: [1, 1], // Default data to prevent empty chart
+              backgroundColor: ['#10b981', '#ef4444'],
+              borderWidth: 2,
               borderColor: '#ffffff',
-              borderWidth: 1,
-              cornerRadius: 8,
-              displayColors: true,
-              callbacks: {
-                title: function(context) {
-                  return 'Lead Temperature Count';
-                },
-                label: function(context) {
-                  const label = context.label || '';
-                  const value = context.parsed || 0;
-                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                  const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                  return [
-                    `Temperature: ${label}`,
-                    `Count: ${value} leads`,
-                    `Percentage: ${percentage}%`
-                  ];
-                }
-              }
-            }
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error creating advanced Temp Count chart:', error);
-    }
-  }
-
-  // Temperature Value Chart
-  const ctx3 = document.getElementById('tempValueChart');
-  if (ctx3) {
-    try {
-      window.chartInstances.tempValue = new Chart(ctx3, {
-        type: 'pie',
-        data: {
-          labels: ['Hot', 'Warm', 'Cold'],
-          datasets: [{
-            data: [0, 0, 0],
-            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
-            borderWidth: 2,
-            borderColor: '#ffffff'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                padding: 15,
-                font: { size: 12, weight: 'bold' },
-                usePointStyle: true,
-                pointStyle: 'circle'
-              }
-            },
-            tooltip: {
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              titleColor: '#ffffff',
-              bodyColor: '#ffffff',
+              hoverOffset: 4
+            }]
+          },
+          options: getChartConfig('Lead Quality Split')
+        });
+        chartLog('✅ Lead Split chart created');
+      } catch (error) {
+        chartError('❌ Lead Split chart error:', error);
+      }
+      
+      // Create Temperature Count Chart
+      try {
+        window.chartInstances.tempCount = new Chart(tempCountEl, {
+          type: 'pie',
+          data: {
+            labels: ['Hot', 'Warm', 'Cold'],
+            datasets: [{
+              data: [1, 1, 1], // Default data to prevent empty chart
+              backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+              borderWidth: 2,
               borderColor: '#ffffff',
-              borderWidth: 1,
-              cornerRadius: 8,
-              displayColors: true,
-              callbacks: {
-                title: function(context) {
-                  return 'Lead Temperature Value';
-                },
-                label: function(context) {
-                  const label = context.label || '';
-                  const value = context.parsed || 0;
-                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                  const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-
-                  // Format value in Lacs with better formatting
-                  let formattedValue;
-                  if (value >= 10000000) { // 1 Crore
-                    formattedValue = (value / 10000000).toFixed(2) + ' Cr';
-                  } else if (value >= 100000) { // 1 Lac
-                    formattedValue = (value / 100000).toFixed(2) + ' L';
-                  } else if (value >= 1000) { // 1 Thousand
-                    formattedValue = (value / 1000).toFixed(1) + ' K';
-                  } else {
-                    formattedValue = value.toString();
+              hoverOffset: 4
+            }]
+          },
+          options: getChartConfig('Lead Temperature Count')
+        });
+        chartLog('✅ Temperature Count chart created');
+      } catch (error) {
+        chartError('❌ Temperature Count chart error:', error);
+      }
+      
+      // Create Temperature Value Chart
+      try {
+        window.chartInstances.tempValue = new Chart(tempValueEl, {
+          type: 'pie', 
+          data: {
+            labels: ['Hot Value', 'Warm Value', 'Cold Value'],
+            datasets: [{
+              data: [1, 1, 1], // Default data to prevent empty chart
+              backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+              borderWidth: 2,
+              borderColor: '#ffffff',
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            ...getChartConfig('Lead Temperature Value'),
+            plugins: {
+              ...getChartConfig('Lead Temperature Value').plugins,
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const label = context.label || '';
+                    const value = context.parsed || 0;
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                    return `${label}: ₹${window.formatValueInLacs ? window.formatValueInLacs(value) : value.toLocaleString()} (${percentage}%)`;
                   }
-
-                  return [
-                    `Temperature: ${label}`,
-                    `Value: ₹${formattedValue}`,
-                    `Percentage: ${percentage}%`
-                  ];
                 }
               }
             }
           }
-        }
-      });
+        });
+        chartLog('✅ Temperature Value chart created');
+      } catch (error) {
+        chartError('❌ Temperature Value chart error:', error);
+      }
+      
+      chartLog('🎉 All charts initialized successfully!');
+      
+      // Update with real data if available
+      if (window.leads && window.leads.length > 0) {
+        setTimeout(() => {
+          window.updateChartsWithData(window.leads);
+        }, 100);
+      }
+      
+      isInitializing = false;
+      
     } catch (error) {
-      console.error('Error creating advanced Temp Value chart:', error);
+      chartError('❌ Chart initialization error:', error);
+      isInitializing = false;
     }
-  }
-
-  console.log('Advanced chart initialization complete');
-};
-
-// Chart Update Function
-window.updateCharts = (filteredLeads) => {
-  console.log('Updating charts with', filteredLeads.length, 'leads');
-
-  // Lead Split Chart (Qualified vs Junk)
-  const qualifiedCount = filteredLeads.filter(l => l.status === 'qualified').length;
-  const junkCount = filteredLeads.filter(l => l.status === 'junk').length;
-  console.log('Lead Split:', { qualified: qualifiedCount, junk: junkCount });
-
-  // Temperature Count (including parallel stages)
-  const hotCount = filteredLeads.filter(l => window.getDisplayTemperature(l) === 'hot').length;
-  const warmCount = filteredLeads.filter(l => window.getDisplayTemperature(l) === 'warm').length;
-  const coldCount = filteredLeads.filter(l => window.getDisplayTemperature(l) === 'cold').length;
-  console.log('Temperature Count:', { hot: hotCount, warm: warmCount, cold: coldCount });
-
-  // Temperature Value (including parallel stages)
-  const hotValue = filteredLeads.filter(l => window.getDisplayTemperature(l) === 'hot')
-    .reduce((sum, l) => sum + (l.potential_value || 0), 0);
-  const warmValue = filteredLeads.filter(l => window.getDisplayTemperature(l) === 'warm')
-    .reduce((sum, l) => sum + (l.potential_value || 0), 0);
-  const coldValue = filteredLeads.filter(l => window.getDisplayTemperature(l) === 'cold')
-    .reduce((sum, l) => sum + (l.potential_value || 0), 0);
-  console.log('Temperature Value:', { hot: hotValue, warm: warmValue, cold: coldValue });
-
-  // Update charts if they exist
-  if (window.chartInstances.leadSplit) {
-    window.chartInstances.leadSplit.data.datasets[0].data = [qualifiedCount, junkCount];
-    window.chartInstances.leadSplit.update();
-    console.log('Lead Split chart updated');
+  };
+  
+  // Start initialization based on DOM state
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCharts);
   } else {
-    console.log('Lead Split chart not found!');
-  }
-
-  if (window.chartInstances.tempCount) {
-    window.chartInstances.tempCount.data.datasets[0].data = [hotCount, warmCount, coldCount];
-    window.chartInstances.tempCount.update();
-    console.log('Temp Count chart updated');
-  } else {
-    console.log('Temp Count chart not found!');
-  }
-
-  if (window.chartInstances.tempValue) {
-    window.chartInstances.tempValue.data.datasets[0].data = [hotValue, warmValue, coldValue];
-    window.chartInstances.tempValue.update();
-    console.log('Temp Value chart updated');
-  } else {
-    console.log('Temp Value chart not found!');
+    // DOM is already ready, but give React a moment to render
+    setTimeout(initCharts, 100);
   }
 };
 
-// Chart Utility Functions
-window.formatValueInLacs = (value) => {
-  if (value >= 100000) {
+// ===============================================
+// CHART UPDATE FUNCTIONS - OPTIMIZED
+// ===============================================
+
+window.updateChartsWithData = function(leads) {
+  // Throttle chart updates to prevent excessive calls
+  if (chartUpdateTimeout) {
+    clearTimeout(chartUpdateTimeout);
+  }
+  
+  chartUpdateTimeout = setTimeout(() => {
+    try {
+      if (!leads || leads.length === 0) {
+        chartLog('No leads data for charts');
+        return;
+      }
+      
+      chartLog('📊 Updating charts with', leads.length, 'leads');
+      
+      // Calculate metrics using the helper function
+      const metrics = window.calculateChartMetrics(leads);
+      
+      // Update Lead Split Chart
+      if (window.chartInstances?.leadSplit) {
+        try {
+          const { qualified, junk } = metrics.leadSplit;
+          window.chartInstances.leadSplit.data.datasets[0].data = [qualified || 1, junk || 1];
+          window.chartInstances.leadSplit.update('none');
+          chartLog('✅ Lead Split chart updated:', { qualified, junk });
+        } catch (error) {
+          chartError('❌ Lead Split update error:', error);
+        }
+      } else {
+        chartLog('⚠️ Lead Split chart not found');
+      }
+      
+      // Update Temperature Count Chart  
+      if (window.chartInstances?.tempCount) {
+        try {
+          const { hot, warm, cold } = metrics.tempCount;
+          window.chartInstances.tempCount.data.datasets[0].data = [hot || 1, warm || 1, cold || 1];
+          window.chartInstances.tempCount.update('none');
+          chartLog('✅ Temperature Count chart updated:', { hot, warm, cold });
+        } catch (error) {
+          chartError('❌ Temperature Count update error:', error);
+        }
+      } else {
+        chartLog('⚠️ Temperature Count chart not found');
+      }
+      
+      // Update Temperature Value Chart
+      if (window.chartInstances?.tempValue) {
+        try {
+          const { hot, warm, cold } = metrics.tempValue;
+          window.chartInstances.tempValue.data.datasets[0].data = [hot || 1, warm || 1, cold || 1];
+          window.chartInstances.tempValue.update('none');
+          chartLog('✅ Temperature Value chart updated:', { hot, warm, cold });
+        } catch (error) {
+          chartError('❌ Temperature Value update error:', error);
+        }
+      } else {
+        chartLog('⚠️ Temperature Value chart not found');
+      }
+      
+    } catch (error) {
+      chartError('❌ Chart update error:', error);
+    }
+  }, 100); // 100ms throttle
+};
+
+// ===============================================
+// CHART METRICS CALCULATION
+// ===============================================
+
+window.calculateChartMetrics = function(leads) {
+  if (!leads || leads.length === 0) {
+    return {
+      leadSplit: { qualified: 1, junk: 1 },
+      tempCount: { hot: 1, warm: 1, cold: 1 },
+      tempValue: { hot: 1, warm: 1, cold: 1 }
+    };
+  }
+  
+  try {
+    // Lead Split metrics
+    const qualified = leads.filter(l => l.status === 'qualified').length;
+    const junk = leads.filter(l => l.status === 'junk').length;
+    const other = leads.length - qualified - junk;
+    
+    // Temperature Count metrics
+    const hot = leads.filter(l => l.status === 'hot').length;
+    const warm = leads.filter(l => l.status === 'warm').length;
+    const cold = leads.filter(l => l.status === 'cold').length;
+    
+    // Temperature Value metrics
+    const hotValue = leads.filter(l => l.status === 'hot')
+      .reduce((sum, l) => sum + (parseFloat(l.potential_value) || 0), 0);
+    const warmValue = leads.filter(l => l.status === 'warm')
+      .reduce((sum, l) => sum + (parseFloat(l.potential_value) || 0), 0);
+    const coldValue = leads.filter(l => l.status === 'cold')
+      .reduce((sum, l) => sum + (parseFloat(l.potential_value) || 0), 0);
+    
+    return {
+      leadSplit: { 
+        qualified: qualified || 1, 
+        junk: junk || 1,
+        other: other || 0
+      },
+      tempCount: { 
+        hot: hot || 1, 
+        warm: warm || 1, 
+        cold: cold || 1 
+      },
+      tempValue: { 
+        hot: hotValue || 1, 
+        warm: warmValue || 1, 
+        cold: coldValue || 1 
+      }
+    };
+  } catch (error) {
+    chartError('❌ Error calculating chart metrics:', error);
+    return {
+      leadSplit: { qualified: 1, junk: 1 },
+      tempCount: { hot: 1, warm: 1, cold: 1 },
+      tempValue: { hot: 1, warm: 1, cold: 1 }
+    };
+  }
+};
+
+// ===============================================
+// CHART UTILITY FUNCTIONS
+// ===============================================
+
+// Format large values for display
+window.formatValueInLacs = function(value) {
+  if (value >= 10000000) { // 1 Crore
+    return (value / 10000000).toFixed(2) + 'Cr';
+  } else if (value >= 100000) { // 1 Lac
     return (value / 100000).toFixed(2) + 'L';
-  } else if (value >= 1000) {
+  } else if (value >= 1000) { // 1 Thousand
     return (value / 1000).toFixed(1) + 'K';
   } else {
     return value.toString();
   }
 };
 
-// Chart Data Processing Functions
-window.processLeadDataForCharts = (leads, filters = {}) => {
+// Destroy all chart instances
+window.destroyAllCharts = function() {
+  try {
+    if (window.chartInstances) {
+      Object.entries(window.chartInstances).forEach(([key, chart]) => {
+        try {
+          if (chart && typeof chart.destroy === 'function') {
+            chart.destroy();
+            chartLog(`🗑️ Destroyed ${key} chart`);
+          }
+        } catch (error) {
+          chartLog(`⚠️ Error destroying ${key} chart:`, error.message);
+        }
+      });
+      window.chartInstances = {};
+    }
+  } catch (error) {
+    chartError('❌ Error destroying charts:', error);
+  }
+};
+
+// Resize all charts
+window.resizeAllCharts = function() {
+  try {
+    if (window.chartInstances) {
+      Object.entries(window.chartInstances).forEach(([key, chart]) => {
+        try {
+          if (chart && typeof chart.resize === 'function') {
+            chart.resize();
+            chartLog(`📏 Resized ${key} chart`);
+          }
+        } catch (error) {
+          chartLog(`⚠️ Error resizing ${key} chart:`, error.message);
+        }
+      });
+    }
+  } catch (error) {
+    chartError('❌ Error resizing charts:', error);
+  }
+};
+
+// ===============================================
+// CHART EVENT HANDLERS
+// ===============================================
+
+// Handle window resize
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  if (resizeTimeout) {
+    clearTimeout(resizeTimeout);
+  }
+  resizeTimeout = setTimeout(() => {
+    window.resizeAllCharts();
+  }, 250);
+});
+
+// Handle visibility change (when tab becomes active/inactive)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && window.chartInstances) {
+    // Tab became visible - refresh charts
+    setTimeout(() => {
+      if (window.leads && window.leads.length > 0) {
+        window.updateChartsWithData(window.leads);
+      }
+    }, 100);
+  }
+});
+
+// ===============================================
+// CLEANUP AND INITIALIZATION
+// ===============================================
+
+// Cleanup function
+window.cleanupCharts = function() {
+  if (chartUpdateTimeout) {
+    clearTimeout(chartUpdateTimeout);
+    chartUpdateTimeout = null;
+  }
+  
+  if (resizeTimeout) {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = null;
+  }
+  
+  window.destroyAllCharts();
+  
+  chartLog('🧹 Chart system cleaned up');
+};
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', window.cleanupCharts);
+
+// ===============================================
+// LEGACY COMPATIBILITY
+// ===============================================
+
+// For backward compatibility, create aliases for old function names
+window.initializeChartsFixed = window.initializeCharts;
+window.updateChartsWithDataFixed = window.updateChartsWithData;
+
+// Process lead data for charts (legacy compatibility)
+window.processLeadDataForCharts = function(leads, filters = {}) {
   let filteredLeads = [...leads];
 
   // Apply dashboard filters
@@ -304,221 +471,19 @@ window.processLeadDataForCharts = (leads, filters = {}) => {
   return filteredLeads;
 };
 
-window.calculateChartMetrics = (leads) => {
-  const metrics = {
-    leadSplit: {
-      qualified: leads.filter(l => l.status === 'qualified').length,
-      junk: leads.filter(l => l.status === 'junk').length,
-      other: leads.filter(l => !['qualified', 'junk'].includes(l.status)).length
-    },
-    temperatureCount: {
-      hot: leads.filter(l => window.getDisplayTemperature(l) === 'hot').length,
-      warm: leads.filter(l => window.getDisplayTemperature(l) === 'warm').length,
-      cold: leads.filter(l => window.getDisplayTemperature(l) === 'cold').length
-    },
-    temperatureValue: {
-      hot: leads.filter(l => window.getDisplayTemperature(l) === 'hot')
-        .reduce((sum, l) => sum + (l.potential_value || 0), 0),
-      warm: leads.filter(l => window.getDisplayTemperature(l) === 'warm')
-        .reduce((sum, l) => sum + (l.potential_value || 0), 0),
-      cold: leads.filter(l => window.getDisplayTemperature(l) === 'cold')
-        .reduce((sum, l) => sum + (l.potential_value || 0), 0)
-    }
-  };
+// ===============================================
+// INITIALIZATION
+// ===============================================
 
-  return metrics;
-};
-
-// Chart Cleanup and Management
-window.destroyAllCharts = () => {
-  console.log('Destroying all charts...');
-  Object.keys(window.chartInstances).forEach(key => {
-    if (window.chartInstances[key]) {
-      window.chartInstances[key].destroy();
-      window.chartInstances[key] = null;
-    }
+// Auto-initialize charts when the script loads
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(window.initializeCharts, 500);
   });
-};
+} else {
+  // DOM is already ready
+  setTimeout(window.initializeCharts, 500);
+}
 
-window.refreshCharts = (leads) => {
-  console.log('Refreshing all charts with new data...');
-  const filteredLeads = window.getFilteredLeads ? window.getFilteredLeads() : leads;
-  window.updateCharts(filteredLeads);
-};
-
-// Financial Charts (for Finance tab)
-window.initializeFinancialCharts = () => {
-  // Receivables Pie Chart
-  const receivablesElement = document.getElementById('receivablesPieChart');
-  if (receivablesElement && window.receivables && window.receivables.filter(r => r.status === 'pending').length > 0) {
-    const ctx = receivablesElement.getContext('2d');
-
-    // Destroy existing chart if any
-    if (window.receivablesChart) {
-      window.receivablesChart.destroy();
-    }
-
-    // Group receivables by salesperson
-    const receivablesBySalesperson = {};
-    window.receivables
-      .filter(r => r.status === 'pending')
-      .forEach(receivable => {
-        const salesperson = receivable.assigned_to || 'Unassigned';
-        receivablesBySalesperson[salesperson] = (receivablesBySalesperson[salesperson] || 0) + receivable.expected_amount;
-      });
-
-    window.receivablesChart = new Chart(ctx, {
-      type: 'pie',
-      data: {
-        labels: Object.keys(receivablesBySalesperson),
-        datasets: [{
-          data: Object.values(receivablesBySalesperson),
-          backgroundColor: [
-            '#3B82F6', '#EF4444', '#10B981', '#F59E0B', 
-            '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'
-          ]
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom'
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const value = context.parsed || 0;
-                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                return `${context.label}: ₹${value.toLocaleString()} (${percentage}%)`;
-              }
-            }
-          }
-        }
-      }
-    });
-  }
-};
-
-// Chart Export Functions
-window.exportChartAsImage = (chartId, filename = 'chart.png') => {
-  const canvas = document.getElementById(chartId);
-  if (canvas) {
-    const url = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = url;
-    link.click();
-  }
-};
-
-window.getChartDataForExport = (chartType) => {
-  const chart = window.chartInstances[chartType];
-  if (chart) {
-    return {
-      labels: chart.data.labels,
-      data: chart.data.datasets[0].data,
-      type: chart.config.type
-    };
-  }
-  return null;
-};
-
-// Chart Animation and Interaction
-window.animateChartUpdate = (chartInstance, newData) => {
-  if (chartInstance) {
-    chartInstance.data.datasets[0].data = newData;
-    chartInstance.update('active');
-  }
-};
-
-window.highlightChartSegment = (chartType, segmentIndex) => {
-  const chart = window.chartInstances[chartType];
-  if (chart) {
-    chart.setActiveElements([{
-      datasetIndex: 0,
-      index: segmentIndex
-    }]);
-    chart.update('active');
-  }
-};
-
-// Debug and Analysis Functions
-window.debugCharts = () => {
-  console.log('=== Chart Debug Info ===');
-  console.log('Canvas elements:', {
-    leadSplit: document.getElementById('leadSplitChart'),
-    tempCount: document.getElementById('tempCountChart'),
-    tempValue: document.getElementById('tempValueChart')
-  });
-  console.log('Chart instances:', window.chartInstances);
-  console.log('Current leads:', window.leads);
-  console.log('Lead statuses:', window.leads?.map(l => ({ name: l.name, status: l.status })));
-};
-
-window.forceInitCharts = () => {
-  console.log('Force initializing charts...');
-  window.initializeChartsAdvanced();
-};
-
-window.debugDashboard = () => {
-  console.log('=== Dashboard Debug ===');
-  console.log('Active tab:', window.activeTab);
-  console.log('Leads count:', window.leads?.length);
-  console.log('Chart.js loaded:', typeof Chart !== 'undefined');
-  console.log('Canvas elements in DOM:', {
-    leadSplit: !!document.getElementById('leadSplitChart'),
-    tempCount: !!document.getElementById('tempCountChart'),
-    tempValue: !!document.getElementById('tempValueChart')
-  });
-  console.log('Chart instances:', {
-    leadSplit: !!window.chartInstances.leadSplit,
-    tempCount: !!window.chartInstances.tempCount,
-    tempValue: !!window.chartInstances.tempValue
-  });
-
-  // Try to reinitialize
-  if (window.activeTab === 'dashboard') {
-    console.log('Attempting manual chart initialization...');
-    window.initializeChartsAdvanced();
-  }
-};
-
-// Chart Theme Management
-window.updateChartsTheme = (isDarkMode) => {
-  const textColor = isDarkMode ? '#f3f4f6' : '#374151';
-  const borderColor = isDarkMode ? '#4b5563' : '#e5e7eb';
-
-  Object.values(window.chartInstances).forEach(chart => {
-    if (chart) {
-      chart.options.plugins.legend.labels.color = textColor;
-      chart.options.plugins.tooltip.titleColor = textColor;
-      chart.options.plugins.tooltip.bodyColor = textColor;
-      chart.options.plugins.tooltip.borderColor = borderColor;
-      chart.update();
-    }
-  });
-};
-
-// Chart Resize Handler
-window.handleChartResize = () => {
-  Object.values(window.chartInstances).forEach(chart => {
-    if (chart) {
-      chart.resize();
-    }
-  });
-};
-
-// Global chart management setup
-window.chartInstances = window.chartInstances || {
-  leadSplit: null,
-  tempCount: null,
-  tempValue: null
-};
-
-// Set up global references for debugging
-window.calculateDashboardStats = window.calculateDashboardStats || (() => {});
-
-console.log('✅ Chart Management System component loaded successfully');
+chartLog('✅ Chart system loaded successfully');
+console.log('📊 FanToPark CRM Chart System v2.0 - Optimized for Performance');
