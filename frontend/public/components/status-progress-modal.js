@@ -47,110 +47,109 @@ window.renderStatusProgressModal = () => {
     console.warn("openPaymentPostServiceForm not implemented");
   });
 
-  // ===== FIXED: Enhanced handleStatusUpdate with automatic reminder creation =====
-  const handleStatusUpdate = async () => {
-    if (!selectedStatus) {
-      alert('Please select a status');
-      return;
-    }
+  // ===== ADD THIS DEBUG CODE TO status-progress-modal.js =====
+// Find the handleStatusUpdate function and replace it with this:
 
-    const selectedStatusConfig = window.LEAD_STATUSES[selectedStatus];
+const handleStatusUpdate = async () => {
+  console.log('🔍 === STATUS PROGRESS MODAL DEBUG ===');
+  console.log('🔍 selectedStatus:', selectedStatus);
+  console.log('🔍 currentLead:', currentLead);
+  console.log('🔍 About to check if window.updateLeadStatus exists...');
+  
+  if (!selectedStatus) {
+    alert('Please select a status');
+    return;
+  }
 
-    // Check if follow-up date is required
-    if (selectedStatusConfig.requires_followup_date && !followUpDate) {
-      alert('Follow-up date is required for this status');
-      return;
-    }
+  // Check if the correct function exists
+  if (typeof window.updateLeadStatus !== 'function') {
+    console.error('❌ window.updateLeadStatus is NOT a function!');
+    console.log('🔍 Type of window.updateLeadStatus:', typeof window.updateLeadStatus);
+    console.log('🔍 Available window functions starting with "update":', 
+      Object.keys(window).filter(key => key.toLowerCase().includes('update')));
+    alert('ERROR: window.updateLeadStatus function not found!');
+    return;
+  }
 
-    try {
-      setLoading(true);
+  console.log('✅ window.updateLeadStatus exists and is a function');
 
-      // Handle payment status specially
-      if (selectedStatus === 'payment') {
-        setShowStatusProgressModal(false);
-        openPaymentForm(currentLead);
-        setLoading(false);
-        return;
-      }
+  const selectedStatusConfig = window.LEAD_STATUSES[selectedStatus];
 
-      if (selectedStatus === 'payment_post_service') {
-        setShowStatusProgressModal(false);
-        openPaymentPostServiceForm(currentLead);
-        setLoading(false);
-        return;
-      }
+  // Check if follow-up date is required
+  if (selectedStatusConfig?.requires_followup_date && !followUpDate) {
+    alert('Please select a follow-up date');
+    return;
+  }
 
-      // Prepare update data
+  try {
+    setLoading(true);
+    
+    console.log('🎯 STATUS PROGRESS MODAL: About to call window.updateLeadStatus');
+    console.log('🎯 Lead ID:', currentLead?.id);
+    console.log('🎯 Lead Name:', currentLead?.name);
+    console.log('🎯 New Status:', selectedStatus);
+    
+    // ✅ CRITICAL: Call the correct window.updateLeadStatus function
+    console.log('🚀 CALLING window.updateLeadStatus NOW...');
+    await window.updateLeadStatus(currentLead.id, selectedStatus);
+    console.log('✅ window.updateLeadStatus call completed');
+    
+    // Handle follow-up date if provided
+    if (followUpDate) {
       const updateData = {
-        ...currentLead,
-        status: selectedStatus,
-        last_contact_date: new Date().toISOString(),
-        [(selectedStatus) + '_date']: new Date().toISOString(),
-        updated_date: new Date().toISOString()
+        next_follow_up_date: followUpDate,
+        follow_up_notes: followUpNotes
       };
-
-      // Add follow-up specific fields if applicable
-      if (selectedStatusConfig.requires_followup_date && followUpDate) {
-        updateData.next_follow_up_date = followUpDate;
-        updateData.follow_up_notes = followUpNotes;
-        updateData.follow_up_reason = selectedStatus === 'pickup_later' ? 'Pick up later' : 'Follow up required';
-
-        // Store previous status for pickup_later
-        if (selectedStatus === 'pickup_later') {
-          updateData.previous_status = currentLead.status;
-        }
-      }
-
-      // Update lead status
-      const response = await window.apiCall('/leads/' + currentLead.id, {
+      
+      console.log('📅 Adding follow-up date:', followUpDate);
+      
+      // Update the lead with follow-up information
+      await window.apiCall(`/leads/${currentLead.id}`, {
         method: 'PUT',
         body: JSON.stringify(updateData)
       });
-
+      
       // Update local state
-      setLeads(prevLeads => 
-        prevLeads.map(lead => 
-          lead.id === currentLead.id ? response.data : lead
-        )
-      );
-
-      // Update current lead if in detail view
-      if (showLeadDetail && currentLead?.id === currentLead.id) {
-        setCurrentLead(response.data);
+      setLeads(prev => prev.map(lead => 
+        lead.id === currentLead.id 
+          ? { ...lead, ...updateData }
+          : lead
+      ));
+      
+      if (window.showLeadDetail && window.currentLead?.id === currentLead.id) {
+        setCurrentLead(prev => ({ ...prev, ...updateData }));
       }
-
-      // ===== FIX 4: CREATE REMINDER WITH CUSTOM FOLLOW-UP DATE =====
-      if (window.shouldCreateReminderOnStatusChange && window.shouldCreateReminderOnStatusChange(selectedStatus)) {
-        console.log(`🎯 Creating reminder for ${selectedStatus} with custom follow-up date`);
-        try {
-          await window.createStatusChangeReminder(response.data, selectedStatus);
-          console.log('✅ Custom reminder created successfully');
-        } catch (reminderError) {
-          console.error('❌ Failed to create custom reminder:', reminderError);
-          // Don't fail the operation if reminder creation fails
-        }
-      }
-
-      setLoading(false);
-      setShowStatusProgressModal(false);
-
-      // Clear the form after successful update
-      setSelectedStatus('');
-      setFollowUpDate('');
-      setFollowUpNotes('');
-
-      // Show success message with follow-up info
-      if (selectedStatusConfig.requires_followup_date && followUpDate) {
-        alert(`Lead status updated successfully! Follow-up scheduled for ${new Date(followUpDate).toLocaleString()}`);
-      } else {
-        alert('Lead status updated successfully!');
-      }
-    } catch (error) {
-      console.error('Error updating lead status:', error);
-      setLoading(false);
-      alert('Failed to update lead status: ' + error.message);
     }
-  };
+
+    // Close modal and reset form
+    setShowStatusProgressModal(false);
+    setSelectedStatus('');
+    setFollowUpDate('');
+    setFollowUpNotes('');
+    setLoading(false);
+
+    // Success message
+    if (followUpDate) {
+      alert(`Lead status updated successfully!\nFollow-up scheduled for ${new Date(followUpDate).toLocaleString()}`);
+    } else {
+      alert('Lead status updated successfully!');
+    }
+  } catch (error) {
+    console.error('❌ Error in Status Progress Modal:', error);
+    setLoading(false);
+    alert('Failed to update lead status: ' + error.message);
+  }
+};
+
+// ===== ALSO ADD THIS TEST FUNCTION TO VERIFY =====
+// Add this at the bottom of status-progress-modal.js
+console.log('🔍 Testing window.updateLeadStatus availability from modal...');
+console.log('🔍 window.updateLeadStatus type:', typeof window.updateLeadStatus);
+if (typeof window.updateLeadStatus === 'function') {
+  console.log('✅ window.updateLeadStatus is available in modal');
+} else {
+  console.error('❌ window.updateLeadStatus NOT available in modal');
+}
 
   const handleModalClose = () => {
     setShowStatusProgressModal(false);
