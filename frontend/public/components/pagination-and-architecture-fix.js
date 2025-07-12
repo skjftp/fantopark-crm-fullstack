@@ -1,13 +1,10 @@
 // ============================================================================
-// PAGINATION FIX + BETTER DATA ARCHITECTURE
+// QUICK FIX - FINANCIAL PAGINATION ERROR
 // ============================================================================
-// Fixes pagination re-rendering and provides better data handling
+// Fixes the "Cannot read properties of undefined (reading 'activesales')" error
 
-// 1. FIXED PAGINATION WITH PROPER RE-RENDERING
-// ============================================================================
-
-// Enhanced pagination state management
-window.financialPaginationState = {
+// Initialize pagination state immediately (before any render calls)
+window.financialPagination = window.financialPagination || {
     activesales: { currentPage: 1, itemsPerPage: 10 },
     sales: { currentPage: 1, itemsPerPage: 10 },
     receivables: { currentPage: 1, itemsPerPage: 10 },
@@ -15,28 +12,24 @@ window.financialPaginationState = {
     expiring: { currentPage: 1, itemsPerPage: 10 }
 };
 
-// Fixed pagination function that ACTUALLY triggers re-render
+// Also set the alternative name for consistency
+window.financialPaginationState = window.financialPagination;
+
+// Fixed pagination function
 window.setFinancialPage = (tabName, pageNumber) => {
     console.log(`🔄 Setting ${tabName} page to ${pageNumber}`);
     
     // Update pagination state
+    window.financialPagination[tabName].currentPage = pageNumber;
     window.financialPaginationState[tabName].currentPage = pageNumber;
     
     // Force re-render using multiple methods
-    if (window.setAppState) {
-        // Method 1: Update app state (preferred)
-        window.setAppState(prevState => ({
-            ...prevState,
-            financialPagination: { ...window.financialPaginationState }
-        }));
+    if (window.setState) {
+        window.setState({ forceUpdate: Date.now() });
     } else if (window.renderApp) {
-        // Method 2: Direct re-render
         window.renderApp();
-    } else if (window.setState) {
-        // Method 3: Generic setState
-        window.setState({});
     } else {
-        // Method 4: Force React update
+        // Force React update
         const event = new CustomEvent('forceReactUpdate');
         document.dispatchEvent(event);
     }
@@ -44,15 +37,22 @@ window.setFinancialPage = (tabName, pageNumber) => {
     console.log(`✅ Page changed to ${pageNumber} for ${tabName}`);
 };
 
-// Enhanced pagination renderer with WORKING click handlers
-window.renderWorkingFinancialPagination = (tabName, totalItems) => {
-    const pagination = window.financialPaginationState[tabName];
+// Enhanced pagination renderer that actually works
+window.renderWorkingPagination = (tabName, totalItems) => {
+    // Ensure pagination state exists
+    if (!window.financialPagination || !window.financialPagination[tabName]) {
+        console.warn(`No pagination state for ${tabName}, initializing...`);
+        window.financialPagination = window.financialPagination || {};
+        window.financialPagination[tabName] = { currentPage: 1, itemsPerPage: 10 };
+    }
+
+    const pagination = window.financialPagination[tabName];
     if (!pagination || totalItems <= pagination.itemsPerPage) return null;
 
     const totalPages = Math.ceil(totalItems / pagination.itemsPerPage);
     const currentPage = pagination.currentPage;
 
-    console.log(`📄 Rendering pagination for ${tabName}: page ${currentPage} of ${totalPages}`);
+    console.log(`📄 Rendering pagination for ${tabName}: page ${currentPage} of ${totalPages} (${totalItems} items)`);
 
     return React.createElement('div', { className: 'px-6 py-4 border-t border-gray-200 dark:border-gray-700' },
         React.createElement('div', { className: 'flex items-center justify-between' },
@@ -64,6 +64,8 @@ window.renderWorkingFinancialPagination = (tabName, totalItems) => {
                 React.createElement('button', {
                     onClick: (e) => {
                         e.preventDefault();
+                        e.stopPropagation();
+                        console.log(`🖱️ Previous clicked for ${tabName}, current page: ${currentPage}`);
                         if (currentPage > 1) {
                             window.setFinancialPage(tabName, currentPage - 1);
                         }
@@ -72,15 +74,17 @@ window.renderWorkingFinancialPagination = (tabName, totalItems) => {
                     className: 'px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
                 }, 'Previous'),
                 
-                // Page numbers (show up to 5 pages)
+                // Page numbers
                 ...Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const pageNum = Math.max(1, currentPage - 2) + i;
+                    let pageNum = currentPage - 2 + i;
+                    if (pageNum < 1) pageNum = i + 1;
                     if (pageNum > totalPages) return null;
                     
                     return React.createElement('button', {
                         key: pageNum,
                         onClick: (e) => {
                             e.preventDefault();
+                            e.stopPropagation();
                             console.log(`🖱️ Clicked page ${pageNum} for ${tabName}`);
                             window.setFinancialPage(tabName, pageNum);
                         },
@@ -96,6 +100,8 @@ window.renderWorkingFinancialPagination = (tabName, totalItems) => {
                 React.createElement('button', {
                     onClick: (e) => {
                         e.preventDefault();
+                        e.stopPropagation();
+                        console.log(`🖱️ Next clicked for ${tabName}, current page: ${currentPage}`);
                         if (currentPage < totalPages) {
                             window.setFinancialPage(tabName, currentPage + 1);
                         }
@@ -108,113 +114,85 @@ window.renderWorkingFinancialPagination = (tabName, totalItems) => {
     );
 };
 
-// 2. BACKEND-OPTIMIZED DATA FETCHING ARCHITECTURE
-// ============================================================================
-
-// Backend pagination API calls (replace frontend processing)
-window.fetchFinancialDataPage = async (tabName, page = 1, itemsPerPage = 10, filters = {}) => {
-    const endpoint = `/api/financial/${tabName}`;
-    const params = new URLSearchParams({
-        page: page.toString(),
-        limit: itemsPerPage.toString(),
-        ...filters
-    });
-
+// Safe getCurrentTabData function with better error handling
+window.getSafeCurrentTabData = (activeFinancialTab, financialData, applyFilters) => {
+    let data = [];
+    
+    console.log(`🔍 Getting data for tab: ${activeFinancialTab}`);
+    console.log(`🔍 Available financial data:`, Object.keys(financialData));
+    
     try {
-        console.log(`🌐 Fetching ${tabName} data: page ${page}, limit ${itemsPerPage}`);
-        
-        const response = await fetch(`${endpoint}?${params}`, {
-            headers: {
-                'Authorization': `Bearer ${window.authToken || ''}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        switch (activeFinancialTab) {
+            case 'activesales':
+                data = applyFilters(financialData.activeSales || []);
+                break;
+            case 'sales':
+                data = applyFilters(financialData.sales || []);
+                break;
+            case 'receivables':
+                data = applyFilters(financialData.receivables || []);
+                break;
+            case 'payables':
+                data = applyFilters(financialData.payables || []);
+                break;
+            case 'expiring':
+                data = window.getEnhancedExpiringInventory ? window.getEnhancedExpiringInventory() : [];
+                break;
+            default:
+                data = [];
         }
-
-        const data = await response.json();
         
-        console.log(`✅ Received ${tabName} data:`, data);
+        console.log(`🔍 Raw data for ${activeFinancialTab}:`, data.length, 'items');
         
-        return {
-            items: data.items || data.data || [],
-            totalItems: data.totalItems || data.total || 0,
-            currentPage: page,
-            totalPages: Math.ceil((data.totalItems || 0) / itemsPerPage)
-        };
+        // Apply pagination
+        const pagination = window.financialPagination[activeFinancialTab];
+        if (pagination) {
+            const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
+            const endIndex = startIndex + pagination.itemsPerPage;
+            const paginatedData = data.slice(startIndex, endIndex);
+            
+            console.log(`🔍 Paginated data for ${activeFinancialTab}: showing ${paginatedData.length} of ${data.length} total items`);
+            
+            return {
+                data: paginatedData,
+                totalItems: data.length
+            };
+        }
+        
+        return { data, totalItems: data.length };
         
     } catch (error) {
-        console.error(`❌ Error fetching ${tabName} data:`, error);
-        
-        // Fallback to frontend processing
-        return window.getFallbackFinancialData(tabName, page, itemsPerPage, filters);
+        console.error(`❌ Error getting data for ${activeFinancialTab}:`, error);
+        return { data: [], totalItems: 0 };
     }
 };
 
-// Fallback frontend processing (when backend isn't ready)
-window.getFallbackFinancialData = (tabName, page, itemsPerPage, filters) => {
-    console.log(`🔄 Using fallback frontend processing for ${tabName}`);
+// Override existing broken functions
+window.renderFinancialPagination = window.renderWorkingPagination;
+
+// Enhanced initialization
+window.initializeFinancialPagination = () => {
+    console.log('🔄 Initializing financial pagination state');
     
-    let allData = [];
-    const financialData = window.appState?.financialData || {};
-    
-    switch (tabName) {
-        case 'activesales':
-            allData = financialData.activeSales || [];
-            break;
-        case 'sales':
-            allData = financialData.sales || [];
-            break;
-        case 'receivables':
-            allData = financialData.receivables || [];
-            break;
-        case 'payables':
-            allData = financialData.payables || [];
-            break;
-        case 'expiring':
-            allData = window.getEnhancedExpiringInventory() || [];
-            break;
-        default:
-            allData = [];
-    }
-
-    // Apply filters on frontend (temporary until backend filtering)
-    const filteredData = allData.filter(item => {
-        if (filters.clientName) {
-            const nameField = tabName === 'payables' ? 'supplier' : 'client_name';
-            const name = (item[nameField] || '').toLowerCase();
-            if (!name.includes(filters.clientName.toLowerCase())) return false;
-        }
-        
-        if (filters.status && filters.status !== 'all') {
-            if (item.status !== filters.status) return false;
-        }
-        
-        return true;
-    });
-
-    // Apply pagination
-    const startIndex = (page - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedData = filteredData.slice(startIndex, endIndex);
-
-    return {
-        items: paginatedData,
-        totalItems: filteredData.length,
-        currentPage: page,
-        totalPages: Math.ceil(filteredData.length / itemsPerPage)
+    // Ensure both variable names are set
+    window.financialPagination = window.financialPagination || {
+        activesales: { currentPage: 1, itemsPerPage: 10 },
+        sales: { currentPage: 1, itemsPerPage: 10 },
+        receivables: { currentPage: 1, itemsPerPage: 10 },
+        payables: { currentPage: 1, itemsPerPage: 10 },
+        expiring: { currentPage: 1, itemsPerPage: 10 }
     };
+    
+    window.financialPaginationState = window.financialPagination;
+    
+    console.log('✅ Financial pagination initialized:', window.financialPagination);
 };
 
-// 3. CORRECTED FIELD MAPPING BASED ON CONSOLE LOGS
-// ============================================================================
+// Initialize immediately
+window.initializeFinancialPagination();
 
-// I can see from your console logs the actual field names:
-// "Processing receivable: {id: 'h7WppqJ4cq6xp9vfDprL', order_id: '0yrZxVfrOjX04btMZ7l5', order_number: 'ORD-1751574660233', client_name: 'Sachin Gupta', client_email: 'sachin.gupta@ikshealth.com', …}"
-
-window.getCorrectFieldValue = (object, primaryField, fallbacks = [], defaultValue = 'N/A') => {
+// Safe field value getter
+window.getSafeFieldValue = (object, primaryField, fallbacks = [], defaultValue = 'N/A') => {
     if (!object || typeof object !== 'object') return defaultValue;
     
     // Try primary field first
@@ -232,14 +210,43 @@ window.getCorrectFieldValue = (object, primaryField, fallbacks = [], defaultValu
     return defaultValue;
 };
 
-// 4. IMPROVED PAYABLES RENDERER WITH CORRECT FIELDS
-// ============================================================================
+// Safe date formatter
+window.formatSafeDate = (dateValue) => {
+    if (!dateValue) return 'No Date';
+    
+    try {
+        const date = new Date(dateValue);
+        if (isNaN(date.getTime())) return 'Invalid Date';
+        return date.toLocaleDateString();
+    } catch (error) {
+        return 'Invalid Date';
+    }
+};
 
-window.renderOptimizedPayablesTab = (payables) => {
-    console.log('🔍 renderOptimizedPayablesTab called with:', payables);
+// Override broken functions with safe versions
+window.getCurrentTabData = window.getSafeCurrentTabData;
+window.formatFinancialDate = window.formatSafeDate;
+window.formatFinancialDateRobust = (object, dateFields = ['due_date', 'date', 'created_date']) => {
+    if (!object) return 'No Date';
+    
+    for (const field of dateFields) {
+        if (object[field]) {
+            return window.formatSafeDate(object[field]);
+        }
+    }
+    
+    return 'No Date';
+};
+
+// Enhanced error handling for render functions
+window.safeRenderPayablesTab = (payables) => {
+    console.log('🔍 Safe payables render called with:', payables);
+    
+    if (!payables || !Array.isArray(payables)) {
+        payables = [];
+    }
     
     const tabName = 'payables';
-    const pagination = window.financialPaginationState[tabName];
     
     return React.createElement('div', { className: 'space-y-4' },
         React.createElement('div', { className: 'overflow-x-auto' },
@@ -255,14 +262,13 @@ window.renderOptimizedPayablesTab = (payables) => {
                     )
                 ),
                 React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
-                    payables && payables.length > 0 ?
+                    payables.length > 0 ?
                         payables.map((payable, index) => {
-                            // Use correct field names based on your actual data structure
-                            const dueDate = window.formatFinancialDateRobust(payable, ['due_date', 'payment_due_date', 'date']);
-                            const supplier = window.getCorrectFieldValue(payable, 'supplier_name', ['supplier', 'vendor', 'company_name']);
-                            const invoice = window.getCorrectFieldValue(payable, 'invoice_number', ['invoice', 'reference', 'bill_number']);
-                            const amount = window.getCorrectFieldValue(payable, 'amount', ['total', 'bill_amount'], 0);
-                            const status = window.getCorrectFieldValue(payable, 'status', ['payment_status'], 'pending');
+                            const dueDate = window.formatFinancialDateRobust(payable);
+                            const supplier = window.getSafeFieldValue(payable, 'supplier', ['supplier_name', 'vendor']);
+                            const invoice = window.getSafeFieldValue(payable, 'invoice', ['invoice_number', 'reference']);
+                            const amount = window.getSafeFieldValue(payable, 'amount', ['total'], 0);
+                            const status = window.getSafeFieldValue(payable, 'status', ['payment_status'], 'pending');
                             
                             return React.createElement('tr', { key: payable.id || index, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, dueDate),
@@ -300,136 +306,24 @@ window.renderOptimizedPayablesTab = (payables) => {
         ),
         
         // Working pagination
-        window.renderWorkingFinancialPagination(tabName, payables?.length || 0)
+        window.renderWorkingPagination(tabName, payables.length)
     );
 };
 
-// 5. IMPROVED RECEIVABLES RENDERER
-// ============================================================================
+// Override the broken render functions
+window.renderFixedPayablesTab = window.safeRenderPayablesTab;
+window.renderPayablesTab = window.safeRenderPayablesTab;
 
-window.renderOptimizedReceivablesTab = (receivables) => {
-    console.log('🔍 renderOptimizedReceivablesTab called with:', receivables);
-    
-    const tabName = 'receivables';
-    
-    return React.createElement('div', { className: 'space-y-4' },
-        React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Receivables'),
+console.log('✅ Financial Pagination Quick Fix loaded');
+console.log('🔧 Pagination state initialized:', window.financialPagination);
 
-        React.createElement('div', { className: 'overflow-x-auto' },
-            React.createElement('table', { className: 'w-full' },
-                React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
-                    React.createElement('tr', null,
-                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Due Date'),
-                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Invoice #'),
-                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Client'),
-                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
-                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Days Overdue'),
-                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
-                    )
-                ),
-                React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
-                    receivables && receivables.length > 0 ?
-                        receivables.map((receivable, index) => {
-                            // Use correct field names from your console logs
-                            const dueDate = window.formatFinancialDateRobust(receivable, ['due_date', 'payment_due_date', 'date']);
-                            const invoice = window.getCorrectFieldValue(receivable, 'order_number', ['invoice_number', 'invoice', 'reference']);
-                            const client = window.getCorrectFieldValue(receivable, 'client_name', ['client', 'customer_name']);
-                            const amount = window.getCorrectFieldValue(receivable, 'amount', ['total', 'invoice_amount'], 0);
-                            
-                            return React.createElement('tr', { key: receivable.id || index, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
-                                React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, dueDate),
-                                React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, invoice),
-                                React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, client),
-                                React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
-                                    `₹${Number(amount || 0).toLocaleString()}`
-                                ),
-                                React.createElement('td', { className: 'px-4 py-3 text-sm' },
-                                    React.createElement('span', {
-                                        className: 'px-2 py-1 text-xs rounded-full bg-red-100 text-red-800'
-                                    }, '6 days') // You can calculate this based on due_date
-                                ),
-                                React.createElement('td', { className: 'px-4 py-3' },
-                                    React.createElement('div', { className: 'flex space-x-2' },
-                                        React.createElement('button', {
-                                            className: 'text-green-600 hover:text-green-800 font-medium'
-                                        }, '✅ Mark Paid'),
-                                        React.createElement('button', {
-                                            className: 'text-red-600 hover:text-red-800 font-medium'
-                                        }, '🗑️ Delete')
-                                    )
-                                )
-                            );
-                        }) : React.createElement('tr', null,
-                            React.createElement('td', { 
-                                colSpan: 6, 
-                                className: 'px-4 py-8 text-center text-gray-500' 
-                            }, 'No receivables found')
-                        )
-                )
-            )
-        ),
-        
-        // Working pagination
-        window.renderWorkingFinancialPagination(tabName, receivables?.length || 0)
-    );
-};
-
-// 6. OVERRIDE EXISTING FUNCTIONS
-// ============================================================================
-
-// Replace broken pagination functions
-window.renderFinancialPagination = window.renderWorkingFinancialPagination;
-window.renderFixedPayablesTab = window.renderOptimizedPayablesTab;
-window.renderFixedReceivablesTab = window.renderOptimizedReceivablesTab;
-window.renderPayablesTab = window.renderOptimizedPayablesTab;
-window.renderReceivablesTab = window.renderOptimizedReceivablesTab;
-
-// 7. INITIALIZATION
-// ============================================================================
-
-// Initialize pagination state
-window.initializeFinancialPagination = () => {
-    console.log('🔄 Initializing financial pagination state');
-    // Already initialized at top
-};
-
-// Listen for custom re-render events
-document.addEventListener('forceReactUpdate', () => {
-    console.log('🔄 Force React update triggered');
-    if (window.renderApp) {
-        window.renderApp();
+// Test pagination state
+setTimeout(() => {
+    console.log('🧪 Testing pagination state access...');
+    try {
+        const testState = window.financialPagination.activesales;
+        console.log('✅ Pagination state accessible:', testState);
+    } catch (error) {
+        console.error('❌ Pagination state error:', error);
     }
-});
-
-console.log('✅ Pagination Fix + Architecture Improvements loaded');
-console.log('📊 Recommendation: Move to backend pagination for better performance');
-
-// 8. BACKEND INTEGRATION RECOMMENDATION
-// ============================================================================
-
-window.logArchitectureRecommendation = () => {
-    console.log(`
-📈 PERFORMANCE RECOMMENDATION:
-
-Current: Frontend processing of all data
-- ✅ Works for small datasets (<100 items)
-- ❌ Slow for large datasets (>500 items)
-- ❌ Loads all data upfront
-- ❌ Filtering happens in browser
-
-Recommended: Backend pagination + filtering
-- ✅ Fast for any dataset size
-- ✅ Loads only needed data
-- ✅ Filtering happens on server
-- ✅ Better user experience
-
-Next Steps:
-1. Implement API endpoints: /api/financial/payables?page=1&limit=10
-2. Add backend filtering: &status=pending&supplier=XS2Event
-3. Return: { items: [...], totalItems: 150, currentPage: 1 }
-4. Replace window.getFallbackFinancialData with window.fetchFinancialDataPage
-    `);
-};
-
-// Show recommendation
-setTimeout(window.logArchitectureRecommendation, 2000);
+}, 1000);
