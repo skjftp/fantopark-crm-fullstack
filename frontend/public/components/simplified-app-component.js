@@ -1,3 +1,7 @@
+const ENABLE_DEBUG_LOGS = false; // Set to false to reduce logs
+window.debugLog = ENABLE_DEBUG_LOGS ? console.log : () => {};
+
+
 window.SimplifiedApp = function() {
   // ===== CORE SETUP & INITIALIZATION =====
   const state = window.renderMainApp();
