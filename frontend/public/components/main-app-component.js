@@ -187,6 +187,8 @@ const [eventsPerPage, setEventsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showOrderDetail, setShowOrderDetail] = useState(false);
+  const [showQuoteUploadModal, setShowQuoteUploadModal] = useState(false);
+  const [quoteUploadData, setQuoteUploadData] = useState({ notes: '', pdf: null });
   const [selectedOrderForAssignment, setSelectedOrderForAssignment] = useState(null);
   const [showOrderAssignmentModal, setShowOrderAssignmentModal] = useState(false);
   const [showEditOrderForm, setShowEditOrderForm] = useState(false);
@@ -505,6 +507,10 @@ window.ordersSorting = ordersSorting;
 window.setOrdersSorting = setOrdersSorting;
 window.ordersShowFilters = ordersShowFilters;
 window.setOrdersShowFilters = setOrdersShowFilters;
+  window.setShowQuoteUploadModal = setShowQuoteUploadModal;
+window.setQuoteUploadData = setQuoteUploadData;
+window.showQuoteUploadModal = showQuoteUploadModal;
+window.quoteUploadData = quoteUploadData;
 
   // Return the state object to be used by App component
   window.setViewMode = setViewMode;
