@@ -1130,6 +1130,40 @@ document.addEventListener('keydown', (e) => {
 
 const { useState, useEffect, useRef } = React;
 
+// Safe Console Log Filter - Add this right after the React import
+(function() {
+  'use strict';
+  
+  const originalLog = console.log;
+  
+  // Patterns to suppress
+  const suppressPatterns = [
+    '✅', '🔍', '📊', '🔄', '🎯', '🚀', '❌', '🎉',
+    'component loaded successfully',
+    'All app effects initialized', 
+    'Not showing allocation management',
+    'Not showing delivery form',
+    'Bulk Assign Modal',
+    'ALLOCATION MANAGEMENT DEBUG',
+    'DELIVERY FORM DEBUG',
+    'Rendering Enhanced Recent Activity'
+  ];
+  
+  console.log = function(...args) {
+    const message = String(args[0] || '');
+    const shouldSuppress = suppressPatterns.some(pattern => 
+      message.includes(pattern)
+    );
+    if (!shouldSuppress) {
+      originalLog.apply(console, args);
+    }
+  };
+  
+  window.toggleDebugLogs = function(enabled = true) {
+    console.log = enabled ? originalLog : console.log;
+  };
+})();  
+
 window.getRoleDisplayLabel = function(roleName) {
   const roleLabels = {
     'super_admin': 'Super Admin',
