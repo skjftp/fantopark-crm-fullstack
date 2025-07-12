@@ -775,13 +775,31 @@ window.renderLeadsContent = () => {
                                         ) : React.createElement('span', { className: 'text-sm text-gray-400' }, 'Unassigned')
                                     ),
                                     React.createElement('td', { className: 'px-6 py-4' },
-                                        React.createElement('span', {
-                                            className: 'px-2 py-1 text-xs rounded ' + (status.color)
-                                        }, status.label),
-                                        lead.status === 'rejected' && lead.rejection_reason && React.createElement('div', {
-                                            className: 'mt-1 text-xs text-red-600 italic'
-                                        }, 'Reason: ' + (lead.rejection_reason))
-                                    ),
+    React.createElement('div', { className: 'flex flex-col gap-1' },
+        React.createElement('span', {
+            className: 'px-2 py-1 text-xs rounded ' + (status.color)
+        }, status.label),
+        
+        // ✅ QUOTE INDICATOR - ADD THIS
+        lead.quote_pdf_url && React.createElement('div', { className: 'flex items-center gap-1' },
+            React.createElement('span', { title: 'Quote uploaded' }, '📄'),
+            React.createElement('a', {
+                href: lead.quote_pdf_url,
+                target: '_blank',
+                className: 'text-blue-600 text-xs hover:underline',
+                onClick: (e) => e.stopPropagation()
+            }, 'Quote'),
+            lead.quote_notes && React.createElement('span', { 
+                title: lead.quote_notes,
+                className: 'text-xs text-gray-500 ml-1'
+            }, '💬')
+        ),
+        
+        lead.status === 'rejected' && lead.rejection_reason && React.createElement('div', {
+            className: 'mt-1 text-xs text-red-600 italic'
+        }, 'Reason: ' + (lead.rejection_reason))
+    )
+),
                                     window.hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
                                         React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, 
                                             '₹' + (lead.potential_value || 0).toLocaleString()
