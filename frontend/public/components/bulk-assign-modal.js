@@ -29,10 +29,9 @@ window.renderBulkAssignModal = () => {
   if (!showBulkAssignModal) return null;
 
   const unassignedLeads = (leads || []).filter(lead => !lead.assigned_to || lead.assigned_to === '' || lead.status === 'unassigned');
-  const salesUsers = (users || []).filter(u => 
-    ['sales_executive', 'sales_manager', 'supply_executive', 'supply_sales_service_manager'].includes(u.role) && 
-    u.status === 'active'
-  );
+const salesUsers = (users || []).filter(u => 
+  u.status === 'active'
+);
 
   const handleCheckboxChange = (leadId, userEmail, isChecked) => {
     setBulkAssignSelections(prev => {
