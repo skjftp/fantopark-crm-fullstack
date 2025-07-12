@@ -114,7 +114,7 @@ window.renderAppBusinessLogic = function() {
       }
 
       // For regular status updates
-      await updateLeadStatus(currentLeadForChoice.id, choice.value);
+      await window.updateLeadStatus(currentLeadForChoice.id, choice.value);
       setShowChoiceModal(false);
       setLoading(false);
     } catch (error) {
@@ -221,7 +221,7 @@ window.renderAppBusinessLogic = function() {
       }
 
       // For other single status transitions (including attempts)
-      updateLeadStatus(lead.id, nextStatus);
+      window.updateLeadStatus(lead.id, nextStatus);
     } else {
       // Multiple options available - decide which modal to use
 
