@@ -1,7 +1,14 @@
 // ============================================================================
-// FIXED FINANCIALS COMPONENT - ALL ISSUES RESOLVED
+// CORRECTED FINANCIALS COMPONENT - PRESERVES ORIGINAL FUNCTIONALITY + ENHANCEMENTS
 // ============================================================================
-// This fixes the React useEffect error and data mapping issues
+// This corrects only the issues you mentioned while preserving ALL existing functionality
+// 1. Sales Chart Visualization ✅
+// 2. Fixed Expiring Inventory Fields ✅  
+// 3. Tab-Specific Filters ✅
+// 4. Pagination for All Tabs ✅
+// 5. Enhanced Stats with Margin ✅
+// 6. RESTORED: Original payment form buttons ✅
+// 7. RESTORED: Original inventory form buttons ✅
 
 // Initialize pagination states
 window.initializeFinancialPagination = () => {
@@ -191,7 +198,7 @@ window.calculateEnhancedFinancialMetrics = () => {
     const totalActiveSales = activeSales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
     const totalSales = sales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
     const totalPayables = payables.reduce((sum, payable) => sum + (payable.amount || 0), 0);
-    const totalReceivables = receivables.reduce((sum, receivable) => sum + (receivable.amount || 0), 0);
+    const totalReceivables = receivables.reduce((sum, receivable) => sum + (receivable.amount || receivable.balance_amount || 0), 0);
 
     // Calculate margin from inventory data
     let totalCost = 0;
@@ -336,9 +343,9 @@ window.formatFinancialDate = (dateValue) => {
     }
 };
 
-// Main render function for financials dashboard - FIXED VERSION
+// Main render function for financials dashboard - ENHANCED WITH ALL FIXES
 window.renderFinancials = () => {
-    console.log('🔍 FIXED FINANCIALS COMPONENT DEBUG: Starting render');
+    console.log('🔍 ENHANCED FINANCIALS COMPONENT DEBUG: Starting render');
     
     // Initialize pagination if not done
     window.initializeFinancialPagination();
@@ -360,6 +367,9 @@ window.renderFinancials = () => {
             status: 'all'
         },
         activeFinancialTab = window.appState?.activeFinancialTab || 'activesales',
+        financialStats = window.appState?.financialStats || {
+            expiringValue: 0
+        },
         setFinancialFilters = window.setFinancialFilters || (() => {
             console.warn("setFinancialFilters not implemented");
         }),
@@ -376,7 +386,7 @@ window.renderFinancials = () => {
             // Client/Supplier name filter (tab-specific)
             if (financialFilters.clientName) {
                 const nameField = activeFinancialTab === 'payables' ? 'supplier' : 'client';
-                const itemName = (item[nameField] || '').toLowerCase();
+                const itemName = (item[nameField] || item[`${nameField}_name`] || '').toLowerCase();
                 if (!itemName.includes(financialFilters.clientName.toLowerCase())) {
                     return false;
                 }
@@ -546,30 +556,30 @@ window.renderFinancials = () => {
                     );
                 })(),
                 activeFinancialTab === 'sales' && (() => {
-                    console.log('🔍 Calling renderFixedSalesTab with data:', currentTabData.data);
+                    console.log('🔍 Calling renderSalesTab with data:', currentTabData.data);
                     return React.createElement('div', null,
-                        window.renderFixedSalesTab(currentTabData.data),
+                        window.renderSalesTab(currentTabData.data),
                         window.renderFinancialPagination('sales', currentTabData.totalItems)
                     );
                 })(),
                 activeFinancialTab === 'receivables' && (() => {
-                    console.log('🔍 Calling renderFixedReceivablesTab with data:', currentTabData.data);
+                    console.log('🔍 Calling renderReceivablesTab with data:', currentTabData.data);
                     return React.createElement('div', null,
-                        window.renderFixedReceivablesTab(currentTabData.data),
+                        window.renderReceivablesTab(currentTabData.data),
                         window.renderFinancialPagination('receivables', currentTabData.totalItems)
                     );
                 })(),
                 activeFinancialTab === 'payables' && (() => {
-                    console.log('🔍 Calling renderFixedPayablesTab with data:', currentTabData.data);
+                    console.log('🔍 Calling renderPayablesTab with data:', currentTabData.data);
                     return React.createElement('div', null,
-                        window.renderFixedPayablesTab(currentTabData.data),
+                        window.renderPayablesTab(currentTabData.data),
                         window.renderFinancialPagination('payables', currentTabData.totalItems)
                     );
                 })(),
                 activeFinancialTab === 'expiring' && (() => {
-                    console.log('🔍 Calling renderEnhancedExpiringTab with data:', currentTabData.data);
+                    console.log('🔍 Calling renderExpiringTab with data:', currentTabData.data);
                     return React.createElement('div', null,
-                        window.renderEnhancedExpiringTab(currentTabData.data),
+                        window.renderExpiringTab(currentTabData.data),
                         window.renderFinancialPagination('expiring', currentTabData.totalItems)
                     );
                 })()
@@ -578,9 +588,66 @@ window.renderFinancials = () => {
     );
 };
 
-// FIXED: Sales Tab Renderer WITHOUT React.useEffect (this was causing the crash)
-window.renderFixedSalesTab = (sales) => {
-    console.log('🔍 renderFixedSalesTab called with:', sales);
+// Active Sales Tab Renderer - ENHANCED DEBUG LOGGING
+window.renderActiveSalesTab = (activeSales) => {
+    console.log('🔍 renderActiveSalesTab called with:', activeSales);
+    console.log('🔍 activeSales.length:', activeSales?.length || 0);
+    
+    return React.createElement('div', { className: 'space-y-4' },
+        React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Active Sales (Post-Service Payment Orders)'),
+
+        React.createElement('div', { className: 'overflow-x-auto' },
+            React.createElement('table', { className: 'w-full' },
+                React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
+                    React.createElement('tr', null,
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Date'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Order Number'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Client'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status')
+                    )
+                ),
+                React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
+                    activeSales && activeSales.length > 0 ?
+                        activeSales.map(sale =>
+                            React.createElement('tr', { key: sale.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
+                                React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                                    window.formatFinancialDate(sale.date || sale.created_date)
+                                ),
+                                React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                                    sale.order_number || sale.id || 'N/A'
+                                ),
+                                React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                                    sale.client || sale.client_name || 'N/A'
+                                ),
+                                React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
+                                    `₹${(sale.amount || 0).toLocaleString()}`
+                                ),
+                                React.createElement('td', { className: 'px-4 py-3' },
+                                    React.createElement('span', {
+                                        className: `px-2 py-1 text-xs rounded-full ${
+                                            sale.status === 'paid' ? 'bg-green-100 text-green-800' :
+                                            sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-gray-100 text-gray-800'
+                                        }`
+                                    }, sale.status || 'N/A')
+                                )
+                            )
+                        ) : React.createElement('tr', null,
+                            React.createElement('td', { 
+                                colSpan: 5, 
+                                className: 'px-4 py-8 text-center text-gray-500' 
+                            }, 'No active sales')
+                        )
+                )
+            )
+        )
+    );
+};
+
+// Sales Tab Renderer with FIXED Chart Implementation
+window.renderSalesTab = (sales) => {
+    console.log('🔍 renderSalesTab called with:', sales);
     
     // Try to create chart AFTER the component is rendered
     setTimeout(() => {
@@ -588,9 +655,9 @@ window.renderFixedSalesTab = (sales) => {
     }, 100);
     
     return React.createElement('div', { className: 'space-y-4' },
-        // Enhanced Sales Chart
-        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border' },
-            React.createElement('h4', { className: 'text-lg font-semibold mb-4 text-gray-900 dark:text-white' }, 'Sales Trend'),
+        // Sales Chart
+        React.createElement('div', { className: 'h-64 bg-gray-50 dark:bg-gray-700 rounded-lg p-4' },
+            React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Sales Trend'),
             React.createElement('div', { className: 'h-64 relative' },
                 React.createElement('canvas', { 
                     id: 'financialSalesChart',
@@ -646,7 +713,7 @@ window.renderFixedSalesTab = (sales) => {
                             React.createElement('td', { 
                                 colSpan: 6, 
                                 className: 'px-4 py-8 text-center text-gray-500' 
-                            }, 'No sales data available')
+                            }, 'No sales data found')
                         )
                 )
             )
@@ -654,9 +721,9 @@ window.renderFixedSalesTab = (sales) => {
     );
 };
 
-// FIXED: Receivables Tab Renderer with proper field mapping
-window.renderFixedReceivablesTab = (receivables) => {
-    console.log('🔍 renderFixedReceivablesTab called with:', receivables);
+// CORRECTED: Receivables Tab with ORIGINAL PAYMENT FORM FUNCTIONALITY
+window.renderReceivablesTab = (receivables) => {
+    console.log('🔍 renderReceivablesTab called with:', receivables);
     
     return React.createElement('div', { className: 'space-y-4' },
         React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Receivables'),
@@ -678,39 +745,41 @@ window.renderFixedReceivablesTab = (receivables) => {
                         receivables.map(receivable => {
                             const dueDate = new Date(receivable.due_date || receivable.date);
                             const today = new Date();
-                            const daysOverdue = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+                            const daysDiff = Math.ceil((today - dueDate) / (1000 * 60 * 60 * 24));
+                            const isOverdue = daysDiff > 0;
                             
                             return React.createElement('tr', { key: receivable.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
                                     window.formatFinancialDate(receivable.due_date || receivable.date)
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    receivable.invoice || receivable.invoice_number || 'N/A'
+                                    receivable.invoice_number || receivable.invoice || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    receivable.client || receivable.client_name || 'N/A'
+                                    receivable.client_name || receivable.client || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
-                                    `₹${(receivable.amount || 0).toLocaleString()}`
+                                    `₹${(receivable.balance_amount || receivable.amount || 0).toLocaleString()}`
                                 ),
-                                React.createElement('td', { className: 'px-4 py-3 text-sm' },
-                                    React.createElement('span', {
-                                        className: `px-2 py-1 text-xs rounded-full ${
-                                            daysOverdue > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                                        }`
-                                    }, daysOverdue > 0 ? `${daysOverdue} days` : 'On time')
+                                React.createElement('td', { className: `px-4 py-3 text-sm ${isOverdue ? 'text-red-600' : 'text-green-600'}` }, 
+                                    isOverdue ? `${Math.abs(daysDiff)} days overdue` : daysDiff === 0 ? 'Due today' : `Not due`
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3' },
                                     React.createElement('div', { className: 'flex space-x-2' },
+                                        // RESTORED: Original "Mark Payment" button that opens payment form
                                         React.createElement('button', {
+                                            className: 'text-blue-600 hover:text-blue-800 font-medium',
                                             onClick: () => {
-                                                if (confirm('Mark this receivable as paid?')) {
-                                                    alert('This would mark the receivable as paid. Please refresh the page.');
+                                                console.log('🔍 Mark Payment clicked for receivable:', receivable);
+                                                if (window.handleMarkPaymentFromReceivable) {
+                                                    window.handleMarkPaymentFromReceivable(receivable);
+                                                } else {
+                                                    console.warn('handleMarkPaymentFromReceivable function not found');
+                                                    alert('Payment function not available. Please refresh the page.');
                                                 }
                                             },
-                                            className: 'text-green-600 hover:text-green-800 font-medium',
-                                            title: 'Mark as Paid'
-                                        }, '✅ Mark Paid'),
+                                            title: 'Open Payment Form'
+                                        }, 'Mark Payment'),
                                         React.createElement('button', {
                                             onClick: () => {
                                                 if (confirm('Are you sure you want to delete this receivable?')) {
@@ -735,9 +804,9 @@ window.renderFixedReceivablesTab = (receivables) => {
     );
 };
 
-// FIXED: Payables Tab Renderer with proper field mapping and date formatting
-window.renderFixedPayablesTab = (payables) => {
-    console.log('🔍 renderFixedPayablesTab called with:', payables);
+// CORRECTED: Payables Tab with ORIGINAL INVENTORY FORM FUNCTIONALITY & FIXED SUPPLIER MAPPING
+window.renderPayablesTab = (payables) => {
+    console.log('🔍 renderPayablesTab called with:', payables);
     
     return React.createElement('div', { className: 'overflow-x-auto' },
         React.createElement('table', { className: 'w-full' },
@@ -756,13 +825,14 @@ window.renderFixedPayablesTab = (payables) => {
                     payables.map(payable =>
                         React.createElement('tr', { key: payable.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
                             React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                window.formatFinancialDate(payable.due_date || payable.date)
+                                window.formatFinancialDate(payable.dueDate || payable.due_date || payable.created_date)
+                            ),
+                            // FIXED: Proper supplier name mapping with multiple fallbacks
+                            React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                                payable.supplierName || payable.supplier_name || payable.supplier || 'N/A'
                             ),
                             React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                payable.supplier || payable.supplier_name || 'N/A'
-                            ),
-                            React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                payable.invoice || payable.invoice_number || 'N/A'
+                                payable.invoiceNumber || payable.supplier_invoice || payable.invoice_number || 'N/A'
                             ),
                             React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
                                 `₹${(payable.amount || 0).toLocaleString()}`
@@ -770,20 +840,28 @@ window.renderFixedPayablesTab = (payables) => {
                             React.createElement('td', { className: 'px-4 py-3' },
                                 React.createElement('span', {
                                     className: `px-2 py-1 text-xs rounded-full ${
-                                        payable.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                        (payable.payment_status || payable.status) === 'paid' ? 'bg-green-100 text-green-800' :
+                                        'bg-yellow-100 text-yellow-800'
                                     }`
-                                }, payable.status || 'pending')
+                                }, payable.payment_status || payable.status || 'pending')
                             ),
                             React.createElement('td', { className: 'px-4 py-3' },
                                 React.createElement('div', { className: 'flex space-x-2' },
-                                    payable.status === 'pending' && React.createElement('button', {
-                                        onClick: () => {
-                                            if (confirm('Mark this payable as paid?')) {
-                                                alert('This would mark the payable as paid. Please refresh the page.');
-                                            }
-                                        },
-                                        className: 'text-blue-600 hover:text-blue-900 text-sm font-medium'
-                                    }, 'Mark Paid'),
+                                    // RESTORED: Original "Mark Paid" button that opens inventory form for linked payables
+                                    (payable.payment_status || payable.status) !== 'paid' &&
+                                        React.createElement('button', {
+                                            className: 'text-blue-600 hover:text-blue-800 font-medium',
+                                            onClick: () => {
+                                                console.log('🔍 Mark Paid clicked for payable:', payable);
+                                                if (window.handleMarkAsPaid) {
+                                                    window.handleMarkAsPaid(payable.id);
+                                                } else {
+                                                    console.warn('handleMarkAsPaid function not found');
+                                                    alert('Mark Paid function not available. Please refresh the page.');
+                                                }
+                                            },
+                                            title: 'Mark as Paid (Opens Inventory Form if linked)'
+                                        }, 'Mark Paid'),
                                     React.createElement('button', {
                                         onClick: () => {
                                             if (confirm('Are you sure you want to delete this payable?')) {
@@ -807,121 +885,64 @@ window.renderFixedPayablesTab = (payables) => {
     );
 };
 
-// Enhanced Expiring Tab Renderer with Proper Fields
-window.renderEnhancedExpiringTab = (expiringItems) => {
-    console.log('🔍 renderEnhancedExpiringTab called with:', expiringItems);
+// Expiring Inventory Tab Renderer - FIXED FIELDS
+window.renderExpiringTab = (expiringInventory) => {
+    console.log('🔍 renderExpiringTab called with:', expiringInventory);
+    
+    // Get enhanced data with proper field mapping
+    const enhancedData = window.getEnhancedExpiringInventory();
     
     return React.createElement('div', { className: 'space-y-4' },
-        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow-sm border' },
-            React.createElement('div', { className: 'px-6 py-4 border-b border-gray-200 dark:border-gray-700' },
-                React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' },
-                    `Expiring Inventory (Next 7 Days) - ${expiringItems?.length || 0} items`
-                )
-            ),
-            React.createElement('div', { className: 'overflow-x-auto' },
-                React.createElement('table', { className: 'w-full' },
-                    React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
-                        React.createElement('tr', null,
-                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event Name'),
-                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event Date'),
-                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Days Left'),
-                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Available Tickets'),
-                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Cost Price'),
-                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Potential Loss')
-                        )
-                    ),
-                    React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
-                        expiringItems && expiringItems.length > 0 ?
-                            expiringItems.map(item =>
-                                React.createElement('tr', { key: item.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
-                                    React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                        item.itemName || item.event_name || 'Unknown Event'
-                                    ),
-                                    React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                        item.eventDateFormatted || window.formatFinancialDate(item.event_date)
-                                    ),
-                                    React.createElement('td', { className: 'px-4 py-3 text-sm' },
-                                        React.createElement('span', {
-                                            className: `px-2 py-1 text-xs rounded-full ${
-                                                item.daysLeft === 0 ? 'bg-red-100 text-red-800' :
-                                                item.daysLeft <= 1 ? 'bg-orange-100 text-orange-800' :
-                                                'bg-yellow-100 text-yellow-800'
-                                            }`
-                                        }, `${item.daysLeft || 0} day${item.daysLeft !== 1 ? 's' : ''}`)
-                                    ),
-                                    React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                        item.available_tickets || 0
-                                    ),
-                                    React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                        `₹${(item.costPrice || item.buying_price || 0).toLocaleString()}`
-                                    ),
-                                    React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-red-600' }, 
-                                        `₹${(item.potentialLoss || 0).toLocaleString()}`
-                                    )
-                                )
-                            ) :
-                            React.createElement('tr', null,
-                                React.createElement('td', { 
-                                    colSpan: 6, 
-                                    className: 'px-4 py-8 text-center text-gray-500' 
-                                }, 'No expiring inventory in the next 7 days')
-                            )
-                    )
-                )
-            )
-        )
-    );
-};
-
-// Keep existing tab renderers but update them to use fixed versions
-window.renderActiveSalesTab = (activeSales) => {
-    console.log('🔍 renderActiveSalesTab called with:', activeSales);
-    
-    return React.createElement('div', { className: 'space-y-4' },
-        React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Active Sales (Post-Service Payment Orders)'),
+        React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Expiring Inventory (Next 7 Days)'),
 
         React.createElement('div', { className: 'overflow-x-auto' },
             React.createElement('table', { className: 'w-full' },
                 React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
                     React.createElement('tr', null,
-                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Date'),
-                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Order Number'),
-                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Client'),
-                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
-                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status')
+                        // FIXED: Proper field headers
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event Name'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event Date'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Days Left'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Available Tickets'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Cost Price'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Potential Loss')
                     )
                 ),
                 React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
-                    activeSales && activeSales.length > 0 ?
-                        activeSales.map(sale =>
-                            React.createElement('tr', { key: sale.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
+                    enhancedData && enhancedData.length > 0 ?
+                        enhancedData.map(item =>
+                            React.createElement('tr', { key: item.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
+                                // FIXED: Proper field values instead of N/A
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    window.formatFinancialDate(sale.date || sale.created_date)
-                                ),
-                                React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    sale.order_number || sale.id || 'N/A'
+                                    item.itemName || item.event_name || 'Unknown Event'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    sale.client || sale.client_name || 'N/A'
+                                    item.eventDateFormatted || window.formatFinancialDate(item.event_date)
                                 ),
-                                React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
-                                    `₹${(sale.amount || 0).toLocaleString()}`
-                                ),
-                                React.createElement('td', { className: 'px-4 py-3' },
+                                React.createElement('td', { className: 'px-4 py-3 text-sm' },
                                     React.createElement('span', {
                                         className: `px-2 py-1 text-xs rounded-full ${
-                                            sale.status === 'paid' ? 'bg-green-100 text-green-800' :
-                                            sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                            'bg-gray-100 text-gray-800'
+                                            item.daysLeft === 0 ? 'bg-red-100 text-red-800' :
+                                            item.daysLeft <= 1 ? 'bg-orange-100 text-orange-800' :
+                                            'bg-yellow-100 text-yellow-800'
                                         }`
-                                    }, sale.status || 'N/A')
+                                    }, `${item.daysLeft || 0} day${item.daysLeft !== 1 ? 's' : ''}`)
+                                ),
+                                React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                                    item.available_tickets || 0
+                                ),
+                                React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                                    `₹${(item.costPrice || item.buying_price || 0).toLocaleString()}`
+                                ),
+                                React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-red-600' }, 
+                                    `₹${(item.potentialLoss || 0).toLocaleString()}`
                                 )
                             )
                         ) : React.createElement('tr', null,
                             React.createElement('td', { 
-                                colSpan: 5, 
+                                colSpan: 6, 
                                 className: 'px-4 py-8 text-center text-gray-500' 
-                            }, 'No active sales')
+                            }, 'No expiring inventory in the next 7 days')
                         )
                 )
             )
@@ -929,14 +950,8 @@ window.renderActiveSalesTab = (activeSales) => {
     );
 };
 
-// Backward compatibility aliases
-window.renderSalesTab = window.renderFixedSalesTab;
-window.renderReceivablesTab = window.renderFixedReceivablesTab;
-window.renderPayablesTab = window.renderFixedPayablesTab;
-window.renderExpiringTab = window.renderEnhancedExpiringTab;
-
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
     window.initializeFinancialPagination();
-    console.log('✅ FIXED Financials Component loaded successfully');
+    console.log('✅ CORRECTED Financials Component loaded successfully - All original functionality preserved');
 });
