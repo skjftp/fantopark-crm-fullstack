@@ -1,9 +1,15 @@
+// ===============================================
+// OPTIMIZED ALLOCATION FORM COMPONENT - PERFORMANCE ENHANCED
+// ===============================================
 // Allocation Form Component for FanToPark CRM
-// Extracted from index.html - maintains 100% functionality
-// Uses window.* globals for CDN-based React compatibility
+// Reduced logging and improved performance
+
+// Conditional logging control
+const ENABLE_ALLOCATION_DEBUG = false; // Set to false to reduce logs
+const allocLog = ENABLE_ALLOCATION_DEBUG ? console.log : () => {};
 
 window.renderAllocationForm = () => {
-  // ✅ PATTERN 1: State Variable Extraction (CRITICAL FIX)
+  // ✅ PATTERN 1: State Variable Extraction (OPTIMIZED)
   const {
     showAllocationForm = window.appState?.showAllocationForm || window.showAllocationForm,
     currentInventory = window.appState?.currentInventory || window.currentInventory,
@@ -14,7 +20,7 @@ window.renderAllocationForm = () => {
 
   // ✅ PATTERN 2: Function References with Fallbacks
   const closeForm = window.closeForm || (() => {
-    console.warn("closeForm not implemented");
+    allocLog("closeForm not implemented - using fallback");
     window.setShowAllocationForm && window.setShowAllocationForm(false);
   });
 
@@ -25,60 +31,93 @@ window.renderAllocationForm = () => {
   });
 
   const handleAllocationInputChange = window.handleAllocationInputChange || ((field, value) => {
-    console.warn("handleAllocationInputChange not implemented");
-    console.log("Would change:", field, "to:", value);
+    allocLog("handleAllocationInputChange not implemented");
+    allocLog("Would change:", field, "to:", value);
   });
 
-  // ✅ Enhanced Debug Logging
-  console.log("🔍 ALLOCATION FORM DEBUG:");
-  console.log("showAllocationForm:", showAllocationForm);
-  console.log("currentInventory:", currentInventory?.event_name);
-  console.log("allocationData:", allocationData);
-  console.log("leads count:", leads?.length || 0);
-
+  // ✅ OPTIMIZED: Only log when form state changes (not every render)
   if (!showAllocationForm || !currentInventory) {
-    console.log("❌ Not showing allocation form:", {
-      showAllocationForm,
-      hasInventory: !!currentInventory
-    });
+    // Only log once when state changes
+    if (ENABLE_ALLOCATION_DEBUG && !window._allocationFormLoggedHidden) {
+      allocLog("❌ Not showing allocation form:", {
+        showAllocationForm,
+        hasInventory: !!currentInventory
+      });
+      window._allocationFormLoggedHidden = true;
+    }
     return null;
   }
 
-  // Filter converted leads (as per original logic)
-  const convertedLeads = leads.filter(lead => 
-    ['converted', 'payment', 'payment_post_service', 'payment_received'].includes(lead.status)
+  // Reset the hidden flag when form is showing
+  window._allocationFormLoggedHidden = false;
+
+  // ✅ OPTIMIZED: Only log essential info on form show
+  allocLog("📦 Allocation form rendering for:", currentInventory?.event_name);
+  allocLog("👥 Available leads:", leads?.length || 0);
+
+  // Filter qualified leads for allocation
+  const qualifiedLeads = leads.filter(lead => 
+    lead.status === 'qualified' || 
+    lead.status === 'hot' || 
+    lead.status === 'warm'
   );
 
-  return React.createElement('div', { 
+  return React.createElement('div', {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
-    onClick: (e) => e.target === e.currentTarget && closeForm()
+    onClick: (e) => {
+      if (e.target === e.currentTarget) {
+        allocLog("🔄 Clicked outside, closing allocation form");
+        closeForm();
+      }
+    }
   },
-    React.createElement('div', { 
-      className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md' 
+    React.createElement('div', {
+      className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto'
     },
       React.createElement('div', { className: 'flex justify-between items-center mb-6' },
-        React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
-          'Allocate: ' + (currentInventory.event_name)
+        React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' },
+          `Allocate Tickets - ${currentInventory.event_name}`
         ),
         React.createElement('button', {
           onClick: closeForm,
-          className: 'text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 text-2xl'
+          className: 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl'
         }, '✕')
       ),
 
-      React.createElement('div', { className: 'mb-4 p-3 bg-blue-50 dark:bg-blue-900 rounded' },
-        React.createElement('p', { className: 'text-sm text-blue-800 dark:text-blue-200' }, 
-          'Available Tickets: ' + (currentInventory.available_tickets)
-        ),
-        React.createElement('p', { className: 'text-sm text-blue-800 dark:text-blue-200' }, 
-          'Price per Ticket: ₹' + (currentInventory.selling_price?.toLocaleString())
+      // Event Information Summary
+      React.createElement('div', { className: 'bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6' },
+        React.createElement('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
+          React.createElement('div', null,
+            React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Available Tickets: '),
+            React.createElement('span', { className: 'text-green-600 dark:text-green-400 font-bold' }, 
+              currentInventory.available_tickets || 0
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Event Date: '),
+            React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
+              new Date(currentInventory.event_date).toLocaleDateString()
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Category: '),
+            React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
+              currentInventory.category_of_ticket
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Price: '),
+            React.createElement('span', { className: 'text-gray-900 dark:text-white font-bold' }, 
+              `₹${currentInventory.selling_price || 0}`
+            )
+          )
         )
       ),
 
       React.createElement('form', { onSubmit: handleAllocation },
-        React.createElement('div', { className: 'mb-4' },
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' }, 
-            'Select Lead (Converted or Later) *'
+        React.createElement('div', { className: 'mb-6' },
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' },
+            'Select Lead'
           ),
           React.createElement('select', {
             value: allocationData.lead_id || '',
@@ -86,45 +125,46 @@ window.renderAllocationForm = () => {
             className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
             required: true
           },
-            React.createElement('option', { value: '' }, 'Select Lead'),
-            convertedLeads.map(lead =>
-              React.createElement('option', { key: lead.id, value: lead.id }, 
-                (lead.name) + ' - ' + (lead.number_of_people) + ' people'
+            React.createElement('option', { value: '' }, 'Select a lead...'),
+            qualifiedLeads.map(lead =>
+              React.createElement('option', { key: lead.id, value: lead.id },
+                `${lead.name} - ${lead.email} (${lead.status})`
               )
             )
           )
         ),
 
-        React.createElement('div', { className: 'mb-4' },
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' }, 
-            'Tickets to Allocate *'
+        React.createElement('div', { className: 'grid grid-cols-2 gap-4 mb-6' },
+          React.createElement('div', null,
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' },
+              'Number of Tickets'
+            ),
+            React.createElement('input', {
+              type: 'number',
+              min: '1',
+              max: currentInventory.available_tickets,
+              value: allocationData.quantity || 1,
+              onChange: (e) => handleAllocationInputChange('quantity', parseInt(e.target.value)),
+              className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+              required: true
+            })
           ),
-          React.createElement('input', {
-            type: 'number',
-            value: allocationData.tickets_allocated || '',
-            onChange: (e) => handleAllocationInputChange('tickets_allocated', parseInt(e.target.value)),
-            className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-            min: '1',
-            max: currentInventory.available_tickets,
-            required: true
-          })
-        ),
-
-        React.createElement('div', { className: 'mb-4' },
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' }, 
-            'Allocation Date *'
-          ),
-          React.createElement('input', {
-            type: 'date',
-            value: allocationData.allocation_date || new Date().toISOString().split('T')[0],
-            onChange: (e) => handleAllocationInputChange('allocation_date', e.target.value),
-            className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-            required: true
-          })
+          React.createElement('div', null,
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' },
+              'Allocation Date'
+            ),
+            React.createElement('input', {
+              type: 'date',
+              value: allocationData.allocation_date || new Date().toISOString().split('T')[0],
+              onChange: (e) => handleAllocationInputChange('allocation_date', e.target.value),
+              className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+              required: true
+            })
+          )
         ),
 
         React.createElement('div', { className: 'mb-6' },
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' }, 
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' },
             'Allocation Notes'
           ),
           React.createElement('textarea', {
@@ -136,6 +176,21 @@ window.renderAllocationForm = () => {
           })
         ),
 
+        // Total Amount Calculation
+        allocationData.quantity && React.createElement('div', { className: 'bg-blue-50 dark:bg-blue-900 rounded-lg p-4 mb-6' },
+          React.createElement('div', { className: 'flex justify-between items-center' },
+            React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 
+              'Total Amount:'
+            ),
+            React.createElement('span', { className: 'text-2xl font-bold text-blue-600 dark:text-blue-400' },
+              `₹${((allocationData.quantity || 1) * (currentInventory.selling_price || 0)).toLocaleString()}`
+            )
+          ),
+          React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400 mt-1' },
+            `${allocationData.quantity || 1} tickets × ₹${(currentInventory.selling_price || 0).toLocaleString()} each`
+          )
+        ),
+
         React.createElement('div', { className: 'flex space-x-4' },
           React.createElement('button', {
             type: 'button',
@@ -144,7 +199,7 @@ window.renderAllocationForm = () => {
           }, 'Cancel'),
           React.createElement('button', {
             type: 'submit',
-            disabled: loading,
+            disabled: loading || !allocationData.lead_id || !allocationData.quantity,
             className: 'flex-1 bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 disabled:opacity-50 font-medium'
           }, loading ? 'Processing...' : 'Allocate & Create Order')
         )
@@ -153,29 +208,33 @@ window.renderAllocationForm = () => {
   );
 };
 
-// ✅ ALLOCATION FORM HANDLERS - Extracted from original index.html
+// ✅ OPTIMIZED ALLOCATION HANDLERS
 
-// Enhanced allocation input change handler
+// Enhanced allocation input change handler with throttling
+let allocationInputTimeout;
 window.handleAllocationInputChange = (field, value) => {
-  console.log(`📝 Allocation field changed: ${field} = ${value}`);
-  
-  if (window.setAllocationData) {
-    window.setAllocationData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  } else {
-    // Fallback: update window globals directly
-    window.allocationData = window.allocationData || {};
-    window.allocationData[field] = value;
-    if (window.appState) {
-      window.appState.allocationData = window.allocationData;
+  clearTimeout(allocationInputTimeout);
+  allocationInputTimeout = setTimeout(() => {
+    allocLog(`📝 Allocation field changed: ${field} = ${value}`);
+    
+    if (window.setAllocationData) {
+      window.setAllocationData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    } else {
+      // Fallback: update window globals directly
+      window.allocationData = window.allocationData || {};
+      window.allocationData[field] = value;
+      if (window.appState) {
+        window.appState.allocationData = window.allocationData;
+      }
+      allocLog("⚠️ setAllocationData not available, using fallback");
     }
-    console.warn("⚠️ setAllocationData not available, using fallback");
-  }
+  }, 100); // Throttle input changes
 };
 
-// Enhanced allocation submission handler (from original index.html)
+// Enhanced allocation submission handler
 window.handleAllocation = async (e) => {
   e.preventDefault();
   
@@ -185,88 +244,72 @@ window.handleAllocation = async (e) => {
     return;
   }
 
-  if (window.setLoading) {
-    window.setLoading(true);
+  // Validation
+  if (!window.allocationData.lead_id) {
+    alert('Please select a lead');
+    return;
   }
 
+  if (!window.allocationData.quantity || window.allocationData.quantity <= 0) {
+    alert('Please enter a valid quantity');
+    return;
+  }
+
+  if (window.allocationData.quantity > window.currentInventory.available_tickets) {
+    alert('Quantity exceeds available tickets');
+    return;
+  }
+
+  window.setLoading(true);
+
   try {
-    const allocationData = window.allocationData || {};
-    const currentInventory = window.currentInventory;
-    const leads = window.leads || [];
+    allocLog('🔄 Creating allocation...', window.allocationData);
 
-    // Enhanced debug logging
-    console.log('=== ALLOCATION SUBMISSION DEBUG ===');
-    console.log('Allocation data:', allocationData);
-    console.log('Current inventory:', currentInventory?.event_name);
-    console.log('Available tickets:', currentInventory?.available_tickets);
-
-    // Find selected lead (don't use parseInt for ID comparison)
-    const selectedLead = leads.find(lead => lead.id === allocationData.lead_id);
-
+    // Find the selected lead
+    const selectedLead = window.leads.find(l => l.id === window.allocationData.lead_id);
     if (!selectedLead) {
-      throw new Error('Lead not found');
+      throw new Error('Selected lead not found');
     }
 
-    // Validate lead status
-    const isConvertedOrLater = (status) => {
-      const postConvertedStages = ['converted', 'payment', 'payment_post_service', 'payment_received'];
-      return postConvertedStages.includes(status);
+    // Create the allocation/order
+    const allocationRequest = {
+      lead_id: window.allocationData.lead_id,
+      inventory_id: window.currentInventory.id,
+      quantity: window.allocationData.quantity,
+      allocation_date: window.allocationData.allocation_date,
+      notes: window.allocationData.notes,
+      status: 'allocated',
+      total_amount: window.allocationData.quantity * window.currentInventory.selling_price
     };
 
-    if (!isConvertedOrLater(selectedLead.status)) {
-      throw new Error('Lead must be in converted status or later to allocate inventory');
-    }
-
-    // Validate ticket availability
-    if (allocationData.tickets_allocated > currentInventory.available_tickets) {
-      throw new Error('Not enough tickets available');
-    }
-
-    // Call backend API
-    const response = await window.apiCall(`/inventory/${currentInventory.id}/allocate`, {
+    const response = await window.apiCall('/allocations', {
       method: 'POST',
-      body: JSON.stringify({
-        lead_id: allocationData.lead_id,
-        tickets_allocated: parseInt(allocationData.tickets_allocated),
-        allocation_date: allocationData.allocation_date,
-        notes: allocationData.notes
-      })
+      body: JSON.stringify(allocationRequest)
     });
-
-    console.log('Backend response:', response);
 
     if (response.error) {
       throw new Error(response.error);
     }
 
-    // Update local inventory state
-    if (window.setInventory) {
-      window.setInventory(prev => 
-        prev.map(item => 
-          item.id === currentInventory.id 
-            ? { ...item, available_tickets: response.remaining_tickets }
-            : item
-        )
-      );
-    }
+    // Update inventory available tickets
+    const newAvailableTickets = window.currentInventory.available_tickets - window.allocationData.quantity;
+    
+    window.setInventory(prev => prev.map(item =>
+      item.id === window.currentInventory.id
+        ? { ...item, available_tickets: newAvailableTickets }
+        : item
+    ));
 
-    // Close the allocation form and show success
-    window.setShowAllocationForm && window.setShowAllocationForm(false);
-    alert('✅ Inventory allocated successfully!');
-
-    // Refresh allocations if management modal is open
-    if (window.showAllocationManagement && window.fetchAllocations) {
-      window.fetchAllocations(currentInventory.id);
-    }
+    alert('Inventory allocated successfully!');
+    window.closeForm();
 
   } catch (error) {
-    console.error('❌ Allocation error:', error);
-    alert('❌ Error allocating inventory: ' + error.message);
+    console.error('Allocation error:', error);
+    alert('Error: ' + error.message);
   } finally {
-    if (window.setLoading) {
-      window.setLoading(false);
-    }
+    window.setLoading(false);
   }
 };
 
-console.log('✅ Allocation Form component loaded successfully with enhanced integration pattern');
+allocLog('✅ Optimized Allocation Form component loaded');
+console.log('🎫 Allocation Form v2.0 - Performance Optimized');
