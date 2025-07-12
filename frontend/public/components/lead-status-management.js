@@ -18,16 +18,21 @@ window.getSupplyTeamMember = async function() {
     );
     
     if (supplyTeamMembers.length === 0) {
-      console.warn('No active supply team members found');
+      console.warn('⚠️ No active supply team members found, using fallback');
       return 'akshay@fantopark.com'; // fallback
     }
     
-    // For now, assign to the first available supply team member
-    // You can implement round-robin or load balancing logic here
-    return supplyTeamMembers[0].email;
+    console.log('✅ Found', supplyTeamMembers.length, 'supply team members');
+    
+    // TODO: Implement more sophisticated assignment logic here
+    // Options: round-robin, least busy, by specialization, etc.
+    const selectedMember = supplyTeamMembers[0];
+    console.log('🎯 Assigning to:', selectedMember.email, '(' + selectedMember.name + ')');
+    
+    return selectedMember.email;
     
   } catch (error) {
-    console.error('Error getting supply team member:', error);
+    console.error('❌ Error getting supply team member:', error);
     return 'akshay@fantopark.com'; // fallback
   }
 };
@@ -75,6 +80,20 @@ if (oldStatus === 'quote_requested' && newStatus === 'quote_received') {
   window.openQuoteUploadModal(currentLead);
   return;
 }
+
+    if (newStatus === 'quote_requested') {
+  console.log('📋 QUOTE REQUEST WORKFLOW:');
+  console.log('Original assignee:', currentLead.assigned_to);
+  console.log('New assignee (Supply Team):', updateData.assigned_to);
+  console.log('Stored original_assignee:', updateData.original_assignee);
+}
+
+if (oldStatus === 'quote_requested' && newStatus === 'quote_received') {
+  console.log('📄 QUOTE RECEIVED WORKFLOW:');
+  console.log('Opening quote upload modal for lead:', currentLead.name);
+  console.log('Will restore to original assignee:', currentLead.original_assignee);
+}
+    
     console.log('Updating lead with full data:', updateData);
 
     // API call to update lead status
@@ -126,6 +145,10 @@ if (oldStatus === 'quote_requested' && newStatus === 'quote_received') {
     alert('Lead status updated successfully!');
   } catch (error) {
     console.error('Error updating lead status:', error);
+if (window.activeTab === 'myactions' && window.fetchMyActions) {
+  window.fetchMyActions();
+}
+    
     window.setLoading(false);
     alert('Failed to update lead status: ' + error.message);
   }
@@ -280,7 +303,7 @@ const updateData = {
     }
 
     window.setLoading(false);
-    alert('Lead moved to Quote Requested stage and assigned to Akshay Purohit!');
+    alert('Lead moved to Quote Requested stage and assigned to Supply Team!');
   } catch (error) {
     console.error('Error updating lead to quote requested:', error);
     window.setLoading(false);
