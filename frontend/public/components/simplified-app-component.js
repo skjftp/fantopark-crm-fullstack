@@ -1197,8 +1197,8 @@ window.viewLeadDetails = handlers.openLeadDetail || window.openLeadDetail || ((l
   // Lead Progression Functions
   window.handleLeadProgression = handlers.handleLeadProgression || handlers.progressLead || ((leadId, newStatus) => {
     console.log("🔄 handleLeadProgression called:", leadId, newStatus);
-    if (handlers.updateLeadStatus) {
-      return handlers.updateLeadStatus(leadId, newStatus);
+    if (window.updateLeadStatus) {
+  return window.updateLeadStatus(leadId, newStatus);
     } else {
       console.warn("⚠️ updateLeadStatus handler not available");
     }
