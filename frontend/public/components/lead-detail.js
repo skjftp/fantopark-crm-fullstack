@@ -2,6 +2,103 @@
 // Extracted from index.html - maintains 100% functionality
 // Uses window.* globals for CDN-based React compatibility
 
+// ===== QUOTE SECTION COMPONENT =====
+const QuoteSection = () => {
+  const lead = window.appState.currentLead;
+  
+  // Only show if lead has been through quote process
+  if (!lead.quote_uploaded_date && !lead.quote_notes && !lead.quote_pdf_filename && lead.status !== 'quote_requested' && lead.status !== 'quote_received') {
+    return null;
+  }
+
+  return React.createElement('div', { className: 'mt-6 bg-white rounded-lg border p-4' },
+    React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-4 flex items-center' },
+      React.createElement('span', { className: 'mr-2' }, '📄'),
+      'Quote Information'
+    ),
+    
+    React.createElement('div', { className: 'space-y-4' },
+      
+      // Quote Status
+      React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+        React.createElement('div', null,
+          React.createElement('span', { className: 'font-medium text-gray-700' }, 'Quote Status: '),
+          React.createElement('span', { 
+            className: `px-2 py-1 rounded text-sm ${
+              lead.status === 'quote_requested' ? 'bg-yellow-100 text-yellow-800' :
+              lead.status === 'quote_received' ? 'bg-green-100 text-green-800' : 
+              'bg-gray-100 text-gray-800'
+            }`
+          }, 
+            lead.status === 'quote_requested' ? '⏳ Quote Requested' :
+            lead.status === 'quote_received' ? '✅ Quote Received' :
+            'No Quote Process'
+          )
+        ),
+        
+        // Quote Assignment Info
+        lead.status === 'quote_requested' && lead.assigned_team === 'supply' && React.createElement('div', null,
+          React.createElement('span', { className: 'font-medium text-gray-700' }, 'Assigned to: '),
+          React.createElement('span', { className: 'text-blue-600' }, 
+            window.getUserDisplayName(lead.assigned_to, window.users) + ' (Supply Team)'
+          )
+        )
+      ),
+      
+      // Original Assignment Info (when restored)
+      lead.original_assignee && lead.status === 'quote_received' && React.createElement('div', { className: 'bg-blue-50 border border-blue-200 rounded-md p-3' },
+        React.createElement('div', { className: 'flex items-start' },
+          React.createElement('div', { className: 'flex-shrink-0' },
+            React.createElement('span', { className: 'text-blue-500 text-sm' }, '🔄')
+          ),
+          React.createElement('div', { className: 'ml-2' },
+            React.createElement('p', { className: 'text-sm text-blue-800' },
+              `Lead has been reassigned back to: ${window.getUserDisplayName(lead.original_assignee, window.users)}`
+            )
+          )
+        )
+      ),
+      
+      // Quote Upload Information
+      (lead.quote_uploaded_date || lead.quote_notes || lead.quote_pdf_filename) && React.createElement('div', { className: 'border-t pt-4' },
+        React.createElement('h4', { className: 'font-medium text-gray-900 mb-3' }, 'Quote Details'),
+        
+        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+          
+          // Upload Date
+          lead.quote_uploaded_date && React.createElement('div', null,
+            React.createElement('span', { className: 'font-medium text-gray-700' }, 'Processed Date: '),
+            React.createElement('span', { className: 'text-gray-900' }, 
+              new Date(lead.quote_uploaded_date).toLocaleDateString() + ' ' + 
+              new Date(lead.quote_uploaded_date).toLocaleTimeString()
+            )
+          ),
+          
+          // File Information
+          lead.quote_pdf_filename && React.createElement('div', null,
+            React.createElement('span', { className: 'font-medium text-gray-700' }, 'Quote File: '),
+            React.createElement('div', { className: 'flex items-center mt-1' },
+              React.createElement('span', { className: 'mr-2' }, '📄'),
+              React.createElement('span', { className: 'text-blue-600 text-sm' }, lead.quote_pdf_filename),
+              lead.quote_file_size && React.createElement('span', { className: 'text-gray-500 text-xs ml-2' },
+                `(${(lead.quote_file_size / 1024).toFixed(1)} KB)`
+              )
+            )
+          )
+        ),
+        
+        // Quote Notes
+        lead.quote_notes && React.createElement('div', { className: 'mt-4' },
+          React.createElement('span', { className: 'font-medium text-gray-700' }, 'Quote Notes: '),
+          React.createElement('div', { className: 'mt-2 p-3 bg-gray-50 rounded-md border' },
+            React.createElement('p', { className: 'text-sm text-gray-800 whitespace-pre-wrap' }, lead.quote_notes)
+          )
+        )
+      )
+    )
+  );
+};
+
 window.renderLeadDetail = () => {
   if (!window.appState.showLeadDetail || !window.appState.currentLead) return null;
 
@@ -9,7 +106,6 @@ window.renderLeadDetail = () => {
   const nextActions = status.next || [];
 
   return React.createElement('div', { 
-    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
     onClick: (e) => e.target === e.currentTarget && closeForm()
   },
     React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[95vh] overflow-y-auto' },
@@ -190,6 +286,9 @@ window.renderLeadDetail = () => {
           )
         ),
 
+        // ===== QUOTE SECTION - ADDED HERE =====
+        React.createElement(QuoteSection),
+
         window.appState.currentLead.payment_details && React.createElement('div', { className: 'mt-6 bg-green-50 rounded-lg p-4' },
           React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-3' }, '💳 Payment Details'),
           React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
@@ -268,7 +367,7 @@ window.renderLeadDetail = () => {
           )
         ),                    
 
-        // 📞 **NEW: COMMUNICATION TIMELINE** - This is the main addition!
+        // 📞 **COMMUNICATION TIMELINE** - This is the main addition!
         React.createElement(CommunicationTimeline, {
           leadId: window.appState.currentLead.id,
           leadName: window.appState.currentLead.name
@@ -278,4 +377,4 @@ window.renderLeadDetail = () => {
   );
 };
 
-console.log('✅ Lead Detail component loaded successfully');
+console.log('✅ Lead Detail component with Quote Section loaded successfully');
