@@ -587,6 +587,21 @@ const getDisplayTemperature = (lead) => {
   return null;
 };
 
+
+<script>
+// Fix the downloadSampleCSV function after everything loads
+window.addEventListener('load', function() {
+  const originalFunction = window.downloadSampleCSV;
+  
+  window.downloadSampleCSV = function(type) {
+    // Use global csvUploadType if no parameter passed
+    if (!type) {
+      type = window.csvUploadType || 'inventory';
+    }
+    return originalFunction(type);
+  };
+});
+</script>  
 // Render the simplified app
 ReactDOM.render(React.createElement(window.SimplifiedApp), document.getElementById('root'));
 </script>
