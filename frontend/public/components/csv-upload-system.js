@@ -328,15 +328,10 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
             className: 'grid grid-cols-1 md:grid-cols-3 gap-2'
           },
             // CSV Download - FIXED to prevent React event issues
-            React.createElement('button', {
-              onClick: (e) => {
-                e.preventDefault();
-                console.log("🎯 Template button clicked, setting type:", type);
-                window.csvUploadType = type;
-                window.downloadSampleCSV(type); // Pass type explicitly
-              },
-              className: 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors'
-            }, '📄 CSV Template'),
+React.createElement('button', {
+  onClick: window.getFixedCSVModalButtonHandlers(type).csvTemplate,
+  className: 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors'
+}, '📄 CSV Template'),
 
             // Excel buttons (leads only)
             type === 'leads' && React.createElement('button', {
