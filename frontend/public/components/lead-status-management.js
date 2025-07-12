@@ -8,14 +8,23 @@
 // ====== UPDATED QUOTE REQUEST ASSIGNMENT LOGIC ======
 // File: lead-status-management.js
 
-// ADD THIS NEW HELPER FUNCTION at the top of the file:
 window.getSupplyTeamMember = async function() {
+  console.log('🔍 === DEBUG getSupplyTeamMember CALLED ===');
+  console.log('🔍 window.users length:', window.users?.length || 'undefined');
+  console.log('🔍 window.users:', window.users);
+  
   try {
     // Get all supply team members
-    const supplyTeamMembers = window.users.filter(user => 
-      ['supply_manager', 'supply_service_manager', 'supply_sales_service_manager'].includes(user.role) &&
-      user.status === 'active'
-    );
+    const supplyTeamMembers = window.users.filter(user => {
+      const isSupplyRole = ['supply_manager', 'supply_service_manager', 'supply_sales_service_manager'].includes(user.role);
+      const isActive = user.status === 'active';
+      
+      console.log('🔍 Checking user:', user.email, 'role:', user.role, 'status:', user.status, 'isSupply:', isSupplyRole, 'isActive:', isActive);
+      
+      return isSupplyRole && isActive;
+    });
+    
+    console.log('🔍 Found supply team members:', supplyTeamMembers);
     
     if (supplyTeamMembers.length === 0) {
       console.warn('⚠️ No active supply team members found, using fallback');
@@ -24,8 +33,6 @@ window.getSupplyTeamMember = async function() {
     
     console.log('✅ Found', supplyTeamMembers.length, 'supply team members');
     
-    // TODO: Implement more sophisticated assignment logic here
-    // Options: round-robin, least busy, by specialization, etc.
     const selectedMember = supplyTeamMembers[0];
     console.log('🎯 Assigning to:', selectedMember.email, '(' + selectedMember.name + ')');
     
@@ -37,7 +44,13 @@ window.getSupplyTeamMember = async function() {
   }
 };
 
+// ===== DEBUG VERSION: Add this to lead-status-management.js =====
 window.updateLeadStatus = async function(leadId, newStatus) {
+  console.log('🔍 === DEBUG updateLeadStatus CALLED ===');
+  console.log('🔍 leadId:', leadId);
+  console.log('🔍 newStatus:', newStatus);
+  console.log('🔍 Function location:', 'lead-status-management.js');
+  
   if (!window.hasPermission('leads', 'progress')) {
     alert('You do not have permission to progress leads');
     return;
@@ -48,53 +61,71 @@ window.updateLeadStatus = async function(leadId, newStatus) {
 
     // CRITICAL: Get the full lead object first
     const currentLead = window.leads.find(l => l.id === leadId);
+    console.log('🔍 currentLead found:', currentLead);
+    
     if (!currentLead) {
       alert('Lead not found');
       window.setLoading(false);
       return;
     }
 
-    const oldStatus = currentLead.status; // Store old status for reminder logic
+    const oldStatus = currentLead.status;
+    console.log('🔍 oldStatus:', oldStatus);
+    console.log('🔍 newStatus:', newStatus);
 
     // ✅ QUOTE WORKFLOW LOGIC
-let updateData = {
-  ...currentLead,
-  status: newStatus,
-  last_contact_date: new Date().toISOString(),
-  [newStatus + '_date']: new Date().toISOString(),
-  updated_date: new Date().toISOString()
-};
+    let updateData = {
+      ...currentLead,
+      status: newStatus,
+      last_contact_date: new Date().toISOString(),
+      [newStatus + '_date']: new Date().toISOString(),
+      updated_date: new Date().toISOString()
+    };
 
-// Handle quote_requested -> auto-assign to Akshay and store original assignee
-if (newStatus === 'quote_requested') {
-  updateData.original_assignee = currentLead.assigned_to; // Store who it was assigned to
-  updateData.assigned_to = await window.getSupplyTeamMember(); // Auto-assign to Supply Team member
-  updateData.assigned_team = 'supply'; // Mark as supply team assignment
-}
+    console.log('🔍 Initial updateData:', updateData);
 
-// Handle quote_received -> restore original assignee  
-if (oldStatus === 'quote_requested' && newStatus === 'quote_received') {
-  updateData.assigned_to = currentLead.original_assignee || currentLead.assigned_to;
-  // Don't proceed with normal update - open quote upload modal instead
-  window.setLoading(false);
-  window.openQuoteUploadModal(currentLead);
-  return;
-}
-
+    // Handle quote_requested -> auto-assign to Supply Team and store original assignee
     if (newStatus === 'quote_requested') {
-  console.log('📋 QUOTE REQUEST WORKFLOW:');
-  console.log('Original assignee:', currentLead.assigned_to);
-  console.log('New assignee (Supply Team):', updateData.assigned_to);
-  console.log('Stored original_assignee:', updateData.original_assignee);
-}
+      console.log('🎯 ENTERING QUOTE_REQUESTED LOGIC');
+      console.log('🔍 currentLead.assigned_to:', currentLead.assigned_to);
+      
+      // Check if getSupplyTeamMember function exists
+      if (typeof window.getSupplyTeamMember !== 'function') {
+        console.error('❌ window.getSupplyTeamMember function not found!');
+        alert('getSupplyTeamMember function missing!');
+        return;
+      }
+      
+      try {
+        const supplyMember = await window.getSupplyTeamMember();
+        console.log('🔍 getSupplyTeamMember returned:', supplyMember);
+        
+        updateData.original_assignee = currentLead.assigned_to;
+        updateData.assigned_to = supplyMember;
+        updateData.assigned_team = 'supply';
+        
+        console.log('🎯 QUOTE ASSIGNMENT APPLIED:');
+        console.log('🔍 original_assignee:', updateData.original_assignee);
+        console.log('🔍 new assigned_to:', updateData.assigned_to);
+        console.log('🔍 assigned_team:', updateData.assigned_team);
+        
+      } catch (supplyError) {
+        console.error('❌ Error in getSupplyTeamMember:', supplyError);
+        alert('Failed to get supply team member: ' + supplyError.message);
+        return;
+      }
+    }
 
-if (oldStatus === 'quote_requested' && newStatus === 'quote_received') {
-  console.log('📄 QUOTE RECEIVED WORKFLOW:');
-  console.log('Opening quote upload modal for lead:', currentLead.name);
-  console.log('Will restore to original assignee:', currentLead.original_assignee);
-}
-    
-    console.log('Updating lead with full data:', updateData);
+    // Handle quote_received -> restore original assignee  
+    if (oldStatus === 'quote_requested' && newStatus === 'quote_received') {
+      console.log('🔍 ENTERING QUOTE_RECEIVED LOGIC');
+      updateData.assigned_to = currentLead.original_assignee || currentLead.assigned_to;
+      window.setLoading(false);
+      window.openQuoteUploadModal(currentLead);
+      return;
+    }
+
+    console.log('🔍 Final updateData before API call:', updateData);
 
     // API call to update lead status
     const response = await window.apiCall('/leads/' + leadId, {
@@ -102,8 +133,10 @@ if (oldStatus === 'quote_requested' && newStatus === 'quote_received') {
       body: JSON.stringify(updateData)
     });
 
+    console.log('🔍 API Response:', response);
+    console.log('🔍 API Response Data:', response.data);
+
     // Update local state with response from server
-    console.log("Status update response:", response);
     window.setLeads(prevLeads => 
       prevLeads.map(lead => 
         lead.id === leadId ? response.data : lead
@@ -111,44 +144,20 @@ if (oldStatus === 'quote_requested' && newStatus === 'quote_received') {
     );
 
     // Update current lead if in detail view
-    if (window.showLeadDetail && currentLead?.id === leadId) {
+    if (window.showLeadDetail && window.currentLead?.id === leadId) {
       window.setCurrentLead(response.data);
     }
 
-    // ===== FIX 2: ADD MISSING REMINDER CREATION LOGIC =====
-    console.log(`🔔 Checking if reminder needed for status change: ${oldStatus} → ${newStatus}`);
-    
-    // Auto-create reminders if needed
-    if (window.shouldCreateReminderOnStatusChange(newStatus)) {
-      console.log(`✅ Creating automatic reminder for status: ${newStatus}`);
-      try {
-        await window.createStatusChangeReminder(response.data, newStatus);
-        console.log('🎯 Automatic reminder created successfully');
-      } catch (reminderError) {
-        console.error('❌ Failed to create automatic reminder:', reminderError);
-        // Don't fail the whole operation if reminder creation fails
-      }
-    }
-
-    // Send notifications if required
-    if (window.shouldNotifyOnStatusChange(oldStatus, newStatus)) {
-      try {
-        await window.sendStatusChangeNotification(response.data, oldStatus, newStatus);
-        console.log('📧 Status change notification sent');
-      } catch (notificationError) {
-        console.error('❌ Failed to send notification:', notificationError);
-        // Don't fail the whole operation if notification fails
-      }
+    // Check if My Actions refresh is needed
+    if (window.activeTab === 'myactions' && window.fetchMyActions) {
+      console.log('🔄 Refreshing My Actions');
+      window.fetchMyActions();
     }
 
     window.setLoading(false);
     alert('Lead status updated successfully!');
   } catch (error) {
-    console.error('Error updating lead status:', error);
-if (window.activeTab === 'myactions' && window.fetchMyActions) {
-  window.fetchMyActions();
-}
-    
+    console.error('❌ Error updating lead status:', error);
     window.setLoading(false);
     alert('Failed to update lead status: ' + error.message);
   }
