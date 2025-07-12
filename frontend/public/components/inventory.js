@@ -1,5 +1,5 @@
 // components/inventory.js
-// Inventory Content Component - Complete with CSV Upload Fix
+// Inventory Content Component - Extracted from index.html
 // Complete inventory management functionality with advanced filtering, sorting, and allocation features
 
 window.renderInventoryContent = () => {
@@ -75,63 +75,28 @@ window.renderInventoryContent = () => {
     return React.createElement('div', { className: 'space-y-6' },
         React.createElement('div', { className: 'flex justify-between items-center' },
             React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Inventory Management'),
-            
-            // Action buttons container
-            React.createElement('div', { className: 'flex gap-2' },
-                // Add New Event button
-                window.hasPermission('inventory', 'write') && React.createElement('button', { 
-                    className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
-                    onClick: window.openAddInventoryForm
-                }, '+ Add New Event'),
-                
-                // Upload CSV button - FIXED VERSION
-React.createElement('button', {
-    onClick: () => {
-        window.setCSVUploadType('inventory');
-        window.setShowCSVUploadModal(true);
-    },
-    className: 'bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded flex items-center gap-2'
-}, 
-    React.createElement('svg', {
-        className: 'w-5 h-5',
-        fill: 'none',
-        stroke: 'currentColor',
-        viewBox: '0 0 24 24'
-    },
-        React.createElement('path', {
-            strokeLinecap: 'round',
-            strokeLinejoin: 'round',
-            strokeWidth: 2,
-            d: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12'
-        })
-    ),
-    'Upload CSV'
-)
-                
-                // Direct Download button (for testing)
-                React.createElement('button', {
-                    onClick: () => {
-                        console.log("📦 Direct download button clicked");
-                        window.downloadInventoryCSVDirect();
-                    },
-                    className: 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center gap-2',
-                    title: 'Download CSV template directly'
-                }, 
-                    React.createElement('svg', {
-                        className: 'w-5 h-5',
-                        fill: 'none',
-                        stroke: 'currentColor',
-                        viewBox: '0 0 24 24'
-                    },
-                        React.createElement('path', {
-                            strokeLinecap: 'round',
-                            strokeLinejoin: 'round',
-                            strokeWidth: 2,
-                            d: 'M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-                        })
-                    ),
-                    'Download Template'
-                )
+            window.hasPermission('inventory', 'write') && React.createElement('button', { 
+                className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
+                onClick: window.openAddInventoryForm
+            }, '+ Add New Event'),
+            React.createElement('button', {
+                onClick: window.openInventoryCSVUpload,
+                className: 'bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded flex items-center gap-2'
+            }, 
+                React.createElement('svg', {
+                    className: 'w-5 h-5',
+                    fill: 'none',
+                    stroke: 'currentColor',
+                    viewBox: '0 0 24 24'
+                },
+                    React.createElement('path', {
+                        strokeLinecap: 'round',
+                        strokeLinejoin: 'round',
+                        strokeWidth: 2,
+                        d: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12'
+                    })
+                ),
+                'Upload CSV'
             )
         ),
 
@@ -404,5 +369,3 @@ React.createElement('button', {
         )
     );
 };
-
-console.log("✅ Complete inventory.js loaded with CSV upload fixes");
