@@ -1204,10 +1204,6 @@ window.viewLeadDetails = handlers.openLeadDetail || window.openLeadDetail || ((l
     }
   });
   
-  window.updateLeadStatus = handlers.updateLeadStatus || ((leadId, newStatus) => {
-    console.log("🔄 updateLeadStatus called:", leadId, newStatus);
-    console.warn("⚠️ updateLeadStatus not implemented in handlers");
-  });
 
   window.handleChoiceSelection = handlers.handleChoiceSelection || ((choice) => {
     console.log("🎯 handleChoiceSelection called with:", choice);
