@@ -9,12 +9,11 @@ console.log("🚀 Loading Fixed FanToPark CSV Upload System");
 window.downloadSampleCSV = function(eventOrType) {
   console.log("📥 CSV template download starting...");
   
-  // Handle React event objects properly - this was the main issue
+  // Better parameter handling - THIS WAS THE MAIN ISSUE
   let type;
-  if (typeof eventOrType === 'string') {
+  if (typeof eventOrType === 'string' && eventOrType.trim() !== '') {
     type = eventOrType;
   } else {
-    // React passes event object, use global csvUploadType instead
     type = window.csvUploadType || 'inventory';
   }
   
@@ -24,13 +23,18 @@ window.downloadSampleCSV = function(eventOrType) {
   
   if (type === 'leads') {
     filename = 'fantopark_leads_template.csv';
-    csvContent = 'name,phone,email,event_interest,budget_range,event_date,notes,source\n';
-    csvContent += '"John Smith","9876543210","john.smith@email.com","Cricket Match","50000-100000","2024-12-25","Interested in VIP tickets","Website"\n';
-    csvContent += '"Sarah Johnson","9876543211","sarah.j@email.com","Tennis Tournament","25000-50000","2024-12-31","Looking for premium seating","Referral"\n';
-    csvContent += '"Mike Brown","9876543212","mike.brown@email.com","Football Match","30000-75000","2025-01-15","Group booking inquiry","Social Media"\n';
-    csvContent += '"Lisa Davis","9876543213","lisa.davis@email.com","Basketball Game","15000-30000","2025-02-20","First time customer","Phone Call"';
+    
+    // ===== COMPLETE LEADS HEADERS (ALL ACTUAL FIELDS FROM YOUR FORMS) =====
+    csvContent = 'name,email,phone,company,business_type,source,date_of_enquiry,first_touch_base_done_by,city_of_residence,country_of_residence,lead_for_event,number_of_people,has_valid_passport,visa_available,attended_sporting_event_before,annual_income_bracket,potential_value,status,assigned_to,last_quoted_price,notes\n';
+    
+    // Sample data with all fields populated
+    csvContent += '"John Smith","john.smith@email.com","9876543210","Smith Enterprises","B2B","LinkedIn","2024-12-25","Ankita","Mumbai City North East","India","Cricket Match","4","Yes","Not Required","Yes","₹50-100 Lakhs","150000","contacted","Ankita","140000","Interested in VIP cricket packages for corporate team"\n';
+    csvContent += '"Sarah Johnson","sarah.j@email.com","9876543211","","B2C","Instagram","2024-12-31","Varun","Delhi NCR","India","Tennis Tournament","2","Yes","Yes","No","₹25-50 Lakhs","75000","qualified","Varun","70000","First time sports event attendee, very enthusiastic"\n';
+    csvContent += '"Mike Brown","mike.brown@email.com","9876543212","Tech Solutions Ltd","B2B","Website","2025-01-15","Pratik","Bangalore City","India","Football Match","8","No","Processing","Yes","₹100+ Lakhs","200000","warm","Pratik","190000","Large group booking for international football match"\n';
+    csvContent += '"Lisa Davis","lisa.davis@email.com","9876543213","","B2C","Friends and Family","2025-02-20","Rahul","Chennai Metro","India","Basketball Game","1","Yes","Not Required","No","₹10-25 Lakhs","25000","hot","Rahul","24000","Ready to book premium basketball seats"';
+    
   } else {
-    // Default to inventory (this was the missing logic)
+    // INVENTORY FIELDS - UNCHANGED (these were correct)
     filename = 'fantopark_inventory_template.csv';
     csvContent = 'event_name,event_date,event_type,sports,venue,day_of_match,category_of_ticket,stand,total_tickets,available_tickets,mrp_of_ticket,buying_price,selling_price,inclusions,booking_person,procurement_type,notes,paymentStatus,supplierName,supplierInvoice,totalPurchaseAmount,amountPaid,paymentDueDate\n';
     csvContent += '"IPL Mumbai Indians vs Chennai Super Kings Final","2024-12-25","IPL","Cricket","Wankhede Stadium","Not Applicable","VIP","North Stand Premium","100","100","8000","6000","7500","Premium food, beverages, parking, merchandise","Sports Events Pvt Ltd","pre_inventory","Premium match tickets with hospitality package","paid","Mumbai Sports Supplier","INV-2024-001","600000","600000","2024-12-20"\n';
@@ -39,7 +43,15 @@ window.downloadSampleCSV = function(eventOrType) {
     csvContent += '"Basketball Championship Final","2025-02-20","Basketball","Basketball","Indira Gandhi Arena","Not Applicable","Premium","Court Side","80","75","4000","3000","3500","VIP seating, complimentary drinks","Basketball Pro League","on_demand","Championship final premium seats","paid","Delhi Basketball Suppliers","INV-BB-003","240000","240000","2025-02-15"';
   }
   
+  // VALIDATION CHECK TO PREVENT UNDEFINED FILENAME
+  if (!filename || filename.trim() === '') {
+    console.error("❌ CRITICAL ERROR: filename is undefined!");
+    alert('Error: Could not generate filename. Please try again.');
+    return;
+  }
+  
   console.log("📁 Creating file:", filename);
+  console.log("📄 Content length:", csvContent.length);
   
   try {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -61,6 +73,32 @@ window.downloadSampleCSV = function(eventOrType) {
     alert('Download failed: ' + error.message);
   }
 };
+
+// ENHANCED STATE SYNCHRONIZATION
+window.setCSVUploadType = function(type) {
+  console.log("📋 setCSVUploadType called with:", type);
+  window.csvUploadType = type;
+  
+  // Try to update React state if available
+  if (window.appState && window.appState.setCSVUploadType) {
+    window.appState.setCSVUploadType(type);
+  }
+  
+  console.log("📋 CSV upload type set to:", type);
+};
+
+// ENHANCED INVENTORY CSV UPLOAD OPENER
+window.openInventoryCSVUpload = function() {
+  console.log("📦 Opening inventory CSV upload");
+  window.setCSVUploadType('inventory');
+  setTimeout(() => {
+    window.setShowCSVUploadModal(true);
+  }, 50);
+};
+
+console.log("✅ Complete CSV fix loaded with ALL actual fields!");
+console.log("🔧 Leads now have 21 complete fields from your actual forms");
+console.log("📦 Inventory fields remain unchanged (they were correct)");
 
 // Excel download functions
 window.downloadSampleExcel = function() {
