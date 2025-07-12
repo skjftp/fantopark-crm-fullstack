@@ -4,8 +4,6 @@
 // Replace your entire chart-system.js with this code
 // ===============================================
 
-console.log('🎯 Loading FanToPark CRM Chart System v6.0 (Emergency-Tested)...');
-
 // Performance and logging controls
 const ENABLE_CHART_DEBUG = true;
 const chartLog = ENABLE_CHART_DEBUG ? console.log : () => {};
@@ -390,21 +388,3 @@ function initializeWorkingChartSystem() {
 // ===============================================
 initializeWorkingChartSystem();
 
-// ===============================================
-// SUCCESS MESSAGE
-// ===============================================
-console.log('🎯 FanToPark CRM Chart System v6.0 - EMERGENCY-TESTED & WORKING');
-console.log('✅ Based on working emergency fix');
-console.log('✅ Fixed: Chart.js DOM errors');
-console.log('✅ Fixed: Infinite loops');
-console.log('✅ Fixed: React re-render conflicts');
-console.log('✅ Fixed: Filter data flash');
-console.log('✅ Fixed: Event filter DOM errors');
-console.log('✅ Fixed: Excessive re-rendering');
-console.log('✅ Fixed: Charts vanishing');
-console.log('✅ Working: ID-to-Email mapping');
-console.log('✅ Working: Sales person filter');
-console.log('✅ Working: Event filter');
-console.log('✅ Working: Smooth filter transitions');
-console.log('🛡️ Minimal protection: Only when truly needed');
-console.log('🚀 Production ready - based on emergency-tested approach!');
