@@ -3,6 +3,35 @@
 // Handles lead status updates, progression logic, and choice handling
 
 // ===== FIXED: Enhanced lead status update function with automatic reminder creation =====
+
+
+// ====== UPDATED QUOTE REQUEST ASSIGNMENT LOGIC ======
+// File: lead-status-management.js
+
+// ADD THIS NEW HELPER FUNCTION at the top of the file:
+window.getSupplyTeamMember = async function() {
+  try {
+    // Get all supply team members
+    const supplyTeamMembers = window.users.filter(user => 
+      ['supply_manager', 'supply_service_manager', 'supply_sales_service_manager'].includes(user.role) &&
+      user.status === 'active'
+    );
+    
+    if (supplyTeamMembers.length === 0) {
+      console.warn('No active supply team members found');
+      return 'akshay@fantopark.com'; // fallback
+    }
+    
+    // For now, assign to the first available supply team member
+    // You can implement round-robin or load balancing logic here
+    return supplyTeamMembers[0].email;
+    
+  } catch (error) {
+    console.error('Error getting supply team member:', error);
+    return 'akshay@fantopark.com'; // fallback
+  }
+};
+
 window.updateLeadStatus = async function(leadId, newStatus) {
   if (!window.hasPermission('leads', 'progress')) {
     alert('You do not have permission to progress leads');
@@ -34,7 +63,8 @@ let updateData = {
 // Handle quote_requested -> auto-assign to Akshay and store original assignee
 if (newStatus === 'quote_requested') {
   updateData.original_assignee = currentLead.assigned_to; // Store who it was assigned to
-  updateData.assigned_to = 'akshay@fantopark.com'; // Auto-assign to Akshay
+  updateData.assigned_to = await window.getSupplyTeamMember(); // Auto-assign to Supply Team member
+  updateData.assigned_team = 'supply'; // Mark as supply team assignment
 }
 
 // Handle quote_received -> restore original assignee  
@@ -216,19 +246,21 @@ window.handleQuoteRequestStage = async function(lead, newStatus) {
     // Preserve temperature when moving to quote_requested
     const currentTemperature = window.getLeadTemperature ? window.getLeadTemperature(lead) : lead.temperature;
 
-    const updateData = {
-      ...lead,
-      status: newStatus,
-      temperature: currentTemperature, // Preserve the temperature
-      quote_requested_date: new Date().toISOString(),
-      last_contact_date: new Date().toISOString(),
-      updated_date: new Date().toISOString(),
-      // Dual assignment: keep original assignee and add sales service manager
-      quote_assigned_to: 'akshay@fantopark.com',
-assigned_to: 'akshay@fantopark.com',
-original_assignee: lead.assigned_to,
-      dual_assignment: true
-    };
+const supplyTeamMember = await window.getSupplyTeamMember();
+const updateData = {
+  ...lead,
+  status: newStatus,
+  temperature: currentTemperature, // Preserve the temperature
+  quote_requested_date: new Date().toISOString(),
+  last_contact_date: new Date().toISOString(),
+  updated_date: new Date().toISOString(),
+  // Supply team assignment logic
+  quote_assigned_to: supplyTeamMember,
+  assigned_to: supplyTeamMember,
+  original_assignee: lead.assigned_to,
+  assigned_team: 'supply',
+  dual_assignment: true
+};
 
     const response = await window.apiCall(`/leads/${lead.id}`, {
       method: 'PUT',
