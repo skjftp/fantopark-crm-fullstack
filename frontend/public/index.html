@@ -9,6 +9,30 @@
 
 <!-- PERFORMANCE OPTIMIZATION SCRIPTS - PLACE FIRST -->
 <script> 
+
+// Console noise reducer - add this at the very top of index.html
+(function() {
+  if (typeof window !== 'undefined') {
+    const originalLog = console.log;
+    console.log = function(...args) {
+      const message = args.join(' ');
+      // Skip noisy emoji-heavy debug messages
+      if (message.includes('✅') || 
+          message.includes('🔍') || 
+          message.includes('📊') || 
+          message.includes('🔄') || 
+          message.includes('🎯') || 
+          message.includes('🚀') ||
+          message.includes('❌ Not showing') ||
+          message.includes('All app effects initialized') ||
+          message.includes('component loaded successfully')) {
+        return; // Suppress these logs
+      }
+      // Allow all other console.log messages through
+      originalLog.apply(console, args);
+    };
+  }
+})();  
   
 // 1. Global debug control - Set to true to disable all logs
 window.PRODUCTION_MODE = true;
@@ -1128,41 +1152,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-const { useState, useEffect, useRef } = React;
-
-// Safe Console Log Filter - Add this right after the React import
-(function() {
-  'use strict';
-  
-  const originalLog = console.log;
-  
-  // Patterns to suppress
-  const suppressPatterns = [
-    '✅', '🔍', '📊', '🔄', '🎯', '🚀', '❌', '🎉',
-    'component loaded successfully',
-    'All app effects initialized', 
-    'Not showing allocation management',
-    'Not showing delivery form',
-    'Bulk Assign Modal',
-    'ALLOCATION MANAGEMENT DEBUG',
-    'DELIVERY FORM DEBUG',
-    'Rendering Enhanced Recent Activity'
-  ];
-  
-  console.log = function(...args) {
-    const message = String(args[0] || '');
-    const shouldSuppress = suppressPatterns.some(pattern => 
-      message.includes(pattern)
-    );
-    if (!shouldSuppress) {
-      originalLog.apply(console, args);
-    }
-  };
-  
-  window.toggleDebugLogs = function(enabled = true) {
-    console.log = enabled ? originalLog : console.log;
-  };
-})();  
+const { useState, useEffect, useRef } = React; 
 
 window.getRoleDisplayLabel = function(roleName) {
   const roleLabels = {
