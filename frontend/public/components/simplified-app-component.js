@@ -3023,9 +3023,18 @@ console.log("✅ AssignmentRulesTab exposed to window");
     return React.createElement('div', { className: 'min-h-screen bg-gray-100 flex items-center justify-center'},
       React.createElement('div', { className: 'max-w-md w-full bg-white rounded-lg shadow-md p-6' },
         React.createElement('div', { className: 'text-center mb-8' },
-          React.createElement('div', { className: 'w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4' },
-            React.createElement('span', { className: 'text-white text-xl' }, '🏆')
-          ),
+         React.createElement('div', { className: 'w-16 h-16 bg-white rounded-lg flex items-center justify-center mx-auto mb-4 p-2 shadow-md border' },
+  React.createElement('img', { 
+    src: 'images/logo.png',
+    alt: 'FanToPark Logo',
+    className: 'w-full h-full object-contain',
+    onError: (e) => {
+      // Fallback if logo doesn't load
+      e.target.style.display = 'none';
+      e.target.parentElement.innerHTML = '<span class="text-blue-600 text-2xl">🏆</span>';
+    }
+  })
+),
           React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 'FanToPark CRM'),
           React.createElement('p', { className: 'text-gray-600' }, 'Sign in to your account')
         ),
