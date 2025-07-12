@@ -72,15 +72,16 @@ window.fetchMyActions = async function() {
       });
 
       // Filter quote requested leads for supply managers and supply sales service managers
-      const quoteRequestedLeads = leadsResponse.data.filter(lead => {
-        if (lead.status === 'quote_requested') {
-          // Check if user is supply_manager or has supply_sales_service role
-          return (window.user.role === 'supply_manager' || 
-                  window.user.role === 'supply_sales_service_manager' ||
-                  lead.quote_assigned_to === window.user.email);
-        }
-        return false;
-      });
+const quoteRequestedLeads = leadsResponse.data.filter(lead => {
+  if (lead.status === 'quote_requested') {
+    // Check if user is supply team member
+    return (window.user.role === 'supply_manager' || 
+            window.user.role === 'supply_service_manager' ||  // ← ADDED THIS LINE
+            window.user.role === 'supply_sales_service_manager' ||
+            lead.quote_assigned_to === window.user.email);
+  }
+  return false;
+});
 
       console.log('\n=== FILTER RESULTS ===');
       console.log('Total leads:', leadsResponse.data.length);
@@ -157,15 +158,16 @@ window.filterLeadsByRole = function(leads, userRole, userEmail) {
     case 'sales_manager':
       return leads.filter(lead => lead.assigned_to === userEmail);
     
-    case 'supply_manager':
-    case 'supply_sales_service_manager':
-      // Get both assigned leads and quote requested leads
-      const assignedLeads = leads.filter(lead => lead.assigned_to === userEmail);
-      const quoteLeads = leads.filter(lead => 
-        lead.status === 'quote_requested' && 
-        (lead.quote_assigned_to === userEmail || !lead.quote_assigned_to)
-      );
-      return [...assignedLeads, ...quoteLeads];
+case 'supply_manager':
+case 'supply_service_manager':  // ← ADDED THIS LINE  
+case 'supply_sales_service_manager':
+  // Get both assigned leads and quote requested leads
+  const assignedLeads = leads.filter(lead => lead.assigned_to === userEmail);
+  const quoteLeads = leads.filter(lead => 
+    lead.status === 'quote_requested' && 
+    (lead.quote_assigned_to === userEmail || !lead.quote_assigned_to)
+  );
+  return [...assignedLeads, ...quoteLeads];
     
     case 'admin':
     case 'super_admin':
