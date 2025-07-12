@@ -2942,18 +2942,9 @@ window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() =
     return React.createElement('div', { className: 'w-64 bg-white shadow-lg' },
       React.createElement('div', { className: 'p-4' },
         React.createElement('div', { className: 'flex items-center space-x-3' },
-          React.createElement('div', { className: 'w-10 h-10 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm border' },
-  React.createElement('img', { 
-    src: 'images/logo.png',
-    alt: 'FanToPark Logo',
-    className: 'w-full h-full object-contain',
-    onError: (e) => {
-      // Fallback if logo doesn't load
-      e.target.style.display = 'none';
-      e.target.parentElement.innerHTML = '<span class="text-blue-600 text-lg">🏆</span>';
-    }
-  })
-),
+          React.createElement('div', { className: 'w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center' },
+            React.createElement('span', { className: 'text-white' }, '🏆')
+          ),
           React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 'FanToPark CRM')
         ),
         state.user && React.createElement('div', { className: 'mt-4 p-3 bg-blue-50 rounded-lg' },
