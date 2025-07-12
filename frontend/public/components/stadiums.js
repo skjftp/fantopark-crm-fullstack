@@ -74,7 +74,7 @@ window.renderStadiumsContent = () => {
         React.createElement('div', { className: 'flex justify-between items-center' },
             React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Stadium Management'),
             React.createElement('div', { className: 'flex gap-2' },
-                hasPermission('admin', 'write') && React.createElement('button', {
+                hasPermission('stadiums', 'write') && React.createElement('button', { 
                     onClick: () => {
                         console.log('🔍 Add Stadium clicked');
                         openStadiumForm();
@@ -246,7 +246,7 @@ window.renderStadiumsContent = () => {
                                             },
                                             className: 'text-blue-600 hover:text-blue-900 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50'
                                         }, '✏️'),
-                                        hasPermission('admin', 'delete') && React.createElement('button', {
+                                        hasPermission('stadiums', 'delete') && React.createElement('button', {
                                             onClick: () => {
                                                 console.log('🔍 Delete stadium clicked:', stadium.id);
                                                 handleDeleteStadium(stadium.id, stadium.name);
