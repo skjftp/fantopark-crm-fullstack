@@ -157,7 +157,7 @@ window.fetchFinancialData = async function() {
         id: order.id,
         date: order.created_at || order.created_date || new Date().toISOString(),
         invoice_number: order.invoice_number || 'INV-' + order.id,
-        clientName: order.lead_name || order.client_name || 'N/A',
+        client: order.lead_name || order.client_name || 'N/A',
         assignedTo: order.assigned_to || order.sales_person || order.created_by || 'Unassigned',
         amount: parseFloat(order.final_amount || order.total_amount || 0),
         status: 'active',
