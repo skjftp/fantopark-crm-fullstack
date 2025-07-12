@@ -224,7 +224,9 @@ window.handleQuoteRequestStage = async function(lead, newStatus) {
       last_contact_date: new Date().toISOString(),
       updated_date: new Date().toISOString(),
       // Dual assignment: keep original assignee and add sales service manager
-      quote_assigned_to: window.user.role === 'supply_manager' ? window.user.email : 'supply.service@fantopark.com', // Auto-assign based on role
+      quote_assigned_to: 'akshay@fantopark.com',
+assigned_to: 'akshay@fantopark.com',
+original_assignee: lead.assigned_to,
       dual_assignment: true
     };
 
@@ -246,7 +248,7 @@ window.handleQuoteRequestStage = async function(lead, newStatus) {
     }
 
     window.setLoading(false);
-    alert('Lead moved to Quote Requested stage and assigned to Sales Service Manager!');
+    alert('Lead moved to Quote Requested stage and assigned to Akshay Purohit!');
   } catch (error) {
     console.error('Error updating lead to quote requested:', error);
     window.setLoading(false);
