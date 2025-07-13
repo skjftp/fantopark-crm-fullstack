@@ -8,6 +8,95 @@
 // ====== UPDATED QUOTE REQUEST ASSIGNMENT LOGIC ======
 // File: lead-status-management.js
 
+// ✅ SUPPLY SALES SERVICE MANAGER ASSIGNMENT FUNCTION (for payment post service orders)
+// Add this function to lead-status-management.js or orders.js
+
+window.getSupplySalesServiceManager = async function() {
+  console.log('🔍 === DEBUG getSupplySalesServiceManager CALLED ===');
+  console.log('🔍 window.users length:', window.users?.length || 'undefined');
+  console.log('🔍 window.users:', window.users);
+  
+  try {
+    // Get ONLY supply_sales_service_manager users (NOT supply_service_manager)
+    const supplySalesServiceManagers = window.users.filter(user => {
+      const isSupplySalesServiceRole = user.role === 'supply_sales_service_manager';
+      const isActive = user.status === 'active';
+      
+      console.log('🔍 Checking user:', user.email, 'role:', user.role, 'status:', user.status, 'isSupplySalesService:', isSupplySalesServiceRole, 'isActive:', isActive);
+      
+      return isSupplySalesServiceRole && isActive;
+    });
+    
+    console.log('🔍 Found supply sales service managers:', supplySalesServiceManagers);
+    
+    if (supplySalesServiceManagers.length === 0) {
+      console.warn('⚠️ No active supply_sales_service_manager found, checking for fallback options');
+      
+      // Fallback 1: Look for active supply_manager
+      const supplyManagers = window.users.filter(user => 
+        user.role === 'supply_manager' && user.status === 'active'
+      );
+      
+      if (supplyManagers.length > 0) {
+        console.log('🔄 Using supply_manager as fallback:', supplyManagers[0].email);
+        return supplyManagers[0].email;
+      }
+      
+      // Fallback 2: Look for active admins
+      const adminUsers = window.users.filter(user => 
+        ['admin', 'super_admin'].includes(user.role) && user.status === 'active'
+      );
+      
+      if (adminUsers.length > 0) {
+        console.log('🔄 Using admin as fallback:', adminUsers[0].email);
+        return adminUsers[0].email;
+      }
+      
+      // Last resort: return the first active user
+      const activeUsers = window.users.filter(user => user.status === 'active');
+      if (activeUsers.length > 0) {
+        console.log('🔄 Using first active user as last resort:', activeUsers[0].email);
+        return activeUsers[0].email;
+      }
+      
+      throw new Error('No active users found for supply_sales_service_manager assignment');
+    }
+    
+    console.log('✅ Found', supplySalesServiceManagers.length, 'supply sales service managers');
+    
+    // Use round-robin if multiple supply_sales_service_managers exist
+    let selectedManager;
+    if (supplySalesServiceManagers.length > 1) {
+      const managerIndex = (Date.now() % supplySalesServiceManagers.length);
+      selectedManager = supplySalesServiceManagers[managerIndex];
+      console.log('🎯 Selected supply sales service manager via round-robin:', selectedManager.email);
+    } else {
+      selectedManager = supplySalesServiceManagers[0];
+      console.log('🎯 Selected only available supply sales service manager:', selectedManager.email);
+    }
+    
+    console.log('🎯 Final assignment to:', selectedManager.email, '(' + selectedManager.name + ')');
+    
+    return selectedManager.email;
+    
+  } catch (error) {
+    console.error('❌ Error getting supply sales service manager:', error);
+    
+    // Emergency fallback: try to find ANY active user
+    try {
+      const emergencyUser = window.users.find(user => user.status === 'active');
+      if (emergencyUser) {
+        console.log('🚨 Emergency fallback to:', emergencyUser.email);
+        return emergencyUser.email;
+      }
+    } catch (fallbackError) {
+      console.error('❌ Emergency fallback also failed:', fallbackError);
+    }
+    
+    throw new Error('Failed to assign to any supply_sales_service_manager');
+  }
+};
+
 window.getSupplyTeamMember = async function() {
   console.log('🔍 === DEBUG getSupplyTeamMember CALLED ===');
   console.log('🔍 window.users length:', window.users?.length || 'undefined');
