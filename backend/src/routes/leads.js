@@ -988,6 +988,9 @@ if (file) {
     updateData.quote_pdf_filename = uniqueFilename;
     updateData.quote_file_size = file.size;
     updateData.quote_file_path = filePath;
+
+    console.log(`🔍 DEBUG: About to update database with filename: ${uniqueFilename}`);
+console.log(`🔍 DEBUG: updateData.quote_pdf_filename = ${updateData.quote_pdf_filename}`);
     
     console.log(`✅ File uploaded to GCS with filename: ${uniqueFilename}`);
         
