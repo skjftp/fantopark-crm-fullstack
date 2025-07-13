@@ -85,6 +85,20 @@ const [eventsPerPage, setEventsPerPage] = useState(10);
     fantopark_package: ""
   });
   const [calendarView, setCalendarView] = useState("month");
+  const [myActionsFilters, setMyActionsFilters] = useState({
+  searchQuery: '',
+  statusFilter: 'all',
+  priorityFilter: 'all'
+});
+
+// My Actions pagination state  
+const [myActionsPagination, setMyActionsPagination] = useState({
+  leads: { currentPage: 1, itemsPerPage: 5 },
+  orders: { currentPage: 1, itemsPerPage: 5 },
+  deliveries: { currentPage: 1, itemsPerPage: 5 },
+  quotes: { currentPage: 1, itemsPerPage: 5 },
+  receivables: { currentPage: 1, itemsPerPage: 5 }
+});
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showOrderAssignModal, setShowOrderAssignModal] = useState(false);
   const [showAllocationManagement, setShowAllocationManagement] = React.useState(false);
