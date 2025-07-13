@@ -7,9 +7,9 @@
 
 // ✅ FINANCE TEAM ASSIGNMENT FUNCTION (for payment_received orders):
 window.getFinanceManager = async function() {
-  console.log('🔍 === DEBUG getFinanceManager CALLED ===');
-  console.log('🔍 window.users length:', window.users?.length || 'undefined');
-  console.log('🔍 window.users:', window.users);
+  //console.log('🔍 === DEBUG getFinanceManager CALLED ===');
+  //console.log('🔍 window.users length:', window.users?.length || 'undefined');
+  //console.log('🔍 window.users:', window.users);
   
   try {
     // Get all finance team members
@@ -17,12 +17,12 @@ window.getFinanceManager = async function() {
       const isFinanceRole = ['finance_manager', 'finance_executive'].includes(user.role);
       const isActive = user.status === 'active';
       
-      console.log('🔍 Checking user:', user.email, 'role:', user.role, 'status:', user.status, 'isFinance:', isFinanceRole, 'isActive:', isActive);
+      //console.log('🔍 Checking user:', user.email, 'role:', user.role, 'status:', user.status, 'isFinance:', isFinanceRole, 'isActive:', isActive);
       
       return isFinanceRole && isActive;
     });
     
-    console.log('🔍 Found finance team members:', financeTeamMembers);
+    //console.log('🔍 Found finance team members:', financeTeamMembers);
     
     if (financeTeamMembers.length === 0) {
       console.warn('⚠️ No active finance team members found, checking for admins as fallback');
@@ -33,21 +33,21 @@ window.getFinanceManager = async function() {
       );
       
       if (adminUsers.length > 0) {
-        console.log('🔄 Using admin as fallback:', adminUsers[0].email);
+        //console.log('🔄 Using admin as fallback:', adminUsers[0].email);
         return adminUsers[0].email;
       }
       
       // Last resort: return the first active user
       const activeUsers = window.users.filter(user => user.status === 'active');
       if (activeUsers.length > 0) {
-        console.log('🔄 Using first active user as last resort:', activeUsers[0].email);
+        //console.log('🔄 Using first active user as last resort:', activeUsers[0].email);
         return activeUsers[0].email;
       }
       
       throw new Error('No active users found for finance assignment');
     }
     
-    console.log('✅ Found', financeTeamMembers.length, 'finance team members');
+    //console.log('✅ Found', financeTeamMembers.length, 'finance team members');
     
     // Prioritize finance_manager over finance_executive
     const financeManagers = financeTeamMembers.filter(user => user.role === 'finance_manager');
@@ -59,14 +59,14 @@ window.getFinanceManager = async function() {
       // Use round-robin for finance managers if multiple exist
       const managerIndex = (Date.now() % financeManagers.length);
       selectedMember = financeManagers[managerIndex];
-      console.log('🎯 Selected finance manager via round-robin:', selectedMember.email);
+      //console.log('🎯 Selected finance manager via round-robin:', selectedMember.email);
     } else {
       // Use first finance executive if no managers
       selectedMember = financeExecutives[0];
-      console.log('🎯 Selected finance executive (no managers available):', selectedMember.email);
+      //console.log('🎯 Selected finance executive (no managers available):', selectedMember.email);
     }
     
-    console.log('🎯 Final assignment to:', selectedMember.email, '(' + selectedMember.name + ')');
+    //console.log('🎯 Final assignment to:', selectedMember.email, '(' + selectedMember.name + ')');
     
     return selectedMember.email;
     
@@ -77,7 +77,7 @@ window.getFinanceManager = async function() {
     try {
       const emergencyUser = window.users.find(user => user.status === 'active');
       if (emergencyUser) {
-        console.log('🚨 Emergency fallback to:', emergencyUser.email);
+        //console.log('🚨 Emergency fallback to:', emergencyUser.email);
         return emergencyUser.email;
       }
     } catch (fallbackError) {
@@ -92,26 +92,26 @@ window.getFinanceManager = async function() {
 // Replace the existing getSupplyTeamMember function
 
 window.getSupplyTeamMember = async function() {
-  console.log('🔍 === DEBUG getSupplyTeamMember CALLED ===');
-  console.log('🔍 window.users length:', window.users?.length || 'undefined');
-  console.log('🔍 window.users:', window.users);
+  //console.log('🔍 === DEBUG getSupplyTeamMember CALLED ===');
+  //console.log('🔍 window.users length:', window.users?.length || 'undefined');
+  //console.log('🔍 window.users:', window.users);
   
   try {
     // 🔧 FIXED: If users are not loaded, fetch them first
     if (!window.users || window.users.length === 0) {
-      console.log('🔄 Users not loaded, fetching users first...');
+      //console.log('🔄 Users not loaded, fetching users first...');
       
       // Try to fetch users
       if (window.fetchUsers && typeof window.fetchUsers === 'function') {
         await window.fetchUsers();
-        console.log('✅ Users fetched, new length:', window.users?.length);
+        //console.log('✅ Users fetched, new length:', window.users?.length);
       } else {
         // Manual API call if fetchUsers function not available
         try {
           const usersResponse = await window.apiCall('/users');
           window.users = usersResponse.data || usersResponse || [];
           window.setUsers && window.setUsers(window.users);
-          console.log('✅ Users fetched manually, length:', window.users.length);
+          //console.log('✅ Users fetched manually, length:', window.users.length);
         } catch (fetchError) {
           console.error('❌ Failed to fetch users:', fetchError);
         }
@@ -123,12 +123,12 @@ window.getSupplyTeamMember = async function() {
       const isSupplyRole = ['supply_manager', 'supply_service_manager', 'supply_sales_service_manager'].includes(user.role);
       const isActive = user.status === 'active';
       
-      console.log('🔍 Checking user:', user.email, 'role:', user.role, 'status:', user.status, 'isSupply:', isSupplyRole, 'isActive:', isActive);
+      //console.log('🔍 Checking user:', user.email, 'role:', user.role, 'status:', user.status, 'isSupply:', isSupplyRole, 'isActive:', isActive);
       
       return isSupplyRole && isActive;
     });
     
-    console.log('🔍 Found supply team members:', supplyTeamMembers);
+    //console.log('🔍 Found supply team members:', supplyTeamMembers);
     
     if (supplyTeamMembers.length === 0) {
       console.warn('⚠️ No active supply team members found, using fallback');
@@ -140,7 +140,7 @@ window.getSupplyTeamMember = async function() {
       );
       
       if (fallbackUsers.length > 0) {
-        console.log('🔄 Using fallback user:', fallbackUsers[0].email);
+        //console.log('🔄 Using fallback user:', fallbackUsers[0].email);
         return fallbackUsers[0].email;
       }
       
@@ -148,10 +148,10 @@ window.getSupplyTeamMember = async function() {
       return 'akshay@fantopark.com';
     }
     
-    console.log('✅ Found', supplyTeamMembers.length, 'supply team members');
+    //console.log('✅ Found', supplyTeamMembers.length, 'supply team members');
     
     const selectedMember = supplyTeamMembers[0];
-    console.log('🎯 Assigning to:', selectedMember.email, '(' + selectedMember.name + ')');
+    //console.log('🎯 Assigning to:', selectedMember.email, '(' + selectedMember.name + ')');
     
     return selectedMember.email;
     
@@ -214,7 +214,7 @@ window.renderOrdersContent = () => {
 
 // FIXED: Override window.viewInvoice FIRST, then create the local constant
 window.viewInvoice = (order) => {
-  console.log('🔍 Looking for invoice for order:', order.id);
+  //console.log('🔍 Looking for invoice for order:', order.id);
   
   if (order.invoice_number) {
     const reconstructedInvoice = {
@@ -258,7 +258,7 @@ window.viewInvoice = (order) => {
       generated_by: order.approved_by || 'System',
       payment_currency: order.payment_currency || 'INR'
     };
-    console.log('📊 Reconstructed invoice:', reconstructedInvoice);
+    //console.log('📊 Reconstructed invoice:', reconstructedInvoice);
     
     if (window.openInvoicePreview) {
       window.openInvoicePreview(reconstructedInvoice);
@@ -744,7 +744,7 @@ window.enhancedOrderActions = {
   
   // Open edit order form with enhanced functionality
   openEditOrderForm: function(order) {
-    console.log('Opening enhanced edit form for order:', order.id);
+    //console.log('Opening enhanced edit form for order:', order.id);
     
     // Store original assignee if not already stored
     if (!order.original_assignee && order.created_by) {
@@ -761,9 +761,9 @@ window.enhancedOrderActions = {
       return;
     }
 
-    console.log('🎯 === FINANCE APPROVAL WORKFLOW ===');
-    console.log('🔍 Order ID:', orderId);
-    console.log('🔍 Current user:', window.user?.email, window.user?.role);
+    //console.log('🎯 === FINANCE APPROVAL WORKFLOW ===');
+    //console.log('🔍 Order ID:', orderId);
+    //console.log('🔍 Current user:', window.user?.email, window.user?.role);
 
     try {
       window.setLoading(true);
@@ -774,11 +774,11 @@ window.enhancedOrderActions = {
         throw new Error('Order not found');
       }
 
-      console.log('🔍 Order found:', order.order_number, 'Status:', order.status);
+      //console.log('🔍 Order found:', order.order_number, 'Status:', order.status);
 
       // Get supply team member for assignment
       const supplyMember = await window.getSupplyTeamMember();
-      console.log('🎯 Supply team member selected:', supplyMember);
+      //console.log('🎯 Supply team member selected:', supplyMember);
 
       // Update order with approval and supply assignment
       const updateData = {
@@ -794,7 +794,7 @@ window.enhancedOrderActions = {
         updated_date: new Date().toISOString()
       };
 
-      console.log('🔍 Update data:', updateData);
+      //console.log('🔍 Update data:', updateData);
 
       // Call the API to update the order
       const response = await window.apiCall(`/orders/${orderId}`, {
@@ -806,7 +806,7 @@ window.enhancedOrderActions = {
         throw new Error(response.error);
       }
 
-      console.log('✅ Order approved successfully:', response);
+      //console.log('✅ Order approved successfully:', response);
 
       // Update local state
       const updatedOrder = response.data || updateData;
@@ -821,7 +821,7 @@ window.enhancedOrderActions = {
 
       alert(`✅ Order approved successfully!\n\nOrder: ${order.order_number}\nAssigned to: ${supplyMember}\nStatus: Approved`);
 
-      console.log('🎯 Finance approval workflow completed');
+      //console.log('🎯 Finance approval workflow completed');
 
     } catch (error) {
       console.error('❌ Error approving order:', error);
@@ -1091,13 +1091,13 @@ window.integrateOrderCreationWithLeadStatus = function() {
   
   // Enhanced updateLeadStatus with order creation
   window.updateLeadStatus = async function(leadId, newStatus) {
-    console.log('🔄 Enhanced lead status update:', leadId, newStatus);
+    //console.log('🔄 Enhanced lead status update:', leadId, newStatus);
     
     // Call original function first
     await originalUpdateLeadStatus(leadId, newStatus);
   };
   
-  console.log('🔗 Order creation integrated with lead status updates');
+  //console.log('🔗 Order creation integrated with lead status updates');
 };
 
 // =============================================================================
@@ -1117,9 +1117,9 @@ window.addEventListener('load', () => {
       window.renderOrderActions = window.renderEnhancedOrderActions;
     }
     
-    console.log('✅ Enhanced order workflow integration completed');
+    //console.log('✅ Enhanced order workflow integration completed');
   }, 1000);
 });
 
-console.log('✅ Order Actions Integration for Enhanced Workflow loaded successfully');
-console.log("✅ ENHANCED: Orders component with search filters and pagination loaded successfully");
+//console.log('✅ Order Actions Integration for Enhanced Workflow loaded successfully');
+//console.log("✅ ENHANCED: Orders component with search filters and pagination loaded successfully");
