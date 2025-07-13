@@ -1,13 +1,9 @@
 // =============================================================================
-// FIXED GST INVOICE PREVIEW - Updated to match the PDF format exactly
+// GST INVOICE PREVIEW - CLEAN VERSION
 // =============================================================================
 // This component shows the invoice in the exact format as shown in the PDF
 
-// GST Invoice Preview Component for FanToPark CRM
 window.renderGSTInvoicePreview = () => {
-  console.log('🧾 Rendering GST Invoice Preview');
-
-  // Extract state from app state with better fallbacks
   const appState = window.appState || {};
   const {
     showInvoicePreview = false,
@@ -17,31 +13,20 @@ window.renderGSTInvoicePreview = () => {
     closeForm = () => {}
   } = appState;
 
-  // Also check window global state as fallback
   const invoice = currentInvoice || window.currentInvoice;
   const showModal = showInvoicePreview || window.showInvoicePreview;
 
-  console.log('📊 Invoice preview state:', {
-    showInvoicePreview: showModal,
-    hasInvoice: !!invoice,
-    invoiceNumber: invoice?.invoice_number
-  });
-
   if (!showModal || !invoice) {
-    console.log('❌ Not showing invoice preview - missing data');
     return null;
   }
 
-  // Calculate amounts and determine tax structure
   const isIntraState = invoice.indian_state === 'Haryana' && !invoice.is_outside_india;
   
-  // Calculate base amount
   const baseAmount = invoice.base_amount || 
     (invoice.invoice_items?.reduce((sum, item) => sum + ((item.quantity || 1) * (item.rate || 0)), 0)) ||
     invoice.final_amount || 
     0;
 
-  // Get GST calculation or create default
   const gstCalculation = invoice.gst_calculation || {
     applicable: false,
     rate: 0,
@@ -51,30 +36,19 @@ window.renderGSTInvoicePreview = () => {
     total: 0
   };
 
-  // Get TCS calculation or create default
   const tcsCalculation = invoice.tcs_calculation || {
     applicable: false,
     rate: 0,
     amount: 0
   };
 
-  // Calculate final amount
   const finalAmount = invoice.final_amount || 
     (baseAmount + gstCalculation.total + tcsCalculation.amount);
-
-  console.log('💰 Invoice calculations:', {
-    baseAmount,
-    gstCalculation,
-    tcsCalculation,
-    finalAmount,
-    isIntraState
-  });
 
   return React.createElement('div', {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
     onClick: (e) => {
       if (e.target === e.currentTarget) {
-        console.log('🚪 Closing invoice preview');
         setShowInvoicePreview(false);
         setCurrentInvoice(null);
         if (window.setShowInvoicePreview) window.setShowInvoicePreview(false);
@@ -83,7 +57,6 @@ window.renderGSTInvoicePreview = () => {
     }
   },
     React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[95vh] overflow-y-auto' },
-      // Header with action buttons
       React.createElement('div', { className: 'sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center action-buttons' },
         React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 
           'GST Invoice: ' + (invoice.invoice_number || 'Draft')
@@ -97,7 +70,6 @@ window.renderGSTInvoicePreview = () => {
           }, '🖨️ Print'),
           React.createElement('button', {
             onClick: () => {
-              console.log('🚪 Closing invoice preview via X button');
               setShowInvoicePreview(false);
               setCurrentInvoice(null);
               if (window.setShowInvoicePreview) window.setShowInvoicePreview(false);
@@ -108,7 +80,6 @@ window.renderGSTInvoicePreview = () => {
         )
       ),
       
-      // Invoice content with proper styling
       React.createElement('div', { className: 'p-6' },
         React.createElement('style', null, `
           .invoice-preview {
@@ -247,9 +218,7 @@ window.renderGSTInvoicePreview = () => {
           }
         `),
         
-        // Main invoice content - exactly matching the PDF format
         React.createElement('div', { className: 'invoice-preview' },
-          // Header with logo and title
           React.createElement('div', { className: 'invoice-header-row' },
             React.createElement('div', { className: 'company-logo' },
               React.createElement('img', {
@@ -257,12 +226,10 @@ window.renderGSTInvoicePreview = () => {
                 alt: 'FanToPark Logo',
                 style: { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' },
                 onError: (e) => {
-                  console.warn('Logo not found, using fallback');
                   e.target.style.display = 'none';
                   e.target.nextSibling.style.display = 'block';
                 }
               }),
-              // Fallback text if logo fails to load
               React.createElement('div', {
                 style: { 
                   display: 'none', 
@@ -278,7 +245,6 @@ window.renderGSTInvoicePreview = () => {
             React.createElement('div', { className: 'invoice-title' }, 'Tax Invoice')
           ),
 
-          // Invoice Meta Information
           React.createElement('div', { className: 'invoice-meta' },
             React.createElement('div', null,
               React.createElement('div', null, 
@@ -306,7 +272,6 @@ window.renderGSTInvoicePreview = () => {
             )
           ),
 
-          // Customer Section
           React.createElement('div', { className: 'customer-section' },
             React.createElement('div', { className: 'customer-title' }, 
               'Customer Name: ', invoice.legal_name || invoice.client_name || 'N/A'
@@ -321,7 +286,6 @@ window.renderGSTInvoicePreview = () => {
             )
           ),
 
-          // Items Table - matching PDF format exactly
           React.createElement('table', { className: 'invoice-table' },
             React.createElement('thead', null,
               React.createElement('tr', null,
@@ -332,7 +296,6 @@ window.renderGSTInvoicePreview = () => {
               )
             ),
             React.createElement('tbody', null,
-              // Main items
               (invoice.invoice_items || []).map((item, index) =>
                 React.createElement('tr', { key: index },
                   React.createElement('td', null, item.description || 'Service'),
@@ -349,10 +312,8 @@ window.renderGSTInvoicePreview = () => {
             )
           ),
 
-          // Tax calculation table - matching PDF format
           React.createElement('table', { className: 'totals-table' },
             React.createElement('tbody', null,
-              // GST rows
               gstCalculation.applicable && isIntraState && [
                 React.createElement('tr', { key: 'cgst' },
                   React.createElement('td', { style: { width: '70%' }}, 'CGST'),
@@ -378,7 +339,6 @@ window.renderGSTInvoicePreview = () => {
                 )
               ),
 
-              // TCS row
               tcsCalculation.applicable && React.createElement('tr', { key: 'tcs' },
                 React.createElement('td', null, 'TCS'),
                 React.createElement('td', { style: { textAlign: 'center' }}, `${(tcsCalculation.rate || 0).toFixed(2)}%`),
@@ -387,7 +347,6 @@ window.renderGSTInvoicePreview = () => {
                 )
               ),
 
-              // Grand Total
               React.createElement('tr', { key: 'grand-total', style: { fontWeight: 'bold' }},
                 React.createElement('td', null, 'Grand Total'),
                 React.createElement('td', null),
@@ -396,14 +355,12 @@ window.renderGSTInvoicePreview = () => {
                 )
               ),
 
-              // Round-off
               React.createElement('tr', { key: 'round-off' },
                 React.createElement('td', null, 'Round-off'),
                 React.createElement('td', null),
                 React.createElement('td', { style: { textAlign: 'right' }}, '-')
               ),
 
-              // Invoice Value
               React.createElement('tr', { key: 'invoice-value', style: { fontWeight: 'bold' }},
                 React.createElement('td', null, 'Invoice Value'),
                 React.createElement('td', null),
@@ -414,7 +371,6 @@ window.renderGSTInvoicePreview = () => {
             )
           ),
 
-          // Payment Information and QR Code
           React.createElement('div', { className: 'bank-details' },
             React.createElement('div', { className: 'bank-info' },
               React.createElement('h4', null, 'Payment Information'),
@@ -437,12 +393,10 @@ window.renderGSTInvoicePreview = () => {
                   border: '1px solid #000'
                 },
                 onError: (e) => {
-                  console.warn('QR code image not found, using fallback');
                   e.target.style.display = 'none';
                   e.target.nextSibling.style.display = 'flex';
                 }
               }),
-              // Fallback div if QR image fails to load
               React.createElement('div', { 
                 style: { 
                   width: '80px', 
@@ -459,7 +413,6 @@ window.renderGSTInvoicePreview = () => {
             )
           ),
 
-          // Company Footer
           React.createElement('div', { className: 'company-footer' },
             React.createElement('div', { style: { textAlign: 'center', fontWeight: 'bold', marginBottom: '6px' }}, 'F2P SPORTS PRIVATE LIMITED'),
             React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }},
@@ -488,23 +441,16 @@ window.renderGSTInvoicePreview = () => {
   );
 };
 
-// Make sure the function is properly exposed
 window.openInvoicePreview = (invoice) => {
-  console.log('🔍 Opening invoice preview for:', invoice);
-  
   if (window.setCurrentInvoice && window.setShowInvoicePreview) {
     window.setCurrentInvoice(invoice);
     window.setShowInvoicePreview(true);
   } else {
-    // Fallback: set directly on window
     window.currentInvoice = invoice;
     window.showInvoicePreview = true;
     
-    // Force re-render if available
     if (window.forceRender) {
       window.forceRender();
     }
   }
 };
-
-console.log('✅ Fixed GST Invoice Preview component loaded with correct PDF format!');
