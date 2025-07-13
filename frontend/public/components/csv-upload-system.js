@@ -2,20 +2,20 @@
 // Complete implementation with all missing functions and full debugging
 // Version: FINAL - All fixes applied
 
-//console.log("🚀 Loading Complete Fixed FanToPark CSV Upload System");
+console.log("🚀 Loading Complete Fixed FanToPark CSV Upload System");
 
 // ===== MAIN CSV DOWNLOAD FUNCTION (ENHANCED WITH FULL DEBUGGING) =====
 
 window.downloadSampleCSV = function(eventOrType) {
-  //console.log("📥 FIXED CSV download starting...");
-  //console.log("📥 Parameter:", eventOrType);
+  console.log("📥 FIXED CSV download starting...");
+  console.log("📥 Parameter:", eventOrType);
   
   let type = eventOrType;
   if (typeof eventOrType !== 'string') {
     type = window.csvUploadType || 'inventory';
   }
   
-  //console.log("📋 Final type:", type);
+  console.log("📋 Final type:", type);
   
   let csvContent, filename;
   
@@ -35,7 +35,7 @@ window.downloadSampleCSV = function(eventOrType) {
     csvContent += '"Basketball Championship Final","2025-02-20","Basketball","Basketball","Indira Gandhi Arena","Not Applicable","Premium","Court Side","80","75","4000","3000","3500","VIP seating, complimentary drinks","Basketball Pro League","on_demand","Championship final premium seats","paid","Delhi Basketball Suppliers","INV-BB-003","240000","240000","2025-02-15"';
   }
   
-  //console.log("📁 Filename:", filename);
+  console.log("📁 Filename:", filename);
   
   if (!filename) {
     alert('ERROR: No filename generated!');
@@ -53,7 +53,7 @@ window.downloadSampleCSV = function(eventOrType) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    //console.log("✅ Download completed!");
+    console.log("✅ Download completed!");
   } catch (error) {
     console.error("❌ Download error:", error);
     alert('Download failed: ' + error.message);
@@ -63,22 +63,22 @@ window.downloadSampleCSV = function(eventOrType) {
 // ===== ENHANCED STATE SYNCHRONIZATION FUNCTIONS =====
 
 window.setCSVUploadType = function(type) {
-  //console.log("📋 =========================");
-  //console.log("📋 setCSVUploadType called!");
-  //console.log("📋 =========================");
-  //console.log("📋 New type:", type);
-  //console.log("📋 Old window.csvUploadType:", window.csvUploadType);
+  console.log("📋 =========================");
+  console.log("📋 setCSVUploadType called!");
+  console.log("📋 =========================");
+  console.log("📋 New type:", type);
+  console.log("📋 Old window.csvUploadType:", window.csvUploadType);
   
   // Set window variable
   window.csvUploadType = type;
-  //console.log("📋 Updated window.csvUploadType:", window.csvUploadType);
+  console.log("📋 Updated window.csvUploadType:", window.csvUploadType);
   
   // Try to update React state multiple ways
   let stateUpdated = false;
   
   if (window.appState && window.appState.setCSVUploadType) {
     window.appState.setCSVUploadType(type);
-    //console.log("✅ Updated appState.csvUploadType");
+    console.log("✅ Updated appState.csvUploadType");
     stateUpdated = true;
   } else {
     console.warn("⚠️ window.appState.setCSVUploadType not available");
@@ -86,7 +86,7 @@ window.setCSVUploadType = function(type) {
   
   if (window.state && window.state.setCSVUploadType) {
     window.state.setCSVUploadType(type);
-    //console.log("✅ Updated state.csvUploadType");
+    console.log("✅ Updated state.csvUploadType");
     stateUpdated = true;
   } else {
     console.warn("⚠️ window.state.setCSVUploadType not available");
@@ -95,7 +95,7 @@ window.setCSVUploadType = function(type) {
   // Try global scope
   if (typeof setCSVUploadType !== 'undefined' && setCSVUploadType !== window.setCSVUploadType) {
     setCSVUploadType(type);
-    //console.log("✅ Updated global setCSVUploadType");
+    console.log("✅ Updated global setCSVUploadType");
     stateUpdated = true;
   }
   
@@ -103,76 +103,76 @@ window.setCSVUploadType = function(type) {
     console.warn("⚠️ Could not update React state - using window variable only");
   }
   
-  //console.log("📋 setCSVUploadType finished");
-  //console.log("📋 =========================");
+  console.log("📋 setCSVUploadType finished");
+  console.log("📋 =========================");
 };
 
 // ===== MODAL OPENING FUNCTIONS =====
 
 window.openInventoryCSVUpload = function() {
-  //console.log("📦 =========================");
-  //console.log("📦 openInventoryCSVUpload called!");
-  //console.log("📦 =========================");
-  //console.log("📦 Current window.csvUploadType:", window.csvUploadType);
-  //console.log("📦 Available functions:", {
+  console.log("📦 =========================");
+  console.log("📦 openInventoryCSVUpload called!");
+  console.log("📦 =========================");
+  console.log("📦 Current window.csvUploadType:", window.csvUploadType);
+  console.log("📦 Available functions:", {
     setCSVUploadType: typeof window.setCSVUploadType,
     setShowCSVUploadModal: typeof window.setShowCSVUploadModal
   });
   
   // Set type
-  //console.log("📦 Setting CSV upload type to 'inventory'...");
+  console.log("📦 Setting CSV upload type to 'inventory'...");
   window.setCSVUploadType('inventory');
-  //console.log("📦 After setting - window.csvUploadType:", window.csvUploadType);
+  console.log("📦 After setting - window.csvUploadType:", window.csvUploadType);
   
   // Open modal with delay
   setTimeout(() => {
-    //console.log("📦 Opening modal...");
+    console.log("📦 Opening modal...");
     if (window.setShowCSVUploadModal) {
       window.setShowCSVUploadModal(true);
-      //console.log("✅ Modal opened successfully");
+      console.log("✅ Modal opened successfully");
     } else {
       console.error("❌ window.setShowCSVUploadModal not available");
       alert('Error: Modal function not available. Please check console.');
     }
   }, 100);
   
-  //console.log("📦 openInventoryCSVUpload finished");
-  //console.log("📦 =========================");
+  console.log("📦 openInventoryCSVUpload finished");
+  console.log("📦 =========================");
 };
 
 // ===== MISSING FUNCTION: getFixedCSVModalButtonHandlers =====
 
 window.getFixedCSVModalButtonHandlers = function(type) {
-  //console.log("🎯 getFixedCSVModalButtonHandlers called with type:", type);
+  console.log("🎯 getFixedCSVModalButtonHandlers called with type:", type);
   
   return {
     csvTemplate: (e) => {
       if (e) e.preventDefault();
-      //console.log("🎯 =========================");
-      //console.log("🎯 CSV Template button clicked!");
-      //console.log("🎯 =========================");
-      //console.log("🎯 Modal type prop:", type);
-      //console.log("🎯 Current window.csvUploadType:", window.csvUploadType);
+      console.log("🎯 =========================");
+      console.log("🎯 CSV Template button clicked!");
+      console.log("🎯 =========================");
+      console.log("🎯 Modal type prop:", type);
+      console.log("🎯 Current window.csvUploadType:", window.csvUploadType);
       
       // Determine which type to use
       const typeToUse = type || window.csvUploadType || 'inventory';
-      //console.log("🎯 Type to use:", typeToUse);
+      console.log("🎯 Type to use:", typeToUse);
       
       // Update global variable
       window.csvUploadType = typeToUse;
-      //console.log("🎯 Updated window.csvUploadType:", window.csvUploadType);
+      console.log("🎯 Updated window.csvUploadType:", window.csvUploadType);
       
       // Call download function
-      //console.log("🎯 Calling downloadSampleCSV with type:", typeToUse);
+      console.log("🎯 Calling downloadSampleCSV with type:", typeToUse);
       window.downloadSampleCSV(typeToUse);
       
-      //console.log("🎯 CSV Template button completed");
-      //console.log("🎯 =========================");
+      console.log("🎯 CSV Template button completed");
+      console.log("🎯 =========================");
     },
     
     excelAdvanced: (e) => {
       if (e) e.preventDefault();
-      //console.log("📊 Excel Advanced button clicked");
+      console.log("📊 Excel Advanced button clicked");
       const typeToUse = type || window.csvUploadType || 'leads';
       window.csvUploadType = typeToUse;
       window.downloadSampleExcel();
@@ -180,7 +180,7 @@ window.getFixedCSVModalButtonHandlers = function(type) {
     
     excelInstructions: (e) => {
       if (e) e.preventDefault();
-      //console.log("📋 Excel Instructions button clicked");
+      console.log("📋 Excel Instructions button clicked");
       const typeToUse = type || window.csvUploadType || 'leads';
       window.csvUploadType = typeToUse;
       window.downloadSampleExcelV2();
@@ -191,29 +191,29 @@ window.getFixedCSVModalButtonHandlers = function(type) {
 // ===== EXCEL DOWNLOAD FUNCTIONS =====
 
 window.downloadSampleExcel = function() {
-  //console.log("📊 Excel download -> CSV");
+  console.log("📊 Excel download -> CSV");
   const typeToUse = window.csvUploadType || 'inventory';
-  //console.log("📊 Using type for Excel download:", typeToUse);
+  console.log("📊 Using type for Excel download:", typeToUse);
   window.downloadSampleCSV(typeToUse);
 };
 
 window.downloadSampleExcelV2 = function() {
-  //console.log("📋 Excel V2 download -> CSV");
+  console.log("📋 Excel V2 download -> CSV");
   const typeToUse = window.csvUploadType || 'inventory';
-  //console.log("📋 Using type for Excel V2 download:", typeToUse);
+  console.log("📋 Using type for Excel V2 download:", typeToUse);
   window.downloadSampleCSV(typeToUse);
 };
 
 // ===== DIRECT DOWNLOAD SHORTCUTS =====
 
 window.downloadInventoryCSVDirect = function() {
-  //console.log("📦 Direct inventory CSV download");
+  console.log("📦 Direct inventory CSV download");
   window.csvUploadType = 'inventory';
   window.downloadSampleCSV('inventory');
 };
 
 window.downloadLeadsCSVDirect = function() {
-  //console.log("👥 Direct leads CSV download");
+  console.log("👥 Direct leads CSV download");
   window.csvUploadType = 'leads';
   window.downloadSampleCSV('leads');
 };
@@ -221,45 +221,45 @@ window.downloadLeadsCSVDirect = function() {
 // ===== DEBUG AND TEST FUNCTIONS =====
 
 window.debugCSVSystem = function() {
-  //console.log("🔍 =========================");
-  //console.log("🔍 CSV SYSTEM DEBUG REPORT");
-  //console.log("🔍 =========================");
+  console.log("🔍 =========================");
+  console.log("🔍 CSV SYSTEM DEBUG REPORT");
+  console.log("🔍 =========================");
   
-  //console.log("🔍 Functions available:");
-  //console.log("   - downloadSampleCSV:", typeof window.downloadSampleCSV);
-  //console.log("   - setCSVUploadType:", typeof window.setCSVUploadType);
-  //console.log("   - setShowCSVUploadModal:", typeof window.setShowCSVUploadModal);
-  //console.log("   - openInventoryCSVUpload:", typeof window.openInventoryCSVUpload);
-  //console.log("   - getFixedCSVModalButtonHandlers:", typeof window.getFixedCSVModalButtonHandlers);
+  console.log("🔍 Functions available:");
+  console.log("   - downloadSampleCSV:", typeof window.downloadSampleCSV);
+  console.log("   - setCSVUploadType:", typeof window.setCSVUploadType);
+  console.log("   - setShowCSVUploadModal:", typeof window.setShowCSVUploadModal);
+  console.log("   - openInventoryCSVUpload:", typeof window.openInventoryCSVUpload);
+  console.log("   - getFixedCSVModalButtonHandlers:", typeof window.getFixedCSVModalButtonHandlers);
   
-  //console.log("🔍 Current state:");
-  //console.log("   - window.csvUploadType:", window.csvUploadType);
-  //console.log("   - window.appState:", !!window.appState);
-  //console.log("   - window.state:", !!window.state);
+  console.log("🔍 Current state:");
+  console.log("   - window.csvUploadType:", window.csvUploadType);
+  console.log("   - window.appState:", !!window.appState);
+  console.log("   - window.state:", !!window.state);
   
-  //console.log("🔍 Testing inventory download:");
+  console.log("🔍 Testing inventory download:");
   window.csvUploadType = 'inventory';
   window.downloadSampleCSV('inventory');
   
-  //console.log("🔍 Testing leads download:");
+  console.log("🔍 Testing leads download:");
   window.csvUploadType = 'leads';
   window.downloadSampleCSV('leads');
   
-  //console.log("🔍 =========================");
-  //console.log("🔍 DEBUG REPORT FINISHED");
-  //console.log("🔍 =========================");
+  console.log("🔍 =========================");
+  console.log("🔍 DEBUG REPORT FINISHED");
+  console.log("🔍 =========================");
 };
 
 window.testInventoryModal = function() {
-  //console.log("🧪 Testing inventory modal opening...");
+  console.log("🧪 Testing inventory modal opening...");
   
   // Method 1: Try the normal way
-  //console.log("🧪 Method 1: Normal way");
+  console.log("🧪 Method 1: Normal way");
   window.openInventoryCSVUpload();
   
   // Method 2: Try direct state setting
   setTimeout(() => {
-    //console.log("🧪 Method 2: Direct state setting");
+    console.log("🧪 Method 2: Direct state setting");
     window.csvUploadType = 'inventory';
     
     // Try multiple modal openers
@@ -672,25 +672,25 @@ window.ClientDetectionResultsModal = () => {
 // Initialize state variables
 if (typeof window.csvUploadType === 'undefined') {
   window.csvUploadType = 'inventory';
-  //console.log("📋 Initialized csvUploadType to default: inventory");
+  console.log("📋 Initialized csvUploadType to default: inventory");
 }
 
 if (typeof window.clientDetectionResults === 'undefined') {
   window.clientDetectionResults = [];
 }
 
-//console.log("✅ Complete Fixed CSV Upload System loaded successfully!");
-//console.log("🎯 Key fixes applied:");
-//console.log("  - Added missing getFixedCSVModalButtonHandlers function");
-//console.log("  - Enhanced React event handling");
-//console.log("  - Complete 21-field leads structure");
-//console.log("  - Full debugging and logging");
-//console.log("  - Proper state synchronization");
-//console.log("  - Direct download shortcuts");
+console.log("✅ Complete Fixed CSV Upload System loaded successfully!");
+console.log("🎯 Key fixes applied:");
+console.log("  - Added missing getFixedCSVModalButtonHandlers function");
+console.log("  - Enhanced React event handling");
+console.log("  - Complete 21-field leads structure");
+console.log("  - Full debugging and logging");
+console.log("  - Proper state synchronization");
+console.log("  - Direct download shortcuts");
 
-//console.log("🔧 Available commands:");
-//console.log("   - window.debugCSVSystem() - Full system test");
-//console.log("   - window.downloadInventoryCSVDirect() - Direct inventory download");
-//console.log("   - window.downloadLeadsCSVDirect() - Direct leads download");
-//console.log("   - window.testInventoryModal() - Test modal opening");
-//console.log("   - window.openInventoryCSVUpload() - Open inventory upload modal");
+console.log("🔧 Available commands:");
+console.log("   - window.debugCSVSystem() - Full system test");
+console.log("   - window.downloadInventoryCSVDirect() - Direct inventory download");
+console.log("   - window.downloadLeadsCSVDirect() - Direct leads download");
+console.log("   - window.testInventoryModal() - Test modal opening");
+console.log("   - window.openInventoryCSVUpload() - Open inventory upload modal");
