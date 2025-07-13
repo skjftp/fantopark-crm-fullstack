@@ -296,19 +296,23 @@ if (window.chartState) {
     };
 }
 
-// Auto-initialize when financial tab becomes active
-const originalSetActiveFinancialTab = window.setActiveFinancialTab;
-if (originalSetActiveFinancialTab) {
+// FIXED: Safe variable declaration with unique name
+if (!window.financialChartSystemInitialized) {
+  window.financialChartSystemInitialized = true;
+  
+  window._originalSetActiveFinancialTab = window._originalSetActiveFinancialTab || window.setActiveFinancialTab;
+  
+  if (window._originalSetActiveFinancialTab) {
     window.setActiveFinancialTab = function(tab) {
-        originalSetActiveFinancialTab(tab);
-        
-        // Initialize charts when switching to sales tab
-        if (tab === 'sales') {
-            setTimeout(() => {
-                window.createEnhancedFinancialSalesChart();
-            }, 100);
-        }
+      window._originalSetActiveFinancialTab(tab);
+      
+      if (tab === 'sales') {
+        setTimeout(() => {
+          window.createEnhancedFinancialSalesChart && window.createEnhancedFinancialSalesChart();
+        }, 100);
+      }
     };
+  }
 }
 
 // React useEffect hook for chart initialization
