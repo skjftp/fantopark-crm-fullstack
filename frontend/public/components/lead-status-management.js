@@ -969,18 +969,88 @@ window.handleQuoteUpload = async function(e) {
       updated_date: new Date().toISOString()
     };
 
-    // Only add file info if a file was selected
+    // ===== NEW: ACTUALLY UPLOAD THE FILE TO GOOGLE CLOUD STORAGE =====
     if (hasFile) {
-      updateData.quote_pdf_filename = window.quoteUploadData.pdf.name;
-      updateData.quote_file_size = window.quoteUploadData.pdf.size;
-      console.log('📄 File info added:', updateData.quote_pdf_filename);
+      console.log('📄 Uploading file to Google Cloud Storage...');
+      
+      try {
+        // Create a unique filename
+        const timestamp = Date.now();
+        const originalName = window.quoteUploadData.pdf.name;
+        const extension = originalName.split('.').pop();
+        const uniqueFilename = `quote_${timestamp}_${originalName}`;
+        
+        // **OPTION 1: Direct upload to GCS (if you have uploadFileToGCS function)**
+        if (window.uploadFileToGCS && typeof window.uploadFileToGCS === 'function') {
+          console.log('📄 Using uploadFileToGCS function...');
+          const uploadResult = await window.uploadFileToGCS(
+            window.quoteUploadData.pdf, 
+            'quote',
+            window.currentLead.id
+          );
+          
+          updateData.quote_pdf_filename = uploadResult.filename || uniqueFilename;
+          updateData.quote_file_size = window.quoteUploadData.pdf.size;
+          updateData.quote_file_path = uploadResult.filePath;
+          
+          console.log('✅ File uploaded via uploadFileToGCS:', uploadResult);
+        } 
+        // **OPTION 2: Upload via backend API endpoint**
+        else {
+          console.log('📄 Uploading via backend API...');
+          
+          const formData = new FormData();
+          formData.append('quote_pdf', window.quoteUploadData.pdf);
+          formData.append('lead_id', window.currentLead.id);
+          formData.append('notes', window.quoteUploadData.notes || '');
+          
+          const uploadResponse = await fetch(`${window.API_CONFIG.API_URL}/leads/${window.currentLead.id}/quote/upload`, {
+            method: 'POST',
+            headers: {
+              'Authorization': window.authToken ? 'Bearer ' + window.authToken : ''
+            },
+            body: formData
+          });
+          
+          if (!uploadResponse.ok) {
+            throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+          }
+          
+          const uploadResult = await uploadResponse.json();
+          console.log('✅ File uploaded via API:', uploadResult);
+          
+          // If the backend handled the upload, we might get the updated lead back
+          if (uploadResult.data) {
+            // Close modal and update UI
+            window.setShowQuoteUploadModal(false);
+            window.setQuoteUploadData({ notes: '', pdf: null });
+            
+            // Update local state with the response from backend
+            window.setLeads(prev => prev.map(l => 
+              l.id === window.currentLead.id ? uploadResult.data : l
+            ));
+            
+            if (window.showLeadDetail && window.currentLead?.id === uploadResult.data.id) {
+              window.setCurrentLead(uploadResult.data);
+            }
+            
+            alert(`✅ Quote uploaded successfully!\n\nFile: ${uploadResult.data.quote_pdf_filename}`);
+            return; // Exit early since backend handled everything
+          }
+        }
+        
+      } catch (uploadError) {
+        console.error('❌ File upload failed:', uploadError);
+        alert('Failed to upload file: ' + uploadError.message);
+        return;
+      }
     } else {
-      console.log('📄 No file selected - proceeding without upload');
+      console.log('📄 No file selected - proceeding without file upload');
     }
 
     console.log('📄 Updating lead with data:', updateData);
 
-    // Update the lead via the standard API
+    // Update the lead via the standard API (if not already handled by backend)
     const response = await window.apiCall(`/leads/${window.currentLead.id}`, {
       method: 'PUT',
       body: JSON.stringify(updateData)
@@ -1008,7 +1078,7 @@ window.handleQuoteUpload = async function(e) {
     window.setQuoteUploadData({ notes: '', pdf: null });
     
     // Create success message
-    const fileInfo = hasFile ? `\nFile: ${window.quoteUploadData.pdf.name}` : '\nNo file uploaded';
+    const fileInfo = hasFile ? `\nFile: ${updateData.quote_pdf_filename}` : '\nNo file uploaded';
     const notesInfo = window.quoteUploadData.notes ? `\nNotes: ${window.quoteUploadData.notes}` : '';
     
     alert(`✅ Quote processed successfully!\n\nLead: ${window.currentLead.name}\nStatus: Quote Received\nAssigned back to: ${originalAssignee}${fileInfo}${notesInfo}`);
