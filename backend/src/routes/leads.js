@@ -902,4 +902,118 @@ router.get('/files/quotes/:leadId/:filename', authenticateToken, async (req, res
   }
 });
 
+// ===== ADD THIS TO YOUR backend/src/routes/leads.js =====
+// Add this endpoint before the module.exports = router; line
+
+const multer = require('multer');
+
+// Configure multer for memory storage
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'), false);
+    }
+  }
+});
+
+// Quote upload endpoint with file handling
+router.post('/:id/quote/upload', authenticateToken, upload.single('quote_pdf'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { notes } = req.body;
+    const file = req.file;
+    
+    console.log(`📄 Quote upload for lead: ${id}`);
+    console.log(`📄 Notes: ${notes}`);
+    console.log(`📄 File: ${file ? file.originalname : 'No file'}`);
+    
+    // Get the lead
+    const leadDoc = await db.collection('crm_leads').doc(id).get();
+    if (!leadDoc.exists) {
+      return res.status(404).json({ success: false, error: 'Lead not found' });
+    }
+    
+    const leadData = leadDoc.data();
+    
+    let updateData = {
+      quote_notes: notes || '',
+      quote_uploaded_date: new Date().toISOString(),
+      status: 'quote_received',
+      updated_date: new Date().toISOString(),
+      // Restore original assignee
+      assigned_to: leadData.original_assignee || leadData.assigned_to,
+      assigned_team: null
+    };
+    
+    // If a file was uploaded, store it in GCS
+    if (file) {
+      try {
+        // Create unique filename
+        const timestamp = Date.now();
+        const extension = file.originalname.split('.').pop();
+        const uniqueFilename = `quote_${timestamp}_${file.originalname}`;
+        const filePath = `quotes/${id}/${uniqueFilename}`;
+        
+        console.log(`📄 Uploading to GCS: ${filePath}`);
+        
+        // Upload to Google Cloud Storage
+        const gcsFile = bucket.file(filePath);
+        const stream = gcsFile.createWriteStream({
+          metadata: {
+            contentType: file.mimetype,
+          },
+        });
+        
+        await new Promise((resolve, reject) => {
+          stream.on('error', reject);
+          stream.on('finish', resolve);
+          stream.end(file.buffer);
+        });
+        
+        // Add file info to update data
+        updateData.quote_pdf_filename = uniqueFilename;
+        updateData.quote_file_size = file.size;
+        updateData.quote_file_path = filePath;
+        
+        console.log(`✅ File uploaded to GCS: ${filePath}`);
+        
+      } catch (uploadError) {
+        console.error('❌ GCS upload error:', uploadError);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'File upload failed: ' + uploadError.message 
+        });
+      }
+    }
+    
+    // Update the lead in Firestore
+    await db.collection('crm_leads').doc(id).update(updateData);
+    
+    // Get updated lead data
+    const updatedLeadDoc = await db.collection('crm_leads').doc(id).get();
+    const updatedLead = { id, ...updatedLeadDoc.data() };
+    
+    console.log(`✅ Quote upload completed for lead: ${id}`);
+    
+    res.json({
+      success: true,
+      data: updatedLead,
+      message: file ? 'Quote uploaded successfully' : 'Quote processed successfully (no file)'
+    });
+    
+  } catch (error) {
+    console.error('❌ Quote upload error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Upload failed: ' + error.message 
+    });
+  }
+});
+
 module.exports = router;
