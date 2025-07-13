@@ -938,4 +938,19 @@ window.calculateGSTAndTCS = function(baseAmount, paymentData) {
   return result;
 };
 
+// ✅ SIMPLE WRAPPER FUNCTIONS - Add to END of form-handlers.js
+
+// Connect orders.js approve button to existing handleOrderApproval
+window.approveOrder = async function(orderId) {
+  await window.handleOrderApproval(orderId, 'approve');
+};
+
+// Connect orders.js reject button to existing handleOrderApproval  
+window.rejectOrder = async function(orderId) {
+  const reason = prompt('Please provide a reason for rejection:');
+  if (reason) {
+    await window.handleOrderApproval(orderId, 'reject', reason);
+  }
+};
+
 console.log("🔧 Payment handler functions added to form-handlers.js");
