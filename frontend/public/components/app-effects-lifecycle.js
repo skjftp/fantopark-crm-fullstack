@@ -1,7 +1,7 @@
 // =============================================================================
 // FIXED APP EFFECTS LIFECYCLE - REPLACE components/app-effects-lifecycle.js
 // =============================================================================
-// Enhanced with proper My Actions state synchronization
+// Enhanced with proper My Actions state synchronization and FIXED localStorage keys
 
 window.renderAppEffects = function() {
   
@@ -147,11 +147,12 @@ window.renderAppEffects = function() {
     }
   }, [isLoggedIn]); 
 
-  // Auth state restoration
+  // ✅ FIXED: Auth state restoration with correct localStorage keys
   useEffect(() => {
     try {
-      const savedUser = localStorage.getItem('fantopark_user');
-      const savedToken = localStorage.getItem('fantopark_token');
+      // ✅ FIX: Use the correct localStorage keys that match what login function saves
+      const savedUser = localStorage.getItem('crm_user');        // was: 'fantopark_user'
+      const savedToken = localStorage.getItem('crm_auth_token'); // was: 'fantopark_token'
       
       if (savedUser && savedToken) {
         const userData = JSON.parse(savedUser);
@@ -166,20 +167,21 @@ window.renderAppEffects = function() {
       }
     } catch (error) {
       console.error('Error restoring auth state:', error);
-      localStorage.removeItem('fantopark_user');
-      localStorage.removeItem('fantopark_token');
+      // ✅ FIX: Clean up the correct keys if restoration fails
+      localStorage.removeItem('crm_user');        // was: 'fantopark_user'
+      localStorage.removeItem('crm_auth_token');  // was: 'fantopark_token'
     }
   }, [setUser, setCurrentUser, setIsLoggedIn]);
 
-  // Dark mode persistence
+  // ✅ FIXED: Dark mode persistence with correct localStorage key
   useEffect(() => {
     try {
       if (darkMode) {
         document.documentElement.classList.add('dark');
-        localStorage.setItem('fantopark_darkMode', 'true');
+        localStorage.setItem('crm_dark_mode', 'true');     // was: 'fantopark_darkMode'
       } else {
         document.documentElement.classList.remove('dark');
-        localStorage.setItem('fantopark_darkMode', 'false');
+        localStorage.setItem('crm_dark_mode', 'false');    // was: 'fantopark_darkMode'
       }
     } catch (error) {
       console.error('Error managing dark mode:', error);
