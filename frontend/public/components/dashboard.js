@@ -1,23 +1,13 @@
 // ===============================================
-// EMERGENCY FIXED DASHBOARD COMPONENT - REACT ERROR RESOLVED + FILTER FIXES
+// DASHBOARD COMPONENT - CLEAN VERSION
 // ===============================================
-// Dashboard Content Component - NO useEffect calls that cause React Error #310
-
-// Conditional logging control
-const ENABLE_DASHBOARD_DEBUG = false; // Set to false to reduce logs
-const dashLog = ENABLE_DASHBOARD_DEBUG ? console.log : () => {};
+// Dashboard Content Component - Fixed React Error #310 and Promise issues
 
 // ===============================================
-// MAIN DASHBOARD RENDER FUNCTION - EMERGENCY FIXED
+// MAIN DASHBOARD RENDER FUNCTION
 // ===============================================
 
 window.renderDashboardContent = () => {
-    // ✅ CRITICAL FIX: REMOVE ALL React.useEffect CALLS
-    // These were causing React Error #310 - useEffect can't be called in regular functions
-    
-    // Chart initialization will be handled by the chart system itself
-    // No useEffect needed here - this caused the error!
-    
     return React.createElement('div', { className: 'space-y-6' },
         // Dashboard Stats Cards
         React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-6 mb-6' },
@@ -140,7 +130,7 @@ window.renderDashboardContent = () => {
             )
         ),
 
-        // Filters for pie charts - FIXED TO TRIGGER CHART UPDATES
+        // Filters for pie charts
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6' },
             React.createElement('div', { className: 'flex items-center space-x-4 flex-wrap gap-2' },
                 React.createElement('label', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'View by:'),
@@ -149,33 +139,26 @@ window.renderDashboardContent = () => {
                     value: window.dashboardFilter || 'overall',
                     onChange: (e) => {
                         const newValue = e.target.value;
-                        console.log('📊 Dashboard filter changed to:', newValue);
-                        dashLog('📊 Dashboard filter changed:', newValue);
                         
-                        // Update global variables immediately
                         window.dashboardFilter = newValue;
                         window.selectedSalesPerson = '';
                         window.selectedEvent = '';
                         
-                        // Update state functions if available
                         try {
                             if (window.setDashboardFilter) window.setDashboardFilter(newValue);
                             if (window.setSelectedSalesPerson) window.setSelectedSalesPerson('');
                             if (window.setSelectedEvent) window.setSelectedEvent('');
                         } catch (error) {
-                            console.log('State setter error (non-critical):', error);
+                            // Silent fail
                         }
                         
-                        // Force a re-render by updating a dummy state
                         if (window.setLoading) {
                             window.setLoading(true);
                             setTimeout(() => window.setLoading(false), 10);
                         }
                         
-                        // FIXED: Trigger chart update immediately
                         setTimeout(() => {
                             if (window.updateChartsWithData && window.leads) {
-                                dashLog('🔄 Triggering chart update after filter change');
                                 window.updateChartsWithData(window.leads);
                             }
                         }, 100);
@@ -191,29 +174,22 @@ window.renderDashboardContent = () => {
                     value: window.selectedSalesPerson || '',
                     onChange: (e) => {
                         const newValue = e.target.value;
-                        console.log('👤 Sales person filter changed to:', newValue);
-                        dashLog('👤 Sales person filter changed:', newValue);
                         
-                        // Update global variable immediately
                         window.selectedSalesPerson = newValue;
                         
-                        // Update state
                         try {
                             if (window.setSelectedSalesPerson) window.setSelectedSalesPerson(newValue);
                         } catch (error) {
-                            console.log('State setter error (non-critical):', error);
+                            // Silent fail
                         }
                         
-                        // Force a re-render by updating a dummy state
                         if (window.setLoading) {
                             window.setLoading(true);
                             setTimeout(() => window.setLoading(false), 10);
                         }
                         
-                        // FIXED: Trigger chart update immediately
                         setTimeout(() => {
                             if (window.updateChartsWithData && window.leads) {
-                                dashLog('🔄 Triggering chart update after sales person filter change');
                                 window.updateChartsWithData(window.leads);
                             }
                         }, 100);
@@ -230,29 +206,22 @@ window.renderDashboardContent = () => {
                     value: window.selectedEvent || '',
                     onChange: (e) => {
                         const newValue = e.target.value;
-                        console.log('🎯 Event filter changed to:', newValue);
-                        dashLog('🎯 Event filter changed:', newValue);
                         
-                        // Update global variable immediately
                         window.selectedEvent = newValue;
                         
-                        // Update state
                         try {
                             if (window.setSelectedEvent) window.setSelectedEvent(newValue);
                         } catch (error) {
-                            console.log('State setter error (non-critical):', error);
+                            // Silent fail
                         }
                         
-                        // Force a re-render by updating a dummy state
                         if (window.setLoading) {
                             window.setLoading(true);
                             setTimeout(() => window.setLoading(false), 10);
                         }
                         
-                        // FIXED: Trigger chart update immediately
                         setTimeout(() => {
                             if (window.updateChartsWithData && window.leads) {
-                                dashLog('🔄 Triggering chart update after event filter change');
                                 window.updateChartsWithData(window.leads);
                             }
                         }, 100);
@@ -295,7 +264,7 @@ window.renderDashboardContent = () => {
                 )
             ),
 
-            // Temperature Value Chart - FIXED: Now shows potential_value
+            // Temperature Value Chart
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
                 React.createElement('h3', { className: 'text-lg font-semibold mb-4 text-gray-900 dark:text-white' }, 
                     'Lead Temperature Value'
@@ -316,9 +285,6 @@ window.renderDashboardContent = () => {
             React.createElement('div', { className: 'p-6 border-b border-gray-200 dark:border-gray-700' },
                 React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
                     'Recent Activity'
-                ),
-                React.createElement('div', { className: 'text-xs text-yellow-600' }, 
-                    'Enhanced component not loaded - using basic version'
                 )
             ),
             React.createElement('div', { className: 'p-6' },
@@ -361,73 +327,35 @@ window.renderDashboardContent = () => {
 };
 
 // ===============================================
-// DASHBOARD HELPER FUNCTIONS - FIXED
+// DASHBOARD HELPER FUNCTIONS
 // ===============================================
 
-// Get filtered leads for dashboard - FIXED: Better filtering logic
 window.getFilteredLeads = function() {
     let filteredLeads = [...(window.leads || [])];
     
     try {
-        console.log('🔍 Starting filter with:', {
-            total: filteredLeads.length,
-            filter: window.dashboardFilter,
-            salesPerson: window.selectedSalesPerson,
-            event: window.selectedEvent
-        });
-        
         if (window.dashboardFilter === 'salesPerson' && window.selectedSalesPerson) {
-            const beforeCount = filteredLeads.length;
             filteredLeads = filteredLeads.filter(lead => {
-                // Try multiple fields for sales person matching
                 const matches = lead.assigned_to === window.selectedSalesPerson || 
                                lead.assigned_to_email === window.selectedSalesPerson ||
                                lead.created_by === window.selectedSalesPerson;
                 return matches;
             });
-            console.log('🔍 After sales person filter:', filteredLeads.length, 'from', beforeCount);
-            
-            // Debug: Log some sample leads and their assignment fields
-            if (filteredLeads.length === 0 && beforeCount > 0) {
-                console.log('🔍 No matches found. Sample lead assignment fields:');
-                filteredLeads = [...(window.leads || [])]; // Reset for debugging
-                filteredLeads.slice(0, 3).forEach((lead, i) => {
-                    console.log(`Lead ${i}:`, {
-                        name: lead.name,
-                        assigned_to: lead.assigned_to,
-                        assigned_to_email: lead.assigned_to_email,
-                        created_by: lead.created_by
-                    });
-                });
-                // Re-apply filter
-                filteredLeads = filteredLeads.filter(lead => {
-                    const matches = lead.assigned_to === window.selectedSalesPerson || 
-                                   lead.assigned_to_email === window.selectedSalesPerson ||
-                                   lead.created_by === window.selectedSalesPerson;
-                    return matches;
-                });
-            }
         } else if (window.dashboardFilter === 'event' && window.selectedEvent) {
-            const beforeCount = filteredLeads.length;
             filteredLeads = filteredLeads.filter(lead => 
                 lead.lead_for_event === window.selectedEvent
             );
-            console.log('🔍 After event filter:', filteredLeads.length, 'from', beforeCount);
         }
-        
-        console.log('🔍 Final filtered leads:', filteredLeads.length);
     } catch (error) {
-        console.error('Error filtering leads:', error);
+        // Silent fail
     }
     
     return filteredLeads;
 };
 
-// Dashboard metrics calculation - FIXED: Use filtered leads and consistent temperature detection
 window.calculateDashboardMetrics = function() {
     const leads = window.getFilteredLeads();
     
-    // Helper function to get temperature - matches chart calculation
     const getTemperature = (lead) => {
         let temp = lead.temperature || lead.status || '';
         return temp.toLowerCase();
@@ -449,39 +377,29 @@ window.calculateDashboardMetrics = function() {
 // ===============================================
 
 window.forceDashboardRefresh = function() {
-    console.log('🔄 Forcing dashboard refresh...');
-    
-    // Update charts with current data
     if (window.updateChartsWithData && window.leads) {
-        console.log('🔄 Refreshing charts...');
         window.updateChartsWithData(window.leads);
     }
     
-    // Force a small state change to trigger re-render
     if (window.setLoading) {
         window.setLoading(true);
         setTimeout(() => {
             window.setLoading(false);
-            console.log('✅ Dashboard refresh complete');
         }, 50);
     }
 };
 
 // ===============================================
-// ENHANCED FILTER SETTERS - FIXED TO TRIGGER UPDATES
+// ENHANCED FILTER SETTERS
 // ===============================================
 
-// Override the original setters to trigger chart updates
 const originalSetDashboardFilter = window.setDashboardFilter;
 if (originalSetDashboardFilter) {
     window.setDashboardFilter = function(filter) {
-        dashLog('📊 Setting dashboard filter:', filter);
         originalSetDashboardFilter(filter);
         
-        // Trigger chart update after state change
         setTimeout(() => {
             if (window.updateChartsWithData && window.leads) {
-                dashLog('🔄 Auto-triggering chart update after filter change');
                 window.updateChartsWithData(window.leads);
             }
         }, 150);
@@ -491,13 +409,10 @@ if (originalSetDashboardFilter) {
 const originalSetSelectedSalesPerson = window.setSelectedSalesPerson;
 if (originalSetSelectedSalesPerson) {
     window.setSelectedSalesPerson = function(person) {
-        dashLog('👤 Setting selected sales person:', person);
         originalSetSelectedSalesPerson(person);
         
-        // Trigger chart update after state change
         setTimeout(() => {
             if (window.updateChartsWithData && window.leads) {
-                dashLog('🔄 Auto-triggering chart update after sales person change');
                 window.updateChartsWithData(window.leads);
             }
         }, 150);
@@ -507,60 +422,47 @@ if (originalSetSelectedSalesPerson) {
 const originalSetSelectedEvent = window.setSelectedEvent;
 if (originalSetSelectedEvent) {
     window.setSelectedEvent = function(event) {
-        dashLog('🎯 Setting selected event:', event);
         originalSetSelectedEvent(event);
         
-        // Trigger chart update after state change
         setTimeout(() => {
             if (window.updateChartsWithData && window.leads) {
-                dashLog('🔄 Auto-triggering chart update after event change');
                 window.updateChartsWithData(window.leads);
             }
         }, 150);
     };
 }
 
-console.log('📊 Dashboard v4.2 - COMPREHENSIVE FIXES APPLIED');
-console.log('✅ Removed ALL React.useEffect calls that caused Error #310');
-console.log('✅ Dashboard component will now render without React errors');
-console.log('🔄 FIXED: Chart filters now trigger immediate chart updates');
-console.log('🔥 FIXED: Temperature Value chart now shows potential_value instead of count');
-console.log('🎯 FIXED: Dropdown selection now works with better state management');
-console.log('🔍 ADDED: Enhanced debugging for filter operations');
-
 // ===============================================
-// DASHBOARD INITIALIZATION
+// DASHBOARD INITIALIZATION - FIXED PROMISE ERROR
 // ===============================================
 
 window.initializeDashboard = function() {
-    console.log('🚀 Initializing dashboard...');
-    
-    // Set default values if not set
     if (!window.dashboardFilter) window.dashboardFilter = 'overall';
     if (!window.selectedSalesPerson) window.selectedSalesPerson = '';
     if (!window.selectedEvent) window.selectedEvent = '';
     
-    // Debug current state
-    console.log('📊 Dashboard state:', {
-        filter: window.dashboardFilter,
-        salesPerson: window.selectedSalesPerson,
-        event: window.selectedEvent,
-        leadsCount: (window.leads || []).length,
-        usersCount: (window.users || []).length
-    });
-    
-    // Initialize charts if not already done
+    // FIXED: Check if function exists and returns a Promise before using .then()
     if (!window.chartState?.initialized && window.initializeCharts) {
         setTimeout(() => {
-            window.initializeCharts().then(() => {
-                console.log('✅ Charts initialized from dashboard init');
-                window.forceDashboardRefresh();
-            }).catch(error => {
-                console.warn('⚠️ Chart initialization failed:', error);
-            });
+            try {
+                const result = window.initializeCharts();
+                
+                // Check if result is a Promise before using .then()
+                if (result && typeof result.then === 'function') {
+                    result.then(() => {
+                        window.forceDashboardRefresh();
+                    }).catch(error => {
+                        // Silent fail
+                    });
+                } else {
+                    // Not a Promise, just continue
+                    window.forceDashboardRefresh();
+                }
+            } catch (error) {
+                // Silent fail
+            }
         }, 500);
     } else if (window.chartState?.initialized) {
-        // Charts already exist, just refresh them
         setTimeout(() => {
             window.forceDashboardRefresh();
         }, 100);
@@ -569,11 +471,9 @@ window.initializeDashboard = function() {
 
 // Auto-initialize when this script loads
 if (typeof window !== 'undefined') {
-    // Initialize immediately if DOM is ready
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
         setTimeout(window.initializeDashboard, 100);
     } else {
-        // Wait for DOM to be ready
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(window.initializeDashboard, 100);
         });
