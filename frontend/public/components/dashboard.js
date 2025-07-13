@@ -1,7 +1,7 @@
 // ===============================================
-// DASHBOARD COMPONENT - CLEAN VERSION
+// COMPLETE OPTIMIZED DASHBOARD COMPONENT
+// Integrated with Backend API Chart Optimization
 // ===============================================
-// Dashboard Content Component - Fixed React Error #310 and Promise issues
 
 // ===============================================
 // MAIN DASHBOARD RENDER FUNCTION
@@ -9,9 +9,9 @@
 
 window.renderDashboardContent = () => {
     return React.createElement('div', { className: 'space-y-6' },
-        // Dashboard Stats Cards
+        // Dashboard Stats Cards - OPTIMIZED WITH DATA ATTRIBUTES
         React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-6 mb-6' },
-            // Total Leads Card
+            // Total Leads Card - UPDATED WITH DATA ATTRIBUTE
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
                 React.createElement('div', { className: 'flex items-center' },
                     React.createElement('div', { className: 'p-2 bg-blue-100 dark:bg-blue-900 rounded-lg' },
@@ -30,7 +30,10 @@ window.renderDashboardContent = () => {
                         )
                     ),
                     React.createElement('div', { className: 'ml-4' },
-                        React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' },
+                        React.createElement('h3', { 
+                            className: 'text-lg font-semibold text-gray-900 dark:text-white',
+                            'data-stat': 'total-leads' // ✅ ADDED FOR API INTEGRATION
+                        },
                             (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || []).length
                         ),
                         React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Total Leads')
@@ -38,7 +41,7 @@ window.renderDashboardContent = () => {
                 )
             ),
 
-            // Hot Leads Card
+            // Hot Leads Card - UPDATED WITH DATA ATTRIBUTE
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
                 React.createElement('div', { className: 'flex items-center' },
                     React.createElement('div', { className: 'p-2 bg-red-100 dark:bg-red-900 rounded-lg' },
@@ -63,7 +66,10 @@ window.renderDashboardContent = () => {
                         )
                     ),
                     React.createElement('div', { className: 'ml-4' },
-                        React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' },
+                        React.createElement('h3', { 
+                            className: 'text-lg font-semibold text-gray-900 dark:text-white',
+                            'data-stat': 'hot-leads' // ✅ ADDED FOR API INTEGRATION
+                        },
                             (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
                                 .filter(l => (l.temperature || l.status || '').toLowerCase() === 'hot').length
                         ),
@@ -72,7 +78,7 @@ window.renderDashboardContent = () => {
                 )
             ),
 
-            // Qualified Leads Card
+            // Qualified Leads Card - UPDATED WITH DATA ATTRIBUTE
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
                 React.createElement('div', { className: 'flex items-center' },
                     React.createElement('div', { className: 'p-2 bg-green-100 dark:bg-green-900 rounded-lg' },
@@ -91,7 +97,10 @@ window.renderDashboardContent = () => {
                         )
                     ),
                     React.createElement('div', { className: 'ml-4' },
-                        React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' },
+                        React.createElement('h3', { 
+                            className: 'text-lg font-semibold text-gray-900 dark:text-white',
+                            'data-stat': 'qualified-leads' // ✅ ADDED FOR API INTEGRATION
+                        },
                             (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
                                 .filter(l => (l.status || '').toLowerCase() === 'qualified').length
                         ),
@@ -100,29 +109,20 @@ window.renderDashboardContent = () => {
                 )
             ),
 
-            // Total Pipeline Value Card
+            // Pipeline Value Card - UPDATED WITH DATA ATTRIBUTE
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
                 React.createElement('div', { className: 'flex items-center' },
                     React.createElement('div', { className: 'p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg' },
-                        React.createElement('svg', {
-                            className: 'w-6 h-6 text-yellow-600 dark:text-yellow-400',
-                            fill: 'none',
-                            stroke: 'currentColor',
-                            viewBox: '0 0 24 24'
-                        },
-                            React.createElement('path', {
-                                strokeLinecap: 'round',
-                                strokeLinejoin: 'round',
-                                strokeWidth: 2,
-                                d: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1'
-                            })
-                        )
+                        React.createElement('span', { className: 'text-2xl' }, '₹')
                     ),
                     React.createElement('div', { className: 'ml-4' },
-                        React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' },
-                            `₹${((window.getFilteredLeads ? window.getFilteredLeads() : window.leads || []).reduce((sum, lead) => 
-                                sum + (parseFloat(lead.potential_value) || 0), 0
-                            )).toLocaleString()}`
+                        React.createElement('h3', { 
+                            className: 'text-lg font-semibold text-gray-900 dark:text-white',
+                            'data-stat': 'pipeline-value' // ✅ ADDED FOR API INTEGRATION
+                        },
+                            '₹' + (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
+                                .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0)
+                                .toLocaleString('en-IN')
                         ),
                         React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Total Pipeline Value')
                     )
@@ -130,10 +130,12 @@ window.renderDashboardContent = () => {
             )
         ),
 
-        // Filters for pie charts
+        // Filters for pie charts - OPTIMIZED WITH CHART REFRESH
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6' },
             React.createElement('div', { className: 'flex items-center space-x-4 flex-wrap gap-2' },
                 React.createElement('label', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'View by:'),
+                
+                // Main Filter Dropdown - UPDATED WITH CHART REFRESH
                 React.createElement('select', {
                     className: 'px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                     value: window.dashboardFilter || 'overall',
@@ -152,29 +154,28 @@ window.renderDashboardContent = () => {
                             // Silent fail
                         }
                         
-                        if (window.setLoading) {
-                            window.setLoading(true);
-                            setTimeout(() => window.setLoading(false), 10);
+                        // ✅ TRIGGER OPTIMIZED CHART REFRESH
+                        if (window.handleChartFilterChange) {
+                            window.handleChartFilterChange();
                         }
                         
-                        setTimeout(() => {
-                            if (window.updateChartsWithData && window.leads) {
-                                window.updateChartsWithData(window.leads);
-                            }
-                        }, 100);
+                        if (window.setLoading) {
+                            window.setLoading(true);
+                            setTimeout(() => window.setLoading(false), 100);
+                        }
                     }
                 },
                     React.createElement('option', { value: 'overall' }, 'Overall'),
-                    React.createElement('option', { value: 'salesPerson' }, 'Sales Person'),
-                    React.createElement('option', { value: 'event' }, 'Event')
+                    React.createElement('option', { value: 'salesPerson' }, 'By Sales Person'),
+                    React.createElement('option', { value: 'event' }, 'By Event')
                 ),
 
+                // Sales Person Filter - UPDATED WITH CHART REFRESH
                 (window.dashboardFilter === 'salesPerson') && React.createElement('select', {
                     className: 'px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                     value: window.selectedSalesPerson || '',
                     onChange: (e) => {
                         const newValue = e.target.value;
-                        
                         window.selectedSalesPerson = newValue;
                         
                         try {
@@ -183,30 +184,24 @@ window.renderDashboardContent = () => {
                             // Silent fail
                         }
                         
-                        if (window.setLoading) {
-                            window.setLoading(true);
-                            setTimeout(() => window.setLoading(false), 10);
+                        // ✅ TRIGGER OPTIMIZED CHART REFRESH
+                        if (window.handleChartFilterChange) {
+                            window.handleChartFilterChange();
                         }
-                        
-                        setTimeout(() => {
-                            if (window.updateChartsWithData && window.leads) {
-                                window.updateChartsWithData(window.leads);
-                            }
-                        }, 100);
                     }
                 },
-                    React.createElement('option', { value: '' }, 'All Sales People'),
+                    React.createElement('option', { value: '' }, 'Select Sales Person'),
                     (window.users || []).map(user =>
-                        React.createElement('option', { key: user.id || user.email, value: user.id || user.email }, user.name)
+                        React.createElement('option', { key: user.id, value: user.id }, user.name)
                     )
                 ),
 
+                // Event Filter - UPDATED WITH CHART REFRESH
                 (window.dashboardFilter === 'event') && React.createElement('select', {
                     className: 'px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                     value: window.selectedEvent || '',
                     onChange: (e) => {
                         const newValue = e.target.value;
-                        
                         window.selectedEvent = newValue;
                         
                         try {
@@ -215,28 +210,21 @@ window.renderDashboardContent = () => {
                             // Silent fail
                         }
                         
-                        if (window.setLoading) {
-                            window.setLoading(true);
-                            setTimeout(() => window.setLoading(false), 10);
+                        // ✅ TRIGGER OPTIMIZED CHART REFRESH
+                        if (window.handleChartFilterChange) {
+                            window.handleChartFilterChange();
                         }
-                        
-                        setTimeout(() => {
-                            if (window.updateChartsWithData && window.leads) {
-                                window.updateChartsWithData(window.leads);
-                            }
-                        }, 100);
                     }
                 },
-                    React.createElement('option', { value: '' }, 'All Events'),
-                    [...new Set((window.leads || []).map(lead => lead.lead_for_event).filter(Boolean))]
-                        .map(event =>
-                            React.createElement('option', { key: event, value: event }, event)
-                        )
+                    React.createElement('option', { value: '' }, 'Select Event'),
+                    [...new Set((window.leads || []).map(lead => lead.lead_for_event).filter(Boolean))].map(event =>
+                        React.createElement('option', { key: event, value: event }, event)
+                    )
                 )
             )
         ),
 
-        // Charts Section
+        // Pie Charts Section - OPTIMIZED FOR BACKEND API
         React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-3 gap-6' },
             // Lead Split Chart
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
@@ -278,7 +266,7 @@ window.renderDashboardContent = () => {
             )
         ),
 
-         // Enhanced Recent Activity Section
+        // Enhanced Recent Activity Section
         window.renderEnhancedRecentActivity ? window.renderEnhancedRecentActivity() :
         // Fallback to basic Recent Activity if enhanced component not loaded
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border' },
@@ -290,36 +278,36 @@ window.renderDashboardContent = () => {
             React.createElement('div', { className: 'p-6' },
                 (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || []).length > 0 ?
                 React.createElement('div', { className: 'space-y-4' },
-                    (window.getFilteredLeads ?
-                        window.getFilteredLeads() : window.leads || [])
+                    (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
+                        .sort((a, b) => new Date(b.created_date || b.created_at) - new Date(a.created_date || a.created_at))
                         .slice(0, 5)
-                        .map((lead, index) => 
-                            React.createElement('div', {
-                                key: lead.id || index,
-                                className: 'flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 cursor-pointer',
-                                onClick: () => window.openLeadDetail && window.openLeadDetail(lead)
+                        .map(lead =>
+                            React.createElement('div', { 
+                                key: lead.id, 
+                                className: 'flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg' 
                             },
-                                React.createElement('div', null,
-                                    React.createElement('div', { 
-                                        className: 'font-medium text-gray-900 dark:text-white' 
-                                    }, lead.name || 'Unknown'),
-                                    React.createElement('div', { 
-                                        className: 'text-sm text-gray-500' 
-                                    }, lead.company || 'Unknown Company'),
-                                    React.createElement('div', { 
-                                        className: 'text-xs text-gray-400' 
-                                    }, lead.status || 'Unknown Status')
+                                React.createElement('div', { className: 'flex-1' },
+                                    React.createElement('p', { className: 'font-medium text-gray-900 dark:text-white' }, 
+                                        lead.name || 'Unknown'
+                                    ),
+                                    React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 
+                                        `${lead.status || 'No status'} • ${lead.phone || 'No phone'}`
+                                    )
                                 ),
-                                React.createElement('span', {
-                                    className: 'text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded'
-                                }, 'View Details')
+                                React.createElement('span', { 
+                                    className: `px-2 py-1 text-xs font-medium rounded-full ${
+                                        (lead.status || '').toLowerCase() === 'qualified' ? 'bg-green-100 text-green-800' :
+                                        (lead.status || '').toLowerCase() === 'hot' ? 'bg-red-100 text-red-800' :
+                                        'bg-yellow-100 text-yellow-800'
+                                    }`
+                                }, 
+                                    lead.status || 'Unknown'
+                                )
                             )
                         )
                 ) :
-                React.createElement('div', { className: 'text-center py-8' },
-                    React.createElement('div', { className: 'text-gray-500 dark:text-gray-400' }, 
-                        'No recent activity to show'
-                    )
+                React.createElement('p', { className: 'text-gray-500 dark:text-gray-400 text-center' },
+                    'No recent activity to show'
                 )
             )
         )
@@ -327,7 +315,7 @@ window.renderDashboardContent = () => {
 };
 
 // ===============================================
-// DASHBOARD HELPER FUNCTIONS
+// DASHBOARD HELPER FUNCTIONS - OPTIMIZED
 // ===============================================
 
 window.getFilteredLeads = function() {
@@ -335,19 +323,19 @@ window.getFilteredLeads = function() {
     
     try {
         if (window.dashboardFilter === 'salesPerson' && window.selectedSalesPerson) {
-            filteredLeads = filteredLeads.filter(lead => {
-                const matches = lead.assigned_to === window.selectedSalesPerson || 
-                               lead.assigned_to_email === window.selectedSalesPerson ||
-                               lead.created_by === window.selectedSalesPerson;
-                return matches;
-            });
+            // Use the same ID to email mapping as the backend
+            const selectedUser = (window.users || []).find(user => user.id === window.selectedSalesPerson);
+            if (selectedUser) {
+                const salesPersonEmail = selectedUser.email;
+                filteredLeads = filteredLeads.filter(lead => lead.assigned_to === salesPersonEmail);
+            }
         } else if (window.dashboardFilter === 'event' && window.selectedEvent) {
             filteredLeads = filteredLeads.filter(lead => 
                 lead.lead_for_event === window.selectedEvent
             );
         }
     } catch (error) {
-        // Silent fail
+        console.warn('Filter error:', error);
     }
     
     return filteredLeads;
@@ -373,109 +361,46 @@ window.calculateDashboardMetrics = function() {
 };
 
 // ===============================================
-// FORCE DASHBOARD REFRESH FUNCTION
+// CHART INTEGRATION HOOKS - FOR OPTIMIZED SYSTEM
 // ===============================================
 
-window.forceDashboardRefresh = function() {
-    if (window.updateChartsWithData && window.leads) {
-        window.updateChartsWithData(window.leads);
-    }
+// Initialize charts when dashboard loads
+window.initializeDashboardCharts = function() {
+    console.log('🚀 Dashboard: Initializing optimized charts...');
     
-    if (window.setLoading) {
-        window.setLoading(true);
-        setTimeout(() => {
-            window.setLoading(false);
-        }, 50);
-    }
+    // Wait for DOM to be ready
+    setTimeout(() => {
+        if (window.initializeOptimizedCharts) {
+            window.initializeOptimizedCharts();
+        } else {
+            console.warn('⚠️ Optimized chart system not loaded, falling back to legacy');
+            if (window.smartChartInit) {
+                window.smartChartInit();
+            }
+        }
+    }, 500);
 };
 
-// ===============================================
-// ENHANCED FILTER SETTERS
-// ===============================================
-
-const originalSetDashboardFilter = window.setDashboardFilter;
-if (originalSetDashboardFilter) {
-    window.setDashboardFilter = function(filter) {
-        originalSetDashboardFilter(filter);
+// Auto-initialize when dashboard becomes active
+const originalSetActiveTab = window.setActiveTab;
+if (originalSetActiveTab) {
+    window.setActiveTab = function(tab) {
+        originalSetActiveTab(tab);
         
-        setTimeout(() => {
-            if (window.updateChartsWithData && window.leads) {
-                window.updateChartsWithData(window.leads);
-            }
-        }, 150);
+        if (tab === 'dashboard') {
+            console.log('📊 Dashboard activated, initializing charts...');
+            window.initializeDashboardCharts();
+        }
     };
 }
 
-const originalSetSelectedSalesPerson = window.setSelectedSalesPerson;
-if (originalSetSelectedSalesPerson) {
-    window.setSelectedSalesPerson = function(person) {
-        originalSetSelectedSalesPerson(person);
-        
+// Initialize on page load if dashboard is active
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.activeTab === 'dashboard' || !window.activeTab) {
         setTimeout(() => {
-            if (window.updateChartsWithData && window.leads) {
-                window.updateChartsWithData(window.leads);
-            }
-        }, 150);
-    };
-}
-
-const originalSetSelectedEvent = window.setSelectedEvent;
-if (originalSetSelectedEvent) {
-    window.setSelectedEvent = function(event) {
-        originalSetSelectedEvent(event);
-        
-        setTimeout(() => {
-            if (window.updateChartsWithData && window.leads) {
-                window.updateChartsWithData(window.leads);
-            }
-        }, 150);
-    };
-}
-
-// ===============================================
-// DASHBOARD INITIALIZATION - FIXED PROMISE ERROR
-// ===============================================
-
-window.initializeDashboard = function() {
-    if (!window.dashboardFilter) window.dashboardFilter = 'overall';
-    if (!window.selectedSalesPerson) window.selectedSalesPerson = '';
-    if (!window.selectedEvent) window.selectedEvent = '';
-    
-    // FIXED: Check if function exists and returns a Promise before using .then()
-    if (!window.chartState?.initialized && window.initializeCharts) {
-        setTimeout(() => {
-            try {
-                const result = window.initializeCharts();
-                
-                // Check if result is a Promise before using .then()
-                if (result && typeof result.then === 'function') {
-                    result.then(() => {
-                        window.forceDashboardRefresh();
-                    }).catch(error => {
-                        // Silent fail
-                    });
-                } else {
-                    // Not a Promise, just continue
-                    window.forceDashboardRefresh();
-                }
-            } catch (error) {
-                // Silent fail
-            }
-        }, 500);
-    } else if (window.chartState?.initialized) {
-        setTimeout(() => {
-            window.forceDashboardRefresh();
-        }, 100);
+            window.initializeDashboardCharts();
+        }, 1000);
     }
-};
+});
 
-// Auto-initialize when this script loads
-if (typeof window !== 'undefined') {
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        setTimeout(window.initializeDashboard, 100);
-    } else {
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(window.initializeDashboard, 100);
-        });
-    }
-}
+console.log('✅ Optimized Dashboard Component Loaded - Backend API Integration Active!');
