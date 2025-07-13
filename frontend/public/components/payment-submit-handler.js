@@ -2,6 +2,26 @@
 // Extracted from index.html - maintains 100% functionality
 // Uses window.* globals for CDN-based React compatibility
 
+// ✅ ADD THIS NEW FUNCTION (if it doesn't exist):
+window.getSupplyTeamMember = async function() {
+  try {
+    const supplyTeamMembers = window.users.filter(user => {
+      const isSupplyRole = ['supply_manager', 'supply_service_manager', 'supply_sales_service_manager'].includes(user.role);
+      const isActive = user.status === 'active';
+      return isSupplyRole && isActive;
+    });
+    
+    if (supplyTeamMembers.length === 0) {
+      return 'akshay@fantopark.com'; // fallback
+    }
+    
+    return supplyTeamMembers[0].email;
+  } catch (error) {
+    console.error('Error getting supply team member:', error);
+    return 'akshay@fantopark.com'; // fallback
+  }
+};
+
 window.renderPaymentSubmitHandler = () => {
   // This component provides the handlePaymentSubmit function to the global scope
   // The function is attached to window object for use by forms
@@ -341,7 +361,10 @@ window.renderPaymentSubmitHandler = () => {
         // CRITICAL: Add required fields that might be missing
         created_date: new Date().toISOString(),
         created_at: new Date().toISOString(),
-        created_by: window.user.name || window.user.email || 'System',
+        created_by: window.currentLead.assigned_to || window.currentLead.created_by || window.user.name,
+        original_assignee: window.currentLead.assigned_to || window.currentLead.created_by,
+        assigned_to: await window.getSupplyTeamMember(),
+        assigned_team: 'supply',
         payment_currency: window.paymentData.payment_currency || 'INR',
         payment_status: 'paid',
         order_type: 'standard'
