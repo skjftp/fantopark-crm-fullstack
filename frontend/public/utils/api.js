@@ -46,56 +46,70 @@ window.debugLog = function(event, data) {
 
 // ===== FILE UPLOAD UTILITIES =====
 
-// Google Cloud Storage upload function
+// 🔧 UPDATED: Google Cloud Storage upload function with temporary local storage fallback
 window.uploadFileToGCS = async function(file, documentType = 'general') {
-  const UPLOAD_URL_FUNCTION = 'https://us-central1-enduring-wharf-464005-h7.cloudfunctions.net/generateUploadUrl';
-
-  try {
-    // Step 1: Get signed upload URL
-    const { uploadUrl, filePath, publicUrl } = await window.getUploadUrl(
-      file.name,
-      file.type,
-      documentType
-    );
-
-    // Step 2: Upload file directly to GCS
-    const uploadResponse = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': file.type
-      },
-      body: file
-    });
-
-    if (!uploadResponse.ok) {
-      throw new Error('Failed to upload file to storage');
+  console.log('🔧 Using temporary local file storage for:', file.name);
+  
+  return new Promise((resolve, reject) => {
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      reject(new Error('File size must be less than 5MB'));
+      return;
     }
 
-    // Return file information
-    return {
-      filePath,
-      publicUrl,
-      originalName: file.name,
-      size: file.size,
-      type: file.type,
-      uploadedAt: new Date().toISOString()
-    };
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+      reject(new Error('Only PDF, JPG, JPEG, and PNG files are allowed'));
+      return;
+    }
 
-  } catch (error) {
-    console.error('Upload error:', error);
-    throw error;
-  }
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+      const result = {
+        filePath: `temp/${documentType}/${Date.now()}_${file.name}`,
+        publicUrl: e.target.result, // Base64 data URL
+        originalName: file.name,
+        size: file.size,
+        type: file.type,
+        uploadedAt: new Date().toISOString(),
+        isTemporary: true // Flag to indicate this is temporary storage
+      };
+      
+      console.log('✅ File stored temporarily:', {
+        name: result.originalName,
+        size: `${(result.size / 1024).toFixed(1)} KB`,
+        type: result.type
+      });
+      
+      resolve(result);
+    };
+    
+    reader.onerror = function(error) {
+      console.error('❌ File reading error:', error);
+      reject(new Error('Failed to read file'));
+    };
+    
+    // Convert file to base64
+    reader.readAsDataURL(file);
+  });
 };
 
-// Get upload URL for GCS
+// 🔧 UPDATED: Get upload URL for GCS with authorization header
 window.getUploadUrl = async function(fileName, fileType, documentType) {
   const UPLOAD_URL_FUNCTION = 'https://us-central1-enduring-wharf-464005-h7.cloudfunctions.net/generateUploadUrl';
   
   try {
+    const authToken = localStorage.getItem('crm_auth_token') || window.authToken;
+    
+    console.log('🔐 Making request to cloud function with auth:', !!authToken);
+    
     const response = await fetch(UPLOAD_URL_FUNCTION, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': authToken ? `Bearer ${authToken}` : undefined
       },
       body: JSON.stringify({
         fileName,
@@ -104,13 +118,20 @@ window.getUploadUrl = async function(fileName, fileType, documentType) {
       })
     });
 
+    console.log('☁️ Cloud function response status:', response.status);
+
     if (!response.ok) {
-      throw new Error('Failed to get upload URL');
+      const errorText = await response.text();
+      console.error('☁️ Cloud function error response:', errorText);
+      throw new Error(`Failed to get upload URL: ${response.status} - ${errorText}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('✅ Upload URL received:', result);
+    return result;
+    
   } catch (error) {
-    console.error('Error getting upload URL:', error);
+    console.error('❌ Error getting upload URL:', error);
     throw error;
   }
 };
@@ -120,10 +141,13 @@ window.getFileViewUrl = async function(filePath) {
   const READ_URL_FUNCTION = 'https://us-central1-enduring-wharf-464005-h7.cloudfunctions.net/generateReadUrl';
   
   try {
+    const authToken = localStorage.getItem('crm_auth_token') || window.authToken;
+    
     const response = await fetch(READ_URL_FUNCTION, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': authToken ? `Bearer ${authToken}` : undefined
       },
       body: JSON.stringify({ filePath })
     });
@@ -167,7 +191,6 @@ FIFA World Cup 2026,2026-06-15,football,Football,MetLife Stadium,Not Applicable,
   link.click();
   document.body.removeChild(link);
 };
-
 
 // ===== DELETE UTILITY FUNCTIONS =====
 
