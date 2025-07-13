@@ -653,6 +653,9 @@ window.handlePaymentPostServiceInputChange = function(field, value) {
 };
 
 // ✅ PAYMENT POST SERVICE FORM SUBMISSION HANDLER
+// ✅ PAYMENT POST SERVICE FORM SUBMISSION HANDLER - FIXED ASSIGNMENT
+// Replace the existing handlePaymentPostServiceSubmit function in form-handlers.js
+
 window.handlePaymentPostServiceSubmit = async function(e) {
   e.preventDefault();
 
@@ -681,9 +684,14 @@ window.handlePaymentPostServiceSubmit = async function(e) {
     // Update local state
     window.setLeads(prev => 
       prev.map(lead => 
-        lead.id === window.currentLead.id ? leadResponse.data : lead
+        lead.id === window.currentLead.id ? 
+          leadResponse.data : lead
       )
     );
+
+    // 🔧 FIXED: Get supply_sales_service_manager for assignment
+    const supplySalesServiceManager = await window.getSupplySalesServiceManager();
+    console.log('🎯 Assigning payment post service order to:', supplySalesServiceManager);
 
     // Create order with all required fields
     const newOrder = {
@@ -715,7 +723,11 @@ window.handlePaymentPostServiceSubmit = async function(e) {
       requires_gst_invoice: true,
       created_date: new Date().toISOString(),
       created_by: window.user.name,
-      assigned_to: ''  // Will be assigned later
+      
+      // 🔧 FIXED: Assign to supply_sales_service_manager instead of empty string
+      assigned_to: supplySalesServiceManager,
+      assigned_team: 'supply',
+      original_assignee: window.currentLead.assigned_to || window.user.name
     };
 
     // Create order in backend
@@ -736,7 +748,7 @@ window.handlePaymentPostServiceSubmit = async function(e) {
       window.setOrders(prev => [...prev, finalOrder]);
 
       window.setLoading(false);
-      alert('Payment Post Service order created successfully! Awaiting approval.');
+      alert(`Payment Post Service order created successfully!\nAssigned to: ${supplySalesServiceManager}\nAwaiting approval.`);
       window.closeForm();
     } catch (orderError) {
       console.error('Failed to create order in backend:', orderError);
@@ -753,6 +765,73 @@ window.handlePaymentPostServiceSubmit = async function(e) {
     window.setLoading(false);
     alert('Failed to process payment post service. Please try again.');
     console.error('Payment post service error:', error);
+  }
+};
+
+// ✅ PAYMENT POST SERVICE HANDLER - FIXED ASSIGNMENT  
+// Replace the existing handlePaymentPostService function in form-handlers.js
+
+window.handlePaymentPostService = async function(lead) {
+  if (!window.hasPermission('orders', 'create')) {
+    alert('You do not have permission to create orders');
+    return;
+  }
+
+  window.setLoading(true);
+
+  try {
+    // 🔧 FIXED: Get supply_sales_service_manager for assignment
+    const supplySalesServiceManager = await window.getSupplySalesServiceManager();
+    console.log('🎯 Assigning payment post service order to:', supplySalesServiceManager);
+
+    const newOrder = {
+      order_number: 'PST-' + Date.now(),
+      client_name: lead.name,
+      client_email: lead.email,
+      client_phone: lead.phone,
+      lead_id: lead.id,
+      service_date: new Date().toISOString().split('T')[0],
+      description: 'Post-service payment for: ' + lead.name,
+      status: 'pending_approval',
+      requires_gst_invoice: true,
+      total_amount: lead.potential_value || 0,
+      created_date: new Date().toISOString(),
+      created_by: window.user.name,
+      
+      // 🔧 FIXED: Assign to supply_sales_service_manager instead of empty string
+      assigned_to: supplySalesServiceManager,
+      assigned_team: 'supply',
+      original_assignee: lead.assigned_to || window.user.name,
+      order_type: 'payment_post_service'
+    };
+
+    try {
+      console.log('Creating payment post service order:', JSON.stringify(newOrder, null, 2));
+      const orderResponse = await window.apiCall('/orders', {
+        method: 'POST',
+        body: JSON.stringify(newOrder)
+      });
+
+      const finalOrder = orderResponse.data || orderResponse || newOrder;
+      if (!finalOrder.id && newOrder.order_number) {
+        finalOrder.id = newOrder.order_number;
+      }
+
+      window.setOrders(prev => [...prev, finalOrder]);
+      alert(`Payment Post Service order created successfully!\nAssigned to: ${supplySalesServiceManager}\nAwaiting approval.`);
+      window.closeForm();
+    } catch (orderError) {
+      console.error('Failed to create order in backend:', orderError);
+      newOrder.id = newOrder.order_number;
+      window.setOrders(prev => [...prev, newOrder]);
+      alert('Warning: Order may not have been saved to server. Please check orders page.');
+      window.closeForm();
+    }
+  } catch (error) {
+    alert('Failed to process payment post service. Please try again.');
+    console.error('Payment post service error:', error);
+  } finally {
+    window.setLoading(false);
   }
 };
 
