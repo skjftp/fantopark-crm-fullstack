@@ -2,7 +2,7 @@
 // Extracted from index.html - maintains 100% functionality
 // Uses window.* globals for CDN-based React compatibility
 
-// ✅ ADD THIS NEW FUNCTION (if it doesn't exist):
+// ✅ SUPPLY TEAM ASSIGNMENT FUNCTION (existing):
 window.getSupplyTeamMember = async function() {
   try {
     const supplyTeamMembers = window.users.filter(user => {
@@ -19,6 +19,89 @@ window.getSupplyTeamMember = async function() {
   } catch (error) {
     console.error('Error getting supply team member:', error);
     return 'akshay@fantopark.com'; // fallback
+  }
+};
+
+// ✅ NEW: FINANCE TEAM ASSIGNMENT FUNCTION (for payment_received orders):
+window.getFinanceManager = async function() {
+  console.log('🔍 === DEBUG getFinanceManager CALLED ===');
+  console.log('🔍 window.users length:', window.users?.length || 'undefined');
+  console.log('🔍 window.users:', window.users);
+  
+  try {
+    // Get all finance team members
+    const financeTeamMembers = window.users.filter(user => {
+      const isFinanceRole = ['finance_manager', 'finance_executive'].includes(user.role);
+      const isActive = user.status === 'active';
+      
+      console.log('🔍 Checking user:', user.email, 'role:', user.role, 'status:', user.status, 'isFinance:', isFinanceRole, 'isActive:', isActive);
+      
+      return isFinanceRole && isActive;
+    });
+    
+    console.log('🔍 Found finance team members:', financeTeamMembers);
+    
+    if (financeTeamMembers.length === 0) {
+      console.warn('⚠️ No active finance team members found, checking for admins as fallback');
+      
+      // Fallback: Look for active admins
+      const adminUsers = window.users.filter(user => 
+        ['admin', 'super_admin'].includes(user.role) && user.status === 'active'
+      );
+      
+      if (adminUsers.length > 0) {
+        console.log('🔄 Using admin as fallback:', adminUsers[0].email);
+        return adminUsers[0].email;
+      }
+      
+      // Last resort: return the first active user
+      const activeUsers = window.users.filter(user => user.status === 'active');
+      if (activeUsers.length > 0) {
+        console.log('🔄 Using first active user as last resort:', activeUsers[0].email);
+        return activeUsers[0].email;
+      }
+      
+      throw new Error('No active users found for finance assignment');
+    }
+    
+    console.log('✅ Found', financeTeamMembers.length, 'finance team members');
+    
+    // Prioritize finance_manager over finance_executive
+    const financeManagers = financeTeamMembers.filter(user => user.role === 'finance_manager');
+    const financeExecutives = financeTeamMembers.filter(user => user.role === 'finance_executive');
+    
+    let selectedMember;
+    
+    if (financeManagers.length > 0) {
+      // Use round-robin for finance managers if multiple exist
+      const managerIndex = (Date.now() % financeManagers.length);
+      selectedMember = financeManagers[managerIndex];
+      console.log('🎯 Selected finance manager via round-robin:', selectedMember.email);
+    } else {
+      // Use first finance executive if no managers
+      selectedMember = financeExecutives[0];
+      console.log('🎯 Selected finance executive (no managers available):', selectedMember.email);
+    }
+    
+    console.log('🎯 Final assignment to:', selectedMember.email, '(' + selectedMember.name + ')');
+    
+    return selectedMember.email;
+    
+  } catch (error) {
+    console.error('❌ Error getting finance manager:', error);
+    
+    // Emergency fallback: try to find ANY active user
+    try {
+      const emergencyUser = window.users.find(user => user.status === 'active');
+      if (emergencyUser) {
+        console.log('🚨 Emergency fallback to:', emergencyUser.email);
+        return emergencyUser.email;
+      }
+    } catch (fallbackError) {
+      console.error('❌ Emergency fallback also failed:', fallbackError);
+    }
+    
+    throw new Error('Failed to assign to any finance manager');
   }
 };
 
@@ -363,8 +446,11 @@ window.renderPaymentSubmitHandler = () => {
         created_at: new Date().toISOString(),
         created_by: window.currentLead.assigned_to || window.currentLead.created_by || window.user.name,
         original_assignee: window.currentLead.assigned_to || window.currentLead.created_by,
-        assigned_to: await window.getSupplyTeamMember(),
-        assigned_team: 'supply',
+        
+        // 🔧 FIXED: Assign to finance manager instead of supply team
+        assigned_to: await window.getFinanceManager(),
+        assigned_team: 'finance',
+        
         payment_currency: window.paymentData.payment_currency || 'INR',
         payment_status: 'paid',
         order_type: 'standard'
@@ -492,7 +578,7 @@ window.renderPaymentSubmitHandler = () => {
       window.setLoading(false);
       alert(window.paymentData.payment_post_service 
         ? 'Payment collected successfully! Invoice can now be generated.' 
-        : 'Payment details submitted successfully! Order created and sent for finance approval.'
+        : 'Payment details submitted successfully! Order created and assigned to finance for approval.'
       );
       window.closeForm();
 
@@ -534,4 +620,4 @@ window.renderPaymentSubmitHandler = () => {
   return null;
 };
 
-console.log('✅ Payment Submit Handler component loaded successfully');
+console.log('✅ Payment Submit Handler component loaded with finance assignment fix');
