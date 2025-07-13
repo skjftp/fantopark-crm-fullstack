@@ -31,6 +31,21 @@ window.renderAppEffects = function() {
     fetchData, calculateDashboardStats, extractFiltersData, fetchUserRoles
   } = handlers;
 
+
+  // Replace multiple useEffect hooks with this single one
+useEffect(() => {
+  if (isLoggedIn && !window._dataInitialized) {
+    window._dataInitialized = true;
+    console.log('🎯 Single data initialization triggered');
+    
+    // Use consolidated data fetch
+    if (window.initializeAppData) {
+      window.initializeAppData();
+    }
+  }
+}, [isLoggedIn]); // Only depend on login status
+
+  
   // ✅ ENHANCED: My Actions state synchronization effect
   useEffect(() => {
     console.log('🔄 My Actions state sync effect triggered');
