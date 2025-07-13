@@ -360,7 +360,7 @@ React.createElement('button', {
                 }`
               },
                 React.createElement('option', { value: '' }, 'Select sales person'),
-                users.filter(u => u.status !== 'inactive')
+users.filter(u => u.status === 'active')  // ✅ Changed from !== 'inactive' to === 'active'
                   .map(user =>
                     React.createElement('option', { 
                       key: user.email, 
