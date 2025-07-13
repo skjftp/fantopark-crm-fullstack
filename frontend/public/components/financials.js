@@ -687,7 +687,7 @@ window.renderSalesTab = (sales) => {
                                     sale.invoice || sale.invoice_number || sale.order_number || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    sale.client || sale.client_name || 'N/A'
+                                    sale.client || sale.clientName || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
                                     sale.assigned_to || 'N/A'
