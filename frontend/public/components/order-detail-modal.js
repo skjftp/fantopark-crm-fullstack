@@ -177,27 +177,39 @@ window.renderOrderDetailModal = () => {
           )
         ),
 
-        // 🏷️ Uploaded Documents Section
-        React.createElement('div', null,
-          React.createElement('div', { className: 'flex items-center mb-4' },
-            React.createElement('span', { className: 'text-gray-600 text-lg mr-2' }, '🏷️'),
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900' }, 'Uploaded Documents')
-          ),
-          React.createElement('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
+            // 🏷️ Uploaded Documents Section - UPDATED WITH DOWNLOAD FUNCTIONALITY
             React.createElement('div', null,
-              React.createElement('span', { className: 'font-medium text-gray-700' }, 'GST Certificate: '),
-              React.createElement('span', { 
-                className: currentOrderDetail.gst_certificate ? 'text-green-600' : 'text-orange-600'
-              }, currentOrderDetail.gst_certificate ? 'Uploaded' : 'Not uploaded')
+              React.createElement('div', { className: 'flex items-center mb-4' },
+                React.createElement('span', { className: 'text-gray-600 text-lg mr-2' }, '🏷️'),
+                React.createElement('h3', { className: 'text-lg font-semibold text-gray-900' }, 'Uploaded Documents')
+              ),
+              React.createElement('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
+                React.createElement('div', null,
+                  React.createElement('span', { className: 'font-medium text-gray-700' }, 'GST Certificate: '),
+                  currentOrderDetail.gst_certificate ? 
+                    React.createElement('button', {
+                      className: 'text-blue-600 hover:text-blue-800 hover:underline cursor-pointer ml-1',
+                      onClick: () => downloadOrderDocument(currentOrderDetail.id, 'gst_certificate', currentOrderDetail.gst_certificate),
+                      title: 'Click to download GST Certificate'
+                    }, 
+                      `📄 ${currentOrderDetail.gst_certificate.originalName || 'GST Certificate'}`
+                    ) :
+                    React.createElement('span', { className: 'text-orange-600' }, 'Not uploaded')
+                ),
+                React.createElement('div', null,
+                  React.createElement('span', { className: 'font-medium text-gray-700' }, 'PAN Card: '),
+                  currentOrderDetail.pan_card ? 
+                    React.createElement('button', {
+                      className: 'text-blue-600 hover:text-blue-800 hover:underline cursor-pointer ml-1',
+                      onClick: () => downloadOrderDocument(currentOrderDetail.id, 'pan_card', currentOrderDetail.pan_card),
+                      title: 'Click to download PAN Card'
+                    }, 
+                      `📄 ${currentOrderDetail.pan_card.originalName || 'PAN Card'}`
+                    ) :
+                    React.createElement('span', { className: 'text-orange-600' }, 'Not uploaded')
+                )
+              )
             ),
-            React.createElement('div', null,
-              React.createElement('span', { className: 'font-medium text-gray-700' }, 'PAN Card: '),
-              React.createElement('span', { 
-                className: currentOrderDetail.pan_card ? 'text-green-600' : 'text-orange-600'
-              }, currentOrderDetail.pan_card ? 'Uploaded' : 'Not uploaded')
-            )
-          )
-        ),
 
         // Action Buttons Section
         React.createElement('div', { className: 'flex justify-center space-x-4 pt-6 border-t border-gray-200' },
@@ -234,6 +246,110 @@ window.renderOrderDetailModal = () => {
       )
     )
   );
+};
+
+// ===== DOCUMENT DOWNLOAD FUNCTION =====
+window.downloadOrderDocument = async function(orderId, documentType, documentData) {
+  console.log(`📄 Starting download for ${documentType} from order ${orderId}`);
+  console.log('📄 Document data:', documentData);
+  
+  if (!documentData) {
+    alert(`No ${documentType.replace('_', ' ')} file found for this order.`);
+    return;
+  }
+  
+  try {
+    // Try to use the existing file view URL function first
+    if (documentData.publicUrl) {
+      console.log('📄 Using direct public URL');
+      const link = document.createElement('a');
+      link.href = documentData.publicUrl;
+      link.download = documentData.originalName || documentData.filename || `${documentType}.pdf`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+    
+    // If we have a filePath, try to get a signed URL
+    if (documentData.filePath && window.getFileViewUrl) {
+      console.log('📄 Getting signed URL for file path:', documentData.filePath);
+      const signedUrl = await window.getFileViewUrl(documentData.filePath);
+      if (signedUrl) {
+        const link = document.createElement('a');
+        link.href = signedUrl;
+        link.download = documentData.originalName || documentData.filename || `${documentType}.pdf`;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      }
+    }
+    
+    // Fallback: try backend API endpoint
+    console.log('📄 Trying backend download endpoint');
+    const response = await window.apiCall(`/orders/${orderId}/documents/${documentType}/download`, {
+      method: 'GET'
+    });
+    
+    if (response.success && response.downloadUrl) {
+      const link = document.createElement('a');
+      link.href = response.downloadUrl;
+      link.download = documentData.originalName || documentData.filename || `${documentType}.pdf`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (response.fileData) {
+      // Handle base64 file data
+      const byteCharacters = atob(response.fileData);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      
+      const filename = documentData.originalName || documentData.filename || `${documentType}.pdf`;
+      const extension = filename.split('.').pop().toLowerCase();
+      let mimeType = 'application/octet-stream';
+      
+      switch (extension) {
+        case 'pdf':
+          mimeType = 'application/pdf';
+          break;
+        case 'jpg':
+        case 'jpeg':
+          mimeType = 'image/jpeg';
+          break;
+        case 'png':
+          mimeType = 'image/png';
+          break;
+      }
+      
+      const blob = new Blob([byteArray], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } else {
+      throw new Error('No download method available');
+    }
+    
+    console.log('✅ Document download completed successfully');
+    
+  } catch (error) {
+    console.error(`❌ ${documentType} download error:`, error);
+    alert(`Failed to download ${documentType.replace('_', ' ')}: ${error.message}`);
+  }
 };
 
 console.log('✅ EXACT PRODUCTION order detail modal loaded - matches screenshots!');
