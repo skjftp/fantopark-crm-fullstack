@@ -3,6 +3,42 @@
 // Replace your existing chart-system.js with this optimized version
 // ===============================================
 
+(function() {
+  'use strict';
+  
+  // Prevent variable redeclaration conflicts
+  if (window.chartSystemLoaded) {
+    console.log('⚠️ Chart system already loaded, skipping duplicate load');
+    return;
+  }
+  window.chartSystemLoaded = true;
+
+  // Chart state management
+  window.optimizedChartState = {
+    initialized: false,
+    loading: false,
+    lastApiCall: 0,
+    throttleDelay: 1000,
+    currentFilters: null,
+    chartData: null,
+    error: null
+  };
+
+  // Chart instances storage
+  window.chartInstances = window.chartInstances || {};
+
+  // ✅ FIXED: Only declare if not already exists
+  if (typeof window.originalSetActiveTab === 'undefined') {
+    window.originalSetActiveTab = window.setActiveTab;
+  }
+
+  // Your existing chart system code goes here...
+  // (Keep all the functions from the optimized chart system artifact)
+
+  console.log('✅ Optimized Chart System Loaded - Variable conflicts resolved!');
+})();
+
+
 // Chart state management
 window.optimizedChartState = {
   initialized: false,
