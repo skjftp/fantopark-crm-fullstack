@@ -343,11 +343,17 @@ window.renderAppBusinessLogic = function() {
     try {
       const response = await window.apiCall('/users');
       
-      // ✅ BYPASS window.setUsers completely - set directly
+      // Set directly without relying on any setUsers function
       window.users = response.data || [];
       window.allUsers = response.data || [];
       if (!window.appState) window.appState = {};
       window.appState.users = response.data || [];
+      
+      // ✅ NEW: Backup to localStorage for persistence
+      if (response.data && response.data.length > 0) {
+        localStorage.setItem('crm_users_backup', JSON.stringify(response.data));
+        console.log(`💾 Backed up ${response.data.length} users to localStorage`);
+      }
       
       // Also call React setters if they exist
       if (setUsers) setUsers(response.data || []);
@@ -356,6 +362,21 @@ window.renderAppBusinessLogic = function() {
       console.log(`Fetched ${response.data?.length || 0} users to all locations`);
     } catch (error) {
       console.error('Failed to fetch users:', error);
+      
+      // ✅ NEW: Try to restore from backup on error
+      try {
+        const backup = localStorage.getItem('crm_users_backup');
+        if (backup) {
+          const users = JSON.parse(backup);
+          window.users = users;
+          window.allUsers = users;
+          if (!window.appState) window.appState = {};
+          window.appState.users = users;
+          console.log("🔄 Restored", users.length, "users from localStorage backup");
+        }
+      } catch (restoreError) {
+        console.error("Failed to restore users from backup:", restoreError);
+      }
     }
   };
 
