@@ -17,7 +17,7 @@ window.renderForm = () => {
     setPhoneCheckTimeout: window.setPhoneCheckTimeout,
     setSelectedClient: window.setSelectedClient,
     inventory: window.inventory,
-    users = window.users || window.appState?.users || [],
+    users: window.users || window.appState?.users || [],
     events: window.events
     ,phoneCheckTimeout: window.phoneCheckTimeout
     ,checkPhoneForClient: window.checkPhoneForClient
