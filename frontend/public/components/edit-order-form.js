@@ -26,21 +26,14 @@ window.renderEditOrderForm = () => {
   // Update the order edit data
   window.orderEditData = { ...window.orderEditData, [field]: value };
   
-  // ✅ FIXED: Use proper re-render method that doesn't lose state
-  if (window.setActiveTab && window.activeTab) {
-    // Force a minimal re-render by triggering a state change
-    const currentTab = window.activeTab;
-    setTimeout(() => {
-      // This will trigger the component to re-render without losing dropdown state
-      if (window.renderEditOrderForm) {
-        // Force the component to re-evaluate its state
-        const forceUpdate = new Date().getTime();
-        window.lastEditFormUpdate = forceUpdate;
-      }
-    }, 0);
-  }
-  
   console.log(`✅ Updated orderEditData.${field}:`, window.orderEditData[field]);
+  
+  // ✅ FORCE REACT RE-RENDER - This is the key fix!
+  if (window.setActiveTab && window.activeTab) {
+    const currentTab = window.activeTab;
+    // Trigger minimal state change to force React to re-render
+    setTimeout(() => window.setActiveTab(currentTab), 1);
+  }
 };
 
 
