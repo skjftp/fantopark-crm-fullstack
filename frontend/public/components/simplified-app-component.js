@@ -1392,20 +1392,6 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
     console.warn("⚠️ handleCopyInventory not implemented in handlers");
   });
 
-  // ✅ ORDER MANAGEMENT FUNCTIONS (CRITICAL - Fix current errors)
-  window.openOrderDetail = handlers.openOrderDetail || ((order) => {
-    console.log("📋 openOrderDetail called with:", order);
-    window.setCurrentOrderDetail(order);
-    window.setShowOrderDetail(true);
-  });
-
-  window.openEditOrderForm = handlers.openEditOrderForm || ((order) => {
-    console.log("✏️ openEditOrderForm called with:", order);
-    window.setCurrentOrderForEdit(order);
-    window.setOrderEditData(order);
-    window.setShowEditOrderForm(true);
-  });
-
   // ✅ ORDER WORKFLOW FUNCTIONS
   window.handleOrderApproval = handlers.handleOrderApproval || ((orderId, action) => {
     console.log("✅ handleOrderApproval called:", orderId, action);
