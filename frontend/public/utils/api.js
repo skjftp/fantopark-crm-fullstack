@@ -110,17 +110,14 @@ else if (documentType === 'gst' || documentType === 'pan') {
   const result = await response.json();
   console.log('✅ Document upload successful:', result);
   
-  / FIX: Return consistent structure that matches order requirements
   return {
     success: true,
-    filename: result.data?.fileName || result.fileName || `${documentType}_${Date.now()}_${file.name}`,
     filePath: result.data?.fileName || result.fileName,
     publicUrl: result.data?.url || result.url,
     originalName: file.name,
     size: file.size,
     type: file.type,
-    uploadedAt: new Date().toISOString(),
-    documentType: documentType
+    uploadedAt: new Date().toISOString()
   };
 }
   
