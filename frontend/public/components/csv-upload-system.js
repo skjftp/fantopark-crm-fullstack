@@ -1,21 +1,13 @@
-// ===== FANTOPARK CRM - CSV UPLOAD SYSTEM (COMPLETELY FIXED) =====
-// Complete implementation with all missing functions and full debugging
-// Version: FINAL - All fixes applied
+// ===== FANTOPARK CRM - CSV UPLOAD SYSTEM (CLEAN VERSION) =====
+// Complete implementation with all functionality, no debug logs
 
-console.log("🚀 Loading Complete Fixed FanToPark CSV Upload System");
-
-// ===== MAIN CSV DOWNLOAD FUNCTION (ENHANCED WITH FULL DEBUGGING) =====
+// ===== MAIN CSV DOWNLOAD FUNCTION =====
 
 window.downloadSampleCSV = function(eventOrType) {
-  console.log("📥 FIXED CSV download starting...");
-  console.log("📥 Parameter:", eventOrType);
-  
   let type = eventOrType;
   if (typeof eventOrType !== 'string') {
     type = window.csvUploadType || 'inventory';
   }
-  
-  console.log("📋 Final type:", type);
   
   let csvContent, filename;
   
@@ -35,8 +27,6 @@ window.downloadSampleCSV = function(eventOrType) {
     csvContent += '"Basketball Championship Final","2025-02-20","Basketball","Basketball","Indira Gandhi Arena","Not Applicable","Premium","Court Side","80","75","4000","3000","3500","VIP seating, complimentary drinks","Basketball Pro League","on_demand","Championship final premium seats","paid","Delhi Basketball Suppliers","INV-BB-003","240000","240000","2025-02-15"';
   }
   
-  console.log("📁 Filename:", filename);
-  
   if (!filename) {
     alert('ERROR: No filename generated!');
     return;
@@ -53,126 +43,62 @@ window.downloadSampleCSV = function(eventOrType) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    console.log("✅ Download completed!");
   } catch (error) {
-    console.error("❌ Download error:", error);
     alert('Download failed: ' + error.message);
   }
 };
 
-// ===== ENHANCED STATE SYNCHRONIZATION FUNCTIONS =====
+// ===== STATE SYNCHRONIZATION FUNCTIONS =====
 
 window.setCSVUploadType = function(type) {
-  console.log("📋 =========================");
-  console.log("📋 setCSVUploadType called!");
-  console.log("📋 =========================");
-  console.log("📋 New type:", type);
-  console.log("📋 Old window.csvUploadType:", window.csvUploadType);
-  
-  // Set window variable
   window.csvUploadType = type;
-  console.log("📋 Updated window.csvUploadType:", window.csvUploadType);
   
-  // Try to update React state multiple ways
   let stateUpdated = false;
   
   if (window.appState && window.appState.setCSVUploadType) {
     window.appState.setCSVUploadType(type);
-    console.log("✅ Updated appState.csvUploadType");
     stateUpdated = true;
-  } else {
-    console.warn("⚠️ window.appState.setCSVUploadType not available");
   }
   
   if (window.state && window.state.setCSVUploadType) {
     window.state.setCSVUploadType(type);
-    console.log("✅ Updated state.csvUploadType");
     stateUpdated = true;
-  } else {
-    console.warn("⚠️ window.state.setCSVUploadType not available");
   }
   
-  // Try global scope
   if (typeof setCSVUploadType !== 'undefined' && setCSVUploadType !== window.setCSVUploadType) {
     setCSVUploadType(type);
-    console.log("✅ Updated global setCSVUploadType");
     stateUpdated = true;
   }
-  
-  if (!stateUpdated) {
-    console.warn("⚠️ Could not update React state - using window variable only");
-  }
-  
-  console.log("📋 setCSVUploadType finished");
-  console.log("📋 =========================");
 };
 
 // ===== MODAL OPENING FUNCTIONS =====
 
 window.openInventoryCSVUpload = function() {
-  console.log("📦 =========================");
-  console.log("📦 openInventoryCSVUpload called!");
-  console.log("📦 =========================");
-  console.log("📦 Current window.csvUploadType:", window.csvUploadType);
-  console.log("📦 Available functions:", {
-    setCSVUploadType: typeof window.setCSVUploadType,
-    setShowCSVUploadModal: typeof window.setShowCSVUploadModal
-  });
-  
-  // Set type
-  console.log("📦 Setting CSV upload type to 'inventory'...");
   window.setCSVUploadType('inventory');
-  console.log("📦 After setting - window.csvUploadType:", window.csvUploadType);
   
-  // Open modal with delay
   setTimeout(() => {
-    console.log("📦 Opening modal...");
     if (window.setShowCSVUploadModal) {
       window.setShowCSVUploadModal(true);
-      console.log("✅ Modal opened successfully");
     } else {
-      console.error("❌ window.setShowCSVUploadModal not available");
       alert('Error: Modal function not available. Please check console.');
     }
   }, 100);
-  
-  console.log("📦 openInventoryCSVUpload finished");
-  console.log("📦 =========================");
 };
 
-// ===== MISSING FUNCTION: getFixedCSVModalButtonHandlers =====
+// ===== CSV MODAL BUTTON HANDLERS =====
 
 window.getFixedCSVModalButtonHandlers = function(type) {
-  console.log("🎯 getFixedCSVModalButtonHandlers called with type:", type);
-  
   return {
     csvTemplate: (e) => {
       if (e) e.preventDefault();
-      console.log("🎯 =========================");
-      console.log("🎯 CSV Template button clicked!");
-      console.log("🎯 =========================");
-      console.log("🎯 Modal type prop:", type);
-      console.log("🎯 Current window.csvUploadType:", window.csvUploadType);
       
-      // Determine which type to use
       const typeToUse = type || window.csvUploadType || 'inventory';
-      console.log("🎯 Type to use:", typeToUse);
-      
-      // Update global variable
       window.csvUploadType = typeToUse;
-      console.log("🎯 Updated window.csvUploadType:", window.csvUploadType);
-      
-      // Call download function
-      console.log("🎯 Calling downloadSampleCSV with type:", typeToUse);
       window.downloadSampleCSV(typeToUse);
-      
-      console.log("🎯 CSV Template button completed");
-      console.log("🎯 =========================");
     },
     
     excelAdvanced: (e) => {
       if (e) e.preventDefault();
-      console.log("📊 Excel Advanced button clicked");
       const typeToUse = type || window.csvUploadType || 'leads';
       window.csvUploadType = typeToUse;
       window.downloadSampleExcel();
@@ -180,7 +106,6 @@ window.getFixedCSVModalButtonHandlers = function(type) {
     
     excelInstructions: (e) => {
       if (e) e.preventDefault();
-      console.log("📋 Excel Instructions button clicked");
       const typeToUse = type || window.csvUploadType || 'leads';
       window.csvUploadType = typeToUse;
       window.downloadSampleExcelV2();
@@ -191,29 +116,23 @@ window.getFixedCSVModalButtonHandlers = function(type) {
 // ===== EXCEL DOWNLOAD FUNCTIONS =====
 
 window.downloadSampleExcel = function() {
-  console.log("📊 Excel download -> CSV");
   const typeToUse = window.csvUploadType || 'inventory';
-  console.log("📊 Using type for Excel download:", typeToUse);
   window.downloadSampleCSV(typeToUse);
 };
 
 window.downloadSampleExcelV2 = function() {
-  console.log("📋 Excel V2 download -> CSV");
   const typeToUse = window.csvUploadType || 'inventory';
-  console.log("📋 Using type for Excel V2 download:", typeToUse);
   window.downloadSampleCSV(typeToUse);
 };
 
 // ===== DIRECT DOWNLOAD SHORTCUTS =====
 
 window.downloadInventoryCSVDirect = function() {
-  console.log("📦 Direct inventory CSV download");
   window.csvUploadType = 'inventory';
   window.downloadSampleCSV('inventory');
 };
 
 window.downloadLeadsCSVDirect = function() {
-  console.log("👥 Direct leads CSV download");
   window.csvUploadType = 'leads';
   window.downloadSampleCSV('leads');
 };
@@ -221,68 +140,36 @@ window.downloadLeadsCSVDirect = function() {
 // ===== DEBUG AND TEST FUNCTIONS =====
 
 window.debugCSVSystem = function() {
-  console.log("🔍 =========================");
-  console.log("🔍 CSV SYSTEM DEBUG REPORT");
-  console.log("🔍 =========================");
-  
-  console.log("🔍 Functions available:");
-  console.log("   - downloadSampleCSV:", typeof window.downloadSampleCSV);
-  console.log("   - setCSVUploadType:", typeof window.setCSVUploadType);
-  console.log("   - setShowCSVUploadModal:", typeof window.setShowCSVUploadModal);
-  console.log("   - openInventoryCSVUpload:", typeof window.openInventoryCSVUpload);
-  console.log("   - getFixedCSVModalButtonHandlers:", typeof window.getFixedCSVModalButtonHandlers);
-  
-  console.log("🔍 Current state:");
-  console.log("   - window.csvUploadType:", window.csvUploadType);
-  console.log("   - window.appState:", !!window.appState);
-  console.log("   - window.state:", !!window.state);
-  
-  console.log("🔍 Testing inventory download:");
   window.csvUploadType = 'inventory';
   window.downloadSampleCSV('inventory');
   
-  console.log("🔍 Testing leads download:");
   window.csvUploadType = 'leads';
   window.downloadSampleCSV('leads');
-  
-  console.log("🔍 =========================");
-  console.log("🔍 DEBUG REPORT FINISHED");
-  console.log("🔍 =========================");
 };
 
 window.testInventoryModal = function() {
-  console.log("🧪 Testing inventory modal opening...");
-  
-  // Method 1: Try the normal way
-  console.log("🧪 Method 1: Normal way");
   window.openInventoryCSVUpload();
   
-  // Method 2: Try direct state setting
   setTimeout(() => {
-    console.log("🧪 Method 2: Direct state setting");
     window.csvUploadType = 'inventory';
     
-    // Try multiple modal openers
     if (window.appState?.setShowCSVUploadModal) {
       window.appState.setShowCSVUploadModal(true);
     } else if (window.state?.setShowCSVUploadModal) {
       window.state.setShowCSVUploadModal(true);
     } else if (window.setShowCSVUploadModal) {
       window.setShowCSVUploadModal(true);
-    } else {
-      console.error("❌ No modal opener found in any scope");
     }
   }, 1000);
 };
 
-// ===== CSV UPLOAD MODAL COMPONENT (COMPLETE) =====
+// ===== CSV UPLOAD MODAL COMPONENT =====
 
 window.CSVUploadModal = ({ isOpen, onClose, type }) => {
   const [file, setFile] = React.useState(null);
   const [uploading, setUploading] = React.useState(false);
   const [uploadResult, setUploadResult] = React.useState(null);
 
-  // Reset when modal closes
   React.useEffect(() => {
     if (!isOpen) {
       setFile(null);
@@ -290,7 +177,6 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
     }
   }, [isOpen]);
 
-  // File validation
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     
@@ -320,7 +206,6 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
     }
   };
 
-  // Preview function (leads only)
   const handlePreview = async () => {
     if (!file) {
       alert('Please select a file first');
@@ -350,14 +235,12 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
         alert('Preview failed: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error("❌ Preview error:", error);
       alert('Preview error: ' + error.message);
     } finally {
       window.setPreviewLoading && window.setPreviewLoading(false);
     }
   };
 
-  // Upload function
   const handleUpload = async () => {
     if (!file) {
       alert('Please select a file first');
@@ -382,13 +265,11 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
       if (response.ok) {
         setUploadResult(result);
 
-        // Handle client detection for leads
         if (result.clientDetectionResults && result.clientDetectionResults.length > 0) {
           window.setClientDetectionResults && window.setClientDetectionResults(result.clientDetectionResults);
           window.setShowClientDetectionResults && window.setShowClientDetectionResults(true);
         }
 
-        // Refresh data
         try {
           if (type === 'leads' && window.fetchLeads) {
             await window.fetchLeads();
@@ -404,21 +285,18 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
             }
           }
         } catch (refreshError) {
-          console.warn("⚠️ Could not refresh data:", refreshError);
+          // Silent fail for refresh
         }
 
-        // Success message
         const message = `✅ Upload completed!\n📈 Imported: ${result.successCount || 0} ${type}\n${result.errorCount ? `⚠️ Errors: ${result.errorCount}\n` : ''}${result.clientDetectionCount ? `🔍 Existing clients: ${result.clientDetectionCount}` : ''}`;
         alert(message);
         
-        // Close modal
         setTimeout(() => onClose(), 1000);
 
       } else {
         alert('Upload failed: ' + (result.error || result.message || 'Unknown error'));
       }
     } catch (error) {
-      console.error("❌ Upload error:", error);
       alert('Upload error: ' + error.message);
     } finally {
       setUploading(false);
@@ -434,7 +312,6 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
     React.createElement('div', {
       className: 'bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto'
     },
-      // Header
       React.createElement('div', {
         className: 'flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700'
       },
@@ -449,7 +326,6 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
 
       React.createElement('div', { className: 'p-6 space-y-6' },
         
-        // Smart Client Detection Notice (leads only)
         type === 'leads' && React.createElement('div', {
           className: 'p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg'
         },
@@ -466,7 +342,6 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
           )
         ),
 
-        // Instructions
         React.createElement('div', {
           className: 'p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg'
         },
@@ -478,7 +353,6 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
           }, '💡 Download the template first to ensure your data format is correct!')
         ),
 
-        // Download Template Section - FIXED BUTTON HANDLER
         React.createElement('div', {
           className: 'p-4 bg-gray-50 dark:bg-gray-700 rounded-lg'
         },
@@ -489,13 +363,11 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
           React.createElement('div', {
             className: 'grid grid-cols-1 md:grid-cols-3 gap-2'
           },
-            // CSV Download - FIXED to use the proper handler
             React.createElement('button', {
               onClick: window.getFixedCSVModalButtonHandlers(type).csvTemplate,
               className: 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors'
             }, '📄 CSV Template'),
 
-            // Excel buttons (leads only)
             type === 'leads' && React.createElement('button', {
               onClick: window.getFixedCSVModalButtonHandlers(type).excelAdvanced,
               className: 'bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors'
@@ -512,7 +384,6 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
           }, '🎯 Try "Excel (Instructions)" for the clearest guidance!')
         ),
 
-        // File Upload Section
         React.createElement('div', {
           className: 'space-y-4'
         },
@@ -528,7 +399,6 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
             })
           ),
 
-          // File info
           file && React.createElement('div', {
             className: 'p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded'
           },
@@ -538,7 +408,6 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
           )
         ),
 
-        // Upload Results
         uploadResult && React.createElement('div', {
           className: `p-4 rounded-lg ${
             uploadResult.errorCount > 0 
@@ -572,11 +441,9 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
           )
         ),
 
-        // Action Buttons
         React.createElement('div', {
           className: 'flex justify-between items-center gap-3 pt-4'
         },
-          // Preview button (leads only)
           type === 'leads' ? React.createElement('button', {
             onClick: handlePreview,
             disabled: !file || uploading,
@@ -585,7 +452,6 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
             window.previewLoading ? 'Loading...' : '🔍 Preview'
           ) : React.createElement('div'),
 
-          // Upload button
           React.createElement('button', {
             onClick: handleUpload,
             disabled: !file || uploading,
@@ -669,28 +535,10 @@ window.ClientDetectionResultsModal = () => {
 
 // ===== INITIALIZATION =====
 
-// Initialize state variables
 if (typeof window.csvUploadType === 'undefined') {
   window.csvUploadType = 'inventory';
-  console.log("📋 Initialized csvUploadType to default: inventory");
 }
 
 if (typeof window.clientDetectionResults === 'undefined') {
   window.clientDetectionResults = [];
 }
-
-console.log("✅ Complete Fixed CSV Upload System loaded successfully!");
-console.log("🎯 Key fixes applied:");
-console.log("  - Added missing getFixedCSVModalButtonHandlers function");
-console.log("  - Enhanced React event handling");
-console.log("  - Complete 21-field leads structure");
-console.log("  - Full debugging and logging");
-console.log("  - Proper state synchronization");
-console.log("  - Direct download shortcuts");
-
-console.log("🔧 Available commands:");
-console.log("   - window.debugCSVSystem() - Full system test");
-console.log("   - window.downloadInventoryCSVDirect() - Direct inventory download");
-console.log("   - window.downloadLeadsCSVDirect() - Direct leads download");
-console.log("   - window.testInventoryModal() - Test modal opening");
-console.log("   - window.openInventoryCSVUpload() - Open inventory upload modal");
