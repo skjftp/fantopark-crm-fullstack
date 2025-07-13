@@ -17,7 +17,29 @@ window.renderForm = () => {
     setPhoneCheckTimeout: window.setPhoneCheckTimeout,
     setSelectedClient: window.setSelectedClient,
     inventory: window.inventory,
-    users: window.users || window.appState?.users || [],
+    users: (() => {
+  let usersList = window.users || window.appState?.users || [];
+  
+  // ✅ NEW: If no users, try to restore from localStorage backup
+  if (usersList.length === 0) {
+    try {
+      const backup = localStorage.getItem('crm_users_backup');
+      if (backup) {
+        const backedUpUsers = JSON.parse(backup);
+        window.users = backedUpUsers;
+        window.allUsers = backedUpUsers;
+        if (!window.appState) window.appState = {};
+        window.appState.users = backedUpUsers;
+        usersList = backedUpUsers;
+        console.log("🔄 Lead form restored", backedUpUsers.length, "users from backup");
+      }
+    } catch (error) {
+      console.error("Failed to restore users in lead form:", error);
+    }
+  }
+  
+  return usersList;
+})(),
     events: window.events
     ,phoneCheckTimeout: window.phoneCheckTimeout
     ,checkPhoneForClient: window.checkPhoneForClient
