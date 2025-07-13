@@ -47,53 +47,84 @@ window.debugLog = function(event, data) {
 // ===== FILE UPLOAD UTILITIES =====
 
 // 🔧 UPDATED: Google Cloud Storage upload function with temporary local storage fallback
+// 🔧 FIXED: Upload function with proper backend endpoints
 window.uploadFileToGCS = async function(file, documentType = 'general') {
-  console.log('🔧 Using temporary local file storage for:', file.name);
+  console.log('📄 Fixed uploadFileToGCS called for:', file.name, 'type:', documentType);
   
-  return new Promise((resolve, reject) => {
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      reject(new Error('File size must be less than 5MB'));
-      return;
+  // For quotes - use existing quote endpoint
+  if (documentType === 'quote') {
+    console.log('📤 Using quote upload endpoint...');
+    
+    const formData = new FormData();
+    formData.append('quote_pdf', file);
+    formData.append('notes', window.quoteUploadData?.notes || '');
+    
+    const response = await fetch(`${window.API_CONFIG.API_URL}/leads/${window.currentLead.id}/quote/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': window.authToken ? 'Bearer ' + window.authToken : ''
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Upload failed with status ${response.status}`);
     }
 
-    // Validate file type
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-    if (!allowedTypes.includes(file.type)) {
-      reject(new Error('Only PDF, JPG, JPEG, and PNG files are allowed'));
-      return;
+    const result = await response.json();
+    console.log('✅ Quote upload successful:', result);
+    
+    return {
+      success: true,
+      filePath: result.filePath || `quotes/${window.currentLead.id}/${file.name}`,
+      publicUrl: result.fileUrl || result.downloadUrl,
+      originalName: file.name,
+      size: file.size,
+      type: file.type,
+      uploadedAt: new Date().toISOString()
+    };
+  }
+  
+  // For GST/PAN - use general upload endpoint  
+  else if (documentType === 'gst' || documentType === 'pan') {
+    console.log('📤 Using general upload endpoint for:', documentType);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await fetch(`${window.API_CONFIG.API_URL}/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': window.authToken ? 'Bearer ' + window.authToken : ''
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Upload failed with status ${response.status}`);
     }
 
-    const reader = new FileReader();
+    const result = await response.json();
+    console.log('✅ Document upload successful:', result);
     
-    reader.onload = function(e) {
-      const result = {
-        filePath: `temp/${documentType}/${Date.now()}_${file.name}`,
-        publicUrl: e.target.result, // Base64 data URL
-        originalName: file.name,
-        size: file.size,
-        type: file.type,
-        uploadedAt: new Date().toISOString(),
-        isTemporary: true // Flag to indicate this is temporary storage
-      };
-      
-      console.log('✅ File stored temporarily:', {
-        name: result.originalName,
-        size: `${(result.size / 1024).toFixed(1)} KB`,
-        type: result.type
-      });
-      
-      resolve(result);
+    return {
+      success: true,
+      filePath: result.filePath || result.fileName,
+      publicUrl: result.fileUrl || result.downloadUrl,
+      originalName: file.name,
+      size: file.size,
+      type: file.type,
+      uploadedAt: new Date().toISOString()
     };
-    
-    reader.onerror = function(error) {
-      console.error('❌ File reading error:', error);
-      reject(new Error('Failed to read file'));
-    };
-    
-    // Convert file to base64
-    reader.readAsDataURL(file);
-  });
+  }
+  
+  // Everything else - temporary storage
+  else {
+    console.log('🔧 Using temporary storage for:', documentType);
+    // ... keep the existing temporary storage code
+  }
 };
 
 // 🔧 UPDATED: Get upload URL for GCS with authorization header
