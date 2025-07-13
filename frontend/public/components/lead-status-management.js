@@ -44,6 +44,89 @@ window.getSupplyTeamMember = async function() {
   }
 };
 
+// Add this function to your lead-status-management.js file
+window.getFinanceManager = async function() {
+  console.log('🔍 === DEBUG getFinanceManager CALLED ===');
+  console.log('🔍 window.users length:', window.users?.length || 'undefined');
+  console.log('🔍 window.users:', window.users);
+  
+  try {
+    // Get all finance team members
+    const financeTeamMembers = window.users.filter(user => {
+      const isFinanceRole = ['finance_manager', 'finance_executive'].includes(user.role);
+      const isActive = user.status === 'active';
+      
+      console.log('🔍 Checking user:', user.email, 'role:', user.role, 'status:', user.status, 'isFinance:', isFinanceRole, 'isActive:', isActive);
+      
+      return isFinanceRole && isActive;
+    });
+    
+    console.log('🔍 Found finance team members:', financeTeamMembers);
+    
+    if (financeTeamMembers.length === 0) {
+      console.warn('⚠️ No active finance team members found, checking for admins as fallback');
+      
+      // Fallback: Look for active admins
+      const adminUsers = window.users.filter(user => 
+        ['admin', 'super_admin'].includes(user.role) && user.status === 'active'
+      );
+      
+      if (adminUsers.length > 0) {
+        console.log('🔄 Using admin as fallback:', adminUsers[0].email);
+        return adminUsers[0].email;
+      }
+      
+      // Last resort: return the first active user
+      const activeUsers = window.users.filter(user => user.status === 'active');
+      if (activeUsers.length > 0) {
+        console.log('🔄 Using first active user as last resort:', activeUsers[0].email);
+        return activeUsers[0].email;
+      }
+      
+      throw new Error('No active users found for finance assignment');
+    }
+    
+    console.log('✅ Found', financeTeamMembers.length, 'finance team members');
+    
+    // Prioritize finance_manager over finance_executive
+    const financeManagers = financeTeamMembers.filter(user => user.role === 'finance_manager');
+    const financeExecutives = financeTeamMembers.filter(user => user.role === 'finance_executive');
+    
+    let selectedMember;
+    
+    if (financeManagers.length > 0) {
+      // Use round-robin for finance managers if multiple exist
+      const managerIndex = (Date.now() % financeManagers.length);
+      selectedMember = financeManagers[managerIndex];
+      console.log('🎯 Selected finance manager via round-robin:', selectedMember.email);
+    } else {
+      // Use first finance executive if no managers
+      selectedMember = financeExecutives[0];
+      console.log('🎯 Selected finance executive (no managers available):', selectedMember.email);
+    }
+    
+    console.log('🎯 Final assignment to:', selectedMember.email, '(' + selectedMember.name + ')');
+    
+    return selectedMember.email;
+    
+  } catch (error) {
+    console.error('❌ Error getting finance manager:', error);
+    
+    // Emergency fallback: try to find ANY active user
+    try {
+      const emergencyUser = window.users.find(user => user.status === 'active');
+      if (emergencyUser) {
+        console.log('🚨 Emergency fallback to:', emergencyUser.email);
+        return emergencyUser.email;
+      }
+    } catch (fallbackError) {
+      console.error('❌ Emergency fallback also failed:', fallbackError);
+    }
+    
+    throw new Error('Failed to assign to any finance manager');
+  }
+};
+
 // ===== DEBUG VERSION: Add this to lead-status-management.js =====
 window.updateLeadStatus = async function(leadId, newStatus) {
   console.log('🔍 === DEBUG updateLeadStatus CALLED ===');
