@@ -253,10 +253,26 @@ window.renderGSTInvoicePreview = () => {
           React.createElement('div', { className: 'invoice-header-row' },
             React.createElement('div', { className: 'company-logo' },
               React.createElement('img', {
-                src: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjEwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIxMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRkZGRkZGIi8+Cjx0ZXh0IHg9IjEwNSIgeT0iNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMyQzNFNTAiPkZhblRvUGFyazwvdGV4dD4KPHN2ZyB4PSI3NSIgeT0iNTAiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+CjxjaXJjbGUgY3g9IjE1IiBjeT0iMTUiIHI9IjEwIiBmaWxsPSIjRkY2QjM1Ii8+CjxjaXJjbGUgY3g9IjQ1IiBjeT0iMTUiIHI9IjEwIiBmaWxsPSIjNDBCODgzIi8+CjxjaXJjbGUgY3g9IjE1IiBjeT0iNDUiIHI9IjEwIiBmaWxsPSIjMzc0MEZGIi8+CjxjaXJjbGUgY3g9IjQ1IiBjeT0iNDUiIHI9IjEwIiBmaWxsPSIjRkY0MDU2Ii8+Cjwvc3ZnPgo8dGV4dCB4PSIxMDUiIHk9IjEzMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjY2NjY2Ij5Zb3VyIFNwb3J0cyBQYXNzaW9uLCBPdXIgRXhwZXJ0aXNlPC90ZXh0Pgo8L3N2Zz4=',
+                src: './images/logo.png',
                 alt: 'FanToPark Logo',
-                style: { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }
-              })
+                style: { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' },
+                onError: (e) => {
+                  console.warn('Logo not found, using fallback');
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'block';
+                }
+              }),
+              // Fallback text if logo fails to load
+              React.createElement('div', {
+                style: { 
+                  display: 'none', 
+                  textAlign: 'center', 
+                  fontSize: '24px', 
+                  fontWeight: 'bold', 
+                  color: '#2c3e50',
+                  paddingTop: '60px'
+                }
+              }, 'FanToPark')
             ),
             React.createElement('div', null),
             React.createElement('div', { className: 'invoice-title' }, 'Tax Invoice')
@@ -410,16 +426,35 @@ window.renderGSTInvoicePreview = () => {
             ),
             React.createElement('div', { className: 'payment-qr' },
               React.createElement('h4', null, 'Scan to Pay'),
-              React.createElement('div', { style: { 
-                width: '80px', 
-                height: '80px', 
-                border: '1px solid #000', 
-                margin: '0 auto',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '8px'
-              }}, 'QR Code'),
+              React.createElement('img', {
+                src: './images/qr.png',
+                alt: 'Payment QR Code',
+                style: { 
+                  width: '80px', 
+                  height: '80px', 
+                  margin: '0 auto',
+                  display: 'block',
+                  border: '1px solid #000'
+                },
+                onError: (e) => {
+                  console.warn('QR code image not found, using fallback');
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }
+              }),
+              // Fallback div if QR image fails to load
+              React.createElement('div', { 
+                style: { 
+                  width: '80px', 
+                  height: '80px', 
+                  border: '1px solid #000', 
+                  margin: '0 auto',
+                  display: 'none',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '8px'
+                }
+              }, 'QR Code'),
               React.createElement('div', { style: { fontSize: '8px', marginTop: '4px' }}, 'Scan QR code for payment')
             )
           ),
