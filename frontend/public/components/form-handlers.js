@@ -978,4 +978,354 @@ window.viewInvoice = function(order) {
   }
 };
 
+// =============================================================================
+// STEP 3: PAYMENT WORKFLOW INTEGRATION UPDATES
+// =============================================================================
+// Add this code to your payment-submit-handler.js or form-handlers.js
+
+// Enhanced payment submission with workflow integration
+window.enhancedPaymentSubmit = async function(e) {
+  e.preventDefault();
+  
+  if (!window.hasPermission('orders', 'create')) {
+    alert('You do not have permission to create orders');
+    return;
+  }
+
+  window.setLoading(true);
+
+  try {
+    console.log('🔍 Processing enhanced payment submission...');
+    console.log('Payment data:', window.paymentData);
+    console.log('Current lead:', window.currentLead);
+
+    // Calculate GST and TCS
+    const baseAmount = parseFloat(window.paymentData.advance_amount) || 0;
+    const calculation = window.calculateGSTAndTCS ? 
+      window.calculateGSTAndTCS(baseAmount, window.paymentData) : 
+      { finalAmount: baseAmount, gst: { amount: 0 }, tcs: { amount: 0 } };
+
+    // Create order with enhanced workflow data
+    const orderData = {
+      order_number: 'ORD-' + Date.now(),
+      lead_id: window.currentLead.id,
+      client_name: window.currentLead.name,
+      client_email: window.currentLead.email,
+      client_phone: window.currentLead.phone,
+      
+      // Event details
+      event_name: window.currentLead.lead_for_event || 'Service',
+      event_date: window.paymentData.event_date || window.currentLead.event_date || new Date().toISOString().split('T')[0],
+      
+      // Financial details
+      base_amount: baseAmount,
+      gst_amount: calculation.gst?.amount || 0,
+      tcs_amount: calculation.tcs?.amount || 0,
+      total_amount: baseAmount,
+      final_amount: calculation.finalAmount,
+      advance_amount: baseAmount,
+      
+      // Payment details
+      payment_date: window.paymentData.payment_date,
+      payment_method: window.paymentData.payment_method,
+      payment_currency: window.paymentData.payment_currency || 'INR',
+      
+      // Workflow data
+      order_type: window.paymentData.payment_post_service ? 'payment_post_service' : 'standard',
+      status: 'pending_approval',
+      original_assignee: window.currentLead.assigned_to, // Store original sales person
+      created_by: window.user.name || window.user.email,
+      created_date: new Date().toISOString(),
+      requires_gst_invoice: true,
+      
+      // Auto-assignment will be handled by workflow
+      assigned_to: '',
+      
+      // Additional metadata
+      notes: window.paymentData.notes,
+      service_fee_amount: window.paymentData.service_fee_amount ? parseFloat(window.paymentData.service_fee_amount) : null
+    };
+
+    console.log('📋 Creating order with workflow integration:', orderData);
+
+    // Create order via API
+    const orderResponse = await window.apiCall('/orders', {
+      method: 'POST',
+      body: JSON.stringify(orderData)
+    });
+
+    console.log('✅ Order created:', orderResponse);
+
+    // Get the created order
+    const createdOrder = orderResponse.data || orderResponse || orderData;
+    if (!createdOrder.id && orderData.order_number) {
+      createdOrder.id = orderData.order_number;
+    }
+
+    // Apply workflow auto-assignment
+    const leadStatus = window.paymentData.payment_post_service ? 'payment_post_service' : 'payment_received';
+    const finalOrder = await window.autoAssignOrderBasedOnType(createdOrder, leadStatus);
+
+    console.log('🎯 Order auto-assigned:', finalOrder);
+
+    // Update local orders state
+    window.setOrders(prev => [...prev, finalOrder]);
+
+    // Update lead status
+    const newLeadStatus = window.paymentData.payment_post_service ? 'payment_post_service' : 'payment_received';
+    await window.updateLeadStatus(window.currentLead.id, newLeadStatus);
+
+    // Success message based on workflow
+    let successMessage;
+    if (window.paymentData.payment_post_service) {
+      successMessage = '✅ Post-service payment order created!\n• Assigned to Supply Sales Service Manager for approval\n• Will be assigned to both Supply roles after approval\n• Invoice can be generated after approval';
+    } else {
+      successMessage = '✅ Payment order created!\n• Assigned to Finance team for approval\n• Will be forwarded to Supply team (Both Supply roles) after approval';
+    }
+
+    alert(successMessage);
+    window.closeForm();
+
+  } catch (error) {
+    console.error('❌ Enhanced payment submission failed:', error);
+    alert('Payment processing failed: ' + error.message);
+  } finally {
+    window.setLoading(false);
+  }
+};
+
+// Enhanced payment post service handler
+window.enhancedPaymentPostServiceSubmit = async function(e) {
+  e.preventDefault();
+
+  if (!window.hasPermission('leads', 'write')) {
+    alert('You do not have permission to manage payment post service');
+    return;
+  }
+
+  window.setLoading(true);
+
+  try {
+    console.log('🔄 Processing payment post service...');
+    console.log('Data:', window.paymentPostServiceData);
+    console.log('Lead:', window.currentLead);
+
+    // Update lead status first
+    const leadResponse = await window.apiCall('/leads/' + window.currentLead.id, {
+      method: 'PUT',
+      body: JSON.stringify({
+        ...window.currentLead,
+        status: 'payment_post_service',
+        payment_post_service_details: window.paymentPostServiceData,
+        payment_post_service_date: new Date().toISOString()
+      })
+    });
+
+    // Update local leads state
+    window.setLeads(prev => 
+      prev.map(lead => 
+        lead.id === window.currentLead.id ? 
+          (leadResponse.data || leadResponse || { ...lead, status: 'payment_post_service' }) : 
+          lead
+      )
+    );
+
+    // Create order with workflow integration
+    const orderData = {
+      order_number: 'PST-' + Date.now(),
+      lead_id: window.currentLead.id,
+      client_name: window.currentLead.name,
+      client_email: window.currentLead.email,
+      client_phone: window.currentLead.phone,
+      
+      // Service details
+      event_name: window.currentLead.lead_for_event || 'Post Service Payment',
+      event_date: window.paymentPostServiceData.service_date || new Date().toISOString().split('T')[0],
+      
+      // Financial details
+      expected_amount: parseFloat(window.paymentPostServiceData.expected_amount) || 0,
+      total_amount: parseFloat(window.paymentPostServiceData.expected_amount) || 0,
+      expected_payment_date: window.paymentPostServiceData.expected_payment_date,
+      
+      // Service details
+      service_description: window.paymentPostServiceData.service_details,
+      payment_terms: window.paymentPostServiceData.payment_terms,
+      notes: window.paymentPostServiceData.notes,
+      
+      // Workflow data
+      order_type: 'payment_post_service',
+      status: 'pending_approval',
+      original_assignee: window.currentLead.assigned_to, // Store original sales person
+      created_by: window.user.name || window.user.email,
+      created_date: new Date().toISOString(),
+      requires_gst_invoice: true,
+      
+      // Will be auto-assigned by workflow
+      assigned_to: ''
+    };
+
+    console.log('📋 Creating post-service order:', orderData);
+
+    // Create order
+    const orderResponse = await window.apiCall('/orders', {
+      method: 'POST',
+      body: JSON.stringify(orderData)
+    });
+
+    const createdOrder = orderResponse.data || orderResponse || orderData;
+    if (!createdOrder.id && orderData.order_number) {
+      createdOrder.id = orderData.order_number;
+    }
+
+    // Apply workflow auto-assignment
+    const finalOrder = await window.autoAssignOrderBasedOnType(createdOrder, 'payment_post_service');
+
+    // Update local state
+    window.setOrders(prev => [...prev, finalOrder]);
+
+    alert('✅ Payment Post Service order created!\n• Assigned to Supply Sales Service Manager for approval\n• Will be assigned to both Supply roles after approval\n• Service can be scheduled after approval');
+    window.closeForm();
+
+  } catch (error) {
+    console.error('❌ Payment post service failed:', error);
+    alert('Failed to process payment post service: ' + error.message);
+  } finally {
+    window.setLoading(false);
+  }
+};
+
+// =============================================================================
+// WORKFLOW STATUS INDICATORS
+// =============================================================================
+
+// Enhanced status display for orders
+window.getOrderStatusDisplay = function(order) {
+  const status = order.status;
+  const orderType = order.order_type;
+  
+  const statusConfig = {
+    'pending_approval': {
+      label: orderType === 'payment_post_service' ? 'Pending Supply Approval' : 'Pending Finance Approval',
+      color: 'bg-yellow-100 text-yellow-800',
+      icon: '⏳'
+    },
+    'approved': {
+      label: 'Approved',
+      color: 'bg-green-100 text-green-800',
+      icon: '✅'
+    },
+    'rejected': {
+      label: 'Rejected',
+      color: 'bg-red-100 text-red-800',
+      icon: '❌'
+    },
+    'assigned': {
+      label: 'Assigned to Supply',
+      color: 'bg-blue-100 text-blue-800',
+      icon: '👥'
+    },
+    'in_progress': {
+      label: 'In Progress',
+      color: 'bg-purple-100 text-purple-800',
+      icon: '🔄'
+    },
+    'completed': {
+      label: 'Completed',
+      color: 'bg-green-100 text-green-800',
+      icon: '✅'
+    }
+  };
+
+  const config = statusConfig[status] || {
+    label: status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    color: 'bg-gray-100 text-gray-800',
+    icon: '📋'
+  };
+
+  return React.createElement('span', {
+    className: `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`,
+    title: `Order Type: ${orderType || 'standard'}\nStatus: ${config.label}`
+  }, 
+    config.icon + ' ' + config.label
+  );
+};
+
+// Enhanced assignee display
+window.getOrderAssigneeDisplay = function(order) {
+  const currentAssignee = order.assigned_to;
+  const originalAssignee = order.original_assignee || order.created_by;
+  
+  if (!currentAssignee) {
+    return React.createElement('span', { 
+      className: 'text-gray-500 italic' 
+    }, 'Unassigned');
+  }
+
+  const isReassigned = originalAssignee && currentAssignee !== originalAssignee;
+  
+  return React.createElement('div', { className: 'text-sm' },
+    React.createElement('div', { 
+      className: isReassigned ? 'font-medium text-blue-600' : 'text-gray-900' 
+    }, currentAssignee),
+    
+    isReassigned && React.createElement('div', { 
+      className: 'text-xs text-gray-500' 
+    }, `Originally: ${originalAssignee}`)
+  );
+};
+
+// =============================================================================
+// WORKFLOW NOTIFICATIONS
+// =============================================================================
+
+// Create notifications for workflow events
+window.createWorkflowNotification = function(type, orderData, userEmail) {
+  const notifications = {
+    'order_assigned': {
+      title: '📋 New Order Assigned',
+      message: `Order ${orderData.order_number} has been assigned to you for ${orderData.order_type === 'payment_post_service' ? 'approval' : 'processing'}.`
+    },
+    'order_approved': {
+      title: '✅ Order Approved',
+      message: `Order ${orderData.order_number} has been approved and assigned to you.`
+    },
+    'order_rejected': {
+      title: '❌ Order Rejected',
+      message: `Order ${orderData.order_number} has been rejected and returned to you for review.`
+    }
+  };
+
+  const notification = notifications[type];
+  if (notification && window.createNotification) {
+    window.createNotification({
+      ...notification,
+      user: userEmail,
+      data: orderData,
+      created_at: new Date().toISOString()
+    });
+  }
+};
+
+// =============================================================================
+// INITIALIZATION
+// =============================================================================
+
+// Replace existing payment handlers
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    // Replace payment handlers with enhanced versions
+    if (window.handlePaymentSubmit) {
+      window.handlePaymentSubmit = window.enhancedPaymentSubmit;
+    }
+    
+    if (window.handlePaymentPostServiceSubmit) {
+      window.handlePaymentPostServiceSubmit = window.enhancedPaymentPostServiceSubmit;
+    }
+    
+    console.log('✅ Payment workflow integration completed');
+  }, 1500);
+});
+
+console.log('✅ Payment Workflow Integration Updates loaded successfully');
+
 console.log("🔧 Payment handler functions added to form-handlers.js");
