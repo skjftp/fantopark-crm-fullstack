@@ -6,13 +6,92 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// More permissive CORS for development
-app.use(cors({
-  origin: true,
+// Enhanced CORS Configuration for Production
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:8000', 
+  'http://localhost:8080',
+  'https://skjftp.github.io',
+  'https://lehrado.com',        // Your production domain
+  'https://www.lehrado.com',    // www variant
+  /^https:\/\/fantopark-.*\.vercel\.app$/,
+  /^https:\/\/.*-skjftps-projects\.vercel\.app$/,
+  /^https:\/\/.*\.netlify\.app$/,  // Netlify domains
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    console.log('🔍 CORS Check - Origin:', origin);
+    
+    // Check exact matches
+    if (allowedOrigins.includes(origin)) {
+      console.log('✅ CORS - Exact match allowed:', origin);
+      return callback(null, true);
+    }
+    
+    // Check regex patterns
+    for (const pattern of allowedOrigins) {
+      if (pattern instanceof RegExp && pattern.test(origin)) {
+        console.log('✅ CORS - Pattern match allowed:', origin);
+        return callback(null, true);
+      }
+    }
+    
+    console.log('❌ CORS - Origin not allowed:', origin);
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Cache-Control',
+    'Pragma'
+  ],
+  exposedHeaders: ['Content-Disposition'],
+  maxAge: 86400, // 24 hours
+  preflightContinue: false,
+  optionsSuccessStatus: 200
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Additional CORS headers for better compatibility
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Set CORS headers explicitly for better compatibility
+  if (origin && (allowedOrigins.includes(origin) || allowedOrigins.some(pattern => 
+    pattern instanceof RegExp && pattern.test(origin)))) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,Cache-Control,Pragma');
+  res.header('Access-Control-Expose-Headers', 'Content-Disposition');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    console.log('✅ CORS Preflight handled for:', req.url);
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
+// Debug CORS and requests
+app.use((req, res, next) => {
+  console.log(`🌐 ${req.method} ${req.url} - Origin: ${req.headers.origin || 'None'}`);
+  next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -44,13 +123,35 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date(),
-    environment: 'Development'
+    environment: process.env.NODE_ENV || 'Development',
+    corsOrigins: allowedOrigins.length
+  });
+});
+
+// CORS test endpoint
+app.get('/api/cors-test', (req, res) => {
+  res.json({
+    success: true,
+    origin: req.headers.origin,
+    message: 'CORS is working correctly',
+    timestamp: new Date()
   });
 });
 
 // Error handling
 app.use((err, req, res, next) => {
+  console.error('❌ Server Error:', err.message);
   console.error(err.stack);
+  
+  // CORS-specific error handling
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({ 
+      error: 'CORS policy violation',
+      origin: req.headers.origin,
+      allowedOrigins: allowedOrigins.filter(origin => typeof origin === 'string')
+    });
+  }
+  
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
@@ -58,6 +159,8 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🔗 Access via: http://localhost:${PORT}`);
   console.log(`🔍 Health check: http://localhost:${PORT}/health`);
+  console.log(`🔍 CORS test: http://localhost:${PORT}/api/cors-test`);
+  console.log(`✅ CORS configured for:`, allowedOrigins);
 });
 
 module.exports = app;
