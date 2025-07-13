@@ -70,8 +70,8 @@ window.renderEnhancedPaymentForm = () => {
     React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-5xl max-h-[95vh] overflow-y-auto' },
       React.createElement('div', { className: 'flex justify-between items-center mb-6' },
         React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
-          'Payment Collection: ' + (currentLead.name)
-        ),
+  (paymentData.updating_existing_order ? '✏️ Update Payment: ' : '💰 Payment Details: ') + (currentLead.name)
+),
         React.createElement('button', {
           onClick: closeForm,
           className: 'text-gray-400 hover:text-gray-600 text-2xl'
@@ -839,10 +839,10 @@ window.renderEnhancedPaymentForm = () => {
             className: 'flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50'
           }, 'Cancel'),
           React.createElement('button', {
-            type: 'submit',
-            disabled: loading,
-            className: 'flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50'
-          }, loading ? 'Processing...' : 'Submit Payment & Create Order')
+  type: 'submit',
+  disabled: loading,
+  className: 'flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50'
+}, loading ? 'Processing...' : (paymentData.updating_existing_order ? 'Update Order' : 'Submit Payment & Create Order'))
         )
       )
     )
