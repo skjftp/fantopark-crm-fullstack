@@ -241,13 +241,14 @@ const [eventsPerPage, setEventsPerPage] = useState(10);
     label: '',
     description: '',
     permissions: {
-      dashboard: { read: false, write: false, delete: false, manage_users: false },
-      leads: { read: false, write: false, delete: false, assign: false, progress: false },
-      inventory: { read: false, write: false, delete: false, allocate: false },
-      orders: { read: false, write: false, delete: false, approve: false, assign: false },
-      finance: { read: false, write: false, delete: false, approve: false },
-      delivery: { read: false, write: false, delete: false },
-      users: { read: false, write: false, delete: false, manage_roles: false }
+        dashboard: { read: false, write: false, delete: false, manage_users: false },
+        leads: { read: false, write: false, delete: false, assign: false, progress: false },
+        inventory: { read: false, write: false, delete: false, allocate: false },
+        orders: { read: false, write: false, delete: false, approve: false, assign: false },
+        finance: { read: false, write: false, delete: false, approve: false },
+        delivery: { read: false, write: false, delete: false },
+        stadiums: { read: false, write: false, delete: false },  // ✅ ADD THIS LINE
+        users: { read: false, write: false, delete: false, manage_roles: false }
     }
   });
   const [editingUser, setEditingUser] = useState(null);
