@@ -1,13 +1,20 @@
-// Enhanced backend/src/routes/leads.js - FULLY BACKWARD COMPATIBLE + AUTO-REMINDERS + ASSIGNMENT RULES + COMMUNICATION TRACKING
+// Enhanced backend/src/routes/leads.js - FULLY BACKWARD COMPATIBLE + AUTO-REMINDERS + ASSIGNMENT RULES + COMMUNICATION TRACKING + PDF DOWNLOAD
 const express = require('express');
 const router = express.Router();
 const Lead = require('../models/Lead');
 const AssignmentRule = require('../models/AssignmentRule');
 const { authenticateToken } = require('../middleware/auth');
 const Communication = require('../models/Communication');
+const { Storage } = require('@google-cloud/storage');
 
 // Import db for bulk operations (you already had this)
 const { db, collections } = require('../config/db');
+
+// Initialize Google Cloud Storage for PDF downloads
+const storage = new Storage({
+  projectId: 'enduring-wharf-464005-h7',
+});
+const bucket = storage.bucket('fantopark-quotes-bucket');
 
 // FIXED: Helper function to get user name by email (for suggestions)
 async function getUserName(email) {
@@ -771,26 +778,10 @@ router.post('/:id/communications', authenticateToken, async (req, res) => {
   }
 });
 
-// backend/src/routes/leads.js
-// Add this to your existing leads.js file
+// ===== NEW QUOTE PDF DOWNLOAD ENDPOINTS =====
 
-const express = require('express');
-const router = express.Router();
-const { db } = require('../config/db');
-const auth = require('../middleware/auth');
-const { Storage } = require('@google-cloud/storage');
-
-// Initialize Google Cloud Storage
-const storage = new Storage({
-  projectId: 'enduring-wharf-464005-h7', // Your project ID from the document
-});
-const bucket = storage.bucket('fantopark-quotes-bucket'); // You'll need to create this bucket
-
-// ===== EXISTING ROUTES (keep all your existing routes) =====
-// GET /leads, POST /leads, PUT /leads/:id, DELETE /leads/:id etc.
-
-// ===== NEW QUOTE DOWNLOAD ENDPOINT =====
-router.get('/:id/quote/download', auth, async (req, res) => {
+// Quote download endpoint
+router.get('/:id/quote/download', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -819,7 +810,6 @@ router.get('/:id/quote/download', auth, async (req, res) => {
     }
     
     // Construct the file path in Google Cloud Storage
-    // Assuming files are stored as: quotes/{leadId}/{filename}
     const filePath = `quotes/${id}/${filename}`;
     const file = bucket.file(filePath);
     
@@ -858,15 +848,14 @@ router.get('/:id/quote/download', auth, async (req, res) => {
   }
 });
 
-// ===== ALTERNATIVE: DIRECT FILE SERVING ENDPOINT =====
-// If you prefer to stream files directly through your server
-router.get('/files/quotes/:leadId/:filename', auth, async (req, res) => {
+// Alternative direct file serving endpoint
+router.get('/files/quotes/:leadId/:filename', authenticateToken, async (req, res) => {
   try {
     const { leadId, filename } = req.params;
     
     console.log(`📄 Direct file serve request: ${leadId}/${filename}`);
     
-    // Verify the lead exists and user has permission
+    // Verify the lead exists
     const leadDoc = await db.collection('crm_leads').doc(leadId).get();
     if (!leadDoc.exists) {
       return res.status(404).json({ error: 'Lead not found' });
