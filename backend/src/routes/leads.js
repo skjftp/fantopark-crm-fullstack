@@ -952,13 +952,17 @@ router.post('/:id/quote/upload', authenticateToken, upload.single('quote_pdf'), 
     };
     
     // If a file was uploaded, store it in GCS
-    if (file) {
-      try {
-        // Create unique filename
-        const timestamp = Date.now();
-        const extension = file.originalname.split('.').pop();
-        const uniqueFilename = `quote_${timestamp}_${file.originalname}`;
-        const filePath = `quotes/${id}/${uniqueFilename}`;
+// Declare file variables outside the if block
+let uniqueFilename, filePath;
+
+// If a file was uploaded, store it in GCS
+if (file) {
+  try {
+    // Create unique filename
+    const timestamp = Date.now();
+    const extension = file.originalname.split('.').pop();
+    uniqueFilename = `quote_${timestamp}_${file.originalname}`;
+    filePath = `quotes/${id}/${uniqueFilename}`;
         
         console.log(`📄 Uploading to GCS: ${filePath}`);
         
