@@ -163,7 +163,7 @@ window.renderContent = () => {
                                 React.createElement('p', { className: 'text-xs text-gray-500 mt-2' }, 'Users with this role: ' + (role.user_count || 0))
                             ),
                             React.createElement('div', { className: 'flex gap-2' },
-                                !role.is_system && React.createElement('button', {
+                                React.createElement('button', {
                                     onClick: () => {
                                         window.setEditingRole(role);
                                         window.setRoleFormData(JSON.parse(JSON.stringify(role)));
@@ -171,7 +171,7 @@ window.renderContent = () => {
                                     },
                                     className: 'text-blue-600 hover:text-blue-800'
                                 }, 'Edit'),
-                                !role.is_system && React.createElement('button', {
+                                React.createElement('button', {
                                     onClick: async () => {
                                         if (!confirm('Are you sure you want to delete this role?')) return;
                                         try {
@@ -317,7 +317,8 @@ window.renderContent = () => {
                                                                     }
                                                                 }));
                                                             },
-                                                            disabled: window.editingRole?.is_system && module === 'users' && perm === 'manage_roles'
+                                                            disabled: false  // Allow editing all permissions
+
                                                         }),
                                                         React.createElement('span', { className: 'text-sm capitalize' }, 
                                                             perm.replace(/_/g, ' ')
