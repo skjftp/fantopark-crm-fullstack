@@ -1351,3 +1351,83 @@ window.completeOrder = window.completeOrder || function(orderId) {
 window.deleteOrder = window.deleteOrder || function(orderId) {
   if (confirm('Delete order?')) console.log('Delete:', orderId);
 };
+
+
+// =============================================================================
+// IMMEDIATE FIX: ORDER ACTION FUNCTIONS
+// =============================================================================
+
+// Fix View button
+window.openOrderDetail = window.openOrderDetail || function(order) {
+  console.log('📋 View order clicked:', order.id);
+  // For now, show a simple alert with order details
+  alert(`Order Details:\n\nOrder #: ${order.order_number || order.id}\nClient: ${order.client_name || order.lead_name || 'Unknown'}\nStatus: ${order.status}\nAmount: ${order.total_amount || order.final_amount || 'N/A'}\nAssigned to: ${order.assigned_to || 'Unassigned'}`);
+  
+  // TODO: Later you can replace this with a proper modal
+  // window.setCurrentOrderDetail(order);
+  // window.setShowOrderDetail(true);
+};
+
+// Fix Edit button  
+window.openEditOrderForm = window.openEditOrderForm || function(order) {
+  console.log('✏️ Edit order clicked:', order.id);
+  window.setCurrentOrderForEdit(order);
+  window.setShowEditOrderForm(true);
+};
+
+// Fix missing setters
+window.setCurrentOrderForEdit = window.setCurrentOrderForEdit || function(order) {
+  window.currentOrderForEdit = order;
+  window.orderEditData = order ? { ...order } : null;
+};
+
+window.setShowEditOrderForm = window.setShowEditOrderForm || function(show) {
+  window.showEditOrderForm = show;
+  // Force re-render
+  if (window.setActiveTab) {
+    window.setActiveTab(window.activeTab);
+  }
+};
+
+// Fix other action buttons
+window.approveOrder = window.approveOrder || function(orderId) {
+  console.log('✅ Approve clicked for order:', orderId);
+  if (confirm('Approve this order?')) {
+    // Your existing approval logic
+    window.handleOrderApproval && window.handleOrderApproval(orderId, 'approve');
+  }
+};
+
+window.rejectOrder = window.rejectOrder || function(orderId) {
+  console.log('❌ Reject clicked for order:', orderId);
+  const reason = prompt('Reason for rejection:');
+  if (reason) {
+    window.handleOrderApproval && window.handleOrderApproval(orderId, 'reject', reason);
+  }
+};
+
+window.assignOrder = window.assignOrder || function(order) {
+  console.log('👥 Assign clicked for order:', order.id);
+  alert('Assignment feature - select user and assign');
+};
+
+window.completeOrder = window.completeOrder || function(orderId) {
+  console.log('✅ Complete clicked for order:', orderId);
+  if (confirm('Mark this order as completed?')) {
+    alert('Order completion feature will be implemented');
+  }
+};
+
+window.deleteOrder = window.deleteOrder || function(orderId) {
+  console.log('🗑️ Delete clicked for order:', orderId);
+  if (confirm('Are you sure you want to delete this order?')) {
+    alert('Order deletion feature will be implemented');
+  }
+};
+
+window.viewInvoice = window.viewInvoice || function(order) {
+  console.log('📄 View invoice clicked for order:', order.id);
+  alert(`Invoice for Order: ${order.order_number || order.id}\nThis will open the invoice viewer.`);
+};
+
+console.log('🔧 Order action functions loaded - View and Edit should work now!');
