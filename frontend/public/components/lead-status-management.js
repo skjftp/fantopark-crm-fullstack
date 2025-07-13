@@ -518,6 +518,8 @@ window.handleLeadProgression = function(lead) {
 
 // Replace the handleQuoteUpload function in lead-status-management.js with this:
 
+// Replace the handleQuoteUpload function in lead-status-management.js with this:
+
 window.handleQuoteUpload = async function(e) {
   e.preventDefault();
   
@@ -531,20 +533,19 @@ window.handleQuoteUpload = async function(e) {
   window.setLoading(true);
   
   try {
-    
     if (hasFile) {
-      // FIXED: Call the actual upload endpoint that exists in your backend
+      // FIXED: Call the actual backend upload endpoint instead of local storage
       console.log('📤 Uploading file via backend endpoint...');
       
       const formData = new FormData();
-      formData.append('quote_pdf', window.quoteUploadData.pdf); // Note: 'quote_pdf' not 'pdf'
+      formData.append('quote_pdf', window.quoteUploadData.pdf); // Backend expects 'quote_pdf'
       formData.append('notes', window.quoteUploadData.notes || '');
       
       const uploadResponse = await fetch(`${window.API_CONFIG.API_URL}/leads/${window.currentLead.id}/quote/upload`, {
         method: 'POST',
         headers: {
           'Authorization': window.authToken ? 'Bearer ' + window.authToken : ''
-          // Don't set Content-Type for FormData, let browser set it with boundary
+          // Don't set Content-Type for FormData
         },
         body: formData
       });
@@ -561,7 +562,8 @@ window.handleQuoteUpload = async function(e) {
         throw new Error(uploadResult.error || 'Upload failed');
       }
       
-      // The backend endpoint already updates the lead, so we just need to update local state
+      // The backend endpoint already updates the lead with file info and status
+      // Just update our local state with the response
       window.setLeads(prev => prev.map(l => 
         l.id === window.currentLead.id ? uploadResult.data : l
       ));
@@ -571,11 +573,11 @@ window.handleQuoteUpload = async function(e) {
         window.setCurrentLead(uploadResult.data);
       }
       
-      console.log('📄 Lead data updated from upload response');
+      console.log('📄 Lead updated from backend response');
       
     } else {
-      // No file - just update notes and status via the regular API
-      console.log('📄 No file - updating lead status only...');
+      // No file - just update notes and status
+      console.log('📄 No file - updating status only...');
       
       const originalAssignee = window.currentLead.original_assignee || window.currentLead.assigned_to;
       
