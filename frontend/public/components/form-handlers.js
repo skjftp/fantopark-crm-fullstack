@@ -953,4 +953,29 @@ window.rejectOrder = async function(orderId) {
   }
 };
 
+// ✅ SIMPLE WRAPPER FUNCTION - Add to END of form-handlers.js
+
+// Connect orders.js "View Invoice" button to existing openInvoicePreview
+window.viewInvoice = function(order) {
+  console.log('📄 viewInvoice called for order:', order.id);
+  
+  // Look for existing invoice for this order
+  const invoice = window.invoices?.find(inv => inv.order_id === order.id);
+  
+  if (invoice) {
+    // Show existing invoice using existing function
+    window.openInvoicePreview(invoice);
+  } else {
+    // No invoice found - offer to generate one
+    const shouldGenerate = confirm(
+      `No invoice found for this order.\n\nOrder: ${order.order_number || order.id}\nClient: ${order.client_name || 'Unknown'}\n\nWould you like to generate an invoice now?`
+    );
+    
+    if (shouldGenerate) {
+      // Generate invoice (you can enhance this part later if needed)
+      alert('Invoice generation feature will be implemented here.\nFor now, invoices are auto-generated when orders are approved.');
+    }
+  }
+};
+
 console.log("🔧 Payment handler functions added to form-handlers.js");
