@@ -834,11 +834,21 @@ window.renderLeadsContent = () => {
                                                     ? `Progress to ${progressionOptions[0].label}`
                                                     : `Choose next stage (${progressionOptions.length} options)`
                                             }, window.loading ? '...' : '→'),
-                                            window.hasPermission('leads', 'write') && lead.status === 'converted' &&
-                                                React.createElement('button', { 
-                                                    className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
-                                                    onClick: () => window.openPaymentForm(lead)
-                                                }, '💳'),
+                                            window.hasPermission('leads', 'write') && (() => {
+                                            // Check if this lead has any order (regardless of status)
+                                            const hasOrder = window.orders && window.orders.some(order => 
+                                            order.lead_id === lead.id && 
+                                            order.status !== 'rejected'
+                                            );
+                                            
+                                            // Show payment shortcut if lead is converted OR has an order
+                                            return lead.status === 'converted' || hasOrder;
+                                            })() &&
+                                            React.createElement('button', { 
+                                            className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
+                                            onClick: () => window.openPaymentForm(lead),
+                                            title: 'Collect Payment'
+                                            }, '💳'),
                                             window.hasPermission('leads', 'delete') && React.createElement('button', { 
                                                 className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
                                                 onClick: () => window.handleDelete('leads', lead.id, lead.name),
