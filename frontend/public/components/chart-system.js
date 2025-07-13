@@ -400,3 +400,278 @@
 
   console.log('🚀 Updated Chart System Loaded - All conflicts resolved!');
 })();
+
+// ===============================================
+// CHART SYSTEM FIX - ADD MISSING FUNCTION
+// Add this to your chart-system.js or as a separate script
+// ===============================================
+
+(function() {
+  'use strict';
+  
+  console.log('🔧 Loading chart system fix for missing initializeOptimizedCharts...');
+  
+  // ===============================================
+  // CREATE THE MISSING FUNCTION
+  // ===============================================
+  
+  window.initializeOptimizedCharts = function() {
+    console.log('🚀 initializeOptimizedCharts called - routing to working system...');
+    
+    // Route to the working chart initialization function
+    if (window.initializeChartsAdvanced) {
+      console.log('✅ Found initializeChartsAdvanced, using it...');
+      window.initializeChartsAdvanced();
+    } else if (window.smartChartInit) {
+      console.log('✅ Found smartChartInit, using it...');
+      window.smartChartInit();
+    } else if (window.createDashboardCharts) {
+      console.log('✅ Found createDashboardCharts, using it...');
+      window.createDashboardCharts();
+    } else {
+      console.warn('❌ No chart initialization function found');
+      // Fallback - try to create charts manually
+      setTimeout(() => {
+        if (window.Chart && window.leads) {
+          console.log('🔧 Attempting manual chart creation...');
+          window.createChartsManually();
+        }
+      }, 500);
+    }
+  };
+  
+  // ===============================================
+  // MANUAL CHART CREATION FALLBACK
+  // ===============================================
+  
+  window.createChartsManually = function() {
+    console.log('🔧 Manual chart creation starting...');
+    
+    // Get chart canvases
+    const canvas1 = document.getElementById('leadSplitChart');
+    const canvas2 = document.getElementById('tempCountChart');
+    const canvas3 = document.getElementById('tempValueChart');
+    
+    if (!canvas1 || !canvas2 || !canvas3) {
+      console.warn('❌ Chart canvases not found');
+      return;
+    }
+    
+    // Destroy existing charts
+    [canvas1, canvas2, canvas3].forEach(canvas => {
+      const existingChart = Chart.getChart(canvas);
+      if (existingChart) {
+        existingChart.destroy();
+      }
+    });
+    
+    // Calculate data
+    const leads = window.leads || [];
+    const hotLeads = leads.filter(l => (l.temperature || l.status || '').toLowerCase() === 'hot');
+    const warmLeads = leads.filter(l => (l.temperature || l.status || '').toLowerCase() === 'warm');
+    const coldLeads = leads.filter(l => (l.temperature || l.status || '').toLowerCase() === 'cold');
+    
+    const hotValue = hotLeads.reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+    const warmValue = warmLeads.reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+    const coldValue = coldLeads.reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+    
+    try {
+      // Chart 1: Lead Split
+      new Chart(canvas1, {
+        type: 'doughnut',
+        data: {
+          labels: ['Hot Leads', 'Warm Leads', 'Cold Leads'],
+          datasets: [{
+            data: [hotLeads.length, warmLeads.length, coldLeads.length],
+            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
+      });
+      
+      // Chart 2: Temperature Count
+      new Chart(canvas2, {
+        type: 'bar',
+        data: {
+          labels: ['Hot', 'Warm', 'Cold'],
+          datasets: [{
+            label: 'Number of Leads',
+            data: [hotLeads.length, warmLeads.length, coldLeads.length],
+            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+      
+      // Chart 3: Temperature Value
+      new Chart(canvas3, {
+        type: 'doughnut',
+        data: {
+          labels: ['Hot Value', 'Warm Value', 'Cold Value'],
+          datasets: [{
+            data: [hotValue, warmValue, coldValue],
+            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.label + ': ₹' + context.raw.toLocaleString('en-IN');
+                }
+              }
+            }
+          }
+        }
+      });
+      
+      console.log('✅ Manual charts created successfully');
+      
+    } catch (error) {
+      console.error('❌ Manual chart creation failed:', error);
+    }
+  };
+  
+  // ===============================================
+  // ADD ADDITIONAL ALIASES FOR COMPATIBILITY
+  // ===============================================
+  
+  // Make sure all the expected functions exist
+  window.updateOptimizedCharts = window.updateChartsWithData || window.updateCharts || function() {
+    console.log('🔧 updateOptimizedCharts called - attempting chart refresh...');
+    if (window.initializeOptimizedCharts) {
+      window.initializeOptimizedCharts();
+    }
+  };
+  
+  // ===============================================
+  // FORCE UPDATE FILTER WRAPPERS
+  // ===============================================
+  
+  function setupOptimizedFilterWrappers() {
+    console.log('🔧 Setting up optimized filter wrappers...');
+    
+    // Store originals if not already stored
+    if (!window._optimizedOriginals) {
+      window._optimizedOriginals = {
+        setDashboardFilter: window.setDashboardFilter,
+        setSelectedSalesPerson: window.setSelectedSalesPerson,
+        setSelectedEvent: window.setSelectedEvent
+      };
+    }
+    
+    // Wrap setDashboardFilter
+    window.setDashboardFilter = function(filter) {
+      console.log('🎯 Optimized: Dashboard filter changing to:', filter);
+      
+      if (window._optimizedOriginals.setDashboardFilter) {
+        window._optimizedOriginals.setDashboardFilter(filter);
+      } else {
+        window.dashboardFilter = filter;
+      }
+      
+      setTimeout(() => {
+        console.log('📊 Optimized: Triggering chart update...');
+        if (window.updateOptimizedCharts) {
+          window.updateOptimizedCharts();
+        } else if (window.initializeOptimizedCharts) {
+          window.initializeOptimizedCharts();
+        }
+      }, 200);
+    };
+    
+    // Wrap setSelectedSalesPerson
+    window.setSelectedSalesPerson = function(person) {
+      console.log('👤 Optimized: Sales person changing to:', person);
+      
+      if (window._optimizedOriginals.setSelectedSalesPerson) {
+        window._optimizedOriginals.setSelectedSalesPerson(person);
+      } else {
+        window.selectedSalesPerson = person;
+      }
+      
+      setTimeout(() => {
+        console.log('📊 Optimized: Triggering chart update...');
+        if (window.updateOptimizedCharts) {
+          window.updateOptimizedCharts();
+        } else if (window.initializeOptimizedCharts) {
+          window.initializeOptimizedCharts();
+        }
+      }, 200);
+    };
+    
+    // Wrap setSelectedEvent
+    window.setSelectedEvent = function(event) {
+      console.log('🎪 Optimized: Event changing to:', event);
+      
+      if (window._optimizedOriginals.setSelectedEvent) {
+        window._optimizedOriginals.setSelectedEvent(event);
+      } else {
+        window.selectedEvent = event;
+      }
+      
+      setTimeout(() => {
+        console.log('📊 Optimized: Triggering chart update...');
+        if (window.updateOptimizedCharts) {
+          window.updateOptimizedCharts();
+        } else if (window.initializeOptimizedCharts) {
+          window.initializeOptimizedCharts();
+        }
+      }, 200);
+    };
+    
+    console.log('✅ Optimized filter wrappers configured');
+  }
+  
+  // ===============================================
+  // INITIALIZE THE FIX
+  // ===============================================
+  
+  function initializeFix() {
+    // Setup the optimized filter wrappers
+    setupOptimizedFilterWrappers();
+    
+    // Test if dashboard is active and needs charts
+    if (window.activeTab === 'dashboard') {
+      setTimeout(() => {
+        console.log('🎯 Dashboard is active, testing chart initialization...');
+        window.initializeOptimizedCharts();
+      }, 1000);
+    }
+    
+    console.log('✅ Chart system fix applied successfully');
+  }
+  
+  // Start the fix
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(initializeFix, 1500);
+    });
+  } else {
+    setTimeout(initializeFix, 1500);
+  }
+  
+  console.log('🔧 Chart system fix loaded - initializeOptimizedCharts function created');
+  
+})();
