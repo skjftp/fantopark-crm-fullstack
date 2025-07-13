@@ -1,236 +1,242 @@
-// ✅ COMPLETE FIX: Replace your entire renderEditOrderForm function in edit-order-form.js
+// ===============================================
+// OPTIMIZED ASSIGN FORM COMPONENT - PERFORMANCE ENHANCED
+// ===============================================
+// Assign Form Component for FanToPark CRM
+// Reduced logging and improved performance
 
-window.renderEditOrderForm = () => {
-  // ✅ Check if form should be shown
-  const showEditOrderForm = window.showEditOrderForm || window.appState?.showEditOrderForm;
-  const currentOrderForEdit = window.currentOrderForEdit || window.appState?.currentOrderForEdit;
-  
-  if (!showEditOrderForm || !currentOrderForEdit) {
+// Conditional logging control
+const ENABLE_ASSIGN_DEBUG = false; // Set to false to reduce logs
+const assignLog = ENABLE_ASSIGN_DEBUG ? console.log : () => {};
+
+window.renderAssignForm = () => {
+  // ✅ FIXED: Extract all required variables from window globals
+  const {
+    showAssignForm = window.appState?.showAssignForm,
+    currentLead = window.currentLead || window.appState?.currentLead,
+    formData = window.formData || window.appState?.formData || {},
+    users = window.users || window.appState?.users || [],
+    loading = window.loading || window.appState?.loading || false
+  } = window.appState || {};
+
+  // ✅ OPTIMIZED: Only log when form is actually showing
+  if (!showAssignForm || !currentLead) {
+    // Only log once when state changes (not every render)
+    if (ENABLE_ASSIGN_DEBUG && !window._assignFormLoggedHidden) {
+      assignLog("🔍 Assign form not showing:", { showAssignForm, currentLead: !!currentLead });
+      window._assignFormLoggedHidden = true;
+    }
     return null;
   }
 
-  // ✅ FIXED: Use React-style state management
-  // Initialize with React useState pattern
-  if (!window.editOrderState) {
-    window.editOrderState = {
-      ...currentOrderForEdit,
-      lastUpdate: Date.now()
-    };
+  // Reset the hidden flag when form is showing
+  window._assignFormLoggedHidden = false;
+
+  // ✅ OPTIMIZED: Log only essential info, not every render
+  assignLog("🎯 Rendering assign form for lead:", currentLead.name);
+  assignLog("🔍 Available users:", users.length);
+
+  // ✅ FIXED: Get team members with CORRECT role filtering and status check
+  const teamMembers = (formData.assigned_team === 'supply' || formData.assigned_team === 'Supply')
+    ? users.filter(u => 
+        ['supply_manager', 'supply_sales_service_manager'].includes(u.role) && 
+        u.status === 'active'
+      ) 
+    : users.filter(u => 
+        ['sales_executive', 'sales_manager'].includes(u.role) && 
+        u.status === 'active'
+      );
+
+  assignLog("👥 Team members for", formData.assigned_team || 'sales', "team:", teamMembers.length);
+  
+  // ✅ DEBUG: Log available users and their roles for troubleshooting
+  if (ENABLE_ASSIGN_DEBUG) {
+    assignLog("📊 All users breakdown:");
+    users.forEach(user => {
+      assignLog(`  - ${user.name} (${user.email}): ${user.role} [${user.status}]`);
+    });
+    assignLog("🎯 Filtered team members:");
+    teamMembers.forEach(user => {
+      assignLog(`  - ${user.name} (${user.email}): ${user.role}`);
+    });
   }
 
-  // ✅ Get users for dropdown
-  const users = window.users || window.allUsers || [];
-  if (users.length === 0 && window.fetchUsers) {
-    window.fetchUsers();
-  }
-
-  // ✅ FIXED: Proper state update handler that triggers re-render
-  const handleInputChange = (field, value) => {
-    console.log(`🔄 Updating ${field} to:`, value);
-    
-    // Update both the edit state and the global orderEditData
-    window.editOrderState = { 
-      ...window.editOrderState, 
-      [field]: value,
-      lastUpdate: Date.now() // This forces React to see a change
-    };
-    
-    window.orderEditData = { ...window.editOrderState };
-    
-    console.log(`✅ Updated ${field}:`, window.editOrderState[field]);
-    
-    // Force React re-render by updating a timestamp
-    if (window.setLoading) {
-      // Toggle loading briefly to force re-render
-      window.setLoading(true);
-      setTimeout(() => window.setLoading(false), 1);
+  // ✅ FIXED: Extract required functions from window
+  const handleInputChange = window.handleFormDataChange || window.handleInputChange || ((field, value) => {
+    assignLog("📝 Input changed:", field, "=", value);
+    if (window.setFormData) {
+      window.setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
     }
-  };
+  });
 
-  // ✅ Form submission handler
-  const handleSubmit = async (e) => {
+  const handleAssignLead = window.handleAssignLead || ((e) => {
+    assignLog("🚀 Assign lead form submitted");
     e.preventDefault();
-    if (window.handleEditOrderSubmit) {
-      // Make sure orderEditData has the latest state
-      window.orderEditData = { ...window.editOrderState };
-      await window.handleEditOrderSubmit(e);
+    console.warn("⚠️ handleAssignLead function not implemented");
+  });
+
+  const closeForm = window.closeForm || (() => {
+    assignLog("🔄 Closing assign form");
+    if (window.setShowAssignForm) {
+      window.setShowAssignForm(false);
     }
-  };
-
-  // ✅ Close form handler
-  const closeForm = () => {
-    window.setShowEditOrderForm(false);
-    window.orderEditData = null;
-    window.editOrderState = null; // Clear the state
-  };
-
-  // ✅ Current values with fallbacks
-  const currentStatus = window.editOrderState?.status || currentOrderForEdit?.status || '';
-  const currentAssignedTo = window.editOrderState?.assigned_to || currentOrderForEdit?.assigned_to || '';
-  const currentTotalAmount = window.editOrderState?.total_amount || window.editOrderState?.final_amount || currentOrderForEdit?.total_amount || currentOrderForEdit?.final_amount || '';
-  const currentNotes = window.editOrderState?.notes || currentOrderForEdit?.notes || '';
-
-  console.log('🔍 Rendering form with values:', {
-    status: currentStatus,
-    assigned_to: currentAssignedTo,
-    total_amount: currentTotalAmount,
-    lastUpdate: window.editOrderState?.lastUpdate
+    if (window.setCurrentLead) {
+      window.setCurrentLead(null);
+    }
+    if (window.setFormData) {
+      window.setFormData({});
+    }
   });
 
   return React.createElement('div', { 
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
-    onClick: (e) => e.target === e.currentTarget && closeForm()
+    onClick: (e) => {
+      if (e.target === e.currentTarget) {
+        assignLog("🔄 Clicked outside, closing form");
+        closeForm();
+      }
+    }
   },
-    React.createElement('div', { 
-      className: 'bg-white rounded-lg p-6 w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-xl',
-      key: `edit-form-${window.editOrderState?.lastUpdate || Date.now()}` // Force re-render with key
-    },
-      // Header
+    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md' },
       React.createElement('div', { className: 'flex justify-between items-center mb-6' },
-        React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 'Edit Order'),
+        React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
+          `Assign Lead: ${currentLead.name}`
+        ),
         React.createElement('button', {
           onClick: closeForm,
           className: 'text-gray-400 hover:text-gray-600 text-2xl'
         }, '✕')
       ),
 
-      // Form
-      React.createElement('form', { onSubmit: handleSubmit },
-        
-        // Order Number - READ ONLY
+      React.createElement('form', { onSubmit: handleAssignLead },
         React.createElement('div', { className: 'mb-4' },
-          React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Order Number'),
-          React.createElement('input', {
-            type: 'text',
-            value: currentOrderForEdit?.order_number || '',
-            readOnly: true,
-            className: 'w-full px-3 py-2 border rounded-md bg-gray-50'
-          })
-        ),
-
-        // Client Name - READ ONLY
-        React.createElement('div', { className: 'mb-4' },
-          React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Client Name'),
-          React.createElement('input', {
-            type: 'text',
-            value: currentOrderForEdit?.client_name || '',
-            readOnly: true,
-            className: 'w-full px-3 py-2 border rounded-md bg-gray-50'
-          })
-        ),
-
-        // Current Status - READ ONLY
-        React.createElement('div', { className: 'mb-4' },
-          React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Current Status'),
-          React.createElement('input', {
-            type: 'text',
-            value: currentOrderForEdit?.status || '',
-            readOnly: true,
-            className: 'w-full px-3 py-2 border rounded-md bg-gray-50'
-          })
-        ),
-
-        // Change Status - EDITABLE
-        React.createElement('div', { className: 'mb-6' },
-          React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Change Status'),
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' }, 
+            'Assign to Team'
+          ),
           React.createElement('select', {
-            value: currentStatus,
-            onChange: (e) => handleInputChange('status', e.target.value),
-            className: 'w-full px-3 py-2 border rounded-md'
+            value: formData.assigned_team || 'sales',
+            onChange: (e) => {
+              handleInputChange('assigned_team', e.target.value);
+              // Clear assigned_to when team changes
+              handleInputChange('assigned_to', '');
+            },
+            className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+            required: true
           },
-            React.createElement('option', { value: 'pending_approval' }, 'Pending Approval'),
-            React.createElement('option', { value: 'approved' }, 'Approved'),
-            React.createElement('option', { value: 'service_assigned' }, 'Service Assigned'),
-            React.createElement('option', { value: 'completed' }, 'Completed'),
-            React.createElement('option', { value: 'rejected' }, 'Rejected')
+            React.createElement('option', { value: 'sales' }, 'Sales Team'),
+            React.createElement('option', { value: 'supply' }, 'Supply Team')
           )
         ),
 
-        // Assignment Options Section
-        React.createElement('div', { className: 'mb-6' },
-          React.createElement('h3', { className: 'text-lg font-medium mb-4' }, 'Assignment Options'),
-          
-          React.createElement('div', { className: 'mb-4' },
-            React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Assign to User'),
-            React.createElement('select', {
-              value: currentAssignedTo,
-              onChange: (e) => handleInputChange('assigned_to', e.target.value),
-              className: 'w-full px-3 py-2 border rounded-md'
-            },
-              React.createElement('option', { value: '' }, 'Select Assignee'),
-              users.filter(u => u.status === 'active').map(user =>
-                React.createElement('option', { 
-                  key: user.id || user.email, 
-                  value: user.email 
-                }, user.name)
-              )
+        React.createElement('div', { className: 'mb-4' },
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' }, 
+            'Assign to Person'
+          ),
+          React.createElement('select', {
+            value: formData.assigned_to || '',
+            onChange: (e) => handleInputChange('assigned_to', e.target.value),
+            className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+            required: true
+          },
+            React.createElement('option', { value: '' }, 'Select Person'),
+            teamMembers.map(user => 
+              React.createElement('option', { key: user.id, value: user.email }, user.name)
             )
           )
         ),
 
-        // Total Amount - EDITABLE
-        React.createElement('div', { className: 'mb-4' },
-          React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Total Amount'),
-          React.createElement('input', {
-            type: 'number',
-            value: currentTotalAmount,
-            onChange: (e) => handleInputChange('total_amount', e.target.value),
-            className: 'w-full px-3 py-2 border rounded-md',
-            step: '0.01'
-          })
+        // ✅ ADDED: Show helpful message when no team members are available
+        teamMembers.length === 0 && React.createElement('div', { 
+          className: 'mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md' 
+        },
+          React.createElement('p', { className: 'text-sm text-yellow-800' },
+            `No active users found for ${formData.assigned_team || 'sales'} team. Please check user roles and status.`
+          )
         ),
 
-        // Notes - EDITABLE
         React.createElement('div', { className: 'mb-6' },
-          React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Notes'),
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' }, 
+            'Assignment Notes'
+          ),
           React.createElement('textarea', {
-            value: currentNotes,
-            onChange: (e) => handleInputChange('notes', e.target.value),
-            className: 'w-full px-3 py-2 border rounded-md',
+            value: formData.assignment_notes || '',
+            onChange: (e) => handleInputChange('assignment_notes', e.target.value),
+            className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
             rows: 3,
-            placeholder: 'Add any notes about this order...'
+            placeholder: 'Add any notes for the assignment...'
           })
         ),
 
-        // Buttons
-        React.createElement('div', { className: 'flex justify-end space-x-3' },
+        React.createElement('div', { className: 'flex space-x-4' },
           React.createElement('button', {
             type: 'button',
             onClick: closeForm,
-            className: 'px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600'
+            className: 'flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 font-medium text-gray-700 dark:text-gray-300'
           }, 'Cancel'),
-          
           React.createElement('button', {
             type: 'submit',
-            disabled: window.loading,
-            className: 'px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50'
-          }, window.loading ? 'Updating...' : 'Update Order')
+            disabled: loading || !formData.assigned_to || teamMembers.length === 0,
+            className: 'flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium'
+          }, loading ? 'Assigning...' : 'Assign Lead')
         )
       )
     )
   );
 };
 
-console.log('✅ Edit Order Form - FIXED with proper state management');
+// ✅ OPTIMIZED ASSIGNMENT HANDLER
+window.handleAssignLead = async function(e) {
+  e.preventDefault();
 
-// ✅ ALSO ADD: Reset function to clear state when opening form
-window.openEditOrderForm = function(order) {
-  console.log('✏️ Opening edit form for order:', order.id);
-  
-  // Clear any existing state
-  window.editOrderState = null;
-  window.orderEditData = null;
-  
-  // Set the order to edit
-  window.setCurrentOrderForEdit(order);
-  window.setShowEditOrderForm(true);
-  
-  // Initialize fresh state
-  setTimeout(() => {
-    window.editOrderState = {
-      ...order,
-      lastUpdate: Date.now()
-    };
-    window.orderEditData = { ...order };
-  }, 100);
+  // Only log essential debug info
+  assignLog('🔍 Assignment starting:', {
+    leadId: window.currentLead?.id,
+    assignedTo: window.formData?.assigned_to,
+    team: window.formData?.assigned_team
+  });
+
+  if (!window.hasPermission('leads', 'assign')) {
+    alert('You do not have permission to assign leads');
+    return;
+  }
+
+  window.setLoading(true);
+
+  try {
+    const response = await window.apiCall(`/leads/${window.currentLead.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        assigned_to: window.formData.assigned_to,
+        assigned_team: window.formData.assigned_team,
+        assignment_notes: window.formData.assignment_notes,
+        status: 'assigned'
+      })
+    });
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+
+    // Update local state
+    window.setLeads(prev => prev.map(lead => 
+      lead.id === window.currentLead.id 
+        ? { ...lead, assigned_to: window.formData.assigned_to, status: 'assigned' }
+        : lead
+    ));
+
+    alert('Lead assigned successfully!');
+
+    // Close form
+    window.setShowAssignForm(false);
+    window.setCurrentLead(null);
+    window.setFormData({});
+
+  } catch (error) {
+    console.error('Assignment error:', error);
+    alert('Error: ' + error.message);
+  } finally {
+    window.setLoading(false);
+  }
 };
