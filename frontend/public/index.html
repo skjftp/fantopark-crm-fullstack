@@ -923,7 +923,7 @@ window.forceFinancialRefresh = function() {
 
 // Step 3: Override chart formatting too
 window.createFinancialSalesChart = function(salesData) {
-    const canvas = document.getElementById('tempValueChart');
+    const canvas = document.getElementById('financialSalesChart');
     if (!canvas) {
         console.warn('Chart canvas not found');
         return;
