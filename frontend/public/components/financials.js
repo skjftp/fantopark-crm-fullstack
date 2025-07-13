@@ -648,7 +648,7 @@ window.renderSalesTab = (sales) => {
     
     // Try to create chart AFTER the component is rendered
     setTimeout(() => {
-        window.createFinancialSalesChart();
+        window.createFinancialSalesChart(sales);
     }, 100);
     
     return React.createElement('div', { className: 'space-y-4' },
