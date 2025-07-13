@@ -413,6 +413,8 @@ const [ordersShowFilters, setOrdersShowFilters] = useState(false);
     emailNotifications, setEmailNotifications,
     allUsers, setAllUsers,
     users, setUsers,
+    myActionsFilters, setMyActionsFilters,
+  myActionsPagination, setMyActionsPagination,
     myLeads, setMyLeads,
     myQuoteRequested, setMyQuoteRequested,
     myOrders, setMyOrders,
