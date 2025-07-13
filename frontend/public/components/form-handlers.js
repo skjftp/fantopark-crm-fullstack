@@ -1034,20 +1034,142 @@ window.viewInvoice = function(order) {
 
 window.assignOrder = function(order) {
   console.log('👥 Assign clicked for order:', order.id);
-  alert('Assignment feature - select user and assign');
+  
+  // Use the existing enhanced order actions quick assign function
+  if (window.enhancedOrderActions && window.enhancedOrderActions.quickAssignOrder) {
+    window.enhancedOrderActions.quickAssignOrder(order.id);
+  } else {
+    // Fallback to manual assignment if enhanced actions not available
+    console.log('Enhanced order actions not available, using fallback');
+    
+    const allUsers = (window.users || []).filter(u => u.status === 'active');
+    
+    if (allUsers.length === 0) {
+      alert('No active users available for assignment');
+      return;
+    }
+
+    // Create a user selection prompt
+    const userOptions = allUsers.map((u, index) => `${index + 1}. ${u.name} (${u.role})`).join('\n');
+    const selectedIndex = prompt(`Select user to assign order to:\n\n${userOptions}\n\nEnter the number (1-${allUsers.length}):`);
+    
+    if (selectedIndex && !isNaN(selectedIndex)) {
+      const index = parseInt(selectedIndex) - 1;
+      if (index >= 0 && index < allUsers.length) {
+        const selectedUser = allUsers[index];
+        
+        if (window.assignOrderToUser) {
+          window.assignOrderToUser(order.id, selectedUser.email, 'Manual assignment');
+        } else {
+          alert('Order assignment function not available. Please refresh the page.');
+        }
+      } else {
+        alert('Invalid selection');
+      }
+    }
+  }
 };
 
-window.completeOrder = function(orderId) {
+
+window.completeOrder = async function(orderId) {
   console.log('✅ Complete clicked for order:', orderId);
-  if (confirm('Mark this order as completed?')) {
-    alert('Order completion feature will be implemented');
+  
+  if (!window.hasPermission('orders', 'write')) {
+    alert('You do not have permission to complete orders');
+    return;
+  }
+
+  // Find the order
+  const order = window.orders?.find(o => o.id === orderId);
+  if (!order) {
+    alert('Order not found');
+    return;
+  }
+
+  // Confirm completion
+  const confirmMessage = `Mark this order as completed?\n\nOrder: ${order.order_number || orderId}\nClient: ${order.client_name || 'Unknown'}\nEvent: ${order.event_name || 'N/A'}`;
+  
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+
+  window.setLoading(true);
+
+  try {
+    // Prepare completion data
+    const completionData = {
+      status: 'completed',
+      completed_by: window.user?.name || window.user?.email,
+      completed_date: new Date().toISOString(),
+      updated_date: new Date().toISOString()
+    };
+
+    console.log('🔄 Completing order with data:', completionData);
+
+    // Make API call to update order status
+    const response = await window.apiCall(`/orders/${orderId}`, {
+      method: 'PUT',
+      body: JSON.stringify(completionData)
+    });
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+
+    // Update local orders state
+    window.setOrders(prev => prev.map(o => 
+      o.id === orderId 
+        ? { 
+            ...o, 
+            ...completionData,
+            ...(response.data || response)
+          }
+        : o
+    ));
+
+    // If viewing this order in detail modal, update that too
+    if (window.showOrderDetail && window.currentOrderDetail?.id === orderId) {
+      window.setCurrentOrderDetail(prev => ({
+        ...prev,
+        ...completionData,
+        ...(response.data || response)
+      }));
+    }
+
+    // Show success message
+    alert('Order marked as completed successfully!');
+    
+    console.log(`✅ Order ${orderId} completed successfully`);
+
+    // Refresh orders if needed
+    if (window.fetchOrders && typeof window.fetchOrders === 'function') {
+      await window.fetchOrders();
+    }
+
+  } catch (error) {
+    console.error(`❌ Error completing order ${orderId}:`, error);
+    alert(`Failed to complete order: ${error.message}`);
+  } finally {
+    window.setLoading(false);
   }
 };
 
 window.deleteOrder = function(orderId) {
   console.log('🗑️ Delete clicked for order:', orderId);
-  if (confirm('Are you sure you want to delete this order?')) {
-    alert('Order deletion feature will be implemented');
+  
+  // Find the order to get its details for the confirmation message
+  const order = window.orders?.find(o => o.id === orderId);
+  const orderName = order 
+    ? `Order ${order.order_number || orderId} (${order.client_name || 'Unknown Client'})` 
+    : `Order ${orderId}`;
+  
+  // Call the existing comprehensive handleDelete function
+  // This function already handles deletion of order + receivables + sales entries
+  if (window.handleDelete) {
+    window.handleDelete('orders', orderId, orderName);
+  } else {
+    console.error('handleDelete function not found');
+    alert('Delete function not available. Please refresh the page.');
   }
 };
 
