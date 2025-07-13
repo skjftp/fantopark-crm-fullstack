@@ -16,18 +16,18 @@ const AssignmentRule = require('../models/AssignmentRule');
 const storage = new Storage({
   projectId: process.env.GOOGLE_CLOUD_PROJECT
 });
-const bucket = storage.bucket(process.env.GCS_BUCKET_NAME || 'fantopark-crm-uploads');
+const bucket = storage.bucket(process.env.GCS_BUCKET_NAME || 'fantopark-documents-bucket');
 
 const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type'));
-    }
+fileFilter: (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only PDF, JPG, JPEG, and PNG files are allowed'), false);
   }
+}
 });
 
 // Enhanced multer configuration for CSV and Excel files
