@@ -239,7 +239,7 @@ window.renderStadiumsContent = () => {
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4' },
                                     React.createElement('div', { className: 'flex gap-2' },
-                                        hasPermission('admin', 'write') && React.createElement('button', {
+                                        hasPermission('stadiums', 'write') && React.createElement('button', {
                                             onClick: () => {
                                                 console.log('🔍 Edit stadium clicked:', stadium.id);
                                                 openStadiumForm(stadium);
