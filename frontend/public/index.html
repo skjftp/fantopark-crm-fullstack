@@ -7,6 +7,331 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FanToPark CRM Pro</title>
 
+<!-- Add this COMPREHENSIVE PERFORMANCE OPTIMIZATION script -->
+<script>
+// COMPREHENSIVE DASHBOARD PERFORMANCE OPTIMIZATION
+(function() {
+  'use strict';
+  
+  console.log('🚀 Loading comprehensive performance optimizations...');
+  
+  // ===============================================
+  // 1. SCRIPT LOADING OPTIMIZATION
+  // ===============================================
+  
+  // Defer non-critical scripts until after dashboard loads
+  window.deferredScripts = [
+    'components/stadium-form.js',
+    'components/payment-post-service-form.js', 
+    'components/edit-order-form.js',
+    'components/client-detail-modal.js',
+    'components/gst-invoice-preview.js',
+    'components/bulk-assign-modal.js',
+    'components/choice-modal.js',
+    'components/status-progress-modal.js',
+    'components/allocation-management.js',
+    'components/help-guide.js',
+    'components/quote-upload-modal.js',
+    'components/delivery-utils.js'
+  ];
+  
+  window.loadDeferredScripts = function() {
+    console.log('📦 Loading deferred scripts...');
+    window.deferredScripts.forEach(src => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.async = true;
+      document.head.appendChild(script);
+    });
+  };
+  
+  // Load deferred scripts after dashboard is ready
+  setTimeout(window.loadDeferredScripts, 5000);
+  
+  // ===============================================
+  // 2. DATA PROCESSING OPTIMIZATION  
+  // ===============================================
+  
+  // Cache expensive calculations
+  let calculationCache = new Map();
+  let lastDataHash = '';
+  
+  window.getOptimizedDashboardData = function() {
+    const leads = window.leads || [];
+    const currentHash = leads.length + '-' + (leads[0]?.id || '') + '-' + window.dashboardFilter + '-' + window.selectedSalesPerson + '-' + window.selectedEvent;
+    
+    // Return cached result if data hasn't changed
+    if (currentHash === lastDataHash && calculationCache.has('dashboardData')) {
+      console.log('📋 Using cached dashboard calculations');
+      return calculationCache.get('dashboardData');
+    }
+    
+    console.log('🔄 Calculating fresh dashboard data...');
+    
+    // Optimized filtering with early returns
+    let filteredLeads = leads;
+    
+    if (window.dashboardFilter === 'salesPerson' && window.selectedSalesPerson) {
+      const selectedUser = window.users?.find(user => user.id === window.selectedSalesPerson);
+      if (selectedUser) {
+        filteredLeads = leads.filter(lead => lead.assigned_to === selectedUser.email);
+      }
+    } else if (window.dashboardFilter === 'event' && window.selectedEvent) {
+      filteredLeads = leads.filter(lead => lead.lead_for_event === window.selectedEvent);
+    }
+    
+    // Batch calculations
+    const calculations = {
+      qualified: 0,
+      junk: 0, 
+      hot: 0,
+      warm: 0,
+      cold: 0,
+      hotValue: 0,
+      warmValue: 0,
+      coldValue: 0
+    };
+    
+    // Single pass through data
+    filteredLeads.forEach(lead => {
+      const status = (lead.status || '').toLowerCase();
+      const temp = (lead.temperature || lead.status || '').toLowerCase();
+      const value = parseFloat(lead.potential_value) || 0;
+      
+      if (status === 'qualified') calculations.qualified++;
+      if (status === 'junk') calculations.junk++;
+      
+      if (temp === 'hot') {
+        calculations.hot++;
+        calculations.hotValue += value;
+      } else if (temp === 'warm') {
+        calculations.warm++;
+        calculations.warmValue += value;
+      } else if (temp === 'cold') {
+        calculations.cold++;
+        calculations.coldValue += value;
+      }
+    });
+    
+    // Cache the results
+    calculationCache.set('dashboardData', calculations);
+    lastDataHash = currentHash;
+    
+    return calculations;
+  };
+  
+  // ===============================================
+  // 3. OPTIMIZED CHART CREATION
+  // ===============================================
+  
+  window.createOptimizedCharts = function() {
+    const startTime = performance.now();
+    console.log('🎨 Creating optimized charts...');
+    
+    const data = window.getOptimizedDashboardData();
+    
+    // Check if Chart.js is ready
+    if (typeof Chart === 'undefined') {
+      console.log('⏳ Chart.js not ready, deferring...');
+      setTimeout(window.createOptimizedCharts, 200);
+      return;
+    }
+    
+    // Get canvases with single DOM query
+    const canvases = {
+      leadSplit: document.getElementById('leadSplitChart'),
+      tempCount: document.getElementById('tempCountChart'), 
+      tempValue: document.getElementById('tempValueChart')
+    };
+    
+    // Verify all canvases exist
+    if (!canvases.leadSplit || !canvases.tempCount || !canvases.tempValue) {
+      console.log('⏳ Chart canvases not ready, deferring...');
+      setTimeout(window.createOptimizedCharts, 200);
+      return;
+    }
+    
+    // Destroy existing charts efficiently
+    Object.values(canvases).forEach(canvas => {
+      const existingChart = Chart.getChart(canvas);
+      if (existingChart) existingChart.destroy();
+    });
+    
+    // Create all charts with minimal options for speed
+    const commonOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false, // Disable animations for speed
+      plugins: { legend: { position: 'bottom' } }
+    };
+    
+    try {
+      // Chart 1: Lead Split (simplified)
+      new Chart(canvases.leadSplit, {
+        type: 'doughnut',
+        data: {
+          labels: [`Qualified (${data.qualified})`, `Junk (${data.junk})`],
+          datasets: [{
+            data: [data.qualified, data.junk],
+            backgroundColor: ['#10b981', '#ef4444'],
+            borderWidth: 0 // Remove borders for speed
+          }]
+        },
+        options: commonOptions
+      });
+      
+      // Chart 2: Temperature Count
+      new Chart(canvases.tempCount, {
+        type: 'doughnut',
+        data: {
+          labels: [`Hot (${data.hot})`, `Warm (${data.warm})`, `Cold (${data.cold})`],
+          datasets: [{
+            data: [data.hot, data.warm, data.cold],
+            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+            borderWidth: 0
+          }]
+        },
+        options: commonOptions
+      });
+      
+      // Chart 3: Temperature Value
+      new Chart(canvases.tempValue, {
+        type: 'doughnut',
+        data: {
+          labels: ['Hot Value', 'Warm Value', 'Cold Value'],
+          datasets: [{
+            data: [data.hotValue, data.warmValue, data.coldValue],
+            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          ...commonOptions,
+          plugins: {
+            ...commonOptions.plugins,
+            tooltip: {
+              callbacks: {
+                label: (context) => `${context.label}: ₹${context.raw.toLocaleString('en-IN')}`
+              }
+            }
+          }
+        }
+      });
+      
+      const endTime = performance.now();
+      console.log(`✅ Charts created in ${(endTime - startTime).toFixed(2)}ms`);
+      
+    } catch (error) {
+      console.error('❌ Chart creation failed:', error);
+    }
+  };
+  
+  // ===============================================
+  // 4. OPTIMIZED UPDATE FUNCTION
+  // ===============================================
+  
+  window.updateOptimizedCharts = function() {
+    const data = window.getOptimizedDashboardData();
+    
+    // Batch update all charts
+    const updates = [
+      {
+        id: 'leadSplitChart',
+        labels: [`Qualified (${data.qualified})`, `Junk (${data.junk})`],
+        data: [data.qualified, data.junk]
+      },
+      {
+        id: 'tempCountChart', 
+        labels: [`Hot (${data.hot})`, `Warm (${data.warm})`, `Cold (${data.cold})`],
+        data: [data.hot, data.warm, data.cold]
+      },
+      {
+        id: 'tempValueChart',
+        data: [data.hotValue, data.warmValue, data.coldValue]
+      }
+    ];
+    
+    updates.forEach(({ id, labels, data }) => {
+      const canvas = document.getElementById(id);
+      if (canvas) {
+        const chart = Chart.getChart(canvas);
+        if (chart) {
+          if (labels) chart.data.labels = labels;
+          chart.data.datasets[0].data = data;
+          chart.update('none'); // No animation for speed
+        }
+      }
+    });
+  };
+  
+  // ===============================================
+  // 5. LAZY LOADING SYSTEM
+  // ===============================================
+  
+  window.initializeDashboardLazy = function() {
+    // Only initialize if on dashboard tab
+    if (window.activeTab !== 'dashboard') return;
+    
+    console.log('🎯 Lazy initializing dashboard...');
+    
+    // Use requestIdleCallback for non-blocking execution
+    const runWhenIdle = (callback) => {
+      if (window.requestIdleCallback) {
+        requestIdleCallback(callback, { timeout: 2000 });
+      } else {
+        setTimeout(callback, 100);
+      }
+    };
+    
+    runWhenIdle(() => {
+      if (window.leads && window.leads.length > 0) {
+        window.createOptimizedCharts();
+      } else {
+        // Wait for data
+        const checkData = () => {
+          if (window.leads && window.leads.length > 0) {
+            window.createOptimizedCharts();
+          } else {
+            setTimeout(checkData, 200);
+          }
+        };
+        checkData();
+      }
+    });
+  };
+  
+  // ===============================================
+  // 6. REPLACE EXISTING FUNCTIONS
+  // ===============================================
+  
+  // Override existing chart functions
+  window.createDashboardCharts = window.createOptimizedCharts;
+  window.updateChartsWithData = window.updateOptimizedCharts;
+  window.initializeDashboardCharts = window.initializeDashboardLazy;
+  window.initializeOptimizedCharts = window.createOptimizedCharts;
+  
+  // Clear caches when data changes
+  const originalSetLeads = window.appState?.setLeads;
+  if (originalSetLeads) {
+    window.appState.setLeads = function(leads) {
+      calculationCache.clear();
+      lastDataHash = '';
+      return originalSetLeads(leads);
+    };
+  }
+  
+  console.log('✅ Performance optimizations loaded');
+  
+  // Auto-initialize if already on dashboard
+  setTimeout(() => {
+    if (window.activeTab === 'dashboard' || !window.activeTab) {
+      window.initializeDashboardLazy();
+    }
+  }, 1000);
+  
+})();
+</script>  
+
 <script>
 // COMPREHENSIVE API CALL CONSOLIDATION
 (function() {
