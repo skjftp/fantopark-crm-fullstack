@@ -1533,16 +1533,16 @@ window.fixChartInitialization = function() {
           console.log('✅ All chart prerequisites met, initializing...');
           
           // Use the fixed chart initialization
-          if (window.initializeCharts) {
-            window.initializeCharts()
-              .then(() => {
-                console.log('✅ Charts initialized successfully via smartChartInit');
-                resolve();
-              })
-              .catch(error => {
-                console.warn('⚠️ Chart initialization failed, but continuing:', error.message);
-                resolve(); // Don't reject, just resolve without charts
-              });
+                    if (window.initializeCharts) {
+            try {
+              console.log('✅ All chart prerequisites met, initializing...');
+              window.initializeCharts(); // This is synchronous, not a Promise
+              console.log('✅ Charts initialized successfully via smartChartInit');
+              resolve();
+            } catch (error) {
+              console.warn('⚠️ Chart initialization failed, but continuing:', error.message);
+              resolve(); // Don't reject, just resolve without charts
+            }
           } else {
             console.warn('⚠️ initializeCharts function not available');
             resolve();
