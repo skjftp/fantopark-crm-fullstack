@@ -36,28 +36,27 @@ router.get('/stats', authenticateToken, async (req, res) => {
   }
 });
 
-// ===============================================
-// ADD TO YOUR EXISTING BACKEND ROUTES FILE
-// Add this to routes/dashboard.js OR routes/leads.js
-// ===============================================
-
-// If you have a routes/dashboard.js file, add this:
-router.get('/dashboard/charts', async (req, res) => {
+// ✅ NEW: Dashboard charts endpoint for optimized chart rendering
+router.get('/charts', async (req, res) => {
   try {
     const { filter_type, sales_person_id, event_name } = req.query;
     
     console.log('📊 Dashboard charts API called with filters:', { filter_type, sales_person_id, event_name });
     
-    // Build query for Firestore
-    let query = db.collection('crm_leads');
+    // Build query for Firestore using existing collections config
+    let query = db.collection(collections.leads);
     
     // Apply filters based on frontend selection
     if (filter_type === 'salesPerson' && sales_person_id) {
-      // Map user ID to email for filtering
-      const userDoc = await db.collection('crm_users').doc(sales_person_id).get();
-      if (userDoc.exists) {
-        const userEmail = userDoc.data().email;
-        query = query.where('assigned_to', '==', userEmail);
+      try {
+        // Map user ID to email for filtering
+        const userDoc = await db.collection('crm_users').doc(sales_person_id).get();
+        if (userDoc.exists) {
+          const userEmail = userDoc.data().email;
+          query = query.where('assigned_to', '==', userEmail);
+        }
+      } catch (userError) {
+        console.warn('User lookup failed:', userError.message);
       }
     } else if (filter_type === 'event' && event_name) {
       query = query.where('lead_for_event', '==', event_name);
@@ -103,9 +102,10 @@ router.get('/dashboard/charts', async (req, res) => {
 });
 
 // ===============================================
-// CHART METRICS CALCULATION FUNCTION
-// Add this helper function to the same file
+// HELPER FUNCTIONS
 // ===============================================
+
+// Chart metrics calculation function
 function calculateChartMetrics(leads) {
   // Initialize counters
   let qualifiedCount = 0;
@@ -192,21 +192,5 @@ function getLeadTemperature(lead) {
   
   return 'cold';
 }
-
-// ===============================================
-// IF YOU DON'T HAVE A DASHBOARD ROUTES FILE
-// Add this to your main routes/index.js or app.js
-// ===============================================
-
-// In your main routes file, add:
-const express = require('express');
-const router = express.Router();
-
-// ... your existing routes ...
-
-// Add the dashboard charts endpoint here
-router.get('/dashboard/charts', async (req, res) => {
-  // ... copy the entire endpoint code from above ...
-});
 
 module.exports = router;
