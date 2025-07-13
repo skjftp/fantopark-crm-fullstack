@@ -3127,14 +3127,13 @@ console.log("✅ AssignmentRulesTab exposed to window");
               title: 'How to use CRM'
             }, '❓'),
             React.createElement('button', {
-              onClick: () => {
-                state.setDarkMode(!state.darkMode);
-                document.documentElement.classList.toggle('dark');
-                localStorage.setItem('crm_dark_mode', !state.darkMode);
-              },
-              className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
-              title: state.darkMode ? 'Switch to light mode' : 'Switch to dark mode'
-            }, state.darkMode ? '☀️' : '🌙'),
+  onClick: () => {
+    // Only update the state - let the useEffect handle DOM and localStorage
+    state.setDarkMode(!state.darkMode);
+  },
+  className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
+  title: state.darkMode ? 'Switch to light mode' : 'Switch to dark mode'
+}, state.darkMode ? '☀️' : '🌙'),
             React.createElement('div', { className: 'w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center' },
               React.createElement('span', { className: 'text-white text-sm' }, (state.user?.name || 'A')[0])
             ),
