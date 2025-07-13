@@ -14,7 +14,7 @@ window.renderOrderDetailModal = () => {
   const hasPermission = window.hasPermission || (() => false);
   const handleOrderApproval = window.handleOrderApproval || (() => console.warn("handleOrderApproval not implemented"));
 
-  console.log('Modal render check:', { showOrderDetail, currentOrderDetail: !!currentOrderDetail });
+  //console.log('Modal render check:', { showOrderDetail, currentOrderDetail: !!currentOrderDetail });
   
   if (!showOrderDetail || !currentOrderDetail) {
     return null;
