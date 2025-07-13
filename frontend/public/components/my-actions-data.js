@@ -279,8 +279,25 @@ window.filterDeliveriesByRole = function(deliveries, userRole, userEmail) {
   
   switch (userRole) {
     case 'supply_sales_service_manager':
+    case 'supply_service_manager':
+    case 'supply_manager':
     case 'supply_executive':
+      // Supply team members can see all deliveries assigned to ANY supply team member
+      return deliveries.filter(delivery => {
+        // Check if assigned to any supply team member
+        const supplyRoles = ['supply_manager', 'supply_service_manager', 'supply_sales_service_manager', 'supply_executive'];
+        const assignedUser = window.users?.find(user => user.email === delivery.assigned_to);
+        
+        console.log('Delivery check:', delivery.id, 
+          'Assigned to:', delivery.assigned_to,
+          'Assigned user role:', assignedUser?.role,
+          'Is supply team:', assignedUser && supplyRoles.includes(assignedUser.role));
+        
+        return assignedUser && supplyRoles.includes(assignedUser.role);
+      });
+    
     case 'delivery_executive':
+      // Delivery executives only see their own deliveries
       return deliveries.filter(delivery => delivery.assigned_to === userEmail);
     
     case 'admin':
