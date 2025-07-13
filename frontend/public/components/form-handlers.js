@@ -1358,15 +1358,39 @@ window.deleteOrder = window.deleteOrder || function(orderId) {
 // =============================================================================
 
 // Fix View button
-window.openOrderDetail = window.openOrderDetail || function(order) {
-  console.log('📋 View order clicked:', order.id);
-  // For now, show a simple alert with order details
-  alert(`Order Details:\n\nOrder #: ${order.order_number || order.id}\nClient: ${order.client_name || order.lead_name || 'Unknown'}\nStatus: ${order.status}\nAmount: ${order.total_amount || order.final_amount || 'N/A'}\nAssigned to: ${order.assigned_to || 'Unassigned'}`);
+// =============================================================================
+// SIMPLE FIX: Connect View button to your existing modal system
+// =============================================================================
+
+// Fix View button to use your existing modal system
+window.openOrderDetail = function(order) {
+  console.log('📋 View order:', order.id);
   
-  // TODO: Later you can replace this with a proper modal
-  // window.setCurrentOrderDetail(order);
-  // window.setShowOrderDetail(true);
+  // Use your existing functions (they already exist)
+  if (window.setCurrentOrderDetail && window.setShowOrderDetail) {
+    window.setCurrentOrderDetail(order);
+    window.setShowOrderDetail(true);
+    console.log('✅ Using existing modal system');
+  } else {
+    // Fallback: set directly on window
+    window.currentOrderDetail = order;
+    window.showOrderDetail = true;
+    
+    // Force re-render with your existing pattern
+    if (window.setActiveTab) {
+      window.setActiveTab(window.activeTab);
+    }
+    console.log('✅ Using fallback modal system');
+  }
+  
+  console.log('📋 Order detail modal state:', {
+    showOrderDetail: window.showOrderDetail,
+    currentOrderDetail: !!window.currentOrderDetail,
+    orderId: order.id
+  });
 };
+
+console.log('✅ View button connected to existing order modal system');
 
 // Fix Edit button  
 window.openEditOrderForm = window.openEditOrderForm || function(order) {
