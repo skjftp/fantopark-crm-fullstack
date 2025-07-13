@@ -1,22 +1,25 @@
 // Order Detail Modal Component for FanToPark CRM
-// Extracted from index.html - maintains 100% functionality
-// Uses window.* globals for CDN-based React compatibility
+// FIXED VERSION - Corrected state extraction pattern
 
 window.renderOrderDetailModal = () => {
-  // ✅ EXTRACT FUNCTIONS WITH FALLBACKS (integration pattern)
-  const {
-    showOrderDetail = window.showOrderDetail,
-    currentOrderDetail = window.currentOrderDetail,
-    setShowOrderDetail = window.setShowOrderDetail || (() => {
-      console.warn("setShowOrderDetail not implemented");
-    }),
-    handleOrderApproval = window.handleOrderApproval || (() => {
-      console.warn("handleOrderApproval not implemented");
-    }),
-    hasPermission = window.hasPermission || (() => false)
-  } = window.appState || {};
+  // ✅ FIXED: Direct state extraction with proper fallbacks
+  const showOrderDetail = window.appState?.showOrderDetail || window.showOrderDetail;
+  const currentOrderDetail = window.appState?.currentOrderDetail || window.currentOrderDetail;
+  const setShowOrderDetail = window.setShowOrderDetail || (() => {
+    console.warn("setShowOrderDetail not implemented");
+  });
+  const handleOrderApproval = window.handleOrderApproval || (() => {
+    console.warn("handleOrderApproval not implemented");
+  });
+  const hasPermission = window.hasPermission || (() => false);
 
-  if (!showOrderDetail || !currentOrderDetail) return null;
+  // ✅ FIXED: Better condition check with logging
+  console.log('Modal render check:', { showOrderDetail, currentOrderDetail: !!currentOrderDetail });
+  
+  if (!showOrderDetail || !currentOrderDetail) {
+    console.log('Modal not rendering - missing state:', { showOrderDetail, currentOrderDetail: !!currentOrderDetail });
+    return null;
+  }
   
   // Helper function to get status color and styling
   const getStatusStyling = (status) => {
@@ -73,6 +76,8 @@ window.renderOrderDetailModal = () => {
     return order.total_tax || 0;
   };
 
+  console.log('✅ Rendering order detail modal for:', currentOrderDetail.order_number || currentOrderDetail.id);
+
   return React.createElement('div', { 
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
     onClick: (e) => e.target === e.currentTarget && setShowOrderDetail(false)
@@ -94,6 +99,16 @@ window.renderOrderDetailModal = () => {
       // Content
       React.createElement('div', { className: 'p-6 space-y-6' },
         
+        // Status Badge
+        React.createElement('div', { className: 'flex items-center justify-between' },
+          React.createElement('span', { 
+            className: `inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusStyle.bg} ${statusStyle.text}`
+          }, statusStyle.label),
+          React.createElement('span', { className: 'text-sm text-gray-500' }, 
+            'Created: ' + (currentOrderDetail.created_date ? new Date(currentOrderDetail.created_date).toLocaleDateString() : 'N/A')
+          )
+        ),
+        
         // Client Information Section
         React.createElement('div', null,
           React.createElement('div', { className: 'flex items-center mb-3' },
@@ -103,27 +118,19 @@ window.renderOrderDetailModal = () => {
           React.createElement('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
             React.createElement('div', null,
               React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Legal Name: '),
-                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.legal_name || currentOrderDetail.client_name || 'N/A')
+                React.createElement('strong', { className: 'text-gray-600' }, 'Name: '),
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.client_name || 'N/A')
               ),
               React.createElement('p', { className: 'mb-2' }, 
                 React.createElement('strong', { className: 'text-gray-600' }, 'Phone: '),
-                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.client_phone || 'N/A')
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.phone || 'N/A')
               ),
               React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Category: '),
-                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.category_of_sale || 'Retail')
-              ),
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Address: '),
-                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.registered_address || 'N/A')
+                React.createElement('strong', { className: 'text-gray-600' }, 'Email: '),
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.email || 'N/A')
               )
             ),
             React.createElement('div', null,
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Email: '),
-                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.client_email || 'N/A')
-              ),
               React.createElement('p', { className: 'mb-2' }, 
                 React.createElement('strong', { className: 'text-gray-600' }, 'GSTIN: '),
                 React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.gstin || 'Not Provided')
@@ -157,20 +164,19 @@ window.renderOrderDetailModal = () => {
               React.createElement('p', { className: 'mb-2' }, 
                 React.createElement('strong', { className: 'text-gray-600' }, 'Event Date: '),
                 React.createElement('span', { className: 'text-gray-900' }, 
-                  currentOrderDetail.event_date ? new Date(currentOrderDetail.event_date).toLocaleDateString() : 'N/A'
+                  currentOrderDetail.event_date ? 
+                    new Date(currentOrderDetail.event_date).toLocaleDateString() : 'N/A'
                 )
               ),
               React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Status: '),
-                React.createElement('span', { 
-                  className: `px-2 py-1 rounded text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`
-                }, statusStyle.label)
+                React.createElement('strong', { className: 'text-gray-600' }, 'Sales Person: '),
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.assigned_to || 'Unassigned')
               )
             )
           )
         ),
 
-        // Financial Details Section
+        // Financial Information Section
         React.createElement('div', null,
           React.createElement('div', { className: 'flex items-center mb-3' },
             React.createElement('span', { className: 'text-yellow-600 text-lg mr-2' }, '💰'),
@@ -180,39 +186,31 @@ window.renderOrderDetailModal = () => {
             React.createElement('div', null,
               React.createElement('p', { className: 'mb-2' }, 
                 React.createElement('strong', { className: 'text-gray-600' }, 'Total Amount: '),
-                React.createElement('span', { className: 'text-gray-900 font-semibold' }, '₹' + getTotalAmount(currentOrderDetail).toLocaleString())
+                React.createElement('span', { className: 'text-gray-900 font-medium' }, '₹' + getTotalAmount(currentOrderDetail).toLocaleString())
               ),
               React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Balance Due: '),
-                React.createElement('span', { className: 'text-red-600 font-semibold' }, '₹' + getBalanceAmount(currentOrderDetail).toLocaleString())
-              ),
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Payment Method: '),
-                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.payment_method || 'Online Payment')
+                React.createElement('strong', { className: 'text-gray-600' }, 'Advance Paid: '),
+                React.createElement('span', { className: 'text-green-600 font-medium' }, '₹' + getAdvanceAmount(currentOrderDetail).toLocaleString())
               )
             ),
             React.createElement('div', null,
               React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Advance Received: '),
-                React.createElement('span', { className: 'text-green-600 font-semibold' }, '₹' + getAdvanceAmount(currentOrderDetail).toLocaleString())
+                React.createElement('strong', { className: 'text-gray-600' }, 'Balance Due: '),
+                React.createElement('span', { className: 'text-red-600 font-medium' }, '₹' + getBalanceAmount(currentOrderDetail).toLocaleString())
               ),
               React.createElement('p', { className: 'mb-2' }, 
                 React.createElement('strong', { className: 'text-gray-600' }, 'Total Tax: '),
                 React.createElement('span', { className: 'text-gray-900' }, '₹' + getTotalTax(currentOrderDetail).toLocaleString())
-              ),
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Transaction ID: '),
-                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.transaction_id || currentOrderDetail.order_number || 'N/A')
               )
             )
           )
         ),
 
-        // Uploaded Documents Section
+        // Documents Section
         React.createElement('div', null,
           React.createElement('div', { className: 'flex items-center mb-3' },
-            React.createElement('span', { className: 'text-purple-600 text-lg mr-2' }, '📎'),
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 'Uploaded Documents')
+            React.createElement('span', { className: 'text-purple-600 text-lg mr-2' }, '📄'),
+            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 'Documents')
           ),
           React.createElement('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
             React.createElement('div', null,
@@ -271,4 +269,4 @@ window.renderOrderDetailModal = () => {
   );
 };
 
-console.log('✅ Enhanced Order Detail Modal component loaded successfully');
+console.log('✅ FIXED Order Detail Modal component loaded successfully');
