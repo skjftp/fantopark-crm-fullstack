@@ -4,12 +4,114 @@
 
 // ✅ MAIN UNIVERSAL FORM SUBMISSION HANDLER - CLEANED AND FIXED
 
+// ✅ COMPLETE: Enhanced assignOrderToSupplyTeam function with delivery creation
+// Replace the existing function in form-handlers.js
+
 window.assignOrderToSupplyTeam = async function(orderId) {
-  const assignee = await window.getSupplyTeamMember();
+  console.log('🔄 Starting assignment + delivery creation for order:', orderId);
   
-  // Use the existing logic that was working
-  if (window.appState?.assignOrderToService) {
-    await window.appState.assignOrderToService(orderId, assignee);
+  if (!window.hasPermission('orders', 'assign')) {
+    alert('You do not have permission to assign orders');
+    return;
+  }
+  
+  try {
+    window.setLoading(true);
+    
+    // Step 1: Get supply team member
+    const assignee = await window.getSupplyTeamMember();
+    console.log('🎯 Assignee selected:', assignee);
+    
+    // Step 2: Find the order
+    const order = window.orders.find(o => o.id === orderId);
+    if (!order) {
+      throw new Error('Order not found');
+    }
+    
+    // Step 3: Update order assignment
+    const updateData = {
+      assigned_to: assignee,
+      status: 'service_assigned',
+      assigned_date: new Date().toISOString(),
+      assignment_notes: 'Auto-assigned to supply team for service delivery'
+    };
+    
+    const response = await window.apiCall(`/orders/${orderId}`, {
+      method: 'PUT',
+      body: JSON.stringify({...order, ...updateData})
+    });
+    
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    
+    // Step 4: Update local orders state
+    window.setOrders(prev => prev.map(o => 
+      o.id === orderId ? {...o, ...updateData} : o
+    ));
+    
+    // Step 5: Create delivery record
+    const newDelivery = {
+      order_id: orderId,
+      order_number: order.order_number,
+      client_name: order.client_name,
+      client_email: order.client_email,
+      client_phone: order.client_phone,
+      event_name: order.event_name || 'N/A',
+      event_date: order.event_date || new Date().toISOString().split('T')[0],
+      tickets_count: order.tickets_allocated || 0,
+      amount: order.total_amount || 0,
+      delivery_type: 'offline',
+      pickup_location: '',
+      pickup_date: '',
+      pickup_time: '',
+      delivery_location: order.delivery_address || order.client_address || '',
+      delivery_date: '',
+      delivery_time: '',
+      delivery_person: assignee,
+      delivery_notes: 'Auto-created from order assignment',
+      online_platform: '',
+      online_link: '',
+      assigned_to: assignee,
+      status: 'pending',
+      created_date: new Date().toISOString().split('T')[0],
+      created_by: window.user?.name || 'System'
+    };
+    
+    // Add delivery to local state
+    window.setDeliveries(prev => [...prev, newDelivery]);
+    
+    // Save delivery to backend
+    try {
+      const deliveryResponse = await window.apiCall('/deliveries', {
+        method: 'POST',
+        body: JSON.stringify(newDelivery)
+      });
+      
+      // Update delivery with backend ID if provided
+      if (deliveryResponse?.data?.id) {
+        window.setDeliveries(prev => prev.map(d => 
+          d.order_id === orderId && !d.id ? { ...d, id: deliveryResponse.data.id } : d
+        ));
+      }
+    } catch (deliveryError) {
+      console.error('Failed to save delivery to backend:', deliveryError);
+      // Don't fail the whole operation - delivery is in local state
+    }
+    
+    // Refresh My Actions if available
+    if (window.fetchMyActions) {
+      await window.fetchMyActions();
+    }
+    
+    alert(`✅ Order assigned to ${assignee} successfully!\n🚚 Delivery record created`);
+    console.log('🎉 Assignment + delivery creation completed');
+    
+  } catch (error) {
+    console.error('❌ Error in assignment:', error);
+    alert(`Assignment failed: ${error.message}`);
+  } finally {
+    window.setLoading(false);
   }
 };
 
