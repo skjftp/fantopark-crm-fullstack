@@ -1586,21 +1586,25 @@ window.fixChartInitialization = function() {
 window.fixChartInitialization();
 
 // Also add a manual trigger for dashboard tab switches
-const originalSetActiveTab = window.setActiveTab;
-if (originalSetActiveTab) {
-  window.setActiveTab = function(tab) {
-    originalSetActiveTab(tab);
-    
-    // If switching to dashboard, try to init charts
-    if (tab === 'dashboard') {
-      setTimeout(() => {
-        if (!window.chartState?.initialized) {
-          console.log('🎯 Dashboard activated, attempting chart initialization...');
-          window.smartChartInit().catch(console.warn);
-        }
-      }, 500);
-    }
-  };
+if (!window.chartSystemInitialized) {
+  window.chartSystemInitialized = true;
+  
+  window._originalSetActiveTab = window._originalSetActiveTab || window.setActiveTab;
+  
+  if (window._originalSetActiveTab) {
+    window.setActiveTab = function(tab) {
+      window._originalSetActiveTab(tab);
+      
+      if (tab === 'dashboard') {
+        setTimeout(() => {
+          if (!window.chartState?.initialized) {
+            console.log('🎯 Dashboard activated, attempting chart initialization...');
+            window.smartChartInit && window.smartChartInit().catch(console.warn);
+          }
+        }, 500);
+      }
+    };
+  }
 }
 
 console.log('🔧 Emergency chart patch loaded');
