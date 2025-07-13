@@ -103,29 +103,38 @@ if (ordersResponse?.data) {
     // =============================================================================
     // FILTER AND PROCESS DELIVERIES WITH CUSTOMER NAMES
     // =============================================================================
-    let enhancedDeliveries = [];
-    if (deliveriesResponse?.data) {
-      const userEmail = window.user.email;
-      const assignedDeliveries = deliveriesResponse.data.filter(delivery => 
-        delivery.assigned_to === userEmail
-      );
+    // NEW CODE (REPLACE WITH THIS):
+let enhancedDeliveries = [];
+if (deliveriesResponse?.data) {
+  const userEmail = window.user.email;
+  const userRole = window.user.role;
+  
+  // 🔧 FIXED: Use the role-based filtering function instead of direct assignment check
+  const myFilteredDeliveries = window.filterDeliveriesByRole(deliveriesResponse.data, userRole, userEmail);
+  
+  console.log('🚚 Delivery filtering in fetchMyActions:');
+  console.log('📊 Total deliveries:', deliveriesResponse.data.length);
+  console.log('📊 Filtered for user:', myFilteredDeliveries.length);
+  
+  // Enhance deliveries with customer names from orders
+  enhancedDeliveries = myFilteredDeliveries.map(delivery => {
+    const relatedOrder = orderLookup[delivery.order_id];
+    const customerName = relatedOrder?.customer_name || 
+                       relatedOrder?.client_name ||
+                       delivery.customer_name ||
+                       'Unknown Customer';
+    
+    console.log('✅ Enhanced delivery', delivery.id, 'with customer:', customerName);
+    
+    return {
+      ...delivery,
+      customer_name: customerName
+    };
+  });
+}
 
-      // Enhance deliveries with customer names from orders
-      enhancedDeliveries = assignedDeliveries.map(delivery => {
-        const relatedOrder = orderLookup[delivery.order_id];
-        const customerName = relatedOrder?.customer_name || 
-                           relatedOrder?.client_name ||
-                           delivery.customer_name ||
-                           'Unknown Customer';
-        
-        console.log('✅ Enhanced delivery', delivery.id, 'with customer:', customerName);
-        
-        return {
-          ...delivery,
-          customer_name: customerName
-        };
-      });
-    }
+// Make sure this line appears later in the function:
+console.log('My deliveries (enhanced):', enhancedDeliveries.length);
 
     // =============================================================================
     // FILTER RECEIVABLES
