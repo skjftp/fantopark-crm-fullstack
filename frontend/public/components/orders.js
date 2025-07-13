@@ -962,11 +962,11 @@ window.renderEnhancedOrderActions = function(order) {
       if (hasPermission('orders', 'assign')) {
         actions.push(
           React.createElement('button', {
-            key: 'reassign',
-            onClick: () => window.enhancedOrderActions.quickAssignOrder(order.id),
-            className: 'px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200',
-            title: 'Assign to a different user'
-          }, '👥 Reassign')
+          key: 'assign',
+          onClick: () => window.assignOrderToSupplyAndCreateDelivery(order.id),
+          className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
+          title: 'Assign to supply team and create delivery record'
+        }, '➡️ Assign')
         );
       }
       break;
