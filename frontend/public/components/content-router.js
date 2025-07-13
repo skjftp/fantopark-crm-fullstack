@@ -69,7 +69,8 @@ window.renderContent = () => {
         case 'stadiums':
             return window.hasPermission('stadiums', 'read') ? window.renderStadiumsContent() : 
                 React.createElement('div', { className: 'text-center py-12' },
-                    React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to view stadiums.')
+                    React.createElement('p', { className: 'text-red-500 text-lg' }, 
+                    'Access Denied: You do not have permission to view stadiums.')
                 );
 
         case 'reminders':
