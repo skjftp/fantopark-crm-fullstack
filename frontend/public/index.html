@@ -7,6 +7,97 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FanToPark CRM Pro</title>
 
+<script>
+// API Call Deduplication System
+(function() {
+  'use strict';
+  
+  const apiCache = new Map();
+  const pendingRequests = new Map();
+  
+  // Store original apiCall function
+  const originalApiCall = window.apiCall;
+  
+  // Override with deduplication
+  window.apiCall = function(endpoint, options = {}) {
+    const method = options.method || 'GET';
+    const cacheKey = `${method}:${endpoint}`;
+    
+    // For GET requests, check cache and pending requests
+    if (method === 'GET') {
+      // Return cached data if available and fresh (within 30 seconds)
+      if (apiCache.has(cacheKey)) {
+        const cached = apiCache.get(cacheKey);
+        if (Date.now() - cached.timestamp < 30000) {
+          console.log('📋 Using cached data for:', endpoint);
+          return Promise.resolve(cached.data);
+        }
+      }
+      
+      // Return pending request if one exists
+      if (pendingRequests.has(cacheKey)) {
+        console.log('⏳ Joining existing request for:', endpoint);
+        return pendingRequests.get(cacheKey);
+      }
+    }
+    
+    // Make the actual API call
+    console.log('🌐 Making fresh API call to:', endpoint);
+    const promise = originalApiCall(endpoint, options);
+    
+    // Store as pending for GET requests
+    if (method === 'GET') {
+      pendingRequests.set(cacheKey, promise);
+      
+      // Handle completion
+      promise.then(result => {
+        // Cache the result
+        apiCache.set(cacheKey, {
+          data: result,
+          timestamp: Date.now()
+        });
+        
+        // Remove from pending
+        pendingRequests.delete(cacheKey);
+        
+        console.log('✅ Cached result for:', endpoint);
+        return result;
+      }).catch(error => {
+        // Remove from pending on error
+        pendingRequests.delete(cacheKey);
+        throw error;
+      });
+    }
+    
+    return promise;
+  };
+  
+  // Clear cache function
+  window.clearApiCache = function(endpoint) {
+    if (endpoint) {
+      apiCache.delete(`GET:${endpoint}`);
+      console.log('🗑️ Cleared cache for:', endpoint);
+    } else {
+      apiCache.clear();
+      console.log('🗑️ Cleared all API cache');
+    }
+  };
+  
+  // Auto-clear cache every 5 minutes
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of apiCache.entries()) {
+      if (now - value.timestamp > 300000) { // 5 minutes
+        apiCache.delete(key);
+      }
+    }
+  }, 60000); // Check every minute
+  
+  console.log('✅ API deduplication system enabled');
+  
+})();
+</script>  
+
 <!-- PERFORMANCE OPTIMIZATION SCRIPTS - PLACE FIRST -->
 <script> 
 (function() {
