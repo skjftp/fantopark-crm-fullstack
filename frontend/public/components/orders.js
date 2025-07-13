@@ -963,7 +963,7 @@ window.renderEnhancedOrderActions = function(order) {
         actions.push(
           React.createElement('button', {
           key: 'assign',
-          onClick: () => window.assignOrderToSupplyAndCreateDelivery(order.id),
+          oonClick: () => window.assignOrderToSupplyTeam(order.id)
           className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
           title: 'Assign to supply team and create delivery record'
         }, '➡️ Assign')
