@@ -2119,6 +2119,159 @@ console.log('✅ Chart update functions loaded');
   
 })();
 </script>  
+
+<script>
+// CHART INITIALIZATION FIX - Ensures charts load on page reload
+(function() {
+  'use strict';
+  
+  console.log('🔧 Loading chart initialization fix...');
+  
+  // Enhanced chart creation with proper fallback
+  window.ensureChartsExist = function() {
+    console.log('🔍 Checking if charts exist...');
+    
+    const canvas1 = document.getElementById('leadSplitChart');
+    const canvas2 = document.getElementById('tempCountChart');
+    const canvas3 = document.getElementById('tempValueChart');
+    
+    if (!canvas1 || !canvas2 || !canvas3) {
+      console.log('❌ Chart canvases not found in DOM yet');
+      return false;
+    }
+    
+    const chart1Exists = Chart.getChart(canvas1);
+    const chart2Exists = Chart.getChart(canvas2);
+    const chart3Exists = Chart.getChart(canvas3);
+    
+    const allChartsExist = chart1Exists && chart2Exists && chart3Exists;
+    
+    console.log('📊 Chart status:', {
+      canvas1: !!canvas1,
+      canvas2: !!canvas2, 
+      canvas3: !!canvas3,
+      chart1: !!chart1Exists,
+      chart2: !!chart2Exists,
+      chart3: !!chart3Exists,
+      allExist: allChartsExist
+    });
+    
+    return allChartsExist;
+  };
+  
+  // Enhanced initialization that waits for data AND DOM
+  window.initializeChartsWhenReady = function() {
+    console.log('🎯 initializeChartsWhenReady called');
+    
+    const checkAndCreate = () => {
+      // Check if we're on dashboard tab
+      if (window.activeTab !== 'dashboard') {
+        console.log('📍 Not on dashboard tab, skipping chart creation');
+        return;
+      }
+      
+      // Check if data is available
+      if (!window.leads || window.leads.length === 0) {
+        console.log('📊 No leads data yet, waiting...');
+        setTimeout(checkAndCreate, 500);
+        return;
+      }
+      
+      // Check if Chart.js is loaded
+      if (typeof Chart === 'undefined') {
+        console.log('📚 Chart.js not loaded yet, waiting...');
+        setTimeout(checkAndCreate, 500);
+        return;
+      }
+      
+      // Check if charts already exist
+      if (window.ensureChartsExist()) {
+        console.log('✅ Charts already exist, updating with current data');
+        window.updateChartsWithData(window.leads);
+        return;
+      }
+      
+      // Create charts
+      console.log('🎨 Creating charts from scratch...');
+      if (window.createDashboardCharts) {
+        window.createDashboardCharts();
+        
+        // Verify creation was successful
+        setTimeout(() => {
+          if (window.ensureChartsExist()) {
+            console.log('✅ Charts created successfully');
+            window.updateChartsWithData(window.leads);
+          } else {
+            console.log('❌ Chart creation failed, retrying...');
+            setTimeout(checkAndCreate, 1000);
+          }
+        }, 200);
+      } else {
+        console.log('❌ createDashboardCharts function not found');
+      }
+    };
+    
+    // Start the check
+    checkAndCreate();
+  };
+  
+  // Override the original initialization functions
+  const originalInitializeDashboardCharts = window.initializeDashboardCharts;
+  window.initializeDashboardCharts = function() {
+    console.log('🔄 initializeDashboardCharts called - using enhanced version');
+    window.initializeChartsWhenReady();
+  };
+  
+  // Monitor active tab changes
+  const originalSetActiveTab = window.setActiveTab;
+  if (originalSetActiveTab) {
+    window.setActiveTab = function(tab) {
+      const prevTab = window.activeTab;
+      originalSetActiveTab(tab);
+      
+      // If switching TO dashboard tab, ensure charts exist
+      if (tab === 'dashboard' && prevTab !== 'dashboard') {
+        console.log('📊 Switched to dashboard tab, ensuring charts exist');
+        setTimeout(window.initializeChartsWhenReady, 500);
+      }
+    };
+  }
+  
+  // Monitor data changes
+  let lastLeadsLength = 0;
+  setInterval(() => {
+    if (window.activeTab === 'dashboard' && window.leads) {
+      const currentLength = window.leads.length;
+      
+      // If data just loaded or changed significantly
+      if (currentLength > 0 && (lastLeadsLength === 0 || Math.abs(currentLength - lastLeadsLength) > 5)) {
+        console.log('📊 Leads data changed, checking charts...', {
+          oldCount: lastLeadsLength,
+          newCount: currentLength
+        });
+        
+        if (!window.ensureChartsExist()) {
+          console.log('🎨 Charts missing after data load, creating...');
+          window.initializeChartsWhenReady();
+        }
+      }
+      
+      lastLeadsLength = currentLength;
+    }
+  }, 2000);
+  
+  // Force initialization on script load if already on dashboard
+  setTimeout(() => {
+    if (window.activeTab === 'dashboard' || !window.activeTab) {
+      console.log('🎯 Page loaded on dashboard, ensuring charts exist');
+      window.initializeChartsWhenReady();
+    }
+  }, 3000);
+  
+  console.log('✅ Chart initialization fix loaded');
+  
+})();
+</script>  
   
 </body>
 </html>
