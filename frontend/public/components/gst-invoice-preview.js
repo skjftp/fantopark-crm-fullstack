@@ -1,5 +1,10 @@
+// =============================================================================
+// RESTORED GST INVOICE PREVIEW - EXTRACTED FROM production.html
+// =============================================================================
+// This restores your old/preferred invoice format from production.html
+
 // GST Invoice Preview Component for FanToPark CRM
-// Extracted from index.html - maintains 100% functionality
+// Extracted from production.html - maintains old invoice format
 // Uses window.* globals for CDN-based React compatibility
 
 window.renderGSTInvoicePreview = () => {
@@ -27,7 +32,8 @@ window.renderGSTInvoicePreview = () => {
   console.log('🔍 isIntraState:', isIntraState);
 
   // FIX 1: Calculate baseAmount FIRST before using it anywhere
-  const baseAmount = window.getBaseAmount ? window.getBaseAmount(invoice) : (invoice.base_amount || 0);
+  const baseAmount = window.getBaseAmount ? 
+    window.getBaseAmount(invoice) : (invoice.base_amount || 0);
   console.log('🔍 baseAmount:', baseAmount);
 
   // 🎯 CRITICAL FIX: Simplified calculation construction - prioritize GST data
@@ -353,7 +359,9 @@ ${invoiceContent}
         )
       ),
 
-      // Enhanced GST Invoice Preview Content
+      // ========================================================================
+      // RESTORED OLD INVOICE FORMAT FROM production.html
+      // ========================================================================
       React.createElement('div', { className: 'invoice-preview p-6' },
         // Header with logo
         React.createElement('div', { className: 'invoice-header-row' },
@@ -444,19 +452,19 @@ ${invoiceContent}
                   )
                 ),
                 React.createElement('td', { style: { textAlign: 'center' }}, item.quantity),
-                React.createElement('td', { style: { textAlign: 'center' }}, window.formatCurrency ? window.formatCurrency(item.rate) : '₹' + item.rate),
-                React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(item.quantity * item.rate) : '₹' + (item.quantity * item.rate))
+                React.createElement('td', { style: { textAlign: 'center' }}, window.formatCurrency ? window.formatCurrency(item.rate) : `₹${item.rate}`),
+                React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(item.quantity * item.rate) : `₹${item.quantity * item.rate}`)
               )
             ),
             // Service Charge row for Service Fee type (when base amount > 0)
             invoice.type_of_sale === 'Service Fee' && invoice.base_amount > 0 && React.createElement('tr', null,
               React.createElement('td', { colSpan: 3, style: { textAlign: 'right', fontWeight: 'bold' }}, 'Service Charge'),
-              React.createElement('td', { style: { textAlign: 'right', fontWeight: 'bold' }}, window.formatCurrency ? window.formatCurrency(invoice.base_amount) : '₹' + invoice.base_amount)
+              React.createElement('td', { style: { textAlign: 'right', fontWeight: 'bold' }}, window.formatCurrency ? window.formatCurrency(invoice.base_amount) : `₹${invoice.base_amount}`)
             )
           )
         ),
 
-        // 🎯 CRITICAL FIX: Enhanced Tax Table with robust GST row rendering
+        // Enhanced Tax Table with better calculation handling
         React.createElement('table', { className: 'totals-table' },
           React.createElement('tr', null,
             React.createElement('td', { style: { width: '60%' }}),
@@ -465,34 +473,16 @@ ${invoiceContent}
           ),
           (() => {
             const taxRows = [];
-            
-            // 🔍 DEBUG: Log GST row rendering decision
-            console.log('🔍 GST ROW RENDERING CHECK:');
-            console.log('🔍 calculation.gst.applicable:', calculation.gst.applicable);
-            console.log('🔍 calculation.gst.total > 0:', calculation.gst.total > 0);
-            console.log('🔍 calculation.gst.cgst > 0:', calculation.gst.cgst > 0);
-            console.log('🔍 calculation.gst.sgst > 0:', calculation.gst.sgst > 0);
-            console.log('🔍 calculation.gst.igst > 0:', calculation.gst.igst > 0);
-            
-            // 🎯 ENHANCED GST CONDITION: More robust check for GST applicability
-            const shouldShowGST = calculation.gst.applicable && 
-                                 (calculation.gst.total > 0 || 
-                                  calculation.gst.cgst > 0 || 
-                                  calculation.gst.sgst > 0 || 
-                                  calculation.gst.igst > 0);
-            
-            console.log('🔍 shouldShowGST:', shouldShowGST);
 
-            // FIX 4: GST Rows - more robust condition
-            if (shouldShowGST) {
-              console.log('✅ RENDERING GST ROWS!');
+            // GST Rows - ensure they show when GST is applicable
+            if (calculation.gst.applicable && calculation.gst.total > 0) {
               if (isIntraState) {
                 // CGST Row
                 taxRows.push(
                   React.createElement('tr', { key: 'cgst' },
                     React.createElement('td', null, invoice.type_of_sale === 'Service Fee' ? 'CGST on Service Charge' : 'CGST'),
                     React.createElement('td', { style: { textAlign: 'center' }}, (calculation.gst.rate/2).toFixed(2) + '%'),
-                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.cgst) : '₹' + calculation.gst.cgst.toFixed(2))
+                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.cgst) : `₹${calculation.gst.cgst}`)
                   )
                 );
                 // SGST Row
@@ -500,7 +490,7 @@ ${invoiceContent}
                   React.createElement('tr', { key: 'sgst' },
                     React.createElement('td', null, invoice.type_of_sale === 'Service Fee' ? 'SGST on Service Charge' : 'SGST'),
                     React.createElement('td', { style: { textAlign: 'center' }}, (calculation.gst.rate/2).toFixed(2) + '%'),
-                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.sgst) : '₹' + calculation.gst.sgst.toFixed(2))
+                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.sgst) : `₹${calculation.gst.sgst}`)
                   )
                 );
               } else {
@@ -509,57 +499,29 @@ ${invoiceContent}
                   React.createElement('tr', { key: 'igst' },
                     React.createElement('td', null, invoice.type_of_sale === 'Service Fee' ? 'IGST on Service Charge' : 'IGST'),
                     React.createElement('td', { style: { textAlign: 'center' }}, calculation.gst.rate.toFixed(2) + '%'),
-                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.igst) : '₹' + calculation.gst.igst.toFixed(2))
+                    React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.gst.igst) : `₹${calculation.gst.igst}`)
                   )
                 );
               }
-            } else {
-              console.log('❌ NOT RENDERING GST ROWS - conditions not met');
             }
 
-            // TCS Row - Use stored rate from invoice
+            // TCS Row (if applicable)
             if (calculation.tcs.applicable && calculation.tcs.amount > 0) {
               taxRows.push(
                 React.createElement('tr', { key: 'tcs' },
-                  React.createElement('td', null, `TCS (${calculation.tcs.rate}%)`), // Show actual rate
-                  React.createElement('td', { style: { textAlign: 'center' }}, calculation.tcs.rate.toFixed(2) + '%'),
-                  React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.tcs.amount) : '₹' + calculation.tcs.amount)
-                )
-              );
-            } else {
-              taxRows.push(
-                React.createElement('tr', { key: 'tcs' },
                   React.createElement('td', null, 'TCS'),
-                  React.createElement('td', { style: { textAlign: 'center' }}, '0.00%'),
-                  React.createElement('td', { style: { textAlign: 'right' }}, '-')
+                  React.createElement('td', { style: { textAlign: 'center' }}, calculation.tcs.rate.toFixed(2) + '%'),
+                  React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.tcs.amount) : `₹${calculation.tcs.amount}`)
                 )
               );
             }
 
-            // Grand Total Row
+            // Total row
             taxRows.push(
-              React.createElement('tr', { key: 'grand-total', style: { fontWeight: 'bold' }},
-                React.createElement('td', null, 'Grand Total'),
-                React.createElement('td', null),
-                React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.finalAmount) : '₹' + calculation.finalAmount.toFixed(2))
-              )
-            );
-
-            // Round-off Row
-            taxRows.push(
-              React.createElement('tr', { key: 'round-off' },
-                React.createElement('td', null, 'Round-off'),
-                React.createElement('td', null),
-                React.createElement('td', { style: { textAlign: 'right' }}, '-')
-              )
-            );
-
-            // Final Invoice Value Row
-            taxRows.push(
-              React.createElement('tr', { key: 'invoice-value', style: { fontWeight: 'bold' }},
-                React.createElement('td', null, 'Invoice Value'),
-                React.createElement('td', null),
-                React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.finalAmount) : '₹' + calculation.finalAmount.toFixed(2))
+              React.createElement('tr', { key: 'total', style: { fontWeight: 'bold', backgroundColor: '#f8f9fa' }},
+                React.createElement('td', null, 'Total Amount'),
+                React.createElement('td', { style: { textAlign: 'center' }}),
+                React.createElement('td', { style: { textAlign: 'right' }}, window.formatCurrency ? window.formatCurrency(calculation.finalAmount) : `₹${calculation.finalAmount}`)
               )
             );
 
@@ -567,45 +529,42 @@ ${invoiceContent}
           })()
         ),
 
-        // Bank Details with QR Code (existing)
+        // Bank Details Section
         React.createElement('div', { className: 'bank-details' },
           React.createElement('div', { className: 'bank-info' },
-            React.createElement('h4', null, 'Payment Information'),
-            React.createElement('div', null, React.createElement('strong', null, 'Bank Name:'), ' Kotak Mahindra Bank Ltd.'),
-            React.createElement('div', null, React.createElement('strong', null, 'Account Name:'), ' F2P Sports Private Limited'),
-            React.createElement('div', null, React.createElement('strong', null, 'Account Number:'), ' 3750501346'),
-            React.createElement('div', null, React.createElement('strong', null, 'IFSC Code:'), ' KKBK0000298'),
-            React.createElement('div', null, React.createElement('strong', null, 'Bank Address:'), ' Shop No. 2 & 3, Vatika Business Park, Sohna Road, Badshahpur, Gurgaon, 122002, Haryana, India')
+            React.createElement('h4', null, 'Bank Details'),
+            React.createElement('div', null, React.createElement('strong', null, 'Bank Name:'), ' ICICI Bank'),
+            React.createElement('div', null, React.createElement('strong', null, 'A/C Name:'), ' FanToPark Tours & Travel Services Pvt Ltd'),
+            React.createElement('div', null, React.createElement('strong', null, 'A/C No:'), ' 654405601234'),
+            React.createElement('div', null, React.createElement('strong', null, 'IFSC Code:'), ' ICIC0006544'),
+            React.createElement('div', null, React.createElement('strong', null, 'Branch:'), ' Sector 62, Noida')
           ),
-          React.createElement('div', { className: 'bank-info', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }},
-            React.createElement('h4', { style: { marginBottom: '10px' }}, 'Scan to Pay'),
+          React.createElement('div', { className: 'payment-qr' },
+            React.createElement('h4', { style: { textAlign: 'center' }}, 'Payment QR'),
             React.createElement('img', {
-              src: 'images/qr.png',
+              src: 'images/payment-qr.png',
               alt: 'Payment QR Code',
-              style: { width: '120px', height: '120px', objectFit: 'contain', border: '1px solid #ddd' }
-            }),
-            React.createElement('div', { style: { marginTop: '5px', textAlign: 'center', fontSize: '8px' }}, 'Scan QR code for payment')
+              style: { maxWidth: '120px', maxHeight: '120px', objectFit: 'contain' }
+            })
           )
         ),
 
-        // Company Information Footer (existing)
-        React.createElement('div', { className: 'invoice-footer' },
-          React.createElement('div', { className: 'company-info-section', style: { background: 'white', padding: '8px', border: '1px solid #ddd', borderRadius: '3px', marginBottom: '8px' } },
-            React.createElement('h4', { style: { color: '#2c3e50', marginBottom: '6px', borderBottom: '1px solid #2c3e50', paddingBottom: '2px', textAlign: 'center', fontSize: '9px' }}, 'F2P SPORTS PRIVATE LIMITED'),
-            React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }},
-              React.createElement('div', { style: { fontSize: '8px', lineHeight: '1.1' }},
-                React.createElement('div', null, React.createElement('strong', null, 'Regd. Office:'), ' D 104, Pioneer Urban Square, Sector 62, Gurgaon 122102, Haryana, India'),
-                React.createElement('div', { style: { marginTop: '3px' }}, React.createElement('strong', null, 'Email:'), ' sales@fantopark.com'),
-                React.createElement('div', null, React.createElement('strong', null, 'Mobile:'), ' +91 9934463729')
-              ),
-              React.createElement('div', { style: { fontSize: '8px', lineHeight: '1.1' }},
-                React.createElement('div', null, React.createElement('strong', null, 'CIN:'), ' U52291HR2024PTC127089'),
-                React.createElement('div', null, React.createElement('strong', null, 'GST:'), ' 06AAGCF1773L1ZE'),
-                React.createElement('div', null, React.createElement('strong', null, 'PAN:'), ' AAGCF1773L'),
-                React.createElement('div', null, React.createElement('strong', null, 'HSN Code:'), ' 998554'),
-                React.createElement('div', null, React.createElement('strong', null, 'UDYAM Reg. No.:'), ' UDYAM-HR-05-0130233'),
-                React.createElement('div', null, React.createElement('strong', null, 'Category:'), ' Micro')
-              )
+        // Company Information Section
+        React.createElement('div', { className: 'company-info-section' },
+          React.createElement('h4', null, 'FanToPark Tours & Travel Services Pvt Ltd'),
+          React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }},
+            React.createElement('div', { style: { fontSize: '8px', lineHeight: '1.1' }},
+              React.createElement('div', null, React.createElement('strong', null, 'Regd. Office:'), ' D 104, Pioneer Urban Square, Sector 62, Gurgaon 122102, Haryana, India'),
+              React.createElement('div', { style: { marginTop: '3px' }}, React.createElement('strong', null, 'Email:'), ' sales@fantopark.com'),
+              React.createElement('div', null, React.createElement('strong', null, 'Mobile:'), ' +91 9934463729')
+            ),
+            React.createElement('div', { style: { fontSize: '8px', lineHeight: '1.1' }},
+              React.createElement('div', null, React.createElement('strong', null, 'CIN:'), ' U52291HR2024PTC127089'),
+              React.createElement('div', null, React.createElement('strong', null, 'GST:'), ' 06AAGCF1773L1ZE'),
+              React.createElement('div', null, React.createElement('strong', null, 'PAN:'), ' AAGCF1773L'),
+              React.createElement('div', null, React.createElement('strong', null, 'HSN Code:'), ' 998554'),
+              React.createElement('div', null, React.createElement('strong', null, 'UDYAM Reg. No.:'), ' UDYAM-HR-05-0130233'),
+              React.createElement('div', null, React.createElement('strong', null, 'Category:'), ' Micro')
             )
           ),
           React.createElement('div', { style: { textAlign: 'center', borderTop: '1px solid #2c3e50', paddingTop: '4px' }},
@@ -618,4 +577,4 @@ ${invoiceContent}
   );
 };
 
-console.log('✅ GST Invoice Preview component loaded successfully - FIXED GST ROW RENDERING!');
+console.log('✅ GST Invoice Preview component loaded successfully - RESTORED OLD FORMAT FROM production.html!');
