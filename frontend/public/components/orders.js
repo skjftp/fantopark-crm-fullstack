@@ -1,6 +1,134 @@
 // Enhanced Orders Component for FanToPark CRM with Search Filters and Pagination
 // Production version with automatic pagination and proper button workflow
 
+// =============================================================================
+// ASSIGNMENT FUNCTIONS FOR ORDER WORKFLOW
+// =============================================================================
+
+// ✅ FINANCE TEAM ASSIGNMENT FUNCTION (for payment_received orders):
+window.getFinanceManager = async function() {
+  console.log('🔍 === DEBUG getFinanceManager CALLED ===');
+  console.log('🔍 window.users length:', window.users?.length || 'undefined');
+  console.log('🔍 window.users:', window.users);
+  
+  try {
+    // Get all finance team members
+    const financeTeamMembers = window.users.filter(user => {
+      const isFinanceRole = ['finance_manager', 'finance_executive'].includes(user.role);
+      const isActive = user.status === 'active';
+      
+      console.log('🔍 Checking user:', user.email, 'role:', user.role, 'status:', user.status, 'isFinance:', isFinanceRole, 'isActive:', isActive);
+      
+      return isFinanceRole && isActive;
+    });
+    
+    console.log('🔍 Found finance team members:', financeTeamMembers);
+    
+    if (financeTeamMembers.length === 0) {
+      console.warn('⚠️ No active finance team members found, checking for admins as fallback');
+      
+      // Fallback: Look for active admins
+      const adminUsers = window.users.filter(user => 
+        ['admin', 'super_admin'].includes(user.role) && user.status === 'active'
+      );
+      
+      if (adminUsers.length > 0) {
+        console.log('🔄 Using admin as fallback:', adminUsers[0].email);
+        return adminUsers[0].email;
+      }
+      
+      // Last resort: return the first active user
+      const activeUsers = window.users.filter(user => user.status === 'active');
+      if (activeUsers.length > 0) {
+        console.log('🔄 Using first active user as last resort:', activeUsers[0].email);
+        return activeUsers[0].email;
+      }
+      
+      throw new Error('No active users found for finance assignment');
+    }
+    
+    console.log('✅ Found', financeTeamMembers.length, 'finance team members');
+    
+    // Prioritize finance_manager over finance_executive
+    const financeManagers = financeTeamMembers.filter(user => user.role === 'finance_manager');
+    const financeExecutives = financeTeamMembers.filter(user => user.role === 'finance_executive');
+    
+    let selectedMember;
+    
+    if (financeManagers.length > 0) {
+      // Use round-robin for finance managers if multiple exist
+      const managerIndex = (Date.now() % financeManagers.length);
+      selectedMember = financeManagers[managerIndex];
+      console.log('🎯 Selected finance manager via round-robin:', selectedMember.email);
+    } else {
+      // Use first finance executive if no managers
+      selectedMember = financeExecutives[0];
+      console.log('🎯 Selected finance executive (no managers available):', selectedMember.email);
+    }
+    
+    console.log('🎯 Final assignment to:', selectedMember.email, '(' + selectedMember.name + ')');
+    
+    return selectedMember.email;
+    
+  } catch (error) {
+    console.error('❌ Error getting finance manager:', error);
+    
+    // Emergency fallback: try to find ANY active user
+    try {
+      const emergencyUser = window.users.find(user => user.status === 'active');
+      if (emergencyUser) {
+        console.log('🚨 Emergency fallback to:', emergencyUser.email);
+        return emergencyUser.email;
+      }
+    } catch (fallbackError) {
+      console.error('❌ Emergency fallback also failed:', fallbackError);
+    }
+    
+    throw new Error('Failed to assign to any finance manager');
+  }
+};
+
+// ✅ SUPPLY TEAM ASSIGNMENT FUNCTION (for approved orders):
+window.getSupplyTeamMember = async function() {
+  console.log('🔍 === DEBUG getSupplyTeamMember CALLED ===');
+  console.log('🔍 window.users length:', window.users?.length || 'undefined');
+  console.log('🔍 window.users:', window.users);
+  
+  try {
+    // Get all supply team members
+    const supplyTeamMembers = window.users.filter(user => {
+      const isSupplyRole = ['supply_manager', 'supply_service_manager', 'supply_sales_service_manager'].includes(user.role);
+      const isActive = user.status === 'active';
+      
+      console.log('🔍 Checking user:', user.email, 'role:', user.role, 'status:', user.status, 'isSupply:', isSupplyRole, 'isActive:', isActive);
+      
+      return isSupplyRole && isActive;
+    });
+    
+    console.log('🔍 Found supply team members:', supplyTeamMembers);
+    
+    if (supplyTeamMembers.length === 0) {
+      console.warn('⚠️ No active supply team members found, using fallback');
+      return 'akshay@fantopark.com'; // fallback
+    }
+    
+    console.log('✅ Found', supplyTeamMembers.length, 'supply team members');
+    
+    const selectedMember = supplyTeamMembers[0];
+    console.log('🎯 Assigning to:', selectedMember.email, '(' + selectedMember.name + ')');
+    
+    return selectedMember.email;
+    
+  } catch (error) {
+    console.error('❌ Error getting supply team member:', error);
+    return 'akshay@fantopark.com'; // fallback
+  }
+};
+
+// =============================================================================
+// MAIN ORDERS COMPONENT
+// =============================================================================
+
 window.renderOrdersContent = () => {
   // Extract state from window.appState (passed from React components)
   const appState = window.appState || {};
@@ -574,7 +702,6 @@ const viewInvoice = window.viewInvoice;
 // =============================================================================
 // STEP 2: ORDER ACTIONS INTEGRATION FOR ENHANCED WORKFLOW
 // =============================================================================
-// Add this code to your existing orders.js or create components/order-workflow-integration.js
 
 // Enhanced order actions with approval workflow
 window.enhancedOrderActions = {
@@ -592,13 +719,80 @@ window.enhancedOrderActions = {
     window.setShowEditOrderForm(true);
   },
 
-  // Approve order with workflow automation
+  // 🔧 FIXED: Approve order with finance → supply workflow
   approveOrder: async function(orderId, notes = '') {
-    if (!confirm('Approve this order? This will trigger automatic assignment based on order type.')) {
+    if (!confirm('Approve this order? This will assign it to the supply team for processing.')) {
       return;
     }
 
-    await window.handleOrderApproval(orderId, 'approve', notes);
+    console.log('🎯 === FINANCE APPROVAL WORKFLOW ===');
+    console.log('🔍 Order ID:', orderId);
+    console.log('🔍 Current user:', window.user?.email, window.user?.role);
+
+    try {
+      window.setLoading(true);
+
+      // Get the order being approved
+      const order = window.orders.find(o => o.id === orderId);
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      console.log('🔍 Order found:', order.order_number, 'Status:', order.status);
+
+      // Get supply team member for assignment
+      const supplyMember = await window.getSupplyTeamMember();
+      console.log('🎯 Supply team member selected:', supplyMember);
+
+      // Update order with approval and supply assignment
+      const updateData = {
+        ...order,
+        status: 'approved',
+        assigned_to: supplyMember,
+        assigned_team: 'supply',
+        approved_by: window.user.email,
+        approved_date: new Date().toISOString(),
+        approval_notes: notes,
+        // Preserve original assignee for tracking
+        original_assignee: order.original_assignee || order.created_by,
+        updated_date: new Date().toISOString()
+      };
+
+      console.log('🔍 Update data:', updateData);
+
+      // Call the API to update the order
+      const response = await window.apiCall(`/orders/${orderId}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData)
+      });
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      console.log('✅ Order approved successfully:', response);
+
+      // Update local state
+      const updatedOrder = response.data || updateData;
+      window.setOrders(prev => prev.map(o => 
+        o.id === orderId ? updatedOrder : o
+      ));
+
+      // Refresh My Actions if available
+      if (window.fetchMyActions) {
+        await window.fetchMyActions();
+      }
+
+      alert(`✅ Order approved successfully!\n\nOrder: ${order.order_number}\nAssigned to: ${supplyMember}\nStatus: Approved`);
+
+      console.log('🎯 Finance approval workflow completed');
+
+    } catch (error) {
+      console.error('❌ Error approving order:', error);
+      alert(`Failed to approve order: ${error.message}`);
+    } finally {
+      window.setLoading(false);
+    }
   },
 
   // Reject order with reassignment to original person
@@ -613,7 +807,48 @@ window.enhancedOrderActions = {
       return;
     }
 
-    await window.handleOrderApproval(orderId, 'reject', reason);
+    try {
+      window.setLoading(true);
+
+      const order = window.orders.find(o => o.id === orderId);
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      const updateData = {
+        ...order,
+        status: 'rejected',
+        assigned_to: order.original_assignee || order.created_by,
+        assigned_team: 'sales',
+        rejected_by: window.user.email,
+        rejected_date: new Date().toISOString(),
+        rejection_reason: reason,
+        updated_date: new Date().toISOString()
+      };
+
+      const response = await window.apiCall(`/orders/${orderId}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData)
+      });
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      // Update local state
+      const updatedOrder = response.data || updateData;
+      window.setOrders(prev => prev.map(o => 
+        o.id === orderId ? updatedOrder : o
+      ));
+
+      alert(`❌ Order rejected and reassigned to ${updateData.assigned_to}`);
+
+    } catch (error) {
+      console.error('❌ Error rejecting order:', error);
+      alert(`Failed to reject order: ${error.message}`);
+    } finally {
+      window.setLoading(false);
+    }
   },
 
   // Quick assign to specific user
@@ -663,7 +898,6 @@ window.enhancedOrderActions = {
 // =============================================================================
 // ENHANCED ORDER ACTION BUTTONS RENDERER
 // =============================================================================
-// Replace your existing order action buttons with this enhanced version
 
 window.renderEnhancedOrderActions = function(order) {
   const { hasPermission } = window;
@@ -692,7 +926,7 @@ window.renderEnhancedOrderActions = function(order) {
     case 'pending_approval':
       // Finance manager actions for pending orders
       if (hasPermission('orders', 'approve') && 
-          (window.user?.role === 'finance_manager' || window.user?.role === 'supply_sales_service_manager' || window.user?.role === 'super_admin')) {
+          (window.user?.role === 'finance_manager' || window.user?.role === 'finance_executive' || window.user?.role === 'super_admin')) {
         actions.push(
           React.createElement('button', {
             key: 'approve',
@@ -814,7 +1048,6 @@ window.renderEnhancedOrderActions = function(order) {
 // =============================================================================
 // INTEGRATION WITH LEAD STATUS UPDATES
 // =============================================================================
-// Add this to your lead-status-management.js to trigger order creation
 
 window.integrateOrderCreationWithLeadStatus = function() {
   // Store original updateLeadStatus function
@@ -834,6 +1067,7 @@ window.integrateOrderCreationWithLeadStatus = function() {
 // =============================================================================
 // INITIALIZATION
 // =============================================================================
+
 // Auto-initialize when loaded
 window.addEventListener('load', () => {
   setTimeout(() => {
@@ -852,5 +1086,4 @@ window.addEventListener('load', () => {
 });
 
 console.log('✅ Order Actions Integration for Enhanced Workflow loaded successfully');
-
 console.log("✅ ENHANCED: Orders component with search filters and pagination loaded successfully");
