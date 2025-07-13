@@ -1,254 +1,211 @@
 // Order Detail Modal Component for FanToPark CRM
-// FIXED VERSION - Corrected state extraction pattern
+// Updated to EXACTLY match production.html UI from screenshots
 
 window.renderOrderDetailModal = () => {
-  // ✅ FIXED: Direct state extraction with proper fallbacks
-  const showOrderDetail = window.appState?.showOrderDetail || window.showOrderDetail;
-  const currentOrderDetail = window.appState?.currentOrderDetail || window.currentOrderDetail;
+  // ✅ State extraction with proper fallbacks
+  const showOrderDetail = window.showOrderDetail || window.appState?.showOrderDetail;
+  const currentOrderDetail = window.currentOrderDetail || window.appState?.currentOrderDetail;
+  
   const setShowOrderDetail = window.setShowOrderDetail || (() => {
-    console.warn("setShowOrderDetail not implemented");
+    window.showOrderDetail = false;
+    if (window.appState) window.appState.showOrderDetail = false;
   });
-  const handleOrderApproval = window.handleOrderApproval || (() => {
-    console.warn("handleOrderApproval not implemented");
-  });
+  
   const hasPermission = window.hasPermission || (() => false);
+  const handleOrderApproval = window.handleOrderApproval || (() => console.warn("handleOrderApproval not implemented"));
 
-  // ✅ FIXED: Better condition check with logging
   console.log('Modal render check:', { showOrderDetail, currentOrderDetail: !!currentOrderDetail });
   
   if (!showOrderDetail || !currentOrderDetail) {
-    console.log('Modal not rendering - missing state:', { showOrderDetail, currentOrderDetail: !!currentOrderDetail });
     return null;
   }
-  
-  // Helper function to get status color and styling
-  const getStatusStyling = (status) => {
-    const statusMap = {
-      'pending_approval': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending Approval' },
-      'approved': { bg: 'bg-green-100', text: 'text-green-800', label: 'Approved' },
-      'rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
-      'service_assigned': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Service Assigned' },
-      'completed': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Completed' }
-    };
-    return statusMap[status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: status };
-  };
 
-  const statusStyle = getStatusStyling(currentOrderDetail.status);
-
-  // Enhanced order information extraction
-  const getEventDisplay = (order) => {
-    if (order.invoice_items && Array.isArray(order.invoice_items) && order.invoice_items.length > 0) {
-      return order.invoice_items[0].description;
-    }
-    return order.event_name || 'N/A';
-  };
-
-  const getTicketsDisplay = (order) => {
-    if (order.invoice_items && Array.isArray(order.invoice_items)) {
-      const totalQuantity = order.invoice_items.reduce((sum, item) => sum + (item.quantity || 0), 0);
-      return `${totalQuantity} - ${order.category_of_sale || 'Retail'}`;
-    }
-    return `${order.tickets_allocated || 0} - ${order.ticket_category || 'Retail'}`;
-  };
-
-  const getTotalAmount = (order) => {
-    return order.final_amount || order.total_amount || order.amount || 0;
-  };
-
-  const getAdvanceAmount = (order) => {
-    return order.advance_received || order.advance_amount || 0;
-  };
-
-  const getBalanceAmount = (order) => {
-    const total = getTotalAmount(order);
-    const advance = getAdvanceAmount(order);
-    return total - advance;
-  };
-
-  const getTotalTax = (order) => {
-    if (order.gst_calculation && order.gst_calculation.total) {
-      let totalTax = order.gst_calculation.total;
-      if (order.tcs_calculation && order.tcs_calculation.applicable) {
-        totalTax += order.tcs_calculation.amount || 0;
-      }
-      return totalTax;
-    }
-    return order.total_tax || 0;
-  };
-
-  console.log('✅ Rendering order detail modal for:', currentOrderDetail.order_number || currentOrderDetail.id);
+  console.log('✅ Rendering EXACT PRODUCTION order detail modal for:', currentOrderDetail.order_number || currentOrderDetail.id);
 
   return React.createElement('div', { 
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
     onClick: (e) => e.target === e.currentTarget && setShowOrderDetail(false)
   },
     React.createElement('div', { 
-      className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl' 
+      className: 'bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl' 
     },
-      // Header
+      // Header with X button
       React.createElement('div', { className: 'flex justify-between items-center p-6 border-b border-gray-200' },
-        React.createElement('h2', { className: 'text-2xl font-bold text-gray-900 dark:text-white' }, 
+        React.createElement('h2', { className: 'text-xl font-semibold text-gray-900' }, 
           'Order Details: ' + (currentOrderDetail.order_number || currentOrderDetail.id)
         ),
         React.createElement('button', {
           onClick: () => setShowOrderDetail(false),
-          className: 'text-gray-400 hover:text-gray-600 text-2xl font-bold'
+          className: 'text-gray-400 hover:text-gray-600 text-xl'
         }, '✕')
       ),
 
-      // Content
+      // Main Content
       React.createElement('div', { className: 'p-6 space-y-6' },
         
-        // Status Badge
-        React.createElement('div', { className: 'flex items-center justify-between' },
-          React.createElement('span', { 
-            className: `inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusStyle.bg} ${statusStyle.text}`
-          }, statusStyle.label),
-          React.createElement('span', { className: 'text-sm text-gray-500' }, 
-            'Created: ' + (currentOrderDetail.created_date ? new Date(currentOrderDetail.created_date).toLocaleDateString() : 'N/A')
-          )
-        ),
-        
-        // Client Information Section
+        // 👤 Client Information Section
         React.createElement('div', null,
-          React.createElement('div', { className: 'flex items-center mb-3' },
+          React.createElement('div', { className: 'flex items-center mb-4' },
             React.createElement('span', { className: 'text-blue-600 text-lg mr-2' }, '👤'),
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 'Client Information')
+            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900' }, 'Client Information')
           ),
           React.createElement('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
             React.createElement('div', null,
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Name: '),
-                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.client_name || 'N/A')
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Legal Name: '),
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.legal_name || currentOrderDetail.client_name || 'N/A')
               ),
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Phone: '),
-                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.phone || 'N/A')
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Phone: '),
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.client_phone || currentOrderDetail.phone || 'N/A')
               ),
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Email: '),
-                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.email || 'N/A')
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Category: '),
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.category_of_sale || 'Retail')
               )
             ),
             React.createElement('div', null,
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'GSTIN: '),
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Email: '),
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.client_email || currentOrderDetail.email || 'N/A')
+              ),
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'GSTIN: '),
                 React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.gstin || 'Not Provided')
               ),
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'State: '),
-                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.indian_state || 'N/A')
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'State: '),
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.indian_state || currentOrderDetail.state || 'N/A')
               )
             )
+          ),
+          // Address (full width)
+          currentOrderDetail.address && React.createElement('div', { className: 'mt-3' },
+            React.createElement('span', { className: 'font-medium text-gray-700' }, 'Address: '),
+            React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.address)
           )
         ),
 
-        // Order Information Section
+        // 📋 Order Information Section  
         React.createElement('div', null,
-          React.createElement('div', { className: 'flex items-center mb-3' },
-            React.createElement('span', { className: 'text-green-600 text-lg mr-2' }, '📋'),
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 'Order Information')
+          React.createElement('div', { className: 'flex items-center mb-4' },
+            React.createElement('span', { className: 'text-blue-600 text-lg mr-2' }, '📋'),
+            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900' }, 'Order Information')
           ),
           React.createElement('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
             React.createElement('div', null,
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Event: '),
-                React.createElement('span', { className: 'text-gray-900' }, getEventDisplay(currentOrderDetail))
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Event: '),
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.event_name || 'N/A')
               ),
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Tickets: '),
-                React.createElement('span', { className: 'text-gray-900' }, getTicketsDisplay(currentOrderDetail))
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Tickets: '),
+                React.createElement('span', { className: 'text-gray-900' }, 
+                  (currentOrderDetail.tickets_allocated || currentOrderDetail.quantity || 0) + 
+                  ' - ' + (currentOrderDetail.ticket_category || 'Retail')
+                )
               )
             ),
             React.createElement('div', null,
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Event Date: '),
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Event Date: '),
                 React.createElement('span', { className: 'text-gray-900' }, 
                   currentOrderDetail.event_date ? 
                     new Date(currentOrderDetail.event_date).toLocaleDateString() : 'N/A'
                 )
               ),
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Sales Person: '),
-                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.assigned_to || 'Unassigned')
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Status: '),
+                React.createElement('span', { 
+                  className: `inline-flex px-2 py-1 text-xs font-medium rounded ${
+                    currentOrderDetail.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
+                    currentOrderDetail.status === 'approved' ? 'bg-green-100 text-green-800' :
+                    currentOrderDetail.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`
+                }, currentOrderDetail.status === 'pending_approval' ? 'Pending Approval' : 
+                   (currentOrderDetail.status || 'N/A'))
               )
             )
           )
         ),
 
-        // Financial Information Section
+        // 💰 Financial Details Section
         React.createElement('div', null,
-          React.createElement('div', { className: 'flex items-center mb-3' },
+          React.createElement('div', { className: 'flex items-center mb-4' },
             React.createElement('span', { className: 'text-yellow-600 text-lg mr-2' }, '💰'),
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 'Financial Details')
+            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900' }, 'Financial Details')
           ),
           React.createElement('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
             React.createElement('div', null,
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Total Amount: '),
-                React.createElement('span', { className: 'text-gray-900 font-medium' }, '₹' + getTotalAmount(currentOrderDetail).toLocaleString())
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Total Amount: '),
+                React.createElement('span', { className: 'text-gray-900 font-semibold' }, 
+                  '₹' + (currentOrderDetail.final_amount || currentOrderDetail.total_amount || currentOrderDetail.amount || 0).toLocaleString()
+                )
               ),
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Advance Paid: '),
-                React.createElement('span', { className: 'text-green-600 font-medium' }, '₹' + getAdvanceAmount(currentOrderDetail).toLocaleString())
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Balance Due: '),
+                React.createElement('span', { className: 'text-red-600 font-semibold' }, 
+                  '₹' + ((currentOrderDetail.final_amount || currentOrderDetail.total_amount || 0) - 
+                         (currentOrderDetail.advance_received || currentOrderDetail.advance_amount || 0)).toLocaleString()
+                )
+              ),
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Payment Method: '),
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.payment_method || 'Bank Transfer')
               )
             ),
             React.createElement('div', null,
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Balance Due: '),
-                React.createElement('span', { className: 'text-red-600 font-medium' }, '₹' + getBalanceAmount(currentOrderDetail).toLocaleString())
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Advance Received: '),
+                React.createElement('span', { className: 'text-green-600 font-semibold' }, 
+                  '₹' + (currentOrderDetail.advance_received || currentOrderDetail.advance_amount || 0).toLocaleString()
+                )
               ),
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'Total Tax: '),
-                React.createElement('span', { className: 'text-gray-900' }, '₹' + getTotalTax(currentOrderDetail).toLocaleString())
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Total Tax: '),
+                React.createElement('span', { className: 'text-gray-900' }, 
+                  '₹' + (currentOrderDetail.total_tax || 0).toLocaleString()
+                )
+              ),
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Transaction ID: '),
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.transaction_id || 'N/A')
               )
             )
           )
         ),
 
-        // Documents Section
+        // 🏷️ Uploaded Documents Section
         React.createElement('div', null,
-          React.createElement('div', { className: 'flex items-center mb-3' },
-            React.createElement('span', { className: 'text-purple-600 text-lg mr-2' }, '📄'),
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 'Documents')
+          React.createElement('div', { className: 'flex items-center mb-4' },
+            React.createElement('span', { className: 'text-gray-600 text-lg mr-2' }, '🏷️'),
+            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900' }, 'Uploaded Documents')
           ),
           React.createElement('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
             React.createElement('div', null,
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'GST Certificate: '),
-                React.createElement('span', { 
-                  className: currentOrderDetail.gst_certificate ? 'text-green-600' : 'text-orange-600'
-                }, currentOrderDetail.gst_certificate ? 'Uploaded' : 'Not uploaded')
-              )
+              React.createElement('span', { className: 'font-medium text-gray-700' }, 'GST Certificate: '),
+              React.createElement('span', { 
+                className: currentOrderDetail.gst_certificate ? 'text-green-600' : 'text-orange-600'
+              }, currentOrderDetail.gst_certificate ? 'Uploaded' : 'Not uploaded')
             ),
             React.createElement('div', null,
-              React.createElement('p', { className: 'mb-2' }, 
-                React.createElement('strong', { className: 'text-gray-600' }, 'PAN Card: '),
-                React.createElement('span', { 
-                  className: currentOrderDetail.pan_card ? 'text-green-600' : 'text-orange-600'
-                }, currentOrderDetail.pan_card ? 'Uploaded' : 'Not uploaded')
-              )
+              React.createElement('span', { className: 'font-medium text-gray-700' }, 'PAN Card: '),
+              React.createElement('span', { 
+                className: currentOrderDetail.pan_card ? 'text-green-600' : 'text-orange-600'
+              }, currentOrderDetail.pan_card ? 'Uploaded' : 'Not uploaded')
             )
           )
         ),
 
-        // Approval Notes (if present)
-        currentOrderDetail.approval_notes && React.createElement('div', null,
-          React.createElement('div', { className: 'flex items-center mb-3' },
-            React.createElement('span', { className: 'text-gray-600 text-lg mr-2' }, '📝'),
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 'Approval Notes')
-          ),
-          React.createElement('div', { className: 'bg-gray-50 dark:bg-gray-700 p-4 rounded-lg' },
-            React.createElement('p', { className: 'text-gray-900 dark:text-white' }, currentOrderDetail.approval_notes)
-          )
-        ),
-
-        // Action Buttons
-        React.createElement('div', { className: 'flex justify-end space-x-3 pt-4 border-t border-gray-200' },
-          currentOrderDetail.status === 'pending_approval' && hasPermission('orders', 'approve') && [
+        // Action Buttons Section
+        React.createElement('div', { className: 'flex justify-center space-x-4 pt-6 border-t border-gray-200' },
+          // Show approval buttons for pending orders
+          currentOrderDetail.status === 'pending_approval' && hasPermission('orders', 'approve') ? [
             React.createElement('button', {
               key: 'approve',
-              className: 'bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors',
+              className: 'flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors min-w-[140px] justify-center',
               onClick: () => {
                 handleOrderApproval(currentOrderDetail.id, 'approve');
                 setShowOrderDetail(false);
@@ -256,12 +213,22 @@ window.renderOrderDetailModal = () => {
             }, '✓ Approve Order'),
             React.createElement('button', {
               key: 'reject',
-              className: 'bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors',
+              className: 'flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors min-w-[140px] justify-center',
               onClick: () => {
-                handleOrderApproval(currentOrderDetail.id, 'reject');
-                setShowOrderDetail(false);
+                const reason = prompt('Please provide a reason for rejection:');
+                if (reason) {
+                  handleOrderApproval(currentOrderDetail.id, 'reject', reason);
+                  setShowOrderDetail(false);
+                }
               }
-            }, '✗ Reject Order')
+            }, 'Reject Order')
+          ] : [
+            // For non-pending orders, show Close button
+            React.createElement('button', {
+              key: 'close',
+              className: 'px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors',
+              onClick: () => setShowOrderDetail(false)
+            }, 'Close')
           ]
         )
       )
@@ -269,4 +236,4 @@ window.renderOrderDetailModal = () => {
   );
 };
 
-console.log('✅ FIXED Order Detail Modal component loaded successfully');
+console.log('✅ EXACT PRODUCTION order detail modal loaded - matches screenshots!');
