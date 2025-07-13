@@ -6,90 +6,43 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Enhanced CORS Configuration for Production
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:8000', 
-  'http://localhost:8080',
-  'https://skjftp.github.io',
-  'https://lehrado.com',        // Your production domain
-  'https://www.lehrado.com',    // www variant
-  /^https:\/\/fantopark-.*\.vercel\.app$/,
-  /^https:\/\/.*-skjftps-projects\.vercel\.app$/,
-  /^https:\/\/.*\.netlify\.app$/,  // Netlify domains
-];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    console.log('🔍 CORS Check - Origin:', origin);
-    
-    // Check exact matches
-    if (allowedOrigins.includes(origin)) {
-      console.log('✅ CORS - Exact match allowed:', origin);
-      return callback(null, true);
-    }
-    
-    // Check regex patterns
-    for (const pattern of allowedOrigins) {
-      if (pattern instanceof RegExp && pattern.test(origin)) {
-        console.log('✅ CORS - Pattern match allowed:', origin);
-        return callback(null, true);
-      }
-    }
-    
-    console.log('❌ CORS - Origin not allowed:', origin);
-    callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With',
-    'Accept',
-    'Origin',
-    'Cache-Control',
-    'Pragma'
+// Minimal working CORS for lehrado.com
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:8000', 
+    'http://localhost:8080',
+    'https://skjftp.github.io',
+    'https://lehrado.com',
+    'https://www.lehrado.com'
   ],
-  exposedHeaders: ['Content-Disposition'],
-  maxAge: 86400, // 24 hours
-  preflightContinue: false,
-  optionsSuccessStatus: 200
-};
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-// Apply CORS middleware
-app.use(cors(corsOptions));
-
-// Additional CORS headers for better compatibility
+// Additional CORS headers for lehrado.com compatibility
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://skjftp.github.io',
+    'https://lehrado.com',
+    'https://www.lehrado.com'
+  ];
   
-  // Set CORS headers explicitly for better compatibility
-  if (origin && (allowedOrigins.includes(origin) || allowedOrigins.some(pattern => 
-    pattern instanceof RegExp && pattern.test(origin)))) {
+  if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
   }
   
   res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,Cache-Control,Pragma');
-  res.header('Access-Control-Expose-Headers', 'Content-Disposition');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   
-  // Handle preflight
   if (req.method === 'OPTIONS') {
-    console.log('✅ CORS Preflight handled for:', req.url);
     return res.status(200).end();
   }
   
-  next();
-});
-
-// Debug CORS and requests
-app.use((req, res, next) => {
-  console.log(`🌐 ${req.method} ${req.url} - Origin: ${req.headers.origin || 'None'}`);
   next();
 });
 
