@@ -1,29 +1,23 @@
-// My Actions Data Fetching System Component for FanToPark CRM
-// Extracted from index.html - maintains 100% functionality
-// Handles role-based data fetching, filtering, and assignment logic for My Actions tab
+// =============================================================================
+// ENHANCED MY ACTIONS DATA FETCHING - REPLACE components/my-actions-data.js
+// =============================================================================
+// Fixed customer name fetching and enhanced data processing
 
-// Comprehensive My Actions data fetching function
+// Comprehensive My Actions data fetching function with customer name fix
 window.fetchMyActions = async function() {
   console.log('===== fetchMyActions CALLED =====');
   console.log('Timestamp:', new Date().toISOString());
   console.log('Current user:', window.user);
   console.log('User email:', window.user?.email);
   console.log('User role:', window.user?.role);
-  console.log('Is logged in:', window.isLoggedIn);
-  console.log('Loading state:', window.loading);
 
   if (!window.user) {
     console.error('No user object - cannot fetch actions');
     return;
   }
 
-  if (!window.user) {
-    console.log('No user logged in');
-    return;
-  }
-
   try {
-    window.setLoading(true);
+    window.setLoading && window.setLoading(true);
     console.log('Fetching actions for:', window.user.name, '(' + window.user.email + ')');
 
     // Fetch all data in parallel
@@ -46,55 +40,61 @@ window.fetchMyActions = async function() {
       })
     ]);
 
-    // Debug: Log all API responses
     console.log('=== API RESPONSES RECEIVED ===');
-    console.log('Leads response:', leadsResponse);
-    console.log('Number of leads:', leadsResponse?.data?.length || 0);
-    if (leadsResponse?.data?.length > 0) {
-      console.log('First lead full data:', leadsResponse.data[0]);
-      console.log('Lead assignment field:', leadsResponse.data[0].assigned_to || leadsResponse.data[0].assignedTo || 'NOT FOUND');
-    }
+    console.log('Leads response:', leadsResponse?.data?.length || 0, 'items');
+    console.log('Orders response:', ordersResponse?.data?.length || 0, 'items');
+    console.log('Deliveries response:', deliveriesResponse?.data?.length || 0, 'items');
+    console.log('Receivables response:', receivablesResponse?.data?.length || 0, 'items');
+
+    // Process orders first (needed for delivery customer names)
+    const allOrders = ordersResponse?.data || [];
+    console.log('Processing orders for customer name lookup...');
+    
+    // Create order lookup for customer names
+    const orderLookup = {};
+    allOrders.forEach(order => {
+      orderLookup[order.id] = {
+        customer_name: order.client_name || order.customer_name,
+        client_name: order.client_name,
+        client_email: order.client_email,
+        event_name: order.event_name
+      };
+    });
 
     // Filter leads assigned to me
     if (leadsResponse && leadsResponse.data) {
       const assignedLeads = leadsResponse.data.filter(lead => {
-        console.log('\n--- Checking Lead ---');
-        console.log('Lead:', lead);
-        console.log('Lead name:', lead.name);
-        console.log('Lead assigned_to:', lead.assigned_to);
-        console.log('Lead assignedTo:', lead.assignedTo);
-        console.log('My email:', window.user.email);
-
-        const isAssigned = lead.assigned_to === window.user.email;
-        console.log('Match result:', isAssigned);
-
+        const isAssigned = lead.assigned_to === window.user.email || lead.assignedTo === window.user.email;
+        if (isAssigned) {
+          console.log('✅ Lead assigned to me:', lead.name, 'Status:', lead.status);
+        }
         return isAssigned;
       });
 
       // Filter quote requested leads for supply managers and supply sales service managers
-const quoteRequestedLeads = leadsResponse.data.filter(lead => {
-  if (lead.status === 'quote_requested') {
-    // Check if user is supply team member
-    return (window.user.role === 'supply_manager' || 
-            window.user.role === 'supply_service_manager' ||  // ← ADDED THIS LINE
-            window.user.role === 'supply_sales_service_manager' ||
-            lead.quote_assigned_to === window.user.email);
-  }
-  return false;
-});
+      const quoteRequestedLeads = leadsResponse.data.filter(lead => {
+        if (lead.status === 'quote_requested') {
+          // Check if user is supply_manager or has supply_sales_service role
+          const hasSupplyRole = window.user.role === 'supply_manager' || 
+                                window.user.role === 'supply_sales_service_manager' ||
+                                lead.quote_assigned_to === window.user.email;
+          
+          if (hasSupplyRole) {
+            console.log('✅ Quote request for supply team:', lead.name);
+          }
+          return hasSupplyRole;
+        }
+        return false;
+      });
 
-      console.log('\n=== FILTER RESULTS ===');
-      console.log('Total leads:', leadsResponse.data.length);
-      console.log('Assigned to me:', assignedLeads.length);
+      console.log('Assigned leads:', assignedLeads.length);
       console.log('Quote requested for me:', quoteRequestedLeads.length);
-      console.log('Assigned leads:', assignedLeads);
-      console.log('Quote requested leads:', quoteRequestedLeads);
 
-      window.setMyLeads(assignedLeads);
-      window.setMyQuoteRequested(quoteRequestedLeads);
+      window.myLeads = assignedLeads;
+      window.myQuoteRequested = quoteRequestedLeads;
     } else {
-      window.setMyLeads([]);
-      window.setMyQuoteRequested([]);
+      window.myLeads = [];
+      window.myQuoteRequested = [];
     }
 
     // Filter orders based on role
@@ -109,47 +109,123 @@ const quoteRequestedLeads = leadsResponse.data.filter(lead => {
         assignedOrders = ordersResponse.data.filter(order => 
           order.status === 'pending_approval'
         );
+      } else if (window.user.role === 'admin' || window.user.role === 'super_admin') {
+        assignedOrders = ordersResponse.data; // Admins see all orders
+      } else {
+        assignedOrders = ordersResponse.data.filter(order => order.assigned_to === window.user.email);
       }
 
       console.log('My orders:', assignedOrders.length);
-      window.setMyOrders(assignedOrders);
+      window.myOrders = assignedOrders;
     } else {
-      window.setMyOrders([]);
+      window.myOrders = [];
     }
 
-    // Filter deliveries
+    // Enhanced deliveries processing with customer names
     if (deliveriesResponse && deliveriesResponse.data) {
-      const assignedDeliveries = deliveriesResponse.data.filter(delivery => 
-        delivery.assigned_to === window.user.email
-      );
-      console.log('My deliveries:', assignedDeliveries.length);
-      window.setMyDeliveries(assignedDeliveries);
+      let assignedDeliveries = [];
+
+      if (window.user.role === 'supply_sales_service_manager' || 
+          window.user.role === 'supply_executive' || 
+          window.user.role === 'delivery_executive') {
+        assignedDeliveries = deliveriesResponse.data.filter(delivery => 
+          delivery.assigned_to === window.user.email
+        );
+      } else if (window.user.role === 'admin' || window.user.role === 'super_admin') {
+        assignedDeliveries = deliveriesResponse.data; // Admins see all deliveries
+      } else {
+        assignedDeliveries = deliveriesResponse.data.filter(delivery => 
+          delivery.assigned_to === window.user.email
+        );
+      }
+
+      // ENHANCED: Add customer names from orders
+      const enhancedDeliveries = assignedDeliveries.map(delivery => {
+        const orderInfo = orderLookup[delivery.order_id];
+        
+        if (orderInfo) {
+          console.log(`✅ Enhanced delivery ${delivery.id} with customer:`, orderInfo.customer_name);
+          return {
+            ...delivery,
+            customer_name: orderInfo.customer_name || orderInfo.client_name,
+            client_name: orderInfo.client_name,
+            client_email: orderInfo.client_email,
+            order_event_name: orderInfo.event_name
+          };
+        } else {
+          console.warn(`⚠️ No order found for delivery ${delivery.id}, order_id: ${delivery.order_id}`);
+          return {
+            ...delivery,
+            customer_name: delivery.customer_name || delivery.client_name || 'Unknown Customer'
+          };
+        }
+      });
+
+      console.log('My deliveries (enhanced):', enhancedDeliveries.length);
+      window.myDeliveries = enhancedDeliveries;
     } else {
-      window.setMyDeliveries([]);
+      window.myDeliveries = [];
     }
 
     // Get overdue receivables
     if (receivablesResponse && receivablesResponse.data) {
       const today = new Date();
-      const overdueReceivables = receivablesResponse.data.filter(rec => {
-        if (rec.status === 'paid') return false;
-        const dueDate = new Date(rec.due_date);
-        return dueDate < today;
-      });
+      let overdueReceivables = [];
+
+      if (window.user.role === 'finance_manager' || window.user.role === 'finance_executive') {
+        // Finance team sees all overdue receivables
+        overdueReceivables = receivablesResponse.data.filter(rec => {
+          if (rec.status === 'paid') return false;
+          const dueDate = new Date(rec.due_date);
+          return dueDate < today;
+        });
+      } else if (window.user.role === 'sales_executive' || window.user.role === 'sales_manager') {
+        // Sales team sees their assigned overdue receivables
+        overdueReceivables = receivablesResponse.data.filter(rec => {
+          if (rec.status === 'paid') return false;
+          if (rec.assigned_to !== window.user.email) return false;
+          const dueDate = new Date(rec.due_date);
+          return dueDate < today;
+        });
+      } else if (window.user.role === 'admin' || window.user.role === 'super_admin') {
+        overdueReceivables = receivablesResponse.data.filter(rec => {
+          if (rec.status === 'paid') return false;
+          const dueDate = new Date(rec.due_date);
+          return dueDate < today;
+        });
+      }
+
       console.log('Overdue receivables:', overdueReceivables.length);
-      window.setMyReceivables(overdueReceivables);
+      window.myReceivables = overdueReceivables;
     } else {
-      window.setMyReceivables([]);
+      window.myReceivables = [];
     }
 
-    window.setLoading(false);
+    // Calculate and log summary
+    const summary = {
+      leads: window.myLeads.length,
+      quoteRequested: window.myQuoteRequested.length,
+      orders: window.myOrders.length,
+      deliveries: window.myDeliveries.length,
+      receivables: window.myReceivables.length
+    };
+
+    console.log('📊 My Actions Summary:', summary);
+
+    // Trigger any callbacks
+    if (window.onMyActionsUpdated) {
+      window.onMyActionsUpdated(summary);
+    }
+
   } catch (error) {
     console.error('Error in fetchMyActions:', error);
-    window.setLoading(false);
+    alert('Failed to fetch your actions: ' + error.message);
+  } finally {
+    window.setLoading && window.setLoading(false);
   }
 };
 
-// Role-based data filtering utilities
+// Enhanced role-based data filtering utilities
 window.filterLeadsByRole = function(leads, userRole, userEmail) {
   console.log('Filtering leads by role:', userRole, 'for user:', userEmail);
   
@@ -158,16 +234,15 @@ window.filterLeadsByRole = function(leads, userRole, userEmail) {
     case 'sales_manager':
       return leads.filter(lead => lead.assigned_to === userEmail);
     
-case 'supply_manager':
-case 'supply_service_manager':  // ← ADDED THIS LINE  
-case 'supply_sales_service_manager':
-  // Get both assigned leads and quote requested leads
-  const assignedLeads = leads.filter(lead => lead.assigned_to === userEmail);
-  const quoteLeads = leads.filter(lead => 
-    lead.status === 'quote_requested' && 
-    (lead.quote_assigned_to === userEmail || !lead.quote_assigned_to)
-  );
-  return [...assignedLeads, ...quoteLeads];
+    case 'supply_manager':
+    case 'supply_sales_service_manager':
+      // Get both assigned leads and quote requested leads
+      const assignedLeads = leads.filter(lead => lead.assigned_to === userEmail);
+      const quoteLeads = leads.filter(lead => 
+        lead.status === 'quote_requested' && 
+        (lead.quote_assigned_to === userEmail || !lead.quote_assigned_to)
+      );
+      return [...assignedLeads, ...quoteLeads];
     
     case 'admin':
     case 'super_admin':
@@ -438,4 +513,37 @@ window.getRoleSpecificActions = function(userRole) {
   return roleActions[userRole] || [];
 };
 
-console.log('✅ My Actions Data Fetching System component loaded successfully');
+// Enhanced delivery status update with better error handling
+window.updateDeliveryStatusInData = function(deliveryId, newStatus) {
+  console.log(`Updating delivery ${deliveryId} status to ${newStatus}`);
+  
+  // Update in myDeliveries
+  window.myDeliveries = window.myDeliveries.map(delivery => 
+    delivery.id === deliveryId 
+      ? { 
+          ...delivery, 
+          status: newStatus,
+          updated_date: new Date().toISOString(),
+          updated_by: window.user?.email || 'system'
+        }
+      : delivery
+  );
+  
+  // Also update main deliveries array if it exists
+  if (window.deliveries) {
+    window.deliveries = window.deliveries.map(delivery => 
+      delivery.id === deliveryId 
+        ? { 
+            ...delivery, 
+            status: newStatus,
+            updated_date: new Date().toISOString(),
+            updated_by: window.user?.email || 'system'
+          }
+        : delivery
+    );
+  }
+  
+  console.log(`✅ Updated delivery ${deliveryId} status locally`);
+};
+
+console.log('✅ Enhanced My Actions Data Fetching System loaded successfully with customer name fixes');
