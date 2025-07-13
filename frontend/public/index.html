@@ -1610,6 +1610,27 @@ if (!window.chartSystemInitialized) {
 console.log('🔧 Emergency chart patch loaded');
 console.log('🚀 FanToPark CRM - Fully Optimized & Fixed');
 </script>
-
+<script>
+// Emergency fix for chart initialization
+(function() {
+  console.log('🚀 Applying emergency chart fix...');
+  
+  // Wait for everything to load
+  setTimeout(() => {
+    if (window.activeTab === 'dashboard') {
+      console.log('🎯 Dashboard detected, forcing chart initialization...');
+      
+      // Try multiple chart initialization methods
+      if (window.initializeChartsAdvanced) {
+        window.initializeChartsAdvanced();
+      } else if (window.createChartsWithCurrentData) {
+        window.createChartsWithCurrentData();
+      } else if (window.createCharts) {
+        window.createCharts();
+      }
+    }
+  }, 2000);
+})();
+</script>
 </body>
 </html>
