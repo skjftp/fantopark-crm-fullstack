@@ -920,51 +920,114 @@ const updateOrdersPagination = (orders) => {
   };
 
   const openPaymentForm = (lead) => {
-    if (!window.hasPermission('leads', 'write')) {
-      alert('You do not have permission to manage payments');
-      return;
-    }
-    
     setCurrentLead(lead);
     
-    const initialPaymentData = {
-      advance_amount: '',
-      payment_method: 'bank_transfer',
-      transaction_id: '',
-      payment_date: new Date().toISOString().split('T')[0],
-      payment_proof: '',
-      notes: '',
-      customer_type: 'indian',
-      event_location: 'india',
-      payment_currency: 'INR',
-      tcs_applicable: false,
-      tcs_rate: 5,
-      tcs_amount: 0,
-      tcs_rate_manual: false,
-      gstin: lead.gstin || '',
-      legal_name: lead.legal_name || lead.name || '',
-      category_of_sale: lead.business_type === 'B2B' ? 'Corporate' : 'Retail',
-      type_of_sale: 'Tour',
-      registered_address: lead.registered_address || '',
-      indian_state: 'Haryana',
-      is_outside_india: false,
-      gst_certificate: null,
-      pan_card: null,
-      invoice_items: [{
-        description: lead.lead_for_event || 'Travel Package',
-        additional_info: '',
-        quantity: lead.number_of_people || 1,
-        rate: lead.last_quoted_price || 0
-      }],
-      gst_rate: 5,
-      service_fee_amount: 0,
-      from_receivable: false,
-      payment_post_service: false,
-      receivable_id: null,
-      receivable_amount: 0
-    };
+    // ✅ NEW: Check for existing order and pre-load data
+    const existingOrder = orders.find(order => 
+      order.lead_id === lead.id && 
+      order.status !== 'rejected'
+    );
+
+    let initialPaymentData;
+
+    if (existingOrder) {
+      // ✅ PRE-LOAD from existing order
+      console.log('💰 Pre-loading payment form from existing order:', existingOrder.id);
+      
+      initialPaymentData = {
+        // Payment details
+        payment_method: existingOrder.payment_method || '',
+        transaction_id: existingOrder.transaction_id || '',
+        payment_date: existingOrder.payment_date || new Date().toISOString().split('T')[0],
+        advance_amount: existingOrder.advance_amount || existingOrder.payment_amount || '',
+        payment_proof: existingOrder.payment_proof || null,
+        
+        // GST and Legal details (pre-filled from order)
+        gstin: existingOrder.gstin || '',
+        legal_name: existingOrder.legal_name || existingOrder.client_name || lead.name,
+        category_of_sale: existingOrder.category_of_sale || 'Retail',
+        type_of_sale: existingOrder.type_of_sale || 'Tour',
+        registered_address: existingOrder.registered_address || '',
+        indian_state: existingOrder.indian_state || 'Haryana',
+        is_outside_india: existingOrder.is_outside_india || false,
+        
+        // Customer classification
+        customer_type: existingOrder.customer_type || 'indian',
+        event_location: existingOrder.event_location || 'domestic',
+        payment_currency: existingOrder.payment_currency || 'INR',
+        
+        // Documents
+        gst_certificate: existingOrder.gst_certificate || null,
+        pan_card: existingOrder.pan_card || null,
+        
+        // Invoice items (pre-filled from order)
+        invoice_items: existingOrder.invoice_items || [{
+          description: lead.lead_for_event || 'Travel Package',
+          additional_info: '',
+          quantity: lead.number_of_people || 1,
+          rate: lead.last_quoted_price || existingOrder.price_per_ticket || 0
+        }],
+        
+        // Calculated fields
+        gst_rate: existingOrder.gst_rate || 5,
+        service_fee_amount: existingOrder.service_fee_amount || 0,
+        tcs_applicable: existingOrder.tcs_calculation?.applicable || false,
+        tcs_rate: existingOrder.tcs_calculation?.rate || 0,
+        tcs_amount: existingOrder.tcs_calculation?.amount || 0,
+        
+        // Order context
+        from_receivable: false,
+        payment_post_service: false,
+        receivable_id: null,
+        receivable_amount: 0,
+        updating_existing_order: true, // ✅ Flag to indicate this is an update
+        existing_order_id: existingOrder.id
+      };
+      
+    } else {
+      // ✅ NEW order - use original logic
+      console.log('💰 Creating new payment form for lead:', lead.id);
+      
+      initialPaymentData = {
+        payment_method: '',
+        transaction_id: '',
+        payment_date: new Date().toISOString().split('T')[0],
+        advance_amount: '',
+        payment_proof: null,
+        gstin: '',
+        legal_name: lead.name,
+        category_of_sale: lead.business_type === 'B2B' ? 'Corporate' : 'Retail',
+        type_of_sale: 'Tour',
+        registered_address: lead.registered_address || '',
+        indian_state: 'Haryana',
+        is_outside_india: false,
+        customer_type: 'indian',
+        event_location: 'domestic',
+        payment_currency: 'INR',
+        gst_certificate: null,
+        pan_card: null,
+        invoice_items: [{
+          description: lead.lead_for_event || 'Travel Package',
+          additional_info: '',
+          quantity: lead.number_of_people || 1,
+          rate: lead.last_quoted_price || 0
+        }],
+        gst_rate: 5,
+        service_fee_amount: 0,
+        from_receivable: false,
+        payment_post_service: false,
+        receivable_id: null,
+        receivable_amount: 0,
+        updating_existing_order: false, // ✅ Flag for new order
+        existing_order_id: null
+      };
+    }
     
-    const baseAmount = lead.last_quoted_price * (lead.number_of_people || 1) || 0;
+    // Calculate GST and TCS
+    const baseAmount = initialPaymentData.invoice_items.reduce((sum, item) => 
+      sum + ((item.quantity || 0) * (item.rate || 0)), 0
+    );
+    
     if (baseAmount > 0) {
       const calculation = window.calculateGSTAndTCS(baseAmount, initialPaymentData);
       initialPaymentData.tcs_applicable = calculation.tcs.applicable;
