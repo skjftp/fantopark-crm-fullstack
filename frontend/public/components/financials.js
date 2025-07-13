@@ -690,7 +690,7 @@ window.renderSalesTab = (sales) => {
                                     sale.client || sale.clientName || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    sale.assigned_to || 'N/A'
+                                    sale.assignedTo || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
                                     `₹${(sale.amount || 0).toLocaleString()}`
