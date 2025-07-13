@@ -1632,5 +1632,228 @@ console.log('🚀 FanToPark CRM - Fully Optimized & Fixed');
   }, 2000);
 })();
 </script>
+// ===============================================
+// DASHBOARD CHART SYSTEM BRIDGE
+// Add this to the end of your index.html, just before </body>
+// This connects chart-system.js with dashboard.js
+// ===============================================
+
+<script>
+// Dashboard Chart System Bridge
+(function() {
+  console.log('🌉 Setting up Dashboard Chart Bridge...');
+  
+  // Wait for both chart system and dashboard to be ready
+  const initBridge = () => {
+    // Expose chart functions that dashboard.js expects
+    window.initializeOptimizedCharts = window.initializeChartsAdvanced || window.createChartsWithCurrentData;
+    window.optimizedChartInit = window.initializeChartsAdvanced || window.createChartsWithCurrentData;
+    window.initializeDashboardCharts = window.initializeChartsAdvanced || window.createChartsWithCurrentData;
+    
+    // Mark optimized system as available
+    window.optimizedChartSystemAvailable = true;
+    window.chartSystemOptimized = true;
+    
+    // Override dashboard's chart initialization
+    window.initializeDashboardCharts = function() {
+      console.log('📊 Dashboard requesting chart initialization...');
+      
+      // Check if we're on dashboard
+      if (window.activeTab !== 'dashboard') {
+        console.log('⏭️ Not on dashboard, skipping charts');
+        return;
+      }
+      
+      // Check prerequisites
+      if (typeof Chart === 'undefined') {
+        console.warn('⚠️ Chart.js not loaded, retrying in 1s...');
+        setTimeout(window.initializeDashboardCharts, 1000);
+        return;
+      }
+      
+      // Check for containers
+      const containers = ['leadSplitChart', 'tempCountChart', 'tempValueChart'];
+      const missing = containers.filter(id => !document.getElementById(id));
+      
+      if (missing.length > 0) {
+        console.log(`⏳ Waiting for containers: ${missing.join(', ')}`);
+        setTimeout(window.initializeDashboardCharts, 1000);
+        return;
+      }
+      
+      // Initialize charts using our working system
+      try {
+        if (window.initializeChartsAdvanced) {
+          window.initializeChartsAdvanced();
+          console.log('✅ Dashboard charts initialized via bridge!');
+        } else if (window.createChartsWithCurrentData) {
+          window.createChartsWithCurrentData();
+          console.log('✅ Dashboard charts created via bridge!');
+        } else {
+          console.warn('⚠️ No chart functions available');
+        }
+      } catch (error) {
+        console.error('❌ Dashboard chart bridge error:', error);
+      }
+    };
+    
+    // Auto-trigger chart initialization if on dashboard
+    if (window.activeTab === 'dashboard') {
+      console.log('🎯 Dashboard detected, triggering chart initialization...');
+      setTimeout(window.initializeDashboardCharts, 1000);
+    }
+    
+    console.log('✅ Dashboard Chart Bridge ready!');
+  };
+  
+  // Wait for systems to load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(initBridge, 1500);
+    });
+  } else {
+    setTimeout(initBridge, 1500);
+  }
+})();
+</script>
+
+<!-- Alternative: Direct chart initialization bypass -->
+<script>
+// Emergency chart initialization for dashboard
+window.emergencyDashboardCharts = function() {
+  console.log('🚨 Emergency dashboard chart initialization...');
+  
+  // Direct chart creation using Chart.js
+  const createEmergencyCharts = () => {
+    try {
+      // Get lead data
+      const leads = window.leads || [];
+      console.log('📊 Emergency charts with', leads.length, 'leads');
+      
+      // Calculate basic stats
+      const qualified = leads.filter(l => (l.status || '').toLowerCase() === 'qualified').length;
+      const junk = leads.filter(l => (l.status || '').toLowerCase() === 'junk').length;
+      const hot = leads.filter(l => (l.temperature || '').toLowerCase() === 'hot').length;
+      const warm = leads.filter(l => (l.temperature || '').toLowerCase() === 'warm').length;
+      const cold = leads.filter(l => (l.temperature || '').toLowerCase() === 'cold').length;
+      
+      // Lead Split Chart
+      const leadSplitCanvas = document.getElementById('leadSplitChart');
+      if (leadSplitCanvas) {
+        new Chart(leadSplitCanvas, {
+          type: 'doughnut',
+          data: {
+            labels: ['Qualified Leads', 'Junk Leads'],
+            datasets: [{
+              data: [qualified, junk],
+              backgroundColor: ['#10b981', '#ef4444'],
+              borderWidth: 2,
+              borderColor: '#fff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+          }
+        });
+        console.log('✅ Emergency Lead Split chart created');
+      }
+      
+      // Temperature Count Chart
+      const tempCountCanvas = document.getElementById('tempCountChart');
+      if (tempCountCanvas) {
+        new Chart(tempCountCanvas, {
+          type: 'doughnut',
+          data: {
+            labels: ['Hot Leads', 'Warm Leads', 'Cold Leads'],
+            datasets: [{
+              data: [hot, warm, cold],
+              backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+              borderWidth: 2,
+              borderColor: '#fff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+          }
+        });
+        console.log('✅ Emergency Temperature Count chart created');
+      }
+      
+      // Temperature Value Chart
+      const tempValueCanvas = document.getElementById('tempValueChart');
+      if (tempValueCanvas) {
+        // Calculate values
+        const hotValue = leads.filter(l => (l.temperature || '').toLowerCase() === 'hot')
+          .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+        const warmValue = leads.filter(l => (l.temperature || '').toLowerCase() === 'warm')
+          .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+        const coldValue = leads.filter(l => (l.temperature || '').toLowerCase() === 'cold')
+          .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+        
+        new Chart(tempValueCanvas, {
+          type: 'doughnut',
+          data: {
+            labels: ['Hot Value', 'Warm Value', 'Cold Value'],
+            datasets: [{
+              data: [hotValue, warmValue, coldValue],
+              backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+              borderWidth: 2,
+              borderColor: '#fff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.label + ': ₹' + context.raw.toLocaleString('en-IN');
+                  }
+                }
+              }
+            }
+          }
+        });
+        console.log('✅ Emergency Temperature Value chart created');
+      }
+      
+    } catch (error) {
+      console.error('❌ Emergency chart creation failed:', error);
+    }
+  };
+  
+  // Wait for Chart.js and containers
+  const checkAndCreate = () => {
+    if (typeof Chart === 'undefined') {
+      setTimeout(checkAndCreate, 1000);
+      return;
+    }
+    
+    const containers = ['leadSplitChart', 'tempCountChart', 'tempValueChart'];
+    const missing = containers.filter(id => !document.getElementById(id));
+    
+    if (missing.length > 0) {
+      setTimeout(checkAndCreate, 1000);
+      return;
+    }
+    
+    createEmergencyCharts();
+  };
+  
+  checkAndCreate();
+};
+
+// Trigger emergency charts if on dashboard
+if (window.activeTab === 'dashboard') {
+  setTimeout(window.emergencyDashboardCharts, 2000);
+}
+</script>
+  
 </body>
 </html>
