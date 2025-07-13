@@ -646,10 +646,6 @@ window.handleBulkAssignSubmit = async function() {
   }
 };
 
-console.log("🔧 form-handlers.js loaded - All form submission handlers ready");
-
-// ADD THESE MISSING FUNCTIONS TO THE END OF YOUR form-handlers.js FILE:
-
 // ✅ PAYMENT POST SERVICE INPUT CHANGE HANDLER
 window.handlePaymentPostServiceInputChange = function(field, value) {
   console.log("📝 Payment Post Service Input Change:", field, value);
@@ -938,7 +934,65 @@ window.calculateGSTAndTCS = function(baseAmount, paymentData) {
   return result;
 };
 
-// ✅ SIMPLE WRAPPER FUNCTIONS - Add to END of form-handlers.js
+// =============================================================================
+// ✅ FIXED: ORDER ACTION FUNCTIONS - CRITICAL FIX FOR VIEW BUTTON ISSUE
+// =============================================================================
+
+// ✅ CORRECT: View button function that connects to the modal system
+window.viewOrderDetail = function(order) {
+  console.log('📋 viewOrderDetail called for order:', order.id);
+  
+  // Call the actual modal opening function
+  if (window.openOrderDetail) {
+    window.openOrderDetail(order);
+  } else {
+    // Direct modal opening if openOrderDetail doesn't exist
+    window.currentOrderDetail = order;
+    window.showOrderDetail = true;
+    
+    if (window.setCurrentOrderDetail) window.setCurrentOrderDetail(order);
+    if (window.setShowOrderDetail) window.setShowOrderDetail(true);
+    
+    // Force re-render
+    if (window.setLoading) {
+      window.setLoading(true);
+      setTimeout(() => window.setLoading(false), 10);
+    }
+  }
+};
+
+// ✅ CORRECT: The actual modal opening function
+window.openOrderDetail = function(order) {
+  console.log('📋 openOrderDetail called for order:', order.id);
+  
+  // Set the order data
+  window.currentOrderDetail = order;
+  window.showOrderDetail = true;
+  
+  // Update app state if available  
+  if (window.appState) {
+    window.appState.currentOrderDetail = order;
+    window.appState.showOrderDetail = true;
+  }
+  
+  // Call React state setters
+  if (window.setCurrentOrderDetail) {
+    window.setCurrentOrderDetail(order);
+  }
+  if (window.setShowOrderDetail) {
+    window.setShowOrderDetail(true);
+  }
+  
+  // Force re-render
+  if (window.setLoading) {
+    window.setLoading(true);
+    setTimeout(() => window.setLoading(false), 10);
+  }
+  
+  console.log('✅ Order modal state set successfully');
+};
+
+// ✅ SIMPLE WRAPPER FUNCTIONS - Connect orders.js buttons to existing functions
 
 // Connect orders.js approve button to existing handleOrderApproval
 window.approveOrder = async function(orderId) {
@@ -952,8 +1006,6 @@ window.rejectOrder = async function(orderId) {
     await window.handleOrderApproval(orderId, 'reject', reason);
   }
 };
-
-// ✅ SIMPLE WRAPPER FUNCTION - Add to END of form-handlers.js
 
 // Connect orders.js "View Invoice" button to existing openInvoicePreview
 window.viewInvoice = function(order) {
@@ -978,428 +1030,35 @@ window.viewInvoice = function(order) {
   }
 };
 
-// =============================================================================
-// STEP 3: PAYMENT WORKFLOW INTEGRATION UPDATES
-// =============================================================================
-// Add this code to your payment-submit-handler.js or form-handlers.js
+// ✅ OTHER SUPPORT FUNCTIONS
 
-// Enhanced payment submission with workflow integration
-window.enhancedPaymentSubmit = async function(e) {
-  e.preventDefault();
-  
-  if (!window.hasPermission('orders', 'create')) {
-    alert('You do not have permission to create orders');
-    return;
-  }
+window.assignOrder = function(order) {
+  console.log('👥 Assign clicked for order:', order.id);
+  alert('Assignment feature - select user and assign');
+};
 
-  window.setLoading(true);
-
-  try {
-    console.log('🔍 Processing enhanced payment submission...');
-    console.log('Payment data:', window.paymentData);
-    console.log('Current lead:', window.currentLead);
-
-    // Calculate GST and TCS
-    const baseAmount = parseFloat(window.paymentData.advance_amount) || 0;
-    const calculation = window.calculateGSTAndTCS ? 
-      window.calculateGSTAndTCS(baseAmount, window.paymentData) : 
-      { finalAmount: baseAmount, gst: { amount: 0 }, tcs: { amount: 0 } };
-
-    // Create order with enhanced workflow data
-    const orderData = {
-      order_number: 'ORD-' + Date.now(),
-      lead_id: window.currentLead.id,
-      client_name: window.currentLead.name,
-      client_email: window.currentLead.email,
-      client_phone: window.currentLead.phone,
-      
-      // Event details
-      event_name: window.currentLead.lead_for_event || 'Service',
-      event_date: window.paymentData.event_date || window.currentLead.event_date || new Date().toISOString().split('T')[0],
-      
-      // Financial details
-      base_amount: baseAmount,
-      gst_amount: calculation.gst?.amount || 0,
-      tcs_amount: calculation.tcs?.amount || 0,
-      total_amount: baseAmount,
-      final_amount: calculation.finalAmount,
-      advance_amount: baseAmount,
-      
-      // Payment details
-      payment_date: window.paymentData.payment_date,
-      payment_method: window.paymentData.payment_method,
-      payment_currency: window.paymentData.payment_currency || 'INR',
-      
-      // Workflow data
-      order_type: window.paymentData.payment_post_service ? 'payment_post_service' : 'standard',
-      status: 'pending_approval',
-      original_assignee: window.currentLead.assigned_to, // Store original sales person
-      created_by: window.user.name || window.user.email,
-      created_date: new Date().toISOString(),
-      requires_gst_invoice: true,
-      
-      // Auto-assignment will be handled by workflow
-      assigned_to: '',
-      
-      // Additional metadata
-      notes: window.paymentData.notes,
-      service_fee_amount: window.paymentData.service_fee_amount ? parseFloat(window.paymentData.service_fee_amount) : null
-    };
-
-    console.log('📋 Creating order with workflow integration:', orderData);
-
-    // Create order via API
-    const orderResponse = await window.apiCall('/orders', {
-      method: 'POST',
-      body: JSON.stringify(orderData)
-    });
-
-    console.log('✅ Order created:', orderResponse);
-
-    // Get the created order
-    const createdOrder = orderResponse.data || orderResponse || orderData;
-    if (!createdOrder.id && orderData.order_number) {
-      createdOrder.id = orderData.order_number;
-    }
-
-    // Apply workflow auto-assignment
-    const leadStatus = window.paymentData.payment_post_service ? 'payment_post_service' : 'payment_received';
-    const finalOrder = await window.autoAssignOrderBasedOnType(createdOrder, leadStatus);
-
-    console.log('🎯 Order auto-assigned:', finalOrder);
-
-    // Update local orders state
-    window.setOrders(prev => [...prev, finalOrder]);
-
-    // Update lead status
-    const newLeadStatus = window.paymentData.payment_post_service ? 'payment_post_service' : 'payment_received';
-    await window.updateLeadStatus(window.currentLead.id, newLeadStatus);
-
-    // Success message based on workflow
-    let successMessage;
-    if (window.paymentData.payment_post_service) {
-      successMessage = '✅ Post-service payment order created!\n• Assigned to Supply Sales Service Manager for approval\n• Will be assigned to both Supply roles after approval\n• Invoice can be generated after approval';
-    } else {
-      successMessage = '✅ Payment order created!\n• Assigned to Finance team for approval\n• Will be forwarded to Supply team (Both Supply roles) after approval';
-    }
-
-    alert(successMessage);
-    window.closeForm();
-
-  } catch (error) {
-    console.error('❌ Enhanced payment submission failed:', error);
-    alert('Payment processing failed: ' + error.message);
-  } finally {
-    window.setLoading(false);
+window.completeOrder = function(orderId) {
+  console.log('✅ Complete clicked for order:', orderId);
+  if (confirm('Mark this order as completed?')) {
+    alert('Order completion feature will be implemented');
   }
 };
 
-// Enhanced payment post service handler
-window.enhancedPaymentPostServiceSubmit = async function(e) {
-  e.preventDefault();
-
-  if (!window.hasPermission('leads', 'write')) {
-    alert('You do not have permission to manage payment post service');
-    return;
-  }
-
-  window.setLoading(true);
-
-  try {
-    console.log('🔄 Processing payment post service...');
-    console.log('Data:', window.paymentPostServiceData);
-    console.log('Lead:', window.currentLead);
-
-    // Update lead status first
-    const leadResponse = await window.apiCall('/leads/' + window.currentLead.id, {
-      method: 'PUT',
-      body: JSON.stringify({
-        ...window.currentLead,
-        status: 'payment_post_service',
-        payment_post_service_details: window.paymentPostServiceData,
-        payment_post_service_date: new Date().toISOString()
-      })
-    });
-
-    // Update local leads state
-    window.setLeads(prev => 
-      prev.map(lead => 
-        lead.id === window.currentLead.id ? 
-          (leadResponse.data || leadResponse || { ...lead, status: 'payment_post_service' }) : 
-          lead
-      )
-    );
-
-    // Create order with workflow integration
-    const orderData = {
-      order_number: 'PST-' + Date.now(),
-      lead_id: window.currentLead.id,
-      client_name: window.currentLead.name,
-      client_email: window.currentLead.email,
-      client_phone: window.currentLead.phone,
-      
-      // Service details
-      event_name: window.currentLead.lead_for_event || 'Post Service Payment',
-      event_date: window.paymentPostServiceData.service_date || new Date().toISOString().split('T')[0],
-      
-      // Financial details
-      expected_amount: parseFloat(window.paymentPostServiceData.expected_amount) || 0,
-      total_amount: parseFloat(window.paymentPostServiceData.expected_amount) || 0,
-      expected_payment_date: window.paymentPostServiceData.expected_payment_date,
-      
-      // Service details
-      service_description: window.paymentPostServiceData.service_details,
-      payment_terms: window.paymentPostServiceData.payment_terms,
-      notes: window.paymentPostServiceData.notes,
-      
-      // Workflow data
-      order_type: 'payment_post_service',
-      status: 'pending_approval',
-      original_assignee: window.currentLead.assigned_to, // Store original sales person
-      created_by: window.user.name || window.user.email,
-      created_date: new Date().toISOString(),
-      requires_gst_invoice: true,
-      
-      // Will be auto-assigned by workflow
-      assigned_to: ''
-    };
-
-    console.log('📋 Creating post-service order:', orderData);
-
-    // Create order
-    const orderResponse = await window.apiCall('/orders', {
-      method: 'POST',
-      body: JSON.stringify(orderData)
-    });
-
-    const createdOrder = orderResponse.data || orderResponse || orderData;
-    if (!createdOrder.id && orderData.order_number) {
-      createdOrder.id = orderData.order_number;
-    }
-
-    // Apply workflow auto-assignment
-    const finalOrder = await window.autoAssignOrderBasedOnType(createdOrder, 'payment_post_service');
-
-    // Update local state
-    window.setOrders(prev => [...prev, finalOrder]);
-
-    alert('✅ Payment Post Service order created!\n• Assigned to Supply Sales Service Manager for approval\n• Will be assigned to both Supply roles after approval\n• Service can be scheduled after approval');
-    window.closeForm();
-
-  } catch (error) {
-    console.error('❌ Payment post service failed:', error);
-    alert('Failed to process payment post service: ' + error.message);
-  } finally {
-    window.setLoading(false);
+window.deleteOrder = function(orderId) {
+  console.log('🗑️ Delete clicked for order:', orderId);
+  if (confirm('Are you sure you want to delete this order?')) {
+    alert('Order deletion feature will be implemented');
   }
 };
 
-// =============================================================================
-// WORKFLOW STATUS INDICATORS
-// =============================================================================
+// ✅ ORDER EDIT FUNCTIONS
 
-// Enhanced status display for orders
-window.getOrderStatusDisplay = function(order) {
-  const status = order.status;
-  const orderType = order.order_type;
-  
-  const statusConfig = {
-    'pending_approval': {
-      label: orderType === 'payment_post_service' ? 'Pending Supply Approval' : 'Pending Finance Approval',
-      color: 'bg-yellow-100 text-yellow-800',
-      icon: '⏳'
-    },
-    'approved': {
-      label: 'Approved',
-      color: 'bg-green-100 text-green-800',
-      icon: '✅'
-    },
-    'rejected': {
-      label: 'Rejected',
-      color: 'bg-red-100 text-red-800',
-      icon: '❌'
-    },
-    'assigned': {
-      label: 'Assigned to Supply',
-      color: 'bg-blue-100 text-blue-800',
-      icon: '👥'
-    },
-    'in_progress': {
-      label: 'In Progress',
-      color: 'bg-purple-100 text-purple-800',
-      icon: '🔄'
-    },
-    'completed': {
-      label: 'Completed',
-      color: 'bg-green-100 text-green-800',
-      icon: '✅'
-    }
-  };
-
-  const config = statusConfig[status] || {
-    label: status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-    color: 'bg-gray-100 text-gray-800',
-    icon: '📋'
-  };
-
-  return React.createElement('span', {
-    className: `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`,
-    title: `Order Type: ${orderType || 'standard'}\nStatus: ${config.label}`
-  }, 
-    config.icon + ' ' + config.label
-  );
-};
-
-// Enhanced assignee display
-window.getOrderAssigneeDisplay = function(order) {
-  const currentAssignee = order.assigned_to;
-  const originalAssignee = order.original_assignee || order.created_by;
-  
-  if (!currentAssignee) {
-    return React.createElement('span', { 
-      className: 'text-gray-500 italic' 
-    }, 'Unassigned');
-  }
-
-  const isReassigned = originalAssignee && currentAssignee !== originalAssignee;
-  
-  return React.createElement('div', { className: 'text-sm' },
-    React.createElement('div', { 
-      className: isReassigned ? 'font-medium text-blue-600' : 'text-gray-900' 
-    }, currentAssignee),
-    
-    isReassigned && React.createElement('div', { 
-      className: 'text-xs text-gray-500' 
-    }, `Originally: ${originalAssignee}`)
-  );
-};
-
-// =============================================================================
-// WORKFLOW NOTIFICATIONS
-// =============================================================================
-
-// Create notifications for workflow events
-window.createWorkflowNotification = function(type, orderData, userEmail) {
-  const notifications = {
-    'order_assigned': {
-      title: '📋 New Order Assigned',
-      message: `Order ${orderData.order_number} has been assigned to you for ${orderData.order_type === 'payment_post_service' ? 'approval' : 'processing'}.`
-    },
-    'order_approved': {
-      title: '✅ Order Approved',
-      message: `Order ${orderData.order_number} has been approved and assigned to you.`
-    },
-    'order_rejected': {
-      title: '❌ Order Rejected',
-      message: `Order ${orderData.order_number} has been rejected and returned to you for review.`
-    }
-  };
-
-  const notification = notifications[type];
-  if (notification && window.createNotification) {
-    window.createNotification({
-      ...notification,
-      user: userEmail,
-      data: orderData,
-      created_at: new Date().toISOString()
-    });
-  }
-};
-
-// =============================================================================
-// INITIALIZATION
-// =============================================================================
-
-// Replace existing payment handlers
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    // Replace payment handlers with enhanced versions
-    if (window.handlePaymentSubmit) {
-      window.handlePaymentSubmit = window.enhancedPaymentSubmit;
-    }
-    
-    if (window.handlePaymentPostServiceSubmit) {
-      window.handlePaymentPostServiceSubmit = window.enhancedPaymentPostServiceSubmit;
-    }
-    
-    console.log('✅ Payment workflow integration completed');
-  }, 1500);
-});
-
-// Add these if they don't exist:
-window.setCurrentOrderForEdit = window.setCurrentOrderForEdit || function(order) {
-  window.currentOrderForEdit = order;
-};
-
-window.setShowEditOrderForm = window.setShowEditOrderForm || function(show) {
-  window.showEditOrderForm = show;
-  if (window.setActiveTab) window.setActiveTab(window.activeTab);
-};
-
-window.viewOrderDetail = window.viewOrderDetail || function(order) {
-  console.log('View order:', order.id);
-};
-
-window.viewInvoice = window.viewInvoice || function(order) {
-  console.log('View invoice:', order.id);
-};
-
-window.completeOrder = window.completeOrder || function(orderId) {
-  console.log('Complete order:', orderId);
-};
-
-window.deleteOrder = window.deleteOrder || function(orderId) {
-  if (confirm('Delete order?')) console.log('Delete:', orderId);
-};
-
-
-// =============================================================================
-// IMMEDIATE FIX: ORDER ACTION FUNCTIONS
-// =============================================================================
-
-// Fix View button
-// =============================================================================
-// SIMPLE FIX: Connect View button to your existing modal system
-// =============================================================================
-
-// Fix View button to use your existing modal system
-window.openOrderDetail = function(order) {
-  console.log('📋 View order:', order.id);
-  
-  // Use your existing functions (they already exist)
-  if (window.setCurrentOrderDetail && window.setShowOrderDetail) {
-    window.setCurrentOrderDetail(order);
-    window.setShowOrderDetail(true);
-    console.log('✅ Using existing modal system');
-  } else {
-    // Fallback: set directly on window
-    window.currentOrderDetail = order;
-    window.showOrderDetail = true;
-    
-    // Force re-render with your existing pattern
-    if (window.setActiveTab) {
-      window.setActiveTab(window.activeTab);
-    }
-    console.log('✅ Using fallback modal system');
-  }
-  
-  console.log('📋 Order detail modal state:', {
-    showOrderDetail: window.showOrderDetail,
-    currentOrderDetail: !!window.currentOrderDetail,
-    orderId: order.id
-  });
-};
-
-console.log('✅ View button connected to existing order modal system');
-
-// Fix Edit button  
 window.openEditOrderForm = window.openEditOrderForm || function(order) {
   console.log('✏️ Edit order clicked:', order.id);
   window.setCurrentOrderForEdit(order);
   window.setShowEditOrderForm(true);
 };
 
-// Fix missing setters
 window.setCurrentOrderForEdit = window.setCurrentOrderForEdit || function(order) {
   window.currentOrderForEdit = order;
   window.orderEditData = order ? { ...order } : null;
@@ -1413,45 +1072,4 @@ window.setShowEditOrderForm = window.setShowEditOrderForm || function(show) {
   }
 };
 
-// Fix other action buttons
-window.approveOrder = window.approveOrder || function(orderId) {
-  console.log('✅ Approve clicked for order:', orderId);
-  if (confirm('Approve this order?')) {
-    // Your existing approval logic
-    window.handleOrderApproval && window.handleOrderApproval(orderId, 'approve');
-  }
-};
-
-window.rejectOrder = window.rejectOrder || function(orderId) {
-  console.log('❌ Reject clicked for order:', orderId);
-  const reason = prompt('Reason for rejection:');
-  if (reason) {
-    window.handleOrderApproval && window.handleOrderApproval(orderId, 'reject', reason);
-  }
-};
-
-window.assignOrder = window.assignOrder || function(order) {
-  console.log('👥 Assign clicked for order:', order.id);
-  alert('Assignment feature - select user and assign');
-};
-
-window.completeOrder = window.completeOrder || function(orderId) {
-  console.log('✅ Complete clicked for order:', orderId);
-  if (confirm('Mark this order as completed?')) {
-    alert('Order completion feature will be implemented');
-  }
-};
-
-window.deleteOrder = window.deleteOrder || function(orderId) {
-  console.log('🗑️ Delete clicked for order:', orderId);
-  if (confirm('Are you sure you want to delete this order?')) {
-    alert('Order deletion feature will be implemented');
-  }
-};
-
-window.viewInvoice = window.viewInvoice || function(order) {
-  console.log('📄 View invoice clicked for order:', order.id);
-  alert(`Invoice for Order: ${order.order_number || order.id}\nThis will open the invoice viewer.`);
-};
-
-console.log('🔧 Order action functions loaded - View and Edit should work now!');
+console.log("🔧 form-handlers.js loaded - All form submission handlers ready including FIXED viewOrderDetail function");
