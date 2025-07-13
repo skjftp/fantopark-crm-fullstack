@@ -653,9 +653,9 @@ window.renderSalesTab = (sales) => {
     
     return React.createElement('div', { className: 'space-y-4' },
         // Sales Chart
-        React.createElement('div', { className: 'h-64 bg-gray-50 dark:bg-gray-700 rounded-lg p-4' },
+        React.createElement('div', { className: 'bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6' },
             React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Sales Trend'),
-            React.createElement('div', { className: 'h-64 relative' },
+            React.createElement('div', { className: 'h-64 relative mb-4' },
                 React.createElement('canvas', { 
                     id: 'financialSalesChart',
                     style: { maxHeight: '250px' }
