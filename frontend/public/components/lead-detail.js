@@ -2,6 +2,63 @@
 // Extracted from index.html - maintains 100% functionality
 // Uses window.* globals for CDN-based React compatibility
 
+// ===== PDF DOWNLOAD FUNCTION =====
+window.downloadQuotePDF = async function(lead) {
+  console.log('📄 Starting quote PDF download for:', lead.name);
+  console.log('📄 File:', lead.quote_pdf_filename);
+  
+  if (!lead.quote_pdf_filename) {
+    alert('No quote PDF file found for this lead.');
+    return;
+  }
+  
+  try {
+    // Call the backend API to get the file
+    const response = await window.apiCall(`/leads/${lead.id}/quote/download`, {
+      method: 'GET'
+    });
+    
+    if (response.success && response.downloadUrl) {
+      // If backend returns a direct download URL
+      const link = document.createElement('a');
+      link.href = response.downloadUrl;
+      link.download = lead.quote_pdf_filename;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('✅ PDF download initiated successfully');
+    } else if (response.fileData) {
+      // If backend returns file data as base64
+      const byteCharacters = atob(response.fileData);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = lead.quote_pdf_filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log('✅ PDF download completed successfully');
+    } else {
+      throw new Error(response.error || 'Failed to get download URL');
+    }
+    
+  } catch (error) {
+    console.error('❌ Quote PDF download error:', error);
+    alert('Failed to download quote PDF: ' + error.message);
+  }
+};
+
 // ===== QUOTE SECTION COMPONENT =====
 const QuoteSection = () => {
   const lead = window.appState.currentLead;
@@ -74,12 +131,16 @@ const QuoteSection = () => {
             )
           ),
           
-          // File Information
+          // File Information - MODIFIED TO ADD CLICKABLE DOWNLOAD
           lead.quote_pdf_filename && React.createElement('div', null,
             React.createElement('span', { className: 'font-medium text-gray-700' }, 'Quote File: '),
             React.createElement('div', { className: 'flex items-center mt-1' },
               React.createElement('span', { className: 'mr-2' }, '📄'),
-              React.createElement('span', { className: 'text-blue-600 text-sm' }, lead.quote_pdf_filename),
+              React.createElement('button', { 
+                className: 'text-blue-600 text-sm hover:text-blue-800 hover:underline cursor-pointer',
+                onClick: () => window.downloadQuotePDF(lead),
+                title: 'Click to download PDF'
+              }, lead.quote_pdf_filename),
               lead.quote_file_size && React.createElement('span', { className: 'text-gray-500 text-xs ml-2' },
                 `(${(lead.quote_file_size / 1024).toFixed(1)} KB)`
               )
