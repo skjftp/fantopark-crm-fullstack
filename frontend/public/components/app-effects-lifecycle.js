@@ -1,6 +1,7 @@
-// App Effects and Lifecycle Management for FanToPark CRM
-// Extracted from index.html - maintains 100% functionality
-// Uses window.* globals for CDN-based React compatibility
+// =============================================================================
+// FIXED APP EFFECTS LIFECYCLE - REPLACE components/app-effects-lifecycle.js
+// =============================================================================
+// Enhanced with proper My Actions state synchronization
 
 window.renderAppEffects = function() {
   
@@ -20,12 +21,55 @@ window.renderAppEffects = function() {
     dashboardFilter, selectedSalesPerson, selectedEvent, chartInstances,
     statusDropdownRef, showStatusFilterDropdown, setShowStatusFilterDropdown,
     setUser, setCurrentUser, setIsLoggedIn, setUsers, setActiveTab,
-    rolesLoaded, dynamicRoles, setDynamicRoles, setRolesLoaded
+    rolesLoaded, dynamicRoles, setDynamicRoles, setRolesLoaded,
+    // My Actions state
+    myLeads, myOrders, myDeliveries, myQuoteRequested, myReceivables,
+    setMyLeads, setMyOrders, setMyDeliveries, setMyQuoteRequested, setMyReceivables
   } = state;
 
   const {
     fetchData, calculateDashboardStats, extractFiltersData, fetchUserRoles
   } = handlers;
+
+  // ✅ ENHANCED: My Actions state synchronization effect
+  useEffect(() => {
+    console.log('🔄 My Actions state sync effect triggered');
+    
+    // Sync React state with global window variables
+    if (myLeads !== undefined) {
+      window.myLeads = myLeads || [];
+      console.log('📊 Synced myLeads:', window.myLeads.length);
+    }
+    
+    if (myOrders !== undefined) {
+      window.myOrders = myOrders || [];
+      console.log('📊 Synced myOrders:', window.myOrders.length);
+    }
+    
+    if (myDeliveries !== undefined) {
+      window.myDeliveries = myDeliveries || [];
+      console.log('📊 Synced myDeliveries:', window.myDeliveries.length);
+    }
+    
+    if (myQuoteRequested !== undefined) {
+      window.myQuoteRequested = myQuoteRequested || [];
+      console.log('📊 Synced myQuoteRequested:', window.myQuoteRequested.length);
+    }
+    
+    if (myReceivables !== undefined) {
+      window.myReceivables = myReceivables || [];
+      console.log('📊 Synced myReceivables:', window.myReceivables.length);
+    }
+
+    // Store state setter functions globally for fetchMyActions to use
+    window.setMyLeads = setMyLeads;
+    window.setMyOrders = setMyOrders;
+    window.setMyDeliveries = setMyDeliveries;
+    window.setMyQuoteRequested = setMyQuoteRequested;
+    window.setMyReceivables = setMyReceivables;
+    
+  }, [myLeads, myOrders, myDeliveries, myQuoteRequested, myReceivables, 
+      setMyLeads, setMyOrders, setMyDeliveries, setMyQuoteRequested, setMyReceivables]);
 
   // Main data fetching effect
   useEffect(() => {
@@ -33,29 +77,48 @@ window.renderAppEffects = function() {
       fetchData();
     }
     console.log('useEffect triggered - activeTab:', activeTab, 'isLoggedIn:', isLoggedIn);
+    
     if (activeTab === 'myactions') {
       console.log('My Actions tab is active, calling fetchMyActions...');
-      window.fetchMyActions && window.fetchMyActions();
+      // ✅ ENHANCED: Add delay to ensure state is ready
+      setTimeout(() => {
+        if (window.fetchMyActions) {
+          window.fetchMyActions();
+        } else {
+          console.warn('fetchMyActions function not available yet');
+        }
+      }, 100);
     } else if (activeTab === 'finance') {
       console.log('Finance tab active, fetching financial data...');
       window.fetchFinancialData && window.fetchFinancialData();
     }
   }, [isLoggedIn, activeTab]);
 
-  // Reminders fetching and auto-refresh
-// Add this useEffect for automatic reminder loading
-useEffect(() => {
-  console.log('🔍 useEffect conditions:', {
-    activeTab,
-    isLoggedIn,
-    fetchRemindersExists: !!window.fetchReminders
-  });
-  
-  if (activeTab === 'reminders' && isLoggedIn && window.fetchReminders) {
-    console.log('🔔 Auto-loading reminders...');
-    window.fetchReminders();
-  }
-}, [activeTab, isLoggedIn]);
+  // ✅ ENHANCED: My Actions specific effect with better timing
+  useEffect(() => {
+    console.log('🔍 My Actions specific effect - conditions:', {
+      activeTab,
+      isLoggedIn,
+      fetchRemindersExists: !!window.fetchReminders,
+      fetchMyActionsExists: !!window.fetchMyActions,
+      userExists: !!window.user
+    });
+    
+    if (activeTab === 'myactions' && isLoggedIn && window.user) {
+      console.log('🎯 Triggering My Actions data fetch...');
+      // Add a small delay to ensure all components are loaded
+      setTimeout(() => {
+        if (window.fetchMyActions) {
+          window.fetchMyActions();
+        }
+      }, 200);
+    }
+    
+    if (activeTab === 'reminders' && isLoggedIn && window.fetchReminders) {
+      console.log('🔔 Auto-loading reminders...');
+      window.fetchReminders();
+    }
+  }, [activeTab, isLoggedIn, user]);
 
   // Client data fetching
   useEffect(() => {
@@ -87,233 +150,133 @@ useEffect(() => {
   // Auth state restoration
   useEffect(() => {
     try {
-      const savedUser = localStorage.getItem('crm_user');
-      const savedLoginState = localStorage.getItem('crm_auth_token');
-
-      if (savedUser && savedLoginState) {
+      const savedUser = localStorage.getItem('fantopark_user');
+      const savedToken = localStorage.getItem('fantopark_token');
+      
+      if (savedUser && savedToken) {
         const userData = JSON.parse(savedUser);
         setUser(userData);
         setCurrentUser(userData);
-        authToken = savedLoginState;
         setIsLoggedIn(true);
-        window.fetchUsers && window.fetchUsers();
-        setUsers([]);
+        window.authToken = savedToken;
+        window.user = userData;
+        window.currentUser = userData;
+        window.isLoggedIn = true;
+        console.log('Auth state restored from localStorage');
       }
-    } catch (e) {
-      console.log('Failed to restore auth state:', e);
+    } catch (error) {
+      console.error('Error restoring auth state:', error);
+      localStorage.removeItem('fantopark_user');
+      localStorage.removeItem('fantopark_token');
     }
-  }, []);
+  }, [setUser, setCurrentUser, setIsLoggedIn]);
 
-  // Active tab persistence
+  // Dark mode persistence
   useEffect(() => {
-    localStorage.setItem('crm_active_tab', activeTab);
-  }, [activeTab]);
-
-  // Dashboard stats calculation
-  useEffect(() => {
-    if (isLoggedIn) {
-      calculateDashboardStats();
-    }
-  }, [isLoggedIn]);
-
-  // Status dropdown click outside handler
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
-        setShowStatusFilterDropdown(false);
+    try {
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('fantopark_darkMode', 'true');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('fantopark_darkMode', 'false');
       }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Extract filter data when leads or users change
-  useEffect(() => {
-    if (leads.length > 0 || users.length > 0) {
-      extractFiltersData();
-    }
-  }, [leads, users]);
-
-  // Update stats when filter changes
-  useEffect(() => {
-    if (leads.length > 0) {
-      calculateDashboardStats();
-    }
-  }, [dashboardFilter, selectedSalesPerson, selectedEvent, leads]);
-
-  // Chart initialization and management
-  useEffect(() => {
-    console.log('Chart initialization useEffect triggered', {
-      activeTab,
-      leadsCount: leads.length,
-      chartExists: typeof Chart !== 'undefined'
-    });
-
-    if (activeTab === 'dashboard' && leads.length > 0 && typeof Chart !== 'undefined') {
-      const timeoutId = setTimeout(() => {
-        console.log('Attempting to initialize charts...');
-
-        const canvas1 = document.getElementById('leadSplitChart');
-        const canvas2 = document.getElementById('tempCountChart');  
-        const canvas3 = document.getElementById('tempValueChart');
-
-        console.log('Canvas elements found:', {
-          leadSplit: !!canvas1,
-          tempCount: !!canvas2,
-          tempValue: !!canvas3
-        });
-
-        if (canvas1 && canvas2 && canvas3) {
-          window.initializeChartsAdvanced && window.initializeChartsAdvanced();
-
-          setTimeout(() => {
-            const filteredLeads = window.getFilteredLeads && window.getFilteredLeads() || leads;
-            window.updateCharts && window.updateCharts(filteredLeads);
-          }, 100);
-        } else {
-          console.log('Canvas elements not ready yet, retrying...');
-          setTimeout(() => {
-            window.initializeChartsAdvanced && window.initializeChartsAdvanced();
-            const filteredLeads = window.getFilteredLeads && window.getFilteredLeads() || leads;
-            window.updateCharts && window.updateCharts(filteredLeads);
-          }, 500);
-        }
-      }, 200);
-
-      return () => clearTimeout(timeoutId);
-    }
-
-    // Cleanup when leaving dashboard
-    if (activeTab !== 'dashboard') {
-      if (chartInstances.leadSplit) {
-        chartInstances.leadSplit.destroy();
-        chartInstances.leadSplit = null;
-      }
-      if (chartInstances.tempCount) {
-        chartInstances.tempCount.destroy();
-        chartInstances.tempCount = null;
-      }
-      if (chartInstances.tempValue) {
-        chartInstances.tempValue.destroy();
-        chartInstances.tempValue = null;
-      }
-    }
-  }, [activeTab, leads.length]);
-
-  // Stats update when filter changes
-  useEffect(() => {
-    if (leads.length > 0) {
-      calculateDashboardStats();
-    }
-  }, [dashboardFilter, selectedSalesPerson, selectedEvent]);
-
-  // Dark mode application
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    } catch (error) {
+      console.error('Error managing dark mode:', error);
     }
   }, [darkMode]);
 
-  // Financial chart initialization
+  // User roles fetching effect
   useEffect(() => {
-    if (isLoggedIn && window.hasPermission('finance', 'read')) {
-      const chartElement = document.getElementById('receivablesPieChart');
-      if (chartElement && receivables.filter(r => r.status === 'pending').length > 0) {
-        const ctx = chartElement.getContext('2d');
-
-        if (window.receivablesChart) {
-          window.receivablesChart.destroy();
-        }
-
-        const receivablesBySalesperson = {};
-        receivables
-          .filter(r => r.status === 'pending')
-          .forEach(receivable => {
-            const salesperson = receivable.assigned_to || 'Unassigned';
-            receivablesBySalesperson[salesperson] = (receivablesBySalesperson[salesperson] || 0) + receivable.expected_amount;
-          });
-
-        window.receivablesChart = new Chart(ctx, {
-          type: 'pie',
-          data: {
-            labels: Object.keys(receivablesBySalesperson),
-            datasets: [{
-              data: Object.values(receivablesBySalesperson),
-              backgroundColor: [
-                '#3B82F6', '#EF4444', '#10B981', '#F59E0B', 
-                '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'
-              ]
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false
-          }
-        });
-      }
+    if (isLoggedIn && !rolesLoaded) {
+      fetchUserRoles();
     }
-  }, [isLoggedIn, receivables, user]);
+  }, [isLoggedIn, rolesLoaded, fetchUserRoles]);
 
-  // Scheduled notifications checker
+  // Email notifications fetching effect
   useEffect(() => {
-    const checkScheduledNotifications = () => {
-      const now = new Date();
-      emailNotifications
-        .filter(n => n.status === 'scheduled' && new Date(n.scheduled_date) <= now)
-        .forEach(notification => {
-          handlers.sendEmailNotification(notification);
-        });
-    };
-
-    const interval = setInterval(checkScheduledNotifications, 60000);
-    return () => clearInterval(interval);
-  }, [emailNotifications]);
-
-  // Default users initialization
-  useEffect(() => {
-    if (users.length === 0) {
-      setUsers(window.DEFAULT_USERS);
-    }
-  }, []);
-
-  // All users fetching
-  useEffect(() => {
-    if (isLoggedIn && allUsers.length === 0) {
-      window.fetchUsers && window.fetchUsers();
+    if (isLoggedIn && window.fetchEmailNotifications) {
+      window.fetchEmailNotifications();
     }
   }, [isLoggedIn]);
 
-  // Deliveries persistence
+  // Global state synchronization effect
   useEffect(() => {
-    try {
-      localStorage.setItem('crm_deliveries', JSON.stringify(deliveries));
-    } catch (e) {
-      console.log('Failed to save deliveries:', e);
-    }
-  }, [deliveries]);
+    // Sync React state with window globals for CDN compatibility
+    window.isLoggedIn = isLoggedIn;
+    window.activeTab = activeTab;
+    window.user = user;
+    window.currentUser = currentUser;
+    window.leads = leads;
+    window.users = users;
+    window.allUsers = allUsers;
+    window.deliveries = deliveries;
+    window.receivables = receivables;
+    window.emailNotifications = emailNotifications;
+    window.testMode = testMode;
+    window.darkMode = darkMode;
+    window.dashboardFilter = dashboardFilter;
+    window.selectedSalesPerson = selectedSalesPerson;
+    window.selectedEvent = selectedEvent;
+    window.chartInstances = chartInstances;
+    window.dynamicRoles = dynamicRoles;
+    window.rolesLoaded = rolesLoaded;
+    
+    // ✅ CRITICAL: Sync state setters for other components to use
+    window.setActiveTab = setActiveTab;
+    window.setUser = setUser;
+    window.setCurrentUser = setCurrentUser;
+    window.setIsLoggedIn = setIsLoggedIn;
+    window.setUsers = setUsers;
+    window.setDynamicRoles = setDynamicRoles;
+    window.setRolesLoaded = setRolesLoaded;
+    
+  }, [isLoggedIn, activeTab, user, currentUser, leads, users, allUsers, 
+      deliveries, receivables, emailNotifications, testMode, darkMode,
+      dashboardFilter, selectedSalesPerson, selectedEvent, chartInstances,
+      dynamicRoles, rolesLoaded, setActiveTab, setUser, setCurrentUser, 
+      setIsLoggedIn, setUsers, setDynamicRoles, setRolesLoaded]);
 
-  // Receivables persistence
+  // ✅ ENHANCED: Chart initialization with better timing
   useEffect(() => {
-    try {
-      localStorage.setItem('crm_receivables', JSON.stringify(receivables));
-    } catch (e) {
-      console.log('Failed to save receivables:', e);
+    console.log('Chart initialization useEffect triggered', {
+      activeTab, 
+      leadsCount: leads?.length || 0, 
+      chartExists: !!window.createCharts
+    });
+    
+    if (activeTab === 'dashboard') {
+      console.log('🎯 Initializing charts...');
+      if (window.createCharts) {
+        // Add delay to ensure DOM is ready
+        setTimeout(() => {
+          window.createCharts();
+        }, 300);
+      }
+    } else {
+      console.log('⏭️ Not on dashboard tab, skipping chart init');
     }
-  }, [receivables]);
+  }, [activeTab, leads]);
 
-  // Email notifications persistence
+  // ✅ ENHANCED: My Actions initialization effect
   useEffect(() => {
-    try {
-      localStorage.setItem('crm_email_notifications', JSON.stringify(emailNotifications));
-    } catch (e) {
-      console.log('Failed to save notifications:', e);
+    if (window.initializeMyActions && isLoggedIn) {
+      console.log('🔧 Initializing My Actions system...');
+      window.initializeMyActions();
     }
-  }, [emailNotifications]);
+  }, [isLoggedIn]);
+
+  // Component cleanup effect
+  useEffect(() => {
+    return () => {
+      // Cleanup any intervals or subscriptions
+      if (window.myActionsRefreshInterval) {
+        clearInterval(window.myActionsRefreshInterval);
+      }
+    };
+  }, []);
 
   console.log('✅ All app effects initialized successfully');
 };
 
-console.log('✅ App Effects and Lifecycle Management loaded successfully');
+console.log('✅ FIXED App Effects and Lifecycle Management loaded successfully with My Actions state sync');
