@@ -1494,9 +1494,7 @@ root.render(React.createElement(window.SimplifiedApp));
   // ===============================================
   // CHART UPDATE FUNCTION
   // ===============================================
-  // Add this script to your index.html, replacing the incomplete updateChartsWithData function
-<script>
-window.updateChartsWithData = function(leads) {
+  window.updateChartsWithData = function(leads) {
   console.log('🔄 Updating charts with filtered data...');
   
   // Get filtered leads based on current filter settings
@@ -1591,7 +1589,6 @@ window.handleChartFilterChange = function() {
 };
 
 console.log('✅ Chart update functions loaded');
-</script>
   
   // ===============================================
   // CHART CREATION FUNCTION
