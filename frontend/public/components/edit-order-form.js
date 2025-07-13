@@ -26,14 +26,11 @@ window.renderEditOrderForm = () => {
   // Update the order edit data
   window.orderEditData = { ...window.orderEditData, [field]: value };
   
-  console.log(`✅ Updated orderEditData.${field}:`, window.orderEditData[field]);
+  // Force complete form re-render
+  window.setShowEditOrderForm(false);
+  setTimeout(() => window.setShowEditOrderForm(true), 10);
   
-  // ✅ FORCE REACT RE-RENDER - This is the key fix!
-  if (window.setActiveTab && window.activeTab) {
-    const currentTab = window.activeTab;
-    // Trigger minimal state change to force React to re-render
-    setTimeout(() => window.setActiveTab(currentTab), 1);
-  }
+  console.log(`✅ Updated orderEditData.${field}:`, window.orderEditData[field]);
 };
 
 
