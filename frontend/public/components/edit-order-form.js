@@ -1,4 +1,5 @@
-// Edit Order Form Component - EXACT match to screenshot with working state
+// ✅ COMPLETE FIX: Replace your entire renderEditOrderForm function in edit-order-form.js
+
 window.renderEditOrderForm = () => {
   // ✅ Check if form should be shown
   const showEditOrderForm = window.showEditOrderForm || window.appState?.showEditOrderForm;
@@ -8,9 +9,13 @@ window.renderEditOrderForm = () => {
     return null;
   }
 
-  // ✅ FIXED: Initialize orderEditData with actual order data
-  if (!window.orderEditData) {
-    window.orderEditData = { ...currentOrderForEdit };
+  // ✅ FIXED: Use React-style state management
+  // Initialize with React useState pattern
+  if (!window.editOrderState) {
+    window.editOrderState = {
+      ...currentOrderForEdit,
+      lastUpdate: Date.now()
+    };
   }
 
   // ✅ Get users for dropdown
@@ -19,25 +24,35 @@ window.renderEditOrderForm = () => {
     window.fetchUsers();
   }
 
-  // ✅ FIXED: Working input change handler
+  // ✅ FIXED: Proper state update handler that triggers re-render
   const handleInputChange = (field, value) => {
-  console.log(`🔄 Updating ${field} to:`, value);
-  
-  // Update the order edit data
-  window.orderEditData = { ...window.orderEditData, [field]: value };
-  
-  // Force complete form re-render
-  window.setShowEditOrderForm(false);
-  setTimeout(() => window.setShowEditOrderForm(true), 10);
-  
-  console.log(`✅ Updated orderEditData.${field}:`, window.orderEditData[field]);
-};
-
+    console.log(`🔄 Updating ${field} to:`, value);
+    
+    // Update both the edit state and the global orderEditData
+    window.editOrderState = { 
+      ...window.editOrderState, 
+      [field]: value,
+      lastUpdate: Date.now() // This forces React to see a change
+    };
+    
+    window.orderEditData = { ...window.editOrderState };
+    
+    console.log(`✅ Updated ${field}:`, window.editOrderState[field]);
+    
+    // Force React re-render by updating a timestamp
+    if (window.setLoading) {
+      // Toggle loading briefly to force re-render
+      window.setLoading(true);
+      setTimeout(() => window.setLoading(false), 1);
+    }
+  };
 
   // ✅ Form submission handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (window.handleEditOrderSubmit) {
+      // Make sure orderEditData has the latest state
+      window.orderEditData = { ...window.editOrderState };
       await window.handleEditOrderSubmit(e);
     }
   };
@@ -46,59 +61,80 @@ window.renderEditOrderForm = () => {
   const closeForm = () => {
     window.setShowEditOrderForm(false);
     window.orderEditData = null;
+    window.editOrderState = null; // Clear the state
   };
+
+  // ✅ Current values with fallbacks
+  const currentStatus = window.editOrderState?.status || currentOrderForEdit?.status || '';
+  const currentAssignedTo = window.editOrderState?.assigned_to || currentOrderForEdit?.assigned_to || '';
+  const currentTotalAmount = window.editOrderState?.total_amount || window.editOrderState?.final_amount || currentOrderForEdit?.total_amount || currentOrderForEdit?.final_amount || '';
+  const currentNotes = window.editOrderState?.notes || currentOrderForEdit?.notes || '';
+
+  console.log('🔍 Rendering form with values:', {
+    status: currentStatus,
+    assigned_to: currentAssignedTo,
+    total_amount: currentTotalAmount,
+    lastUpdate: window.editOrderState?.lastUpdate
+  });
 
   return React.createElement('div', { 
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
     onClick: (e) => e.target === e.currentTarget && closeForm()
   },
     React.createElement('div', { 
-      className: 'bg-white rounded-lg p-6 w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-xl' 
+      className: 'bg-white rounded-lg p-6 w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-xl',
+      key: `edit-form-${window.editOrderState?.lastUpdate || Date.now()}` // Force re-render with key
     },
       // Header
-      React.createElement('h2', { className: 'text-xl font-bold mb-4' }, 'Edit Order'),
-      
-      // Form - EXACT match to screenshot
+      React.createElement('div', { className: 'flex justify-between items-center mb-6' },
+        React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 'Edit Order'),
+        React.createElement('button', {
+          onClick: closeForm,
+          className: 'text-gray-400 hover:text-gray-600 text-2xl'
+        }, '✕')
+      ),
+
+      // Form
       React.createElement('form', { onSubmit: handleSubmit },
         
-        // Order Number - POPULATED
+        // Order Number - READ ONLY
         React.createElement('div', { className: 'mb-4' },
           React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Order Number'),
           React.createElement('input', {
             type: 'text',
-            value: currentOrderForEdit.order_number || currentOrderForEdit.id || '',
-            disabled: true,
-            className: 'w-full px-3 py-2 border rounded-md bg-gray-100'
+            value: currentOrderForEdit?.order_number || '',
+            readOnly: true,
+            className: 'w-full px-3 py-2 border rounded-md bg-gray-50'
           })
         ),
 
-        // Client Name - POPULATED
+        // Client Name - READ ONLY
         React.createElement('div', { className: 'mb-4' },
           React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Client Name'),
           React.createElement('input', {
             type: 'text',
-            value: currentOrderForEdit.client_name || currentOrderForEdit.legal_name || '',
-            disabled: true,
-            className: 'w-full px-3 py-2 border rounded-md bg-gray-100'
+            value: currentOrderForEdit?.client_name || '',
+            readOnly: true,
+            className: 'w-full px-3 py-2 border rounded-md bg-gray-50'
           })
         ),
 
-        // Current Status - POPULATED
+        // Current Status - READ ONLY
         React.createElement('div', { className: 'mb-4' },
           React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Current Status'),
           React.createElement('input', {
             type: 'text',
-            value: currentOrderForEdit.status || '',
-            disabled: true,
-            className: 'w-full px-3 py-2 border rounded-md bg-gray-100'
+            value: currentOrderForEdit?.status || '',
+            readOnly: true,
+            className: 'w-full px-3 py-2 border rounded-md bg-gray-50'
           })
         ),
 
-        // Status Change - NEW
-        React.createElement('div', { className: 'mb-4' },
+        // Change Status - EDITABLE
+        React.createElement('div', { className: 'mb-6' },
           React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Change Status'),
           React.createElement('select', {
-            value: window.orderEditData?.status || '',
+            value: currentStatus,
             onChange: (e) => handleInputChange('status', e.target.value),
             className: 'w-full px-3 py-2 border rounded-md'
           },
@@ -110,14 +146,14 @@ window.renderEditOrderForm = () => {
           )
         ),
 
-        // Assignment Options Section - EXACT match
+        // Assignment Options Section
         React.createElement('div', { className: 'mb-6' },
           React.createElement('h3', { className: 'text-lg font-medium mb-4' }, 'Assignment Options'),
           
           React.createElement('div', { className: 'mb-4' },
             React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Assign to User'),
             React.createElement('select', {
-              value: window.orderEditData?.assigned_to || '',
+              value: currentAssignedTo,
               onChange: (e) => handleInputChange('assigned_to', e.target.value),
               className: 'w-full px-3 py-2 border rounded-md'
             },
@@ -137,7 +173,7 @@ window.renderEditOrderForm = () => {
           React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Total Amount'),
           React.createElement('input', {
             type: 'number',
-            value: window.orderEditData?.total_amount || window.orderEditData?.final_amount || '',
+            value: currentTotalAmount,
             onChange: (e) => handleInputChange('total_amount', e.target.value),
             className: 'w-full px-3 py-2 border rounded-md',
             step: '0.01'
@@ -148,7 +184,7 @@ window.renderEditOrderForm = () => {
         React.createElement('div', { className: 'mb-6' },
           React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Notes'),
           React.createElement('textarea', {
-            value: window.orderEditData?.notes || '',
+            value: currentNotes,
             onChange: (e) => handleInputChange('notes', e.target.value),
             className: 'w-full px-3 py-2 border rounded-md',
             rows: 3,
@@ -156,7 +192,7 @@ window.renderEditOrderForm = () => {
           })
         ),
 
-        // Buttons - EXACT match to screenshot
+        // Buttons
         React.createElement('div', { className: 'flex justify-end space-x-3' },
           React.createElement('button', {
             type: 'button',
@@ -175,4 +211,26 @@ window.renderEditOrderForm = () => {
   );
 };
 
-console.log('✅ Edit Order Form - EXACT screenshot match with populated fields');
+console.log('✅ Edit Order Form - FIXED with proper state management');
+
+// ✅ ALSO ADD: Reset function to clear state when opening form
+window.openEditOrderForm = function(order) {
+  console.log('✏️ Opening edit form for order:', order.id);
+  
+  // Clear any existing state
+  window.editOrderState = null;
+  window.orderEditData = null;
+  
+  // Set the order to edit
+  window.setCurrentOrderForEdit(order);
+  window.setShowEditOrderForm(true);
+  
+  // Initialize fresh state
+  setTimeout(() => {
+    window.editOrderState = {
+      ...order,
+      lastUpdate: Date.now()
+    };
+    window.orderEditData = { ...order };
+  }, 100);
+};
