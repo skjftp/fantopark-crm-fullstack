@@ -90,12 +90,15 @@ window.fetchMyActions = async function() {
     // FILTER AND PROCESS ORDERS
     // =============================================================================
     let myFilteredOrders = [];
-    if (ordersResponse?.data) {
-      const userEmail = window.user.email;
-      myFilteredOrders = ordersResponse.data.filter(order => 
-        order.assigned_to === userEmail
-      );
-    }
+if (ordersResponse?.data) {
+  const userEmail = window.user.email;
+  const userRole = window.user.role;
+  
+  // Use role-based filtering instead of direct assignment filtering
+  myFilteredOrders = window.filterOrdersByRole(ordersResponse.data, userRole, userEmail);
+  
+  console.log('✅ Orders filtered by role:', userRole, 'Found:', myFilteredOrders.length, 'orders');
+}
 
     // =============================================================================
     // FILTER AND PROCESS DELIVERIES WITH CUSTOMER NAMES
@@ -238,10 +241,19 @@ window.filterOrdersByRole = function(orders, userRole, userEmail) {
   
   switch (userRole) {
     case 'supply_sales_service_manager':
+    case 'supply_service_manager':
+    case 'supply_manager':
     case 'supply_executive':
-      return orders.filter(order => 
-        order.status === 'approved' && order.assigned_to === userEmail
-      );
+      // Supply team members can see all orders assigned to ANY supply team member
+      return orders.filter(order => {
+        if (order.status !== 'approved') return false;
+        
+        // Check if assigned to any supply team member
+        const supplyRoles = ['supply_manager', 'supply_service_manager', 'supply_sales_service_manager', 'supply_executive'];
+        const assignedUser = window.users?.find(user => user.email === order.assigned_to);
+        
+        return assignedUser && supplyRoles.includes(assignedUser.role);
+      });
     
     case 'finance_manager':
     case 'finance_executive':
