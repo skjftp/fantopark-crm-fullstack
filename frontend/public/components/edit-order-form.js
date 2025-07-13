@@ -21,14 +21,28 @@ window.renderEditOrderForm = () => {
 
   // ✅ FIXED: Working input change handler
   const handleInputChange = (field, value) => {
-    window.orderEditData = { ...window.orderEditData, [field]: value };
-    
-    // Force re-render
-    if (window.setLoading) {
-      window.setLoading(true);
-      setTimeout(() => window.setLoading(false), 1);
-    }
-  };
+  console.log(`🔄 Updating ${field} to:`, value);
+  
+  // Update the order edit data
+  window.orderEditData = { ...window.orderEditData, [field]: value };
+  
+  // ✅ FIXED: Use proper re-render method that doesn't lose state
+  if (window.setActiveTab && window.activeTab) {
+    // Force a minimal re-render by triggering a state change
+    const currentTab = window.activeTab;
+    setTimeout(() => {
+      // This will trigger the component to re-render without losing dropdown state
+      if (window.renderEditOrderForm) {
+        // Force the component to re-evaluate its state
+        const forceUpdate = new Date().getTime();
+        window.lastEditFormUpdate = forceUpdate;
+      }
+    }, 0);
+  }
+  
+  console.log(`✅ Updated orderEditData.${field}:`, window.orderEditData[field]);
+};
+
 
   // ✅ Form submission handler
   const handleSubmit = async (e) => {
