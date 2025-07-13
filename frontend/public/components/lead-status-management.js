@@ -1034,82 +1034,48 @@ window.handleQuoteUpload = async function(e) {
 
     // ===== NEW: ACTUALLY UPLOAD THE FILE TO GOOGLE CLOUD STORAGE =====
     if (hasFile) {
-      console.log('📄 Uploading file to Google Cloud Storage...');
-      
-      try {
-        // Create a unique filename
-        const timestamp = Date.now();
-        const originalName = window.quoteUploadData.pdf.name;
-        const extension = originalName.split('.').pop();
-        const uniqueFilename = `quote_${timestamp}_${originalName}`;
-        
-        // **OPTION 1: Direct upload to GCS (if you have uploadFileToGCS function)**
-        if (window.uploadFileToGCS && typeof window.uploadFileToGCS === 'function') {
-          console.log('📄 Using uploadFileToGCS function...');
-          const uploadResult = await window.uploadFileToGCS(
-            window.quoteUploadData.pdf, 
-            'quote',
-            window.currentLead.id
-          );
-          
-          updateData.quote_pdf_filename = uploadResult.filename || uniqueFilename;
-          updateData.quote_file_size = window.quoteUploadData.pdf.size;
-          updateData.quote_file_path = uploadResult.filePath;
-          
-          console.log('✅ File uploaded via uploadFileToGCS:', uploadResult);
-        } 
-        // **OPTION 2: Upload via backend API endpoint**
-        else {
-          console.log('📄 Uploading via backend API...');
-          
-          const formData = new FormData();
-          formData.append('quote_pdf', window.quoteUploadData.pdf);
-          formData.append('lead_id', window.currentLead.id);
-          formData.append('notes', window.quoteUploadData.notes || '');
-          
-          const uploadResponse = await fetch(`${window.API_CONFIG.API_URL}/leads/${window.currentLead.id}/quote/upload`, {
-            method: 'POST',
-            headers: {
-              'Authorization': window.authToken ? 'Bearer ' + window.authToken : ''
-            },
-            body: formData
-          });
-          
-          if (!uploadResponse.ok) {
-            throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
-          }
-          
-          const uploadResult = await uploadResponse.json();
-          console.log('✅ File uploaded via API:', uploadResult);
-          
-          // If the backend handled the upload, we might get the updated lead back
-          if (uploadResult.data) {
-            // Close modal and update UI
-            window.setShowQuoteUploadModal(false);
-            window.setQuoteUploadData({ notes: '', pdf: null });
-            
-            // Update local state with the response from backend
-            window.setLeads(prev => prev.map(l => 
-              l.id === window.currentLead.id ? uploadResult.data : l
-            ));
-            
-            if (window.showLeadDetail && window.currentLead?.id === uploadResult.data.id) {
-              window.setCurrentLead(uploadResult.data);
-            }
-            
-            alert(`✅ Quote uploaded successfully!\n\nFile: ${uploadResult.data.quote_pdf_filename}`);
-            return; // Exit early since backend handled everything
-          }
-        }
-        
-      } catch (uploadError) {
-        console.error('❌ File upload failed:', uploadError);
-        alert('Failed to upload file: ' + uploadError.message);
-        return;
-      }
-    } else {
-      console.log('📄 No file selected - proceeding without file upload');
+  console.log('📄 Uploading file to Google Cloud Storage...');
+  console.log('📄 Using uploadFileToGCS function...');
+  
+  try {
+    // Use the fixed uploadFileToGCS function - it handles everything
+    const uploadResult = await window.uploadFileToGCS(window.quoteUploadData.pdf, 'quote');
+    console.log('✅ File uploaded via uploadFileToGCS:', uploadResult);
+    
+    // The backend already updated the lead, so just refresh local state
+    const updatedLead = await window.apiCall(`/leads/${window.currentLead.id}`);
+    
+    window.setLeads(prev => prev.map(l => 
+      l.id === window.currentLead.id ? updatedLead.data : l
+    ));
+    
+    if (window.showLeadDetail && window.currentLead?.id === updatedLead.data.id) {
+      window.setCurrentLead(updatedLead.data);
     }
+    
+  } catch (uploadError) {
+    console.error('❌ File upload failed:', uploadError);
+    alert('Failed to upload file: ' + uploadError.message);
+    window.setLoading(false);
+    return;
+  }
+} else {
+  console.log('📄 No file selected - proceeding without file upload');
+  
+  // No file case - just update status via API  
+  const response = await window.apiCall(`/leads/${window.currentLead.id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updateData)
+  });
+
+  window.setLeads(prev => prev.map(l => 
+    l.id === window.currentLead.id ? response.data : l
+  ));
+  
+  if (window.showLeadDetail && window.currentLead?.id === response.data.id) {
+    window.setCurrentLead(response.data);
+  }
+}
 
     console.log('📄 Updating lead with data:', updateData);
 
