@@ -9,7 +9,8 @@ window.USER_ROLES = {
       orders: { read: true, write: true, delete: true, approve: true, assign: true },
       finance: { read: true, write: true, delete: true, approve: true },
       delivery: { read: true, write: true, delete: true },
-      users: { read: true, write: true, delete: true, manage_roles: true }
+      users: { read: true, write: true, delete: true, manage_roles: true },
+      stadiums: { read: true, write: true, delete: true },
     }
   },
   admin: {
@@ -21,7 +22,8 @@ window.USER_ROLES = {
       orders: { read: true, write: true, delete: true, approve: false, assign: true },
       finance: { read: true, write: false, delete: false, approve: false },
       delivery: { read: true, write: true, delete: true },
-      users: { read: true, write: false, delete: false, manage_roles: false }
+      users: { read: true, write: false, delete: false, manage_roles: false },
+      stadiums: { read: true, write: true, delete: true },
     }
   },
   sales_manager: {
