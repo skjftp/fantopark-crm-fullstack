@@ -1,8 +1,21 @@
 // User Management Functions Component for FanToPark CRM
 // Missing setter functions
 window.setUsers = function(users) {
+    console.log("🔧 setUsers called with:", users?.length, "users");
+    
+    // Update window.users
     window.users = users;
-    console.log("Users set:", users?.length, "users");
+    
+    // ✅ CRITICAL FIX: Also update appState.users
+    if (!window.appState) {
+        window.appState = {};
+    }
+    window.appState.users = users;
+    
+    console.log("✅ Users synchronized:", {
+        windowUsers: window.users?.length || 0,
+        appStateUsers: window.appState.users?.length || 0
+    });
 };
 
 window.setFinancialData = function(data) {
