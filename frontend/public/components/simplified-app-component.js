@@ -2361,7 +2361,7 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
     }
 
     const hasAccess = modulePermissions[action] === true;
-    console.log(`Permission check: ${state.user.role} -> ${module}.${action} = ${hasAccess}`);
+    // Removed permission check logging for production
     return hasAccess;
   };
 
