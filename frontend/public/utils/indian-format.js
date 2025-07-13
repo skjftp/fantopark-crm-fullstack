@@ -156,23 +156,10 @@ window.updateFinancialDisplay = function() {
 
 // Override the existing formatCurrency if it exists
 if (typeof window.formatCurrency !== 'undefined') {
-  console.log('✅ formatCurrency function updated with Indian number format (no decimals)');
+  //console.log('✅ formatCurrency function updated with Indian number format (no decimals)');
 } else {
-  console.log('✅ formatCurrency function created with Indian number format (no decimals)');
+  //console.log('✅ formatCurrency function created with Indian number format (no decimals)');
 }
-
-// Test the formatter
-console.log('🧪 Testing Indian Currency Formatter:');
-console.log('1,234 =', window.formatCurrency(1234));
-console.log('12,345 =', window.formatCurrency(12345));
-console.log('1,23,456 =', window.formatCurrency(123456));
-console.log('12,34,567 =', window.formatCurrency(1234567));
-console.log('1,23,45,678 =', window.formatCurrency(12345678));
-
-console.log('🧪 Testing Compact Format:');
-console.log('1,23,456 =', window.formatCurrencyWithText(123456));
-console.log('12,34,567 =', window.formatCurrencyWithText(1234567));
-console.log('1,23,45,678 =', window.formatCurrencyWithText(12345678));
 
 // Auto-apply to financials tab when it loads
 document.addEventListener('DOMContentLoaded', function() {
