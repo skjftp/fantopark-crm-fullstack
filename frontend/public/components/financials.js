@@ -615,7 +615,7 @@ window.renderActiveSalesTab = (activeSales) => {
                                     sale.order_number || sale.id || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    sale.client || sale.client_name || 'N/A'
+                                    sale.client || sale.clientName || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
                                     `₹${(sale.amount || 0).toLocaleString()}`
@@ -648,14 +648,14 @@ window.renderSalesTab = (sales) => {
     
     // Try to create chart AFTER the component is rendered
     setTimeout(() => {
-        window.createFinancialSalesChart();
+        window.createFinancialSalesChart(sales);
     }, 100);
     
     return React.createElement('div', { className: 'space-y-4' },
         // Sales Chart
-        React.createElement('div', { className: 'h-64 bg-gray-50 dark:bg-gray-700 rounded-lg p-4' },
+        React.createElement('div', { className: 'bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6' },
             React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Sales Trend'),
-            React.createElement('div', { className: 'h-64 relative' },
+            React.createElement('div', { className: 'h-64 relative mb-4' },
                 React.createElement('canvas', { 
                     id: 'financialSalesChart',
                     style: { maxHeight: '250px' }
@@ -687,10 +687,10 @@ window.renderSalesTab = (sales) => {
                                     sale.invoice || sale.invoice_number || sale.order_number || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    sale.client || sale.client_name || 'N/A'
+                                    sale.client || sale.clientName || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    sale.sales_person || sale.assigned_to || 'N/A'
+                                    sale.assignedTo || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
                                     `₹${(sale.amount || 0).toLocaleString()}`

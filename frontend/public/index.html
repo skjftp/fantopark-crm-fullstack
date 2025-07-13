@@ -744,6 +744,10 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 
+  <!-- External Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 <!-- Load all constant files -->
 <script src="constants/config.js"></script>
 <script src="constants/status-config.js"></script>
@@ -819,9 +823,7 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 <script defer src="components/delivery-utils.js"></script>  
    
 
-<!-- External Libraries -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
   
 <script>
   // ===== FINANCIALS DISPLAY FIX FOR INDIAN FORMAT =====
@@ -918,112 +920,6 @@ window.forceFinancialRefresh = function() {
         if (window.loadFinancialData) {
             window.loadFinancialData();
         }
-    }
-};
-
-// Step 3: Override chart formatting too
-window.createFinancialSalesChart = function(salesData) {
-    const canvas = document.getElementById('tempValueChart');
-    if (!canvas) {
-        console.warn('Chart canvas not found');
-        return;
-    }
-
-    // Destroy existing chart
-    if (window.financialSalesChartInstance) {
-        window.financialSalesChartInstance.destroy();
-    }
-
-    if (!salesData || salesData.length === 0) {
-        console.warn('No sales data for chart');
-        return;
-    }
-
-    // Group data by month
-    const monthlyData = {};
-    const labels = [];
-    const revenueData = [];
-    const countData = [];
-
-    if (Array.isArray(salesData)) {
-        salesData.forEach(sale => {
-            const month = new Date(sale.date || sale.created_date).toLocaleDateString('en-US', { month: 'short' });
-            if (!monthlyData[month]) {
-                monthlyData[month] = { revenue: 0, count: 0 };
-            }
-            monthlyData[month].revenue += sale.amount || 0;
-            monthlyData[month].count += 1;
-        });
-    }
-
-    const chartData = {
-        labels: labels,
-        datasets: [{
-            label: 'Revenue (₹)',
-            data: revenueData,
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            fill: true,
-            tension: 0.4,
-            yAxisID: 'y'
-        }, {
-            label: 'Sales Count',
-            data: countData,
-            borderColor: 'rgb(16, 185, 129)',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            fill: true,
-            tension: 0.4,
-            yAxisID: 'y1'
-        }]
-    };
-
-    try {
-        window.financialSalesChartInstance = new Chart(canvas, {
-            type: 'line',
-            data: chartData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    title: {
-                        display: true,
-                        text: 'Sales Performance Trend'
-                    }
-                },
-                scales: {
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        ticks: {
-                            callback: function(value) {
-                                // ✅ Use Indian formatting for chart too
-                                return window.formatCurrencyWithText(value);
-                            }
-                        }
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        grid: {
-                            drawOnChartArea: false,
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return value + ' sales';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        console.log('✅ Financial sales chart created with Indian formatting');
-    } catch (error) {
-        console.error('❌ Failed to create financial sales chart:', error);
     }
 };
 

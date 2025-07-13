@@ -99,6 +99,15 @@ const [myActionsPagination, setMyActionsPagination] = useState({
   quotes: { currentPage: 1, itemsPerPage: 5 },
   receivables: { currentPage: 1, itemsPerPage: 5 }
 });
+
+  const [financialPagination, setFinancialPagination] = useState({
+  activesales: { currentPage: 1, itemsPerPage: 10 },
+  sales: { currentPage: 1, itemsPerPage: 10 },
+  receivables: { currentPage: 1, itemsPerPage: 10 },
+  payables: { currentPage: 1, itemsPerPage: 10 },
+  expiring: { currentPage: 1, itemsPerPage: 10 }
+});
+  
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showOrderAssignModal, setShowOrderAssignModal] = useState(false);
   const [showAllocationManagement, setShowAllocationManagement] = React.useState(false);
@@ -500,6 +509,7 @@ const [ordersShowFilters, setOrdersShowFilters] = useState(false);
 setEventsPerPage,
 currentEventsPage,
 eventsPerPage,
+    financialPagination, setFinancialPagination,
   };
 
   window.inventorySearchQuery = inventorySearchQuery;
