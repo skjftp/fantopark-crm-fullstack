@@ -826,30 +826,6 @@ window.integrateOrderCreationWithLeadStatus = function() {
     
     // Call original function first
     await originalUpdateLeadStatus(leadId, newStatus);
-    
-    // Check if we need to create an order
-    if (newStatus === 'payment_received' || newStatus === 'payment_post_service') {
-      const lead = window.leads.find(l => l.id === leadId);
-      if (lead) {
-        console.log('📋 Creating order for lead status:', newStatus);
-        
-        try {
-          const orderType = newStatus === 'payment_post_service' ? 'payment_post_service' : 'standard';
-          await window.createOrderFromLead(lead, orderType);
-          
-          console.log('✅ Order created and auto-assigned successfully');
-          
-          // Refresh orders data
-          if (window.fetchOrders) {
-            window.fetchOrders();
-          }
-          
-        } catch (error) {
-          console.error('❌ Failed to create order from lead:', error);
-          alert('Order creation failed: ' + error.message);
-        }
-      }
-    }
   };
   
   console.log('🔗 Order creation integrated with lead status updates');
