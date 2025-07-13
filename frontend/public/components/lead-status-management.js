@@ -516,53 +516,114 @@ window.handleLeadProgression = function(lead) {
   }
 };
 
-// Quote request stage handler with temperature preservation
-window.handleQuoteRequestStage = async function(lead, newStatus) {
+// Replace the handleQuoteUpload function in lead-status-management.js with this:
+
+window.handleQuoteUpload = async function(e) {
+  e.preventDefault();
+  
+  console.log('📄 Quote upload started');
+  console.log('📄 Current lead:', window.currentLead);
+  console.log('📄 Quote upload data:', window.quoteUploadData);
+  
+  const hasFile = window.quoteUploadData.pdf && window.quoteUploadData.pdf.name;
+  console.log('📄 Has file to upload:', hasFile);
+
+  window.setLoading(true);
+  
   try {
-    window.setLoading(true);
+    
+    if (hasFile) {
+      // FIXED: Call the actual upload endpoint that exists in your backend
+      console.log('📤 Uploading file via backend endpoint...');
+      
+      const formData = new FormData();
+      formData.append('quote_pdf', window.quoteUploadData.pdf); // Note: 'quote_pdf' not 'pdf'
+      formData.append('notes', window.quoteUploadData.notes || '');
+      
+      const uploadResponse = await fetch(`${window.API_CONFIG.API_URL}/leads/${window.currentLead.id}/quote/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': window.authToken ? 'Bearer ' + window.authToken : ''
+          // Don't set Content-Type for FormData, let browser set it with boundary
+        },
+        body: formData
+      });
 
-    // Preserve temperature when moving to quote_requested
-    const currentTemperature = window.getLeadTemperature ? window.getLeadTemperature(lead) : lead.temperature;
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        throw new Error(errorData.error || `Upload failed with status ${uploadResponse.status}`);
+      }
 
-const supplyTeamMember = await window.getSupplyTeamMember();
-const updateData = {
-  ...lead,
-  status: newStatus,
-  temperature: currentTemperature, // Preserve the temperature
-  quote_requested_date: new Date().toISOString(),
-  last_contact_date: new Date().toISOString(),
-  updated_date: new Date().toISOString(),
-  // Supply team assignment logic
-  quote_assigned_to: supplyTeamMember,
-  assigned_to: supplyTeamMember,
-  original_assignee: lead.assigned_to,
-  assigned_team: 'supply',
-  dual_assignment: true
-};
+      const uploadResult = await uploadResponse.json();
+      console.log('📄 Upload successful:', uploadResult);
+      
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || 'Upload failed');
+      }
+      
+      // The backend endpoint already updates the lead, so we just need to update local state
+      window.setLeads(prev => prev.map(l => 
+        l.id === window.currentLead.id ? uploadResult.data : l
+      ));
+      
+      // Update current lead if in detail view
+      if (window.showLeadDetail && window.currentLead?.id === uploadResult.data.id) {
+        window.setCurrentLead(uploadResult.data);
+      }
+      
+      console.log('📄 Lead data updated from upload response');
+      
+    } else {
+      // No file - just update notes and status via the regular API
+      console.log('📄 No file - updating lead status only...');
+      
+      const originalAssignee = window.currentLead.original_assignee || window.currentLead.assigned_to;
+      
+      const updateData = {
+        ...window.currentLead,
+        status: 'quote_received',
+        assigned_to: originalAssignee,
+        assigned_team: null,
+        quote_notes: window.quoteUploadData.notes || '',
+        quote_uploaded_date: new Date().toISOString(),
+        updated_date: new Date().toISOString()
+      };
 
-    const response = await window.apiCall(`/leads/${lead.id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updateData)
-    });
+      const response = await window.apiCall(`/leads/${window.currentLead.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData)
+      });
 
-    // Update local state
-    window.setLeads(prevLeads => 
-      prevLeads.map(l => 
-        l.id === lead.id ? response.data : l
-      )
-    );
-
-    // Update current lead if in detail view
-    if (window.showLeadDetail && window.currentLead?.id === lead.id) {
-      window.setCurrentLead(response.data);
+      window.setLeads(prev => prev.map(l => 
+        l.id === window.currentLead.id ? response.data : l
+      ));
+      
+      if (window.showLeadDetail && window.currentLead?.id === response.data.id) {
+        window.setCurrentLead(response.data);
+      }
     }
-
-    window.setLoading(false);
-    alert('Lead moved to Quote Requested stage and assigned to Supply Team!');
+    
+    // Refresh My Actions if we're on that tab
+    if (window.activeTab === 'myactions' && window.fetchMyActions) {
+      window.fetchMyActions();
+    }
+    
+    // Close modal and show success
+    window.setShowQuoteUploadModal(false);
+    window.setQuoteUploadData({ notes: '', pdf: null });
+    
+    const fileInfo = hasFile ? `\nFile: ${window.quoteUploadData.pdf.name} ✅ Uploaded to Google Cloud Storage` : '\nNo file uploaded';
+    const notesInfo = window.quoteUploadData.notes ? `\nNotes: ${window.quoteUploadData.notes}` : '';
+    
+    alert(`✅ Quote processed successfully!\n\nLead: ${window.currentLead.name}\nStatus: Quote Received${fileInfo}${notesInfo}`);
+    
+    console.log('📄 Quote upload workflow completed successfully');
+    
   } catch (error) {
-    console.error('Error updating lead to quote requested:', error);
+    console.error('❌ Quote upload error:', error);
+    alert(`Failed to process quote: ${error.message}`);
+  } finally {
     window.setLoading(false);
-    alert('Failed to update lead status: ' + error.message);
   }
 };
 
