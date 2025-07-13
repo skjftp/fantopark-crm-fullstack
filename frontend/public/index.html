@@ -945,6 +945,13 @@ window.createFinancialSalesChart = function(salesData) {
     const revenueData = [];
     const countData = [];
 
+  // Populate arrays from monthlyData
+Object.keys(monthlyData).forEach(month => {
+    labels.push(month);
+    revenueData.push(monthlyData[month].revenue);
+    countData.push(monthlyData[month].count);
+});
+
     if (Array.isArray(salesData)) {
         salesData.forEach(sale => {
             const month = new Date(sale.date || sale.created_date).toLocaleDateString('en-US', { month: 'short' });
