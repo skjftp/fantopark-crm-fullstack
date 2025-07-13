@@ -1072,4 +1072,68 @@ window.setShowEditOrderForm = window.setShowEditOrderForm || function(show) {
   }
 };
 
+window.assignOrderToUser = async function(orderId, assigneeEmail, notes = '') {
+  console.log(`🔄 assignOrderToUser: Assigning order ${orderId} to ${assigneeEmail}`);
+  
+  if (!window.hasPermission('orders', 'assign')) {
+    alert('You do not have permission to assign orders');
+    return;
+  }
+
+  window.setLoading(true);
+
+  try {
+    // Find the order first
+    const order = window.orders.find(o => o.id === orderId);
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    // Make API call to update the order assignment
+    const response = await window.apiCall(`/orders/${orderId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        ...order,
+        assigned_to: assigneeEmail,
+        assignment_notes: notes,
+        assignment_date: new Date().toISOString(),
+        status: order.status === 'pending_approval' ? 'assigned' : order.status
+      })
+    });
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+
+    // Update local orders state
+    window.setOrders(prev => prev.map(o => 
+      o.id === orderId 
+        ? { 
+            ...o, 
+            assigned_to: assigneeEmail, 
+            assignment_notes: notes,
+            assignment_date: new Date().toISOString(),
+            status: o.status === 'pending_approval' ? 'assigned' : o.status
+          }
+        : o
+    ));
+
+    // Show success message
+    alert(`Order successfully assigned to ${assigneeEmail}`);
+    
+    console.log(`✅ Order ${orderId} assigned successfully to ${assigneeEmail}`);
+
+    // Refresh orders if needed
+    if (window.fetchOrders && typeof window.fetchOrders === 'function') {
+      await window.fetchOrders();
+    }
+
+  } catch (error) {
+    console.error(`❌ Error assigning order ${orderId}:`, error);
+    alert(`Failed to assign order: ${error.message}`);
+  } finally {
+    window.setLoading(false);
+  }
+};
+
 console.log("🔧 form-handlers.js loaded - All form submission handlers ready including FIXED viewOrderDetail function");
