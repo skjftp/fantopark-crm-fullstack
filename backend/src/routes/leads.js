@@ -1001,11 +1001,18 @@ router.post('/:id/quote/upload', authenticateToken, upload.single('quote_pdf'), 
     
     console.log(`✅ Quote upload completed for lead: ${id}`);
     
-    res.json({
-      success: true,
-      data: updatedLead,
-      message: file ? 'Quote uploaded successfully' : 'Quote processed successfully (no file)'
-    });
+res.json({
+  success: true,
+  data: updatedLead,
+  message: file ? 'Quote uploaded successfully' : 'Quote processed successfully (no file)',
+  // Add file information for frontend
+  ...(file && {
+    filePath: `quotes/${id}/${uniqueFilename}`,
+    fileName: uniqueFilename,
+    originalName: file.originalname,
+    fileSize: file.size
+  })
+});
     
   } catch (error) {
     console.error('❌ Quote upload error:', error);
