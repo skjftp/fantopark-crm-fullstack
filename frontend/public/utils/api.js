@@ -89,14 +89,12 @@ window.uploadFileToGCS = async function(file, documentType = 'general') {
   // For GST/PAN - use general upload endpoint  
 // For GST/PAN - use working quote endpoint but with different document type
 else if (documentType === 'gst' || documentType === 'pan') {
-  console.log('📤 Using quote endpoint for document upload:', documentType);
+  console.log('📤 Using general upload endpoint for:', documentType);
   
   const formData = new FormData();
-  formData.append('quote_pdf', file); // Reuse the same field name
-  formData.append('notes', `${documentType.toUpperCase()} certificate uploaded`);
-  formData.append('document_type', documentType); // Add document type flag
+  formData.append('file', file);
   
-  const response = await fetch(`${window.API_CONFIG.API_URL}/leads/${window.currentLead.id}/quote/upload`, {
+  const response = await fetch(`${window.API_CONFIG.API_URL}/upload`, {
     method: 'POST',
     headers: {
       'Authorization': window.authToken ? 'Bearer ' + window.authToken : ''
@@ -106,7 +104,7 @@ else if (documentType === 'gst' || documentType === 'pan') {
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.error || `Document upload failed with status ${response.status}`);
+    throw new Error(errorData.error || `Upload failed with status ${response.status}`);
   }
 
   const result = await response.json();
@@ -114,13 +112,12 @@ else if (documentType === 'gst' || documentType === 'pan') {
   
   return {
     success: true,
-    filePath: result.filePath || result.fileName,
-    publicUrl: result.fileUrl || result.downloadUrl,
+    filePath: result.data?.fileName || result.fileName,
+    publicUrl: result.data?.url || result.url,
     originalName: file.name,
     size: file.size,
     type: file.type,
-    uploadedAt: new Date().toISOString(),
-    documentType: documentType
+    uploadedAt: new Date().toISOString()
   };
 }
   
