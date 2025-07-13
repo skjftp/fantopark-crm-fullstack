@@ -1326,6 +1326,28 @@ window.addEventListener('load', () => {
   }, 1500);
 });
 
-console.log('✅ Payment Workflow Integration Updates loaded successfully');
+// Add these if they don't exist:
+window.setCurrentOrderForEdit = window.setCurrentOrderForEdit || function(order) {
+  window.currentOrderForEdit = order;
+};
 
-console.log("🔧 Payment handler functions added to form-handlers.js");
+window.setShowEditOrderForm = window.setShowEditOrderForm || function(show) {
+  window.showEditOrderForm = show;
+  if (window.setActiveTab) window.setActiveTab(window.activeTab);
+};
+
+window.viewOrderDetail = window.viewOrderDetail || function(order) {
+  console.log('View order:', order.id);
+};
+
+window.viewInvoice = window.viewInvoice || function(order) {
+  console.log('View invoice:', order.id);
+};
+
+window.completeOrder = window.completeOrder || function(orderId) {
+  console.log('Complete order:', orderId);
+};
+
+window.deleteOrder = window.deleteOrder || function(orderId) {
+  if (confirm('Delete order?')) console.log('Delete:', orderId);
+};
