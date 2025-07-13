@@ -262,6 +262,7 @@ window.renderMyActionsContent = () => {
     console.log('myDeliveries length:', window.myDeliveries?.length || 0);
     console.log('myQuoteRequested length:', window.myQuoteRequested?.length || 0);
     console.log('myReceivables length:', window.myReceivables?.length || 0);
+    console.log('Current user role:', window.user?.role);
 
     // Check if app state is available
     const appState = window.appState;
@@ -356,6 +357,86 @@ window.renderMyActionsContent = () => {
                     className: 'bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200'
                 }, 'View Details')
             )
+        ),
+
+        // 🔧 NEW: My Orders Section (for Finance Managers)
+        ordersData.totalItems > 0 && React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
+            React.createElement('div', { className: 'p-4 border-b flex justify-between items-center' },
+                React.createElement('h2', { className: 'text-xl font-semibold flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-purple-600' }, '📋'),
+                    `Orders Pending Approval (${ordersData.totalItems})`
+                ),
+                ordersData.totalItems > 0 && React.createElement('span', { 
+                    className: 'bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium' 
+                }, `${ordersData.totalItems} pending`)
+            ),
+            ordersData.items.length > 0 ? React.createElement('div', { className: 'overflow-x-auto' },
+                React.createElement('table', { className: 'w-full' },
+                    React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
+                        React.createElement('tr', null,
+                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Order #'),
+                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Client'),
+                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Event'),
+                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Amount'),
+                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Created'),
+                            React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Actions')
+                        )
+                    ),
+                    React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200' },
+                        ordersData.items.map(order => 
+                            React.createElement('tr', { key: order.id, className: 'hover:bg-gray-50 transition-colors duration-200' },
+                                React.createElement('td', { className: 'px-4 py-3 font-mono text-sm' }, 
+                                    order.order_number || order.id?.slice(-8) || '-'
+                                ),
+                                React.createElement('td', { className: 'px-4 py-3' },
+                                    React.createElement('div', { className: 'font-medium text-gray-900' }, 
+                                        order.client_name || order.legal_name || 'Unknown'
+                                    ),
+                                    React.createElement('div', { className: 'text-sm text-gray-500' }, 
+                                        order.client_email || '-'
+                                    )
+                                ),
+                                React.createElement('td', { className: 'px-4 py-3 text-sm' }, 
+                                    order.event_name || '-'
+                                ),
+                                React.createElement('td', { className: 'px-4 py-3 text-sm font-medium' }, 
+                                    order.final_amount ? `₹${parseFloat(order.final_amount).toLocaleString()}` : 
+                                    order.total_amount ? `₹${parseFloat(order.total_amount).toLocaleString()}` : '-'
+                                ),
+                                React.createElement('td', { className: 'px-4 py-3 text-sm' }, 
+                                    order.created_date ? new Date(order.created_date).toLocaleDateString() : '-'
+                                ),
+                                React.createElement('td', { className: 'px-4 py-3' },
+                                    React.createElement('div', { className: 'flex gap-2' },
+                                        window.user?.role === 'finance_manager' || window.user?.role === 'finance_executive' || window.user?.role === 'super_admin' ? [
+                                            React.createElement('button', {
+                                                key: 'approve',
+                                                onClick: () => window.enhancedOrderActions?.approveOrder(order.id),
+                                                className: 'text-green-600 hover:text-green-800 text-sm px-2 py-1 rounded border border-green-200 hover:bg-green-50 transition-colors duration-200'
+                                            }, '✅ Approve'),
+                                            React.createElement('button', {
+                                                key: 'reject',
+                                                onClick: () => window.enhancedOrderActions?.rejectOrder(order.id),
+                                                className: 'text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded border border-red-200 hover:bg-red-50 transition-colors duration-200'
+                                            }, '❌ Reject')
+                                        ] : [
+                                            React.createElement('button', {
+                                                key: 'view',
+                                                onClick: () => window.viewOrderDetail && window.viewOrderDetail(order),
+                                                className: 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50 transition-colors duration-200'
+                                            }, 'View Details')
+                                        ]
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            ) : React.createElement('div', { className: 'p-8 text-center text-gray-500' },
+                React.createElement('div', { className: 'text-4xl mb-2' }, '📋'),
+                React.createElement('p', null, searchQuery ? 'No orders found matching your search' : 'No orders pending approval')
+            ),
+            window.renderMyActionsPagination('orders', ordersData.totalPages, ordersData.currentPage)
         ),
 
         // My Leads Section
@@ -574,4 +655,4 @@ window.renderMyActionsContent = () => {
     );
 };
 
-console.log('✅ Enhanced My Actions Component loaded successfully with proper React state management');
+console.log('✅ Enhanced My Actions Component loaded successfully with finance order approval workflow');
