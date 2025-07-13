@@ -1393,6 +1393,9 @@ const updateOrdersPagination = (orders) => {
     }
   };
 
+  window.deleteDelivery = deleteDelivery;
+  console.log('🔍 deleteDelivery available:', typeof window.deleteDelivery === 'function');
+
   const closeForm = () => {
     setShowAddForm(false);
     setShowEditForm(false);
