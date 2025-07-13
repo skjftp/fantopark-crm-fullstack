@@ -3,6 +3,16 @@
 // Handles all major form submissions including leads, inventory, orders, and allocations
 
 // ✅ MAIN UNIVERSAL FORM SUBMISSION HANDLER - CLEANED AND FIXED
+
+window.assignOrderToSupplyTeam = async function(orderId) {
+  const assignee = await window.getSupplyTeamMember();
+  
+  // Use the existing logic that was working
+  if (window.appState?.assignOrderToService) {
+    await window.appState.assignOrderToService(orderId, assignee);
+  }
+};
+
 window.handleFormSubmit = async function(e) {
   console.log("🔍 Form submission started - showAddForm:", window.appState.showAddForm, "showEditForm:", window.appState.showEditForm);
   e.preventDefault();
