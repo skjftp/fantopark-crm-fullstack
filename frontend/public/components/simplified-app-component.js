@@ -2356,7 +2356,7 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
 
     const modulePermissions = userRole.permissions[module];
     if (!modulePermissions) {
-      console.log('Module permissions not found:', module);
+      //console.log('Module permissions not found:', module);
       return false;
     }
 
