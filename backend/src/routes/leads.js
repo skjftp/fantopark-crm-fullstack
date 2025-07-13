@@ -984,39 +984,21 @@ if (file) {
       stream.end(file.buffer);
     });
     
+    // Add file info to update data
+    updateData.quote_pdf_filename = uniqueFilename;
+    updateData.quote_file_size = file.size;
+    updateData.quote_file_path = filePath;
+    
     console.log(`✅ File uploaded to GCS with filename: ${uniqueFilename}`);
         
-        console.log(`📄 Uploading to GCS: ${filePath}`);
-        
-        // Upload to Google Cloud Storage
-        const gcsFile = bucket.file(filePath);
-        const stream = gcsFile.createWriteStream({
-          metadata: {
-            contentType: file.mimetype,
-          },
-        });
-        
-        await new Promise((resolve, reject) => {
-          stream.on('error', reject);
-          stream.on('finish', resolve);
-          stream.end(file.buffer);
-        });
-        
-        // Add file info to update data
-        updateData.quote_pdf_filename = uniqueFilename;
-        updateData.quote_file_size = file.size;
-        updateData.quote_file_path = filePath;
-        
-        console.log(`✅ File uploaded to GCS: ${filePath}`);
-        
-      } catch (uploadError) {
-        console.error('❌ GCS upload error:', uploadError);
-        return res.status(500).json({ 
-          success: false, 
-          error: 'File upload failed: ' + uploadError.message 
-        });
-      }
-    }
+  } catch (uploadError) {
+    console.error('❌ GCS upload error:', uploadError);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'File upload failed: ' + uploadError.message 
+    });
+  }
+}
     
     // Update the lead in Firestore
     await db.collection('crm_leads').doc(id).update(updateData);
