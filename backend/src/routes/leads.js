@@ -771,4 +771,146 @@ router.post('/:id/communications', authenticateToken, async (req, res) => {
   }
 });
 
+// backend/src/routes/leads.js
+// Add this to your existing leads.js file
+
+const express = require('express');
+const router = express.Router();
+const { db } = require('../config/db');
+const auth = require('../middleware/auth');
+const { Storage } = require('@google-cloud/storage');
+
+// Initialize Google Cloud Storage
+const storage = new Storage({
+  projectId: 'enduring-wharf-464005-h7', // Your project ID from the document
+});
+const bucket = storage.bucket('fantopark-quotes-bucket'); // You'll need to create this bucket
+
+// ===== EXISTING ROUTES (keep all your existing routes) =====
+// GET /leads, POST /leads, PUT /leads/:id, DELETE /leads/:id etc.
+
+// ===== NEW QUOTE DOWNLOAD ENDPOINT =====
+router.get('/:id/quote/download', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log(`📄 Quote download request for lead: ${id}`);
+    
+    // Get the lead from Firestore
+    const leadDoc = await db.collection('crm_leads').doc(id).get();
+    
+    if (!leadDoc.exists) {
+      console.log(`❌ Lead not found: ${id}`);
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Lead not found' 
+      });
+    }
+    
+    const leadData = leadDoc.data();
+    const filename = leadData.quote_pdf_filename;
+    
+    if (!filename) {
+      console.log(`❌ No quote file found for lead: ${id}`);
+      return res.status(404).json({ 
+        success: false, 
+        error: 'No quote file found for this lead' 
+      });
+    }
+    
+    // Construct the file path in Google Cloud Storage
+    // Assuming files are stored as: quotes/{leadId}/{filename}
+    const filePath = `quotes/${id}/${filename}`;
+    const file = bucket.file(filePath);
+    
+    console.log(`📄 Looking for file: ${filePath}`);
+    
+    // Check if file exists in GCS
+    const [exists] = await file.exists();
+    if (!exists) {
+      console.log(`❌ File not found in storage: ${filePath}`);
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Quote file not found in storage' 
+      });
+    }
+    
+    // Generate a signed URL for secure download
+    const [signedUrl] = await file.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 60 * 60 * 1000, // 1 hour expiry
+    });
+    
+    console.log(`✅ Generated download URL for: ${filename}`);
+    
+    res.json({
+      success: true,
+      downloadUrl: signedUrl,
+      filename: filename
+    });
+    
+  } catch (error) {
+    console.error('❌ Quote download error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error: ' + error.message 
+    });
+  }
+});
+
+// ===== ALTERNATIVE: DIRECT FILE SERVING ENDPOINT =====
+// If you prefer to stream files directly through your server
+router.get('/files/quotes/:leadId/:filename', auth, async (req, res) => {
+  try {
+    const { leadId, filename } = req.params;
+    
+    console.log(`📄 Direct file serve request: ${leadId}/${filename}`);
+    
+    // Verify the lead exists and user has permission
+    const leadDoc = await db.collection('crm_leads').doc(leadId).get();
+    if (!leadDoc.exists) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+    
+    // Verify the filename matches what's stored in the lead
+    const leadData = leadDoc.data();
+    if (leadData.quote_pdf_filename !== filename) {
+      return res.status(403).json({ error: 'File access denied' });
+    }
+    
+    // Construct file path
+    const filePath = `quotes/${leadId}/${filename}`;
+    const file = bucket.file(filePath);
+    
+    // Check if file exists
+    const [exists] = await file.exists();
+    if (!exists) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    // Set headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    // Stream the file
+    const stream = file.createReadStream();
+    stream.pipe(res);
+    
+    stream.on('error', (error) => {
+      console.error('❌ File stream error:', error);
+      if (!res.headersSent) {
+        res.status(500).send('Error downloading file');
+      }
+    });
+    
+    console.log(`✅ File streaming started: ${filename}`);
+    
+  } catch (error) {
+    console.error('❌ File serving error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+});
+
 module.exports = router;
