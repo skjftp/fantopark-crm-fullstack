@@ -1,29 +1,17 @@
 // =============================================================================
 // FIXED MY ACTIONS COMPONENT - REPLACE components/my-actions.js
 // =============================================================================
-// Enhanced with proper state synchronization and UI display logic
+// Enhanced with proper React state management for search and pagination
 
-// My Actions data arrays - safe defaults with immediate initialization
+// My Actions data arrays - safe defaults
 window.myReceivables = window.myReceivables || [];
 window.myLeads = window.myLeads || [];
 window.myOrders = window.myOrders || [];
 window.myDeliveries = window.myDeliveries || [];
 window.myQuoteRequested = window.myQuoteRequested || [];
 
-// Pagination state for My Actions
-window.myActionsPagination = window.myActionsPagination || {
-    leads: { currentPage: 1, itemsPerPage: 5 },
-    orders: { currentPage: 1, itemsPerPage: 5 },
-    deliveries: { currentPage: 1, itemsPerPage: 5 },
-    quotes: { currentPage: 1, itemsPerPage: 5 },
-    receivables: { currentPage: 1, itemsPerPage: 5 }
-};
-
-// Search state for My Actions
-window.myActionsSearch = window.myActionsSearch || '';
-
 // =============================================================================
-// MISSING FUNCTION: updateDeliveryStatus
+// DELIVERY STATUS UPDATE FUNCTION
 // =============================================================================
 
 window.updateDeliveryStatus = async function(deliveryId) {
@@ -83,6 +71,11 @@ window.updateDeliveryStatus = async function(deliveryId) {
                 window.myDeliveries[deliveryIndex].updated_date = new Date().toISOString();
             }
             
+            // Update React state if available
+            if (window.setMyDeliveries) {
+                window.setMyDeliveries([...window.myDeliveries]);
+            }
+            
             alert(`Delivery status updated to: ${selectedStatus.replace(/_/g, ' ').toUpperCase()}`);
             
             // Force refresh of My Actions
@@ -97,74 +90,125 @@ window.updateDeliveryStatus = async function(deliveryId) {
 };
 
 // =============================================================================
-// PAGINATION FUNCTIONS
+// PAGINATION AND FILTERING UTILITIES
 // =============================================================================
 
-window.setMyActionsPage = function(section, page) {
-    if (window.myActionsPagination[section]) {
-        window.myActionsPagination[section].currentPage = page;
-        // Force re-render by triggering state update
-        if (window.setActiveTab) {
-            window.setActiveTab('myactions');
-        }
-    }
-};
-
-// Get paginated data for a section
-window.getPaginatedData = function(items, section) {
-    const pagination = window.myActionsPagination[section];
-    if (!pagination || !items) return { items: [], currentPage: 1, totalPages: 1 };
+// Get paginated and filtered data for a section
+window.getMyActionsPaginatedData = function(items, section) {
+    const appState = window.appState;
+    if (!appState || !items) return { items: [], currentPage: 1, totalPages: 1, totalItems: 0 };
     
-    const { currentPage, itemsPerPage } = pagination;
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const totalPages = Math.ceil(items.length / itemsPerPage);
+    const { myActionsFilters, myActionsPagination } = appState;
+    if (!myActionsFilters || !myActionsPagination) {
+        console.warn('My Actions state not available');
+        return { items: [], currentPage: 1, totalPages: 1, totalItems: 0 };
+    }
+    
+    const searchQuery = myActionsFilters.searchQuery.toLowerCase().trim();
+    const pagination = myActionsPagination[section];
+    
+    // Filter by search query
+    let filteredItems = items;
+    if (searchQuery) {
+        filteredItems = items.filter(item => {
+            const searchableFields = [
+                item.company_name,
+                item.customer_name,
+                item.client_name,
+                item.name,
+                item.email,
+                item.phone,
+                item.order_id,
+                item.delivery_id,
+                item.id,
+                item.status,
+                item.temperature,
+                item.order_number,
+                item.event_name
+            ].filter(Boolean).join(' ').toLowerCase();
+            
+            return searchableFields.includes(searchQuery);
+        });
+    }
+    
+    // Calculate pagination
+    const totalItems = filteredItems.length;
+    const totalPages = Math.ceil(totalItems / pagination.itemsPerPage);
+    const currentPage = Math.min(pagination.currentPage, totalPages || 1);
+    const startIndex = (currentPage - 1) * pagination.itemsPerPage;
+    const endIndex = startIndex + pagination.itemsPerPage;
     
     return {
-        items: items.slice(startIndex, endIndex),
+        items: filteredItems.slice(startIndex, endIndex),
         currentPage,
         totalPages,
-        totalItems: items.length
+        totalItems
     };
 };
 
-// Filter items by search query
-window.filterBySearch = function(items, searchQuery) {
-    if (!searchQuery || !items) return items;
+// Change page for a specific section
+window.setMyActionsPage = function(section, page) {
+    const appState = window.appState;
+    if (!appState || !appState.setMyActionsPagination) {
+        console.warn('My Actions pagination state not available');
+        return;
+    }
     
-    const query = searchQuery.toLowerCase();
-    return items.filter(item => {
-        const searchableText = [
-            item.company_name,
-            item.customer_name,
-            item.client_name,
-            item.name,
-            item.email,
-            item.phone,
-            item.order_id,
-            item.delivery_id,
-            item.id,
-            item.status,
-            item.temperature
-        ].filter(Boolean).join(' ').toLowerCase();
-        
-        return searchableText.includes(query);
+    console.log(`📄 Changing ${section} page to:`, page);
+    
+    appState.setMyActionsPagination(prev => ({
+        ...prev,
+        [section]: {
+            ...prev[section],
+            currentPage: page
+        }
+    }));
+};
+
+// Update search query
+window.setMyActionsSearch = function(searchQuery) {
+    const appState = window.appState;
+    if (!appState || !appState.setMyActionsFilters) {
+        console.warn('My Actions filters state not available');
+        return;
+    }
+    
+    console.log('🔍 Updating search query to:', searchQuery);
+    
+    appState.setMyActionsFilters(prev => ({
+        ...prev,
+        searchQuery: searchQuery
+    }));
+    
+    // Reset all pages to 1 when searching
+    appState.setMyActionsPagination(prev => {
+        const newPagination = { ...prev };
+        Object.keys(newPagination).forEach(section => {
+            newPagination[section] = {
+                ...newPagination[section],
+                currentPage: 1
+            };
+        });
+        return newPagination;
     });
 };
 
-// Render pagination controls
+// =============================================================================
+// PAGINATION COMPONENT
+// =============================================================================
+
 window.renderMyActionsPagination = function(section, totalPages, currentPage) {
     if (totalPages <= 1) return null;
     
-    const createPageButton = (pageNum, isActive) => {
+    const createPageButton = (pageNum, isActive = false) => {
         return React.createElement('button', {
             key: pageNum,
             onClick: () => window.setMyActionsPage(section, pageNum),
             className: `px-3 py-1 mx-1 text-sm ${
-                isActive ? 
-                    'bg-blue-600 text-white' 
+                isActive 
+                    ? 'bg-blue-600 text-white' 
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            } rounded`
+            } rounded transition-colors duration-200`
         }, pageNum);
     };
     
@@ -184,7 +228,7 @@ window.renderMyActionsPagination = function(section, totalPages, currentPage) {
         pages.push(React.createElement('button', {
             key: 'prev',
             onClick: () => window.setMyActionsPage(section, currentPage - 1),
-            className: 'px-3 py-1 mx-1 text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 rounded'
+            className: 'px-3 py-1 mx-1 text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 rounded transition-colors duration-200'
         }, '‹'));
     }
     
@@ -198,7 +242,7 @@ window.renderMyActionsPagination = function(section, totalPages, currentPage) {
         pages.push(React.createElement('button', {
             key: 'next',
             onClick: () => window.setMyActionsPage(section, currentPage + 1),
-            className: 'px-3 py-1 mx-1 text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 rounded'
+            className: 'px-3 py-1 mx-1 text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 rounded transition-colors duration-200'
         }, '›'));
     }
     
@@ -219,7 +263,18 @@ window.renderMyActionsContent = () => {
     console.log('myQuoteRequested length:', window.myQuoteRequested?.length || 0);
     console.log('myReceivables length:', window.myReceivables?.length || 0);
 
-    // ✅ ENHANCED hasActions calculation with better debugging
+    // Check if app state is available
+    const appState = window.appState;
+    if (!appState) {
+        return React.createElement('div', { className: 'p-8 text-center' },
+            React.createElement('div', { className: 'text-4xl mb-4' }, '⏳'),
+            React.createElement('p', { className: 'text-gray-500' }, 'Loading My Actions...')
+        );
+    }
+
+    const { myActionsFilters } = appState;
+    
+    // Calculate if we have actions
     const totalOverdueAmount = (window.myReceivables || []).reduce((sum, rec) => sum + (rec.amount || 0), 0);
     const hasActions = (window.myLeads?.length || 0) > 0 || 
                       (window.myOrders?.length || 0) > 0 || 
@@ -230,35 +285,17 @@ window.renderMyActionsContent = () => {
     console.log('🎯 hasActions calculation result:', hasActions);
     console.log('🎯 loading state:', window.loading);
     
-    // Get paginated data for each section (with search filtering)
-    const searchQuery = window.myActionsSearch;
-    
-    const leadsData = window.getPaginatedData(
-        window.filterBySearch(window.myLeads || [], searchQuery), 
-        'leads'
-    );
-    
-    const quotesData = window.getPaginatedData(
-        window.filterBySearch(window.myQuoteRequested || [], searchQuery), 
-        'quotes'
-    );
-    
-    const ordersData = window.getPaginatedData(
-        window.filterBySearch(window.myOrders || [], searchQuery), 
-        'orders'
-    );
-    
-    const deliveriesData = window.getPaginatedData(
-        window.filterBySearch(window.myDeliveries || [], searchQuery), 
-        'deliveries'
-    );
-    
-    const receivablesData = window.getPaginatedData(
-        window.filterBySearch(window.myReceivables || [], searchQuery), 
-        'receivables'
-    );
+    // Get paginated data for each section
+    const leadsData = window.getMyActionsPaginatedData(window.myLeads || [], 'leads');
+    const quotesData = window.getMyActionsPaginatedData(window.myQuoteRequested || [], 'quotes');
+    const ordersData = window.getMyActionsPaginatedData(window.myOrders || [], 'orders');
+    const deliveriesData = window.getMyActionsPaginatedData(window.myDeliveries || [], 'deliveries');
+    const receivablesData = window.getMyActionsPaginatedData(window.myReceivables || [], 'receivables');
+
+    const searchQuery = myActionsFilters?.searchQuery || '';
 
     return React.createElement('div', { className: 'space-y-6' },
+        // Header
         React.createElement('div', { className: 'flex justify-between items-center' },
             React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'My Actions'),
             React.createElement('button', {
@@ -266,7 +303,7 @@ window.renderMyActionsContent = () => {
                     console.log('🔄 Manual refresh triggered');
                     window.fetchMyActions && window.fetchMyActions();
                 },
-                className: 'text-blue-600 hover:text-blue-700 flex items-center gap-2'
+                className: 'text-blue-600 hover:text-blue-700 flex items-center gap-2 px-4 py-2 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors duration-200'
             }, 
                 React.createElement('span', null, '↻'),
                 'Refresh'
@@ -279,26 +316,21 @@ window.renderMyActionsContent = () => {
                 React.createElement('div', { className: 'flex-1' },
                     React.createElement('input', {
                         type: 'text',
-                        placeholder: 'Search across all sections...',
-                        value: window.myActionsSearch,
+                        placeholder: 'Search across all sections (company, customer, order ID, etc.)...',
+                        value: searchQuery,
                         onChange: (e) => {
-                            window.myActionsSearch = e.target.value;
-                            // Force re-render
-                            if (window.setActiveTab) {
-                                window.setActiveTab('myactions');
-                            }
+                            console.log('🔍 Search input changed:', e.target.value);
+                            window.setMyActionsSearch(e.target.value);
                         },
-                        className: 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                        className: 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200'
                     })
                 ),
                 searchQuery && React.createElement('button', {
                     onClick: () => {
-                        window.myActionsSearch = '';
-                        if (window.setActiveTab) {
-                            window.setActiveTab('myactions');
-                        }
+                        console.log('🔍 Clearing search');
+                        window.setMyActionsSearch('');
                     },
-                    className: 'px-4 py-2 text-gray-600 hover:text-gray-800'
+                    className: 'px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200'
                 }, 'Clear')
             )
         ),
@@ -321,13 +353,11 @@ window.renderMyActionsContent = () => {
                 ),
                 React.createElement('button', {
                     onClick: () => window.setActiveTab && window.setActiveTab('finance'),
-                    className: 'bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700'
+                    className: 'bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200'
                 }, 'View Details')
             )
         ),
 
-        // ✅ ENHANCED: Show sections even if empty, but with different styling
-        
         // My Leads Section
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
             React.createElement('div', { className: 'p-4 border-b flex justify-between items-center' },
@@ -352,7 +382,7 @@ window.renderMyActionsContent = () => {
                     ),
                     React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200' },
                         leadsData.items.map(lead => 
-                            React.createElement('tr', { key: lead.id, className: 'hover:bg-gray-50' },
+                            React.createElement('tr', { key: lead.id, className: 'hover:bg-gray-50 transition-colors duration-200' },
                                 React.createElement('td', { className: 'px-4 py-3' },
                                     React.createElement('div', { className: 'font-medium text-gray-900' }, 
                                         lead.company_name || lead.name || 'Unknown'
@@ -379,7 +409,7 @@ window.renderMyActionsContent = () => {
                                 React.createElement('td', { className: 'px-4 py-3' },
                                     React.createElement('button', {
                                         onClick: () => window.openLeadDetail && window.openLeadDetail(lead),
-                                        className: 'text-blue-600 hover:text-blue-800 text-sm'
+                                        className: 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50 transition-colors duration-200'
                                     }, 'View Details')
                                 )
                             )
@@ -388,7 +418,7 @@ window.renderMyActionsContent = () => {
                 )
             ) : React.createElement('div', { className: 'p-8 text-center text-gray-500' },
                 React.createElement('div', { className: 'text-4xl mb-2' }, '📋'),
-                React.createElement('p', null, 'No leads assigned to you')
+                React.createElement('p', null, searchQuery ? 'No leads found matching your search' : 'No leads assigned to you')
             ),
             window.renderMyActionsPagination('leads', leadsData.totalPages, leadsData.currentPage)
         ),
@@ -417,7 +447,7 @@ window.renderMyActionsContent = () => {
                     ),
                     React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200' },
                         quotesData.items.map(lead => 
-                            React.createElement('tr', { key: lead.id, className: 'hover:bg-gray-50' },
+                            React.createElement('tr', { key: lead.id, className: 'hover:bg-gray-50 transition-colors duration-200' },
                                 React.createElement('td', { className: 'px-4 py-3' },
                                     React.createElement('div', { className: 'font-medium text-gray-900' }, 
                                         lead.company_name || lead.name || 'Unknown'
@@ -438,7 +468,7 @@ window.renderMyActionsContent = () => {
                                 React.createElement('td', { className: 'px-4 py-3' },
                                     React.createElement('button', {
                                         onClick: () => window.openLeadDetail && window.openLeadDetail(lead),
-                                        className: 'text-orange-600 hover:text-orange-800 text-sm'
+                                        className: 'text-orange-600 hover:text-orange-800 text-sm px-2 py-1 rounded border border-orange-200 hover:bg-orange-50 transition-colors duration-200'
                                     }, 'Create Quote')
                                 )
                             )
@@ -447,7 +477,7 @@ window.renderMyActionsContent = () => {
                 )
             ) : React.createElement('div', { className: 'p-8 text-center text-gray-500' },
                 React.createElement('div', { className: 'text-4xl mb-2' }, '📋'),
-                React.createElement('p', null, 'No quote requests pending')
+                React.createElement('p', null, searchQuery ? 'No quote requests found matching your search' : 'No quote requests pending')
             ),
             window.renderMyActionsPagination('quotes', quotesData.totalPages, quotesData.currentPage)
         ),
@@ -477,7 +507,7 @@ window.renderMyActionsContent = () => {
                     ),
                     React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200' },
                         deliveriesData.items.map(delivery => 
-                            React.createElement('tr', { key: delivery.id, className: 'hover:bg-gray-50' },
+                            React.createElement('tr', { key: delivery.id, className: 'hover:bg-gray-50 transition-colors duration-200' },
                                 React.createElement('td', { className: 'px-4 py-3 font-mono text-sm' }, 
                                     delivery.id?.slice(-8) || '-'
                                 ),
@@ -508,7 +538,7 @@ window.renderMyActionsContent = () => {
                                 React.createElement('td', { className: 'px-4 py-3' },
                                     React.createElement('button', {
                                         onClick: () => window.updateDeliveryStatus(delivery.id),
-                                        className: 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50'
+                                        className: 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50 transition-colors duration-200'
                                     }, 'Update Status')
                                 )
                             )
@@ -517,13 +547,13 @@ window.renderMyActionsContent = () => {
                 )
             ) : React.createElement('div', { className: 'p-8 text-center text-gray-500' },
                 React.createElement('div', { className: 'text-4xl mb-2' }, '🚚'),
-                React.createElement('p', null, 'No deliveries assigned to you')
+                React.createElement('p', null, searchQuery ? 'No deliveries found matching your search' : 'No deliveries assigned to you')
             ),
             window.renderMyActionsPagination('deliveries', deliveriesData.totalPages, deliveriesData.currentPage)
         ),
 
-        // ✅ ENHANCED: Show "No Actions Required" only when truly no data AND not loading
-        !hasActions && !window.loading && React.createElement('div', { className: 'text-center py-12' },
+        // No actions message (only when truly no data AND not loading AND no search)
+        !hasActions && !window.loading && !searchQuery && React.createElement('div', { className: 'text-center py-12' },
             React.createElement('div', { className: 'text-6xl mb-4' }, '📋'),
             React.createElement('h3', { className: 'text-xl font-medium text-gray-900 mb-2' }, 'No Actions Required'),
             React.createElement('p', { className: 'text-gray-500 mb-4' }, 'You have no pending leads, orders, or deliveries assigned to you.'),
@@ -532,7 +562,7 @@ window.renderMyActionsContent = () => {
                     console.log('🔄 Check for Updates clicked');
                     window.fetchMyActions && window.fetchMyActions();
                 },
-                className: 'bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700'
+                className: 'bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200'
             }, 'Check for Updates')
         ),
 
@@ -544,4 +574,4 @@ window.renderMyActionsContent = () => {
     );
 };
 
-console.log('✅ Enhanced My Actions Component loaded successfully with pagination, search, and fixes');
+console.log('✅ Enhanced My Actions Component loaded successfully with proper React state management');
