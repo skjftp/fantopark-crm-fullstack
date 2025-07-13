@@ -1790,7 +1790,7 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
   window.handleDeleteStadium = async (stadiumId, stadiumName) => {
     console.log("🗑️ handleDeleteStadium called:", stadiumId, stadiumName);
     
-    if (!window.hasPermission('admin', 'delete')) {
+    if (!window.hasPermission('stadiums', 'delete')) {
       alert('You do not have permission to delete stadiums');
       return;
     }
@@ -1826,7 +1826,7 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
   window.populateDefaultStadiums = async () => {
     console.log("🏟️ populateDefaultStadiums called");
     
-    if (!window.hasPermission('admin', 'write')) {
+    if (!window.hasPermission('stadiums', 'write')) {
       alert('You do not have permission to add stadiums');
       return;
     }
