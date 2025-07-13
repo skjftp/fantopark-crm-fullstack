@@ -693,4 +693,310 @@ const viewInvoice = window.viewInvoice;
   );
 };
 
+// =============================================================================
+// STEP 2: ORDER ACTIONS INTEGRATION FOR ENHANCED WORKFLOW
+// =============================================================================
+// Add this code to your existing orders.js or create components/order-workflow-integration.js
+
+// Enhanced order actions with approval workflow
+window.enhancedOrderActions = {
+  
+  // Open edit order form with enhanced functionality
+  openEditOrderForm: function(order) {
+    console.log('Opening enhanced edit form for order:', order.id);
+    
+    // Store original assignee if not already stored
+    if (!order.original_assignee && order.created_by) {
+      order.original_assignee = order.created_by;
+    }
+    
+    window.setCurrentOrderForEdit(order);
+    window.setShowEditOrderForm(true);
+  },
+
+  // Approve order with workflow automation
+  approveOrder: async function(orderId, notes = '') {
+    if (!confirm('Approve this order? This will trigger automatic assignment based on order type.')) {
+      return;
+    }
+
+    await window.handleOrderApproval(orderId, 'approve', notes);
+  },
+
+  // Reject order with reassignment to original person
+  rejectOrder: async function(orderId) {
+    const reason = prompt('Please provide a reason for rejection:');
+    if (!reason) {
+      alert('Rejection reason is required');
+      return;
+    }
+
+    if (!confirm('Reject this order? It will be reassigned to the original sales person.')) {
+      return;
+    }
+
+    await window.handleOrderApproval(orderId, 'reject', reason);
+  },
+
+  // Quick assign to specific user
+  quickAssignOrder: function(orderId) {
+    const allUsers = (window.users || []).filter(u => u.status === 'active');
+    
+    if (allUsers.length === 0) {
+      alert('No active users available for assignment');
+      return;
+    }
+
+    // Create a modal or prompt for user selection
+    const userOptions = allUsers.map(u => `${u.name} (${window.getRoleDisplayName ? window.getRoleDisplayName(u.role) : u.role})`).join('\n');
+    const selectedIndex = prompt(`Select user to assign to:\n\n${userOptions}\n\nEnter the number (1-${allUsers.length}):`);
+    
+    if (selectedIndex && !isNaN(selectedIndex)) {
+      const index = parseInt(selectedIndex) - 1;
+      if (index >= 0 && index < allUsers.length) {
+        const selectedUser = allUsers[index];
+        window.assignOrderToUser(orderId, selectedUser.email, 'Manual assignment via quick assign');
+      } else {
+        alert('Invalid selection');
+      }
+    }
+  },
+
+  // Reassign to original sales person
+  reassignToOriginal: async function(orderId) {
+    const order = window.orders.find(o => o.id === orderId);
+    if (!order) {
+      alert('Order not found');
+      return;
+    }
+
+    const originalAssignee = order.original_assignee || order.created_by;
+    if (!originalAssignee) {
+      alert('No original assignee found for this order');
+      return;
+    }
+
+    if (confirm(`Reassign this order back to ${originalAssignee}?`)) {
+      await window.assignOrderToUser(orderId, originalAssignee, 'Reassigned to original sales person');
+    }
+  }
+};
+
+// =============================================================================
+// ENHANCED ORDER ACTION BUTTONS RENDERER
+// =============================================================================
+// Replace your existing order action buttons with this enhanced version
+
+window.renderEnhancedOrderActions = function(order) {
+  const { hasPermission } = window;
+  
+  if (!hasPermission) {
+    console.warn('hasPermission function not found');
+    return [];
+  }
+
+  const actions = [];
+
+  // Common actions for all orders
+  if (hasPermission('orders', 'read')) {
+    actions.push(
+      React.createElement('button', {
+        key: 'view',
+        onClick: () => window.viewOrderDetail(order),
+        className: 'px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200',
+        title: 'View order details'
+      }, 'View')
+    );
+  }
+
+  // Status-specific actions
+  switch (order.status) {
+    case 'pending_approval':
+      // Finance manager actions for pending orders
+      if (hasPermission('orders', 'approve') && 
+          (window.user?.role === 'finance_manager' || window.user?.role === 'supply_sales_service_manager' || window.user?.role === 'super_admin')) {
+        actions.push(
+          React.createElement('button', {
+            key: 'approve',
+            onClick: () => window.enhancedOrderActions.approveOrder(order.id),
+            className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
+            title: 'Approve this order and auto-assign to supply team'
+          }, '✅ Approve'),
+          
+          React.createElement('button', {
+            key: 'reject',
+            onClick: () => window.enhancedOrderActions.rejectOrder(order.id),
+            className: 'px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200',
+            title: 'Reject this order and return to original sales person'
+          }, '❌ Reject')
+        );
+      }
+      break;
+
+    case 'approved':
+    case 'assigned':
+      // Actions for approved orders
+      if (hasPermission('orders', 'read')) {
+        actions.push(
+          React.createElement('button', {
+            key: 'invoice',
+            onClick: () => window.viewInvoice(order),
+            className: 'px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200',
+            title: 'View/Generate invoice'
+          }, '📄 Invoice')
+        );
+      }
+
+      if (hasPermission('orders', 'assign')) {
+        actions.push(
+          React.createElement('button', {
+            key: 'reassign',
+            onClick: () => window.enhancedOrderActions.quickAssignOrder(order.id),
+            className: 'px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200',
+            title: 'Assign to a different user'
+          }, '👥 Reassign')
+        );
+      }
+      break;
+
+    case 'in_progress':
+    case 'service_assigned':
+      // Actions for in-progress orders
+      if (hasPermission('orders', 'write')) {
+        actions.push(
+          React.createElement('button', {
+            key: 'complete',
+            onClick: () => window.completeOrder(order.id),
+            className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
+            title: 'Mark as completed'
+          }, '✅ Complete')
+        );
+      }
+      break;
+
+    case 'rejected':
+      // Actions for rejected orders
+      actions.push(
+        React.createElement('span', {
+          key: 'rejected-status',
+          className: 'px-2 py-1 text-xs bg-red-100 text-red-700 rounded',
+          title: order.rejection_reason || 'Order was rejected'
+        }, '❌ Rejected')
+      );
+      break;
+  }
+
+  // Edit action (available for most statuses except completed/cancelled)
+  if (hasPermission('orders', 'write') && 
+      !['completed', 'cancelled', 'delivered'].includes(order.status)) {
+    actions.push(
+      React.createElement('button', {
+        key: 'edit',
+        onClick: () => window.enhancedOrderActions.openEditOrderForm(order),
+        className: 'px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200',
+        title: 'Edit order details'
+      }, '✏️ Edit')
+    );
+  }
+
+  // Reassign to Original button (show for non-original assignees)
+  if (hasPermission('orders', 'assign') && 
+      order.original_assignee && 
+      order.assigned_to !== order.original_assignee &&
+      !['completed', 'cancelled', 'delivered'].includes(order.status)) {
+    actions.push(
+      React.createElement('button', {
+        key: 'reassign-original',
+        onClick: () => window.enhancedOrderActions.reassignToOriginal(order.id),
+        className: 'px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200',
+        title: `Reassign back to original sales person: ${order.original_assignee}`
+      }, '↩️ To Original')
+    );
+  }
+
+  // Delete action (for super admins only)
+  if (hasPermission('orders', 'delete') && window.user?.role === 'super_admin') {
+    actions.push(
+      React.createElement('button', {
+        key: 'delete',
+        onClick: () => {
+          if (confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+            window.deleteOrder(order.id);
+          }
+        },
+        className: 'px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200',
+        title: 'Delete this order (Admin only)'
+      }, '🗑️ Delete')
+    );
+  }
+
+  return actions;
+};
+
+// =============================================================================
+// INTEGRATION WITH LEAD STATUS UPDATES
+// =============================================================================
+// Add this to your lead-status-management.js to trigger order creation
+
+window.integrateOrderCreationWithLeadStatus = function() {
+  // Store original updateLeadStatus function
+  const originalUpdateLeadStatus = window.updateLeadStatus;
+  
+  // Enhanced updateLeadStatus with order creation
+  window.updateLeadStatus = async function(leadId, newStatus) {
+    console.log('🔄 Enhanced lead status update:', leadId, newStatus);
+    
+    // Call original function first
+    await originalUpdateLeadStatus(leadId, newStatus);
+    
+    // Check if we need to create an order
+    if (newStatus === 'payment_received' || newStatus === 'payment_post_service') {
+      const lead = window.leads.find(l => l.id === leadId);
+      if (lead) {
+        console.log('📋 Creating order for lead status:', newStatus);
+        
+        try {
+          const orderType = newStatus === 'payment_post_service' ? 'payment_post_service' : 'standard';
+          await window.createOrderFromLead(lead, orderType);
+          
+          console.log('✅ Order created and auto-assigned successfully');
+          
+          // Refresh orders data
+          if (window.fetchOrders) {
+            window.fetchOrders();
+          }
+          
+        } catch (error) {
+          console.error('❌ Failed to create order from lead:', error);
+          alert('Order creation failed: ' + error.message);
+        }
+      }
+    }
+  };
+  
+  console.log('🔗 Order creation integrated with lead status updates');
+};
+
+// =============================================================================
+// INITIALIZATION
+// =============================================================================
+// Auto-initialize when loaded
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    // Integrate with existing system
+    if (window.updateLeadStatus) {
+      window.integrateOrderCreationWithLeadStatus();
+    }
+    
+    // Replace existing order actions renderer if it exists
+    if (window.renderOrderActions) {
+      window.renderOrderActions = window.renderEnhancedOrderActions;
+    }
+    
+    console.log('✅ Enhanced order workflow integration completed');
+  }, 1000);
+});
+
+console.log('✅ Order Actions Integration for Enhanced Workflow loaded successfully');
+
 console.log("✅ ENHANCED: Orders component with search filters and pagination loaded successfully");
