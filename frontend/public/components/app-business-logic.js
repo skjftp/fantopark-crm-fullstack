@@ -339,27 +339,21 @@ window.renderAppBusinessLogic = function() {
     openAssignForm(lead);
   };
 
-  // ✅ MISSING FUNCTION: fetchUsers
-  const fetchUsers = async () => {
+ const fetchUsers = async () => {
     try {
       const response = await window.apiCall('/users');
       
-      // ✅ FIX: Use window.setUsers instead of React state setters
-      if (window.setUsers) {
-        window.setUsers(response.data || []);
-      } else {
-        // Fallback: set directly
-        window.users = response.data || [];
-        window.allUsers = response.data || [];
-        if (!window.appState) window.appState = {};
-        window.appState.users = response.data || [];
-      }
+      // ✅ BYPASS window.setUsers completely - set directly
+      window.users = response.data || [];
+      window.allUsers = response.data || [];
+      if (!window.appState) window.appState = {};
+      window.appState.users = response.data || [];
       
       // Also call React setters if they exist
       if (setUsers) setUsers(response.data || []);
       if (setAllUsers) setAllUsers(response.data || []);
       
-      console.log(`Fetched ${response.data?.length || 0} users`);
+      console.log(`Fetched ${response.data?.length || 0} users to all locations`);
     } catch (error) {
       console.error('Failed to fetch users:', error);
     }
