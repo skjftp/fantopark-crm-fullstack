@@ -21,7 +21,7 @@ window.renderAppEffects = function() {
     dashboardFilter, selectedSalesPerson, selectedEvent, chartInstances,
     statusDropdownRef, showStatusFilterDropdown, setShowStatusFilterDropdown,
     setUser, setCurrentUser, setIsLoggedIn, setUsers, setActiveTab,
-    rolesLoaded, dynamicRoles, setDynamicRoles, setRolesLoaded,
+    rolesLoaded, dynamicRoles, setDynamicRoles, setRolesLoaded,setDashboardFilter, setSelectedSalesPerson, setSelectedEvent,
     // My Actions state
     myLeads, myOrders, myDeliveries, myQuoteRequested, myReceivables,
     setMyLeads, setMyOrders, setMyDeliveries, setMyQuoteRequested, setMyReceivables
