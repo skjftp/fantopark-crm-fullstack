@@ -2625,6 +2625,40 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
 
   window.getFilteredLeads = getFilteredLeads;
 
+  // ✅ FIXED: Add this function to your existing simplified-app-component.js
+window.openInvoicePreview = handlers.openInvoicePreview || ((invoice) => {
+  console.log("📄 openInvoicePreview called with:", invoice);
+  
+  if (!invoice) {
+    console.error("❌ No invoice data provided");
+    alert("No invoice data available");
+    return;
+  }
+
+  console.log("📊 Invoice details:", {
+    invoice_number: invoice.invoice_number,
+    client_name: invoice.client_name || invoice.legal_name,
+    final_amount: invoice.final_amount
+  });
+
+  // Set the invoice data in app state
+  if (window.setCurrentInvoice && window.setShowInvoicePreview) {
+    window.setCurrentInvoice(invoice);
+    window.setShowInvoicePreview(true);
+    console.log("✅ Invoice preview opened via app state");
+  } else {
+    // Fallback: Set directly on window for backward compatibility
+    window.currentInvoice = invoice;
+    window.showInvoicePreview = true;
+    console.log("✅ Invoice preview opened via window fallback");
+    
+    // Force a re-render if the function is available
+    if (window.forceRender) {
+      window.forceRender();
+    }
+  }
+});
+
   // ✅ SPORTS CALENDAR FALLBACK FUNCTION - Ensures always available
 window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() => {
   console.log("🔍 FALLBACK: renderSportsCalendarContent called");
