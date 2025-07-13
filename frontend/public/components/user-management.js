@@ -213,13 +213,33 @@ window.handleUserSubmit = async (e) => {
 };
 
 window.fetchUsers = async () => {
+    console.log("🔍 fetchUsers called");
+    
     try {
+        console.log("🌐 Making API call to /users");
         const response = await window.apiCall('/users');
+        
+        console.log("📡 API response received");
+        
         if (response.data) {
+            console.log("✅ Users fetched successfully:", response.data.length, "users");
+            
+            // Use the enhanced setUsers function
             window.setUsers(response.data);
+            
+            // Force a manual sync to appState as well
+            if (window.appState) {
+                window.appState.users = response.data;
+            }
+            
+        } else {
+            console.warn("⚠️ No users data in API response");
+            window.setUsers([]);
         }
     } catch (error) {
-        console.error('Failed to fetch users:', error);
+        console.error('❌ Failed to fetch users:', error);
+        // Set empty array on error to prevent undefined issues
+        window.setUsers([]);
     }
 };
 
