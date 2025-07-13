@@ -1494,71 +1494,104 @@ root.render(React.createElement(window.SimplifiedApp));
   // ===============================================
   // CHART UPDATE FUNCTION
   // ===============================================
-  window.updateChartsWithData = function(leads) {
-    // Get filtered leads based on current filter settings
-    let filteredLeads = [...(window.leads || [])];
-    
-    // Apply sales person filter
-    if (window.dashboardFilter === 'salesPerson' && window.selectedSalesPerson) {
-      const selectedUser = (window.users || []).find(user => 
-        user.id === window.selectedSalesPerson || user.email === window.selectedSalesPerson
-      );
-      if (selectedUser) {
-        filteredLeads = filteredLeads.filter(lead => lead.assigned_to === selectedUser.email);
-      }
+  // Add this script to your index.html, replacing the incomplete updateChartsWithData function
+<script>
+window.updateChartsWithData = function(leads) {
+  console.log('🔄 Updating charts with filtered data...');
+  
+  // Get filtered leads based on current filter settings
+  let filteredLeads = [...(window.leads || [])];
+  
+  console.log('📊 Filter state:', {
+    dashboardFilter: window.dashboardFilter,
+    selectedSalesPerson: window.selectedSalesPerson,
+    selectedEvent: window.selectedEvent,
+    totalLeads: filteredLeads.length
+  });
+  
+  // Apply sales person filter
+  if (window.dashboardFilter === 'salesPerson' && window.selectedSalesPerson) {
+    const selectedUser = (window.users || []).find(user => 
+      user.id === window.selectedSalesPerson || user.email === window.selectedSalesPerson
+    );
+    if (selectedUser) {
+      filteredLeads = filteredLeads.filter(lead => lead.assigned_to === selectedUser.email);
+      console.log('👤 Filtered by sales person:', selectedUser.name, '→', filteredLeads.length, 'leads');
     }
-    // Apply event filter
-    else if (window.dashboardFilter === 'event' && window.selectedEvent) {
-      filteredLeads = filteredLeads.filter(lead => lead.lead_for_event === window.selectedEvent);
+  }
+  // Apply event filter
+  else if (window.dashboardFilter === 'event' && window.selectedEvent) {
+    filteredLeads = filteredLeads.filter(lead => lead.lead_for_event === window.selectedEvent);
+    console.log('🎪 Filtered by event:', window.selectedEvent, '→', filteredLeads.length, 'leads');
+  }
+  
+  // Calculate chart data from filtered leads
+  const qualified = filteredLeads.filter(l => (l.status || '').toLowerCase() === 'qualified').length;
+  const junk = filteredLeads.filter(l => (l.status || '').toLowerCase() === 'junk').length;
+  const hot = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'hot').length;
+  const warm = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'warm').length;
+  const cold = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'cold').length;
+  
+  // Calculate temperature values
+  const hotValue = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'hot')
+    .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+  const warmValue = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'warm')
+    .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+  const coldValue = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'cold')
+    .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+  
+  console.log('📊 Chart data:', { qualified, junk, hot, warm, cold, hotValue, warmValue, coldValue });
+  
+  // Update Lead Split Chart
+  const canvas1 = document.getElementById('leadSplitChart');
+  if (canvas1) {
+    const chart1 = Chart.getChart(canvas1);
+    if (chart1) {
+      chart1.data.labels = [`Qualified (${qualified})`, `Junk (${junk})`];
+      chart1.data.datasets[0].data = [qualified, junk];
+      chart1.update('active');
+      console.log('✅ Updated Lead Split Chart');
     }
-    
-    // Calculate chart data from filtered leads
-    const qualified = filteredLeads.filter(l => (l.status || '').toLowerCase() === 'qualified').length;
-    const junk = filteredLeads.filter(l => (l.status || '').toLowerCase() === 'junk').length;
-    const hot = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'hot').length;
-    const warm = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'warm').length;
-    const cold = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'cold').length;
-    
-    // Calculate temperature values
-    const hotValue = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'hot')
-      .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
-    const warmValue = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'warm')
-      .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
-    const coldValue = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'cold')
-      .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
-    
-    // Update Lead Split Chart
-    const canvas1 = document.getElementById('leadSplitChart');
-    if (canvas1) {
-      const chart1 = Chart.getChart(canvas1);
-      if (chart1) {
-        chart1.data.labels = [`Qualified (${qualified})`, `Junk (${junk})`];
-        chart1.data.datasets[0].data = [qualified, junk];
-        chart1.update('active');
-      }
+  }
+  
+  // Update Temperature Count Chart
+  const canvas2 = document.getElementById('tempCountChart');
+  if (canvas2) {
+    const chart2 = Chart.getChart(canvas2);
+    if (chart2) {
+      chart2.data.labels = [`Hot (${hot})`, `Warm (${warm})`, `Cold (${cold})`];
+      chart2.data.datasets[0].data = [hot, warm, cold];
+      chart2.update('active');
+      console.log('✅ Updated Temperature Count Chart');
     }
-    
-    // Update Temperature Count Chart
-    const canvas2 = document.getElementById('tempCountChart');
-    if (canvas2) {
-      const chart2 = Chart.getChart(canvas2);
-      if (chart2) {
-        chart2.data.labels = [`Hot (${hot})`, `Warm (${warm})`, `Cold (${cold})`];
-        chart2.data.datasets[0].data = [hot, warm, cold];
-        chart2.update('active');
-      }
+  }
+  
+  // Update Temperature Value Chart
+  const canvas3 = document.getElementById('tempValueChart');
+  if (canvas3) {
+    const chart3 = Chart.getChart(canvas3);
+    if (chart3) {
+      chart3.data.datasets[0].data = [hotValue, warmValue, coldValue];
+      chart3.update('active');
+      console.log('✅ Updated Temperature Value Chart');
     }
-    
-    // Update Temperature Value Chart
-    const canvas3 = document.getElementById('tempValueChart');
-    if (canvas3) {
-      const chart3 = Chart.getChart(canvas3);
-      if (chart3) {
-        chart3.data.datasets[0].data = [hotValue, warmValue, coldValue];
-        chart3.update('active');
-      }
+  }
+  
+  console.log('✅ All charts updated successfully');
+};
+
+// Create the missing handleChartFilterChange function
+window.handleChartFilterChange = function() {
+  console.log('🎯 handleChartFilterChange called');
+  setTimeout(() => {
+    if (window.updateChartsWithData && window.leads) {
+      window.updateChartsWithData(window.leads);
     }
-  };
+  }, 100);
+};
+
+console.log('✅ Chart update functions loaded');
+</script>
   
   // ===============================================
   // CHART CREATION FUNCTION
