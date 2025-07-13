@@ -427,7 +427,7 @@ window.renderEnhancedPaymentForm = () => {
           React.createElement('h3', { className: 'text-lg font-semibold text-gray-800 mb-4' }, '📎 Document Upload'),
           React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
             React.createElement('div', null,
-              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'GST Certificate'),
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'GST Certificate/Address Proof(Foreign)'),
               React.createElement('input', {
                 type: 'file',
                 accept: '.pdf,.jpg,.jpeg,.png',
