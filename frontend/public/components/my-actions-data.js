@@ -246,7 +246,7 @@ window.filterOrdersByRole = function(orders, userRole, userEmail) {
     case 'supply_executive':
       // Supply team members can see all orders assigned to ANY supply team member
       return orders.filter(order => {
-        if (order.status !== 'approved') return false;
+        if (order.status !== 'approved' && order.status !== 'pending_approval') return false;
         
         // Check if assigned to any supply team member
         const supplyRoles = ['supply_manager', 'supply_service_manager', 'supply_sales_service_manager', 'supply_executive'];
