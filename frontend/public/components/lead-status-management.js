@@ -97,12 +97,36 @@ window.getSupplySalesServiceManager = async function() {
   }
 };
 
+// ✅ FIXED: Enhanced getSupplyTeamMember with user loading check
+// Replace the existing getSupplyTeamMember function
+
 window.getSupplyTeamMember = async function() {
   console.log('🔍 === DEBUG getSupplyTeamMember CALLED ===');
   console.log('🔍 window.users length:', window.users?.length || 'undefined');
   console.log('🔍 window.users:', window.users);
   
   try {
+    // 🔧 FIXED: If users are not loaded, fetch them first
+    if (!window.users || window.users.length === 0) {
+      console.log('🔄 Users not loaded, fetching users first...');
+      
+      // Try to fetch users
+      if (window.fetchUsers && typeof window.fetchUsers === 'function') {
+        await window.fetchUsers();
+        console.log('✅ Users fetched, new length:', window.users?.length);
+      } else {
+        // Manual API call if fetchUsers function not available
+        try {
+          const usersResponse = await window.apiCall('/users');
+          window.users = usersResponse.data || usersResponse || [];
+          window.setUsers && window.setUsers(window.users);
+          console.log('✅ Users fetched manually, length:', window.users.length);
+        } catch (fetchError) {
+          console.error('❌ Failed to fetch users:', fetchError);
+        }
+      }
+    }
+    
     // Get all supply team members
     const supplyTeamMembers = window.users.filter(user => {
       const isSupplyRole = ['supply_manager', 'supply_service_manager', 'supply_sales_service_manager'].includes(user.role);
@@ -117,7 +141,20 @@ window.getSupplyTeamMember = async function() {
     
     if (supplyTeamMembers.length === 0) {
       console.warn('⚠️ No active supply team members found, using fallback');
-      return 'akshay@fantopark.com'; // fallback
+      
+      // Enhanced fallback - try to find any admin or manager
+      const fallbackUsers = window.users.filter(user => 
+        user.status === 'active' && 
+        ['admin', 'super_admin', 'supply_manager'].includes(user.role)
+      );
+      
+      if (fallbackUsers.length > 0) {
+        console.log('🔄 Using fallback user:', fallbackUsers[0].email);
+        return fallbackUsers[0].email;
+      }
+      
+      // Last resort fallback
+      return 'akshay@fantopark.com';
     }
     
     console.log('✅ Found', supplyTeamMembers.length, 'supply team members');
