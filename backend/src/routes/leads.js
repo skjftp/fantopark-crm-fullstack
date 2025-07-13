@@ -951,18 +951,40 @@ router.post('/:id/quote/upload', authenticateToken, upload.single('quote_pdf'), 
       assigned_team: null
     };
     
-    // If a file was uploaded, store it in GCS
-// Declare file variables outside the if block
+  
 let uniqueFilename, filePath;
 
-// If a file was uploaded, store it in GCS
 if (file) {
   try {
-    // Create unique filename
+    // Create unique filename ONCE
     const timestamp = Date.now();
-    const extension = file.originalname.split('.').pop();
     uniqueFilename = `quote_${timestamp}_${file.originalname}`;
     filePath = `quotes/${id}/${uniqueFilename}`;
+    
+    console.log(`📄 Uploading to GCS with exact filename: ${uniqueFilename}`);
+    console.log(`📄 Full path: ${filePath}`);
+        
+    // Upload to Google Cloud Storage with the EXACT filename
+    const gcsFile = bucket.file(filePath);
+    const stream = gcsFile.createWriteStream({
+      metadata: {
+        contentType: file.mimetype,
+      },
+    });
+    
+    await new Promise((resolve, reject) => {
+      stream.on('error', (error) => {
+        console.error('❌ GCS stream error:', error);
+        reject(error);
+      });
+      stream.on('finish', () => {
+        console.log(`✅ GCS upload completed for: ${uniqueFilename}`);
+        resolve();
+      });
+      stream.end(file.buffer);
+    });
+    
+    console.log(`✅ File uploaded to GCS with filename: ${uniqueFilename}`);
         
         console.log(`📄 Uploading to GCS: ${filePath}`);
         
