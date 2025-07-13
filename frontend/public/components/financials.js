@@ -615,7 +615,7 @@ window.renderActiveSalesTab = (activeSales) => {
                                     sale.order_number || sale.id || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    sale.client || sale.client_name || 'N/A'
+                                    sale.client || sale.clientName || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
                                     `₹${(sale.amount || 0).toLocaleString()}`
@@ -690,7 +690,7 @@ window.renderSalesTab = (sales) => {
                                     sale.client || sale.client_name || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    sale.sales_person || sale.assigned_to || 'N/A'
+                                    sale.assigned_to || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
                                     `₹${(sale.amount || 0).toLocaleString()}`
