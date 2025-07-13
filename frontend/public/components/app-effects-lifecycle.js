@@ -33,32 +33,32 @@ window.renderAppEffects = function() {
 
   // ✅ ENHANCED: My Actions state synchronization effect
   useEffect(() => {
-    console.log('🔄 My Actions state sync effect triggered');
+    //console.log('🔄 My Actions state sync effect triggered');
     
     // Sync React state with global window variables
     if (myLeads !== undefined) {
       window.myLeads = myLeads || [];
-      console.log('📊 Synced myLeads:', window.myLeads.length);
+      //console.log('📊 Synced myLeads:', window.myLeads.length);
     }
     
     if (myOrders !== undefined) {
       window.myOrders = myOrders || [];
-      console.log('📊 Synced myOrders:', window.myOrders.length);
+      //console.log('📊 Synced myOrders:', window.myOrders.length);
     }
     
     if (myDeliveries !== undefined) {
       window.myDeliveries = myDeliveries || [];
-      console.log('📊 Synced myDeliveries:', window.myDeliveries.length);
+      //console.log('📊 Synced myDeliveries:', window.myDeliveries.length);
     }
     
     if (myQuoteRequested !== undefined) {
       window.myQuoteRequested = myQuoteRequested || [];
-      console.log('📊 Synced myQuoteRequested:', window.myQuoteRequested.length);
+      //console.log('📊 Synced myQuoteRequested:', window.myQuoteRequested.length);
     }
     
     if (myReceivables !== undefined) {
       window.myReceivables = myReceivables || [];
-      console.log('📊 Synced myReceivables:', window.myReceivables.length);
+      //console.log('📊 Synced myReceivables:', window.myReceivables.length);
     }
 
     // Store state setter functions globally for fetchMyActions to use
@@ -76,10 +76,10 @@ window.renderAppEffects = function() {
     if (isLoggedIn) {
       fetchData();
     }
-    console.log('useEffect triggered - activeTab:', activeTab, 'isLoggedIn:', isLoggedIn);
+    //console.log('useEffect triggered - activeTab:', activeTab, 'isLoggedIn:', isLoggedIn);
     
     if (activeTab === 'myactions') {
-      console.log('My Actions tab is active, calling fetchMyActions...');
+      //console.log('My Actions tab is active, calling fetchMyActions...');
       // ✅ ENHANCED: Add delay to ensure state is ready
       setTimeout(() => {
         if (window.fetchMyActions) {
@@ -89,14 +89,14 @@ window.renderAppEffects = function() {
         }
       }, 100);
     } else if (activeTab === 'finance') {
-      console.log('Finance tab active, fetching financial data...');
+      //console.log('Finance tab active, fetching financial data...');
       window.fetchFinancialData && window.fetchFinancialData();
     }
   }, [isLoggedIn, activeTab]);
 
   // ✅ ENHANCED: My Actions specific effect with better timing
   useEffect(() => {
-    console.log('🔍 My Actions specific effect - conditions:', {
+    //console.log('🔍 My Actions specific effect - conditions:', {
       activeTab,
       isLoggedIn,
       fetchRemindersExists: !!window.fetchReminders,
@@ -105,7 +105,7 @@ window.renderAppEffects = function() {
     });
     
     if (activeTab === 'myactions' && isLoggedIn && window.user) {
-      console.log('🎯 Triggering My Actions data fetch...');
+      //console.log('🎯 Triggering My Actions data fetch...');
       // Add a small delay to ensure all components are loaded
       setTimeout(() => {
         if (window.fetchMyActions) {
@@ -115,7 +115,7 @@ window.renderAppEffects = function() {
     }
     
     if (activeTab === 'reminders' && isLoggedIn && window.fetchReminders) {
-      console.log('🔔 Auto-loading reminders...');
+      //console.log('🔔 Auto-loading reminders...');
       window.fetchReminders();
     }
   }, [activeTab, isLoggedIn, user]);
@@ -129,13 +129,13 @@ window.renderAppEffects = function() {
 
   // Test mode effect
   useEffect(() => {
-    console.log('Test mode state:', testMode);
-    console.log('Current user:', currentUser);
-    console.log('Is super admin:', currentUser?.role === 'super_admin');
-    console.log('User object:', JSON.stringify(currentUser));
+    //console.log('Test mode state:', testMode);
+    //console.log('Current user:', currentUser);
+    //console.log('Is super admin:', currentUser?.role === 'super_admin');
+    //console.log('User object:', JSON.stringify(currentUser));
 
     if (currentUser && currentUser.role === 'super_admin') {
-      console.log('Super admin logged in - test mode toggle should be visible');
+      //console.log('Super admin logged in - test mode toggle should be visible');
     }
   }, [testMode, currentUser]);
 
@@ -163,7 +163,7 @@ window.renderAppEffects = function() {
         window.user = userData;
         window.currentUser = userData;
         window.isLoggedIn = true;
-        console.log('Auth state restored from localStorage');
+        //console.log('Auth state restored from localStorage');
       }
     } catch (error) {
       console.error('Error restoring auth state:', error);
@@ -241,14 +241,14 @@ window.renderAppEffects = function() {
 
   // ✅ ENHANCED: Chart initialization with better timing
   useEffect(() => {
-    console.log('Chart initialization useEffect triggered', {
+    //console.log('Chart initialization useEffect triggered', {
       activeTab, 
       leadsCount: leads?.length || 0, 
       chartExists: !!window.createCharts
     });
     
     if (activeTab === 'dashboard') {
-      console.log('🎯 Initializing charts...');
+      //console.log('🎯 Initializing charts...');
       if (window.createCharts) {
         // Add delay to ensure DOM is ready
         setTimeout(() => {
@@ -256,14 +256,14 @@ window.renderAppEffects = function() {
         }, 300);
       }
     } else {
-      console.log('⏭️ Not on dashboard tab, skipping chart init');
+      //console.log('⏭️ Not on dashboard tab, skipping chart init');
     }
   }, [activeTab, leads]);
 
   // ✅ ENHANCED: My Actions initialization effect
   useEffect(() => {
     if (window.initializeMyActions && isLoggedIn) {
-      console.log('🔧 Initializing My Actions system...');
+      //console.log('🔧 Initializing My Actions system...');
       window.initializeMyActions();
     }
   }, [isLoggedIn]);
@@ -278,7 +278,7 @@ window.renderAppEffects = function() {
     };
   }, []);
 
-  console.log('✅ All app effects initialized successfully');
+  //console.log('✅ All app effects initialized successfully');
 };
 
-console.log('✅ FIXED App Effects and Lifecycle Management loaded successfully with My Actions state sync');
+//console.log('✅ FIXED App Effects and Lifecycle Management loaded successfully with My Actions state sync');
