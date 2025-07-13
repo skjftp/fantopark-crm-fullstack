@@ -457,7 +457,8 @@ if (originalSetDashboardFilter) {
 }
 
 // Hook into tab changes
-const originalSetActiveTab = window.setActiveTab;
+// Safe variable declaration to avoid duplicates
+window._chartOriginalSetActiveTab = window._chartOriginalSetActiveTab || window.setActiveTab;
 if (originalSetActiveTab) {
   window.setActiveTab = function(tab) {
     originalSetActiveTab(tab);
