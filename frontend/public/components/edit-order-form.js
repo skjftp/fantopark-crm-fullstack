@@ -90,6 +90,22 @@ window.renderEditOrderForm = () => {
           })
         ),
 
+        // Status Change - NEW
+        React.createElement('div', { className: 'mb-4' },
+          React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Change Status'),
+          React.createElement('select', {
+            value: window.orderEditData?.status || '',
+            onChange: (e) => handleInputChange('status', e.target.value),
+            className: 'w-full px-3 py-2 border rounded-md'
+          },
+            React.createElement('option', { value: 'pending_approval' }, 'Pending Approval'),
+            React.createElement('option', { value: 'approved' }, 'Approved'),
+            React.createElement('option', { value: 'service_assigned' }, 'Service Assigned'),
+            React.createElement('option', { value: 'completed' }, 'Completed'),
+            React.createElement('option', { value: 'rejected' }, 'Rejected')
+          )
+        ),
+
         // Assignment Options Section - EXACT match
         React.createElement('div', { className: 'mb-6' },
           React.createElement('h3', { className: 'text-lg font-medium mb-4' }, 'Assignment Options'),
