@@ -1461,398 +1461,316 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(window.SimplifiedApp));
 </script>
 
-<!-- CHART INITIALIZATION PATCH - PLACE AT THE END -->
-<script>
 // ===============================================
-// EMERGENCY CHART INITIALIZATION PATCH
+// PERMANENT CHART & FILTER SYSTEM IMPLEMENTATION
+// Add this to the bottom of index.html before </body>
 // ===============================================
 
-window.fixChartInitialization = function() {
-  console.log('🔧 Applying chart initialization fix...');
-  
-  // Clear any existing chart state
-  if (window.chartState) {
-    window.chartState.initialized = false;
-    window.chartState.initializing = false;
-    window.chartState.initAttempts = 0;
-  }
-  
-  // Create a smart chart initializer that waits for proper DOM state
-  window.smartChartInit = function() {
-    return new Promise((resolve, reject) => {
-      let attempts = 0;
-      const maxAttempts = 15; // Reduced from 20
-      
-      const checkAndInit = () => {
-        attempts++;
-        
-        // Check if we're on the dashboard tab
-        if (window.activeTab !== 'dashboard') {
-          console.log('⏭️ Not on dashboard tab, skipping chart init');
-          resolve();
-          return;
-        }
-        
-        // Check for Chart.js
-        if (typeof Chart === 'undefined') {
-          if (attempts < maxAttempts) {
-            setTimeout(checkAndInit, 500);
-            return;
-          } else {
-            console.warn('⚠️ Chart.js not available after max attempts');
-            resolve(); // Don't reject, just resolve without charts
-            return;
-          }
-        }
-        
-        // Check for DOM containers with more specific selectors
-        const containers = {
-          leadSplit: document.querySelector('#leadSplitChart'),
-          tempCount: document.querySelector('#tempCountChart'),
-          tempValue: document.querySelector('#tempValueChart')
-        };
-        
-        const missingContainers = Object.entries(containers)
-          .filter(([key, element]) => !element)
-          .map(([key]) => key);
-        
-        if (missingContainers.length > 0) {
-          if (attempts < maxAttempts) {
-            console.log(`⏳ Waiting for containers: ${missingContainers.join(', ')} (attempt ${attempts})`);
-            setTimeout(checkAndInit, 500);
-            return;
-          } else {
-            console.warn('⚠️ Chart containers not found after max attempts');
-            resolve(); // Don't reject, just resolve without charts
-            return;
-          }
-        }
-        
-        // All good - initialize charts
-        try {
-          console.log('✅ All chart prerequisites met, initializing...');
-          
-          // Use the fixed chart initialization
-                    if (window.initializeCharts) {
-            try {
-              console.log('✅ All chart prerequisites met, initializing...');
-              window.initializeCharts(); // This is synchronous, not a Promise
-              console.log('✅ Charts initialized successfully via smartChartInit');
-              resolve();
-            } catch (error) {
-              console.warn('⚠️ Chart initialization failed, but continuing:', error.message);
-              resolve(); // Don't reject, just resolve without charts
-            }
-          } else {
-            console.warn('⚠️ initializeCharts function not available');
-            resolve();
-          }
-          
-        } catch (error) {
-          console.warn('⚠️ Chart initialization error:', error.message);
-          resolve(); // Don't reject, just resolve without charts
-        }
-      };
-      
-      // Start the check
-      checkAndInit();
-    });
-  };
-  
-  // Override the auto-initialization to use our smart version
-  const originalInit = window.addEventListener;
-  
-  // Clear any existing event listeners for chart init
-  window.removeEventListener('DOMContentLoaded', window.smartChartInit);
-  
-  // Add our fixed initialization
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
-        window.smartChartInit().catch(console.warn);
-      }, 1000); // Wait 1 second after DOM ready
-    });
-  } else {
-    // DOM already ready
-    setTimeout(() => {
-      window.smartChartInit().catch(console.warn);
-    }, 1000);
-  }
-  
-  console.log('✅ Chart initialization fix applied');
-};
-
-// Auto-apply the fix
-window.fixChartInitialization();
-
-// Also add a manual trigger for dashboard tab switches
-if (!window.chartSystemInitialized) {
-  window.chartSystemInitialized = true;
-  
-  window._originalSetActiveTab = window._originalSetActiveTab || window.setActiveTab;
-  
-  if (window._originalSetActiveTab) {
-    window.setActiveTab = function(tab) {
-      window._originalSetActiveTab(tab);
-      
-      if (tab === 'dashboard') {
-        setTimeout(() => {
-          if (!window.chartState?.initialized) {
-            console.log('🎯 Dashboard activated, attempting chart initialization...');
-            window.smartChartInit && window.smartChartInit().catch(console.warn);
-          }
-        }, 500);
-      }
-    };
-  }
-}
-
-console.log('🔧 Emergency chart patch loaded');
-console.log('🚀 FanToPark CRM - Fully Optimized & Fixed');
-</script>
 <script>
-// Emergency fix for chart initialization
 (function() {
-  console.log('🚀 Applying emergency chart fix...');
+  'use strict';
   
-  // Wait for everything to load
-  setTimeout(() => {
-    if (window.activeTab === 'dashboard') {
-      console.log('🎯 Dashboard detected, forcing chart initialization...');
-      
-      // Try multiple chart initialization methods
-      if (window.initializeChartsAdvanced) {
-        window.initializeChartsAdvanced();
-      } else if (window.createChartsWithCurrentData) {
-        window.createChartsWithCurrentData();
-      } else if (window.createCharts) {
-        window.createCharts();
-      }
-    }
-  }, 2000);
-})();
-</script>
-// ===============================================
-// DASHBOARD CHART SYSTEM BRIDGE
-// Add this to the end of your index.html, just before </body>
-// This connects chart-system.js with dashboard.js
-// ===============================================
-
-<script>
-// Dashboard Chart System Bridge
-(function() {
-  console.log('🌉 Setting up Dashboard Chart Bridge...');
+  console.log('🚀 Loading permanent chart & filter system...');
   
-  // Wait for both chart system and dashboard to be ready
-  const initBridge = () => {
-    // Expose chart functions that dashboard.js expects
-    window.initializeOptimizedCharts = window.initializeChartsAdvanced || window.createChartsWithCurrentData;
-    window.optimizedChartInit = window.initializeChartsAdvanced || window.createChartsWithCurrentData;
-    window.initializeDashboardCharts = window.initializeChartsAdvanced || window.createChartsWithCurrentData;
-    
-    // Mark optimized system as available
-    window.optimizedChartSystemAvailable = true;
-    window.chartSystemOptimized = true;
-    
-    // Override dashboard's chart initialization
-    window.initializeDashboardCharts = function() {
-      console.log('📊 Dashboard requesting chart initialization...');
-      
-      // Check if we're on dashboard
-      if (window.activeTab !== 'dashboard') {
-        console.log('⏭️ Not on dashboard, skipping charts');
-        return;
-      }
-      
-      // Check prerequisites
-      if (typeof Chart === 'undefined') {
-        console.warn('⚠️ Chart.js not loaded, retrying in 1s...');
-        setTimeout(window.initializeDashboardCharts, 1000);
-        return;
-      }
-      
-      // Check for containers
-      const containers = ['leadSplitChart', 'tempCountChart', 'tempValueChart'];
-      const missing = containers.filter(id => !document.getElementById(id));
-      
-      if (missing.length > 0) {
-        console.log(`⏳ Waiting for containers: ${missing.join(', ')}`);
-        setTimeout(window.initializeDashboardCharts, 1000);
-        return;
-      }
-      
-      // Initialize charts using our working system
-      try {
-        if (window.initializeChartsAdvanced) {
-          window.initializeChartsAdvanced();
-          console.log('✅ Dashboard charts initialized via bridge!');
-        } else if (window.createChartsWithCurrentData) {
-          window.createChartsWithCurrentData();
-          console.log('✅ Dashboard charts created via bridge!');
-        } else {
-          console.warn('⚠️ No chart functions available');
-        }
-      } catch (error) {
-        console.error('❌ Dashboard chart bridge error:', error);
-      }
-    };
-    
-    // Auto-trigger chart initialization if on dashboard
-    if (window.activeTab === 'dashboard') {
-      console.log('🎯 Dashboard detected, triggering chart initialization...');
-      setTimeout(window.initializeDashboardCharts, 1000);
+  // ===============================================
+  // USERS ARRAY SYNCHRONIZATION
+  // ===============================================
+  function ensureUsersArray() {
+    // Sync users array for dropdown population
+    if (!window.users && window.allUsers) {
+      window.users = window.allUsers;
     }
     
-    console.log('✅ Dashboard Chart Bridge ready!');
+    // Fetch users if still not available
+    if ((!window.users || window.users.length === 0) && window.fetchUsers) {
+      window.fetchUsers();
+    }
+    
+    // Force React to see users array
+    if (window.appState?.setUsers && window.users) {
+      window.appState.setUsers(window.users);
+    }
+    if (window.appState?.setAllUsers && window.users) {
+      window.appState.setAllUsers(window.users);
+    }
+  }
+  
+  // ===============================================
+  // CHART UPDATE FUNCTION
+  // ===============================================
+  window.updateChartsWithData = function(leads) {
+    // Get filtered leads based on current filter settings
+    let filteredLeads = [...(window.leads || [])];
+    
+    // Apply sales person filter
+    if (window.dashboardFilter === 'salesPerson' && window.selectedSalesPerson) {
+      const selectedUser = (window.users || []).find(user => 
+        user.id === window.selectedSalesPerson || user.email === window.selectedSalesPerson
+      );
+      if (selectedUser) {
+        filteredLeads = filteredLeads.filter(lead => lead.assigned_to === selectedUser.email);
+      }
+    }
+    // Apply event filter
+    else if (window.dashboardFilter === 'event' && window.selectedEvent) {
+      filteredLeads = filteredLeads.filter(lead => lead.lead_for_event === window.selectedEvent);
+    }
+    
+    // Calculate chart data from filtered leads
+    const qualified = filteredLeads.filter(l => (l.status || '').toLowerCase() === 'qualified').length;
+    const junk = filteredLeads.filter(l => (l.status || '').toLowerCase() === 'junk').length;
+    const hot = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'hot').length;
+    const warm = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'warm').length;
+    const cold = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'cold').length;
+    
+    // Calculate temperature values
+    const hotValue = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'hot')
+      .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+    const warmValue = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'warm')
+      .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+    const coldValue = filteredLeads.filter(l => (l.temperature || '').toLowerCase() === 'cold')
+      .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+    
+    // Update Lead Split Chart
+    const canvas1 = document.getElementById('leadSplitChart');
+    if (canvas1) {
+      const chart1 = Chart.getChart(canvas1);
+      if (chart1) {
+        chart1.data.labels = [`Qualified (${qualified})`, `Junk (${junk})`];
+        chart1.data.datasets[0].data = [qualified, junk];
+        chart1.update('active');
+      }
+    }
+    
+    // Update Temperature Count Chart
+    const canvas2 = document.getElementById('tempCountChart');
+    if (canvas2) {
+      const chart2 = Chart.getChart(canvas2);
+      if (chart2) {
+        chart2.data.labels = [`Hot (${hot})`, `Warm (${warm})`, `Cold (${cold})`];
+        chart2.data.datasets[0].data = [hot, warm, cold];
+        chart2.update('active');
+      }
+    }
+    
+    // Update Temperature Value Chart
+    const canvas3 = document.getElementById('tempValueChart');
+    if (canvas3) {
+      const chart3 = Chart.getChart(canvas3);
+      if (chart3) {
+        chart3.data.datasets[0].data = [hotValue, warmValue, coldValue];
+        chart3.update('active');
+      }
+    }
   };
   
-  // Wait for systems to load
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(initBridge, 1500);
-    });
-  } else {
-    setTimeout(initBridge, 1500);
-  }
-})();
-</script>
-
-<!-- Alternative: Direct chart initialization bypass -->
-<script>
-// Emergency chart initialization for dashboard
-window.emergencyDashboardCharts = function() {
-  console.log('🚨 Emergency dashboard chart initialization...');
-  
-  // Direct chart creation using Chart.js
-  const createEmergencyCharts = () => {
-    try {
-      // Get lead data
-      const leads = window.leads || [];
-      console.log('📊 Emergency charts with', leads.length, 'leads');
+  // ===============================================
+  // CHART CREATION FUNCTION
+  // ===============================================
+  window.createDashboardCharts = function() {
+    // Destroy existing charts first
+    if (typeof Chart !== 'undefined' && Chart.instances) {
+      Object.keys(Chart.instances).forEach(id => {
+        try { Chart.instances[id].destroy(); } catch (e) {}
+      });
+    }
+    
+    const leads = window.leads || [];
+    const qualified = leads.filter(l => (l.status || '').toLowerCase() === 'qualified').length;
+    const junk = leads.filter(l => (l.status || '').toLowerCase() === 'junk').length;
+    const hot = leads.filter(l => (l.temperature || '').toLowerCase() === 'hot').length;
+    const warm = leads.filter(l => (l.temperature || '').toLowerCase() === 'warm').length;
+    const cold = leads.filter(l => (l.temperature || '').toLowerCase() === 'cold').length;
+    
+    // Create Lead Split Chart
+    const canvas1 = document.getElementById('leadSplitChart');
+    if (canvas1) {
+      new Chart(canvas1, {
+        type: 'doughnut',
+        data: {
+          labels: [`Qualified (${qualified})`, `Junk (${junk})`],
+          datasets: [{
+            data: [qualified, junk],
+            backgroundColor: ['#10b981', '#ef4444'],
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+    
+    // Create Temperature Count Chart
+    const canvas2 = document.getElementById('tempCountChart');
+    if (canvas2) {
+      new Chart(canvas2, {
+        type: 'doughnut',
+        data: {
+          labels: [`Hot (${hot})`, `Warm (${warm})`, `Cold (${cold})`],
+          datasets: [{
+            data: [hot, warm, cold],
+            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+    
+    // Create Temperature Value Chart
+    const canvas3 = document.getElementById('tempValueChart');
+    if (canvas3) {
+      const hotValue = leads.filter(l => (l.temperature || '').toLowerCase() === 'hot')
+        .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+      const warmValue = leads.filter(l => (l.temperature || '').toLowerCase() === 'warm')
+        .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+      const coldValue = leads.filter(l => (l.temperature || '').toLowerCase() === 'cold')
+        .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
       
-      // Calculate basic stats
-      const qualified = leads.filter(l => (l.status || '').toLowerCase() === 'qualified').length;
-      const junk = leads.filter(l => (l.status || '').toLowerCase() === 'junk').length;
-      const hot = leads.filter(l => (l.temperature || '').toLowerCase() === 'hot').length;
-      const warm = leads.filter(l => (l.temperature || '').toLowerCase() === 'warm').length;
-      const cold = leads.filter(l => (l.temperature || '').toLowerCase() === 'cold').length;
-      
-      // Lead Split Chart
-      const leadSplitCanvas = document.getElementById('leadSplitChart');
-      if (leadSplitCanvas) {
-        new Chart(leadSplitCanvas, {
-          type: 'doughnut',
-          data: {
-            labels: ['Qualified Leads', 'Junk Leads'],
-            datasets: [{
-              data: [qualified, junk],
-              backgroundColor: ['#10b981', '#ef4444'],
-              borderWidth: 2,
-              borderColor: '#fff'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } }
-          }
-        });
-        console.log('✅ Emergency Lead Split chart created');
-      }
-      
-      // Temperature Count Chart
-      const tempCountCanvas = document.getElementById('tempCountChart');
-      if (tempCountCanvas) {
-        new Chart(tempCountCanvas, {
-          type: 'doughnut',
-          data: {
-            labels: ['Hot Leads', 'Warm Leads', 'Cold Leads'],
-            datasets: [{
-              data: [hot, warm, cold],
-              backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
-              borderWidth: 2,
-              borderColor: '#fff'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } }
-          }
-        });
-        console.log('✅ Emergency Temperature Count chart created');
-      }
-      
-      // Temperature Value Chart
-      const tempValueCanvas = document.getElementById('tempValueChart');
-      if (tempValueCanvas) {
-        // Calculate values
-        const hotValue = leads.filter(l => (l.temperature || '').toLowerCase() === 'hot')
-          .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
-        const warmValue = leads.filter(l => (l.temperature || '').toLowerCase() === 'warm')
-          .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
-        const coldValue = leads.filter(l => (l.temperature || '').toLowerCase() === 'cold')
-          .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
-        
-        new Chart(tempValueCanvas, {
-          type: 'doughnut',
-          data: {
-            labels: ['Hot Value', 'Warm Value', 'Cold Value'],
-            datasets: [{
-              data: [hotValue, warmValue, coldValue],
-              backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
-              borderWidth: 2,
-              borderColor: '#fff'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'bottom' },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    return context.label + ': ₹' + context.raw.toLocaleString('en-IN');
-                  }
+      new Chart(canvas3, {
+        type: 'doughnut',
+        data: {
+          labels: ['Hot Value', 'Warm Value', 'Cold Value'],
+          datasets: [{
+            data: [hotValue, warmValue, coldValue],
+            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.label + ': ₹' + context.raw.toLocaleString('en-IN');
                 }
               }
             }
           }
-        });
-        console.log('✅ Emergency Temperature Value chart created');
+        }
+      });
+    }
+  };
+  
+  // ===============================================
+  // FILTER FUNCTION WRAPPERS
+  // ===============================================
+  function setupFilterWrappers() {
+    // Wrap setDashboardFilter
+    if (window.setDashboardFilter) {
+      const originalSetDashboardFilter = window.setDashboardFilter;
+      window.setDashboardFilter = function(filter) {
+        const result = originalSetDashboardFilter(filter);
+        setTimeout(() => {
+          if (window.updateChartsWithData && window.leads) {
+            window.updateChartsWithData(window.leads);
+          }
+        }, 150);
+        return result;
+      };
+    }
+    
+    // Wrap setSelectedSalesPerson
+    if (window.setSelectedSalesPerson) {
+      const originalSetSelectedSalesPerson = window.setSelectedSalesPerson;
+      window.setSelectedSalesPerson = function(person) {
+        const result = originalSetSelectedSalesPerson(person);
+        setTimeout(() => {
+          if (window.updateChartsWithData && window.leads) {
+            window.updateChartsWithData(window.leads);
+          }
+        }, 150);
+        return result;
+      };
+    }
+    
+    // Wrap setSelectedEvent
+    if (window.setSelectedEvent) {
+      const originalSetSelectedEvent = window.setSelectedEvent;
+      window.setSelectedEvent = function(event) {
+        const result = originalSetSelectedEvent(event);
+        setTimeout(() => {
+          if (window.updateChartsWithData && window.leads) {
+            window.updateChartsWithData(window.leads);
+          }
+        }, 150);
+        return result;
+      };
+    }
+  }
+  
+  // ===============================================
+  // CHART RESTORATION SYSTEM
+  // ===============================================
+  function setupChartRestoration() {
+    // Auto-restore charts if they go missing
+    setInterval(() => {
+      if (window.activeTab === 'dashboard') {
+        const canvas1 = document.getElementById('leadSplitChart');
+        const canvas2 = document.getElementById('tempCountChart');
+        const canvas3 = document.getElementById('tempValueChart');
+        
+        const needsRestoration = !canvas1 || !canvas2 || !canvas3 ||
+          !Chart.getChart(canvas1) || !Chart.getChart(canvas2) || !Chart.getChart(canvas3);
+        
+        if (needsRestoration) {
+          setTimeout(window.createDashboardCharts, 500);
+        }
       }
-      
-    } catch (error) {
-      console.error('❌ Emergency chart creation failed:', error);
-    }
-  };
+    }, 5000); // Check every 5 seconds
+  }
   
-  // Wait for Chart.js and containers
-  const checkAndCreate = () => {
-    if (typeof Chart === 'undefined') {
-      setTimeout(checkAndCreate, 1000);
-      return;
+  // ===============================================
+  // INITIALIZATION
+  // ===============================================
+  function initialize() {
+    // Ensure users array is available
+    ensureUsersArray();
+    
+    // Setup filter wrappers
+    setupFilterWrappers();
+    
+    // Setup chart restoration
+    setupChartRestoration();
+    
+    // Force React refresh for dropdown population
+    if (window.setLoading) {
+      window.setLoading(true);
+      setTimeout(() => window.setLoading(false), 50);
     }
     
-    const containers = ['leadSplitChart', 'tempCountChart', 'tempValueChart'];
-    const missing = containers.filter(id => !document.getElementById(id));
-    
-    if (missing.length > 0) {
-      setTimeout(checkAndCreate, 1000);
-      return;
+    // Initialize charts if on dashboard
+    if (window.activeTab === 'dashboard') {
+      setTimeout(window.createDashboardCharts, 1000);
     }
-    
-    createEmergencyCharts();
-  };
+  }
   
-  checkAndCreate();
-};
-
-// Trigger emergency charts if on dashboard
-if (window.activeTab === 'dashboard') {
-  setTimeout(window.emergencyDashboardCharts, 2000);
-}
+  // ===============================================
+  // AUTO-START
+  // ===============================================
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(initialize, 1500);
+    });
+  } else {
+    setTimeout(initialize, 1500);
+  }
+  
+  console.log('✅ Permanent chart & filter system loaded');
+})();
 </script>
   
 </body>
