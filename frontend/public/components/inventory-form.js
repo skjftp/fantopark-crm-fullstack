@@ -1,10 +1,24 @@
-// Enhanced Inventory Form Component with Multiple Ticket Categories
-// Maintains all existing functionality while adding category support
+// Fixed Inventory Form Component with Multiple Ticket Categories
+// Hooks are properly ordered before conditional returns
 
 window.renderInventoryForm = () => {
   const { useState, useEffect } = React;
   
-  // Access state from window globals
+  // ⚠️ CRITICAL: ALL HOOKS MUST BE DECLARED FIRST
+  
+  // State for managing ticket categories
+  const [categories, setCategories] = useState([{
+    id: Date.now(),
+    name: '',
+    section: '',
+    total_tickets: '',
+    available_tickets: '',
+    buying_price: '',
+    selling_price: '',
+    inclusions: ''
+  }]);
+  
+  // Access state from window globals AFTER hooks
   const {
     showInventoryForm = window.appState?.showInventoryForm || window.showInventoryForm,
     editingInventory = window.appState?.editingInventory || window.editingInventory,
@@ -12,6 +26,23 @@ window.renderInventoryForm = () => {
     loading = window.appState?.loading || window.loading,
     stadiums = window.appState?.stadiums || window.stadiums || []
   } = window.appState || {};
+
+  // Initialize categories from editing inventory AFTER hooks
+  useEffect(() => {
+    if (editingInventory?.categories && editingInventory.categories.length > 0) {
+      setCategories(editingInventory.categories);
+    }
+  }, [editingInventory]);
+
+  // Update formData when categories change
+  useEffect(() => {
+    if (window.setFormData) {
+      window.setFormData(prev => ({
+        ...prev,
+        categories: categories
+      }));
+    }
+  }, [categories]);
 
   // Function references
   const closeInventoryForm = window.closeInventoryForm || (() => {
@@ -27,39 +58,10 @@ window.renderInventoryForm = () => {
     console.warn("handleInventoryFormSubmit not implemented");
   });
 
-  // NEW: State for managing ticket categories
-  const [categories, setCategories] = useState(() => {
-    // If editing and has categories, use them
-    if (editingInventory?.categories && editingInventory.categories.length > 0) {
-      return editingInventory.categories;
-    }
-    // Otherwise start with one empty category
-    return [{
-      id: Date.now(),
-      name: '',
-      section: '',
-      total_tickets: '',
-      available_tickets: '',
-      buying_price: '',
-      selling_price: '',
-      inclusions: ''
-    }];
-  });
-
-  // NEW: Update formData when categories change
-  useEffect(() => {
-    if (window.setFormData) {
-      window.setFormData(prev => ({
-        ...prev,
-        categories: categories
-      }));
-    }
-  }, [categories]);
-
-  // NEW: Add a new category
+  // Add a new category
   const addCategory = () => {
     setCategories([...categories, {
-      id: Date.now() + Math.random(), // Unique ID
+      id: Date.now() + Math.random(),
       name: '',
       section: '',
       total_tickets: '',
@@ -70,7 +72,7 @@ window.renderInventoryForm = () => {
     }]);
   };
 
-  // NEW: Remove a category
+  // Remove a category
   const removeCategory = (index) => {
     if (categories.length > 1) {
       setCategories(categories.filter((_, i) => i !== index));
@@ -79,7 +81,7 @@ window.renderInventoryForm = () => {
     }
   };
 
-  // NEW: Update a specific category field
+  // Update a specific category field
   const updateCategory = (index, field, value) => {
     const updatedCategories = [...categories];
     updatedCategories[index] = {
@@ -89,7 +91,7 @@ window.renderInventoryForm = () => {
     setCategories(updatedCategories);
   };
 
-  // NEW: Calculate totals across all categories
+  // Calculate totals across all categories
   const calculateTotals = () => {
     const totals = categories.reduce((acc, cat) => {
       const totalTickets = parseInt(cat.total_tickets) || 0;
@@ -110,6 +112,7 @@ window.renderInventoryForm = () => {
 
   const totals = calculateTotals();
 
+  // NOW we can have conditional returns AFTER all hooks
   if (!showInventoryForm) return null;
 
   // Check if from payables context (existing functionality)
@@ -211,7 +214,7 @@ window.renderInventoryForm = () => {
           )
         ),
 
-        // NEW: Ticket Categories Section
+        // Ticket Categories Section
         React.createElement('div', { className: 'mb-6' },
           React.createElement('div', { className: 'flex justify-between items-center mb-4' },
             React.createElement('h3', { className: 'text-lg font-semibold text-gray-800 dark:text-gray-200' }, 
@@ -460,4 +463,4 @@ window.renderInventoryForm = () => {
   );
 };
 
-console.log('✅ Enhanced Inventory Form with categories loaded successfully');
+console.log('✅ Fixed Inventory Form with categories (hooks order corrected) loaded successfully');
