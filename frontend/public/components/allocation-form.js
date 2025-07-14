@@ -59,7 +59,11 @@ window.renderAllocationForm = () => {
   const qualifiedLeads = leads.filter(lead => 
     lead.status === 'qualified' || 
     lead.status === 'hot' || 
-    lead.status === 'warm'
+    lead.status === 'warm' ||
+    lead.status === 'converted' ||
+    lead.status === 'payment' ||
+    lead.status === 'payment_post_service' ||
+    lead.status === 'payment_received'
   );
 
   return React.createElement('div', {
@@ -201,7 +205,7 @@ window.renderAllocationForm = () => {
             type: 'submit',
             disabled: loading || !allocationData.lead_id || !allocationData.quantity,
             className: 'flex-1 bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 disabled:opacity-50 font-medium'
-          }, loading ? 'Processing...' : 'Allocate & Create Order')
+          }, loading ? 'Processing...' : 'Allocate and Create Entry')
         )
       )
     )
@@ -271,18 +275,25 @@ window.handleAllocation = async (e) => {
       throw new Error('Selected lead not found');
     }
 
-    // Create the allocation/order
-    const allocationRequest = {
-      lead_id: window.allocationData.lead_id,
-      inventory_id: window.currentInventory.id,
-      quantity: window.allocationData.quantity,
-      allocation_date: window.allocationData.allocation_date,
-      notes: window.allocationData.notes,
-      status: 'allocated',
-      total_amount: window.allocationData.quantity * window.currentInventory.selling_price
+    // Validate lead status - must be converted or later
+    const isConvertedOrLater = (status) => {
+      const postConvertedStages = ['converted', 'payment', 'payment_post_service', 'payment_received'];
+      return postConvertedStages.includes(status);
     };
 
-    const response = await window.apiCall('/allocations', {
+    if (!isConvertedOrLater(selectedLead.status)) {
+      throw new Error('Lead must be in converted status or later to allocate inventory');
+    }
+
+    // Create the allocation request with proper field mapping
+    const allocationRequest = {
+      lead_id: window.allocationData.lead_id,
+      tickets_allocated: parseInt(window.allocationData.quantity), // Map quantity to tickets_allocated
+      allocation_date: window.allocationData.allocation_date,
+      notes: window.allocationData.notes
+    };
+
+    const response = await window.apiCall(`/inventory/${window.currentInventory.id}/allocate`, {
       method: 'POST',
       body: JSON.stringify(allocationRequest)
     });
@@ -296,12 +307,24 @@ window.handleAllocation = async (e) => {
     
     window.setInventory(prev => prev.map(item =>
       item.id === window.currentInventory.id
-        ? { ...item, available_tickets: newAvailableTickets }
+        ? { ...item, available_tickets: response.remaining_tickets || newAvailableTickets }
         : item
     ));
 
+    // Reset allocation data
+    window.allocationData = {};
+    if (window.setAllocationData) {
+      window.setAllocationData({});
+    }
+
+    // Close form and show success
+    window.setShowAllocationForm(false);
     alert('Inventory allocated successfully!');
-    window.closeForm();
+
+    // Refresh allocations if allocation management is open
+    if (window.showAllocationManagement && window.fetchAllocations) {
+      await window.fetchAllocations(window.currentInventory.id);
+    }
 
   } catch (error) {
     console.error('Allocation error:', error);
@@ -309,6 +332,31 @@ window.handleAllocation = async (e) => {
   } finally {
     window.setLoading(false);
   }
+};
+
+// Initialize allocation data when opening form
+window.openAllocationForm = (inventory) => {
+  console.log('📦 Opening allocation form for:', inventory?.event_name);
+  
+  // Initialize allocation data with default values
+  window.allocationData = {
+    lead_id: '',
+    quantity: 1,
+    allocation_date: new Date().toISOString().split('T')[0],
+    notes: ''
+  };
+  
+  // Update state if setters are available
+  if (window.setAllocationData) {
+    window.setAllocationData(window.allocationData);
+  }
+  
+  window.currentInventory = inventory;
+  if (window.setCurrentInventory) {
+    window.setCurrentInventory(inventory);
+  }
+  
+  window.setShowAllocationForm(true);
 };
 
 allocLog('✅ Optimized Allocation Form component loaded');
