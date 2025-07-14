@@ -162,6 +162,8 @@ const [myActionsPagination, setMyActionsPagination] = useState({
   const [showClientDetectionResults, setShowClientDetectionResults] = useState(false);
   const [calendarFilters, setCalendarFilters] = React.useState({});
   const [showImportModal, setShowImportModal] = React.useState(false);
+  // Mobile menu state
+const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [paymentData, setPaymentData] = useState({
     legal_name: '',
     gstin: '',
