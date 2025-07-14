@@ -60,24 +60,31 @@ window.renderInventoryForm = () => {
   };
 
   const removeCategory = (index) => {
-    if (window.formData.categories.length > 1) {
-      window.formData.categories = window.formData.categories.filter((_, i) => i !== index);
-      window.handleFormDataChange('categories', window.formData.categories);
-    } else {
-      alert('You must have at least one ticket category');
-    }
+  if (window.formData.categories.length > 1) {
+    const updatedCategories = window.formData.categories.filter((_, i) => i !== index);
+    window.handleFormDataChange('categories', updatedCategories);
+  } else {
+    alert('You must have at least one ticket category');
+  }
+};
+
+const updateCategory = (index, field, value) => {
+  // Create a new array to trigger React re-render
+  const updatedCategories = [...window.formData.categories];
+  updatedCategories[index] = {
+    ...updatedCategories[index],
+    [field]: value
   };
 
-  const updateCategory = (index, field, value) => {
-    window.formData.categories[index] = {
-      ...window.formData.categories[index],
-      [field]: value
-    };
-    // Update totals when ticket numbers change
-    if (['total_tickets', 'available_tickets'].includes(field)) {
-      updateInventoryTotals();
-    }
-  };
+    // Use handleFormDataChange to properly update state
+  window.handleFormDataChange('categories', updatedCategories);
+  
+  // Update totals when ticket numbers change
+  if (['total_tickets', 'available_tickets'].includes(field)) {
+    // Delay this slightly to ensure state is updated first
+    setTimeout(() => updateInventoryTotals(), 0);
+  }
+};
 
   // Update main inventory totals based on categories
   const updateInventoryTotals = () => {
