@@ -22,31 +22,53 @@ window.renderPaymentSubmitHandler = () => {
     window.setLoading(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check if this is a post-service payment
-      if (window.paymentData.payment_post_service && window.paymentData.receivable_id) {
-        // Update receivable status
-        window.setReceivables(prev => 
-          prev.map(r => 
-            r.id === window.paymentData.receivable_id 
-              ? { ...r, status: 'paid', paid_date: new Date().toISOString().split('T')[0] }
-              : r
-          )
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  // Check if this is a post-service payment
+  if (window.paymentData.payment_post_service && window.paymentData.receivable_id) {
+    // Update receivable status
+    if (window.setFinancialData) {
+      window.setFinancialData(prev => ({
+        ...prev,
+        receivables: prev.receivables.map(r => 
+          r.id === window.paymentData.receivable_id 
+            ? { ...r, status: 'paid', paid_date: new Date().toISOString().split('T')[0] }
+            : r
+        )
+      }));
+    } else {
+      // If setFinancialData doesn't exist, update the financialData object directly
+      if (window.financialData && window.financialData.receivables) {
+        window.financialData.receivables = window.financialData.receivables.map(r => 
+          r.id === window.paymentData.receivable_id 
+            ? { ...r, status: 'paid', paid_date: new Date().toISOString().split('T')[0] }
+            : r
         );
-
-        // Update order payment status
-        const order = window.orders.find(o => o.lead_id === window.currentLead.id && o.payment_type === 'post_service');
-        if (order) {
-          window.setOrders(prev => 
-            prev.map(o => 
-              o.id === order.id 
-                ? { ...o, payment_received: true, payment_date: new Date().toISOString().split('T')[0] }
-                : o
-            )
-          );
-        }
       }
+    }
+    
+    // Update order payment status
+    // FIXED: Changed from payment_type to order_type
+    const order = window.orders.find(o => 
+      o.lead_id === window.currentLead.id && 
+      o.order_type === 'payment_post_service'  // Fixed this line
+    );
+    
+    if (order) {
+      window.setOrders(prev => 
+        prev.map(o => 
+          o.id === order.id 
+            ? { ...o, payment_received: true, payment_date: new Date().toISOString().split('T')[0] }
+            : o
+        )
+      );
+    }
+    
+    // Add this: Refresh financial data
+    if (window.fetchFinancialData && typeof window.fetchFinancialData === 'function') {
+      await window.fetchFinancialData();
+    }
+  }
 
       // FIXED: Use helper function and correct GST calculation
       const baseAmount = window.getBaseAmount(window.paymentData);
@@ -212,9 +234,16 @@ window.renderPaymentSubmitHandler = () => {
               });
 
               // Remove from local state
-              if (typeof window.setReceivables === 'function') {
-                window.setReceivables(prev => prev.filter(r => r.id !== window.paymentData.receivable_id));
-              }
+              if (window.setFinancialData) {
+  window.setFinancialData(prev => ({
+    ...prev,
+    receivables: prev.receivables.filter(r => r.id !== window.paymentData.receivable_id)
+  }));
+} else if (window.financialData && window.financialData.receivables) {
+  window.financialData.receivables = window.financialData.receivables.filter(
+    r => r.id !== window.paymentData.receivable_id
+  );
+}
               console.log('Receivable deleted after full payment');
             } catch (error) {
               console.error('Failed to delete receivable:', error);
@@ -245,13 +274,24 @@ window.renderPaymentSubmitHandler = () => {
                 });
 
                 // Update local state
-                if (typeof window.setReceivables === 'function') {
-                  window.setReceivables(prev => prev.map(r => 
-                    r.id === window.paymentData.receivable_id 
-                      ? { ...r, balance_amount: remainingAmount, amount: remainingAmount }
-                      : r
-                  ));
-                }
+                if (window.setFinancialData) {
+  window.setFinancialData(prev => ({
+    ...prev,
+    receivables: prev.receivables.map(r => 
+      r.id === window.paymentData.receivable_id 
+        ? {
+            ...r,
+            balance_amount: remainingAmount,
+            amount: remainingAmount,
+            expected_amount: remainingAmount,
+            partial_payment_received: paidAmount,
+            last_payment_date: new Date().toISOString(),
+            updated_date: new Date().toISOString()
+          }
+        : r
+    )
+  }));
+}
                 alert(`Receivable updated with remaining balance of ₹${remainingAmount.toFixed(2)}`);
               } catch (error) {
                 console.error('Failed to update receivable:', error);

@@ -426,62 +426,6 @@ window.handleAssignLead = async function(e) {
   }
 };
 
-// ✅ PAYMENT POST SERVICE HANDLER
-window.handlePaymentPostService = async function(lead) {
-  if (!window.hasPermission('orders', 'create')) {
-    alert('You do not have permission to create orders');
-    return;
-  }
-
-  window.setLoading(true);
-
-  try {
-    const newOrder = {
-      order_number: 'PST-' + Date.now(),
-      client_name: lead.name,
-      client_email: lead.email,
-      client_phone: lead.phone,
-      lead_id: lead.id,
-      service_date: new Date().toISOString().split('T')[0],
-      description: 'Post-service payment for: ' + lead.name,
-      status: 'pending_approval',
-      requires_gst_invoice: true,
-      total_amount: lead.potential_value || 0,
-      created_date: new Date().toISOString(),
-      created_by: window.user.name,
-      assigned_to: ''
-    };
-
-    try {
-      console.log('Creating payment post service order:', JSON.stringify(newOrder, null, 2));
-      const orderResponse = await window.apiCall('/orders', {
-        method: 'POST',
-        body: JSON.stringify(newOrder)
-      });
-
-      const finalOrder = orderResponse.data || orderResponse || newOrder;
-      if (!finalOrder.id && newOrder.order_number) {
-        finalOrder.id = newOrder.order_number;
-      }
-
-      window.setOrders(prev => [...prev, finalOrder]);
-      alert('Payment Post Service order created successfully! Awaiting approval.');
-      window.closeForm();
-    } catch (orderError) {
-      console.error('Failed to create order in backend:', orderError);
-      newOrder.id = newOrder.order_number;
-      window.setOrders(prev => [...prev, newOrder]);
-      alert('Warning: Order may not have been saved to server. Please check orders page.');
-      window.closeForm();
-    }
-  } catch (error) {
-    alert('Failed to process payment post service. Please try again.');
-    console.error('Payment post service error:', error);
-  } finally {
-    window.setLoading(false);
-  }
-};
-
 window.generateProformaInvoice = async function(order) {
   try {
     const invoiceNumber = 'STTS/PRO/' + new Date().getFullYear() + '/' + String(Date.now()).slice(-6);
