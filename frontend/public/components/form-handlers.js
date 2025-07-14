@@ -932,7 +932,7 @@ window.handlePaymentPostService = async function(lead) {
       created_by: window.user.name,
       
       // 🔧 FIXED: Assign to supply_sales_service_manager instead of empty string
-      assigned_to: await window.getSupplySalesServiceManager(),
+      assigned_to: supplySalesServiceManager,
       assigned_team: 'supply',
       original_assignee: lead.assigned_to || window.user.name,
       order_type: 'payment_post_service'
