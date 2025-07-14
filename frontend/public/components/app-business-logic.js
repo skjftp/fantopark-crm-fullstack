@@ -106,20 +106,14 @@ window.renderAppBusinessLogic = function() {
         return;
       }
 
-      if (choice.value === 'payment_post_service') {
-        setShowChoiceModal(false);
-        openPaymentPostServiceForm(currentLeadForChoice);
-        setLoading(false);
-        return;
-      }
+if (choice.value === 'payment_post_service') {
+  setShowChoiceModal(false);
+  // Instead of openPaymentPostServiceForm, open proforma form
+  window.openProformaInvoiceForm(currentLeadForChoice);
+  setLoading(false);
+  return;
+}
 
-          // ADD THIS NEW HANDLER FOR PROFORMA INVOICE
-    if (choice.value === 'generate_proforma') {
-      setShowChoiceModal(false);
-      window.openProformaInvoiceForm(currentLeadForChoice);
-      setLoading(false);
-      return;
-    }
 
       // For regular status updates
       await window.updateLeadStatus(currentLeadForChoice.id, choice.value);
