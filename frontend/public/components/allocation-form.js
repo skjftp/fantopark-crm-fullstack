@@ -1,8 +1,8 @@
 // ===============================================
-// OPTIMIZED ALLOCATION FORM COMPONENT - PERFORMANCE ENHANCED
+// OPTIMIZED ALLOCATION FORM COMPONENT - WITH ALLOCATION DISPLAY FIX
 // ===============================================
 // Allocation Form Component for FanToPark CRM
-// Reduced logging and improved performance
+// Reduced logging and improved performance + allocation display
 
 // Conditional logging control
 const ENABLE_ALLOCATION_DEBUG = false; // Set to false to reduce logs
@@ -15,7 +15,8 @@ window.renderAllocationForm = () => {
     currentInventory = window.appState?.currentInventory || window.currentInventory,
     allocationData = window.appState?.allocationData || window.allocationData || {},
     leads = window.appState?.leads || window.leads || [],
-    loading = window.appState?.loading || window.loading
+    loading = window.appState?.loading || window.loading,
+    currentAllocations = window.appState?.currentAllocations || window.currentAllocations || []
   } = window.appState || {};
 
   // ✅ PATTERN 2: Function References with Fallbacks
@@ -118,6 +119,41 @@ window.renderAllocationForm = () => {
               `₹${currentInventory.selling_price || 0}`
             )
           )
+        )
+      ),
+
+      // ⭐ NEW: Existing Allocations Section
+      React.createElement('div', { className: 'mb-6' },
+        React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-3' },
+          'Existing Allocations'
+        ),
+        React.createElement('div', { className: 'space-y-2 max-h-48 overflow-y-auto' },
+          currentAllocations.length === 0 ?
+            React.createElement('p', { className: 'text-gray-500 dark:text-gray-400 text-center py-4' },
+              'No allocations found for this inventory item.'
+            ) :
+            currentAllocations.map((allocation, index) =>
+              React.createElement('div', {
+                key: allocation.id || index,
+                className: 'p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600'
+              },
+                React.createElement('div', { className: 'flex justify-between items-start' },
+                  React.createElement('div', null,
+                    React.createElement('p', { className: 'font-medium text-gray-900 dark:text-white' },
+                      allocation.lead_name || allocation.client_name || `Allocation #${index + 1}`
+                    ),
+                    React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' },
+                      `${allocation.tickets_allocated || allocation.quantity || 0} tickets`
+                    )
+                  ),
+                  React.createElement('div', { className: 'text-right' },
+                    React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' },
+                      new Date(allocation.allocation_date || allocation.created_at).toLocaleDateString()
+                    )
+                  )
+                )
+              )
+            )
         )
       ),
 
@@ -343,7 +379,56 @@ window.handleAllocation = async (e) => {
   }
 };
 
-// Initialize allocation data when opening form
+// ⭐ NEW: Function to fetch allocations for an inventory item
+async function fetchInventoryAllocations(inventoryId) {
+  try {
+    console.log(`📡 Fetching allocations for inventory ${inventoryId}...`);
+    
+    // Use the correct endpoint pattern we discovered
+    const response = await window.apiCall(`/inventory/${inventoryId}/allocations`);
+    console.log('Allocations response:', response);
+    
+    // Extract allocations from the response
+    let allocations = [];
+    if (response.data && response.data.allocations) {
+      allocations = response.data.allocations;
+    } else if (Array.isArray(response)) {
+      allocations = response;
+    }
+    
+    // Update state with the fetched allocations
+    if (window.setCurrentAllocations) {
+      window.setCurrentAllocations(allocations);
+    } else {
+      // Fallback: set directly on window
+      window.currentAllocations = allocations;
+      if (window.appState) {
+        window.appState.currentAllocations = allocations;
+      }
+    }
+    
+    console.log(`✅ Loaded ${allocations.length} allocations`);
+    
+    // Force update if needed
+    if (window.forceUpdate) {
+      window.forceUpdate();
+    }
+    
+    return allocations;
+    
+  } catch (error) {
+    console.error('❌ Failed to fetch allocations:', error);
+    // Set empty array on error
+    if (window.setCurrentAllocations) {
+      window.setCurrentAllocations([]);
+    } else {
+      window.currentAllocations = [];
+    }
+    return [];
+  }
+}
+
+// ⭐ ENHANCED: Initialize allocation data and fetch existing allocations when opening form
 window.openAllocationForm = (inventory) => {
   console.log('📦 Opening allocation form for:', inventory?.event_name);
   
@@ -366,7 +451,12 @@ window.openAllocationForm = (inventory) => {
   }
   
   window.setShowAllocationForm(true);
+  
+  // ⭐ FETCH EXISTING ALLOCATIONS
+  if (inventory && inventory.id) {
+    fetchInventoryAllocations(inventory.id);
+  }
 };
 
-allocLog('✅ Optimized Allocation Form component loaded');
-console.log('🎫 Allocation Form v2.0 - Performance Optimized');
+allocLog('✅ Optimized Allocation Form component with allocation display loaded');
+console.log('🎫 Allocation Form v2.1 - With Working Allocation Display');
