@@ -85,7 +85,7 @@ window.renderProformaInvoiceForm = () => {
         className: 'p-6 border-b flex justify-between items-center bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg'
       },
         React.createElement('h2', { className: 'text-2xl font-bold' }, 
-          '📄 Generate Proforma Invoice'
+          '📅 Payment Post Service Details'
         ),
         React.createElement('button', {
           onClick: window.closeForm,
@@ -319,19 +319,18 @@ window.renderProformaInvoiceForm = () => {
   );
 };
 
-// Handler for Proforma Invoice Submission
 window.handleProformaInvoiceSubmit = async (e) => {
   e.preventDefault();
   
   if (!window.hasPermission('orders', 'create')) {
-    alert('You do not have permission to create proforma invoices');
+    alert('You do not have permission to create orders');
     return;
   }
   
   window.setLoading(true);
   
   try {
-    // Calculate invoice total and taxes
+    // Calculate invoice total and taxes (keep existing calculation code)
     const invoiceTotal = window.paymentData.invoice_items?.reduce((sum, item) => 
       sum + ((item.quantity || 0) * (item.rate || 0)), 0
     ) || 0;
@@ -342,18 +341,18 @@ window.handleProformaInvoiceSubmit = async (e) => {
     
     const calculation = window.calculateGSTAndTCS(baseAmount, window.paymentData);
     
-    // Generate proforma invoice number
-    const proformaNumber = 'PI-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-6);
+    // Generate order number as PST (Payment Service Transaction)
+    const orderNumber = 'PST-' + Date.now();
     
-    // Create order with proforma status
+    // Create order with payment_post_service type
     const proformaOrder = {
-      order_number: proformaNumber,
+      order_number: orderNumber,
       lead_id: window.currentLead.id,
       client_name: window.paymentData.legal_name || window.currentLead.name,
       client_email: window.currentLead.email,
       client_phone: window.currentLead.phone,
       
-      // GST and Legal details
+      // All your existing GST and calculation fields...
       gstin: window.paymentData.gstin,
       legal_name: window.paymentData.legal_name,
       category_of_sale: window.paymentData.category_of_sale,
@@ -372,31 +371,25 @@ window.handleProformaInvoiceSubmit = async (e) => {
       base_amount: baseAmount,
       gst_calculation: calculation.gst,
       tcs_calculation: calculation.tcs,
-      total_tax: calculation.gst.total + calculation.tcs.amount,
+      total_tax: calculation.gst.amount + calculation.tcs.amount,
       final_amount: calculation.finalAmount,
       
-      // Proforma specific
+      // Payment post service specific
+      order_type: 'payment_post_service',
       invoice_type: 'proforma',
-      invoice_number: proformaNumber,
       expected_payment_date: window.paymentData.expected_payment_date,
       payment_terms: window.paymentData.payment_terms,
       
       // Order status
-      status: 'proforma',
+      status: 'pending_approval',
       payment_status: 'pending',
-      requires_gst_invoice: false, // Will be true when converted to actual invoice
+      requires_gst_invoice: false,
       
       // Metadata
       created_date: new Date().toISOString(),
       created_by: window.user.name,
       notes: window.paymentData.notes,
-      
-      // Event details (from lead)
-      event_name: window.currentLead.lead_for_event || 'General Event',
-      event_date: window.paymentData.expected_payment_date,
-      tickets_allocated: window.paymentData.invoice_items?.[0]?.quantity || 1,
-      price_per_ticket: window.paymentData.invoice_items?.[0]?.rate || 0,
-      total_amount: calculation.finalAmount
+      description: 'Post-service payment for: ' + window.currentLead.name
     };
     
     // Save order via API
@@ -410,21 +403,17 @@ window.handleProformaInvoiceSubmit = async (e) => {
     // Update local state
     window.setOrders(prev => [...prev, savedOrder]);
     
-    // Open invoice preview immediately
-    const invoiceData = {
-      ...savedOrder,
-      invoice_type: 'proforma',
-      status: 'proforma'
-    };
+    // DON'T open invoice preview immediately - just show success
+    alert('✅ Payment Post Service order created successfully! Awaiting approval.');
     
-    window.openInvoicePreview(invoiceData);
+    // Update lead status to payment_post_service
+    await window.updateLeadStatus(window.currentLead.id, 'payment_post_service');
     
-    alert('✅ Proforma invoice generated successfully!');
     window.closeForm();
     
   } catch (error) {
-    console.error('Error generating proforma invoice:', error);
-    alert('Failed to generate proforma invoice: ' + error.message);
+    console.error('Error creating payment post service order:', error);
+    alert('Failed to create order: ' + error.message);
   } finally {
     window.setLoading(false);
   }
