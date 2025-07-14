@@ -610,9 +610,28 @@ const viewInvoice = window.viewInvoice;
                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white' },
                   order.client_name || 'N/A'
                 ),
-                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white' },
-                  order.event_name || 'N/A'
-                ),
+                React.createElement('td', { 
+  className: 'px-6 py-4 text-sm text-gray-900 dark:text-white',
+  style: { maxWidth: '300px' }
+},
+  React.createElement('div', {
+    style: {
+      overflow: 'hidden',
+      display: '-webkit-box',
+      WebkitBoxOrient: 'vertical',
+      WebkitLineClamp: 2,
+      lineHeight: '1.5',
+      maxHeight: '3em',
+      wordBreak: 'break-word'
+    },
+    title: order.event_name || 'N/A' // Show full text on hover
+  },
+    // Truncate to 80 characters
+    (order.event_name || 'N/A').length > 80 
+      ? (order.event_name || 'N/A').substring(0, 80) + '...'
+      : (order.event_name || 'N/A')
+  )
+),
                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white' },
                   order.total_amount ? `₹${parseFloat(order.total_amount).toLocaleString()}` : 'N/A'
                 ),
