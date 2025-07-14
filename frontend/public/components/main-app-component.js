@@ -300,6 +300,7 @@ const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [paymentPostServiceData, setPaymentPostServiceData] = useState({});
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   const [currentLeadForChoice, setCurrentLeadForChoice] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [choiceOptions, setChoiceOptions] = useState([]);
   const [dashboardStats, setDashboardStats] = useState({
     totalLeads: 0,
@@ -512,6 +513,7 @@ setEventsPerPage,
 currentEventsPage,
 eventsPerPage,
     financialPagination, setFinancialPagination,
+    isMobileMenuOpen, setIsMobileMenuOpen,
   };
 
   window.inventorySearchQuery = inventorySearchQuery;
