@@ -1105,6 +1105,44 @@ window.renderEnhancedOrderActions = function(order) {
       }
       break;
 
+    case 'payment_received':
+      // Show invoice button for payment_received orders
+      if (hasPermission('orders', 'read')) {
+        actions.push(
+          React.createElement('button', {
+            key: 'invoice',
+            onClick: () => window.viewInvoice(order),
+            className: 'px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200',
+            title: order.invoice_type === 'proforma' ? 'View Proforma Invoice' : 'View Tax Invoice'
+          }, '📄')
+        );
+      }
+
+      // If not assigned, show assign button
+      if (hasPermission('orders', 'assign') && (!order.assigned_to || order.assigned_to === 'Unassigned')) {
+        actions.push(
+          React.createElement('button', {
+            key: 'assign',
+            onClick: () => window.assignOrderToSupplyTeam(order.id),
+            className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
+            title: 'Assign to supply team and create delivery record'
+          }, '➡️')
+        );
+      }
+
+      // Show complete button
+      if (hasPermission('orders', 'write')) {
+        actions.push(
+          React.createElement('button', {
+            key: 'complete',
+            onClick: () => window.completeOrder(order.id),
+            className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
+            title: 'Mark as completed'
+          }, '✅')
+        );
+      }
+      break;
+
     case 'in_progress':
     case 'service_assigned':
       // Actions for in-progress orders
