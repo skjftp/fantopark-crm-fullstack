@@ -3502,6 +3502,19 @@ window.toggleInventoryExpansion = (inventoryId) => {
     }
     return newSet;
   });
+  
+  // Force re-render by triggering a state update
+  if (window.setLoading) {
+    window.setLoading(true);
+    setTimeout(() => window.setLoading(false), 0);
+  }
+};
+
+window.debugInventoryCategories = (inventoryId) => {
+  const item = window.inventory.find(i => i.id === inventoryId);
+  console.log('Item:', item);
+  console.log('Has categories:', item?.categories);
+  console.log('Is expanded:', window.isInventoryExpanded(inventoryId));
 };
 
 // Add helper to check if an item is expanded
