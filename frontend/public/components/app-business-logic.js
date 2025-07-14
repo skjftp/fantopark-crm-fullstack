@@ -237,6 +237,7 @@ window.renderAppBusinessLogic = function() {
           setChoiceOptions([
             { value: 'payment', label: 'Collect Payment Now', icon: '💳' },
             { value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' },
+            { value: 'generate_proforma', label: 'Generate Proforma Invoice', icon: '📄', color: 'purple' },
             { value: 'pickup_later', label: 'Pick Up Later', icon: '⏰', requires_followup_date: true }
           ]);
           setShowChoiceModal(true);
@@ -245,7 +246,8 @@ window.renderAppBusinessLogic = function() {
           setCurrentLeadForChoice(lead);
           setChoiceOptions([
             { value: 'payment', label: 'Collect Payment Now', icon: '💳' },
-            { value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' }
+            { value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' },
+            { value: 'generate_proforma', label: 'Generate Proforma Invoice', icon: '📄', color: 'purple' }
           ]);
           setShowChoiceModal(true);
         }
