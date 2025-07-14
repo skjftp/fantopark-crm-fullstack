@@ -1031,6 +1031,7 @@ window.handlePaymentInputChange = function(field, value) {
 };
 
 // ✅ PAYMENT FORM SUBMISSION HANDLER
+// In your handlePaymentSubmit function (in form-handlers.js or payment-form.js)
 window.handlePaymentSubmit = async function(e) {
   e.preventDefault();
 
@@ -1045,6 +1046,16 @@ window.handlePaymentSubmit = async function(e) {
     console.log('🔍 Payment Data:', window.paymentData);
     console.log('🔍 Current Lead:', window.currentLead);
 
+    // Check if there's an existing payment_post_service order for this lead
+    let existingProformaOrder = null;
+    if (window.orders) {
+      existingProformaOrder = window.orders.find(o => 
+        o.lead_id === window.currentLead.id && 
+        o.order_type === 'payment_post_service' &&
+        o.payment_status === 'pending'
+      );
+    }
+
     // Calculate GST and TCS based on payment data
     const invoiceTotal = window.paymentData.invoice_items?.reduce((sum, item) => 
       sum + ((item.quantity || 0) * (item.rate || 0)), 0
@@ -1056,79 +1067,132 @@ window.handlePaymentSubmit = async function(e) {
 
     const calculation = window.calculateGSTAndTCS(baseAmount, window.paymentData);
 
-    // Create comprehensive order object
-    const newOrder = {
-      order_number: 'ORD-' + Date.now(),
-      lead_id: window.currentLead.id,
-      client_name: window.paymentData.legal_name || window.currentLead.name,
-      client_email: window.currentLead.email,
-      client_phone: window.currentLead.phone,
+    if (existingProformaOrder) {
+      console.log('📄 Converting proforma order to tax invoice:', existingProformaOrder);
+      
+      // Generate new order number for tax invoice
+      const newOrderNumber = 'ORD-' + Date.now();
+      
+      // Update existing order with payment details
+      const updateData = {
+        // Keep proforma reference
+        proforma_invoice_number: existingProformaOrder.invoice_number || existingProformaOrder.order_number,
+        proforma_order_number: existingProformaOrder.order_number,
+        
+        // New order number
+        order_number: newOrderNumber,
+        invoice_number: newOrderNumber, // Will be replaced by finance team
+        
+        // Payment details
+        payment_method: window.paymentData.payment_method,
+        transaction_id: window.paymentData.transaction_id,
+        payment_date: window.paymentData.payment_date,
+        advance_amount: parseFloat(window.paymentData.advance_amount) || 0,
+        
+        // Update status
+        status: 'approved',
+        payment_status: 'completed',
+        invoice_type: 'tax',
+        
+        // Update financial data if changed
+        base_amount: baseAmount,
+        gst_calculation: calculation.gst,
+        tcs_calculation: calculation.tcs,
+        total_tax: calculation.gst.amount + calculation.tcs.amount,
+        final_amount: calculation.finalAmount,
+        
+        // Metadata
+        payment_collected_date: new Date().toISOString(),
+        payment_collected_by: window.user.name
+      };
+      
+      // Update order via API
+      const response = await window.apiCall(`/orders/${existingProformaOrder.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData)
+      });
+      
+      // Update local state
+      window.setOrders(prev => prev.map(o => 
+        o.id === existingProformaOrder.id ? { ...o, ...updateData } : o
+      ));
+      
+      alert('✅ Payment collected successfully! Proforma invoice converted to tax invoice.');
+      
+    } else {
+      // Create new order (existing logic)
+      const newOrder = {
+        order_number: 'ORD-' + Date.now(),
+        lead_id: window.currentLead.id,
+        client_name: window.paymentData.legal_name || window.currentLead.name,
+        client_email: window.currentLead.email,
+        client_phone: window.currentLead.phone,
 
-      // Enhanced payment fields
-      payment_method: window.paymentData.payment_method,
-      transaction_id: window.paymentData.transaction_id,
-      payment_date: window.paymentData.payment_date,
-      advance_amount: parseFloat(window.paymentData.advance_amount) || 0,
+        // Enhanced payment fields
+        payment_method: window.paymentData.payment_method,
+        transaction_id: window.paymentData.transaction_id,
+        payment_date: window.paymentData.payment_date,
+        advance_amount: parseFloat(window.paymentData.advance_amount) || 0,
 
-      // GST and Legal details
-      gstin: window.paymentData.gstin,
-      legal_name: window.paymentData.legal_name,
-      category_of_sale: window.paymentData.category_of_sale,
-      type_of_sale: window.paymentData.type_of_sale,
-      registered_address: window.paymentData.registered_address,
-      indian_state: window.paymentData.indian_state,
-      is_outside_india: window.paymentData.is_outside_india,
+        // GST and Legal details (keep all existing fields)
+        gstin: window.paymentData.gstin,
+        legal_name: window.paymentData.legal_name,
+        category_of_sale: window.paymentData.category_of_sale,
+        type_of_sale: window.paymentData.type_of_sale,
+        registered_address: window.paymentData.registered_address,
+        indian_state: window.paymentData.indian_state,
+        is_outside_india: window.paymentData.is_outside_india,
 
-      // Enhanced tax classification
-      customer_type: window.paymentData.customer_type,
-      event_location: window.paymentData.event_location,
-      payment_currency: window.paymentData.payment_currency,
+        // Enhanced tax classification
+        customer_type: window.paymentData.customer_type,
+        event_location: window.paymentData.event_location,
+        payment_currency: window.paymentData.payment_currency,
 
-      // Invoice items and calculations
-      invoice_items: window.paymentData.invoice_items || [],
-      base_amount: baseAmount,
-      gst_calculation: calculation.gst,
-      tcs_calculation: calculation.tcs,
-      total_tax: calculation.gst.amount + calculation.tcs.amount,
-      final_amount: calculation.finalAmount,
+        // Invoice items and calculations
+        invoice_items: window.paymentData.invoice_items || [],
+        base_amount: baseAmount,
+        gst_calculation: calculation.gst,
+        tcs_calculation: calculation.tcs,
+        total_tax: calculation.gst.amount + calculation.tcs.amount,
+        final_amount: calculation.finalAmount,
 
-      // Service fee specific
-      service_fee_amount: window.paymentData.service_fee_amount ? parseFloat(window.paymentData.service_fee_amount) : null,
+        // Service fee specific
+        service_fee_amount: window.paymentData.service_fee_amount ? parseFloat(window.paymentData.service_fee_amount) : null,
 
-      // Documents
-      gst_certificate: window.paymentData.gst_certificate,
-      pan_card: window.paymentData.pan_card,
+        // Order metadata
+        status: 'approved',
+        requires_gst_invoice: true,
+        payment_status: 'completed',
+        invoice_type: 'tax',
+        created_date: new Date().toISOString(),
+        created_by: window.user.name,
+        notes: window.paymentData.notes
+      };
 
-      // Order metadata
-      status: 'pending_approval',
-      requires_gst_invoice: true,
-      payment_status: window.paymentData.from_receivable ? 'completed' : 'partial',
-      created_date: new Date().toISOString(),
-      created_by: window.user.name,
-      notes: window.paymentData.notes
-    };
+      // Create order via API
+      const orderResponse = await window.apiCall('/orders', {
+        method: 'POST',
+        body: JSON.stringify(newOrder)
+      });
 
-    // Create order via API
-    const orderResponse = await window.apiCall('/orders', {
-      method: 'POST',
-      body: JSON.stringify(newOrder)
-    });
+      console.log('Order created successfully:', orderResponse);
 
-    console.log('Order created successfully:', orderResponse);
-
-    // Update local orders state
-    const finalOrder = orderResponse.data || orderResponse || newOrder;
-    if (!finalOrder.id && newOrder.order_number) {
-      finalOrder.id = newOrder.order_number;
+      // Update local orders state
+      const finalOrder = orderResponse.data || orderResponse || newOrder;
+      if (!finalOrder.id && newOrder.order_number) {
+        finalOrder.id = newOrder.order_number;
+      }
+      window.setOrders(prev => [...prev, finalOrder]);
+      
+      alert('Payment processed successfully! Order created and approved.');
     }
-    window.setOrders(prev => [...prev, finalOrder]);
 
     // Update lead status to payment_received
     const leadUpdateResponse = await window.apiCall('/leads/' + window.currentLead.id, {
       method: 'PUT',
       body: JSON.stringify({
         ...window.currentLead,
-        status: window.paymentData.from_receivable ? 'payment_received' : 'payment_partial',
+        status: 'payment_received',
         payment_date: window.paymentData.payment_date,
         advance_amount: parseFloat(window.paymentData.advance_amount) || 0,
         final_amount: calculation.finalAmount
@@ -1142,7 +1206,6 @@ window.handlePaymentSubmit = async function(e) {
       )
     );
 
-    alert('Payment processed successfully! Order created and awaiting approval.');
     window.closeForm();
 
   } catch (error) {
@@ -1313,33 +1376,34 @@ window.viewInvoice = function(order) {
 
 // Direct invoice preview function
 window.openInvoicePreviewDirectly = function(order) {
-  const isProformaOrder = order.order_type === 'payment_post_service' || 
-                         order.invoice_type === 'proforma' ||
-                         order.status === 'proforma';
+  const isProformaOrder = (order.order_type === 'payment_post_service' || 
+                          order.invoice_type === 'proforma' ||
+                          order.status === 'proforma') &&
+                          order.payment_status !== 'completed';
   
   // Construct invoice data
   const invoiceData = {
     // Basic identifiers
     id: order.id || Date.now(),
     
-    // For tax invoices: order_number is original, invoice_number is finance number
-    // For proforma: invoice_number is the proforma number
-    order_number: order.order_number || order.invoice_number,
+    // Handle different invoice number scenarios
+    order_number: order.proforma_order_number || order.order_number || order.invoice_number,
     invoice_number: isProformaOrder 
       ? (order.invoice_number || order.order_number || ('PI-' + Date.now()))
       : (order.finance_invoice_number || order.invoice_number),
     
-    // Store original invoice number for tax invoices
-    original_invoice_number: !isProformaOrder ? order.invoice_number : null,
+    // Store all reference numbers
+    original_invoice_number: !isProformaOrder ? (order.invoice_number || order.order_number) : null,
+    proforma_invoice_number: order.proforma_invoice_number,
     finance_invoice_number: order.finance_invoice_number,
     
     order_id: order.id,
     
-    // Invoice type and status
+    // Invoice type based on payment status
     invoice_type: isProformaOrder ? 'proforma' : 'tax',
     status: isProformaOrder ? 'proforma' : 'generated',
     
-    // Client details
+    // Rest of the invoice data (keep all existing fields)...
     client_name: order.legal_name || order.client_name || 'N/A',
     client_email: order.client_email || '',
     client_phone: order.client_phone || '',
@@ -1403,6 +1467,11 @@ window.openInvoicePreviewDirectly = function(order) {
     // Proforma specific fields
     payment_terms: order.payment_terms || (isProformaOrder ? '50% advance, 50% before service' : ''),
     expected_payment_date: order.expected_payment_date || '',
+    
+    // Payment details for tax invoices
+    payment_method: order.payment_method,
+    transaction_id: order.transaction_id,
+    payment_date: order.payment_date,
     
     // Metadata
     generated_by: order.created_by || order.generated_by || window.user?.name || 'System'
