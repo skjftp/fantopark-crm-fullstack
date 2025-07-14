@@ -7,16 +7,21 @@ window.fetchReminders = async function() {
   if (!window.appState?.isLoggedIn) return;
 
   try {
-    const response = await window.apiCall('/reminders'); // ← Fixed: was window.apicall
+    const response = await window.apiCall('/reminders');
     if (response.data) {
-      const userReminders = response.data.filter(r => 
-        r.assigned_to === window.user.email || 
-        ['sales_manager', 'admin', 'super_admin'].includes(window.user.role)
-      );
+      let userReminders;
+      
+      // Super admins see all reminders
+      if (window.user.role === 'super_admin') {
+        userReminders = response.data;
+      } else {
+        // Other users only see reminders assigned to them
+        userReminders = response.data.filter(r => r.assigned_to === window.user.email);
+      }
 
       window.setReminders(userReminders);
 
-      // Calculate stats
+      // Calculate stats based on filtered reminders
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
