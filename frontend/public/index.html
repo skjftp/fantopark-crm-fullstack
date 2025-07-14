@@ -8,6 +8,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FanToPark CRM Pro</title>
 
+<script>
+// Add this BEFORE your React app loads
+(function() {
+  const originalRemoveChild = Node.prototype.removeChild;
+  Node.prototype.removeChild = function(child) {
+    if (child && this.contains(child)) {
+      return originalRemoveChild.call(this, child);
+    }
+    console.warn('Attempted to remove non-child node:', child);
+    return child;
+  };
+})();
+</script>
+
+  <script>
+// Add error tracking
+window.addEventListener('error', function(e) {
+  if (e.message && e.message.includes('removeChild')) {
+    console.error('RemoveChild Error Details:', {
+      message: e.message,
+      filename: e.filename,
+      lineno: e.lineno,
+      colno: e.colno,
+      stack: e.error?.stack
+    });
+  }
+});
+</script>
+  
 <!-- Add this COMPREHENSIVE PERFORMANCE OPTIMIZATION script -->
 <script>
 // COMPREHENSIVE DASHBOARD PERFORMANCE OPTIMIZATION
