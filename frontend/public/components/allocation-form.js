@@ -119,19 +119,19 @@ window.renderAllocationForm = () => {
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' },
             'Select Lead'
           ),
-          React.createElement('select', {
-            value: allocationData.lead_id || '',
-            onChange: (e) => handleAllocationInputChange('lead_id', e.target.value),
-            className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-            required: true
-          },
-            React.createElement('option', { value: '' }, 'Select a lead...'),
-            qualifiedLeads.map(lead =>
-              React.createElement('option', { key: lead.id, value: lead.id },
-                `${lead.name} - ${lead.email} (${lead.status})`
-              )
+           React.createElement('select', {
+          value: allocationData.lead_id || '',
+          onChange: (e) => handleAllocationInputChange('lead_id', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+          required: true
+        },
+          React.createElement('option', { value: '' }, 'Select a lead...'),
+          qualifiedLeads.map(lead =>
+            React.createElement('option', { key: lead.id, value: lead.id },
+              `${lead.name} - ${lead.event_name || lead.lead_for_event || 'No Event'} (${lead.status})`
             )
           )
+        )
         ),
 
         React.createElement('div', { className: 'grid grid-cols-2 gap-4 mb-6' },
