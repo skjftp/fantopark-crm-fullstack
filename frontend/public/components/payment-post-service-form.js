@@ -72,6 +72,7 @@ window.renderPaymentPostServiceForm = () => {
               min: new Date().toISOString().split('T')[0]
             })
           ),
+                            
           React.createElement('div', null,
             React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Service Date *'),
             React.createElement('input', {
@@ -98,8 +99,103 @@ window.renderPaymentPostServiceForm = () => {
             )
           )
         ),
-
-        React.createElement('div', { className: 'mb-4' },
+                // In the renderPaymentPostServiceForm function, add these fields after the payment date field:
+        React.createElement('div', { className: 'mt-6 border-t pt-4' },
+          React.createElement('h3', { className: 'text-sm font-semibold text-gray-800 mb-4' }, '📋 GST & Legal Details'),
+          React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'GSTIN'),
+              React.createElement('input', {
+                type: 'text',
+                value: paymentPostServiceData.gstin || '',
+                onChange: (e) => handlePaymentPostServiceInputChange('gstin', e.target.value),
+                className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                placeholder: 'Enter GST Number (if applicable)'
+              })
+            ),
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Legal Name *'),
+              React.createElement('input', {
+                type: 'text',
+                value: paymentPostServiceData.legal_name || currentLead.name,
+                onChange: (e) => handlePaymentPostServiceInputChange('legal_name', e.target.value),
+                className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                required: true,
+                placeholder: 'Legal name for invoice'
+              })
+            ),
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Category of Sale *'),
+              React.createElement('select', {
+                value: paymentPostServiceData.category_of_sale || 'Retail',
+                onChange: (e) => handlePaymentPostServiceInputChange('category_of_sale', e.target.value),
+                className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                required: true
+              },
+                React.createElement('option', { value: 'Retail' }, 'Retail'),
+                React.createElement('option', { value: 'Corporate' }, 'Corporate'),
+                React.createElement('option', { value: 'Government' }, 'Government'),
+                React.createElement('option', { value: 'Educational' }, 'Educational'),
+                React.createElement('option', { value: 'Other' }, 'Other')
+              )
+            ),
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Type of Sale *'),
+              React.createElement('select', {
+                value: paymentPostServiceData.type_of_sale || 'Tour',
+                onChange: (e) => handlePaymentPostServiceInputChange('type_of_sale', e.target.value),
+                className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                required: true
+              },
+                React.createElement('option', { value: 'Tour' }, 'Tour'),
+                React.createElement('option', { value: 'Service Fee' }, 'Service Fee'),
+                React.createElement('option', { value: 'Package' }, 'Package'),
+                React.createElement('option', { value: 'Custom' }, 'Custom')
+              )
+            ),
+            React.createElement('div', { className: 'md:col-span-2' },
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Registered Address'),
+              React.createElement('textarea', {
+                value: paymentPostServiceData.registered_address || '',
+                onChange: (e) => handlePaymentPostServiceInputChange('registered_address', e.target.value),
+                className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                rows: 2,
+                placeholder: 'Registered address for invoice'
+              })
+            ),
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'State *'),
+              React.createElement('input', {
+                type: 'text',
+                value: paymentPostServiceData.indian_state || 'Haryana',
+                onChange: (e) => handlePaymentPostServiceInputChange('indian_state', e.target.value),
+                className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                required: true
+              })
+            )
+          )
+        ),
+        
+        // Also add invoice items section
+        React.createElement('div', { className: 'mt-4' },
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Invoice Items'),
+          React.createElement('div', { className: 'space-y-2' },
+            React.createElement('div', { className: 'flex space-x-2' },
+              React.createElement('input', {
+                type: 'text',
+                value: paymentPostServiceData.invoice_items?.[0]?.description || paymentPostServiceData.service_details || '',
+                onChange: (e) => handlePaymentPostServiceInputChange('invoice_items', [{
+                  description: e.target.value,
+                  quantity: 1,
+                  rate: paymentPostServiceData.expected_amount || 0
+                }]),
+                className: 'flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                placeholder: 'Service description'
+              })
+            )
+          )
+        ),
+          React.createElement('div', { className: 'mb-4' },
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Service Details *'),
           React.createElement('textarea', {
             value: paymentPostServiceData.service_details || '',
