@@ -66,6 +66,9 @@ window.renderAllocationForm = () => {
     lead.status === 'payment_received'
   );
 
+  // Ensure quantity has a default value
+  const currentQuantity = allocationData.quantity || 1;
+
   return React.createElement('div', {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
     onClick: (e) => {
@@ -147,8 +150,11 @@ window.renderAllocationForm = () => {
               type: 'number',
               min: '1',
               max: currentInventory.available_tickets,
-              value: allocationData.quantity || 1,
-              onChange: (e) => handleAllocationInputChange('quantity', parseInt(e.target.value)),
+              value: currentQuantity,
+              onChange: (e) => {
+                const value = parseInt(e.target.value) || 0;
+                handleAllocationInputChange('quantity', value);
+              },
               className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
               required: true
             })
@@ -181,17 +187,17 @@ window.renderAllocationForm = () => {
         ),
 
         // Total Amount Calculation
-        allocationData.quantity && React.createElement('div', { className: 'bg-blue-50 dark:bg-blue-900 rounded-lg p-4 mb-6' },
+        currentQuantity > 0 && React.createElement('div', { className: 'bg-blue-50 dark:bg-blue-900 rounded-lg p-4 mb-6' },
           React.createElement('div', { className: 'flex justify-between items-center' },
             React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 
               'Total Amount:'
             ),
             React.createElement('span', { className: 'text-2xl font-bold text-blue-600 dark:text-blue-400' },
-              `₹${((allocationData.quantity || 1) * (currentInventory.selling_price || 0)).toLocaleString()}`
+              `₹${(currentQuantity * (currentInventory.selling_price || 0)).toLocaleString()}`
             )
           ),
           React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400 mt-1' },
-            `${allocationData.quantity || 1} tickets × ₹${(currentInventory.selling_price || 0).toLocaleString()} each`
+            `${currentQuantity} tickets × ₹${(currentInventory.selling_price || 0).toLocaleString()} each`
           )
         ),
 
@@ -203,7 +209,7 @@ window.renderAllocationForm = () => {
           }, 'Cancel'),
           React.createElement('button', {
             type: 'submit',
-            disabled: loading || !allocationData.lead_id || !allocationData.quantity,
+            disabled: loading || !allocationData.lead_id || currentQuantity < 1,
             className: 'flex-1 bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 disabled:opacity-50 font-medium'
           }, loading ? 'Processing...' : 'Allocate and Create Entry')
         )
@@ -248,18 +254,21 @@ window.handleAllocation = async (e) => {
     return;
   }
 
+  // Get current quantity with fallback
+  const quantity = window.allocationData.quantity || 1;
+
   // Validation
   if (!window.allocationData.lead_id) {
     alert('Please select a lead');
     return;
   }
 
-  if (!window.allocationData.quantity || window.allocationData.quantity <= 0) {
-    alert('Please enter a valid quantity');
+  if (quantity < 1) {
+    alert('Please enter a valid quantity (at least 1)');
     return;
   }
 
-  if (window.allocationData.quantity > window.currentInventory.available_tickets) {
+  if (quantity > window.currentInventory.available_tickets) {
     alert('Quantity exceeds available tickets');
     return;
   }
@@ -288,9 +297,9 @@ window.handleAllocation = async (e) => {
     // Create the allocation request with proper field mapping
     const allocationRequest = {
       lead_id: window.allocationData.lead_id,
-      tickets_allocated: parseInt(window.allocationData.quantity), // Map quantity to tickets_allocated
-      allocation_date: window.allocationData.allocation_date,
-      notes: window.allocationData.notes
+      tickets_allocated: parseInt(quantity), // Map quantity to tickets_allocated
+      allocation_date: window.allocationData.allocation_date || new Date().toISOString().split('T')[0],
+      notes: window.allocationData.notes || ''
     };
 
     const response = await window.apiCall(`/inventory/${window.currentInventory.id}/allocate`, {
@@ -303,7 +312,7 @@ window.handleAllocation = async (e) => {
     }
 
     // Update inventory available tickets
-    const newAvailableTickets = window.currentInventory.available_tickets - window.allocationData.quantity;
+    const newAvailableTickets = window.currentInventory.available_tickets - quantity;
     
     window.setInventory(prev => prev.map(item =>
       item.id === window.currentInventory.id
@@ -341,7 +350,7 @@ window.openAllocationForm = (inventory) => {
   // Initialize allocation data with default values
   window.allocationData = {
     lead_id: '',
-    quantity: 1,
+    quantity: 1, // Always start with 1, not linked to any lead quantity
     allocation_date: new Date().toISOString().split('T')[0],
     notes: ''
   };
