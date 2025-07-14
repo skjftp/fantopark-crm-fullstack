@@ -332,149 +332,7 @@
 })();
 </script>  
 
-<script>
-// COMPREHENSIVE API CALL CONSOLIDATION
-(function() {
-  'use strict';
-  
-  console.log('🔄 Implementing comprehensive API call consolidation...');
-  
-  // Global flag to prevent multiple simultaneous data fetches
-  let isDataFetching = false;
-  let dataFetchPromise = null;
-  
-  // Store original functions
-  const originalFetchData = window.renderAppBusinessLogic()?.fetchData;
-  const originalFetchMyActions = window.fetchMyActions;
-  
-  // Consolidated data fetching function
-  window.consolidatedDataFetch = async function() {
-    // Prevent multiple simultaneous fetches
-    if (isDataFetching) {
-      console.log('📋 Data fetch already in progress, returning existing promise');
-      return dataFetchPromise;
-    }
-    
-    if (!window.isLoggedIn) {
-      console.log('❌ Not logged in, skipping data fetch');
-      return;
-    }
-    
-    isDataFetching = true;
-    console.log('🚀 Starting consolidated data fetch...');
-    
-    dataFetchPromise = (async () => {
-      try {
-        // Fetch all core data once
-        const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData, clientsData, usersData, stadiumsData] = await Promise.all([
-          window.apiCall('/leads').catch(() => ({ data: [] })),
-          window.apiCall('/inventory').catch(() => ({ data: [] })),
-          window.apiCall('/orders').catch(() => ({ data: [] })),
-          window.apiCall('/invoices').catch(() => ({ data: [] })),
-          window.apiCall('/deliveries').catch(() => ({ data: [] })),
-          window.apiCall('/clients').catch(() => ({ data: [] })),
-          window.apiCall('/users').catch(() => ({ data: [] })),
-          window.apiCall('/stadiums').catch(() => ({ data: [] }))
-        ]);
-        
-        console.log('✅ All API calls completed, updating state...');
-        
-        // Update all state at once
-        if (window.appState?.setLeads) window.appState.setLeads(leadsData.data || []);
-        if (window.appState?.setInventory) window.appState.setInventory(inventoryData.data || []);
-        if (window.appState?.setOrders) window.appState.setOrders(ordersData.data || []);
-        if (window.appState?.setInvoices) window.appState.setInvoices(invoicesData.data || []);
-        if (window.appState?.setDeliveries) window.appState.setDeliveries(deliveriesData.data || []);
-        if (window.appState?.setClients) window.appState.setClients(clientsData.data || []);
-        if (window.appState?.setUsers) window.appState.setUsers(usersData.data || []);
-        if (window.appState?.setStadiums) window.appState.setStadiums(stadiumsData.data || []);
-        
-        // Update window globals
-        window.leads = leadsData.data || [];
-        window.inventory = inventoryData.data || [];
-        window.orders = ordersData.data || [];
-        window.users = usersData.data || [];
-        window.allUsers = usersData.data || [];
-        
-        console.log('✅ Consolidated data fetch completed successfully');
-        
-      } catch (error) {
-        console.error('❌ Consolidated data fetch failed:', error);
-      } finally {
-        isDataFetching = false;
-        dataFetchPromise = null;
-      }
-    })();
-    
-    return dataFetchPromise;
-  };
-  
-  // Override the original functions to use consolidated fetch
-  if (originalFetchData) {
-    window.renderAppBusinessLogic().fetchData = function() {
-      console.log('🔄 fetchData called - routing to consolidated fetch');
-      return window.consolidatedDataFetch();
-    };
-  }
-  
-  if (originalFetchMyActions) {
-    window.fetchMyActions = function() {
-      console.log('🔄 fetchMyActions called - using existing data + filtering');
-      
-      // If data is already loaded, just process it
-      if (window.leads && window.leads.length > 0) {
-        // Process My Actions data from already loaded data
-        if (originalFetchMyActions) {
-          return originalFetchMyActions();
-        }
-      } else {
-        // If no data, fetch it first
-        return window.consolidatedDataFetch().then(() => {
-          if (originalFetchMyActions) {
-            return originalFetchMyActions();
-          }
-        });
-      }
-    };
-  }
-  
-  // Single initialization function
-  window.initializeAppData = function() {
-    if (!window.isLoggedIn) return;
-    
-    console.log('🎯 Initializing app data (single call)');
-    return window.consolidatedDataFetch();
-  };
-  
-  // Override useEffect to prevent multiple calls
-  let isInitialized = false;
-  
-  const originalUseEffect = React.useEffect;
-  React.useEffect = function(callback, deps) {
-    // Intercept data fetching useEffects
-    const callbackString = callback.toString();
-    
-    if (callbackString.includes('fetchData') && !isInitialized) {
-      console.log('🛑 Intercepting fetchData useEffect - using consolidated approach');
-      
-      const newCallback = () => {
-        if (window.isLoggedIn && !isInitialized) {
-          isInitialized = true;
-          window.initializeAppData();
-        }
-      };
-      
-      return originalUseEffect(newCallback, [window.isLoggedIn]);
-    }
-    
-    // Allow other useEffects to run normally
-    return originalUseEffect(callback, deps);
-  };
-  
-  console.log('✅ API call consolidation system enabled');
-  
-})();
-</script> 
+
 
 <!-- PERFORMANCE OPTIMIZATION SCRIPTS - PLACE FIRST -->
 <script> 
@@ -825,6 +683,149 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 <!-- Add these after your other component scripts -->
 <script src="components/responsive-layout.js"></script>
 
+<script>
+// COMPREHENSIVE API CALL CONSOLIDATION
+(function() {
+  'use strict';
+  
+  console.log('🔄 Implementing comprehensive API call consolidation...');
+  
+  // Global flag to prevent multiple simultaneous data fetches
+  let isDataFetching = false;
+  let dataFetchPromise = null;
+  
+  // Store original functions
+  const originalFetchData = window.renderAppBusinessLogic()?.fetchData;
+  const originalFetchMyActions = window.fetchMyActions;
+  
+  // Consolidated data fetching function
+  window.consolidatedDataFetch = async function() {
+    // Prevent multiple simultaneous fetches
+    if (isDataFetching) {
+      console.log('📋 Data fetch already in progress, returning existing promise');
+      return dataFetchPromise;
+    }
+    
+    if (!window.isLoggedIn) {
+      console.log('❌ Not logged in, skipping data fetch');
+      return;
+    }
+    
+    isDataFetching = true;
+    console.log('🚀 Starting consolidated data fetch...');
+    
+    dataFetchPromise = (async () => {
+      try {
+        // Fetch all core data once
+        const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData, clientsData, usersData, stadiumsData] = await Promise.all([
+          window.apiCall('/leads').catch(() => ({ data: [] })),
+          window.apiCall('/inventory').catch(() => ({ data: [] })),
+          window.apiCall('/orders').catch(() => ({ data: [] })),
+          window.apiCall('/invoices').catch(() => ({ data: [] })),
+          window.apiCall('/deliveries').catch(() => ({ data: [] })),
+          window.apiCall('/clients').catch(() => ({ data: [] })),
+          window.apiCall('/users').catch(() => ({ data: [] })),
+          window.apiCall('/stadiums').catch(() => ({ data: [] }))
+        ]);
+        
+        console.log('✅ All API calls completed, updating state...');
+        
+        // Update all state at once
+        if (window.appState?.setLeads) window.appState.setLeads(leadsData.data || []);
+        if (window.appState?.setInventory) window.appState.setInventory(inventoryData.data || []);
+        if (window.appState?.setOrders) window.appState.setOrders(ordersData.data || []);
+        if (window.appState?.setInvoices) window.appState.setInvoices(invoicesData.data || []);
+        if (window.appState?.setDeliveries) window.appState.setDeliveries(deliveriesData.data || []);
+        if (window.appState?.setClients) window.appState.setClients(clientsData.data || []);
+        if (window.appState?.setUsers) window.appState.setUsers(usersData.data || []);
+        if (window.appState?.setStadiums) window.appState.setStadiums(stadiumsData.data || []);
+        
+        // Update window globals
+        window.leads = leadsData.data || [];
+        window.inventory = inventoryData.data || [];
+        window.orders = ordersData.data || [];
+        window.users = usersData.data || [];
+        window.allUsers = usersData.data || [];
+        
+        console.log('✅ Consolidated data fetch completed successfully');
+        
+      } catch (error) {
+        console.error('❌ Consolidated data fetch failed:', error);
+      } finally {
+        isDataFetching = false;
+        dataFetchPromise = null;
+      }
+    })();
+    
+    return dataFetchPromise;
+  };
+  
+  // Override the original functions to use consolidated fetch
+  if (originalFetchData) {
+    window.renderAppBusinessLogic().fetchData = function() {
+      console.log('🔄 fetchData called - routing to consolidated fetch');
+      return window.consolidatedDataFetch();
+    };
+  }
+  
+  if (originalFetchMyActions) {
+    window.fetchMyActions = function() {
+      console.log('🔄 fetchMyActions called - using existing data + filtering');
+      
+      // If data is already loaded, just process it
+      if (window.leads && window.leads.length > 0) {
+        // Process My Actions data from already loaded data
+        if (originalFetchMyActions) {
+          return originalFetchMyActions();
+        }
+      } else {
+        // If no data, fetch it first
+        return window.consolidatedDataFetch().then(() => {
+          if (originalFetchMyActions) {
+            return originalFetchMyActions();
+          }
+        });
+      }
+    };
+  }
+  
+  // Single initialization function
+  window.initializeAppData = function() {
+    if (!window.isLoggedIn) return;
+    
+    console.log('🎯 Initializing app data (single call)');
+    return window.consolidatedDataFetch();
+  };
+  
+  // Override useEffect to prevent multiple calls
+  let isInitialized = false;
+  
+  const originalUseEffect = React.useEffect;
+  React.useEffect = function(callback, deps) {
+    // Intercept data fetching useEffects
+    const callbackString = callback.toString();
+    
+    if (callbackString.includes('fetchData') && !isInitialized) {
+      console.log('🛑 Intercepting fetchData useEffect - using consolidated approach');
+      
+      const newCallback = () => {
+        if (window.isLoggedIn && !isInitialized) {
+          isInitialized = true;
+          window.initializeAppData();
+        }
+      };
+      
+      return originalUseEffect(newCallback, [window.isLoggedIn]);
+    }
+    
+    // Allow other useEffects to run normally
+    return originalUseEffect(callback, deps);
+  };
+  
+  console.log('✅ API call consolidation system enabled');
+  
+})();
+</script>   
   
 <script>
   // ===== FINANCIALS DISPLAY FIX FOR INDIAN FORMAT =====
