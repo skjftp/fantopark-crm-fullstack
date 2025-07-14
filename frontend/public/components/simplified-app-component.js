@@ -2415,6 +2415,7 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
     window.setCurrentOrderForEdit && window.setCurrentOrderForEdit(null);
     window.setSelectedOrderForAssignment && window.setSelectedOrderForAssignment(null);
     window.setEditingStadium && window.setEditingStadium(null);
+    window.showFinanceInvoiceModal && window.renderFinanceInvoiceModal()
     window.setStadiumFormData && window.setStadiumFormData({});
     // ✅ Sports Calendar data reset
     window.setCurrentEvent && window.setCurrentEvent(null);
