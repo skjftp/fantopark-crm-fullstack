@@ -3211,6 +3211,7 @@ console.log("✅ AssignmentRulesTab exposed to window");
     window.renderAssignForm && window.renderAssignForm(),
     window.renderBulkAssignModal && window.renderBulkAssignModal(),
     window.showPaymentForm && !paymentData?.is_proforma && window.renderPaymentForm(),
+    window.showFinanceInvoiceModal && window.renderFinanceInvoiceModal && window.renderFinanceInvoiceModal(),                         
     window.renderLeadDetail && window.renderLeadDetail(),
     state.showInventoryDetail && window.renderInventoryDetail && window.renderInventoryDetail(),
     window.renderAllocationForm && window.renderAllocationForm(),
