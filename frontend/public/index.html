@@ -2494,6 +2494,135 @@ console.log('✅ Chart update functions loaded');
   
 })();
 </script>  
+
+  <script>
+    (function() {
+    'use strict';
+    
+    console.log('📱 Initializing mobile responsive design...');
+    
+    // Wait for all components to load
+    function initializeMobileResponsive() {
+        if (!window.SimplifiedApp || !window.appState) {
+            setTimeout(initializeMobileResponsive, 100);
+            return;
+        }
+        
+        // Update the SimplifiedApp to use responsive layout
+        const originalSimplifiedApp = window.SimplifiedApp;
+        
+        window.SimplifiedApp = () => {
+            const { isLoggedIn } = window.appState;
+            
+            if (!isLoggedIn) {
+                return window.renderLogin();
+            }
+            
+            // Use responsive layout
+            return window.renderResponsiveLayout();
+        };
+        
+        // Override the financials renderer with responsive version
+        const originalRenderFinancials = window.renderFinancials;
+        window.renderFinancials = window.renderResponsiveFinancials || originalRenderFinancials;
+        
+        // Override sales tab with responsive version
+        const originalRenderSalesTab = window.renderSalesTab;
+        window.renderSalesTab = window.renderResponsiveSalesTab || originalRenderSalesTab;
+        
+        // Add viewport meta tag if not present
+        if (!document.querySelector('meta[name="viewport"]')) {
+            const viewport = document.createElement('meta');
+            viewport.name = 'viewport';
+            viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+            document.head.appendChild(viewport);
+        }
+        
+        // Add mobile-specific styles
+        const mobileStyles = document.createElement('style');
+        mobileStyles.textContent = `
+            /* Prevent horizontal scroll on mobile */
+            body {
+                overflow-x: hidden;
+            }
+            
+            /* Improve touch targets */
+            button, a, input, select, textarea {
+                min-height: 44px;
+            }
+            
+            /* Better mobile table styles */
+            @media (max-width: 640px) {
+                table {
+                    font-size: 14px;
+                }
+                
+                th, td {
+                    padding: 8px 4px;
+                }
+                
+                /* Hide less important columns on very small screens */
+                .hide-on-mobile {
+                    display: none;
+                }
+            }
+            
+            /* Smooth scrolling for tabs */
+            .overflow-x-auto {
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: thin;
+            }
+            
+            /* Better chart responsiveness */
+            canvas {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+            
+            /* Fix for iOS Safari */
+            .fixed {
+                -webkit-transform: translateZ(0);
+            }
+        `;
+        document.head.appendChild(mobileStyles);
+        
+        // Force re-render if already logged in
+        if (window.renderApp) {
+            window.renderApp();
+        }
+        
+        console.log('✅ Mobile responsive design initialized');
+    }
+    
+    // Handle window resize for responsive chart
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            if (window.financialSalesChartInstance) {
+                window.financialSalesChartInstance.resize();
+            }
+        }, 250);
+    });
+    
+    // Initialize
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeMobileResponsive);
+    } else {
+        initializeMobileResponsive();
+    }
+})();
+
+// Quick test function to check mobile menu
+window.testMobileMenu = () => {
+    if (window.appState && window.appState.setIsMobileMenuOpen) {
+        window.appState.setIsMobileMenuOpen(true);
+        console.log('Mobile menu opened');
+    } else {
+        console.log('Mobile menu state not available');
+    }
+};
+  </script>
   
 </body>
 </html>
