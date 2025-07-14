@@ -654,11 +654,73 @@ window.renderInventoryContent = () => {
                       )
                   )
               )
-          );
-      })
-  )
+          ),
+             // ADD CATEGORY ROWS HERE
+                    isExpanded && hasCategories && item.categories.map((category, catIndex) => 
+                        React.createElement('tr', {
+                            key: `${item.id}-cat-${catIndex}`,
+                            className: 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border-l-4 border-blue-500'
+                        },
+                            // Empty cell for expand column
+                            React.createElement('td', { className: 'w-10 px-2 py-2' }, ''),
+                            
+                            // Category details cell
+                            React.createElement('td', { 
+                                className: 'px-6 py-2',
+                                colSpan: 3 // Spans Event, Sports, Category columns
+                            },
+                                React.createElement('div', { className: 'flex items-center justify-between' },
+                                    React.createElement('div', null,
+                                        React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 
+                                            category.name
+                                        ),
+                                        category.section && React.createElement('span', { 
+                                            className: 'ml-2 text-sm text-gray-500 dark:text-gray-400' 
+                                        }, `(${category.section})`)
+                                    ),
+                                    React.createElement('div', { className: 'text-xs text-gray-500' },
+                                        category.inclusions || 'No inclusions'
+                                    )
+                                )
+                            ),
+                            
+                            // Date cell (empty for category rows)
+                            React.createElement('td', { className: 'px-6 py-2' }, ''),
+                            
+                            // Available tickets for this category
+                            React.createElement('td', { className: 'px-6 py-2' },
+                                React.createElement('div', { className: 'text-sm' },
+                                    `${category.available_tickets || 0} / ${category.total_tickets || 0}`
+                                )
+                            ),
+                            
+                            // Revenue for this category (if permission)
+                            window.hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-2' },
+                                React.createElement('div', { className: 'text-sm' },
+                                    React.createElement('div', null, `₹${((category.selling_price || 0) * (category.total_tickets || 0)).toLocaleString()}`),
+                                    React.createElement('div', { className: 'text-xs text-gray-500' }, 
+                                        `₹${category.selling_price || 0} per ticket`
+                                    )
+                                )
+                            ),
+                            
+                            // Status cell (shows pricing)
+                            React.createElement('td', { className: 'px-6 py-2' },
+                                React.createElement('div', { className: 'text-xs' },
+                                    React.createElement('div', null, `Buy: ₹${category.buying_price || 0}`),
+                                    React.createElement('div', null, `Sell: ₹${category.selling_price || 0}`)
+                                )
+                            ),
+                            
+                            // Actions (empty for category rows)
+                            React.createElement('td', { className: 'px-6 py-2' }, '')
+                        )
+                      )
+                    );
+                  })
+                  )
                 )
-            ) : 
+              ) : 
             React.createElement('div', { className: 'text-center py-12' },
                 React.createElement('svg', {
                     className: 'mx-auto h-12 w-12 text-gray-400',
