@@ -252,8 +252,8 @@ window.viewInvoice = (order) => {
       final_amount: order.final_amount || order.total_amount || order.amount || 0,
       invoice_date: order.approved_date || new Date().toISOString().split('T')[0],
       due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: order.order_type === 'payment_post_service' && order.status !== 'approved' ? 'proforma' : 'generated',
-      invoice_type: order.order_type === 'payment_post_service' && order.status !== 'approved' ? 'proforma' : 'tax',
+      invoice_type: order.payment_status === 'pending' ? 'proforma' : 'tax',
+      status: order.payment_status === 'pending' ? 'proforma' : 'generated',
       generated_by: order.approved_by || 'System',
       payment_currency: order.payment_currency || 'INR'
     };
