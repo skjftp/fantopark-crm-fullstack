@@ -449,7 +449,7 @@ window.handlePaymentPostService = async function(lead) {
       total_amount: lead.potential_value || 0,
       created_date: new Date().toISOString(),
       created_by: window.user.name,
-      assigned_to: ''
+      assigned_to: await window.getSupplySalesServiceManager()
     };
 
     try {
