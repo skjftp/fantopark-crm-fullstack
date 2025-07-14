@@ -3209,7 +3209,7 @@ console.log("✅ AssignmentRulesTab exposed to window");
     }),
     window.renderAssignForm && window.renderAssignForm(),
     window.renderBulkAssignModal && window.renderBulkAssignModal(),
-    {showPaymentForm && !paymentData?.is_proforma && renderPaymentForm()}
+    {showPaymentForm && !paymentData?.is_proforma && renderPaymentForm()},
     window.renderLeadDetail && window.renderLeadDetail(),
     state.showInventoryDetail && window.renderInventoryDetail && window.renderInventoryDetail(),
     window.renderAllocationForm && window.renderAllocationForm(),
