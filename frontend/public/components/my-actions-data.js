@@ -65,7 +65,7 @@ window.fetchMyActions = async function() {
       const userEmail = window.user.email;
       const userRole = window.user.role;
       
-      // Filter assigned leads
+      // Filter assigned leads (leads directly assigned to the user)
       assignedLeads = leadsResponse.data.filter(lead => {
         const isAssigned = lead.assigned_to === userEmail;
         if (isAssigned) {
@@ -74,15 +74,30 @@ window.fetchMyActions = async function() {
         return isAssigned;
       });
 
-      // Filter quote requests for supply team
-      if (userRole === 'supply_sales_service_manager' || userRole === 'supply_manager') {
+      // FIXED: Filter quote requests for ALL supply team roles
+      const supplyRoles = ['supply_manager', 'supply_sales_service_manager', 'supply_service_manager', 'supply_executive'];
+      
+      if (supplyRoles.includes(userRole)) {
+        console.log('🔍 User is supply team member:', userRole);
+        
+        // Get ALL quote_requested leads for supply team shared pool
         quoteRequestedLeads = leadsResponse.data.filter(lead => {
           const isQuoteRequest = lead.status === 'quote_requested';
           if (isQuoteRequest) {
-            console.log('✅ Quote request for supply team:', lead.company_name || lead.name);
+            console.log('✅ Quote request found:', {
+              name: lead.company_name || lead.name,
+              assigned_to: lead.assigned_to,
+              assigned_team: lead.assigned_team,
+              original_assignee: lead.original_assignee
+            });
           }
           return isQuoteRequest;
         });
+        
+        console.log(`📊 Total quote requests in shared pool: ${quoteRequestedLeads.length}`);
+      } else {
+        console.log('❌ User role', userRole, 'is not in supply team - no quote requests shown');
+        quoteRequestedLeads = [];
       }
     }
 
@@ -90,51 +105,49 @@ window.fetchMyActions = async function() {
     // FILTER AND PROCESS ORDERS
     // =============================================================================
     let myFilteredOrders = [];
-if (ordersResponse?.data) {
-  const userEmail = window.user.email;
-  const userRole = window.user.role;
-  
-  // Use role-based filtering instead of direct assignment filtering
-  myFilteredOrders = window.filterOrdersByRole(ordersResponse.data, userRole, userEmail);
-  
-  console.log('✅ Orders filtered by role:', userRole, 'Found:', myFilteredOrders.length, 'orders');
-}
+    if (ordersResponse?.data) {
+      const userEmail = window.user.email;
+      const userRole = window.user.role;
+      
+      // Use role-based filtering instead of direct assignment filtering
+      myFilteredOrders = window.filterOrdersByRole(ordersResponse.data, userRole, userEmail);
+      
+      console.log('✅ Orders filtered by role:', userRole, 'Found:', myFilteredOrders.length, 'orders');
+    }
 
     // =============================================================================
     // FILTER AND PROCESS DELIVERIES WITH CUSTOMER NAMES
     // =============================================================================
-    // NEW CODE (REPLACE WITH THIS):
-let enhancedDeliveries = [];
-if (deliveriesResponse?.data) {
-  const userEmail = window.user.email;
-  const userRole = window.user.role;
-  
-  // 🔧 FIXED: Use the role-based filtering function instead of direct assignment check
-  const myFilteredDeliveries = window.filterDeliveriesByRole(deliveriesResponse.data, userRole, userEmail);
-  
-  console.log('🚚 Delivery filtering in fetchMyActions:');
-  console.log('📊 Total deliveries:', deliveriesResponse.data.length);
-  console.log('📊 Filtered for user:', myFilteredDeliveries.length);
-  
-  // Enhance deliveries with customer names from orders
-  enhancedDeliveries = myFilteredDeliveries.map(delivery => {
-    const relatedOrder = orderLookup[delivery.order_id];
-    const customerName = relatedOrder?.customer_name || 
-                       relatedOrder?.client_name ||
-                       delivery.customer_name ||
-                       'Unknown Customer';
-    
-    console.log('✅ Enhanced delivery', delivery.id, 'with customer:', customerName);
-    
-    return {
-      ...delivery,
-      customer_name: customerName
-    };
-  });
-}
+    let enhancedDeliveries = [];
+    if (deliveriesResponse?.data) {
+      const userEmail = window.user.email;
+      const userRole = window.user.role;
+      
+      // Use the role-based filtering function instead of direct assignment check
+      const myFilteredDeliveries = window.filterDeliveriesByRole(deliveriesResponse.data, userRole, userEmail);
+      
+      console.log('🚚 Delivery filtering in fetchMyActions:');
+      console.log('📊 Total deliveries:', deliveriesResponse.data.length);
+      console.log('📊 Filtered for user:', myFilteredDeliveries.length);
+      
+      // Enhance deliveries with customer names from orders
+      enhancedDeliveries = myFilteredDeliveries.map(delivery => {
+        const relatedOrder = orderLookup[delivery.order_id];
+        const customerName = relatedOrder?.customer_name || 
+                           relatedOrder?.client_name ||
+                           delivery.customer_name ||
+                           'Unknown Customer';
+        
+        console.log('✅ Enhanced delivery', delivery.id, 'with customer:', customerName);
+        
+        return {
+          ...delivery,
+          customer_name: customerName
+        };
+      });
+    }
 
-// Make sure this line appears later in the function:
-console.log('My deliveries (enhanced):', enhancedDeliveries.length);
+    console.log('My deliveries (enhanced):', enhancedDeliveries.length);
 
     // =============================================================================
     // FILTER RECEIVABLES
@@ -228,13 +241,29 @@ window.filterLeadsByRole = function(leads, userRole, userEmail) {
     
     case 'supply_manager':
     case 'supply_sales_service_manager':
-      // Get both assigned leads and quote requested leads
-      const assignedLeads = leads.filter(lead => lead.assigned_to === userEmail);
-      const quoteLeads = leads.filter(lead => 
-        lead.status === 'quote_requested' && 
-        (lead.quote_assigned_to === userEmail || !lead.quote_assigned_to)
-      );
-      return [...assignedLeads, ...quoteLeads];
+    case 'supply_service_manager':
+    case 'supply_executive':
+      console.log('🔍 Filtering leads for supply team member:', userEmail);
+      
+      // Supply team members see:
+      // 1. All leads directly assigned to them (any status)
+      const directlyAssigned = leads.filter(lead => lead.assigned_to === userEmail);
+      console.log(`  - Directly assigned leads: ${directlyAssigned.length}`);
+      
+      // 2. ALL quote_requested leads (shared pool - regardless of who it's assigned to)
+      const allQuoteRequests = leads.filter(lead => lead.status === 'quote_requested');
+      console.log(`  - Quote requests (shared pool): ${allQuoteRequests.length}`);
+      
+      // Combine and deduplicate
+      const combinedLeads = [...directlyAssigned];
+      allQuoteRequests.forEach(quoteLead => {
+        if (!combinedLeads.find(l => l.id === quoteLead.id)) {
+          combinedLeads.push(quoteLead);
+        }
+      });
+      
+      console.log(`  - Total unique leads: ${combinedLeads.length}`);
+      return combinedLeads;
     
     case 'admin':
     case 'super_admin':
@@ -363,4 +392,44 @@ window.initializeMyActions = function() {
   }
 };
 
-console.log('✅ Enhanced My Actions Data Fetching System loaded successfully with STATE SYNC FIXES');
+// =============================================================================
+// DEBUG FUNCTIONS
+// =============================================================================
+
+// Debug function to check quote request visibility
+window.debugQuoteRequests = async function() {
+  console.log('=== QUOTE REQUEST DEBUG ===');
+  console.log('Current user:', window.user.email, 'Role:', window.user.role);
+  
+  // Fetch fresh lead data
+  const response = await window.apiCall('/leads');
+  const allLeads = response.data || [];
+  
+  // Find all quote_requested leads
+  const quoteRequests = allLeads.filter(l => l.status === 'quote_requested');
+  console.log(`Total quote_requested leads in system: ${quoteRequests.length}`);
+  
+  quoteRequests.forEach((lead, index) => {
+    console.log(`Quote ${index + 1}:`, {
+      name: lead.name,
+      company: lead.company_name,
+      assigned_to: lead.assigned_to,
+      assigned_team: lead.assigned_team,
+      original_assignee: lead.original_assignee,
+      created_date: lead.created_date
+    });
+  });
+  
+  // Check what fetchMyActions returns
+  console.log('\n--- Checking fetchMyActions ---');
+  await window.fetchMyActions();
+  console.log('myQuoteRequested after fetch:', window.myQuoteRequested?.length || 0);
+  
+  return {
+    totalQuoteRequests: quoteRequests.length,
+    myQuoteRequested: window.myQuoteRequested?.length || 0,
+    details: quoteRequests
+  };
+};
+
+console.log('✅ Enhanced My Actions Data Fetching System loaded successfully with QUOTE REQUEST SHARED POOL FIX');
