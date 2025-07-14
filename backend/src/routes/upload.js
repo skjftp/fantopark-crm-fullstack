@@ -848,20 +848,6 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
   }
 });
 
-// Helper function to parse dates (add this if not already present)
-function parseDate(dateStr) {
-  if (!dateStr) return '';
-  
-  // Try to parse various date formats
-  const date = new Date(dateStr);
-  if (!isNaN(date.getTime())) {
-    return date.toISOString().split('T')[0]; // Return YYYY-MM-DD format
-  }
-  
-  // If parsing fails, return original string
-  return dateStr;
-}
-
 // GET endpoint to generate sample CSV with dropdown validation (unchanged from your original)
 router.get('/sample/:type', authenticateToken, async (req, res) => {
   try {
