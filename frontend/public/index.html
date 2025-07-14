@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FanToPark CRM Pro</title>
 
-<!-- Add this COMPREHENSIVE PERFORMANCE OPTIMIZATION scrpt -->
+<!-- Add this COMPREHENSIVE PERFORMANCE OPTIMIZATION script -->
 <script>
 // COMPREHENSIVE DASHBOARD PERFORMANCE OPTIMIZATION
 (function() {
@@ -635,8 +635,8 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 <script src="components/financials.js"></script>
 <script src="components/orders.js"></script> 
 <script src="components/user-management.js"></script>
-<script defer src="components/assignment-rules.js"></script>
-<script defer src="components/my-actions.js"></script>  
+<script src="components/assignment-rules.js"></script>
+<script src="components/my-actions.js"></script>  
 <script defer src="components/stadiums.js"></script> 
 <script defer src="components/delivery.js"></script>
 <script defer src="components/sports-calendar.js"></script> 
@@ -2626,7 +2626,35 @@ window.testMobileMenu = () => {
     }
 };
   </script>
-  
+<script>
+// Safer Mobile Menu Implementation
+function initMobileMenu() {
+  // Only add the toggle function, not DOM elements
+  window.toggleMobileMenu = function() {
+    const sidebar = document.querySelector('.w-64.bg-white');
+    if (sidebar) {
+      sidebar.classList.toggle('mobile-open');
+      
+      // Handle overlay
+      let overlay = document.getElementById('mobile-overlay-div');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'mobile-overlay-div';
+        overlay.className = 'mobile-overlay';
+        overlay.onclick = function() {
+          sidebar.classList.remove('mobile-open');
+          overlay.classList.remove('show');
+        };
+        document.body.appendChild(overlay);
+      }
+      overlay.classList.toggle('show');
+    }
+  };
+}
+
+// Initialize after React has rendered
+setTimeout(initMobileMenu, 1000);
+</script>
   
 </body>
 </html>
