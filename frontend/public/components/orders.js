@@ -213,65 +213,49 @@ window.renderOrdersContent = () => {
   const completeOrder = window.completeOrder || (() => console.warn("completeOrder not implemented"));
 
 // FIXED: Override window.viewInvoice FIRST, then create the local constant
-window.viewInvoice = (order) => {
-  //console.log('🔍 Looking for invoice for order:', order.id);
+window.viewInvoice = function(order) {
+  console.log('📄 viewInvoice called with order:', order);
+  console.log('Order state:', {
+    id: order.id,
+    order_type: order.order_type,
+    status: order.status,
+    payment_status: order.payment_status,
+    invoice_type: order.invoice_type,
+    finance_invoice_number: order.finance_invoice_number
+  });
   
-  if (order.invoice_number) {
-    const reconstructedInvoice = {
-      id: order.invoice_id || order.id,
-      invoice_number: order.invoice_number,
-      order_id: order.id,
-      order_number: order.order_number,
-      client_name: order.legal_name || order.client_name,
-      client_email: order.client_email,
-      gstin: order.gstin,
-      legal_name: order.legal_name,
-      category_of_sale: order.category_of_sale,
-      type_of_sale: order.type_of_sale,
-      registered_address: order.registered_address,
-      indian_state: order.indian_state,
-      is_outside_india: order.is_outside_india,
-      invoice_items: order.invoice_items || [{
-        description: order.event_name || 'Service',
-        quantity: order.tickets_allocated || 1,
-        rate: order.price_per_ticket || (order.total_amount || 0)
-      }],
-      base_amount: order.base_amount || order.total_amount || order.amount || 0,
-      gst_calculation: order.gst_calculation || {
-        applicable: false,
-        rate: 0,
-        cgst: 0,
-        sgst: 0,
-        igst: 0,
-        total: 0
-      },
-      tcs_calculation: order.tcs_calculation || {
-        applicable: false,
-        rate: 0,
-        amount: 0
-      },
-      total_tax: order.total_tax || 0,
-      final_amount: order.final_amount || order.total_amount || order.amount || 0,
-      invoice_date: order.approved_date || new Date().toISOString().split('T')[0],
-      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: 'generated',
-      generated_by: order.approved_by || 'System',
-      payment_currency: order.payment_currency || 'INR'
-    };
-    //console.log('📊 Reconstructed invoice:', reconstructedInvoice);
+  // Check if this should show as proforma
+  const isProforma = order.invoice_type === 'proforma' && 
+                     order.payment_status !== 'completed';
+  
+  console.log('Invoice type determined as:', isProforma ? 'PROFORMA' : 'TAX');
+  console.log('Finance invoice number:', order.finance_invoice_number);
+  
+  // For tax invoices that don't have finance invoice number
+  if (!isProforma && !order.finance_invoice_number) {
+    console.log('📝 Tax invoice needs finance invoice number');
     
-    if (window.openInvoicePreview) {
-      window.openInvoicePreview(reconstructedInvoice);
+    // Check if modal functions are available
+    if (window.setCurrentOrderForInvoice && window.setFinanceInvoiceNumber && window.setShowFinanceInvoiceModal) {
+      console.log('✅ Opening finance invoice modal');
+      window.setCurrentOrderForInvoice(order);
+      window.setFinanceInvoiceNumber(order.finance_invoice_number || '');
+      window.setShowFinanceInvoiceModal(true);
+      return;
     } else {
-      alert('Invoice preview not available');
+      console.log('❌ Modal functions not available');
+      alert('Finance invoice number is required. Please contact admin.');
+      return;
     }
-  } else {
-    alert('❌ Invoice not found for this order');
   }
+  
+  // Show invoice preview directly
+  window.openInvoicePreviewDirectly(order);
 };
 
 // NOW create the local constant that points to the NEW function
 const viewInvoice = window.viewInvoice;
+
   const openEditOrderForm = window.openEditOrderForm || (() => console.warn("openEditOrderForm not implemented"));
   const deleteOrder = window.deleteOrder || (() => console.warn("deleteOrder not implemented"));
 
@@ -953,13 +937,26 @@ window.renderEnhancedOrderActions = function(order) {
         onClick: () => window.viewOrderDetail(order),
         className: 'px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200',
         title: 'View order details'
-      }, 'View')
+      }, '👁️')
     );
   }
 
   // Status-specific actions
   switch (order.status) {
     case 'pending_approval':
+      // Show Proforma Invoice for payment_post_service orders
+      if ((order.invoice_type === 'proforma' || order.order_type === 'payment_post_service') && 
+          hasPermission('orders', 'read')) {
+        actions.push(
+          React.createElement('button', {
+            key: 'proforma-invoice',
+            onClick: () => window.viewInvoice(order),
+            className: 'px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200',
+            title: 'View Proforma Invoice'
+          }, '📄')
+        );
+      }
+      
       // Finance manager actions for pending orders
       if (hasPermission('orders', 'approve') && 
           (window.user?.role === 'finance_manager' || window.user?.role === 'finance_executive' || window.user?.role === 'super_admin')) {
@@ -969,14 +966,14 @@ window.renderEnhancedOrderActions = function(order) {
             onClick: () => window.enhancedOrderActions.approveOrder(order.id),
             className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
             title: 'Approve this order and auto-assign to supply team'
-          }, '✅ Approve'),
+          }, '✅'),
           
           React.createElement('button', {
             key: 'reject',
             onClick: () => window.enhancedOrderActions.rejectOrder(order.id),
             className: 'px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200',
             title: 'Reject this order and return to original sales person'
-          }, '❌ Reject')
+          }, '❌')
         );
       }
       break;
@@ -990,19 +987,57 @@ window.renderEnhancedOrderActions = function(order) {
             key: 'invoice',
             onClick: () => window.viewInvoice(order),
             className: 'px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200',
-            title: 'View/Generate invoice'
-          }, '📄 Invoice')
+            title: 'View/Generate Tax Invoice'
+          }, '📄')
         );
       }
 
       if (hasPermission('orders', 'assign')) {
         actions.push(
           React.createElement('button', {
-          key: 'assign',
-          onClick: () => window.assignOrderToSupplyTeam(order.id),
-          className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
-          title: 'Assign to supply team and create delivery record'
-        }, '➡️ Assign')
+            key: 'assign',
+            onClick: () => window.assignOrderToSupplyTeam(order.id),
+            className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
+            title: 'Assign to supply team and create delivery record'
+          }, '➡️')
+        );
+      }
+      break;
+
+    case 'payment_received':
+      // Show invoice button for payment_received orders
+      if (hasPermission('orders', 'read')) {
+        actions.push(
+          React.createElement('button', {
+            key: 'invoice',
+            onClick: () => window.viewInvoice(order),
+            className: 'px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200',
+            title: order.invoice_type === 'proforma' ? 'View Proforma Invoice' : 'View Tax Invoice'
+          }, '📄')
+        );
+      }
+
+      // If not assigned, show assign button
+      if (hasPermission('orders', 'assign') && (!order.assigned_to || order.assigned_to === 'Unassigned')) {
+        actions.push(
+          React.createElement('button', {
+            key: 'assign',
+            onClick: () => window.assignOrderToSupplyTeam(order.id),
+            className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
+            title: 'Assign to supply team and create delivery record'
+          }, '➡️')
+        );
+      }
+
+      // Show complete button
+      if (hasPermission('orders', 'write')) {
+        actions.push(
+          React.createElement('button', {
+            key: 'complete',
+            onClick: () => window.completeOrder(order.id),
+            className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
+            title: 'Mark as completed'
+          }, '✅')
         );
       }
       break;
@@ -1017,7 +1052,7 @@ window.renderEnhancedOrderActions = function(order) {
             onClick: () => window.completeOrder(order.id),
             className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
             title: 'Mark as completed'
-          }, '✅ Complete')
+          }, '✅')
         );
       }
       break;
@@ -1027,10 +1062,25 @@ window.renderEnhancedOrderActions = function(order) {
       actions.push(
         React.createElement('span', {
           key: 'rejected-status',
-          className: 'px-2 py-1 text-xs bg-red-100 text-red-700 rounded',
+          className: 'px-2 py-1 text-xs bg-red-100 text-red-700 rounded cursor-help',
           title: order.rejection_reason || 'Order was rejected'
-        }, '❌ Rejected')
+        }, '❌')
       );
+      break;
+
+    case 'completed':
+    case 'delivered':
+      // Show invoice for completed orders
+      if (hasPermission('orders', 'read') && order.invoice_number) {
+        actions.push(
+          React.createElement('button', {
+            key: 'invoice',
+            onClick: () => window.viewInvoice(order),
+            className: 'px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200',
+            title: 'View Invoice'
+          }, '📄')
+        );
+      }
       break;
   }
 
@@ -1043,7 +1093,7 @@ window.renderEnhancedOrderActions = function(order) {
         onClick: () => window.enhancedOrderActions.openEditOrderForm(order),
         className: 'px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200',
         title: 'Edit order details'
-      }, '✏️ Edit')
+      }, '✏️')
     );
   }
 
@@ -1058,7 +1108,7 @@ window.renderEnhancedOrderActions = function(order) {
         onClick: () => window.enhancedOrderActions.reassignToOriginal(order.id),
         className: 'px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200',
         title: `Reassign back to original sales person: ${order.original_assignee}`
-      }, '↩️ To Original')
+      }, '↩️')
     );
   }
 
@@ -1074,7 +1124,7 @@ window.renderEnhancedOrderActions = function(order) {
         },
         className: 'px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200',
         title: 'Delete this order (Admin only)'
-      }, '🗑️ Delete')
+      }, '🗑️')
     );
   }
 

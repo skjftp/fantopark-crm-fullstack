@@ -86,6 +86,13 @@ window.LEAD_STATUSES = {
     color: 'bg-green-100 text-green-800', 
     next: ['payment', 'payment_post_service', 'payment_received', 'pickup_later']
   },
+  // ADD THIS NEW STATUS
+  generate_proforma: {
+    label: 'Generate Proforma Invoice',
+    color: 'bg-purple-100 text-purple-800',
+    next: ['converted', 'payment'],
+    is_action: true  // This indicates it's an action, not a status change
+  },
   payment_received: { 
     label: 'Payment Received', 
     color: 'bg-green-100 text-green-800', 

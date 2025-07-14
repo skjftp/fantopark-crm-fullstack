@@ -476,18 +476,20 @@ window.handleLeadProgression = function(lead) {
         // Show enhanced choice modal with pickup_later option
         window.setCurrentLeadForChoice(lead);
         window.setChoiceOptions([
-          { value: 'payment', label: 'Collect Payment Now', icon: '💳' },
-          { value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' },
-          { value: 'pickup_later', label: 'Pick Up Later', icon: '⏰', requires_followup_date: true }
-        ]);
+    { value: 'payment', label: 'Collect Payment Now', icon: '💳' },
+    { value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' },
+    { value: 'generate_proforma', label: 'Generate Proforma Invoice', icon: '📄', color: 'purple' },
+    { value: 'pickup_later', label: 'Pick Up Later', icon: '⏰', requires_followup_date: true }
+  ]);
         window.setShowChoiceModal(true);
       } else {
         // Original logic for payment choices
         window.setCurrentLeadForChoice(lead);
         window.setChoiceOptions([
-          { value: 'payment', label: 'Collect Payment Now', icon: '💳' },
-          { value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' }
-        ]);
+  { value: 'payment', label: 'Collect Payment Now', icon: '💳' },
+  { value: 'payment_post_service', label: 'Payment Post Service', icon: '📅' },
+  { value: 'generate_proforma', label: 'Generate Proforma Invoice', icon: '📄', color: 'purple' }
+]);
         window.setShowChoiceModal(true);
       }
     } 
@@ -658,9 +660,10 @@ window.handleChoiceSelection = async function(choice) {
     }
 
     if (choice.value === 'payment_post_service') {
-      window.setShowChoiceModal(false);
-      window.openPaymentPostServiceForm(window.currentLeadForChoice);
-      window.setLoading(false);
+      setShowChoiceModal(false);
+      // Instead of openPaymentPostServiceForm, open proforma form
+      window.openProformaInvoiceForm(currentLeadForChoice);
+      setLoading(false);
       return;
     }
 

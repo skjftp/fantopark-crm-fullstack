@@ -84,6 +84,9 @@ const [eventsPerPage, setEventsPerPage] = useState(10);
     ticket_available: false,
     fantopark_package: ""
   });
+  const [showFinanceInvoiceModal, setShowFinanceInvoiceModal] = useState(false);
+const [currentOrderForInvoice, setCurrentOrderForInvoice] = useState(null);
+const [financeInvoiceNumber, setFinanceInvoiceNumber] = useState('');
   const [calendarView, setCalendarView] = useState("month");
   const [myActionsFilters, setMyActionsFilters] = useState({
   searchQuery: '',
@@ -508,6 +511,9 @@ const [ordersShowFilters, setOrdersShowFilters] = useState(false);
     salesPeople, setSalesPeople,
     chartInstances, setChartInstances,
     setCurrentEventsPage,
+    showFinanceInvoiceModal, setShowFinanceInvoiceModal,
+currentOrderForInvoice, setCurrentOrderForInvoice,
+financeInvoiceNumber, setFinanceInvoiceNumber,
 setEventsPerPage,
 currentEventsPage,
 eventsPerPage,
@@ -529,6 +535,12 @@ window.setInventorySearchQuery = setInventorySearchQuery;
   window.setFinancialStats = setFinancialStats;
   window.setShowReminderForm = setShowReminderForm;
 window.showReminderForm = showReminderForm;
+  window.showFinanceInvoiceModal = showFinanceInvoiceModal;
+window.setShowFinanceInvoiceModal = setShowFinanceInvoiceModal;
+window.currentOrderForInvoice = currentOrderForInvoice;
+window.setCurrentOrderForInvoice = setCurrentOrderForInvoice;
+window.financeInvoiceNumber = financeInvoiceNumber;
+window.setFinanceInvoiceNumber = setFinanceInvoiceNumber;
   window.ordersFilters = ordersFilters;
 window.setOrdersFilters = setOrdersFilters;
 window.ordersPagination = ordersPagination;

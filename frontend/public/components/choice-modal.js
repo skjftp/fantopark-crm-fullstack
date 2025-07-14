@@ -90,6 +90,21 @@ window.renderChoiceModal = () => {
       return;
     }
 
+    // ✅ NEW: Handle proforma invoice generation
+    if (option.value === 'generate_proforma') {
+      console.log("📄 Opening proforma invoice form");
+      if (window.setShowChoiceModal) {
+        window.setShowChoiceModal(false);
+      }
+      if (window.openProformaInvoiceForm && currentLeadForChoice) {
+        window.openProformaInvoiceForm(currentLeadForChoice);
+      }
+      if (window.setLoading) {
+        window.setLoading(false);
+      }
+      return;
+    }
+
     // ✅ PRESERVE ORIGINAL LOGIC: For regular status updates
     if (window.updateLeadStatus && currentLeadForChoice) {
       console.log("🔄 Updating lead status to:", option.value);
@@ -138,6 +153,8 @@ window.renderChoiceModal = () => {
             disabled: loading,
             className: `w-full p-3 text-left border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors ${
               option.requires_followup_date ? 'border-indigo-300 bg-indigo-50' : ''
+            } ${
+              option.value === 'generate_proforma' ? 'border-purple-300 bg-purple-50 hover:bg-purple-100' : ''
             }`
           },
             React.createElement('div', { className: 'flex items-center justify-between' },
@@ -148,7 +165,11 @@ window.renderChoiceModal = () => {
               option.requires_followup_date && 
                 React.createElement('span', { 
                   className: 'text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded' 
-                }, 'Requires Follow-up Date')
+                }, 'Requires Follow-up Date'),
+              option.value === 'generate_proforma' && 
+                React.createElement('span', { 
+                  className: 'text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded' 
+                }, 'Proforma')
             )
           )
         ) : React.createElement('div', { className: 'text-center py-4 text-gray-500' },
@@ -175,7 +196,8 @@ window.renderChoiceModal = () => {
               leadId: currentLeadForChoice?.id,
               leadName: currentLeadForChoice?.name,
               optionsCount: choiceOptions.length,
-              loading: loading
+              loading: loading,
+              hasProformaFunction: !!window.openProformaInvoiceForm
             }, null, 2)
           )
         )
@@ -184,4 +206,4 @@ window.renderChoiceModal = () => {
   );
 };
 
-console.log('✅ Choice Modal component loaded successfully with proper state integration and preserved original flow');
+console.log('✅ Choice Modal component loaded successfully with proforma invoice support');

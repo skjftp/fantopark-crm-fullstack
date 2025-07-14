@@ -2415,6 +2415,7 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
     window.setCurrentOrderForEdit && window.setCurrentOrderForEdit(null);
     window.setSelectedOrderForAssignment && window.setSelectedOrderForAssignment(null);
     window.setEditingStadium && window.setEditingStadium(null);
+    window.showFinanceInvoiceModal && window.renderFinanceInvoiceModal()
     window.setStadiumFormData && window.setStadiumFormData({});
     // ✅ Sports Calendar data reset
     window.setCurrentEvent && window.setCurrentEvent(null);
@@ -3209,7 +3210,8 @@ console.log("✅ AssignmentRulesTab exposed to window");
     }),
     window.renderAssignForm && window.renderAssignForm(),
     window.renderBulkAssignModal && window.renderBulkAssignModal(),
-    window.renderPaymentForm && window.renderPaymentForm(),
+    window.showPaymentForm && !paymentData?.is_proforma && window.renderPaymentForm(),
+    window.showFinanceInvoiceModal && window.renderFinanceInvoiceModal && window.renderFinanceInvoiceModal(),                         
     window.renderLeadDetail && window.renderLeadDetail(),
     state.showInventoryDetail && window.renderInventoryDetail && window.renderInventoryDetail(),
     window.renderAllocationForm && window.renderAllocationForm(),

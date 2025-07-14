@@ -854,4 +854,254 @@ window.renderPaymentForm = () => {
   return renderEnhancedPaymentForm();
 };
 
+
+// Support functions needed for the Proforma Invoice Form
+// These handle invoice items, tax calculations, and rendering sections
+
+// 1. Render Invoice Items Table
+window.renderInvoiceItemsTable = () => {
+  const { paymentData } = window.appState || {};
+  const items = paymentData?.invoice_items || [];
+  
+  return React.createElement('div', { className: 'space-y-4' },
+    // Items Table
+    React.createElement('div', { className: 'overflow-x-auto' },
+      React.createElement('table', { className: 'w-full border-collapse' },
+        React.createElement('thead', null,
+          React.createElement('tr', { className: 'bg-gray-100' },
+            React.createElement('th', { className: 'border p-2 text-left' }, 'Description'),
+            React.createElement('th', { className: 'border p-2 text-left' }, 'Additional Info'),
+            React.createElement('th', { className: 'border p-2 text-center w-24' }, 'Qty'),
+            React.createElement('th', { className: 'border p-2 text-right w-32' }, 'Rate (₹)'),
+            React.createElement('th', { className: 'border p-2 text-right w-32' }, 'Amount (₹)'),
+            React.createElement('th', { className: 'border p-2 text-center w-20' }, 'Action')
+          )
+        ),
+        React.createElement('tbody', null,
+          items.map((item, index) => 
+            React.createElement('tr', { key: index },
+              React.createElement('td', { className: 'border p-2' },
+                React.createElement('input', {
+                  type: 'text',
+                  value: item.description || '',
+                  onChange: (e) => updateInvoiceItem(index, 'description', e.target.value),
+                  className: 'w-full px-2 py-1 border rounded',
+                  required: true
+                })
+              ),
+              React.createElement('td', { className: 'border p-2' },
+                React.createElement('input', {
+                  type: 'text',
+                  value: item.additional_info || '',
+                  onChange: (e) => updateInvoiceItem(index, 'additional_info', e.target.value),
+                  className: 'w-full px-2 py-1 border rounded',
+                  placeholder: 'Optional details'
+                })
+              ),
+              React.createElement('td', { className: 'border p-2' },
+                React.createElement('input', {
+                  type: 'number',
+                  value: item.quantity || 1,
+                  onChange: (e) => updateInvoiceItem(index, 'quantity', parseInt(e.target.value) || 0),
+                  className: 'w-full px-2 py-1 border rounded text-center',
+                  min: 1,
+                  required: true
+                })
+              ),
+              React.createElement('td', { className: 'border p-2' },
+                React.createElement('input', {
+                  type: 'number',
+                  value: item.rate || 0,
+                  onChange: (e) => updateInvoiceItem(index, 'rate', parseFloat(e.target.value) || 0),
+                  className: 'w-full px-2 py-1 border rounded text-right',
+                  min: 0,
+                  step: 0.01,
+                  required: true
+                })
+              ),
+              React.createElement('td', { className: 'border p-2 text-right font-medium' },
+                '₹ ' + ((item.quantity || 0) * (item.rate || 0)).toFixed(2)
+              ),
+              React.createElement('td', { className: 'border p-2 text-center' },
+                items.length > 1 && React.createElement('button', {
+                  type: 'button',
+                  onClick: () => removeInvoiceItem(index),
+                  className: 'text-red-600 hover:text-red-800'
+                }, '🗑️')
+              )
+            )
+          ),
+          // Total Row
+          React.createElement('tr', { className: 'bg-gray-50 font-semibold' },
+            React.createElement('td', { 
+              colSpan: 4, 
+              className: 'border p-2 text-right' 
+            }, 'Total:'),
+            React.createElement('td', { className: 'border p-2 text-right' },
+              '₹ ' + items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.rate || 0)), 0).toFixed(2)
+            ),
+            React.createElement('td', { className: 'border p-2' })
+          )
+        )
+      )
+    ),
+    
+    // Add Item Button
+    React.createElement('button', {
+      type: 'button',
+      onClick: addInvoiceItem,
+      className: 'px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700'
+    }, '+ Add Item')
+  );
+};
+
+// 2. Invoice Item Management Functions
+window.updateInvoiceItem = (index, field, value) => {
+  window.setPaymentData(prev => {
+    const newItems = [...(prev.invoice_items || [])];
+    newItems[index] = { ...newItems[index], [field]: value };
+    return { ...prev, invoice_items: newItems };
+  });
+};
+
+window.addInvoiceItem = () => {
+  window.setPaymentData(prev => ({
+    ...prev,
+    invoice_items: [...(prev.invoice_items || []), {
+      description: '',
+      additional_info: '',
+      quantity: 1,
+      rate: 0
+    }]
+  }));
+};
+
+window.removeInvoiceItem = (index) => {
+  window.setPaymentData(prev => ({
+    ...prev,
+    invoice_items: prev.invoice_items.filter((_, i) => i !== index)
+  }));
+};
+
+// 3. Render Service Fee Section
+window.renderServiceFeeSection = () => {
+  const { paymentData } = window.appState || {};
+  
+  return React.createElement('div', { className: 'mb-6 p-4 bg-orange-50 rounded-lg' },
+    React.createElement('h3', { className: 'text-lg font-semibold text-gray-800 mb-4' }, 
+      '💼 Service Fee Details'
+    ),
+    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+          'Service Fee Amount (₹) *'
+        ),
+        React.createElement('input', {
+          type: 'number',
+          value: paymentData.service_fee_amount || '',
+          onChange: (e) => window.handlePaymentInputChange('service_fee_amount', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
+          required: paymentData.type_of_sale === 'Service Fee',
+          min: 0,
+          step: 0.01,
+          placeholder: 'Enter service fee amount'
+        })
+      ),
+      React.createElement('div', { className: 'flex items-center p-3 bg-yellow-100 rounded border border-yellow-300' },
+        React.createElement('div', null,
+          React.createElement('div', { className: 'text-sm font-medium text-yellow-800' }, 
+            '🏷️ GST Rate: 18% (Fixed)'
+          ),
+          React.createElement('div', { className: 'text-xs text-yellow-700 mt-1' }, 
+            'Service fees always attract 18% GST'
+          )
+        )
+      )
+    )
+  );
+};
+
+// 4. Render Tax Classification Section
+window.renderTaxClassificationSection = () => {
+  const { paymentData } = window.appState || {};
+  
+  return React.createElement('div', { className: 'mb-6 p-4 bg-indigo-50 rounded-lg' },
+    React.createElement('h3', { className: 'text-lg font-semibold text-indigo-800 mb-4' }, 
+      '🏷️ Tax Classification'
+    ),
+    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4' },
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+          'Customer Type *'
+        ),
+        React.createElement('select', {
+          value: paymentData.customer_type || 'indian',
+          onChange: (e) => window.handlePaymentInputChange('customer_type', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
+          required: true
+        },
+          React.createElement('option', { value: 'indian' }, 'Indian Customer'),
+          React.createElement('option', { value: 'nri' }, 'NRI'),
+          React.createElement('option', { value: 'foreigner' }, 'Foreign National')
+        )
+      ),
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+          'Event Location *'
+        ),
+        React.createElement('select', {
+          value: paymentData.event_location || 'domestic',
+          onChange: (e) => window.handlePaymentInputChange('event_location', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
+          required: true
+        },
+          React.createElement('option', { value: 'domestic' }, 'Within India'),
+          React.createElement('option', { value: 'outside_india' }, 'Outside India')
+        )
+      ),
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+          'Payment Currency *'
+        ),
+        React.createElement('select', {
+          value: paymentData.payment_currency || 'INR',
+          onChange: (e) => window.handlePaymentInputChange('payment_currency', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
+          required: true
+        },
+          React.createElement('option', { value: 'INR' }, 'INR (Indian Rupees)'),
+          React.createElement('option', { value: 'USD' }, 'USD (US Dollars)'),
+          React.createElement('option', { value: 'EUR' }, 'EUR (Euros)'),
+          React.createElement('option', { value: 'GBP' }, 'GBP (British Pounds)')
+        )
+      )
+    )
+  );
+};
+
+// 5. Get Base Amount Helper
+window.getBaseAmount = (paymentData) => {
+  if (paymentData.type_of_sale === 'Service Fee') {
+    return parseFloat(paymentData.service_fee_amount) || 0;
+  }
+  
+  const invoiceTotal = (paymentData.invoice_items || []).reduce((sum, item) => 
+    sum + ((item.quantity || 0) * (item.rate || 0)), 0
+  );
+  
+  return invoiceTotal;
+};
+
+// 6. Indian States List
+window.indianStates = [
+  'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 
+  'Bihar', 'Chandigarh', 'Chhattisgarh', 'Dadra and Nagar Haveli', 'Daman and Diu', 
+  'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jammu and Kashmir', 
+  'Jharkhand', 'Karnataka', 'Kerala', 'Ladakh', 'Lakshadweep', 'Madhya Pradesh', 
+  'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 
+  'Puducherry', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 
+  'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'
+];
+
+console.log('✅ Proforma Invoice support functions loaded.');
 console.log('✅ Payment Form component loaded successfully with window function references');

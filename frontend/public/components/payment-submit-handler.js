@@ -105,13 +105,34 @@ window.renderPaymentSubmitHandler = () => {
             // Start with existing order data
             ...existingOrder,
 
+            // CRITICAL: Add these fields to convert proforma to tax invoice
+    invoice_type: 'tax',              // Convert from proforma to tax
+    status: 'payment_received',       // Update status
+    payment_status: 'completed',      // Change from 'paid' to 'completed' for consistency
+
+            // ADD: Auto-assign to finance team
+    assigned_to: await window.getFinanceManager(),  // or specific finance user
+    assigned_team: 'finance',
+    assignment_date: new Date().toISOString(),
+    assignment_notes: 'Auto-assigned to finance team after payment collection',
+    
+
+            // If this was a payment_post_service order, keep references
+    ...(existingOrder.order_type === 'payment_post_service' && {
+      proforma_invoice_number: existingOrder.invoice_number || existingOrder.order_number,
+      proforma_order_number: existingOrder.order_number,
+      order_number: 'ORD-' + Date.now(),  // Generate new order number for tax invoice
+      original_order_type: 'payment_post_service',
+      order_type: 'standard'  // Convert to standard order
+    }),
+
             // Payment fields (will override existing)
             payment_amount: window.paymentData.advance_amount,
             payment_method: window.paymentData.payment_method,
             transaction_id: window.paymentData.transaction_id,
             payment_date: window.paymentData.payment_date,
             payment_proof: window.paymentData.payment_proof,
-            payment_status: 'paid',
+   
 
             // Amount fields
             amount: window.paymentData.advance_amount,

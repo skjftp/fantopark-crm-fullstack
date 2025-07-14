@@ -3,6 +3,12 @@
 // Complete router functionality with all tabs, permission checks, and complex roles management
 
 window.renderContent = () => {
+
+    // Add this check in your renderContent function where other forms are rendered
+if (window.appState?.currentForm === 'proforma_invoice' && window.appState?.showPaymentForm) {
+  return window.renderProformaInvoiceForm();
+}
+    
     if (window.loading && window.activeTab !== 'leads') {
         return React.createElement('div', { className: 'flex items-center justify-center h-64' },
             React.createElement('div', { className: 'text-gray-500' }, 'Loading...')
