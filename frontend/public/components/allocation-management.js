@@ -1,6 +1,158 @@
 // Enhanced Allocation Management Component for FanToPark CRM
 // Now displays category information and category-wise summaries
 
+window.exportAllocationsToCSV = (allocations, inventoryName, hasCategories) => {
+  try {
+    // Define CSV headers based on whether categories exist
+    const headers = hasCategories ? [
+      'Lead Name',
+      'Lead Email',
+      'Lead Phone',
+      'Company',
+      'Category',
+      'Section',
+      'Tickets Allocated',
+      'Price per Ticket',
+      'Total Amount',
+      'Allocation Date',
+      'Allocated By',
+      'Notes'
+    ] : [
+      'Lead Name',
+      'Lead Email',
+      'Lead Phone',
+      'Company',
+      'Tickets Allocated',
+      'Price per Ticket',
+      'Total Amount',
+      'Allocation Date',
+      'Allocated By',
+      'Notes'
+    ];
+
+    // Build CSV content
+    let csvContent = headers.join(',') + '\n';
+
+    allocations.forEach(allocation => {
+      // Get lead details
+      const leadName = allocation.lead_details?.name || allocation.lead_name || 'Unknown';
+      const leadEmail = allocation.lead_details?.email || allocation.lead_email || '';
+      const leadPhone = allocation.lead_details?.phone || '';
+      const leadCompany = allocation.lead_details?.company || '';
+
+      // Get pricing info
+      let pricePerTicket = 0;
+      let section = '';
+      
+      if (allocation.category_details?.selling_price) {
+        pricePerTicket = allocation.category_details.selling_price;
+        section = allocation.category_details.section || '';
+      } else if (window.allocationManagementInventory?.selling_price) {
+        pricePerTicket = window.allocationManagementInventory.selling_price;
+      }
+
+      const totalAmount = (allocation.tickets_allocated || 0) * pricePerTicket;
+      const allocationDate = allocation.allocation_date ? new Date(allocation.allocation_date).toLocaleDateString() : '';
+      const allocatedBy = allocation.created_by || '';
+      const notes = (allocation.notes || '').replace(/,/g, ';'); // Replace commas to avoid CSV issues
+
+      // Build row based on whether categories exist
+      const row = hasCategories ? [
+        `"${leadName}"`,
+        `"${leadEmail}"`,
+        `"${leadPhone}"`,
+        `"${leadCompany}"`,
+        `"${allocation.category_name || 'General'}"`,
+        `"${section}"`,
+        allocation.tickets_allocated || 0,
+        pricePerTicket,
+        totalAmount,
+        allocationDate,
+        `"${allocatedBy}"`,
+        `"${notes}"`
+      ] : [
+        `"${leadName}"`,
+        `"${leadEmail}"`,
+        `"${leadPhone}"`,
+        `"${leadCompany}"`,
+        allocation.tickets_allocated || 0,
+        pricePerTicket,
+        totalAmount,
+        allocationDate,
+        `"${allocatedBy}"`,
+        `"${notes}"`
+      ];
+
+      csvContent += row.join(',') + '\n';
+    });
+
+    // Add summary at the end
+    csvContent += '\n\nSUMMARY\n';
+    csvContent += `Total Allocations,${allocations.length}\n`;
+    csvContent += `Total Tickets Allocated,${allocations.reduce((sum, a) => sum + (a.tickets_allocated || 0), 0)}\n`;
+    csvContent += `Total Value,₹${allocations.reduce((sum, a) => {
+      let price = 0;
+      if (a.category_details?.selling_price) {
+        price = a.category_details.selling_price;
+      } else if (window.allocationManagementInventory?.selling_price) {
+        price = window.allocationManagementInventory.selling_price;
+      }
+      return sum + ((a.tickets_allocated || 0) * price);
+    }, 0).toLocaleString()}\n`;
+
+    // Category-wise summary if applicable
+    if (hasCategories && window.allocationManagementInventory?.categories) {
+      csvContent += '\nCATEGORY-WISE BREAKDOWN\n';
+      csvContent += 'Category,Total Tickets,Available,Allocated\n';
+      
+      const categoryStats = {};
+      window.allocationManagementInventory.categories.forEach(cat => {
+        categoryStats[cat.name] = {
+          total: cat.total_tickets || 0,
+          available: cat.available_tickets || 0,
+          allocated: 0
+        };
+      });
+
+      allocations.forEach(a => {
+        if (a.category_name && categoryStats[a.category_name]) {
+          categoryStats[a.category_name].allocated += (a.tickets_allocated || 0);
+        }
+      });
+
+      Object.entries(categoryStats).forEach(([catName, stats]) => {
+        csvContent += `"${catName}",${stats.total},${stats.available},${stats.allocated}\n`;
+      });
+    }
+
+    // Create filename with timestamp
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const filename = `${inventoryName.replace(/[^a-z0-9]/gi, '_')}_allocations_${timestamp}.csv`;
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    if (navigator.msSaveBlob) { // IE 10+
+      navigator.msSaveBlob(blob, filename);
+    } else {
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    console.log(`✅ Exported ${allocations.length} allocations to ${filename}`);
+    return true;
+  } catch (error) {
+    console.error('Export error:', error);
+    alert('Failed to export allocations: ' + error.message);
+    return false;
+  }
+};
+
 window.renderAllocationManagement = () => {
   // ✅ PATTERN 1: State Variable Extraction (CRITICAL FIX)
   const {
@@ -252,17 +404,37 @@ window.renderAllocationManagement = () => {
         React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' },
           `Total Allocations: ${currentAllocations.length}`
         ),
-        React.createElement('div', { className: 'flex space-x-3' },
-          React.createElement('button', {
-            onClick: () => openAllocationForm(allocationManagementInventory),
-            className: 'bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50',
-            disabled: (allocationManagementInventory.available_tickets || 0) <= 0
-          }, 'Add New Allocation'),
-          React.createElement('button', {
-            onClick: () => setShowAllocationManagement(false),
-            className: 'bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600'
-          }, 'Close')
-        )
+React.createElement('div', { className: 'mt-6 flex justify-between items-center' },
+  React.createElement('div', { className: 'flex items-center space-x-4' },
+    React.createElement('span', { className: 'text-sm text-gray-600 dark:text-gray-400' },
+      `Total Allocations: ${currentAllocations.length}`
+    ),
+    // NEW: Export button
+    currentAllocations.length > 0 && React.createElement('button', {
+      onClick: () => window.exportAllocationsToCSV(
+        currentAllocations, 
+        allocationManagementInventory.event_name || 'inventory',
+        hasCategories
+      ),
+      className: 'text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 flex items-center space-x-1',
+      title: 'Export allocations to CSV'
+    }, 
+      React.createElement('span', null, '📥'),
+      React.createElement('span', null, 'Export CSV')
+    )
+  ),
+  React.createElement('div', { className: 'flex space-x-3' },
+    React.createElement('button', {
+      onClick: () => openAllocationForm(allocationManagementInventory),
+      className: 'bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50',
+      disabled: (allocationManagementInventory.available_tickets || 0) <= 0
+    }, 'Add New Allocation'),
+    React.createElement('button', {
+      onClick: () => setShowAllocationManagement(false),
+      className: 'bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600'
+    }, 'Close')
+  )
+)
       )
     )
   );
