@@ -9,6 +9,47 @@
 <title>FanToPark CRM Pro</title>
 
 <script>
+// Add this IMMEDIATELY after <body> tag
+(function() {
+  'use strict';
+  
+  // Protect against removeChild errors
+  const originalRemoveChild = Node.prototype.removeChild;
+  const originalInsertBefore = Node.prototype.insertBefore;
+  const originalAppendChild = Node.prototype.appendChild;
+  
+  Node.prototype.removeChild = function(child) {
+    try {
+      if (child && this.contains(child)) {
+        return originalRemoveChild.call(this, child);
+      }
+    } catch (e) {
+      console.warn('RemoveChild error caught:', e);
+    }
+    return child;
+  };
+  
+  Node.prototype.insertBefore = function(newNode, referenceNode) {
+    try {
+      return originalInsertBefore.call(this, newNode, referenceNode);
+    } catch (e) {
+      console.warn('InsertBefore error caught:', e);
+      return newNode;
+    }
+  };
+  
+  Node.prototype.appendChild = function(child) {
+    try {
+      return originalAppendChild.call(this, child);
+    } catch (e) {
+      console.warn('AppendChild error caught:', e);
+      return child;
+    }
+  };
+})();
+</script>  
+
+<script>
 // Add this BEFORE your React app loads
 (function() {
   const originalRemoveChild = Node.prototype.removeChild;
@@ -2612,41 +2653,147 @@ console.log('✅ Chart update functions loaded');
 </script>  
 
   <script>
-    (function() {
+// Ensure financial data fetch function exists
+window.fetchFinancialData = window.fetchFinancialData || function() {
+    console.log('📊 Fetching financial data...');
+    
+    // If data is already being fetched, don't duplicate
+    if (window._financialDataFetching) return;
+    
+    window._financialDataFetching = true;
+    
+    // Use your existing data fetch logic
+    if (window.consolidatedDataFetch) {
+        window.consolidatedDataFetch().then(() => {
+            window._financialDataFetching = false;
+            
+            // Force financial stats update
+            if (window.activeTab === 'financials' && window.renderFinancials) {
+                window.renderFinancials();
+            }
+        });
+    } else if (window.apiCall) {
+        // Fallback to direct API calls
+        Promise.all([
+            window.apiCall('/orders'),
+            window.apiCall('/invoices')
+        ]).then(([ordersData, invoicesData]) => {
+            if (window.appState) {
+                window.appState.setOrders(ordersData.data || []);
+                window.appState.setInvoices(invoicesData.data || []);
+            }
+            window._financialDataFetching = false;
+            
+            // Force re-render
+            if (window.activeTab === 'financials' && window.renderFinancials) {
+                window.renderFinancials();
+            }
+        });
+    }
+};
+</script>
+
+  <<script>
+(function() {
     'use strict';
     
     console.log('📱 Initializing mobile responsive design...');
     
-    // Wait for all components to load
+    // Store original renderers
+    let originalRenderers = {};
+    
     function initializeMobileResponsive() {
-        if (!window.SimplifiedApp || !window.appState) {
+        // Wait for all critical components
+        if (!window.SimplifiedApp || !window.appState || !window.calculateEnhancedFinancialMetrics) {
             setTimeout(initializeMobileResponsive, 100);
             return;
         }
         
-        // Update the SimplifiedApp to use responsive layout
-        const originalSimplifiedApp = window.SimplifiedApp;
+        // Store original renderers before overriding
+        originalRenderers = {
+            renderFinancials: window.renderFinancials,
+            renderEnhancedFinancialStats: window.renderEnhancedFinancialStats,
+            SimplifiedApp: window.SimplifiedApp
+        };
         
-        window.SimplifiedApp = () => {
+        // Fix the financial stats renderer to ensure data loads
+        window.renderEnhancedFinancialStats = function() {
+            // Force data refresh before rendering
+            if (window.calculateEnhancedFinancialMetrics) {
+                const metrics = window.calculateEnhancedFinancialMetrics();
+                
+                // Ensure we have real data, not zeros
+                if (!metrics || metrics.totalSales === 0) {
+                    console.log('📊 Financial data not ready, fetching...');
+                    
+                    // Force data fetch
+                    if (window.fetchFinancialData) {
+                        window.fetchFinancialData();
+                    }
+                    
+                    // Retry render after delay
+                    setTimeout(() => {
+                        if (window.renderFinancials) {
+                            window.renderFinancials();
+                        }
+                    }, 500);
+                    
+                    // Return loading state
+                    return React.createElement('div', { className: 'p-6 text-center' }, 
+                        'Loading financial data...'
+                    );
+                }
+                
+                // Call original renderer with proper data
+                if (originalRenderers.renderEnhancedFinancialStats) {
+                    return originalRenderers.renderEnhancedFinancialStats.call(this);
+                }
+            }
+        };
+        
+        // Update SimplifiedApp with proper lifecycle handling
+        window.SimplifiedApp = function() {
             const { isLoggedIn } = window.appState;
+            
+            // Use effect to handle data loading on mount
+            React.useEffect(() => {
+                if (isLoggedIn && window.activeTab === 'financials') {
+                    // Ensure financial data is loaded
+                    if (window.fetchFinancialData) {
+                        window.fetchFinancialData();
+                    }
+                }
+            }, [isLoggedIn, window.activeTab]);
             
             if (!isLoggedIn) {
                 return window.renderLogin();
             }
             
-            // Use responsive layout
             return window.renderResponsiveLayout();
         };
         
-        // Override the financials renderer with responsive version
-        const originalRenderFinancials = window.renderFinancials;
-        //window.renderFinancials = window.renderResponsiveFinancials || originalRenderFinancials;
+        // Fix tab switching to ensure data loads
+        const originalSetActiveTab = window.setActiveTab;
+        window.setActiveTab = function(tab) {
+            if (originalSetActiveTab) {
+                originalSetActiveTab(tab);
+            }
+            
+            // Force data refresh when switching to financials
+            if (tab === 'financials') {
+                setTimeout(() => {
+                    if (window.fetchFinancialData) {
+                        window.fetchFinancialData();
+                    }
+                    // Force re-render
+                    if (window.renderApp) {
+                        window.renderApp();
+                    }
+                }, 100);
+            }
+        };
         
-        // Override sales tab with responsive version
-        const originalRenderSalesTab = window.renderSalesTab;
-        window.renderSalesTab = window.renderResponsiveSalesTab || originalRenderSalesTab;
-        
-        // Add viewport meta tag if not present
+        // Add viewport meta tag
         if (!document.querySelector('meta[name="viewport"]')) {
             const viewport = document.createElement('meta');
             viewport.name = 'viewport';
@@ -2654,119 +2801,12 @@ console.log('✅ Chart update functions loaded');
             document.head.appendChild(viewport);
         }
         
-        // Add mobile-specific styles
-        const mobileStyles = document.createElement('style');
-        mobileStyles.textContent = `
-            /* Prevent horizontal scroll on mobile */
-            body {
-                overflow-x: hidden;
-            }
-            
-            /* Improve touch targets */
-            button, a, input, select, textarea {
-                min-height: 44px;
-            }
-            
-            /* Better mobile table styles */
-            @media (max-width: 640px) {
-                table {
-                    font-size: 14px;
-                }
-                
-                th, td {
-                    padding: 8px 4px;
-                }
-                
-                /* Hide less important columns on very small screens */
-                .hide-on-mobile {
-                    display: none;
-                }
-            }
-            
-            /* Smooth scrolling for tabs */
-            .overflow-x-auto {
-                -webkit-overflow-scrolling: touch;
-                scrollbar-width: thin;
-            }
-            
-            /* Better chart responsiveness */
-            canvas {
-                max-width: 100% !important;
-                height: auto !important;
-            }
-            
-            /* Fix for iOS Safari */
-            .fixed {
-                -webkit-transform: translateZ(0);
-            }
-        `;
-        document.head.appendChild(mobileStyles);
-        
-        // Force re-render if already logged in
-        if (window.renderApp) {
-            window.renderApp();
-        }
-        
-        console.log('✅ Mobile responsive design initialized');
+        console.log('✅ Mobile responsive design initialized with data loading fixes');
     }
     
-    // Handle window resize for responsive chart
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            if (window.financialSalesChartInstance) {
-                window.financialSalesChartInstance.resize();
-            }
-        }, 250);
-    });
-    
-    // Initialize
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeMobileResponsive);
-    } else {
-        initializeMobileResponsive();
-    }
+    // Delay initialization to ensure DOM is ready
+    setTimeout(initializeMobileResponsive, 2000);
 })();
-
-// Quick test function to check mobile menu
-window.testMobileMenu = () => {
-    if (window.appState && window.appState.setIsMobileMenuOpen) {
-        window.appState.setIsMobileMenuOpen(true);
-        console.log('Mobile menu opened');
-    } else {
-        console.log('Mobile menu state not available');
-    }
-};
-  </script>
-<script>
-// Safer Mobile Menu Implementation
-function initMobileMenu() {
-  // Only add the toggle function, not DOM elements
-  window.toggleMobileMenu = function() {
-    const sidebar = document.querySelector('.w-64.bg-white');
-    if (sidebar) {
-      sidebar.classList.toggle('mobile-open');
-      
-      // Handle overlay
-      let overlay = document.getElementById('mobile-overlay-div');
-      if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'mobile-overlay-div';
-        overlay.className = 'mobile-overlay';
-        overlay.onclick = function() {
-          sidebar.classList.remove('mobile-open');
-          overlay.classList.remove('show');
-        };
-        document.body.appendChild(overlay);
-      }
-      overlay.classList.toggle('show');
-    }
-  };
-}
-
-// Initialize after React has rendered
-setTimeout(initMobileMenu, 1000);
 </script>
   
 </body>
