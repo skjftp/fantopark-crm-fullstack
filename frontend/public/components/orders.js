@@ -952,13 +952,26 @@ window.renderEnhancedOrderActions = function(order) {
         onClick: () => window.viewOrderDetail(order),
         className: 'px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200',
         title: 'View order details'
-      }, 'View')
+      }, '👁️')
     );
   }
 
   // Status-specific actions
   switch (order.status) {
     case 'pending_approval':
+      // Show Proforma Invoice for payment_post_service orders
+      if ((order.invoice_type === 'proforma' || order.order_type === 'payment_post_service') && 
+          hasPermission('orders', 'read')) {
+        actions.push(
+          React.createElement('button', {
+            key: 'proforma-invoice',
+            onClick: () => window.viewInvoice(order),
+            className: 'px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200',
+            title: 'View Proforma Invoice'
+          }, '📄')
+        );
+      }
+      
       // Finance manager actions for pending orders
       if (hasPermission('orders', 'approve') && 
           (window.user?.role === 'finance_manager' || window.user?.role === 'finance_executive' || window.user?.role === 'super_admin')) {
@@ -968,14 +981,14 @@ window.renderEnhancedOrderActions = function(order) {
             onClick: () => window.enhancedOrderActions.approveOrder(order.id),
             className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
             title: 'Approve this order and auto-assign to supply team'
-          }, '✅ Approve'),
+          }, '✅'),
           
           React.createElement('button', {
             key: 'reject',
             onClick: () => window.enhancedOrderActions.rejectOrder(order.id),
             className: 'px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200',
             title: 'Reject this order and return to original sales person'
-          }, '❌ Reject')
+          }, '❌')
         );
       }
       break;
@@ -989,19 +1002,19 @@ window.renderEnhancedOrderActions = function(order) {
             key: 'invoice',
             onClick: () => window.viewInvoice(order),
             className: 'px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200',
-            title: 'View/Generate invoice'
-          }, '📄 Invoice')
+            title: 'View/Generate Tax Invoice'
+          }, '📄')
         );
       }
 
       if (hasPermission('orders', 'assign')) {
         actions.push(
           React.createElement('button', {
-          key: 'assign',
-          onClick: () => window.assignOrderToSupplyTeam(order.id),
-          className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
-          title: 'Assign to supply team and create delivery record'
-        }, '➡️ Assign')
+            key: 'assign',
+            onClick: () => window.assignOrderToSupplyTeam(order.id),
+            className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
+            title: 'Assign to supply team and create delivery record'
+          }, '➡️')
         );
       }
       break;
@@ -1016,7 +1029,7 @@ window.renderEnhancedOrderActions = function(order) {
             onClick: () => window.completeOrder(order.id),
             className: 'px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200',
             title: 'Mark as completed'
-          }, '✅ Complete')
+          }, '✅')
         );
       }
       break;
@@ -1026,10 +1039,25 @@ window.renderEnhancedOrderActions = function(order) {
       actions.push(
         React.createElement('span', {
           key: 'rejected-status',
-          className: 'px-2 py-1 text-xs bg-red-100 text-red-700 rounded',
+          className: 'px-2 py-1 text-xs bg-red-100 text-red-700 rounded cursor-help',
           title: order.rejection_reason || 'Order was rejected'
-        }, '❌ Rejected')
+        }, '❌')
       );
+      break;
+
+    case 'completed':
+    case 'delivered':
+      // Show invoice for completed orders
+      if (hasPermission('orders', 'read') && order.invoice_number) {
+        actions.push(
+          React.createElement('button', {
+            key: 'invoice',
+            onClick: () => window.viewInvoice(order),
+            className: 'px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200',
+            title: 'View Invoice'
+          }, '📄')
+        );
+      }
       break;
   }
 
@@ -1042,7 +1070,7 @@ window.renderEnhancedOrderActions = function(order) {
         onClick: () => window.enhancedOrderActions.openEditOrderForm(order),
         className: 'px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200',
         title: 'Edit order details'
-      }, '✏️ Edit')
+      }, '✏️')
     );
   }
 
@@ -1057,7 +1085,7 @@ window.renderEnhancedOrderActions = function(order) {
         onClick: () => window.enhancedOrderActions.reassignToOriginal(order.id),
         className: 'px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200',
         title: `Reassign back to original sales person: ${order.original_assignee}`
-      }, '↩️ To Original')
+      }, '↩️')
     );
   }
 
@@ -1073,7 +1101,7 @@ window.renderEnhancedOrderActions = function(order) {
         },
         className: 'px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200',
         title: 'Delete this order (Admin only)'
-      }, '🗑️ Delete')
+      }, '🗑️')
     );
   }
 
