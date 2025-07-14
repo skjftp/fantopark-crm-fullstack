@@ -482,6 +482,69 @@ window.handlePaymentPostService = async function(lead) {
   }
 };
 
+window.generateProformaInvoice = async function(order) {
+  try {
+    const invoiceNumber = 'STTS/PRO/' + new Date().getFullYear() + '/' + String(Date.now()).slice(-6);
+    
+    const proformaInvoice = {
+      id: Date.now(),
+      invoice_number: invoiceNumber,
+      order_id: order.id || order.order_number,
+      order_number: order.order_number,
+      client_name: order.legal_name || order.client_name,
+      client_email: order.client_email,
+      gstin: order.gstin,
+      legal_name: order.legal_name,
+      category_of_sale: order.category_of_sale,
+      type_of_sale: order.type_of_sale,
+      registered_address: order.registered_address,
+      indian_state: order.indian_state,
+      is_outside_india: order.is_outside_india,
+      invoice_items: order.invoice_items,
+      base_amount: order.base_amount || order.expected_amount || 0,
+      gst_calculation: order.gst_calculation || { applicable: false, rate: 0, amount: 0, cgst: 0, sgst: 0, igst: 0 },
+      tcs_calculation: order.tcs_calculation || { applicable: false, rate: 0, amount: 0 },
+      total_tax: order.total_tax || 0,
+      final_amount: order.final_amount || order.expected_amount || 0,
+      invoice_date: new Date().toISOString().split('T')[0],
+      due_date: order.expected_payment_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      status: 'proforma',
+      invoice_type: 'proforma', // Add this flag to distinguish proforma invoices
+      generated_by: window.user.name
+    };
+
+    try {
+      console.log('📄 Generating proforma invoice:', invoiceNumber);
+      const invoiceResponse = await window.apiCall('/invoices', {
+        method: 'POST',
+        body: JSON.stringify(proformaInvoice)
+      });
+      
+      const savedInvoice = invoiceResponse.data || invoiceResponse || proformaInvoice;
+      window.setInvoices(prev => [...prev, savedInvoice]);
+      console.log('📄 Proforma invoice generated successfully:', invoiceNumber);
+      
+      // Update order with invoice reference
+      await window.apiCall(`/orders/${order.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          invoice_number: invoiceNumber,
+          invoice_id: savedInvoice.id
+        })
+      });
+      
+      return savedInvoice;
+    } catch (invoiceError) {
+      console.error('❌ Failed to save proforma invoice:', invoiceError);
+      window.setInvoices(prev => [...prev, proformaInvoice]);
+      return proformaInvoice;
+    }
+  } catch (error) {
+    console.error('Failed to generate proforma invoice:', error);
+    throw error;
+  }
+};
+
 // ✅ DELIVERY SUBMISSION HANDLER
 window.handleDeliverySubmit = async function(e) {
   e.preventDefault();
@@ -764,69 +827,69 @@ window.handlePaymentPostServiceInputChange = function(field, value) {
   window.setPaymentPostServiceData(prev => ({ ...prev, [field]: value }));
 };
 
-// ✅ PAYMENT POST SERVICE FORM SUBMISSION HANDLER
-// ✅ PAYMENT POST SERVICE FORM SUBMISSION HANDLER - FIXED ASSIGNMENT
-// Replace the existing handlePaymentPostServiceSubmit function in form-handlers.js
-
 window.handlePaymentPostServiceSubmit = async function(e) {
   e.preventDefault();
+  console.log('📋 Processing payment post service submission...');
 
-  if (!window.hasPermission('leads', 'write')) {
-    alert('You do not have permission to manage payment post service');
+  if (!window.hasPermission('orders', 'create')) {
+    alert('You do not have permission to create orders');
     return;
   }
 
   window.setLoading(true);
 
   try {
-    console.log('🔍 Payment Post Service Data:', window.paymentPostServiceData);
-    console.log('🔍 Current Lead:', window.currentLead);
-
-    // Update lead status via API
-    const leadResponse = await window.apiCall('/leads/' + window.currentLead.id, {
-      method: 'PUT',
-      body: JSON.stringify({
-        ...window.currentLead,
-        status: 'payment_post_service',
-        payment_post_service_details: window.paymentPostServiceData,
-        payment_post_service_date: new Date().toISOString()
-      })
-    });
-
-    // Update local state
-    window.setLeads(prev => 
-      prev.map(lead => 
-        lead.id === window.currentLead.id ? 
-          leadResponse.data : lead
-      )
-    );
-
-    // 🔧 FIXED: Get supply_sales_service_manager for assignment
     const supplySalesServiceManager = await window.getSupplySalesServiceManager();
     console.log('🎯 Assigning payment post service order to:', supplySalesServiceManager);
 
-    // Create order with all required fields
+    // Calculate GST and TCS for the expected amount
+    const baseAmount = parseFloat(window.paymentPostServiceData.expected_amount) || 0;
+    const calculation = window.calculateGSTAndTCS(baseAmount, {
+      ...window.paymentPostServiceData,
+      customer_type: window.paymentPostServiceData.customer_type || 'indian',
+      category_of_sale: window.paymentPostServiceData.category_of_sale || 'Individual',
+      type_of_sale: window.paymentPostServiceData.type_of_sale || 'Tour'
+    });
+
     const newOrder = {
-      order_number: 'ORD-' + Date.now(),
+      order_number: 'PST-' + Date.now(),
       lead_id: window.currentLead.id,
-      client_name: window.currentLead.name,
+      client_name: window.paymentPostServiceData.legal_name || window.currentLead.name,
       client_email: window.currentLead.email,
       client_phone: window.currentLead.phone,
-
-      // Required order fields for backend
-      event_name: window.currentLead?.lead_for_event || 'Post Service Payment',
-      event_date: window.paymentPostServiceData.service_date || new Date().toISOString().split('T')[0],
-      tickets_allocated: 1,
-      ticket_category: 'Post Service',
-      price_per_ticket: parseFloat(window.paymentPostServiceData.expected_amount) || 0,
-      total_amount: parseFloat(window.paymentPostServiceData.expected_amount) || 0,
-
+      
+      // GST and legal details
+      gstin: window.paymentPostServiceData.gstin,
+      legal_name: window.paymentPostServiceData.legal_name,
+      category_of_sale: window.paymentPostServiceData.category_of_sale,
+      type_of_sale: window.paymentPostServiceData.type_of_sale,
+      registered_address: window.paymentPostServiceData.registered_address,
+      indian_state: window.paymentPostServiceData.indian_state,
+      is_outside_india: window.paymentPostServiceData.is_outside_india,
+      customer_type: window.paymentPostServiceData.customer_type,
+      event_location: window.paymentPostServiceData.event_location,
+      payment_currency: window.paymentPostServiceData.payment_currency,
+      
       // Payment post service specific fields
       expected_amount: parseFloat(window.paymentPostServiceData.expected_amount),
       expected_payment_date: window.paymentPostServiceData.expected_payment_date,
       service_description: window.paymentPostServiceData.service_details,
       notes: window.paymentPostServiceData.notes,
       payment_terms: window.paymentPostServiceData.payment_terms,
+      
+      // Invoice items
+      invoice_items: window.paymentPostServiceData.invoice_items || [{
+        description: window.paymentPostServiceData.service_details || 'Service',
+        quantity: 1,
+        rate: baseAmount
+      }],
+      
+      // Calculations
+      base_amount: baseAmount,
+      gst_calculation: calculation.gst,
+      tcs_calculation: calculation.tcs,
+      total_tax: calculation.gst.amount + calculation.tcs.amount,
+      final_amount: calculation.finalAmount,
 
       // Order metadata
       order_type: 'payment_post_service',
@@ -836,7 +899,6 @@ window.handlePaymentPostServiceSubmit = async function(e) {
       created_date: new Date().toISOString(),
       created_by: window.user.name,
       
-      // 🔧 FIXED: Assign to supply_sales_service_manager instead of empty string
       assigned_to: supplySalesServiceManager,
       assigned_team: 'supply',
       original_assignee: window.currentLead.assigned_to || window.user.name
@@ -851,24 +913,37 @@ window.handlePaymentPostServiceSubmit = async function(e) {
       });
       console.log('Order created in backend (Post Service):', orderResponse);
 
-      // Use the response data or fallback to newOrder
       const finalOrder = orderResponse.data || orderResponse || newOrder;
       if (!finalOrder.id && newOrder.order_number) {
         finalOrder.id = newOrder.order_number;
       }
 
       window.setOrders(prev => [...prev, finalOrder]);
-
-      window.setLoading(false);
-      alert(`Payment Post Service order created successfully!\nAssigned to: ${supplySalesServiceManager}\nAwaiting approval.`);
+      
+      // Generate proforma invoice immediately for post service orders
+      try {
+        const proformaInvoice = await window.generateProformaInvoice(finalOrder);
+        console.log('Proforma invoice generated:', proformaInvoice.invoice_number);
+        
+        // Update order with invoice reference
+        finalOrder.invoice_number = proformaInvoice.invoice_number;
+        finalOrder.invoice_id = proformaInvoice.id;
+        
+        window.setOrders(prev => prev.map(o => 
+          o.id === finalOrder.id ? finalOrder : o
+        ));
+        
+        alert(`Payment Post Service order created successfully!\nProforma Invoice: ${proformaInvoice.invoice_number}\nAssigned to: ${supplySalesServiceManager}`);
+      } catch (invoiceError) {
+        console.error('Failed to generate proforma invoice:', invoiceError);
+        alert(`Payment Post Service order created successfully!\nAssigned to: ${supplySalesServiceManager}\nNote: Proforma invoice generation failed.`);
+      }
+      
       window.closeForm();
     } catch (orderError) {
       console.error('Failed to create order in backend:', orderError);
-
-      // Add to local state with the order_number as id
       newOrder.id = newOrder.order_number;
       window.setOrders(prev => [...prev, newOrder]);
-
       window.setLoading(false);
       alert('Warning: Order may not have been saved to server. Please check orders page.');
       window.closeForm();
@@ -877,6 +952,8 @@ window.handlePaymentPostServiceSubmit = async function(e) {
     window.setLoading(false);
     alert('Failed to process payment post service. Please try again.');
     console.error('Payment post service error:', error);
+  } finally {
+    window.setLoading(false);
   }
 };
 
