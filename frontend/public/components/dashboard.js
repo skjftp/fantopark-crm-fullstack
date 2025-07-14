@@ -403,4 +403,205 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Mobile Responsive Dashboard Updates
+// Add to your dashboard.js
+
+window.renderResponsiveDashboard = () => {
+    const { 
+        dashboardStats, 
+        dashboardFilter, 
+        selectedSalesPerson, 
+        selectedEvent,
+        events,
+        salesPeople,
+        leads 
+    } = window.appState;
+    
+    return React.createElement('div', { className: 'space-y-4 md:space-y-6' },
+        // Dashboard Header - Stack on mobile
+        React.createElement('div', { className: 'flex flex-col md:flex-row md:items-center md:justify-between gap-4' },
+            React.createElement('h2', { className: 'text-xl md:text-2xl font-bold' }, 'Dashboard Overview'),
+            
+            // Filters - Stack vertically on mobile
+            React.createElement('div', { className: 'flex flex-col sm:flex-row gap-2' },
+                // Filter Type Selector
+                React.createElement('select', {
+                    value: dashboardFilter,
+                    onChange: (e) => window.handleDashboardFilterChange(e.target.value),
+                    className: 'px-3 py-2 border rounded-md text-sm w-full sm:w-auto'
+                },
+                    React.createElement('option', { value: 'overall' }, 'Overall'),
+                    React.createElement('option', { value: 'salesPerson' }, 'By Sales Person'),
+                    React.createElement('option', { value: 'event' }, 'By Event')
+                ),
+                
+                // Conditional filters
+                dashboardFilter === 'salesPerson' && React.createElement('select', {
+                    value: selectedSalesPerson,
+                    onChange: (e) => window.setSelectedSalesPerson(e.target.value),
+                    className: 'px-3 py-2 border rounded-md text-sm w-full sm:w-auto'
+                },
+                    React.createElement('option', { value: '' }, 'Select Sales Person'),
+                    salesPeople.map(person => 
+                        React.createElement('option', { key: person.id, value: person.id }, person.name)
+                    )
+                ),
+                
+                dashboardFilter === 'event' && React.createElement('select', {
+                    value: selectedEvent,
+                    onChange: (e) => window.setSelectedEvent(e.target.value),
+                    className: 'px-3 py-2 border rounded-md text-sm w-full sm:w-auto'
+                },
+                    React.createElement('option', { value: '' }, 'Select Event'),
+                    events.map(event => 
+                        React.createElement('option', { key: event, value: event }, event)
+                    )
+                )
+            )
+        ),
+        
+        // Stats Cards - Responsive Grid
+        React.createElement('div', { 
+            className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4'
+        },
+            // Total Leads Card
+            React.createElement('div', { 
+                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
+            },
+                React.createElement('div', { className: 'flex items-center justify-between' },
+                    React.createElement('div', null,
+                        React.createElement('p', { className: 'text-sm text-gray-500' }, 'Total Leads'),
+                        React.createElement('p', { className: 'text-xl md:text-2xl font-bold' }, 
+                            dashboardStats.totalLeads || 0
+                        )
+                    ),
+                    React.createElement('span', { className: 'text-2xl md:text-3xl' }, '👥')
+                )
+            ),
+            
+            // Active Deals Card
+            React.createElement('div', { 
+                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
+            },
+                React.createElement('div', { className: 'flex items-center justify-between' },
+                    React.createElement('div', null,
+                        React.createElement('p', { className: 'text-sm text-gray-500' }, 'Active Deals'),
+                        React.createElement('p', { className: 'text-xl md:text-2xl font-bold' }, 
+                            dashboardStats.activeDeals || 0
+                        )
+                    ),
+                    React.createElement('span', { className: 'text-2xl md:text-3xl' }, '💼')
+                )
+            ),
+            
+            // Revenue Card
+            React.createElement('div', { 
+                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
+            },
+                React.createElement('div', { className: 'flex items-center justify-between' },
+                    React.createElement('div', null,
+                        React.createElement('p', { className: 'text-sm text-gray-500' }, 'This Month Revenue'),
+                        React.createElement('p', { className: 'text-xl md:text-2xl font-bold' }, 
+                            `₹${(dashboardStats.thisMonthRevenue || 0).toLocaleString('en-IN')}`
+                        )
+                    ),
+                    React.createElement('span', { className: 'text-2xl md:text-3xl' }, '💰')
+                )
+            ),
+            
+            // Pending Deliveries Card
+            React.createElement('div', { 
+                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
+            },
+                React.createElement('div', { className: 'flex items-center justify-between' },
+                    React.createElement('div', null,
+                        React.createElement('p', { className: 'text-sm text-gray-500' }, 'Pending Deliveries'),
+                        React.createElement('p', { className: 'text-xl md:text-2xl font-bold' }, 
+                            dashboardStats.pendingDeliveries || 0
+                        )
+                    ),
+                    React.createElement('span', { className: 'text-2xl md:text-3xl' }, '🚚')
+                )
+            ),
+            
+            // Inventory Value Card
+            React.createElement('div', { 
+                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
+            },
+                React.createElement('div', { className: 'flex items-center justify-between' },
+                    React.createElement('div', null,
+                        React.createElement('p', { className: 'text-sm text-gray-500' }, 'Inventory Value'),
+                        React.createElement('p', { className: 'text-xl md:text-2xl font-bold' }, 
+                            `₹${(dashboardStats.inventoryValue || 0).toLocaleString('en-IN')}`
+                        )
+                    ),
+                    React.createElement('span', { className: 'text-2xl md:text-3xl' }, '📦')
+                )
+            )
+        ),
+        
+        // Charts Section - Stack on mobile
+        React.createElement('div', { 
+            className: 'grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6'
+        },
+            // Lead Split Chart
+            React.createElement('div', { 
+                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
+            },
+                React.createElement('h3', { className: 'text-base md:text-lg font-semibold mb-4' }, 'Lead Split'),
+                React.createElement('div', { className: 'h-48 md:h-64' },
+                    React.createElement('canvas', { 
+                        id: 'leadSplitChart',
+                        className: 'max-w-full'
+                    })
+                )
+            ),
+            
+            // Temperature Count Chart
+            React.createElement('div', { 
+                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
+            },
+                React.createElement('h3', { className: 'text-base md:text-lg font-semibold mb-4' }, 'Lead Temperature Count'),
+                React.createElement('div', { className: 'h-48 md:h-64' },
+                    React.createElement('canvas', { 
+                        id: 'tempCountChart',
+                        className: 'max-w-full'
+                    })
+                )
+            ),
+            
+            // Temperature Value Chart
+            React.createElement('div', { 
+                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
+            },
+                React.createElement('h3', { className: 'text-base md:text-lg font-semibold mb-4' }, 'Lead Temperature Value'),
+                React.createElement('div', { className: 'h-48 md:h-64' },
+                    React.createElement('canvas', { 
+                        id: 'tempValueChart',
+                        className: 'max-w-full'
+                    })
+                )
+            )
+        ),
+        
+        // Recent Activity - Mobile optimized table
+        React.createElement('div', { 
+            className: 'bg-white dark:bg-gray-800 rounded-lg shadow'
+        },
+            React.createElement('div', { className: 'p-4 md:p-6 border-b' },
+                React.createElement('h3', { className: 'text-base md:text-lg font-semibold' }, 'Recent Activity')
+            ),
+            React.createElement('div', { className: 'overflow-x-auto' },
+                window.renderRecentActivity && window.renderRecentActivity()
+            )
+        )
+    );
+};
+
+// Override dashboard renderer
+window.dashboardResponsiveOverride = () => {
+    const originalRenderDashboard = window.renderDashboard;
+    window.renderDashboard = window.renderResponsiveDashboard || originalRenderDashboard;
+};
+
 console.log('✅ Optimized Dashboard Component Loaded - Backend API Integration Active!');

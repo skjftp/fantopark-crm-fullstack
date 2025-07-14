@@ -3222,3 +3222,243 @@ console.log("✅ AssignmentRulesTab exposed to window");
     window.renderQuoteUploadModal && window.renderQuoteUploadModal(),
   );
 };
+
+// SIMPLE MOBILE RESPONSIVE FIX
+// Add this to the bottom of your simplified-app-component.js file
+
+// Mobile styles - add these styles to make your app responsive
+const mobileStyles = `
+    /* Mobile Navigation */
+    @media (max-width: 1024px) {
+        /* Hide sidebar on mobile by default */
+        .sidebar {
+            position: fixed;
+            left: -100%;
+            top: 0;
+            height: 100vh;
+            width: 250px;
+            transition: left 0.3s ease;
+            z-index: 50;
+        }
+        
+        /* Show sidebar when menu is open */
+        .sidebar.open {
+            left: 0;
+        }
+        
+        /* Mobile overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+        }
+        
+        .mobile-overlay.show {
+            display: block;
+        }
+        
+        /* Main content takes full width on mobile */
+        .main-content {
+            margin-left: 0 !important;
+            padding-top: 60px; /* Space for mobile header */
+        }
+        
+        /* Mobile header */
+        .mobile-header {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            align-items: center;
+            padding: 0 1rem;
+            z-index: 30;
+        }
+        
+        /* Tables - make them scrollable */
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        table {
+            min-width: 600px;
+        }
+        
+        /* Responsive grid */
+        .grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+        }
+        
+        /* Responsive padding */
+        .p-6 {
+            padding: 1rem !important;
+        }
+        
+        /* Stack filters vertically */
+        .filters-grid {
+            grid-template-columns: 1fr !important;
+        }
+    }
+    
+    /* Desktop - show sidebar */
+    @media (min-width: 1025px) {
+        .mobile-header {
+            display: none !important;
+        }
+        
+        .mobile-overlay {
+            display: none !important;
+        }
+        
+        .sidebar {
+            position: static !important;
+            left: 0 !important;
+        }
+    }
+`;
+
+// Add styles to document
+if (!document.getElementById('mobile-responsive-styles')) {
+    const styleSheet = document.createElement('style');
+    styleSheet.id = 'mobile-responsive-styles';
+    styleSheet.textContent = mobileStyles;
+    document.head.appendChild(styleSheet);
+}
+
+// Simple mobile menu toggle function
+window.toggleMobileMenu = function() {
+    const sidebar = document.querySelector('.w-64.bg-white');
+    const overlay = document.getElementById('mobile-overlay');
+    
+    if (sidebar) {
+        sidebar.classList.toggle('open');
+        if (overlay) {
+            overlay.classList.toggle('show');
+        }
+    }
+};
+
+// Update your SimplifiedApp component to add mobile header
+window.addMobileHeader = function() {
+    const oldSimplifiedApp = window.SimplifiedApp;
+    
+    window.SimplifiedApp = function() {
+        const result = oldSimplifiedApp();
+        
+        if (!result || !window.appState.isLoggedIn) return result;
+        
+        // Wrap the existing content and add mobile header
+        return React.createElement('div', null,
+            // Mobile Header
+            React.createElement('div', { className: 'mobile-header lg:hidden' },
+                React.createElement('button', {
+                    onClick: window.toggleMobileMenu,
+                    className: 'p-2 hover:bg-gray-100 rounded'
+                },
+                    React.createElement('svg', {
+                        width: '24',
+                        height: '24',
+                        viewBox: '0 0 24 24',
+                        fill: 'none',
+                        stroke: 'currentColor',
+                        strokeWidth: '2'
+                    },
+                        React.createElement('path', {
+                            d: 'M3 12h18M3 6h18M3 18h18'
+                        })
+                    )
+                ),
+                React.createElement('h1', { className: 'text-lg font-semibold flex-1 text-center' }, 
+                    'FanToPark CRM'
+                ),
+                React.createElement('div', { className: 'w-10' }) // Spacer for balance
+            ),
+            
+            // Mobile Overlay
+            React.createElement('div', {
+                id: 'mobile-overlay',
+                className: 'mobile-overlay',
+                onClick: window.toggleMobileMenu
+            }),
+            
+            // Original content
+            result
+        );
+    };
+};
+
+// Add necessary classes to existing elements
+window.addResponsiveClasses = function() {
+    // Add sidebar class
+    const sidebar = document.querySelector('.w-64.bg-white');
+    if (sidebar) {
+        sidebar.classList.add('sidebar');
+    }
+    
+    // Add main-content class
+    const mainContent = document.querySelector('.flex-1.overflow-auto');
+    if (mainContent) {
+        mainContent.classList.add('main-content');
+    }
+    
+    // Add table-container class to tables
+    const tables = document.querySelectorAll('table');
+    tables.forEach(table => {
+        if (!table.parentElement.classList.contains('table-container')) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'table-container';
+            table.parentNode.insertBefore(wrapper, table);
+            wrapper.appendChild(table);
+        }
+    });
+    
+    // Add grid class to dashboard cards
+    const dashboardCards = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.xl\\:grid-cols-5');
+    if (dashboardCards) {
+        dashboardCards.classList.add('grid');
+    }
+};
+
+// Initialize mobile responsive design
+window.initializeMobileResponsive = function() {
+    console.log('🔄 Initializing simple mobile responsive design...');
+    
+    // Add mobile header wrapper
+    window.addMobileHeader();
+    
+    // Add responsive classes after a short delay
+    setTimeout(() => {
+        window.addResponsiveClasses();
+        
+        // Re-apply classes on route changes
+        const observer = new MutationObserver(() => {
+            window.addResponsiveClasses();
+        });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }, 1000);
+    
+    // Force re-render
+    if (window.renderApp) {
+        window.renderApp();
+    }
+    
+    console.log('✅ Simple mobile responsive design initialized');
+};
+
+// Auto-initialize when document is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', window.initializeMobileResponsive);
+} else {
+    window.initializeMobileResponsive();
+}

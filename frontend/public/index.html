@@ -4,7 +4,8 @@
 <head>
 <meta charset="UTF-8">
 <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/mobile-responsive.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FanToPark CRM Pro</title>
 
 <!-- Add this COMPREHENSIVE PERFORMANCE OPTIMIZATION scrpt -->
@@ -332,149 +333,7 @@
 })();
 </script>  
 
-<script>
-// COMPREHENSIVE API CALL CONSOLIDATION
-(function() {
-  'use strict';
-  
-  console.log('🔄 Implementing comprehensive API call consolidation...');
-  
-  // Global flag to prevent multiple simultaneous data fetches
-  let isDataFetching = false;
-  let dataFetchPromise = null;
-  
-  // Store original functions
-  const originalFetchData = window.renderAppBusinessLogic()?.fetchData;
-  const originalFetchMyActions = window.fetchMyActions;
-  
-  // Consolidated data fetching function
-  window.consolidatedDataFetch = async function() {
-    // Prevent multiple simultaneous fetches
-    if (isDataFetching) {
-      console.log('📋 Data fetch already in progress, returning existing promise');
-      return dataFetchPromise;
-    }
-    
-    if (!window.isLoggedIn) {
-      console.log('❌ Not logged in, skipping data fetch');
-      return;
-    }
-    
-    isDataFetching = true;
-    console.log('🚀 Starting consolidated data fetch...');
-    
-    dataFetchPromise = (async () => {
-      try {
-        // Fetch all core data once
-        const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData, clientsData, usersData, stadiumsData] = await Promise.all([
-          window.apiCall('/leads').catch(() => ({ data: [] })),
-          window.apiCall('/inventory').catch(() => ({ data: [] })),
-          window.apiCall('/orders').catch(() => ({ data: [] })),
-          window.apiCall('/invoices').catch(() => ({ data: [] })),
-          window.apiCall('/deliveries').catch(() => ({ data: [] })),
-          window.apiCall('/clients').catch(() => ({ data: [] })),
-          window.apiCall('/users').catch(() => ({ data: [] })),
-          window.apiCall('/stadiums').catch(() => ({ data: [] }))
-        ]);
-        
-        console.log('✅ All API calls completed, updating state...');
-        
-        // Update all state at once
-        if (window.appState?.setLeads) window.appState.setLeads(leadsData.data || []);
-        if (window.appState?.setInventory) window.appState.setInventory(inventoryData.data || []);
-        if (window.appState?.setOrders) window.appState.setOrders(ordersData.data || []);
-        if (window.appState?.setInvoices) window.appState.setInvoices(invoicesData.data || []);
-        if (window.appState?.setDeliveries) window.appState.setDeliveries(deliveriesData.data || []);
-        if (window.appState?.setClients) window.appState.setClients(clientsData.data || []);
-        if (window.appState?.setUsers) window.appState.setUsers(usersData.data || []);
-        if (window.appState?.setStadiums) window.appState.setStadiums(stadiumsData.data || []);
-        
-        // Update window globals
-        window.leads = leadsData.data || [];
-        window.inventory = inventoryData.data || [];
-        window.orders = ordersData.data || [];
-        window.users = usersData.data || [];
-        window.allUsers = usersData.data || [];
-        
-        console.log('✅ Consolidated data fetch completed successfully');
-        
-      } catch (error) {
-        console.error('❌ Consolidated data fetch failed:', error);
-      } finally {
-        isDataFetching = false;
-        dataFetchPromise = null;
-      }
-    })();
-    
-    return dataFetchPromise;
-  };
-  
-  // Override the original functions to use consolidated fetch
-  if (originalFetchData) {
-    window.renderAppBusinessLogic().fetchData = function() {
-      console.log('🔄 fetchData called - routing to consolidated fetch');
-      return window.consolidatedDataFetch();
-    };
-  }
-  
-  if (originalFetchMyActions) {
-    window.fetchMyActions = function() {
-      console.log('🔄 fetchMyActions called - using existing data + filtering');
-      
-      // If data is already loaded, just process it
-      if (window.leads && window.leads.length > 0) {
-        // Process My Actions data from already loaded data
-        if (originalFetchMyActions) {
-          return originalFetchMyActions();
-        }
-      } else {
-        // If no data, fetch it first
-        return window.consolidatedDataFetch().then(() => {
-          if (originalFetchMyActions) {
-            return originalFetchMyActions();
-          }
-        });
-      }
-    };
-  }
-  
-  // Single initialization function
-  window.initializeAppData = function() {
-    if (!window.isLoggedIn) return;
-    
-    console.log('🎯 Initializing app data (single call)');
-    return window.consolidatedDataFetch();
-  };
-  
-  // Override useEffect to prevent multiple calls
-  let isInitialized = false;
-  
-  const originalUseEffect = React.useEffect;
-  React.useEffect = function(callback, deps) {
-    // Intercept data fetching useEffects
-    const callbackString = callback.toString();
-    
-    if (callbackString.includes('fetchData') && !isInitialized) {
-      console.log('🛑 Intercepting fetchData useEffect - using consolidated approach');
-      
-      const newCallback = () => {
-        if (window.isLoggedIn && !isInitialized) {
-          isInitialized = true;
-          window.initializeAppData();
-        }
-      };
-      
-      return originalUseEffect(newCallback, [window.isLoggedIn]);
-    }
-    
-    // Allow other useEffects to run normally
-    return originalUseEffect(callback, deps);
-  };
-  
-  console.log('✅ API call consolidation system enabled');
-  
-})();
-</script> 
+
 
 <!-- PERFORMANCE OPTIMIZATION SCRIPTS - PLACE FIRST -->
 <script> 
@@ -822,8 +681,152 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 <script defer src="components/quote-upload-modal.js"></script>
 <script defer src="components/delivery-utils.js"></script>  
    
+<!-- Add these after your other component scripts -->
+<script src="components/responsive-layout.js"></script>
 
-
+<script>
+// COMPREHENSIVE API CALL CONSOLIDATION
+(function() {
+  'use strict';
+  
+  console.log('🔄 Implementing comprehensive API call consolidation...');
+  
+  // Global flag to prevent multiple simultaneous data fetches
+  let isDataFetching = false;
+  let dataFetchPromise = null;
+  
+  // Store original functions
+  const originalFetchData = window.renderAppBusinessLogic()?.fetchData;
+  const originalFetchMyActions = window.fetchMyActions;
+  
+  // Consolidated data fetching function
+  window.consolidatedDataFetch = async function() {
+    // Prevent multiple simultaneous fetches
+    if (isDataFetching) {
+      console.log('📋 Data fetch already in progress, returning existing promise');
+      return dataFetchPromise;
+    }
+    
+    if (!window.isLoggedIn) {
+      console.log('❌ Not logged in, skipping data fetch');
+      return;
+    }
+    
+    isDataFetching = true;
+    console.log('🚀 Starting consolidated data fetch...');
+    
+    dataFetchPromise = (async () => {
+      try {
+        // Fetch all core data once
+        const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData, clientsData, usersData, stadiumsData] = await Promise.all([
+          window.apiCall('/leads').catch(() => ({ data: [] })),
+          window.apiCall('/inventory').catch(() => ({ data: [] })),
+          window.apiCall('/orders').catch(() => ({ data: [] })),
+          window.apiCall('/invoices').catch(() => ({ data: [] })),
+          window.apiCall('/deliveries').catch(() => ({ data: [] })),
+          window.apiCall('/clients').catch(() => ({ data: [] })),
+          window.apiCall('/users').catch(() => ({ data: [] })),
+          window.apiCall('/stadiums').catch(() => ({ data: [] }))
+        ]);
+        
+        console.log('✅ All API calls completed, updating state...');
+        
+        // Update all state at once
+        if (window.appState?.setLeads) window.appState.setLeads(leadsData.data || []);
+        if (window.appState?.setInventory) window.appState.setInventory(inventoryData.data || []);
+        if (window.appState?.setOrders) window.appState.setOrders(ordersData.data || []);
+        if (window.appState?.setInvoices) window.appState.setInvoices(invoicesData.data || []);
+        if (window.appState?.setDeliveries) window.appState.setDeliveries(deliveriesData.data || []);
+        if (window.appState?.setClients) window.appState.setClients(clientsData.data || []);
+        if (window.appState?.setUsers) window.appState.setUsers(usersData.data || []);
+        if (window.appState?.setStadiums) window.appState.setStadiums(stadiumsData.data || []);
+        
+        // Update window globals
+        window.leads = leadsData.data || [];
+        window.inventory = inventoryData.data || [];
+        window.orders = ordersData.data || [];
+        window.users = usersData.data || [];
+        window.allUsers = usersData.data || [];
+        
+        console.log('✅ Consolidated data fetch completed successfully');
+        
+      } catch (error) {
+        console.error('❌ Consolidated data fetch failed:', error);
+      } finally {
+        isDataFetching = false;
+        dataFetchPromise = null;
+      }
+    })();
+    
+    return dataFetchPromise;
+  };
+  
+  // Override the original functions to use consolidated fetch
+  if (originalFetchData) {
+    window.renderAppBusinessLogic().fetchData = function() {
+      console.log('🔄 fetchData called - routing to consolidated fetch');
+      return window.consolidatedDataFetch();
+    };
+  }
+  
+  if (originalFetchMyActions) {
+    window.fetchMyActions = function() {
+      console.log('🔄 fetchMyActions called - using existing data + filtering');
+      
+      // If data is already loaded, just process it
+      if (window.leads && window.leads.length > 0) {
+        // Process My Actions data from already loaded data
+        if (originalFetchMyActions) {
+          return originalFetchMyActions();
+        }
+      } else {
+        // If no data, fetch it first
+        return window.consolidatedDataFetch().then(() => {
+          if (originalFetchMyActions) {
+            return originalFetchMyActions();
+          }
+        });
+      }
+    };
+  }
+  
+  // Single initialization function
+  window.initializeAppData = function() {
+    if (!window.isLoggedIn) return;
+    
+    console.log('🎯 Initializing app data (single call)');
+    return window.consolidatedDataFetch();
+  };
+  
+  // Override useEffect to prevent multiple calls
+  let isInitialized = false;
+  
+  const originalUseEffect = React.useEffect;
+  React.useEffect = function(callback, deps) {
+    // Intercept data fetching useEffects
+    const callbackString = callback.toString();
+    
+    if (callbackString.includes('fetchData') && !isInitialized) {
+      console.log('🛑 Intercepting fetchData useEffect - using consolidated approach');
+      
+      const newCallback = () => {
+        if (window.isLoggedIn && !isInitialized) {
+          isInitialized = true;
+          window.initializeAppData();
+        }
+      };
+      
+      return originalUseEffect(newCallback, [window.isLoggedIn]);
+    }
+    
+    // Allow other useEffects to run normally
+    return originalUseEffect(callback, deps);
+  };
+  
+  console.log('✅ API call consolidation system enabled');
+  
+})();
+</script>   
   
 <script>
   // ===== FINANCIALS DISPLAY FIX FOR INDIAN FORMAT =====
@@ -2494,6 +2497,171 @@ console.log('✅ Chart update functions loaded');
   
 })();
 </script>  
+
+  <script>
+    (function() {
+    'use strict';
+    
+    console.log('📱 Initializing mobile responsive design...');
+    
+    // Wait for all components to load
+    function initializeMobileResponsive() {
+        if (!window.SimplifiedApp || !window.appState) {
+            setTimeout(initializeMobileResponsive, 100);
+            return;
+        }
+        
+        // Update the SimplifiedApp to use responsive layout
+        const originalSimplifiedApp = window.SimplifiedApp;
+        
+        window.SimplifiedApp = () => {
+            const { isLoggedIn } = window.appState;
+            
+            if (!isLoggedIn) {
+                return window.renderLogin();
+            }
+            
+            // Use responsive layout
+            return window.renderResponsiveLayout();
+        };
+        
+        // Override the financials renderer with responsive version
+        const originalRenderFinancials = window.renderFinancials;
+        //window.renderFinancials = window.renderResponsiveFinancials || originalRenderFinancials;
+        
+        // Override sales tab with responsive version
+        const originalRenderSalesTab = window.renderSalesTab;
+        window.renderSalesTab = window.renderResponsiveSalesTab || originalRenderSalesTab;
+        
+        // Add viewport meta tag if not present
+        if (!document.querySelector('meta[name="viewport"]')) {
+            const viewport = document.createElement('meta');
+            viewport.name = 'viewport';
+            viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+            document.head.appendChild(viewport);
+        }
+        
+        // Add mobile-specific styles
+        const mobileStyles = document.createElement('style');
+        mobileStyles.textContent = `
+            /* Prevent horizontal scroll on mobile */
+            body {
+                overflow-x: hidden;
+            }
+            
+            /* Improve touch targets */
+            button, a, input, select, textarea {
+                min-height: 44px;
+            }
+            
+            /* Better mobile table styles */
+            @media (max-width: 640px) {
+                table {
+                    font-size: 14px;
+                }
+                
+                th, td {
+                    padding: 8px 4px;
+                }
+                
+                /* Hide less important columns on very small screens */
+                .hide-on-mobile {
+                    display: none;
+                }
+            }
+            
+            /* Smooth scrolling for tabs */
+            .overflow-x-auto {
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: thin;
+            }
+            
+            /* Better chart responsiveness */
+            canvas {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+            
+            /* Fix for iOS Safari */
+            .fixed {
+                -webkit-transform: translateZ(0);
+            }
+        `;
+        document.head.appendChild(mobileStyles);
+        
+        // Force re-render if already logged in
+        if (window.renderApp) {
+            window.renderApp();
+        }
+        
+        console.log('✅ Mobile responsive design initialized');
+    }
+    
+    // Handle window resize for responsive chart
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            if (window.financialSalesChartInstance) {
+                window.financialSalesChartInstance.resize();
+            }
+        }, 250);
+    });
+    
+    // Initialize
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeMobileResponsive);
+    } else {
+        initializeMobileResponsive();
+    }
+})();
+
+// Quick test function to check mobile menu
+window.testMobileMenu = () => {
+    if (window.appState && window.appState.setIsMobileMenuOpen) {
+        window.appState.setIsMobileMenuOpen(true);
+        console.log('Mobile menu opened');
+    } else {
+        console.log('Mobile menu state not available');
+    }
+};
+  </script>
+  <script>
+// Simple Mobile Menu
+document.addEventListener('DOMContentLoaded', function() {
+  // Create mobile header
+  const header = document.createElement('div');
+  header.className = 'mobile-header';
+  header.innerHTML = `
+    <button onclick="toggleMobileMenu()" class="p-2 hover:bg-gray-100 rounded">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 12h18M3 6h18M3 18h18"></path>
+      </svg>
+    </button>
+    <h1 class="flex-1 text-center font-semibold">FanToPark CRM</h1>
+    <div class="w-10"></div>
+  `;
+  
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'mobile-overlay';
+  overlay.onclick = toggleMobileMenu;
+  
+  // Add to body
+  document.body.insertBefore(header, document.body.firstChild);
+  document.body.insertBefore(overlay, document.body.firstChild);
+});
+
+function toggleMobileMenu() {
+  const sidebar = document.querySelector('.w-64.bg-white');
+  const overlay = document.querySelector('.mobile-overlay');
+  
+  if (sidebar) {
+    sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('show');
+  }
+}
+</script>
   
 </body>
 </html>
