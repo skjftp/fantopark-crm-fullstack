@@ -947,4 +947,199 @@ window.renderExpiringTab = (expiringInventory) => {
     );
 };
 
+// Mobile Responsive Financials Updates
+// Add these responsive modifications to your financials.js
+
+// Update the renderFinancials function with responsive classes
+window.renderResponsiveFinancials = () => {
+    const { financialData, financialFilters, setFinancialFilters, activeFinancialTab, setActiveFinancialTab } = window.appState;
+    
+    // Get current tab data with pagination
+    const currentTabData = window.getCurrentTabData();
+    
+    return React.createElement('div', { className: 'space-y-4' },
+        // Stats Cards - Responsive Grid
+        React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4' },
+            window.renderEnhancedFinancialStats()
+        ),
+        
+        // Filters Section - Stack on mobile
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4' },
+            React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Filters'),
+            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4' },
+                // Client Name
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Client Name'),
+                    React.createElement('input', {
+                        type: 'text',
+                        placeholder: 'Search by client...',
+                        value: financialFilters.clientName || '',
+                        onChange: (e) => setFinancialFilters({...financialFilters, clientName: e.target.value}),
+                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    })
+                ),
+                
+                // Date filters on separate rows on mobile
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'From Date'),
+                    React.createElement('input', {
+                        type: 'date',
+                        value: financialFilters.dateFrom || '',
+                        onChange: (e) => setFinancialFilters({...financialFilters, dateFrom: e.target.value}),
+                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    })
+                ),
+                
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'To Date'),
+                    React.createElement('input', {
+                        type: 'date',
+                        value: financialFilters.dateTo || '',
+                        onChange: (e) => setFinancialFilters({...financialFilters, dateTo: e.target.value}),
+                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    })
+                ),
+                
+                // Status Filter
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Status'),
+                    React.createElement('select', {
+                        value: financialFilters.status || 'all',
+                        onChange: (e) => setFinancialFilters({...financialFilters, status: e.target.value}),
+                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    },
+                        React.createElement('option', { value: 'all' }, 'All Status'),
+                        React.createElement('option', { value: 'paid' }, 'Paid'),
+                        React.createElement('option', { value: 'pending' }, 'Pending'),
+                        React.createElement('option', { value: 'overdue' }, 'Overdue')
+                    )
+                )
+            ),
+            React.createElement('div', { className: 'flex justify-end mt-4' },
+                React.createElement('button', {
+                    onClick: () => setFinancialFilters({
+                        clientName: '',
+                        assignedPerson: '',
+                        dateFrom: '',
+                        dateTo: '',
+                        status: 'all'
+                    }),
+                    className: 'px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50'
+                }, 'Clear Filters')
+            )
+        ),
+
+        // Tabs - Horizontally scrollable on mobile
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
+            React.createElement('div', { className: 'border-b border-gray-200 dark:border-gray-700 overflow-x-auto' },
+                React.createElement('nav', { className: 'flex space-x-4 md:space-x-8 px-4 md:px-6 min-w-max' },
+                    ['activesales', 'sales', 'receivables', 'payables', 'expiring'].map(tab =>
+                        React.createElement('button', {
+                            key: tab,
+                            onClick: () => setActiveFinancialTab(tab),
+                            className: `py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                                activeFinancialTab === tab
+                                    ? 'text-blue-600 border-b-2 border-blue-600'
+                                    : 'text-gray-500 hover:text-gray-700 border-transparent'
+                            }`
+                        }, tab.charAt(0).toUpperCase() + tab.slice(1).replace('activesales', 'Active Sales'))
+                    )
+                )
+            ),
+
+            // Tab Content
+            React.createElement('div', { className: 'p-4 md:p-6' },
+                activeFinancialTab === 'sales' && window.renderResponsiveSalesTab(currentTabData.data)
+                // Add other tabs similarly
+            )
+        )
+    );
+};
+
+// Responsive Sales Tab with mobile-optimized chart and table
+window.renderResponsiveSalesTab = (sales) => {
+    // Initialize chart after render
+    setTimeout(() => {
+        window.createFinancialSalesChart();
+    }, 100);
+    
+    return React.createElement('div', { className: 'space-y-6' },
+        // Sales Chart - Responsive height
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border' },
+            React.createElement('h4', { className: 'text-lg font-semibold mb-4 text-gray-900 dark:text-white' }, 'Sales Trend'),
+            React.createElement('div', { className: 'h-64 md:h-80 relative' },
+                React.createElement('canvas', { 
+                    id: 'financialSalesChart',
+                    className: 'max-w-full'
+                })
+            )
+        ),
+
+        // Sales Table - Horizontally scrollable on mobile
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow-sm border' },
+            React.createElement('div', { className: 'overflow-x-auto' },
+                React.createElement('table', { className: 'w-full min-w-[640px]' }, // min-width ensures table doesn't get too compressed
+                    React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
+                        React.createElement('tr', null,
+                            React.createElement('th', { className: 'px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Date'),
+                            React.createElement('th', { className: 'px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Invoice #'),
+                            React.createElement('th', { className: 'px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Client'),
+                            React.createElement('th', { className: 'px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell' }, 'Sales Person'),
+                            React.createElement('th', { className: 'px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
+                            React.createElement('th', { className: 'px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status')
+                        )
+                    ),
+                    React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
+                        sales && sales.length > 0 ?
+                            sales.map((sale, index) => 
+                                React.createElement('tr', { key: sale.id || index, className: 'hover:bg-gray-50' },
+                                    React.createElement('td', { className: 'px-3 md:px-4 py-4 whitespace-nowrap text-sm' }, 
+                                        new Date(sale.date || sale.created_date).toLocaleDateString()
+                                    ),
+                                    React.createElement('td', { className: 'px-3 md:px-4 py-4 text-sm font-medium' }, 
+                                        React.createElement('span', { className: 'block md:hidden' }, 
+                                            sale.invoice_number?.substring(0, 8) + '...'
+                                        ),
+                                        React.createElement('span', { className: 'hidden md:block' }, 
+                                            sale.invoice_number || 'N/A'
+                                        )
+                                    ),
+                                    React.createElement('td', { className: 'px-3 md:px-4 py-4 text-sm' }, 
+                                        React.createElement('div', { className: 'max-w-[150px] truncate' },
+                                            sale.clientName || 'N/A'
+                                        )
+                                    ),
+                                    React.createElement('td', { className: 'px-3 md:px-4 py-4 text-sm hidden md:table-cell' }, 
+                                        sale.assignedTo || 'N/A'
+                                    ),
+                                    React.createElement('td', { className: 'px-3 md:px-4 py-4 whitespace-nowrap text-sm font-medium' }, 
+                                        `₹${(sale.amount || 0).toLocaleString('en-IN')}`
+                                    ),
+                                    React.createElement('td', { className: 'px-3 md:px-4 py-4 whitespace-nowrap' },
+                                        React.createElement('span', { 
+                                            className: `px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                sale.status === 'paid' ? 'bg-green-100 text-green-800' :
+                                                sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-gray-100 text-gray-800'
+                                            }`
+                                        }, sale.status || 'N/A')
+                                    )
+                                )
+                            ) : 
+                            React.createElement('tr', null,
+                                React.createElement('td', { 
+                                    colSpan: 6, 
+                                    className: 'px-4 py-8 text-center text-gray-500' 
+                                }, 'No sales data found')
+                            )
+                    )
+                )
+            )
+        ),
+        
+        // Pagination - Mobile optimized
+        window.renderFinancialPagination && window.renderFinancialPagination('sales', sales?.length || 0)
+    );
+};
+
 console.log('✅ FIXED PAGINATION Financials Component loaded successfully - All functionality preserved');
