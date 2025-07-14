@@ -1,5 +1,5 @@
-// Fixed Allocation Management Component for FanToPark CRM
-// Applied proven integration pattern for window globals
+// Enhanced Allocation Management Component for FanToPark CRM
+// Now displays category information and category-wise summaries
 
 window.renderAllocationManagement = () => {
   // ✅ PATTERN 1: State Variable Extraction (CRITICAL FIX)
@@ -20,9 +20,9 @@ window.renderAllocationManagement = () => {
     console.log("Would open allocation form for:", inventory);
   });
   
-  const handleUnallocate = window.handleUnallocate || ((allocationId, tickets) => {
+  const handleUnallocate = window.handleUnallocate || ((allocationId, tickets, categoryName) => {
     console.warn("handleUnallocate not implemented"); 
-    console.log("Would unallocate:", allocationId, tickets);
+    console.log("Would unallocate:", allocationId, tickets, "from category:", categoryName);
   });
 
   // ✅ Enhanced Debug Logging
@@ -39,11 +39,57 @@ window.renderAllocationManagement = () => {
     return null;
   }
 
+  // NEW: Check if inventory has categories
+  const hasCategories = allocationManagementInventory.categories && 
+    Array.isArray(allocationManagementInventory.categories) && 
+    allocationManagementInventory.categories.length > 0;
+
+  // NEW: Calculate category-wise allocation summary
+  const categoryAllocationSummary = {};
+  if (hasCategories) {
+    // Initialize summary for each category
+    allocationManagementInventory.categories.forEach(cat => {
+      categoryAllocationSummary[cat.name] = {
+        totalTickets: cat.total_tickets || 0,
+        available: cat.available_tickets || 0,
+        allocated: 0,
+        allocations: []
+      };
+    });
+
+    // Count allocations per category
+    currentAllocations.forEach(allocation => {
+      const categoryName = allocation.category_name || allocation.category_of_ticket || 'General';
+      if (categoryAllocationSummary[categoryName]) {
+        categoryAllocationSummary[categoryName].allocated += (allocation.tickets_allocated || 0);
+        categoryAllocationSummary[categoryName].allocations.push(allocation);
+      }
+    });
+  }
+
+  // Calculate total allocation value
+  const totalAllocationValue = currentAllocations.reduce((sum, allocation) => {
+    const tickets = allocation.tickets_allocated || 0;
+    let pricePerTicket = allocationManagementInventory.selling_price || 0;
+    
+    // Use category-specific pricing if available
+    if (allocation.category_details && allocation.category_details.selling_price) {
+      pricePerTicket = allocation.category_details.selling_price;
+    } else if (hasCategories && allocation.category_name) {
+      const category = allocationManagementInventory.categories.find(cat => cat.name === allocation.category_name);
+      if (category && category.selling_price) {
+        pricePerTicket = category.selling_price;
+      }
+    }
+    
+    return sum + (tickets * pricePerTicket);
+  }, 0);
+
   return React.createElement('div', { 
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40'
   },
     React.createElement('div', { 
-      className: 'bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto'
+      className: 'bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-5xl max-h-[90vh] overflow-y-auto'
     },
       React.createElement('div', { className: 'flex justify-between items-center mb-4' },
         React.createElement('h2', { className: 'text-xl font-bold dark:text-white' }, 
@@ -55,19 +101,72 @@ window.renderAllocationManagement = () => {
         }, '✕')
       ),
 
-      React.createElement('div', { className: 'mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded' },
-        React.createElement('h3', { className: 'font-semibold dark:text-white' }, 'Inventory Details'),
-        React.createElement('p', { className: 'dark:text-gray-300' }, 
-          'Total Tickets: ' + (allocationManagementInventory.total_tickets || 'N/A')
+      // Enhanced Inventory Details with Category Breakdown
+      React.createElement('div', { className: 'mb-6' },
+        // Overall Summary
+        React.createElement('div', { className: 'mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded' },
+          React.createElement('h3', { className: 'font-semibold dark:text-white mb-2' }, 'Overall Summary'),
+          React.createElement('div', { className: 'grid grid-cols-4 gap-4' },
+            React.createElement('div', null,
+              React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Total Tickets'),
+              React.createElement('p', { className: 'text-lg font-bold dark:text-white' }, 
+                allocationManagementInventory.total_tickets || 'N/A'
+              )
+            ),
+            React.createElement('div', null,
+              React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Available'),
+              React.createElement('p', { className: 'text-lg font-bold text-green-600 dark:text-green-400' }, 
+                allocationManagementInventory.available_tickets || 0
+              )
+            ),
+            React.createElement('div', null,
+              React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Allocated'),
+              React.createElement('p', { className: 'text-lg font-bold text-blue-600 dark:text-blue-400' }, 
+                (allocationManagementInventory.total_tickets || 0) - (allocationManagementInventory.available_tickets || 0)
+              )
+            ),
+            React.createElement('div', null,
+              React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Total Value'),
+              React.createElement('p', { className: 'text-lg font-bold text-purple-600 dark:text-purple-400' }, 
+                `₹${totalAllocationValue.toLocaleString()}`
+              )
+            )
+          )
         ),
-        React.createElement('p', { className: 'dark:text-gray-300' }, 
-          'Available Tickets: ' + (allocationManagementInventory.available_tickets || 0)
-        ),
-        React.createElement('p', { className: 'dark:text-gray-300' }, 
-          'Allocated Tickets: ' + ((allocationManagementInventory.total_tickets || 0) - (allocationManagementInventory.available_tickets || 0))
+
+        // NEW: Category-wise Breakdown (only if categories exist)
+        hasCategories && React.createElement('div', { className: 'p-4 bg-blue-50 dark:bg-blue-900/20 rounded' },
+          React.createElement('h3', { className: 'font-semibold dark:text-white mb-3' }, 'Category-wise Breakdown'),
+          React.createElement('div', { className: 'space-y-2' },
+            Object.entries(categoryAllocationSummary).map(([categoryName, summary]) =>
+              React.createElement('div', { 
+                key: categoryName,
+                className: 'flex justify-between items-center p-2 bg-white dark:bg-gray-800 rounded'
+              },
+                React.createElement('div', { className: 'flex-1' },
+                  React.createElement('span', { className: 'font-medium dark:text-white' }, categoryName),
+                  React.createElement('span', { className: 'ml-2 text-sm text-gray-600 dark:text-gray-400' },
+                    `(${summary.allocations.length} allocations)`
+                  )
+                ),
+                React.createElement('div', { className: 'flex space-x-4 text-sm' },
+                  React.createElement('span', { className: 'text-gray-600 dark:text-gray-400' },
+                    `Total: ${summary.totalTickets}`
+                  ),
+                  React.createElement('span', { className: 'text-green-600 dark:text-green-400' },
+                    `Available: ${summary.available}`
+                  ),
+                  React.createElement('span', { className: 'text-blue-600 dark:text-blue-400' },
+                    `Allocated: ${summary.allocated}`
+                  )
+                )
+              )
+            )
+          )
         )
       ),
 
+      // Allocations Table
       currentAllocations.length === 0 ? 
       React.createElement('div', { className: 'text-center py-8 text-gray-500 dark:text-gray-400' },
         'No allocations found for this inventory item.'
@@ -78,15 +177,32 @@ window.renderAllocationManagement = () => {
             React.createElement('tr', null,
               React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Lead Name'),
               React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Email'),
-              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Tickets Allocated'),
-              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Allocation Date'),
+              // NEW: Category column
+              hasCategories && React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Category'),
+              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Tickets'),
+              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Price/Ticket'),
+              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Total Value'),
+              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Date'),
               React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Notes'),
               React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Actions')
             )
           ),
           React.createElement('tbody', null,
-            currentAllocations.map((allocation, index) =>
-              React.createElement('tr', { 
+            currentAllocations.map((allocation, index) => {
+              // Determine price per ticket for this allocation
+              let pricePerTicket = allocationManagementInventory.selling_price || 0;
+              if (allocation.category_details && allocation.category_details.selling_price) {
+                pricePerTicket = allocation.category_details.selling_price;
+              } else if (hasCategories && allocation.category_name) {
+                const category = allocationManagementInventory.categories.find(cat => cat.name === allocation.category_name);
+                if (category && category.selling_price) {
+                  pricePerTicket = category.selling_price;
+                }
+              }
+              
+              const totalValue = (allocation.tickets_allocated || 0) * pricePerTicket;
+
+              return React.createElement('tr', { 
                 key: allocation.id || index, 
                 className: 'hover:bg-gray-50 dark:hover:bg-gray-700' 
               },
@@ -96,41 +212,107 @@ window.renderAllocationManagement = () => {
                 React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' },
                   allocation.lead_details ? allocation.lead_details.email : (allocation.lead_email || 'N/A')
                 ),
-                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' }, 
+                // NEW: Category cell
+                hasCategories && React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600' },
+                  React.createElement('span', { 
+                    className: 'px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' 
+                  }, allocation.category_name || 'General')
+                ),
+                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300 text-center' }, 
                   allocation.tickets_allocated || 0
+                ),
+                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' }, 
+                  `₹${pricePerTicket.toLocaleString()}`
+                ),
+                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300 font-medium' }, 
+                  `₹${totalValue.toLocaleString()}`
                 ),
                 React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' },
                   allocation.allocation_date ? new Date(allocation.allocation_date).toLocaleDateString() : 'N/A'
                 ),
-                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' }, 
-                  allocation.notes || 'No notes'
+                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300 text-sm' }, 
+                  allocation.notes || '-'
                 ),
                 React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600' },
                   React.createElement('button', {
-                    onClick: () => handleUnallocate(allocation.id, allocation.tickets_allocated),
+                    onClick: () => handleUnallocate(allocation.id, allocation.tickets_allocated, allocation.category_name),
                     className: 'bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 disabled:opacity-50',
-                    disabled: loading
+                    disabled: loading,
+                    title: `Unallocate ${allocation.tickets_allocated} tickets${allocation.category_name ? ' from ' + allocation.category_name : ''}`
                   }, loading ? 'Processing...' : 'Unallocate')
                 )
-              )
-            )
+              );
+            })
           )
         )
       ),
 
-      React.createElement('div', { className: 'mt-6 flex justify-between' },
-        React.createElement('button', {
-          onClick: () => openAllocationForm(allocationManagementInventory),
-          className: 'bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50',
-          disabled: (allocationManagementInventory.available_tickets || 0) <= 0
-        }, 'Add New Allocation'),
-        React.createElement('button', {
-          onClick: () => setShowAllocationManagement(false),
-          className: 'bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600'
-        }, 'Close')
+      // Footer Actions
+      React.createElement('div', { className: 'mt-6 flex justify-between items-center' },
+        React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' },
+          `Total Allocations: ${currentAllocations.length}`
+        ),
+        React.createElement('div', { className: 'flex space-x-3' },
+          React.createElement('button', {
+            onClick: () => openAllocationForm(allocationManagementInventory),
+            className: 'bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50',
+            disabled: (allocationManagementInventory.available_tickets || 0) <= 0
+          }, 'Add New Allocation'),
+          React.createElement('button', {
+            onClick: () => setShowAllocationManagement(false),
+            className: 'bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600'
+          }, 'Close')
+        )
       )
     )
   );
 };
 
-console.log('✅ Fixed Allocation Management component with integration pattern loaded successfully');
+// Update the unallocate handler to handle categories
+window.handleUnallocate = window.handleUnallocate || (async (allocationId, ticketsToReturn, categoryName) => {
+  if (!confirm(`Are you sure you want to unallocate ${ticketsToReturn} tickets${categoryName ? ' from ' + categoryName + ' category' : ''}?`)) {
+    return;
+  }
+
+  try {
+    window.setLoading(true);
+    
+    const inventoryId = window.allocationManagementInventory.id;
+    const response = await window.apicall(`/inventory/${inventoryId}/allocations/${allocationId}`, {
+      method: 'DELETE'
+    });
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+
+    // Update local state
+    if (response.categories) {
+      // Update inventory with new categories data
+      window.setInventory(prev => prev.map(item => 
+        item.id === inventoryId 
+          ? { ...item, categories: response.categories, available_tickets: response.new_available_tickets }
+          : item
+      ));
+    } else {
+      // Legacy update
+      window.setInventory(prev => prev.map(item => 
+        item.id === inventoryId 
+          ? { ...item, available_tickets: response.new_available_tickets }
+          : item
+      ));
+    }
+
+    // Refresh allocations list
+    await window.fetchAllocations(inventoryId);
+    
+    alert(`Successfully unallocated ${ticketsToReturn} tickets${categoryName ? ' from ' + categoryName : ''}`);
+  } catch (error) {
+    console.error('Unallocate error:', error);
+    alert('Failed to unallocate: ' + error.message);
+  } finally {
+    window.setLoading(false);
+  }
+});
+
+console.log('✅ Enhanced Allocation Management with Category Support loaded successfully');
