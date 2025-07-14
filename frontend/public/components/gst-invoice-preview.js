@@ -56,29 +56,53 @@ window.renderGSTInvoicePreview = () => {
       }
     }
   },
-    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[95vh] overflow-y-auto' },
-      React.createElement('div', { className: 'sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center action-buttons' },
-        React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 
-          'GST Invoice: ' + (invoice.invoice_number || 'Draft')
-        ),
-        React.createElement('div', { className: 'flex space-x-2' },
-          React.createElement('button', {
-            onClick: () => {
-              window.print();
-            },
-            className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
-          }, '🖨️ Print'),
-          React.createElement('button', {
-            onClick: () => {
-              setShowInvoicePreview(false);
-              setCurrentInvoice(null);
-              if (window.setShowInvoicePreview) window.setShowInvoicePreview(false);
-              if (window.setCurrentInvoice) window.setCurrentInvoice(null);
-            },
-            className: 'bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700'
-          }, '✕ Close')
-        )
-      ),
+React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[95vh] overflow-y-auto' },
+  React.createElement('div', { className: 'sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center action-buttons' },
+    React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 
+      'GST Invoice: ' + (invoice.invoice_number || 'Draft')
+    ),
+    React.createElement('div', { className: 'flex space-x-2' },
+      // Edit Invoice No button - only for tax invoices
+      invoice.invoice_type !== 'proforma' && React.createElement('button', {
+        onClick: () => {
+          // Close preview and show modal to edit
+          setShowInvoicePreview(false);
+          setCurrentInvoice(null);
+          if (window.setShowInvoicePreview) window.setShowInvoicePreview(false);
+          if (window.setCurrentInvoice) window.setCurrentInvoice(null);
+          
+          // Set up the modal with current invoice data
+          const orderData = { 
+            ...invoice, 
+            id: invoice.order_id || invoice.id,
+            finance_invoice_number: invoice.finance_invoice_number || invoice.invoice_number
+          };
+          
+          if (window.setCurrentOrderForInvoice) window.setCurrentOrderForInvoice(orderData);
+          if (window.setFinanceInvoiceNumber) window.setFinanceInvoiceNumber(invoice.finance_invoice_number || invoice.invoice_number);
+          if (window.setShowFinanceInvoiceModal) window.setShowFinanceInvoiceModal(true);
+        },
+        className: 'bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700'
+      }, '✏️ Edit Invoice No'),
+      
+      React.createElement('button', {
+        onClick: () => {
+          window.print();
+        },
+        className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
+      }, '🖨️ Print'),
+      
+      React.createElement('button', {
+        onClick: () => {
+          setShowInvoicePreview(false);
+          setCurrentInvoice(null);
+          if (window.setShowInvoicePreview) window.setShowInvoicePreview(false);
+          if (window.setCurrentInvoice) window.setCurrentInvoice(null);
+        },
+        className: 'bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700'
+      }, '✕ Close')
+    )
+  ),
       
       React.createElement('div', { className: 'p-6' },
         React.createElement('style', null, `
