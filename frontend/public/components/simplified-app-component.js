@@ -2944,29 +2944,7 @@ window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() =
     );
   };
 
-  // Add this inside your main render, before the sidebar
-React.createElement('div', { className: 'mobile-header' },
-  React.createElement('button', {
-    onClick: () => window.toggleMobileMenu && window.toggleMobileMenu(),
-    className: 'p-2 hover:bg-gray-100 rounded'
-  },
-    React.createElement('svg', {
-      width: '24',
-      height: '24',
-      viewBox: '0 0 24 24',
-      fill: 'none',
-      stroke: 'currentColor',
-      strokeWidth: '2'
-    },
-      React.createElement('path', {
-        d: 'M3 12h18M3 6h18M3 18h18'
-      })
-    )
-  ),
-  React.createElement('h1', { className: 'flex-1 text-center font-semibold' }, 'FanToPark CRM'),
-  React.createElement('div', { className: 'w-10' })
-),
-
+ 
   const renderSidebar = () => {
     const menuItems = [
       { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -3134,6 +3112,28 @@ console.log("✅ AssignmentRulesTab exposed to window");
 
   // Main application layout
   return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:bg-gray-900' },
+   // Add this inside your main render, before the sidebar
+React.createElement('div', { className: 'mobile-header' },
+  React.createElement('button', {
+    onClick: () => window.toggleMobileMenu && window.toggleMobileMenu(),
+    className: 'p-2 hover:bg-gray-100 rounded'
+  },
+    React.createElement('svg', {
+      width: '24',
+      height: '24',
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      stroke: 'currentColor',
+      strokeWidth: '2'
+    },
+      React.createElement('path', {
+        d: 'M3 12h18M3 6h18M3 18h18'
+      })
+    )
+  ),
+  React.createElement('h1', { className: 'flex-1 text-center font-semibold' }, 'FanToPark CRM'),
+  React.createElement('div', { className: 'w-10' })
+),                          
     renderSidebar(),
     React.createElement('div', { className: 'flex-1 flex flex-col overflow-hidden' },
       React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-6 py-4' },
