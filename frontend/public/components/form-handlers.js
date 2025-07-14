@@ -1526,4 +1526,154 @@ window.assignOrderToUser = async function(orderId, assigneeEmail, notes = '') {
   }
 };
 
+// 1. Add button to Lead Actions or Orders page
+// This can be added to your lead actions dropdown or as a separate button
+
+// In your lead actions or choice modal:
+window.renderProformaInvoiceButton = (lead) => {
+  return React.createElement('button', {
+    onClick: () => window.openProformaInvoiceForm(lead),
+    className: 'w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center',
+    title: 'Generate Proforma Invoice'
+  },
+    React.createElement('span', null, '📄 Generate Proforma Invoice')
+  );
+};
+
+// 2. Update your choice modal to include proforma option
+// In your handleChoiceSelection function, add:
+case 'generate_proforma':
+  window.openProformaInvoiceForm(window.currentLead);
+  break;
+
+// 3. Add to your lead status actions
+// In your lead detail modal or actions dropdown:
+const proformaInvoiceOption = {
+  label: '📄 Generate Proforma Invoice',
+  value: 'generate_proforma',
+  description: 'Create a proforma invoice for this lead',
+  icon: '📄',
+  color: 'purple'
+};
+
+// 4. Integration with existing payment form renderer
+// Update your main app component or content router:
+// In your form rendering logic, add this check:
+
+if (window.appState?.currentForm === 'proforma_invoice' && window.appState?.showPaymentForm) {
+  return window.renderProformaInvoiceForm();
+}
+
+// 5. Utility functions to work with proforma invoices
+
+// Convert proforma to tax invoice when payment is received
+window.convertProformaToTaxInvoice = async (proformaOrderId) => {
+  try {
+    const order = window.orders.find(o => o.id === proformaOrderId);
+    if (!order || order.invoice_type !== 'proforma') {
+      alert('Invalid proforma invoice');
+      return;
+    }
+    
+    // Generate new tax invoice number
+    const taxInvoiceNumber = 'STTS/INV/' + new Date().getFullYear() + '/' + String(Date.now()).slice(-6);
+    
+    const updateData = {
+      invoice_type: 'tax',
+      invoice_number: taxInvoiceNumber,
+      status: 'approved',
+      payment_status: 'completed',
+      requires_gst_invoice: true,
+      approved_date: new Date().toISOString(),
+      approved_by: window.user.name
+    };
+    
+    const response = await window.apiCall(`/orders/${proformaOrderId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData)
+    });
+    
+    // Update local state
+    window.setOrders(prev => prev.map(o => 
+      o.id === proformaOrderId ? { ...o, ...updateData } : o
+    ));
+    
+    alert('✅ Proforma invoice converted to tax invoice successfully!');
+    
+    // Open the new tax invoice
+    window.viewInvoice({ ...order, ...updateData });
+    
+  } catch (error) {
+    console.error('Error converting proforma invoice:', error);
+    alert('Failed to convert proforma invoice');
+  }
+};
+
+// Check if an order has a proforma invoice
+window.hasProformaInvoice = (order) => {
+  return order.invoice_type === 'proforma' || order.status === 'proforma';
+};
+
+// 6. Add proforma invoice actions to order row
+window.renderProformaActions = (order) => {
+  if (!window.hasProformaInvoice(order)) return null;
+  
+  return React.createElement('div', { className: 'flex space-x-2' },
+    // View Proforma button
+    React.createElement('button', {
+      onClick: () => window.viewInvoice(order),
+      className: 'text-purple-600 hover:text-purple-800',
+      title: 'View Proforma Invoice'
+    }, '📄 View'),
+    
+    // Convert to Tax Invoice button (if payment received)
+    order.payment_status === 'completed' && 
+    React.createElement('button', {
+      onClick: () => window.convertProformaToTaxInvoice(order.id),
+      className: 'text-green-600 hover:text-green-800',
+      title: 'Convert to Tax Invoice'
+    }, '🔄 Convert')
+  );
+};
+
+// 7. Quick access function for testing
+window.testProformaInvoice = () => {
+  const testLead = window.leads?.[0] || {
+    id: 'test-lead',
+    name: 'Test Client',
+    email: 'test@example.com',
+    phone: '9999999999',
+    lead_for_event: 'Test Event',
+    number_of_people: 2,
+    last_quoted_price: 10000
+  };
+  
+  window.openProformaInvoiceForm(testLead);
+};
+
+// 8. Add to your existing viewInvoice function to handle both types
+window.viewInvoice = (order) => {
+  if (order.invoice_number) {
+    const reconstructedInvoice = {
+      // ... existing fields ...
+      
+      // Determine invoice type based on order
+      invoice_type: order.invoice_type || (order.payment_status === 'pending' ? 'proforma' : 'tax'),
+      status: order.status || (order.payment_status === 'pending' ? 'proforma' : 'generated'),
+      
+      // Include proforma specific fields if applicable
+      expected_payment_date: order.expected_payment_date,
+      payment_terms: order.payment_terms,
+      
+      // ... rest of fields ...
+    };
+    
+    window.openInvoicePreview(reconstructedInvoice);
+  } else {
+    alert('❌ Invoice not found for this order');
+  }
+};
+
+console.log('✅ Proforma Invoice system loaded. Use window.testProformaInvoice() to test.');
+
 console.log("🔧 form-handlers.js loaded - All form submission handlers ready including FIXED viewOrderDetail function");
