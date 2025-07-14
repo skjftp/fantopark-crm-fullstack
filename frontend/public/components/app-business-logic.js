@@ -1128,6 +1128,82 @@ const updateOrdersPagination = (orders) => {
     setShowAllocationForm(true);
   };
 
+  // In app-business-logic.js, add this function BEFORE the return handlers statement:
+
+  // Function to open allocation management with data fetching
+  const openAllocationManagement = async (inventoryItem) => {
+    console.log("👁️ openAllocationManagement called with:", inventoryItem?.event_name);
+    
+    try {
+      setLoading(true);
+      setAllocationManagementInventory(inventoryItem);
+
+      // Fetch allocations for this inventory
+      console.log("🔄 Fetching allocations for inventory:", inventoryItem.id);
+      const response = await window.apiCall(`/inventory/${inventoryItem.id}/allocations`);
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      // Set the fetched allocations
+      const allocations = response.data?.allocations || [];
+      console.log("✅ Fetched allocations:", allocations.length);
+      setCurrentAllocations(allocations);
+      setShowAllocationManagement(true);
+
+    } catch (error) {
+      console.error('❌ Error fetching allocations:', error);
+      alert('Error fetching allocations: ' + error.message);
+      
+      // Still show modal but with empty allocations
+      setCurrentAllocations([]);
+      setShowAllocationManagement(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to unallocate tickets
+  const handleUnallocate = async (allocationId, ticketsToReturn) => {
+    if (!confirm(`Are you sure you want to unallocate ${ticketsToReturn} tickets?`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await window.apiCall(
+        `/inventory/${allocationManagementInventory.id}/allocations/${allocationId}`, 
+        { method: 'DELETE' }
+      );
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      // Refresh allocations
+      await openAllocationManagement(allocationManagementInventory);
+
+      // Update inventory in main list
+      setInventory(prev => 
+        prev.map(item => 
+          item.id === allocationManagementInventory.id 
+            ? { ...item, available_tickets: response.new_available_tickets }
+            : item
+        )
+      );
+
+      alert(`Successfully unallocated ${ticketsToReturn} tickets`);
+
+    } catch (error) {
+      console.error('Error unallocating tickets:', error);
+      alert('Error unallocating tickets: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const openEditInventoryForm = (inventoryItem) => {
     if (!window.hasPermission('inventory', 'write')) {
       alert('You do not have permission to edit inventory');
@@ -1539,6 +1615,8 @@ const updateOrdersPagination = (orders) => {
     handleMarkPaymentFromReceivable,
     openLeadDetail,
     openAllocationForm,
+    openAllocationManagement,
+    handleUnallocate,
     openEditInventoryForm,
     handleEditInventory,
     openInventoryDetail,

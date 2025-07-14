@@ -356,3 +356,66 @@ window.getPriorityBadgeColor = function(priority) {
       return "bg-gray-500 text-white";
   }
 };
+
+// Add this utility function to handle field name differences
+// Add to app-business-logic.js or utils/helpers.js
+
+window.normalizeAllocationData = (allocations) => {
+  return allocations.map(allocation => ({
+    ...allocation,
+    // Ensure we have tickets_allocated field
+    tickets_allocated: allocation.tickets_allocated || allocation.quantity || 0,
+    // Ensure we have quantity field (for backward compatibility)
+    quantity: allocation.quantity || allocation.tickets_allocated || 0
+  }));
+};
+
+// Update the openAllocationManagement function to use this normalizer:
+window.openAllocationManagement = async (inventory) => {
+  console.log("👁️ openAllocationManagement called with:", inventory?.event_name);
+  
+  try {
+    // Set loading state
+    if (window.setLoading) {
+      window.setLoading(true);
+    }
+    
+    // Set the inventory for allocation management
+    window.setAllocationManagementInventory(inventory);
+    
+    // CRITICAL FIX: Fetch allocations from API
+    console.log("🔄 Fetching allocations for inventory:", inventory.id);
+    const response = await window.apiCall(`/inventory/${inventory.id}/allocations`);
+    
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    
+    // Normalize allocation data to handle field name differences
+    const rawAllocations = response.data?.allocations || [];
+    const allocations = window.normalizeAllocationData ? 
+      window.normalizeAllocationData(rawAllocations) : 
+      rawAllocations;
+    
+    console.log("✅ Fetched and normalized allocations:", allocations.length);
+    window.setCurrentAllocations(allocations);
+    
+    // Show the modal
+    window.setShowAllocationManagement(true);
+    
+    console.log("✅ Allocation management modal setup completed with data");
+    
+  } catch (error) {
+    console.error('❌ Error fetching allocations:', error);
+    alert('Error fetching allocations: ' + error.message);
+    
+    // Still show modal but with empty allocations
+    window.setCurrentAllocations([]);
+    window.setShowAllocationManagement(true);
+    
+  } finally {
+    if (window.setLoading) {
+      window.setLoading(false);
+    }
+  }
+};

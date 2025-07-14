@@ -1,8 +1,8 @@
 // ===============================================
-// OPTIMIZED ALLOCATION FORM COMPONENT - PERFORMANCE ENHANCED
+// OPTIMIZED ALLOCATION FORM COMPONENT - WITH ALLOCATION DISPLAY FIX
 // ===============================================
 // Allocation Form Component for FanToPark CRM
-// Reduced logging and improved performance
+// Reduced logging and improved performance + allocation display
 
 // Conditional logging control
 const ENABLE_ALLOCATION_DEBUG = false; // Set to false to reduce logs
@@ -15,7 +15,8 @@ window.renderAllocationForm = () => {
     currentInventory = window.appState?.currentInventory || window.currentInventory,
     allocationData = window.appState?.allocationData || window.allocationData || {},
     leads = window.appState?.leads || window.leads || [],
-    loading = window.appState?.loading || window.loading
+    loading = window.appState?.loading || window.loading,
+    currentAllocations = window.appState?.currentAllocations || window.currentAllocations || []
   } = window.appState || {};
 
   // ✅ PATTERN 2: Function References with Fallbacks
@@ -59,8 +60,15 @@ window.renderAllocationForm = () => {
   const qualifiedLeads = leads.filter(lead => 
     lead.status === 'qualified' || 
     lead.status === 'hot' || 
-    lead.status === 'warm'
+    lead.status === 'warm' ||
+    lead.status === 'converted' ||
+    lead.status === 'payment' ||
+    lead.status === 'payment_post_service' ||
+    lead.status === 'payment_received'
   );
+
+  // Ensure quantity has a default value
+  const currentQuantity = allocationData.quantity || 1;
 
   return React.createElement('div', {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
@@ -114,24 +122,59 @@ window.renderAllocationForm = () => {
         )
       ),
 
+      // ⭐ NEW: Existing Allocations Section
+      React.createElement('div', { className: 'mb-6' },
+        React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-3' },
+          'Existing Allocations'
+        ),
+        React.createElement('div', { className: 'space-y-2 max-h-48 overflow-y-auto' },
+          currentAllocations.length === 0 ?
+            React.createElement('p', { className: 'text-gray-500 dark:text-gray-400 text-center py-4' },
+              'No allocations found for this inventory item.'
+            ) :
+            currentAllocations.map((allocation, index) =>
+              React.createElement('div', {
+                key: allocation.id || index,
+                className: 'p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600'
+              },
+                React.createElement('div', { className: 'flex justify-between items-start' },
+                  React.createElement('div', null,
+                    React.createElement('p', { className: 'font-medium text-gray-900 dark:text-white' },
+                      allocation.lead_name || allocation.client_name || `Allocation #${index + 1}`
+                    ),
+                    React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' },
+                      `${allocation.tickets_allocated || allocation.quantity || 0} tickets`
+                    )
+                  ),
+                  React.createElement('div', { className: 'text-right' },
+                    React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' },
+                      new Date(allocation.allocation_date || allocation.created_at).toLocaleDateString()
+                    )
+                  )
+                )
+              )
+            )
+        )
+      ),
+
       React.createElement('form', { onSubmit: handleAllocation },
         React.createElement('div', { className: 'mb-6' },
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' },
             'Select Lead'
           ),
-          React.createElement('select', {
-            value: allocationData.lead_id || '',
-            onChange: (e) => handleAllocationInputChange('lead_id', e.target.value),
-            className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-            required: true
-          },
-            React.createElement('option', { value: '' }, 'Select a lead...'),
-            qualifiedLeads.map(lead =>
-              React.createElement('option', { key: lead.id, value: lead.id },
-                `${lead.name} - ${lead.email} (${lead.status})`
-              )
+           React.createElement('select', {
+          value: allocationData.lead_id || '',
+          onChange: (e) => handleAllocationInputChange('lead_id', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+          required: true
+        },
+          React.createElement('option', { value: '' }, 'Select a lead...'),
+          qualifiedLeads.map(lead =>
+            React.createElement('option', { key: lead.id, value: lead.id },
+              `${lead.name} - ${lead.event_name || lead.lead_for_event || 'No Event'} (${lead.status})`
             )
           )
+        )
         ),
 
         React.createElement('div', { className: 'grid grid-cols-2 gap-4 mb-6' },
@@ -143,8 +186,11 @@ window.renderAllocationForm = () => {
               type: 'number',
               min: '1',
               max: currentInventory.available_tickets,
-              value: allocationData.quantity || 1,
-              onChange: (e) => handleAllocationInputChange('quantity', parseInt(e.target.value)),
+              value: currentQuantity,
+              onChange: (e) => {
+                const value = parseInt(e.target.value) || 0;
+                handleAllocationInputChange('quantity', value);
+              },
               className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
               required: true
             })
@@ -177,17 +223,17 @@ window.renderAllocationForm = () => {
         ),
 
         // Total Amount Calculation
-        allocationData.quantity && React.createElement('div', { className: 'bg-blue-50 dark:bg-blue-900 rounded-lg p-4 mb-6' },
+        currentQuantity > 0 && React.createElement('div', { className: 'bg-blue-50 dark:bg-blue-900 rounded-lg p-4 mb-6' },
           React.createElement('div', { className: 'flex justify-between items-center' },
             React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 
               'Total Amount:'
             ),
             React.createElement('span', { className: 'text-2xl font-bold text-blue-600 dark:text-blue-400' },
-              `₹${((allocationData.quantity || 1) * (currentInventory.selling_price || 0)).toLocaleString()}`
+              `₹${(currentQuantity * (currentInventory.selling_price || 0)).toLocaleString()}`
             )
           ),
           React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400 mt-1' },
-            `${allocationData.quantity || 1} tickets × ₹${(currentInventory.selling_price || 0).toLocaleString()} each`
+            `${currentQuantity} tickets × ₹${(currentInventory.selling_price || 0).toLocaleString()} each`
           )
         ),
 
@@ -199,9 +245,9 @@ window.renderAllocationForm = () => {
           }, 'Cancel'),
           React.createElement('button', {
             type: 'submit',
-            disabled: loading || !allocationData.lead_id || !allocationData.quantity,
+            disabled: loading || !allocationData.lead_id || currentQuantity < 1,
             className: 'flex-1 bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 disabled:opacity-50 font-medium'
-          }, loading ? 'Processing...' : 'Allocate & Create Order')
+          }, loading ? 'Processing...' : 'Allocate and Create Entry')
         )
       )
     )
@@ -244,18 +290,21 @@ window.handleAllocation = async (e) => {
     return;
   }
 
+  // Get current quantity with fallback
+  const quantity = window.allocationData.quantity || 1;
+
   // Validation
   if (!window.allocationData.lead_id) {
     alert('Please select a lead');
     return;
   }
 
-  if (!window.allocationData.quantity || window.allocationData.quantity <= 0) {
-    alert('Please enter a valid quantity');
+  if (quantity < 1) {
+    alert('Please enter a valid quantity (at least 1)');
     return;
   }
 
-  if (window.allocationData.quantity > window.currentInventory.available_tickets) {
+  if (quantity > window.currentInventory.available_tickets) {
     alert('Quantity exceeds available tickets');
     return;
   }
@@ -271,18 +320,25 @@ window.handleAllocation = async (e) => {
       throw new Error('Selected lead not found');
     }
 
-    // Create the allocation/order
-    const allocationRequest = {
-      lead_id: window.allocationData.lead_id,
-      inventory_id: window.currentInventory.id,
-      quantity: window.allocationData.quantity,
-      allocation_date: window.allocationData.allocation_date,
-      notes: window.allocationData.notes,
-      status: 'allocated',
-      total_amount: window.allocationData.quantity * window.currentInventory.selling_price
+    // Validate lead status - must be converted or later
+    const isConvertedOrLater = (status) => {
+      const postConvertedStages = ['converted', 'payment', 'payment_post_service', 'payment_received'];
+      return postConvertedStages.includes(status);
     };
 
-    const response = await window.apiCall('/allocations', {
+    if (!isConvertedOrLater(selectedLead.status)) {
+      throw new Error('Lead must be in converted status or later to allocate inventory');
+    }
+
+    // Create the allocation request with proper field mapping
+    const allocationRequest = {
+      lead_id: window.allocationData.lead_id,
+      tickets_allocated: parseInt(quantity), // Map quantity to tickets_allocated
+      allocation_date: window.allocationData.allocation_date || new Date().toISOString().split('T')[0],
+      notes: window.allocationData.notes || ''
+    };
+
+    const response = await window.apiCall(`/inventory/${window.currentInventory.id}/allocate`, {
       method: 'POST',
       body: JSON.stringify(allocationRequest)
     });
@@ -292,16 +348,28 @@ window.handleAllocation = async (e) => {
     }
 
     // Update inventory available tickets
-    const newAvailableTickets = window.currentInventory.available_tickets - window.allocationData.quantity;
+    const newAvailableTickets = window.currentInventory.available_tickets - quantity;
     
     window.setInventory(prev => prev.map(item =>
       item.id === window.currentInventory.id
-        ? { ...item, available_tickets: newAvailableTickets }
+        ? { ...item, available_tickets: response.remaining_tickets || newAvailableTickets }
         : item
     ));
 
+    // Reset allocation data
+    window.allocationData = {};
+    if (window.setAllocationData) {
+      window.setAllocationData({});
+    }
+
+    // Close form and show success
+    window.setShowAllocationForm(false);
     alert('Inventory allocated successfully!');
-    window.closeForm();
+
+    // Refresh allocations if allocation management is open
+    if (window.showAllocationManagement && window.fetchAllocations) {
+      await window.fetchAllocations(window.currentInventory.id);
+    }
 
   } catch (error) {
     console.error('Allocation error:', error);
@@ -311,5 +379,84 @@ window.handleAllocation = async (e) => {
   }
 };
 
-allocLog('✅ Optimized Allocation Form component loaded');
-console.log('🎫 Allocation Form v2.0 - Performance Optimized');
+// ⭐ NEW: Function to fetch allocations for an inventory item
+async function fetchInventoryAllocations(inventoryId) {
+  try {
+    console.log(`📡 Fetching allocations for inventory ${inventoryId}...`);
+    
+    // Use the correct endpoint pattern we discovered
+    const response = await window.apiCall(`/inventory/${inventoryId}/allocations`);
+    console.log('Allocations response:', response);
+    
+    // Extract allocations from the response
+    let allocations = [];
+    if (response.data && response.data.allocations) {
+      allocations = response.data.allocations;
+    } else if (Array.isArray(response)) {
+      allocations = response;
+    }
+    
+    // Update state with the fetched allocations
+    if (window.setCurrentAllocations) {
+      window.setCurrentAllocations(allocations);
+    } else {
+      // Fallback: set directly on window
+      window.currentAllocations = allocations;
+      if (window.appState) {
+        window.appState.currentAllocations = allocations;
+      }
+    }
+    
+    console.log(`✅ Loaded ${allocations.length} allocations`);
+    
+    // Force update if needed
+    if (window.forceUpdate) {
+      window.forceUpdate();
+    }
+    
+    return allocations;
+    
+  } catch (error) {
+    console.error('❌ Failed to fetch allocations:', error);
+    // Set empty array on error
+    if (window.setCurrentAllocations) {
+      window.setCurrentAllocations([]);
+    } else {
+      window.currentAllocations = [];
+    }
+    return [];
+  }
+}
+
+// ⭐ ENHANCED: Initialize allocation data and fetch existing allocations when opening form
+window.openAllocationForm = (inventory) => {
+  console.log('📦 Opening allocation form for:', inventory?.event_name);
+  
+  // Initialize allocation data with default values
+  window.allocationData = {
+    lead_id: '',
+    quantity: 1, // Always start with 1, not linked to any lead quantity
+    allocation_date: new Date().toISOString().split('T')[0],
+    notes: ''
+  };
+  
+  // Update state if setters are available
+  if (window.setAllocationData) {
+    window.setAllocationData(window.allocationData);
+  }
+  
+  window.currentInventory = inventory;
+  if (window.setCurrentInventory) {
+    window.setCurrentInventory(inventory);
+  }
+  
+  window.setShowAllocationForm(true);
+  
+  // ⭐ FETCH EXISTING ALLOCATIONS
+  if (inventory && inventory.id) {
+    fetchInventoryAllocations(inventory.id);
+  }
+};
+
+allocLog('✅ Optimized Allocation Form component with allocation display loaded');
+console.log('🎫 Allocation Form v2.1 - With Working Allocation Display');
