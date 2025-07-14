@@ -110,6 +110,13 @@ window.renderPaymentSubmitHandler = () => {
     status: 'payment_received',       // Update status
     payment_status: 'completed',      // Change from 'paid' to 'completed' for consistency
 
+            // ADD: Auto-assign to finance team
+    assigned_to: await window.getFinanceManager(),  // or specific finance user
+    assigned_team: 'finance',
+    assignment_date: new Date().toISOString(),
+    assignment_notes: 'Auto-assigned to finance team after payment collection',
+    
+
             // If this was a payment_post_service order, keep references
     ...(existingOrder.order_type === 'payment_post_service' && {
       proforma_invoice_number: existingOrder.invoice_number || existingOrder.order_number,
