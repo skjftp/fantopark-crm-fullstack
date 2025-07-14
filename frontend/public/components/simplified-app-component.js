@@ -2944,6 +2944,29 @@ window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() =
     );
   };
 
+  // Add this inside your main render, before the sidebar
+React.createElement('div', { className: 'mobile-header' },
+  React.createElement('button', {
+    onClick: () => window.toggleMobileMenu && window.toggleMobileMenu(),
+    className: 'p-2 hover:bg-gray-100 rounded'
+  },
+    React.createElement('svg', {
+      width: '24',
+      height: '24',
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      stroke: 'currentColor',
+      strokeWidth: '2'
+    },
+      React.createElement('path', {
+        d: 'M3 12h18M3 6h18M3 18h18'
+      })
+    )
+  ),
+  React.createElement('h1', { className: 'flex-1 text-center font-semibold' }, 'FanToPark CRM'),
+  React.createElement('div', { className: 'w-10' })
+),
+
   const renderSidebar = () => {
     const menuItems = [
       { id: 'dashboard', label: 'Dashboard', icon: '📊' },
