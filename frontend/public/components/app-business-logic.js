@@ -113,6 +113,14 @@ window.renderAppBusinessLogic = function() {
         return;
       }
 
+          // ADD THIS NEW HANDLER FOR PROFORMA INVOICE
+    if (choice.value === 'generate_proforma') {
+      setShowChoiceModal(false);
+      window.openProformaInvoiceForm(currentLeadForChoice);
+      setLoading(false);
+      return;
+    }
+
       // For regular status updates
       await window.updateLeadStatus(currentLeadForChoice.id, choice.value);
       setShowChoiceModal(false);
