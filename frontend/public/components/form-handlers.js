@@ -1277,24 +1277,92 @@ window.rejectOrder = async function(orderId) {
 
 // Connect orders.js "View Invoice" button to existing openInvoicePreview
 window.viewInvoice = function(order) {
-  console.log('📄 viewInvoice called for order:', order.id);
+  console.log('📄 viewInvoice called for order:', order.id, 'Invoice type:', order.invoice_type);
   
-  // Look for existing invoice for this order
+  // For proforma orders, reconstruct the invoice from order data
+  if (order.invoice_type === 'proforma' || order.order_type === 'payment_post_service') {
+    const reconstructedInvoice = {
+      id: order.id,
+      invoice_number: order.invoice_number || order.order_number,
+      order_id: order.id,
+      order_number: order.order_number,
+      
+      // Client details
+      client_name: order.legal_name || order.client_name,
+      client_email: order.client_email,
+      client_phone: order.client_phone,
+      
+      // GST details
+      gstin: order.gstin,
+      legal_name: order.legal_name,
+      category_of_sale: order.category_of_sale,
+      type_of_sale: order.type_of_sale,
+      registered_address: order.registered_address,
+      indian_state: order.indian_state,
+      is_outside_india: order.is_outside_india,
+      
+      // Invoice items and calculations
+      invoice_items: order.invoice_items,
+      base_amount: order.base_amount,
+      gst_calculation: order.gst_calculation,
+      tcs_calculation: order.tcs_calculation,
+      total_tax: order.total_tax,
+      final_amount: order.final_amount || order.total_amount,
+      
+      // Invoice metadata
+      invoice_type: 'proforma',
+      status: 'proforma',
+      invoice_date: order.created_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+      due_date: order.expected_payment_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      
+      // Payment terms for proforma
+      payment_terms: order.payment_terms,
+      expected_payment_date: order.expected_payment_date,
+      
+      generated_by: order.created_by
+    };
+    
+    window.openInvoicePreview(reconstructedInvoice);
+    return;
+  }
+  
+  // For regular orders, look for existing invoice
   const invoice = window.invoices?.find(inv => inv.order_id === order.id);
   
   if (invoice) {
-    // Show existing invoice using existing function
     window.openInvoicePreview(invoice);
-  } else {
-    // No invoice found - offer to generate one
-    const shouldGenerate = confirm(
-      `No invoice found for this order.\n\nOrder: ${order.order_number || order.id}\nClient: ${order.client_name || 'Unknown'}\n\nWould you like to generate an invoice now?`
-    );
+  } else if (order.invoice_number) {
+    // If order has invoice number but no invoice record, reconstruct it
+    const reconstructedInvoice = {
+      id: order.id,
+      invoice_number: order.invoice_number,
+      order_id: order.id,
+      order_number: order.order_number,
+      client_name: order.legal_name || order.client_name,
+      client_email: order.client_email,
+      client_phone: order.client_phone,
+      gstin: order.gstin,
+      legal_name: order.legal_name,
+      category_of_sale: order.category_of_sale,
+      type_of_sale: order.type_of_sale,
+      registered_address: order.registered_address,
+      indian_state: order.indian_state,
+      is_outside_india: order.is_outside_india,
+      invoice_items: order.invoice_items,
+      base_amount: order.base_amount,
+      gst_calculation: order.gst_calculation,
+      tcs_calculation: order.tcs_calculation,
+      total_tax: order.total_tax,
+      final_amount: order.final_amount || order.total_amount,
+      invoice_date: order.created_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      status: 'generated',
+      generated_by: order.created_by
+    };
     
-    if (shouldGenerate) {
-      // Generate invoice (you can enhance this part later if needed)
-      alert('Invoice generation feature will be implemented here.\nFor now, invoices are auto-generated when orders are approved.');
-    }
+    window.openInvoicePreview(reconstructedInvoice);
+  } else {
+    alert('❌ Invoice not found for this order');
   }
 };
 
