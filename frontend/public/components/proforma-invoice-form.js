@@ -436,8 +436,3 @@ window.shouldShowProformaForm = () => {
   return showPaymentForm && (paymentData?.is_proforma || currentForm === 'proforma_invoice');
 };
 
-// Update your main render logic to include proforma form
-// In your content router or form renderer:
-if (window.shouldShowProformaForm()) {
-  return window.renderProformaInvoiceForm();
-}
