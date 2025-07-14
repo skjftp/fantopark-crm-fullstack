@@ -987,6 +987,89 @@ window.optimizeLoginPerformance();
 
 <!-- CSS Styles -->
 <style>
+
+  /* Target the orders management section specifically */
+[id*="orders"] table th,
+div:has(> h1:contains("Orders Management")) table th {
+  padding: 8px 12px !important;
+  font-size: 11px !important;
+}
+
+[id*="orders"] table td,
+div:has(> h1:contains("Orders Management")) table td {
+  padding: 6px 12px !important;
+  font-size: 13px !important;
+}
+
+/* Compact status badges */
+[id*="orders"] .rounded-full,
+div:has(> h1:contains("Orders Management")) .rounded-full {
+  padding: 2px 8px !important;
+  font-size: 11px !important;
+}
+
+/* Compact action buttons */
+[id*="orders"] button,
+div:has(> h1:contains("Orders Management")) button {
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+}
+
+/* Reduce gaps between elements */
+[id*="orders"] .gap-1 {
+  gap: 4px !important;
+}
+
+[id*="orders"] .gap-2 {
+  gap: 8px !important;
+}
+
+/* Compact the header section */
+[id*="orders"] h1,
+div:has(> h1:contains("Orders Management")) h1 {
+  font-size: 1.5rem !important;
+  margin-bottom: 1rem !important;
+}
+
+/* Reduce overall padding */
+[id*="orders"] > div,
+div:has(> h1:contains("Orders Management")) > div {
+  padding: 1rem !important;
+}
+
+/* Compact filter section if present */
+[id*="orders"] .mb-6 {
+  margin-bottom: 1rem !important;
+}
+
+[id*="orders"] .p-4 {
+  padding: 0.75rem !important;
+}
+
+/* Adjust row height */
+[id*="orders"] tbody tr {
+  height: auto !important;
+}
+
+/* Make table more dense */
+[id*="orders"] table {
+  border-spacing: 0 !important;
+}
+
+/* Ensure text doesn't wrap unnecessarily */
+[id*="orders"] .whitespace-nowrap {
+  white-space: nowrap !important;
+}
+
+/* Optional: Add hover effect for better UX */
+[id*="orders"] tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+.dark [id*="orders"] tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+  
 /* Global Styles */
 .dark {
   color-scheme: dark;
