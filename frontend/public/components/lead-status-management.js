@@ -666,6 +666,14 @@ window.handleChoiceSelection = async function(choice) {
       return;
     }
 
+        // ADD THIS NEW HANDLER FOR PROFORMA INVOICE
+    if (choice.value === 'generate_proforma') {
+      window.setShowChoiceModal(false);
+      window.openProformaInvoiceForm(window.currentLeadForChoice);
+      window.setLoading(false);
+      return;
+    }
+
     // For regular status updates
     await window.updateLeadStatus(window.currentLeadForChoice.id, choice.value);
     window.setShowChoiceModal(false);
