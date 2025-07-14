@@ -6,7 +6,7 @@ window.renderContent = () => {
     // Create a wrapper div that forces React to properly unmount/remount content
     // The key prop ensures React treats each tab as a separate component tree
     return React.createElement('div', {
-        key: `tab-${window.activeTab}-${Date.now()}`, // Unique key for each tab and render
+        key: `tab-${window.activeTab}`, // Unique key per tab only (not per render)
         className: 'tab-content-wrapper',
         'data-active-tab': window.activeTab,
         style: {
