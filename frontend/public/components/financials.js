@@ -412,7 +412,7 @@ window.renderFinancials = () => {
     };
 
     // 3. Get paginated data for current tab - FIXED TO USE REACT STATE
-    const getCurrentTabData = () => {
+    const getCurrentTabData = window.getCurrentTabData = () => {
         let data = [];
         switch (activeFinancialTab) {
             case 'activesales':
