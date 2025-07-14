@@ -2,9 +2,6 @@
 // Applied proven integration pattern for window globals
 
 window.renderAllocationManagement = () => {
-  // ⚠️ CRITICAL: All hooks MUST be declared BEFORE any conditional returns
-  const { useEffect } = React;
-  
   // ✅ PATTERN 1: State Variable Extraction (CRITICAL FIX)
   const {
     showAllocationManagement = window.appState?.showAllocationManagement || window.showAllocationManagement,
@@ -18,14 +15,6 @@ window.renderAllocationManagement = () => {
     console.warn("setShowAllocationManagement not implemented");
   });
   
-  const setCurrentAllocations = window.setCurrentAllocations || (() => {
-    console.warn("setCurrentAllocations not implemented");
-  });
-  
-  const setLoading = window.setLoading || (() => {
-    console.warn("setLoading not implemented");
-  });
-  
   const openAllocationForm = window.openAllocationForm || ((inventory) => {
     console.warn("openAllocationForm not implemented");
     console.log("Would open allocation form for:", inventory);
@@ -36,53 +25,12 @@ window.renderAllocationManagement = () => {
     console.log("Would unallocate:", allocationId, tickets);
   });
 
-  const apiCall = window.apiCall || ((endpoint) => {
-    console.warn("apiCall not implemented");
-    return Promise.reject(new Error("apiCall not implemented"));
-  });
-
-  // ⚠️ CRITICAL: useEffect MUST be declared BEFORE conditional returns
-  // This fetches allocations when modal opens
-  useEffect(() => {
-    if (showAllocationManagement && allocationManagementInventory && allocationManagementInventory.id) {
-      console.log("🔄 Modal opened, fetching allocations for:", allocationManagementInventory.event_name);
-      
-      const fetchAllocations = async () => {
-        try {
-          setLoading(true);
-          
-          const response = await apiCall(`/inventory/${allocationManagementInventory.id}/allocations`);
-          
-          if (response.error) {
-            throw new Error(response.error);
-          }
-          
-          const allocations = response.data?.allocations || [];
-          console.log("✅ Fetched allocations in component:", allocations.length);
-          setCurrentAllocations(allocations);
-          
-        } catch (error) {
-          console.error('❌ Error fetching allocations in component:', error);
-          setCurrentAllocations([]);
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      // Only fetch if we don't have allocations yet
-      if (currentAllocations.length === 0) {
-        fetchAllocations();
-      }
-    }
-  }, [showAllocationManagement, allocationManagementInventory?.id]);
-
   // ✅ Enhanced Debug Logging
   console.log("🔍 ALLOCATION MANAGEMENT DEBUG:");
   console.log("showAllocationManagement:", showAllocationManagement);
   console.log("allocationManagementInventory:", allocationManagementInventory?.event_name);
   console.log("currentAllocations count:", currentAllocations?.length || 0);
 
-  // NOW we can have conditional returns AFTER all hooks
   if (!showAllocationManagement || !allocationManagementInventory) {
     console.log("❌ Not showing allocation management:", {
       showAllocationManagement,
@@ -120,20 +68,10 @@ window.renderAllocationManagement = () => {
         )
       ),
 
-      // Loading state
-      loading ? 
-        React.createElement('div', { className: 'text-center py-8' },
-          React.createElement('div', { className: 'inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white' }),
-          React.createElement('p', { className: 'mt-2 text-gray-600 dark:text-gray-400' }, 'Loading allocations...')
-        ) :
-      
-      // No allocations message
       currentAllocations.length === 0 ? 
       React.createElement('div', { className: 'text-center py-8 text-gray-500 dark:text-gray-400' },
         'No allocations found for this inventory item.'
       ) :
-      
-      // Allocations table
       React.createElement('div', { className: 'overflow-x-auto' },
         React.createElement('table', { className: 'min-w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600' },
           React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
@@ -159,7 +97,7 @@ window.renderAllocationManagement = () => {
                   allocation.lead_details ? allocation.lead_details.email : (allocation.lead_email || 'N/A')
                 ),
                 React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' }, 
-                  allocation.tickets_allocated || allocation.quantity || 0
+                  allocation.tickets_allocated || 0
                 ),
                 React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' },
                   allocation.allocation_date ? new Date(allocation.allocation_date).toLocaleDateString() : 'N/A'
@@ -169,7 +107,7 @@ window.renderAllocationManagement = () => {
                 ),
                 React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600' },
                   React.createElement('button', {
-                    onClick: () => handleUnallocate(allocation.id, allocation.tickets_allocated || allocation.quantity),
+                    onClick: () => handleUnallocate(allocation.id, allocation.tickets_allocated),
                     className: 'bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 disabled:opacity-50',
                     disabled: loading
                   }, loading ? 'Processing...' : 'Unallocate')
@@ -184,7 +122,7 @@ window.renderAllocationManagement = () => {
         React.createElement('button', {
           onClick: () => openAllocationForm(allocationManagementInventory),
           className: 'bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50',
-          disabled: (allocationManagementInventory.available_tickets || 0) <= 0 || loading
+          disabled: (allocationManagementInventory.available_tickets || 0) <= 0
         }, 'Add New Allocation'),
         React.createElement('button', {
           onClick: () => setShowAllocationManagement(false),
@@ -195,4 +133,4 @@ window.renderAllocationManagement = () => {
   );
 };
 
-console.log('✅ Fixed Allocation Management component with proper hooks order');
+console.log('✅ Fixed Allocation Management component with integration pattern loaded successfully');
