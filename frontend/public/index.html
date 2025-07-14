@@ -1059,6 +1059,23 @@ window.optimizeLoginPerformance();
 <!-- CSS Styles -->
 <style>
 
+ /* Quick fix for tab overlay issues */
+.flex-1.overflow-auto > div {
+    position: relative;
+    z-index: 1;
+    background: white;
+    min-height: 100vh;
+}
+
+.dark .flex-1.overflow-auto > div {
+    background: #111827;
+}
+
+/* Hide inactive tab content */
+[data-tab]:not([data-active="true"]) {
+    display: none !important;
+} 
+  
   /* Target the orders management section specifically */
 [id*="orders"] table th,
 div:has(> h1:contains("Orders Management")) table th {
