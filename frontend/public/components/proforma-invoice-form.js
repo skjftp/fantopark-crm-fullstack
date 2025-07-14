@@ -329,82 +329,82 @@ window.handleProformaInvoiceSubmit = async (e) => {
   
   window.setLoading(true);
   
-  try {
-    // Calculate invoice total and taxes (keep existing calculation code)
-    const invoiceTotal = window.paymentData.invoice_items?.reduce((sum, item) => 
-      sum + ((item.quantity || 0) * (item.rate || 0)), 0
-    ) || 0;
+try {
+  // ADD THIS: Get supply_sales_service_manager for assignment
+  const supplySalesServiceManager = await window.getSupplySalesServiceManager();
+  console.log('🎯 Assigning payment post service order to:', supplySalesServiceManager);
+  
+  const calculation = window.calculateGSTAndTCS(baseAmount, window.paymentData);
+  
+  // Generate order number as PST (Payment Service Transaction)
+  const orderNumber = 'PST-' + Date.now();
+  
+  // Create order with payment_post_service type
+  const proformaOrder = {
+    order_number: orderNumber,
+    lead_id: window.currentLead.id,
+    client_name: window.paymentData.legal_name || window.currentLead.name,
+    client_email: window.currentLead.email,
+    client_phone: window.currentLead.phone,
     
-    const baseAmount = window.paymentData.type_of_sale === 'Service Fee' 
-      ? (parseFloat(window.paymentData.service_fee_amount) || 0)
-      : invoiceTotal;
+    // All your existing GST and calculation fields...
+    gstin: window.paymentData.gstin,
+    legal_name: window.paymentData.legal_name,
+    category_of_sale: window.paymentData.category_of_sale,
+    type_of_sale: window.paymentData.type_of_sale,
+    registered_address: window.paymentData.registered_address,
+    indian_state: window.paymentData.indian_state,
+    is_outside_india: window.paymentData.is_outside_india,
     
-    const calculation = window.calculateGSTAndTCS(baseAmount, window.paymentData);
+    // Tax classification
+    customer_type: window.paymentData.customer_type,
+    event_location: window.paymentData.event_location,
+    payment_currency: window.paymentData.payment_currency,
     
-    // Generate order number as PST (Payment Service Transaction)
-    const orderNumber = 'PST-' + Date.now();
+    // Invoice items and calculations
+    invoice_items: window.paymentData.invoice_items,
+    base_amount: baseAmount,
+    gst_calculation: calculation.gst,
+    tcs_calculation: calculation.tcs,
+    total_tax: calculation.gst.amount + calculation.tcs.amount,
+    final_amount: calculation.finalAmount,
     
-    // Create order with payment_post_service type
-    const proformaOrder = {
-      order_number: orderNumber,
-      lead_id: window.currentLead.id,
-      client_name: window.paymentData.legal_name || window.currentLead.name,
-      client_email: window.currentLead.email,
-      client_phone: window.currentLead.phone,
-      
-      // All your existing GST and calculation fields...
-      gstin: window.paymentData.gstin,
-      legal_name: window.paymentData.legal_name,
-      category_of_sale: window.paymentData.category_of_sale,
-      type_of_sale: window.paymentData.type_of_sale,
-      registered_address: window.paymentData.registered_address,
-      indian_state: window.paymentData.indian_state,
-      is_outside_india: window.paymentData.is_outside_india,
-      
-      // Tax classification
-      customer_type: window.paymentData.customer_type,
-      event_location: window.paymentData.event_location,
-      payment_currency: window.paymentData.payment_currency,
-      
-      // Invoice items and calculations
-      invoice_items: window.paymentData.invoice_items,
-      base_amount: baseAmount,
-      gst_calculation: calculation.gst,
-      tcs_calculation: calculation.tcs,
-      total_tax: calculation.gst.amount + calculation.tcs.amount,
-      final_amount: calculation.finalAmount,
-      
-      // Payment post service specific
-      order_type: 'payment_post_service',
-      invoice_type: 'proforma',
-      expected_payment_date: window.paymentData.expected_payment_date,
-      payment_terms: window.paymentData.payment_terms,
-      
-      // Order status
-      status: 'pending_approval',
-      payment_status: 'pending',
-      requires_gst_invoice: false,
-      
-      // Metadata
-      created_date: new Date().toISOString(),
-      created_by: window.user.name,
-      notes: window.paymentData.notes,
-      description: 'Post-service payment for: ' + window.currentLead.name
-    };
+    // Payment post service specific
+    order_type: 'payment_post_service',
+    invoice_type: 'proforma',
+    expected_payment_date: window.paymentData.expected_payment_date,
+    payment_terms: window.paymentData.payment_terms,
     
-    // Save order via API
-    const response = await window.apiCall('/orders', {
-      method: 'POST',
-      body: JSON.stringify(proformaOrder)
-    });
+    // Order status
+    status: 'pending_approval',
+    payment_status: 'pending',
+    requires_gst_invoice: false,
     
-    const savedOrder = response.data || response;
+    // ADD THESE ASSIGNMENT FIELDS:
+    assigned_to: supplySalesServiceManager,
+    assigned_team: 'supply',
+    original_assignee: window.currentLead.assigned_to || window.user.name,
     
-    // Update local state
-    window.setOrders(prev => [...prev, savedOrder]);
-    
-    // DON'T open invoice preview immediately - just show success
-    alert('✅ Payment Post Service order created successfully! Awaiting approval.');
+    // Metadata
+    created_date: new Date().toISOString(),
+    created_by: window.user.name,
+    notes: window.paymentData.notes,
+    description: 'Post-service payment for: ' + window.currentLead.name
+  };
+  
+  // Save order via API
+  const response = await window.apiCall('/orders', {
+    method: 'POST',
+    body: JSON.stringify(proformaOrder)
+  });
+  
+  const savedOrder = response.data || response;
+  
+  // Update local state
+  window.setOrders(prev => [...prev, savedOrder]);
+  
+  // Update the alert to show assignment
+  alert(`✅ Payment Post Service order created successfully!\nAssigned to: ${supplySalesServiceManager}\nAwaiting approval.`);
     
     // Update lead status to payment_post_service
     await window.updateLeadStatus(window.currentLead.id, 'payment_post_service');
