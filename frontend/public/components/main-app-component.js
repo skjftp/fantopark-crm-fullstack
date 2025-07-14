@@ -511,6 +511,9 @@ const [ordersShowFilters, setOrdersShowFilters] = useState(false);
     salesPeople, setSalesPeople,
     chartInstances, setChartInstances,
     setCurrentEventsPage,
+    showFinanceInvoiceModal, setShowFinanceInvoiceModal,
+currentOrderForInvoice, setCurrentOrderForInvoice,
+financeInvoiceNumber, setFinanceInvoiceNumber,
 setEventsPerPage,
 currentEventsPage,
 eventsPerPage,
@@ -532,8 +535,11 @@ window.setInventorySearchQuery = setInventorySearchQuery;
   window.setFinancialStats = setFinancialStats;
   window.setShowReminderForm = setShowReminderForm;
 window.showReminderForm = showReminderForm;
-  window.setShowFinanceInvoiceModal = setShowFinanceInvoiceModal;
+  window.showFinanceInvoiceModal = showFinanceInvoiceModal;
+window.setShowFinanceInvoiceModal = setShowFinanceInvoiceModal;
+window.currentOrderForInvoice = currentOrderForInvoice;
 window.setCurrentOrderForInvoice = setCurrentOrderForInvoice;
+window.financeInvoiceNumber = financeInvoiceNumber;
 window.setFinanceInvoiceNumber = setFinanceInvoiceNumber;
   window.ordersFilters = ordersFilters;
 window.setOrdersFilters = setOrdersFilters;
