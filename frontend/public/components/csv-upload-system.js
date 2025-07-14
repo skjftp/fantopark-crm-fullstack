@@ -1,4 +1,4 @@
-// ===== FANTOPARK CRM - CSV UPLOAD SYSTEM (CLEAN VERSION) =====
+// ===== FANTOPARK CRM - CSV UPLOAD SYSTEM (WITH CATEGORIES SUPPORT) =====
 // Complete implementation with all functionality, no debug logs
 
 // ===== MAIN CSV DOWNLOAD FUNCTION =====
@@ -61,24 +61,6 @@ window.downloadSampleCSV = function(eventOrType) {
   }
   
   console.log(`✅ Downloaded ${type} template with categories support`);
-};
-
-// Add a helper message when downloading inventory template
-window.downloadInventoryCSVDirect = function() {
-  window.csvUploadType = 'inventory';
-  window.downloadSampleCSV('inventory');
-  
-  // Show instructions alert
-  setTimeout(() => {
-    alert(
-      '📋 CSV Template Instructions:\n\n' +
-      '• For events with multiple ticket categories, create one row per category\n' +
-      '• Keep event_name and event_date EXACTLY the same for all categories of the same event\n' +
-      '• The system will automatically group matching events into a single item with multiple categories\n' +
-      '• Check the template for examples of multi-category events\n\n' +
-      '💡 Tip: The first 3 rows show how to create an IPL match with VIP, Premium, and General categories'
-    );
-  }, 500);
 };
 
 // ===== STATE SYNCHRONIZATION FUNCTIONS =====
@@ -163,6 +145,18 @@ window.downloadSampleExcelV2 = function() {
 window.downloadInventoryCSVDirect = function() {
   window.csvUploadType = 'inventory';
   window.downloadSampleCSV('inventory');
+  
+  // Show instructions alert
+  setTimeout(() => {
+    alert(
+      '📋 CSV Template Instructions:\n\n' +
+      '• For events with multiple ticket categories, create one row per category\n' +
+      '• Keep event_name and event_date EXACTLY the same for all categories of the same event\n' +
+      '• The system will automatically group matching events into a single item with multiple categories\n' +
+      '• Check the template for examples of multi-category events\n\n' +
+      '💡 Tip: The first 3 rows show how to create an IPL match with VIP, Premium, and General categories'
+    );
+  }, 500);
 };
 
 window.downloadLeadsCSVDirect = function() {
@@ -321,7 +315,20 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
           // Silent fail for refresh
         }
 
-        const message = `✅ Upload completed!\n📈 Imported: ${result.successCount || 0} ${type}\n${result.errorCount ? `⚠️ Errors: ${result.errorCount}\n` : ''}${result.clientDetectionCount ? `🔍 Existing clients: ${result.clientDetectionCount}` : ''}`;
+        // Enhanced message for inventory with categories
+        let message = `✅ Upload completed!\n`;
+        if (type === 'inventory' && result.summary) {
+          message += `📦 Created: ${result.successCount || 0} events\n`;
+          if (result.summary.eventsWithMultipleCategories > 0) {
+            message += `🎫 Multi-category events: ${result.summary.eventsWithMultipleCategories}\n`;
+            message += `📊 Total categories: ${result.summary.totalCategories}\n`;
+          }
+        } else {
+          message += `📈 Imported: ${result.successCount || 0} ${type}\n`;
+        }
+        message += result.errorCount ? `⚠️ Errors: ${result.errorCount}\n` : '';
+        message += result.clientDetectionCount ? `🔍 Existing clients: ${result.clientDetectionCount}` : '';
+        
         alert(message);
         
         setTimeout(() => onClose(), 1000);
@@ -372,6 +379,49 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
             React.createElement('li', null, '• Auto-assigns leads to the same person who handled previous leads'),
             React.createElement('li', null, '• Groups leads by client with relationship tracking'),
             React.createElement('li', null, '• Preview your upload to review assignments before import')
+          )
+        ),
+
+        // NEW: Categories instructions for inventory
+        type === 'inventory' && React.createElement('div', {
+          className: 'p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg'
+        },
+          React.createElement('h3', {
+            className: 'font-semibold text-green-800 dark:text-green-200 mb-2 flex items-center'
+          }, 
+            React.createElement('span', { className: 'mr-2' }, '🎫'),
+            'Multiple Ticket Categories Support'
+          ),
+          React.createElement('div', { className: 'text-green-700 dark:text-green-300 text-sm space-y-3' },
+            React.createElement('p', { className: 'font-medium' }, 
+              'To create an event with multiple ticket categories (e.g., VIP, Premium, General):'
+            ),
+            React.createElement('ol', { className: 'list-decimal list-inside space-y-1 ml-2' },
+              React.createElement('li', null, 'Create one row per category in your CSV'),
+              React.createElement('li', null, 'Keep event_name and event_date EXACTLY the same for all categories'),
+              React.createElement('li', null, 'The system will automatically group them into one inventory item')
+            ),
+            
+            // Visual example
+            React.createElement('div', { className: 'mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-green-300 dark:border-green-600' },
+              React.createElement('p', { className: 'text-xs font-mono mb-2 text-gray-600 dark:text-gray-400' }, 
+                'Example: IPL Final with 3 categories'
+              ),
+              React.createElement('div', { className: 'text-xs font-mono space-y-1' },
+                React.createElement('div', { className: 'text-gray-700 dark:text-gray-300' },
+                  '"IPL Final","2024-12-25",...,"VIP","North Stand",50,50,6000,7500,...'
+                ),
+                React.createElement('div', { className: 'text-gray-700 dark:text-gray-300' },
+                  '"IPL Final","2024-12-25",...,"Premium","East Stand",100,100,3500,4500,...'
+                ),
+                React.createElement('div', { className: 'text-gray-700 dark:text-gray-300' },
+                  '"IPL Final","2024-12-25",...,"General","South Stand",200,200,1500,2000,...'
+                ),
+                React.createElement('div', { className: 'mt-2 text-green-600 dark:text-green-400' },
+                  '↓ Creates 1 inventory item with 3 categories'
+                )
+              )
+            )
           )
         ),
 
@@ -575,3 +625,5 @@ if (typeof window.csvUploadType === 'undefined') {
 if (typeof window.clientDetectionResults === 'undefined') {
   window.clientDetectionResults = [];
 }
+
+console.log('✅ CSV Upload System with Categories Support loaded successfully');
