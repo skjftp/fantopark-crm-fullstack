@@ -60,6 +60,14 @@ const parseDate = (dateValue) => {
     console.log('⚠️ No date value provided, using current date');
     return new Date().toISOString();
   }
+
+    // Add handling for DD/MM/YY format
+  if (typeof dateValue === 'string' && dateValue.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)) {
+    const [day, month, year] = dateValue.split('/');
+    const fullYear = year.length === 2 ? '20' + year : year;
+    const isoDate = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    return isoDate;
+  }
   
   // If it's already a Date object, convert to ISO string
   if (dateValue instanceof Date) {
