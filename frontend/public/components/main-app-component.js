@@ -116,6 +116,7 @@ const [myActionsPagination, setMyActionsPagination] = useState({
   const [showAllocationManagement, setShowAllocationManagement] = React.useState(false);
   const [showInventoryDetail, setShowInventoryDetail] = useState(false);
   const [currentInventoryDetail, setCurrentInventoryDetail] = useState(null);
+  const [expandedInventoryItems, setExpandedInventoryItems] = useState(new Set());
   const [currentAllocations, setCurrentAllocations] = React.useState([]);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [inventoryEventTypeFilter, setInventoryEventTypeFilter] = useState('all');
@@ -471,6 +472,7 @@ const [ordersShowFilters, setOrdersShowFilters] = useState(false);
     showEditInventoryForm, setShowEditInventoryForm,
     showUserManagement, setShowUserManagement,
     showUserForm, setShowUserForm,
+    expandedInventoryItems, setExpandedInventoryItems,
     roles, setRoles,
     showRoleForm, setShowRoleForm,
     rolesInitialized, setRolesInitialized,
