@@ -1277,93 +1277,114 @@ window.rejectOrder = async function(orderId) {
 
 // Connect orders.js "View Invoice" button to existing openInvoicePreview
 window.viewInvoice = function(order) {
-  console.log('📄 viewInvoice called for order:', order.id, 'Invoice type:', order.invoice_type);
+  console.log('📄 viewInvoice called for order:', order);
+  console.log('Order details:', {
+    id: order.id,
+    order_type: order.order_type,
+    invoice_type: order.invoice_type,
+    status: order.status,
+    invoice_number: order.invoice_number,
+    order_number: order.order_number
+  });
   
-  // For proforma orders, reconstruct the invoice from order data
-  if (order.invoice_type === 'proforma' || order.order_type === 'payment_post_service') {
-    const reconstructedInvoice = {
-      id: order.id,
-      invoice_number: order.invoice_number || order.order_number,
-      order_id: order.id,
-      order_number: order.order_number,
-      
-      // Client details
-      client_name: order.legal_name || order.client_name,
-      client_email: order.client_email,
-      client_phone: order.client_phone,
-      
-      // GST details
-      gstin: order.gstin,
-      legal_name: order.legal_name,
-      category_of_sale: order.category_of_sale,
-      type_of_sale: order.type_of_sale,
-      registered_address: order.registered_address,
-      indian_state: order.indian_state,
-      is_outside_india: order.is_outside_india,
-      
-      // Invoice items and calculations
-      invoice_items: order.invoice_items,
-      base_amount: order.base_amount,
-      gst_calculation: order.gst_calculation,
-      tcs_calculation: order.tcs_calculation,
-      total_tax: order.total_tax,
-      final_amount: order.final_amount || order.total_amount,
-      
-      // Invoice metadata
-      invoice_type: 'proforma',
-      status: 'proforma',
-      invoice_date: order.created_date?.split('T')[0] || new Date().toISOString().split('T')[0],
-      due_date: order.expected_payment_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      
-      // Payment terms for proforma
-      payment_terms: order.payment_terms,
-      expected_payment_date: order.expected_payment_date,
-      
-      generated_by: order.created_by
-    };
+  // Check if this is a proforma order (payment_post_service)
+  const isProformaOrder = order.order_type === 'payment_post_service' || 
+                         order.invoice_type === 'proforma' ||
+                         order.status === 'proforma';
+  
+  console.log('Is proforma order:', isProformaOrder);
+  
+  // Always construct invoice from order data for consistency
+  const invoiceData = {
+    // Basic identifiers
+    id: order.id || Date.now(),
+    invoice_number: order.invoice_number || order.order_number || ('PI-' + Date.now()),
+    order_id: order.id,
+    order_number: order.order_number,
     
-    window.openInvoicePreview(reconstructedInvoice);
-    return;
+    // Invoice type and status
+    invoice_type: isProformaOrder ? 'proforma' : 'tax',
+    status: isProformaOrder ? 'proforma' : 'generated',
+    
+    // Client details
+    client_name: order.legal_name || order.client_name || 'N/A',
+    client_email: order.client_email || '',
+    client_phone: order.client_phone || '',
+    legal_name: order.legal_name || order.client_name || 'N/A',
+    
+    // GST details
+    gstin: order.gstin || '',
+    category_of_sale: order.category_of_sale || 'Retail',
+    type_of_sale: order.type_of_sale || 'Tour',
+    registered_address: order.registered_address || 'N/A',
+    indian_state: order.indian_state || 'Haryana',
+    is_outside_india: order.is_outside_india || false,
+    pan: order.pan || 'N/A',
+    
+    // Tax classification
+    customer_type: order.customer_type || 'indian',
+    event_location: order.event_location || 'domestic',
+    payment_currency: order.payment_currency || 'INR',
+    
+    // Invoice items - ensure we have valid items
+    invoice_items: order.invoice_items && order.invoice_items.length > 0 
+      ? order.invoice_items 
+      : [{
+          description: order.description || order.event_name || 'Service',
+          additional_info: '',
+          quantity: order.tickets_allocated || 1,
+          rate: order.price_per_ticket || order.base_amount || order.total_amount || 0
+        }],
+    
+    // Financial details
+    base_amount: order.base_amount || order.total_amount || 0,
+    
+    // GST calculation - ensure proper structure
+    gst_calculation: order.gst_calculation || { 
+      applicable: false, 
+      rate: 0, 
+      amount: 0,
+      total: 0, // Add total field
+      cgst: 0, 
+      sgst: 0, 
+      igst: 0 
+    },
+    
+    // TCS calculation
+    tcs_calculation: order.tcs_calculation || { 
+      applicable: false, 
+      rate: 0, 
+      amount: 0 
+    },
+    
+    // Totals
+    total_tax: order.total_tax || 0,
+    final_amount: order.final_amount || order.total_amount || 0,
+    
+    // Dates
+    invoice_date: order.invoice_date || order.created_date || new Date().toISOString(),
+    created_date: order.created_date || new Date().toISOString(),
+    due_date: order.due_date || order.expected_payment_date || 
+              new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    
+    // Proforma specific fields
+    payment_terms: order.payment_terms || (isProformaOrder ? '50% advance, 50% before service' : ''),
+    expected_payment_date: order.expected_payment_date || '',
+    
+    // Metadata
+    generated_by: order.created_by || order.generated_by || window.user?.name || 'System'
+  };
+  
+  // Ensure gst_calculation has the total field
+  if (invoiceData.gst_calculation && !invoiceData.gst_calculation.total) {
+    invoiceData.gst_calculation.total = invoiceData.gst_calculation.amount || 
+      (invoiceData.gst_calculation.cgst + invoiceData.gst_calculation.sgst + invoiceData.gst_calculation.igst) || 0;
   }
   
-  // For regular orders, look for existing invoice
-  const invoice = window.invoices?.find(inv => inv.order_id === order.id);
+  console.log('Opening invoice preview with data:', invoiceData);
   
-  if (invoice) {
-    window.openInvoicePreview(invoice);
-  } else if (order.invoice_number) {
-    // If order has invoice number but no invoice record, reconstruct it
-    const reconstructedInvoice = {
-      id: order.id,
-      invoice_number: order.invoice_number,
-      order_id: order.id,
-      order_number: order.order_number,
-      client_name: order.legal_name || order.client_name,
-      client_email: order.client_email,
-      client_phone: order.client_phone,
-      gstin: order.gstin,
-      legal_name: order.legal_name,
-      category_of_sale: order.category_of_sale,
-      type_of_sale: order.type_of_sale,
-      registered_address: order.registered_address,
-      indian_state: order.indian_state,
-      is_outside_india: order.is_outside_india,
-      invoice_items: order.invoice_items,
-      base_amount: order.base_amount,
-      gst_calculation: order.gst_calculation,
-      tcs_calculation: order.tcs_calculation,
-      total_tax: order.total_tax,
-      final_amount: order.final_amount || order.total_amount,
-      invoice_date: order.created_date?.split('T')[0] || new Date().toISOString().split('T')[0],
-      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: 'generated',
-      generated_by: order.created_by
-    };
-    
-    window.openInvoicePreview(reconstructedInvoice);
-  } else {
-    alert('❌ Invoice not found for this order');
-  }
+  // Open the invoice preview
+  window.openInvoicePreview(invoiceData);
 };
 
 // ✅ OTHER SUPPORT FUNCTIONS
