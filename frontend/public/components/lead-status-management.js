@@ -660,17 +660,10 @@ window.handleChoiceSelection = async function(choice) {
     }
 
     if (choice.value === 'payment_post_service') {
-      window.setShowChoiceModal(false);
-      window.openPaymentPostServiceForm(window.currentLeadForChoice);
-      window.setLoading(false);
-      return;
-    }
-
-        // ADD THIS NEW HANDLER FOR PROFORMA INVOICE
-    if (choice.value === 'generate_proforma') {
-      window.setShowChoiceModal(false);
-      window.openProformaInvoiceForm(window.currentLeadForChoice);
-      window.setLoading(false);
+      setShowChoiceModal(false);
+      // Instead of openPaymentPostServiceForm, open proforma form
+      window.openProformaInvoiceForm(currentLeadForChoice);
+      setLoading(false);
       return;
     }
 
