@@ -16,13 +16,13 @@ const sanitizeInventoryData = (data) => {
     venue: data.venue || '',
     day_of_match: data.day_of_match || 'Not Applicable',
     
-    // Ticket Details
+    // Ticket Details - NOW HANDLED BY CATEGORIES
     category_of_ticket: data.category_of_ticket || '',
     stand: data.stand || '',
     total_tickets: parseInt(data.total_tickets) || 0,
     available_tickets: parseInt(data.available_tickets) || 0,
     
-    // Pricing Information
+    // Pricing Information - NOW HANDLED BY CATEGORIES
     mrp_of_ticket: parseFloat(data.mrp_of_ticket) || 0,
     buying_price: parseFloat(data.buying_price) || 0,
     selling_price: parseFloat(data.selling_price) || 0,
@@ -58,6 +58,42 @@ const sanitizeInventoryData = (data) => {
     allocated_to_order: data.allocated_to_order || ''
   };
   
+  // Process categories if provided
+  if (data.categories && Array.isArray(data.categories)) {
+    // Calculate aggregate values from categories
+    const aggregates = data.categories.reduce((acc, cat) => {
+      const totalTickets = parseInt(cat.total_tickets) || 0;
+      const availableTickets = parseInt(cat.available_tickets) || 0;
+      const buyingPrice = parseFloat(cat.buying_price) || 0;
+      
+      return {
+        total_tickets: acc.total_tickets + totalTickets,
+        available_tickets: acc.available_tickets + availableTickets,
+        total_cost: acc.total_cost + (buyingPrice * totalTickets)
+      };
+    }, { total_tickets: 0, available_tickets: 0, total_cost: 0 });
+    
+    // Update main fields with aggregates
+    sanitized.total_tickets = aggregates.total_tickets;
+    sanitized.available_tickets = aggregates.available_tickets;
+    
+    // If totalPurchaseAmount not explicitly set, use calculated value
+    if (!data.totalPurchaseAmount) {
+      sanitized.totalPurchaseAmount = aggregates.total_cost;
+    }
+    
+    // Store categories
+    sanitized.categories = data.categories.map(cat => ({
+      name: cat.name || '',
+      section: cat.section || '',
+      total_tickets: parseInt(cat.total_tickets) || 0,
+      available_tickets: parseInt(cat.available_tickets) || 0,
+      buying_price: parseFloat(cat.buying_price) || 0,
+      selling_price: parseFloat(cat.selling_price) || 0,
+      inclusions: cat.inclusions || ''
+    }));
+  }
+  
   // Auto-calculate fields if not provided
   if (!sanitized.totalPurchaseAmount && sanitized.purchasePrice && sanitized.total_tickets) {
     sanitized.totalPurchaseAmount = sanitized.purchasePrice * sanitized.total_tickets;
@@ -83,6 +119,23 @@ const sanitizeInventoryData = (data) => {
 router.post('/', authenticateToken, checkPermission('inventory', 'create'), async (req, res) => {
   try {
     console.log('Creating inventory with data:', JSON.stringify(req.body, null, 2));
+    
+    // Extract categories from request body
+    const { categories, ...otherData } = req.body;
+    
+    // Validate categories if provided
+    if (categories && Array.isArray(categories)) {
+      if (categories.length === 0) {
+        return res.status(400).json({ error: 'At least one ticket category is required' });
+      }
+      
+      // Validate each category
+      for (const cat of categories) {
+        if (!cat.name) {
+          return res.status(400).json({ error: 'All categories must have a name' });
+        }
+      }
+    }
     
     const sanitizedData = sanitizeInventoryData(req.body);
     
@@ -153,7 +206,8 @@ router.post('/', authenticateToken, checkPermission('inventory', 'create'), asyn
       data: { 
         id: docRef.id, 
         ...inventoryData 
-      } 
+      },
+      message: inventoryData.categories ? 'Inventory created successfully with categories' : 'Inventory created successfully'
     });
   } catch (error) {
     console.error('Error creating inventory:', error);
@@ -169,9 +223,24 @@ router.get('/', authenticateToken, checkPermission('inventory', 'read'), async (
       .get();
     const inventory = [];
     snapshot.forEach(doc => {
+      const data = doc.data();
+      
+      // Ensure backward compatibility - if no categories exist, create from legacy fields
+      if (!data.categories && data.category_of_ticket) {
+        data.categories = [{
+          name: data.category_of_ticket || 'General',
+          section: data.stand || '',
+          total_tickets: parseInt(data.total_tickets) || 0,
+          available_tickets: parseInt(data.available_tickets) || 0,
+          buying_price: parseFloat(data.buying_price) || parseFloat(data.buyingPrice) || 0,
+          selling_price: parseFloat(data.selling_price) || parseFloat(data.sellingPrice) || 0,
+          inclusions: data.inclusions || ''
+        }];
+      }
+      
       inventory.push({
         id: doc.id,
-        ...doc.data()
+        ...data
       });
     });
     res.json({ data: inventory });
@@ -188,7 +257,23 @@ router.get('/:id', authenticateToken, checkPermission('inventory', 'read'), asyn
     if (!doc.exists) {
       return res.status(404).json({ error: 'Inventory item not found' });
     }
-    res.json({ data: { id: doc.id, ...doc.data() } });
+    
+    const data = doc.data();
+    
+    // Ensure backward compatibility
+    if (!data.categories && data.category_of_ticket) {
+      data.categories = [{
+        name: data.category_of_ticket || 'General',
+        section: data.stand || '',
+        total_tickets: parseInt(data.total_tickets) || 0,
+        available_tickets: parseInt(data.available_tickets) || 0,
+        buying_price: parseFloat(data.buying_price) || parseFloat(data.buyingPrice) || 0,
+        selling_price: parseFloat(data.selling_price) || parseFloat(data.sellingPrice) || 0,
+        inclusions: data.inclusions || ''
+      }];
+    }
+    
+    res.json({ data: { id: doc.id, ...data } });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -214,6 +299,23 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
       amountPaid: oldData.amountPaid,
       paymentStatus: oldData.paymentStatus
     });
+    
+    // Extract categories from request body
+    const { categories, ...otherData } = req.body;
+    
+    // Validate categories if provided
+    if (categories && Array.isArray(categories)) {
+      if (categories.length === 0) {
+        return res.status(400).json({ error: 'At least one ticket category is required' });
+      }
+      
+      // Validate each category
+      for (const cat of categories) {
+        if (!cat.name) {
+          return res.status(400).json({ error: 'All categories must have a name' });
+        }
+      }
+    }
     
     // Sanitize the update data
     const sanitizedData = sanitizeInventoryData(req.body);
@@ -325,20 +427,23 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
       console.log('No payment-related fields changed, skipping payable sync');
     }
     
-    res.json({ data: { id, ...updateData } });
+    res.json({ 
+      data: { id, ...updateData },
+      message: updateData.categories ? 'Inventory updated successfully with categories' : 'Inventory updated successfully'
+    });
   } catch (error) {
     console.error('Error updating inventory:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// POST allocate inventory
+// POST allocate inventory - Updated to handle categories
 router.post('/:id/allocate', authenticateToken, checkPermission('inventory', 'write'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { tickets_allocated, lead_id, allocation_date, notes } = req.body;
+    const { tickets_allocated, lead_id, allocation_date, notes, category_name } = req.body;
     
-    console.log('Allocation request:', { id, tickets_allocated, lead_id, allocation_date, notes });
+    console.log('Allocation request:', { id, tickets_allocated, lead_id, allocation_date, notes, category_name });
     
     // Verify lead exists and is converted
     const leadDoc = await db.collection('crm_leads').doc(lead_id).get();
@@ -357,25 +462,69 @@ router.post('/:id/allocate', authenticateToken, checkPermission('inventory', 'wr
     }
     
     const inventoryData = inventoryDoc.data();
-    const availableTickets = parseInt(inventoryData.available_tickets) || 0;
     const allocatedTickets = parseInt(tickets_allocated) || 0;
     
-    if (allocatedTickets > availableTickets) {
-      return res.status(400).json({ error: 'Not enough tickets available for allocation' });
+    let newAvailableTickets;
+    let updateData = {
+      updated_date: new Date().toISOString()
+    };
+    
+    // Handle allocation based on whether categories exist
+    if (inventoryData.categories && Array.isArray(inventoryData.categories)) {
+      // New system with categories
+      if (!category_name) {
+        return res.status(400).json({ error: 'Category name is required for allocation' });
+      }
+      
+      const categoryIndex = inventoryData.categories.findIndex(cat => cat.name === category_name);
+      if (categoryIndex === -1) {
+        return res.status(404).json({ error: `Category '${category_name}' not found in inventory` });
+      }
+      
+      const category = inventoryData.categories[categoryIndex];
+      const categoryAvailable = parseInt(category.available_tickets) || 0;
+      
+      if (allocatedTickets > categoryAvailable) {
+        return res.status(400).json({ 
+          error: `Not enough tickets available in category '${category_name}'. Available: ${categoryAvailable}` 
+        });
+      }
+      
+      // Update category
+      inventoryData.categories[categoryIndex].available_tickets = categoryAvailable - allocatedTickets;
+      
+      // Recalculate totals
+      const totals = inventoryData.categories.reduce((acc, cat) => ({
+        total_tickets: acc.total_tickets + (parseInt(cat.total_tickets) || 0),
+        available_tickets: acc.available_tickets + (parseInt(cat.available_tickets) || 0)
+      }), { total_tickets: 0, available_tickets: 0 });
+      
+      updateData.categories = inventoryData.categories;
+      updateData.total_tickets = totals.total_tickets;
+      updateData.available_tickets = totals.available_tickets;
+      newAvailableTickets = totals.available_tickets;
+      
+    } else {
+      // Legacy system without categories
+      const availableTickets = parseInt(inventoryData.available_tickets) || 0;
+      
+      if (allocatedTickets > availableTickets) {
+        return res.status(400).json({ error: 'Not enough tickets available for allocation' });
+      }
+      
+      newAvailableTickets = availableTickets - allocatedTickets;
+      updateData.available_tickets = newAvailableTickets;
     }
     
-    // Update available tickets
-    const newAvailableTickets = availableTickets - allocatedTickets;
-    await db.collection('crm_inventory').doc(id).update({
-      available_tickets: newAvailableTickets,
-      updated_date: new Date().toISOString()
-    });
+    // Update inventory
+    await db.collection('crm_inventory').doc(id).update(updateData);
     
     // Create allocation record
     const allocationData = {
       inventory_id: id,
       lead_id: lead_id,
       tickets_allocated: allocatedTickets,
+      category_name: category_name || inventoryData.category_of_ticket || 'General',
       allocation_date: allocation_date || new Date().toISOString().split('T')[0],
       notes: notes || '',
       created_date: new Date().toISOString(),
@@ -393,7 +542,8 @@ router.post('/:id/allocate', authenticateToken, checkPermission('inventory', 'wr
       success: true, 
       message: `Successfully allocated ${allocatedTickets} tickets to ${leadData.name}`,
       allocation_id: allocationRef.id,
-      remaining_tickets: newAvailableTickets
+      remaining_tickets: newAvailableTickets,
+      category: category_name || null
     });
   } catch (error) {
     console.error('Error allocating inventory:', error);
@@ -451,7 +601,7 @@ router.get('/:id/allocations', authenticateToken, checkPermission('inventory', '
   }
 });
 
-// Unallocate tickets (remove allocation)
+// Unallocate tickets (remove allocation) - Updated to handle categories
 router.delete('/:id/allocations/:allocationId', authenticateToken, checkPermission('inventory', 'write'), async (req, res) => {
   try {
     const { id, allocationId } = req.params;
@@ -464,6 +614,7 @@ router.delete('/:id/allocations/:allocationId', authenticateToken, checkPermissi
     
     const allocationData = allocationDoc.data();
     const ticketsToReturn = parseInt(allocationData.tickets_allocated) || 0;
+    const categoryName = allocationData.category_name;
     
     // Get current inventory
     const inventoryDoc = await db.collection('crm_inventory').doc(id).get();
@@ -472,14 +623,37 @@ router.delete('/:id/allocations/:allocationId', authenticateToken, checkPermissi
     }
     
     const inventoryData = inventoryDoc.data();
-    const currentAvailable = parseInt(inventoryData.available_tickets) || 0;
-    const newAvailable = currentAvailable + ticketsToReturn;
+    let updateData = {
+      updated_date: new Date().toISOString()
+    };
+    
+    // Handle unallocation based on whether categories exist
+    if (inventoryData.categories && Array.isArray(inventoryData.categories) && categoryName) {
+      // New system with categories
+      const categoryIndex = inventoryData.categories.findIndex(cat => cat.name === categoryName);
+      if (categoryIndex !== -1) {
+        const category = inventoryData.categories[categoryIndex];
+        inventoryData.categories[categoryIndex].available_tickets = 
+          (parseInt(category.available_tickets) || 0) + ticketsToReturn;
+        
+        // Recalculate totals
+        const totals = inventoryData.categories.reduce((acc, cat) => ({
+          total_tickets: acc.total_tickets + (parseInt(cat.total_tickets) || 0),
+          available_tickets: acc.available_tickets + (parseInt(cat.available_tickets) || 0)
+        }), { total_tickets: 0, available_tickets: 0 });
+        
+        updateData.categories = inventoryData.categories;
+        updateData.total_tickets = totals.total_tickets;
+        updateData.available_tickets = totals.available_tickets;
+      }
+    } else {
+      // Legacy system
+      const currentAvailable = parseInt(inventoryData.available_tickets) || 0;
+      updateData.available_tickets = currentAvailable + ticketsToReturn;
+    }
     
     // Update inventory (add tickets back)
-    await db.collection('crm_inventory').doc(id).update({
-      available_tickets: newAvailable,
-      updated_date: new Date().toISOString()
-    });
+    await db.collection('crm_inventory').doc(id).update(updateData);
     
     // Delete allocation record
     await db.collection('crm_allocations').doc(allocationId).delete();
@@ -490,7 +664,8 @@ router.delete('/:id/allocations/:allocationId', authenticateToken, checkPermissi
       success: true, 
       message: `Successfully unallocated ${ticketsToReturn} tickets`,
       tickets_returned: ticketsToReturn,
-      new_available_tickets: newAvailable
+      new_available_tickets: updateData.available_tickets,
+      category: categoryName || null
     });
   } catch (error) {
     console.error('Error unallocating tickets:', error);
