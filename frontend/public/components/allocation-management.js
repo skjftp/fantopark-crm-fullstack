@@ -1,136 +1,238 @@
-// Fixed Allocation Management Component for FanToPark CRM
-// Applied proven integration pattern for window globals
+// Fix for Allocation Management Modal to Display Allocations
 
-window.renderAllocationManagement = () => {
-  // ✅ PATTERN 1: State Variable Extraction (CRITICAL FIX)
-  const {
-    showAllocationManagement = window.appState?.showAllocationManagement || window.showAllocationManagement,
-    allocationManagementInventory = window.appState?.allocationManagementInventory || window.allocationManagementInventory,
-    currentAllocations = window.appState?.currentAllocations || window.currentAllocations || [],
-    loading = window.appState?.loading || window.loading
-  } = window.appState || {};
-
-  // ✅ PATTERN 2: Function References with Fallbacks
-  const setShowAllocationManagement = window.setShowAllocationManagement || (() => {
-    console.warn("setShowAllocationManagement not implemented");
-  });
-  
-  const openAllocationForm = window.openAllocationForm || ((inventory) => {
-    console.warn("openAllocationForm not implemented");
-    console.log("Would open allocation form for:", inventory);
-  });
-  
-  const handleUnallocate = window.handleUnallocate || ((allocationId, tickets) => {
-    console.warn("handleUnallocate not implemented"); 
-    console.log("Would unallocate:", allocationId, tickets);
-  });
-
-  // ✅ Enhanced Debug Logging
-  console.log("🔍 ALLOCATION MANAGEMENT DEBUG:");
-  console.log("showAllocationManagement:", showAllocationManagement);
-  console.log("allocationManagementInventory:", allocationManagementInventory?.event_name);
-  console.log("currentAllocations count:", currentAllocations?.length || 0);
-
-  if (!showAllocationManagement || !allocationManagementInventory) {
-    console.log("❌ Not showing allocation management:", {
-      showAllocationManagement,
-      hasInventory: !!allocationManagementInventory
-    });
-    return null;
-  }
-
-  return React.createElement('div', { 
-    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40'
-  },
-    React.createElement('div', { 
-      className: 'bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto'
-    },
-      React.createElement('div', { className: 'flex justify-between items-center mb-4' },
-        React.createElement('h2', { className: 'text-xl font-bold dark:text-white' }, 
-          'Allocations for ' + (allocationManagementInventory.event_name || 'Unknown Event')
-        ),
-        React.createElement('button', {
-          onClick: () => setShowAllocationManagement(false),
-          className: 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-        }, '✕')
-      ),
-
-      React.createElement('div', { className: 'mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded' },
-        React.createElement('h3', { className: 'font-semibold dark:text-white' }, 'Inventory Details'),
-        React.createElement('p', { className: 'dark:text-gray-300' }, 
-          'Total Tickets: ' + (allocationManagementInventory.total_tickets || 'N/A')
-        ),
-        React.createElement('p', { className: 'dark:text-gray-300' }, 
-          'Available Tickets: ' + (allocationManagementInventory.available_tickets || 0)
-        ),
-        React.createElement('p', { className: 'dark:text-gray-300' }, 
-          'Allocated Tickets: ' + ((allocationManagementInventory.total_tickets || 0) - (allocationManagementInventory.available_tickets || 0))
-        )
-      ),
-
-      currentAllocations.length === 0 ? 
-      React.createElement('div', { className: 'text-center py-8 text-gray-500 dark:text-gray-400' },
-        'No allocations found for this inventory item.'
-      ) :
-      React.createElement('div', { className: 'overflow-x-auto' },
-        React.createElement('table', { className: 'min-w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600' },
-          React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
-            React.createElement('tr', null,
-              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Lead Name'),
-              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Email'),
-              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Tickets Allocated'),
-              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Allocation Date'),
-              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Notes'),
-              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Actions')
-            )
-          ),
-          React.createElement('tbody', null,
-            currentAllocations.map((allocation, index) =>
-              React.createElement('tr', { 
-                key: allocation.id || index, 
-                className: 'hover:bg-gray-50 dark:hover:bg-gray-700' 
-              },
-                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' },
-                  allocation.lead_details ? allocation.lead_details.name : (allocation.lead_name || 'Unknown')
-                ),
-                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' },
-                  allocation.lead_details ? allocation.lead_details.email : (allocation.lead_email || 'N/A')
-                ),
-                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' }, 
-                  allocation.tickets_allocated || 0
-                ),
-                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' },
-                  allocation.allocation_date ? new Date(allocation.allocation_date).toLocaleDateString() : 'N/A'
-                ),
-                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' }, 
-                  allocation.notes || 'No notes'
-                ),
-                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600' },
-                  React.createElement('button', {
-                    onClick: () => handleUnallocate(allocation.id, allocation.tickets_allocated),
-                    className: 'bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 disabled:opacity-50',
-                    disabled: loading
-                  }, loading ? 'Processing...' : 'Unallocate')
-                )
-              )
-            )
-          )
-        )
-      ),
-
-      React.createElement('div', { className: 'mt-6 flex justify-between' },
-        React.createElement('button', {
-          onClick: () => openAllocationForm(allocationManagementInventory),
-          className: 'bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50',
-          disabled: (allocationManagementInventory.available_tickets || 0) <= 0
-        }, 'Add New Allocation'),
-        React.createElement('button', {
-          onClick: () => setShowAllocationManagement(false),
-          className: 'bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600'
-        }, 'Close')
-      )
-    )
-  );
+// 1. Enhanced openAllocationManagement function
+window.openAllocationManagement = function(inventory) {
+    console.log('👁️ openAllocationManagement called with:', inventory?.event_name);
+    
+    // Set the inventory
+    if (window.setAllocationManagementInventory) {
+        window.setAllocationManagementInventory(inventory);
+    }
+    window.allocationManagementInventory = inventory;
+    
+    // Clear any existing allocations first
+    if (window.setCurrentAllocations) {
+        window.setCurrentAllocations([]);
+    }
+    
+    // Show the modal
+    if (window.setShowAllocationManagement) {
+        window.setShowAllocationManagement(true);
+    }
+    
+    // Fetch allocations for this inventory item
+    if (inventory && inventory.id) {
+        fetchAllocationsForManagement(inventory.id);
+    }
 };
 
-console.log('✅ Fixed Allocation Management component with integration pattern loaded successfully');
+// 2. Function to fetch allocations for the management modal
+async function fetchAllocationsForManagement(inventoryId) {
+    try {
+        console.log(`📡 Fetching allocations for inventory ${inventoryId}...`);
+        
+        // Use the correct endpoint we discovered
+        const response = await window.apiCall(`/inventory/${inventoryId}/allocations`);
+        console.log('Allocations API response:', response);
+        
+        // Extract allocations from response
+        let allocations = [];
+        if (response.data && response.data.allocations) {
+            allocations = response.data.allocations;
+        } else if (response.allocations) {
+            allocations = response.allocations;
+        } else if (Array.isArray(response)) {
+            allocations = response;
+        }
+        
+        console.log(`✅ Found ${allocations.length} allocations`);
+        
+        // Update state
+        if (window.setCurrentAllocations) {
+            window.setCurrentAllocations(allocations);
+        } else {
+            window.currentAllocations = allocations;
+        }
+        
+        // Force re-render
+        if (window.forceUpdate) {
+            window.forceUpdate();
+        }
+        
+        // Also update the DOM directly if React isn't updating
+        setTimeout(() => {
+            updateAllocationManagementDisplay(allocations);
+        }, 100);
+        
+    } catch (error) {
+        console.error('❌ Failed to fetch allocations:', error);
+        if (window.setCurrentAllocations) {
+            window.setCurrentAllocations([]);
+        }
+    }
+}
+
+// 3. Function to directly update the DOM if needed
+function updateAllocationManagementDisplay(allocations) {
+    // Find the container that shows "No allocations found"
+    const noAllocationsElement = Array.from(document.querySelectorAll('*')).find(el => 
+        el.textContent === 'No allocations found for this inventory item.'
+    );
+    
+    if (!noAllocationsElement) {
+        console.log('Could not find allocations container');
+        return;
+    }
+    
+    const container = noAllocationsElement.parentElement;
+    
+    if (allocations.length > 0) {
+        console.log('📝 Updating DOM with allocations...');
+        
+        // Clear the container
+        container.innerHTML = '';
+        
+        // Add allocations
+        allocations.forEach((allocation, index) => {
+            const allocationDiv = document.createElement('div');
+            allocationDiv.className = 'p-4 mb-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600';
+            
+            allocationDiv.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-semibold text-gray-900 dark:text-white">
+                            ${allocation.lead_name || allocation.client_name || `Allocation #${index + 1}`}
+                        </p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            Tickets: ${allocation.tickets_allocated || allocation.quantity || 0}
+                        </p>
+                        ${allocation.allocation_date ? `
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                Date: ${new Date(allocation.allocation_date).toLocaleDateString()}
+                            </p>
+                        ` : ''}
+                        ${allocation.notes ? `
+                            <p class="text-sm text-gray-500 dark:text-gray-400 italic mt-1">
+                                "${allocation.notes}"
+                            </p>
+                        ` : ''}
+                    </div>
+                    <div class="text-right">
+                        ${allocation.status ? `
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full
+                                ${allocation.status === 'confirmed' || allocation.status === 'active' 
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' 
+                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}">
+                                ${allocation.status}
+                            </span>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(allocationDiv);
+        });
+        
+        console.log('✅ DOM updated with allocations');
+    }
+}
+
+// 4. Enhanced setAllocationManagementInventory to fetch allocations
+const originalSetAllocationManagementInventory = window.setAllocationManagementInventory;
+window.setAllocationManagementInventory = function(inventory) {
+    console.log('📦 ENHANCED setAllocationManagementInventory called with:', inventory);
+    
+    // Call original if exists
+    if (originalSetAllocationManagementInventory) {
+        originalSetAllocationManagementInventory(inventory);
+    }
+    
+    // Also set on window
+    window.allocationManagementInventory = inventory;
+    
+    // Fetch allocations whenever inventory is set
+    if (inventory && inventory.id) {
+        fetchAllocationsForManagement(inventory.id);
+    }
+};
+
+// 5. Fix for renderAllocationManagement if it exists
+if (window.renderAllocationManagement) {
+    const originalRenderAllocationManagement = window.renderAllocationManagement;
+    window.renderAllocationManagement = function() {
+        // Get current allocations
+        const allocations = window.currentAllocations || [];
+        console.log(`🎨 renderAllocationManagement called with ${allocations.length} allocations`);
+        
+        // Call original render
+        const result = originalRenderAllocationManagement();
+        
+        // If no allocations, try to fetch them
+        if (allocations.length === 0 && window.allocationManagementInventory?.id) {
+            fetchAllocationsForManagement(window.allocationManagementInventory.id);
+        }
+        
+        return result;
+    };
+}
+
+// 6. Set up observer to detect when modal opens
+const allocationModalObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === 1 && node.textContent?.includes('Allocations for')) {
+                console.log('📢 Allocation Management modal detected!');
+                
+                // Try to fetch allocations if we have inventory
+                if (window.allocationManagementInventory?.id) {
+                    setTimeout(() => {
+                        fetchAllocationsForManagement(window.allocationManagementInventory.id);
+                    }, 100);
+                }
+            }
+        });
+    });
+});
+
+allocationModalObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+});
+
+// 7. Manual refresh function
+window.refreshAllocationManagement = function() {
+    if (window.allocationManagementInventory?.id) {
+        console.log('🔄 Manually refreshing allocations...');
+        fetchAllocationsForManagement(window.allocationManagementInventory.id);
+    } else {
+        console.error('No inventory selected for allocation management');
+    }
+};
+
+// 8. Debug function to check state
+window.debugAllocationManagement = function() {
+    console.log('🔍 Allocation Management Debug:');
+    console.log('- allocationManagementInventory:', window.allocationManagementInventory);
+    console.log('- currentAllocations:', window.currentAllocations);
+    console.log('- showAllocationManagement:', window.showAllocationManagement);
+    
+    // Try to find the modal in DOM
+    const modal = document.querySelector('[role="dialog"]');
+    console.log('- Modal found:', !!modal);
+    
+    if (modal) {
+        const hasNoAllocationsText = modal.textContent.includes('No allocations found');
+        console.log('- Shows "No allocations" text:', hasNoAllocationsText);
+    }
+};
+
+console.log('✅ Allocation Management fix loaded!');
+console.log('📋 Commands:');
+console.log('- window.refreshAllocationManagement() - Manually refresh allocations');
+console.log('- window.debugAllocationManagement() - Debug current state');
+
+// Auto-fetch if modal is already open
+if (window.showAllocationManagement && window.allocationManagementInventory?.id) {
+    console.log('🔄 Modal already open, fetching allocations...');
+    fetchAllocationsForManagement(window.allocationManagementInventory.id);
+}
