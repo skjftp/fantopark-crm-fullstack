@@ -242,7 +242,9 @@ window.renderGSTInvoicePreview = () => {
               }, 'FanToPark')
             ),
             React.createElement('div', null),
-            React.createElement('div', { className: 'invoice-title' }, 'Tax Invoice')
+            React.createElement('div', { className: 'invoice-title' }, 
+  invoice.invoice_type === 'proforma' || invoice.status === 'proforma' ? 'Proforma Invoice' : 'Tax Invoice'
+)
           ),
 
           React.createElement('div', { className: 'invoice-meta' },
