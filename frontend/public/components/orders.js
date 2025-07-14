@@ -740,14 +740,17 @@ window.enhancedOrderActions = {
   },
 
   // 🔧 FIXED: Approve order with finance → supply workflow
+  // In frontend/public/components/orders.js
+// Replace the entire approveOrder function inside window.enhancedOrderActions:
+
   approveOrder: async function(orderId, notes = '') {
+    if (!notes) {
+      notes = prompt('Add approval notes (optional):');
+    }
+
     if (!confirm('Approve this order? This will assign it to the supply team for processing.')) {
       return;
     }
-
-    //console.log('🎯 === FINANCE APPROVAL WORKFLOW ===');
-    //console.log('🔍 Order ID:', orderId);
-    //console.log('🔍 Current user:', window.user?.email, window.user?.role);
 
     try {
       window.setLoading(true);
@@ -758,11 +761,8 @@ window.enhancedOrderActions = {
         throw new Error('Order not found');
       }
 
-      //console.log('🔍 Order found:', order.order_number, 'Status:', order.status);
-
       // Get supply team member for assignment
       const supplyMember = await window.getSupplyTeamMember();
-      //console.log('🎯 Supply team member selected:', supplyMember);
 
       // Update order with approval and supply assignment
       const updateData = {
@@ -773,12 +773,9 @@ window.enhancedOrderActions = {
         approved_by: window.user.email,
         approved_date: new Date().toISOString(),
         approval_notes: notes,
-        // Preserve original assignee for tracking
         original_assignee: order.original_assignee || order.created_by,
         updated_date: new Date().toISOString()
       };
-
-      //console.log('🔍 Update data:', updateData);
 
       // Call the API to update the order
       const response = await window.apiCall(`/orders/${orderId}`, {
@@ -790,25 +787,92 @@ window.enhancedOrderActions = {
         throw new Error(response.error);
       }
 
-      //console.log('✅ Order approved successfully:', response);
-
       // Update local state
       const updatedOrder = response.data || updateData;
       window.setOrders(prev => prev.map(o => 
         o.id === orderId ? updatedOrder : o
       ));
 
+      // ADDED: Create receivable for payment_post_service orders
+      let receivableCreated = false;
+      if (order.order_type === 'payment_post_service') {
+        console.log('Creating receivable for payment_post_service order:', order.order_number);
+        
+        const expectedAmount = parseFloat(
+          order.expected_amount || 
+          order.final_amount || 
+          order.total_amount || 
+          0
+        );
+        
+        if (expectedAmount > 0) {
+          const receivableData = {
+            order_id: order.id,
+            lead_id: order.lead_id,
+            client_name: order.client_name || order.legal_name,
+            invoice_number: order.invoice_number || order.order_number,
+            amount: expectedAmount,
+            expected_amount: expectedAmount,
+            balance_amount: expectedAmount,
+            due_date: order.expected_payment_date || new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0],
+            expected_payment_date: order.expected_payment_date || new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0],
+            assigned_to: order.original_assignee || order.created_by,
+            status: 'pending',
+            payment_status: 'pending',
+            notes: 'Payment post service - ' + (order.description || ''),
+            created_date: new Date().toISOString(),
+            created_by: window.user.email
+          };
+
+          try {
+            console.log('Creating receivable with data:', receivableData);
+            const receivableResponse = await window.apiCall('/receivables', {
+              method: 'POST',
+              body: JSON.stringify(receivableData)
+            });
+
+            if (receivableResponse.error) {
+              console.error('Failed to create receivable:', receivableResponse.error);
+            } else {
+              console.log('✅ Receivable created successfully:', receivableResponse);
+              receivableCreated = true;
+              
+              // Update local receivables state
+              if (window.setReceivables) {
+                window.setReceivables(prev => [...prev, receivableResponse.data || receivableResponse]);
+              }
+              
+              // Refresh financial data
+              if (window.fetchFinancialData) {
+                await window.fetchFinancialData();
+              }
+            }
+          } catch (receivableError) {
+            console.error('Error creating receivable:', receivableError);
+          }
+        }
+      }
+
       // Refresh My Actions if available
       if (window.fetchMyActions) {
         await window.fetchMyActions();
       }
 
-      alert(`✅ Order approved successfully!\n\nOrder: ${order.order_number}\nAssigned to: ${supplyMember}\nStatus: Approved`);
-
-      //console.log('🎯 Finance approval workflow completed');
+      // Show success message with receivable info if applicable
+      let alertMessage = `✅ Order approved successfully!\n\nOrder: ${order.order_number}\nAssigned to: ${supplyMember}\nStatus: Approved`;
+      
+      if (order.order_type === 'payment_post_service') {
+        if (receivableCreated) {
+          alertMessage += `\n\n💰 Receivable created for post-service payment.`;
+        } else {
+          alertMessage += `\n\n⚠️ Please create receivable manually for post-service payment.`;
+        }
+      }
+      
+      alert(alertMessage);
 
     } catch (error) {
-      console.error('❌ Error approving order:', error);
+      console.error('Error approving order:', error);
       alert(`Failed to approve order: ${error.message}`);
     } finally {
       window.setLoading(false);
