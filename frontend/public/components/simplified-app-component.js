@@ -308,6 +308,13 @@ window.eventsPerPage = state.eventsPerPage || 10;
   window.editingInventory = state.editingInventory || null;
   window.currentInventoryDetail = state.currentInventoryDetail || null;
 
+  // Expanded inventory items tracking
+window.expandedInventoryItems = state.expandedInventoryItems || new Set();
+window.setExpandedInventoryItems = state.setExpandedInventoryItems || ((items) => {
+  console.log("📊 setExpandedInventoryItems called with:", items);
+  window.expandedInventoryItems = items;
+});
+
   // ✅ CRITICAL MISSING: Order Management Variables
   window.currentOrderDetail = state.currentOrderDetail || null;
   window.showOrderDetail = state.showOrderDetail || false;
@@ -3480,3 +3487,26 @@ if (document.readyState === 'loading') {
 } else {
     window.initializeMobileResponsive();
 }
+
+// Add helper functions for inventory expansion
+window.toggleInventoryExpansion = (inventoryId) => {
+  console.log("🔄 Toggling expansion for inventory:", inventoryId);
+  window.setExpandedInventoryItems(prev => {
+    const newSet = new Set(prev);
+    if (newSet.has(inventoryId)) {
+      newSet.delete(inventoryId);
+      console.log("➖ Collapsed inventory:", inventoryId);
+    } else {
+      newSet.add(inventoryId);
+      console.log("➕ Expanded inventory:", inventoryId);
+    }
+    return newSet;
+  });
+};
+
+// Add helper to check if an item is expanded
+window.isInventoryExpanded = (inventoryId) => {
+  return window.expandedInventoryItems && window.expandedInventoryItems.has(inventoryId);
+};
+
+console.log("✅ Inventory expansion helpers loaded");
