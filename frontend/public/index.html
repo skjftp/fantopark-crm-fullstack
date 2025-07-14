@@ -4,7 +4,8 @@
 <head>
 <meta charset="UTF-8">
 <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/mobile-responsive.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FanToPark CRM Pro</title>
 
 <!-- Add this COMPREHENSIVE PERFORMANCE OPTIMIZATION script -->
@@ -2625,6 +2626,42 @@ window.testMobileMenu = () => {
     }
 };
   </script>
+  <script>
+// Simple Mobile Menu
+document.addEventListener('DOMContentLoaded', function() {
+  // Create mobile header
+  const header = document.createElement('div');
+  header.className = 'mobile-header';
+  header.innerHTML = `
+    <button onclick="toggleMobileMenu()" class="p-2 hover:bg-gray-100 rounded">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 12h18M3 6h18M3 18h18"></path>
+      </svg>
+    </button>
+    <h1 class="flex-1 text-center font-semibold">FanToPark CRM</h1>
+    <div class="w-10"></div>
+  `;
+  
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'mobile-overlay';
+  overlay.onclick = toggleMobileMenu;
+  
+  // Add to body
+  document.body.insertBefore(header, document.body.firstChild);
+  document.body.insertBefore(overlay, document.body.firstChild);
+});
+
+function toggleMobileMenu() {
+  const sidebar = document.querySelector('.w-64.bg-white');
+  const overlay = document.querySelector('.mobile-overlay');
+  
+  if (sidebar) {
+    sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('show');
+  }
+}
+</script>
   
 </body>
 </html>
