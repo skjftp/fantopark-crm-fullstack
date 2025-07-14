@@ -1616,7 +1616,7 @@ const updateOrdersPagination = (orders) => {
     openLeadDetail,
     openAllocationForm,
     openAllocationManagement,
-    handleUnallocate
+    handleUnallocate,
     openEditInventoryForm,
     handleEditInventory,
     openInventoryDetail,
