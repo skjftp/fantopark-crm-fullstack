@@ -3111,32 +3111,31 @@ console.log("✅ AssignmentRulesTab exposed to window");
   }
 
   // Main application layout
-  return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:bg-gray-900' },
-   // Add this inside your main render, before the sidebar
-React.createElement('div', { className: 'mobile-header' },
-  React.createElement('button', {
-    onClick: () => window.toggleMobileMenu && window.toggleMobileMenu(),
-    className: 'p-2 hover:bg-gray-100 rounded'
-  },
-    React.createElement('svg', {
-      width: '24',
-      height: '24',
-      viewBox: '0 0 24 24',
-      fill: 'none',
-      stroke: 'currentColor',
-      strokeWidth: '2'
-    },
-      React.createElement('path', {
-        d: 'M3 12h18M3 6h18M3 18h18'
-      })
-    )
-  ),
-  React.createElement('h1', { className: 'flex-1 text-center font-semibold' }, 'FanToPark CRM'),
-  React.createElement('div', { className: 'w-10' })
-),                          
+  return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:bg-gray-900' },                         
     renderSidebar(),
     React.createElement('div', { className: 'flex-1 flex flex-col overflow-hidden' },
       React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-6 py-4' },
+  React.createElement('div', { className: 'flex items-center justify-between' },
+    // Add mobile menu button here
+    React.createElement('button', {
+      className: 'lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded mr-4',
+      onClick: () => window.toggleMobileMenu && window.toggleMobileMenu()
+    },
+      React.createElement('svg', {
+        width: '24',
+        height: '24',
+        viewBox: '0 0 24 24',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: '2'
+      },
+        React.createElement('path', { d: 'M3 12h18M3 6h18M3 18h18' })
+      )
+    ),
+    // Rest of the existing header content
+    React.createElement('div', null,
+      React.createElement('h1', { className: 'text-lg font-semibold' }, 'Welcome, ' + (state.user?.name || 'Admin User')),
+      // ... rest remains the same
         React.createElement('div', { className: 'flex items-center justify-between' },
           React.createElement('div', null,
             React.createElement('h1', { className: 'text-lg font-semibold' }, 'Welcome, ' + (state.user?.name || 'Admin User')),
