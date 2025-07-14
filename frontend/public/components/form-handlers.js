@@ -1278,11 +1278,25 @@ window.rejectOrder = async function(orderId) {
 // Connect orders.js "View Invoice" button to existing openInvoicePreview
 window.viewInvoice = function(order) {
   console.log('📄 viewInvoice called for order:', order);
+  console.log('Order details:', {
+    id: order.id,
+    order_type: order.order_type,
+    invoice_type: order.invoice_type,
+    status: order.status,
+    payment_status: order.payment_status,
+    invoice_number: order.invoice_number,
+    order_number: order.order_number
+  });
   
   // Check if this is a proforma order
-  const isProformaOrder = order.order_type === 'payment_post_service' || 
-                         order.invoice_type === 'proforma' ||
-                         order.status === 'proforma';
+  const isProformaOrder = (order.order_type === 'payment_post_service' || 
+                          order.invoice_type === 'proforma' ||
+                          order.status === 'proforma') &&
+                          order.payment_status !== 'completed';
+  
+  // For completed payments on post_service orders, treat as tax invoice
+  const isCompletedPostService = order.order_type === 'payment_post_service' && 
+                                 (order.payment_status === 'completed' || order.status === 'payment_received');
   
   // For tax invoices, check if finance invoice number exists
   if (!isProformaOrder && !order.finance_invoice_number) {
