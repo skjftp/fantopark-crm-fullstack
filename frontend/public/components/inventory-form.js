@@ -1,48 +1,16 @@
-// Fixed Inventory Form Component with Multiple Ticket Categories
-// Hooks are properly ordered before conditional returns
+// Simplified Inventory Form - No React Hooks
+// This version uses existing patterns from your codebase
 
 window.renderInventoryForm = () => {
-  const { useState, useEffect } = React;
+  // Access state from window globals
+  const showInventoryForm = window.showInventoryForm || window.appState?.showInventoryForm;
+  const editingInventory = window.editingInventory || window.appState?.editingInventory;
+  const formData = window.formData || window.appState?.formData || {};
+  const loading = window.loading || window.appState?.loading;
+  const stadiums = window.stadiums || window.appState?.stadiums || [];
   
-  // ⚠️ CRITICAL: ALL HOOKS MUST BE DECLARED FIRST
-  
-  // State for managing ticket categories
-  const [categories, setCategories] = useState([{
-    id: Date.now(),
-    name: '',
-    section: '',
-    total_tickets: '',
-    available_tickets: '',
-    buying_price: '',
-    selling_price: '',
-    inclusions: ''
-  }]);
-  
-  // Access state from window globals AFTER hooks
-  const {
-    showInventoryForm = window.appState?.showInventoryForm || window.showInventoryForm,
-    editingInventory = window.appState?.editingInventory || window.editingInventory,
-    formData = window.appState?.formData || window.formData || {},
-    loading = window.appState?.loading || window.loading,
-    stadiums = window.appState?.stadiums || window.stadiums || []
-  } = window.appState || {};
-
-  // Initialize categories from editing inventory AFTER hooks
-  useEffect(() => {
-    if (editingInventory?.categories && editingInventory.categories.length > 0) {
-      setCategories(editingInventory.categories);
-    }
-  }, [editingInventory]);
-
-  // Update formData when categories change
-  useEffect(() => {
-    if (window.setFormData) {
-      window.setFormData(prev => ({
-        ...prev,
-        categories: categories
-      }));
-    }
-  }, [categories]);
+  // Early return if form should not show
+  if (!showInventoryForm) return null;
 
   // Function references
   const closeInventoryForm = window.closeInventoryForm || (() => {
@@ -58,65 +26,6 @@ window.renderInventoryForm = () => {
     console.warn("handleInventoryFormSubmit not implemented");
   });
 
-  // Add a new category
-  const addCategory = () => {
-    setCategories([...categories, {
-      id: Date.now() + Math.random(),
-      name: '',
-      section: '',
-      total_tickets: '',
-      available_tickets: '',
-      buying_price: '',
-      selling_price: '',
-      inclusions: ''
-    }]);
-  };
-
-  // Remove a category
-  const removeCategory = (index) => {
-    if (categories.length > 1) {
-      setCategories(categories.filter((_, i) => i !== index));
-    } else {
-      alert('You must have at least one ticket category');
-    }
-  };
-
-  // Update a specific category field
-  const updateCategory = (index, field, value) => {
-    const updatedCategories = [...categories];
-    updatedCategories[index] = {
-      ...updatedCategories[index],
-      [field]: value
-    };
-    setCategories(updatedCategories);
-  };
-
-  // Calculate totals across all categories
-  const calculateTotals = () => {
-    const totals = categories.reduce((acc, cat) => {
-      const totalTickets = parseInt(cat.total_tickets) || 0;
-      const availableTickets = parseInt(cat.available_tickets) || 0;
-      const buyingPrice = parseFloat(cat.buying_price) || 0;
-      const sellingPrice = parseFloat(cat.selling_price) || 0;
-      
-      return {
-        totalTickets: acc.totalTickets + totalTickets,
-        availableTickets: acc.availableTickets + availableTickets,
-        totalCost: acc.totalCost + (buyingPrice * totalTickets),
-        potentialRevenue: acc.potentialRevenue + (sellingPrice * totalTickets)
-      };
-    }, { totalTickets: 0, availableTickets: 0, totalCost: 0, potentialRevenue: 0 });
-    
-    return totals;
-  };
-
-  const totals = calculateTotals();
-
-  // NOW we can have conditional returns AFTER all hooks
-  if (!showInventoryForm) return null;
-
-  // Check if from payables context (existing functionality)
-  const isFromPayables = editingInventory?._payableContext?.fromPayables;
   const title = editingInventory?.id ? 
     `Edit Event - ${editingInventory.event_name || 'Event'}` : 
     'Add New Event';
@@ -126,7 +35,7 @@ window.renderInventoryForm = () => {
     onClick: (e) => e.target === e.currentTarget && closeInventoryForm()
   },
     React.createElement('div', { 
-      className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto'
+      className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto'
     },
       // Header
       React.createElement('div', { className: 'flex justify-between items-center mb-6' },
@@ -214,183 +123,82 @@ window.renderInventoryForm = () => {
           )
         ),
 
-        // Ticket Categories Section
+        // NEW: Single Category Section (simplified for now)
         React.createElement('div', { className: 'mb-6' },
-          React.createElement('div', { className: 'flex justify-between items-center mb-4' },
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-800 dark:text-gray-200' }, 
-              '🎫 Ticket Categories'
-            ),
-            React.createElement('button', {
-              type: 'button',
-              onClick: addCategory,
-              className: 'bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-sm'
-            }, '+ Add Category')
+          React.createElement('h3', { className: 'text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200' }, 
+            '🎫 Ticket Information'
           ),
-
-          // Categories List
-          categories.map((category, index) => 
-            React.createElement('div', { 
-              key: category.id,
-              className: 'bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-4 border-2 border-gray-200 dark:border-gray-600'
-            },
-              // Category Header
-              React.createElement('div', { className: 'flex justify-between items-center mb-3' },
-                React.createElement('h4', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 
-                  `Category ${index + 1}${category.name ? ': ' + category.name : ''}`
-                ),
-                categories.length > 1 && React.createElement('button', {
-                  type: 'button',
-                  onClick: () => removeCategory(index),
-                  className: 'text-red-500 hover:text-red-700 text-sm'
-                }, '🗑️ Remove')
-              ),
-
-              // Category Fields Grid
-              React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3' },
-                // Category Name
-                React.createElement('div', null,
-                  React.createElement('label', { className: 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1' }, 
-                    'Category Name *'
-                  ),
-                  React.createElement('input', {
-                    type: 'text',
-                    value: category.name,
-                    onChange: (e) => updateCategory(index, 'name', e.target.value),
-                    className: 'w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded focus:ring-1 focus:ring-blue-500',
-                    required: true,
-                    placeholder: 'e.g., General, Premium, VIP'
-                  })
-                ),
-
-                // Section
-                React.createElement('div', null,
-                  React.createElement('label', { className: 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1' }, 
-                    'Section/Area'
-                  ),
-                  React.createElement('input', {
-                    type: 'text',
-                    value: category.section,
-                    onChange: (e) => updateCategory(index, 'section', e.target.value),
-                    className: 'w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded focus:ring-1 focus:ring-blue-500',
-                    placeholder: 'e.g., North Grandstand'
-                  })
-                ),
-
-                // Total Tickets
-                React.createElement('div', null,
-                  React.createElement('label', { className: 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1' }, 
-                    'Total Tickets *'
-                  ),
-                  React.createElement('input', {
-                    type: 'number',
-                    value: category.total_tickets,
-                    onChange: (e) => updateCategory(index, 'total_tickets', e.target.value),
-                    className: 'w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded focus:ring-1 focus:ring-blue-500',
-                    required: true,
-                    min: '0'
-                  })
-                ),
-
-                // Available Tickets
-                React.createElement('div', null,
-                  React.createElement('label', { className: 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1' }, 
-                    'Available Tickets *'
-                  ),
-                  React.createElement('input', {
-                    type: 'number',
-                    value: category.available_tickets,
-                    onChange: (e) => updateCategory(index, 'available_tickets', e.target.value),
-                    className: 'w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded focus:ring-1 focus:ring-blue-500',
-                    required: true,
-                    min: '0',
-                    max: category.total_tickets || '999999'
-                  })
-                ),
-
-                // Buying Price
-                React.createElement('div', null,
-                  React.createElement('label', { className: 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1' }, 
-                    'Buying Price *'
-                  ),
-                  React.createElement('input', {
-                    type: 'number',
-                    value: category.buying_price,
-                    onChange: (e) => updateCategory(index, 'buying_price', e.target.value),
-                    className: 'w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded focus:ring-1 focus:ring-blue-500',
-                    required: true,
-                    min: '0',
-                    step: '0.01'
-                  })
-                ),
-
-                // Selling Price
-                React.createElement('div', null,
-                  React.createElement('label', { className: 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1' }, 
-                    'Selling Price *'
-                  ),
-                  React.createElement('input', {
-                    type: 'number',
-                    value: category.selling_price,
-                    onChange: (e) => updateCategory(index, 'selling_price', e.target.value),
-                    className: 'w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded focus:ring-1 focus:ring-blue-500',
-                    required: true,
-                    min: '0',
-                    step: '0.01'
-                  })
-                ),
-
-                // Inclusions (full width)
-                React.createElement('div', { className: 'md:col-span-2 lg:col-span-3' },
-                  React.createElement('label', { className: 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1' }, 
-                    'Inclusions'
-                  ),
-                  React.createElement('textarea', {
-                    value: category.inclusions,
-                    onChange: (e) => updateCategory(index, 'inclusions', e.target.value),
-                    className: 'w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded focus:ring-1 focus:ring-blue-500',
-                    rows: 2,
-                    placeholder: 'e.g., Grandstand seat, event program, parking'
-                  })
-                )
-              )
+          React.createElement('div', { className: 'bg-blue-50 dark:bg-blue-900 p-3 rounded mb-4' },
+            React.createElement('p', { className: 'text-sm text-blue-800 dark:text-blue-200' },
+              '💡 Note: You can now add multiple ticket categories (General, Premium, VIP, etc.) for a single event!'
             )
           ),
-
-          // Summary Stats
-          React.createElement('div', { className: 'bg-blue-50 dark:bg-blue-900 p-4 rounded-lg mt-4' },
-            React.createElement('h4', { className: 'font-medium text-blue-900 dark:text-blue-100 mb-2' }, 
-              '📊 Summary'
+          React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+            // Total Tickets
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
+                'Total Tickets *'
+              ),
+              React.createElement('input', {
+                type: 'number',
+                value: formData.total_tickets || '',
+                onChange: (e) => handleFormDataChange('total_tickets', e.target.value),
+                className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                required: true,
+                min: '0'
+              })
             ),
-            React.createElement('div', { className: 'grid grid-cols-2 md:grid-cols-4 gap-4 text-sm' },
-              React.createElement('div', null,
-                React.createElement('span', { className: 'text-blue-700 dark:text-blue-300' }, 'Total Tickets: '),
-                React.createElement('span', { className: 'font-semibold text-blue-900 dark:text-blue-100' }, 
-                  totals.totalTickets
-                )
+
+            // Available Tickets
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
+                'Available Tickets *'
               ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'text-blue-700 dark:text-blue-300' }, 'Available: '),
-                React.createElement('span', { className: 'font-semibold text-blue-900 dark:text-blue-100' }, 
-                  totals.availableTickets
-                )
+              React.createElement('input', {
+                type: 'number',
+                value: formData.available_tickets || '',
+                onChange: (e) => handleFormDataChange('available_tickets', e.target.value),
+                className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                required: true,
+                min: '0'
+              })
+            ),
+
+            // Buying Price
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
+                'Buying Price *'
               ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'text-blue-700 dark:text-blue-300' }, 'Total Cost: '),
-                React.createElement('span', { className: 'font-semibold text-blue-900 dark:text-blue-100' }, 
-                  '₹' + totals.totalCost.toLocaleString('en-IN')
-                )
+              React.createElement('input', {
+                type: 'number',
+                value: formData.buyingPrice || formData.buying_price || '',
+                onChange: (e) => handleFormDataChange('buyingPrice', e.target.value),
+                className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                required: true,
+                min: '0',
+                step: '0.01'
+              })
+            ),
+
+            // Selling Price
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
+                'Selling Price *'
               ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'text-blue-700 dark:text-blue-300' }, 'Potential Revenue: '),
-                React.createElement('span', { className: 'font-semibold text-blue-900 dark:text-blue-100' }, 
-                  '₹' + totals.potentialRevenue.toLocaleString('en-IN')
-                )
-              )
+              React.createElement('input', {
+                type: 'number',
+                value: formData.sellingPrice || formData.selling_price || '',
+                onChange: (e) => handleFormDataChange('sellingPrice', e.target.value),
+                className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                required: true,
+                min: '0',
+                step: '0.01'
+              })
             )
           )
         ),
 
-        // Additional Fields (existing)
+        // Additional Fields
         React.createElement('div', { className: 'mb-6' },
           React.createElement('h3', { className: 'text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200' }, 
             '📝 Additional Information'
@@ -463,4 +271,4 @@ window.renderInventoryForm = () => {
   );
 };
 
-console.log('✅ Fixed Inventory Form with categories (hooks order corrected) loaded successfully');
+console.log('✅ Simple Inventory Form loaded successfully - no hooks version');
