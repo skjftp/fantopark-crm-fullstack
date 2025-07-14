@@ -214,8 +214,6 @@ window.renderOrdersContent = () => {
 
 // FIXED: Override window.viewInvoice FIRST, then create the local constant
 window.viewInvoice = (order) => {
-  //console.log('🔍 Looking for invoice for order:', order.id);
-  
   if (order.invoice_number) {
     const reconstructedInvoice = {
       id: order.invoice_id || order.id,
@@ -254,11 +252,11 @@ window.viewInvoice = (order) => {
       final_amount: order.final_amount || order.total_amount || order.amount || 0,
       invoice_date: order.approved_date || new Date().toISOString().split('T')[0],
       due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: 'generated',
+      status: order.order_type === 'payment_post_service' && order.status !== 'approved' ? 'proforma' : 'generated',
+      invoice_type: order.order_type === 'payment_post_service' && order.status !== 'approved' ? 'proforma' : 'tax',
       generated_by: order.approved_by || 'System',
       payment_currency: order.payment_currency || 'INR'
     };
-    //console.log('📊 Reconstructed invoice:', reconstructedInvoice);
     
     if (window.openInvoicePreview) {
       window.openInvoicePreview(reconstructedInvoice);
@@ -269,6 +267,7 @@ window.viewInvoice = (order) => {
     alert('❌ Invoice not found for this order');
   }
 };
+
 
 // NOW create the local constant that points to the NEW function
 const viewInvoice = window.viewInvoice;
