@@ -247,32 +247,37 @@ window.renderGSTInvoicePreview = () => {
 )
           ),
 
-          React.createElement('div', { className: 'invoice-meta' },
-            React.createElement('div', null,
-              React.createElement('div', null, 
-                React.createElement('strong', null, 'Date:'), ' ',
-                new Date(invoice.invoice_date || invoice.created_date || Date.now()).toLocaleDateString('en-GB', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric'
-                })
-              ),
-              React.createElement('div', null, 
-                React.createElement('strong', null, 'Invoice No:'), ' ', invoice.invoice_number
-              ),
-              React.createElement('div', null, 
-                React.createElement('strong', null, 'POS:'), ' ', invoice.indian_state || 'Haryana'
-              )
-            ),
-            React.createElement('div', { style: { textAlign: 'right' }},
-              React.createElement('div', null, 
-                React.createElement('strong', null, 'Transaction Type:'), ' ', invoice.category_of_sale || 'Corporate'
-              ),
-              React.createElement('div', null, 
-                React.createElement('strong', null, 'Sale Type:'), ' ', invoice.type_of_sale || 'Tour'
-              )
-            )
-          ),
+React.createElement('div', { className: 'invoice-meta' },
+  React.createElement('div', null,
+    React.createElement('div', null, 
+      React.createElement('strong', null, 'Date:'), ' ',
+      new Date(invoice.invoice_date || invoice.created_date || Date.now()).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      })
+    ),
+    // Show Order No for tax invoices
+    invoice.invoice_type !== 'proforma' && invoice.original_invoice_number && 
+    React.createElement('div', null, 
+      React.createElement('strong', null, 'Order No:'), ' ', invoice.original_invoice_number || invoice.order_number
+    ),
+    React.createElement('div', null, 
+      React.createElement('strong', null, 'Invoice No:'), ' ', invoice.invoice_number
+    ),
+    React.createElement('div', null, 
+      React.createElement('strong', null, 'POS:'), ' ', invoice.indian_state || 'Haryana'
+    )
+  ),
+  React.createElement('div', { style: { textAlign: 'right' }},
+    React.createElement('div', null, 
+      React.createElement('strong', null, 'Transaction Type:'), ' ', invoice.category_of_sale || 'Corporate'
+    ),
+    React.createElement('div', null, 
+      React.createElement('strong', null, 'Sale Type:'), ' ', invoice.type_of_sale || 'Tour'
+    )
+  )
+),
 
           React.createElement('div', { className: 'customer-section' },
             React.createElement('div', { className: 'customer-title' }, 
