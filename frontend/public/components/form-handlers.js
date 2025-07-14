@@ -1278,29 +1278,48 @@ window.rejectOrder = async function(orderId) {
 // Connect orders.js "View Invoice" button to existing openInvoicePreview
 window.viewInvoice = function(order) {
   console.log('📄 viewInvoice called for order:', order);
-  console.log('Order details:', {
-    id: order.id,
-    order_type: order.order_type,
-    invoice_type: order.invoice_type,
-    status: order.status,
-    invoice_number: order.invoice_number,
-    order_number: order.order_number
-  });
   
-  // Check if this is a proforma order (payment_post_service)
+  // Check if this is a proforma order
   const isProformaOrder = order.order_type === 'payment_post_service' || 
                          order.invoice_type === 'proforma' ||
                          order.status === 'proforma';
   
-  console.log('Is proforma order:', isProformaOrder);
+  // For tax invoices, check if finance invoice number exists
+  if (!isProformaOrder && !order.finance_invoice_number) {
+    // Show modal to enter finance invoice number
+    window.setCurrentOrderForInvoice(order);
+    window.setFinanceInvoiceNumber(order.finance_invoice_number || '');
+    window.setShowFinanceInvoiceModal(true);
+    return;
+  }
   
-  // Always construct invoice from order data for consistency
+  // If we have finance invoice number or it's proforma, proceed
+  window.openInvoicePreviewDirectly(order);
+};
+
+// Direct invoice preview function
+window.openInvoicePreviewDirectly = function(order) {
+  const isProformaOrder = order.order_type === 'payment_post_service' || 
+                         order.invoice_type === 'proforma' ||
+                         order.status === 'proforma';
+  
+  // Construct invoice data
   const invoiceData = {
     // Basic identifiers
     id: order.id || Date.now(),
-    invoice_number: order.invoice_number || order.order_number || ('PI-' + Date.now()),
+    
+    // For tax invoices: order_number is original, invoice_number is finance number
+    // For proforma: invoice_number is the proforma number
+    order_number: order.order_number || order.invoice_number,
+    invoice_number: isProformaOrder 
+      ? (order.invoice_number || order.order_number || ('PI-' + Date.now()))
+      : (order.finance_invoice_number || order.invoice_number),
+    
+    // Store original invoice number for tax invoices
+    original_invoice_number: !isProformaOrder ? order.invoice_number : null,
+    finance_invoice_number: order.finance_invoice_number,
+    
     order_id: order.id,
-    order_number: order.order_number,
     
     // Invoice type and status
     invoice_type: isProformaOrder ? 'proforma' : 'tax',
@@ -1326,7 +1345,7 @@ window.viewInvoice = function(order) {
     event_location: order.event_location || 'domestic',
     payment_currency: order.payment_currency || 'INR',
     
-    // Invoice items - ensure we have valid items
+    // Invoice items
     invoice_items: order.invoice_items && order.invoice_items.length > 0 
       ? order.invoice_items 
       : [{
@@ -1339,12 +1358,12 @@ window.viewInvoice = function(order) {
     // Financial details
     base_amount: order.base_amount || order.total_amount || 0,
     
-    // GST calculation - ensure proper structure
+    // GST calculation
     gst_calculation: order.gst_calculation || { 
       applicable: false, 
       rate: 0, 
       amount: 0,
-      total: 0, // Add total field
+      total: 0,
       cgst: 0, 
       sgst: 0, 
       igst: 0 
@@ -1712,6 +1731,116 @@ window.testProformaInvoice = () => {
   };
   
   window.openProformaInvoiceForm(testLead);
+};
+
+
+// Finance Invoice Number Modal
+window.renderFinanceInvoiceModal = () => {
+  const { showFinanceInvoiceModal, currentOrderForInvoice, financeInvoiceNumber } = window.appState || {};
+  
+  if (!showFinanceInvoiceModal) return null;
+  
+  return React.createElement('div', {
+    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
+    onClick: (e) => {
+      if (e.target === e.currentTarget) {
+        window.setShowFinanceInvoiceModal(false);
+      }
+    }
+  },
+    React.createElement('div', {
+      className: 'bg-white rounded-lg p-6 w-full max-w-md'
+    },
+      React.createElement('h3', {
+        className: 'text-lg font-semibold mb-4'
+      }, 'Enter Finance Invoice Number'),
+      
+      React.createElement('div', { className: 'mb-4' },
+        React.createElement('label', {
+          className: 'block text-sm font-medium text-gray-700 mb-1'
+        }, 'Order Number'),
+        React.createElement('input', {
+          type: 'text',
+          value: currentOrderForInvoice?.invoice_number || currentOrderForInvoice?.order_number || '',
+          disabled: true,
+          className: 'w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100'
+        })
+      ),
+      
+      React.createElement('div', { className: 'mb-4' },
+        React.createElement('label', {
+          className: 'block text-sm font-medium text-gray-700 mb-1'
+        }, 'Finance Invoice Number *'),
+        React.createElement('input', {
+          type: 'text',
+          value: financeInvoiceNumber || '',
+          onChange: (e) => window.setFinanceInvoiceNumber(e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
+          placeholder: 'e.g., STTS/INV/2025/001',
+          required: true,
+          autoFocus: true
+        })
+      ),
+      
+      React.createElement('div', { className: 'flex justify-end space-x-3' },
+        React.createElement('button', {
+          onClick: () => {
+            window.setShowFinanceInvoiceModal(false);
+            window.setFinanceInvoiceNumber('');
+          },
+          className: 'px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50'
+        }, 'Cancel'),
+        
+        React.createElement('button', {
+          onClick: async () => {
+            if (!financeInvoiceNumber?.trim()) {
+              alert('Please enter a finance invoice number');
+              return;
+            }
+            
+            await window.saveFinanceInvoiceNumber(currentOrderForInvoice, financeInvoiceNumber);
+            window.setShowFinanceInvoiceModal(false);
+          },
+          className: 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700',
+          disabled: !financeInvoiceNumber?.trim()
+        }, 'Save & View Invoice')
+      )
+    )
+  );
+};
+
+// Function to save finance invoice number
+window.saveFinanceInvoiceNumber = async (order, financeInvoiceNumber) => {
+  try {
+    window.setLoading(true);
+    
+    // Update the order with finance invoice number
+    const updateData = {
+      finance_invoice_number: financeInvoiceNumber,
+      finance_invoice_date: new Date().toISOString(),
+      finance_invoice_by: window.user?.name || window.user?.email
+    };
+    
+    const response = await window.apiCall(`/orders/${order.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData)
+    });
+    
+    // Update local state
+    window.setOrders(prev => prev.map(o => 
+      o.id === order.id ? { ...o, ...updateData } : o
+    ));
+    
+    // Now open the invoice with the finance number
+    const updatedOrder = { ...order, ...updateData };
+    window.openInvoicePreviewDirectly(updatedOrder);
+    
+  } catch (error) {
+    console.error('Error saving finance invoice number:', error);
+    alert('Failed to save finance invoice number: ' + error.message);
+  } finally {
+    window.setLoading(false);
+  }
 };
 
 console.log('✅ Proforma Invoice integration loaded. Use window.testProformaInvoice() to test.');
