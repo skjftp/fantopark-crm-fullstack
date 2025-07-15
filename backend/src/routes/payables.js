@@ -338,5 +338,148 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Add this new endpoint to your backend/src/routes/payables.js file
+
+// POST partial payment for a payable
+router.post('/:id/partial-payment', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      payment_amount,      // Amount in original currency
+      payment_exchange_rate, // Exchange rate at payment time
+      payment_reference,
+      payment_date,
+      payment_notes
+    } = req.body;
+    
+    // Get existing payable
+    const payableRef = db.collection('crm_payables').doc(id);
+    const payable = await payableRef.get();
+    
+    if (!payable.exists) {
+      return res.status(404).json({ error: 'Payable not found' });
+    }
+    
+    const existingData = payable.data();
+    
+    // Validate payment amount
+    const originalAmount = existingData.original_amount || existingData.amount;
+    const totalPaidSoFar = (existingData.payment_history || [])
+      .reduce((sum, payment) => sum + payment.amount_foreign, 0);
+    const remainingAmount = originalAmount - totalPaidSoFar;
+    
+    if (payment_amount > remainingAmount) {
+      return res.status(400).json({ 
+        error: 'Payment amount exceeds remaining balance',
+        remaining: remainingAmount 
+      });
+    }
+    
+    // Calculate payment in INR
+    const payableCurrency = existingData.original_currency || existingData.currency || 'INR';
+    const paymentExchangeRate = payableCurrency === 'INR' ? 1 : (payment_exchange_rate || existingData.exchange_rate);
+    const paymentAmountINR = payment_amount * paymentExchangeRate;
+    
+    // Calculate FX impact for this payment
+    const creationRate = existingData.creation_exchange_rate || existingData.exchange_rate || 1;
+    const creationAmountINR = payment_amount * creationRate;
+    const exchangeDifference = paymentAmountINR - creationAmountINR;
+    const exchangeDifferenceType = exchangeDifference > 0 ? 'loss' : 'gain';
+    
+    // Create payment record
+    const paymentRecord = {
+      payment_id: 'PAY-' + Date.now(),
+      date: payment_date || new Date().toISOString(),
+      amount_foreign: payment_amount,
+      currency: payableCurrency,
+      exchange_rate: paymentExchangeRate,
+      amount_inr: paymentAmountINR,
+      creation_rate: creationRate,
+      exchange_difference: exchangeDifference,
+      exchange_difference_type: exchangeDifferenceType,
+      reference: payment_reference || '',
+      notes: payment_notes || '',
+      created_by: req.user.email,
+      created_date: new Date().toISOString()
+    };
+    
+    // Update payable
+    const newTotalPaid = totalPaidSoFar + payment_amount;
+    const isFullyPaid = newTotalPaid >= originalAmount;
+    
+    const updateData = {
+      payment_history: [...(existingData.payment_history || []), paymentRecord],
+      total_paid_foreign: newTotalPaid,
+      total_paid_inr: (existingData.total_paid_inr || 0) + paymentAmountINR,
+      remaining_amount_foreign: originalAmount - newTotalPaid,
+      status: isFullyPaid ? 'paid' : 'partial',
+      last_payment_date: paymentRecord.date,
+      updated_date: new Date().toISOString(),
+      updated_by: req.user.email
+    };
+    
+    // If fully paid, calculate total FX impact
+    if (isFullyPaid) {
+      updateData.payment_date = paymentRecord.date;
+      
+      // Sum up all exchange differences
+      const totalExchangeDifference = (existingData.payment_history || [])
+        .reduce((sum, p) => sum + (p.exchange_difference || 0), 0) + exchangeDifference;
+      
+      updateData.total_exchange_difference = totalExchangeDifference;
+      updateData.total_exchange_difference_type = totalExchangeDifference > 0 ? 'loss' : 'gain';
+    }
+    
+    await payableRef.update(updateData);
+    
+    // Update related inventory if exists
+    if (existingData.inventoryId) {
+      try {
+        const inventoryRef = db.collection('crm_inventory').doc(existingData.inventoryId);
+        const inventory = await inventoryRef.get();
+        
+        if (inventory.exists) {
+          const inventoryData = inventory.data();
+          const currentPaidINR = parseFloat(inventoryData.amountPaid_inr || inventoryData.amountPaid || 0);
+          const newAmountPaidINR = currentPaidINR + paymentAmountINR;
+          const totalAmountINR = parseFloat(inventoryData.totalPurchaseAmount_inr || inventoryData.totalPurchaseAmount || 0);
+          
+          await inventoryRef.update({
+            amountPaid: inventoryData.purchase_currency === 'INR' ? newAmountPaidINR : newTotalPaid,
+            amountPaid_inr: newAmountPaidINR,
+            paymentStatus: isFullyPaid ? 'paid' : 'partial',
+            updated_date: new Date().toISOString()
+          });
+        }
+      } catch (invError) {
+        console.error('Error updating inventory:', invError);
+      }
+    }
+    
+    // Prepare response
+    res.json({
+      success: true,
+      data: {
+        id,
+        payment_record: paymentRecord,
+        remaining_amount: remainingAmount - payment_amount,
+        remaining_amount_inr: (originalAmount - newTotalPaid) * paymentExchangeRate,
+        status: updateData.status,
+        exchange_impact: {
+          amount: Math.abs(exchangeDifference),
+          type: exchangeDifferenceType,
+          creation_rate: creationRate,
+          payment_rate: paymentExchangeRate,
+          message: `Exchange ${exchangeDifferenceType}: ₹${Math.abs(exchangeDifference).toFixed(2)}`
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error recording partial payment:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
 // Deployment: 1751483422

@@ -136,8 +136,9 @@ window.renderEnhancedPaymentSection = () => {
           className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-orange-500',
           required: true
         },
-          React.createElement('option', { value: 'pending' }, 'Pending'),
-          React.createElement('option', { value: 'paid' }, 'Paid')
+React.createElement('option', { value: 'pending' }, 'Pending'),
+React.createElement('option', { value: 'partial' }, 'Partial'),
+React.createElement('option', { value: 'paid' }, 'Paid')
         )
       ),
       

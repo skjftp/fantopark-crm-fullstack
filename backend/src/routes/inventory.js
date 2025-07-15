@@ -544,6 +544,16 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
                     difference: payableUpdateData.exchange_difference,
                     type: payableUpdateData.exchange_difference_type
                   });
+
+                  // Calculate FX impact (add this BEFORE const paymentRecord = {...})
+                    const payableCreationRate = payableData.creation_exchange_rate || payableData.exchange_rate || exchangeRate;
+                    const paymentAmountForeign = currency === 'INR' ? paymentIncrement : paymentIncrement / exchangeRate;
+                    
+                    // How much INR it would have cost at creation vs now
+                    const creationValueINR = paymentAmountForeign * payableCreationRate;
+                    const currentValueINR = paymentAmountForeign * exchangeRate;
+                    const fxDifference = currentValueINR - creationValueINR;
+                    const fxType = fxDifference > 0 ? 'loss' : 'gain';
                   
                   // Add to payment history
                   const paymentRecord = {
@@ -553,7 +563,10 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
                     amount_inr: paymentAmountINR,
                     difference: payableUpdateData.exchange_difference,
                     reference: 'Inventory payment',
-                    created_by: req.user.email
+                    created_by: req.user.email,
+                    fx_difference: fxDifference,
+                    fx_type: fxType,
+                    fx_note: `Exchange ${fxType}: ₹${Math.abs(fxDifference).toFixed(2)}`
                   };
                   
                   payableUpdateData.payment_history = [...(payableData.payment_history || []), paymentRecord];
@@ -962,7 +975,20 @@ router.put('/:id/payment', authenticateToken, checkPermission('finance', 'write'
     }
     
     const currentData = inventoryDoc.data();
-    // ✅ FIXED: Use correct field names with fallback
+    
+    // ADD THIS: Calculate payment increment for partial payments
+    const oldAmountPaid = parseFloat(currentData.amountPaid || 0);
+    const newAmountPaid = parseFloat(amountPaid || 0);
+    const paymentIncrement = newAmountPaid - oldAmountPaid;
+    
+    console.log('Payment calculation:', {
+      oldAmountPaid,
+      newAmountPaid,
+      paymentIncrement,
+      paymentStatus: updateData.paymentStatus
+    });
+    
+    // Use correct field names with fallback
     const currency = currentData.purchase_currency || currentData.price_currency || 'INR';
     const exchangeRate = currentData.purchase_exchange_rate || currentData.exchange_rate || 1;
     
@@ -981,26 +1007,61 @@ router.put('/:id/payment', authenticateToken, checkPermission('finance', 'write'
     
     await db.collection('crm_inventory').doc(id).update(updateData);
     
-    // Update related payable if it exists
+    // UPDATE THIS SECTION: Handle payable updates with partial payment tracking
     const payablesSnapshot = await db.collection('crm_payables')
       .where('inventoryId', '==', id)
       .get();
     
     if (!payablesSnapshot.empty) {
       const batch = db.batch();
-      payablesSnapshot.forEach(doc => {
-        batch.update(doc.ref, {
-          status: paymentStatus === 'paid' ? 'paid' : 'pending',
+      
+      for (const doc of payablesSnapshot.docs) {
+        const payableData = doc.data();
+        const payableUpdate = {
+          status: paymentStatus === 'paid' ? 'paid' : (paymentStatus === 'partial' ? 'partial' : 'pending'),
           updated_date: new Date().toISOString()
-        });
-      });
+        };
+        
+        // ADD THIS: If this is a partial payment, track the payment history
+        if (paymentIncrement > 0) {
+          // Initialize payment history if it doesn't exist
+          const paymentHistory = payableData.payment_history || [];
+          
+          // Add new payment record
+          const paymentRecord = {
+            payment_id: 'PAY-' + Date.now(),
+            date: new Date().toISOString(),
+            amount_foreign: currency === 'INR' ? paymentIncrement : paymentIncrement / exchangeRate,
+            currency: currency,
+            exchange_rate: exchangeRate,
+            amount_inr: paymentIncrement,
+            reference: `Partial payment from inventory`,
+            created_by: req.user.email
+          };
+          
+          payableUpdate.payment_history = [...paymentHistory, paymentRecord];
+          payableUpdate.total_paid_foreign = (payableData.total_paid_foreign || 0) + paymentRecord.amount_foreign;
+          payableUpdate.total_paid_inr = (payableData.total_paid_inr || 0) + paymentIncrement;
+          
+          console.log('Adding payment record to payable:', paymentRecord);
+        }
+        
+        batch.update(doc.ref, payableUpdate);
+      }
+      
       await batch.commit();
     }
     
     res.json({ 
       success: true, 
-      message: 'Payment updated and synced',
-      data: { id, ...updateData }
+      message: paymentIncrement > 0 && paymentStatus === 'partial' 
+        ? `Partial payment of ${currency} ${currency === 'INR' ? paymentIncrement : (paymentIncrement / exchangeRate).toFixed(2)} recorded successfully`
+        : 'Payment updated and synced',
+      data: { 
+        id, 
+        ...updateData,
+        payment_increment: paymentIncrement
+      }
     });
   } catch (error) {
     console.error('Error updating payment:', error);

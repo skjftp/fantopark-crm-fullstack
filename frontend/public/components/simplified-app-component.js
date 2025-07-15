@@ -2496,7 +2496,7 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
     { name: 'booking_person', label: 'Booking Person (Who Purchased)', type: 'text', required: true, placeholder: 'Name of person/company who purchased inventory' },
     { name: 'procurement_type', label: 'Procurement Type', type: 'select', options: ['pre_inventory', 'on_demand', 'partnership', 'direct_booking'], required: true },
     { name: 'notes', label: 'Additional Notes', type: 'textarea', required: false, placeholder: 'Any special conditions, restrictions, or notes' },
-    { name: 'paymentStatus', label: 'Payment Status', type: 'select', options: ['paid', 'pending'], required: true },
+   { name: 'paymentStatus', label: 'Payment Status', type: 'select', options: ['paid', 'partial', 'pending'], required: true },
     { name: 'supplierName', label: 'Supplier Name', type: 'text', required: false },
     { name: 'supplierInvoice', label: 'Supplier Invoice #', type: 'text', required: false },
     { name: 'purchasePrice', label: 'Purchase Price (per ticket)', type: 'number', required: false },
