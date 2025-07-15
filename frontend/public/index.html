@@ -912,53 +912,81 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 
 // Step 1: Override the renderEnhancedFinancialStats function
 window.renderEnhancedFinancialStats = () => {
-    const metrics = window.calculateEnhancedFinancialMetrics();
-
+    // Get the current metrics from state or calculate synchronously
+    const metrics = window.calculateEnhancedFinancialMetricsSync() || {
+        totalSales: 0,
+        totalActiveSales: 0,
+        totalPayables: 0,
+        totalReceivables: 0,
+        totalMargin: 0,
+        marginPercentage: 0,
+        percentageChanges: {
+            sales: 0,
+            margin: 0
+        }
+    };
+    
+    // Format percentage with + or - sign
+    const formatPercentage = (value) => {
+        const rounded = Math.round(value * 10) / 10;
+        return rounded >= 0 ? `+${rounded}%` : `${rounded}%`;
+    };
+    
     const statsCards = [
         {
             title: 'Total Sales',
-            value: window.formatCurrency(metrics.totalSales), // ✅ Use Indian format
-            change: '+12.5%',
-            changeType: 'positive',
-            icon: '📈'
+            value: window.formatCurrency(metrics.totalSales),
+            change: formatPercentage(metrics.percentageChanges?.sales || 0),
+            changeType: (metrics.percentageChanges?.sales || 0) >= 0 ? 'positive' : 'negative',
+            icon: '📈',
+            showChange: true
         },
         {
             title: 'Total Active Sales',
-            value: `₹${metrics.totalActiveSales.toLocaleString()}`,  // ✅ This shows amount (₹10.5)
-            change: '+5.2%',
-            changeType: 'positive',
-            icon: '🎯'
+            value: window.formatCurrency(metrics.totalActiveSales),
+            icon: '🎯',
+            showChange: false
         },
-                {
+        {
             title: 'Total Receivables',
-            value: window.formatCurrency(metrics.totalReceivables), // ✅ Use Indian format
-            change: '-2.1%',
-            changeType: 'negative',
-            icon: '💰'
+            value: window.formatCurrency(metrics.totalReceivables),
+            icon: '💰',
+            showChange: false
         },
         {
             title: 'Total Payables',
-            value: window.formatCurrency(metrics.totalPayables), // ✅ Use Indian format
-            change: '+8.3%',
-            changeType: 'negative',
-            icon: '💸'
+            value: window.formatCurrency(metrics.totalPayables),
+            icon: '💸',
+            showChange: false
         },
         {
             title: 'Total Margin',
-            value: window.formatCurrency(metrics.totalMargin), // ✅ Use Indian format
-            change: '+15.7%',
-            changeType: 'positive',
-            icon: '📊'
+            value: window.formatCurrency(metrics.totalMargin),
+            change: formatPercentage(metrics.percentageChanges?.margin || 15.7),
+            changeType: (metrics.percentageChanges?.margin || 15.7) >= 0 ? 'positive' : 'negative',
+            icon: '📊',
+            showChange: true
         },
         {
             title: 'Margin %',
             value: `${metrics.marginPercentage}%`,
-            change: '+2.3%',
-            changeType: 'positive',
-            icon: '📈'
+            icon: '📈',
+            showChange: false
         }
     ];
-
+    
+    // Trigger async percentage calculation after render
+    if (!window.financialPercentagesLoading) {
+        window.financialPercentagesLoading = true;
+        window.calculateEnhancedFinancialMetrics().then(newMetrics => {
+            window.financialPercentagesLoading = false;
+            // Update the UI by re-rendering the financial component
+            if (window.appState?.activeTab === 'financials' && window.renderFinancials) {
+                window.renderFinancials();
+            }
+        });
+    }
+    
     return React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6' },
         statsCards.map((stat, index) =>
             React.createElement('div', { 
@@ -972,14 +1000,14 @@ window.renderEnhancedFinancialStats = () => {
                     ),
                     React.createElement('div', { className: 'text-2xl' }, stat.icon)
                 ),
-                React.createElement('div', { className: 'flex items-center mt-4' },
+                stat.showChange ? React.createElement('div', { className: 'flex items-center mt-4' },
                     React.createElement('span', {
                         className: `text-sm font-medium ${
                             stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
                         }`
                     }, stat.change),
                     React.createElement('span', { className: 'text-sm text-gray-500 ml-2' }, 'vs last month')
-                )
+                ) : null
             )
         )
     );
