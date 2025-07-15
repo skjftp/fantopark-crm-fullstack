@@ -159,6 +159,16 @@ window.fetchCurrencyRates = async function() {
       window.currencyTickerState.lastUpdate = new Date(cached.timestamp);
     }
   }
+
+  // Add this to your fetchCurrencyRates function after updating rates
+const oldUSD = window.currencyTickerState.rates.USD;
+const newUSD = newRates.USD;
+
+if (oldUSD !== newUSD) {
+  console.log(`USD rate changed: ${oldUSD} → ${newUSD} (${newUSD > oldUSD ? '+' : ''}${(newUSD - oldUSD).toFixed(2)})`);
+} else {
+  console.log('USD rate unchanged at:', newUSD);
+}
   
   if (window.forceUpdate) window.forceUpdate();
 };
