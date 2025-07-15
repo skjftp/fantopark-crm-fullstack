@@ -1,16 +1,14 @@
-// Copy this entire code into the new file currency-ticker.js
-
 // Currency Ticker Component for FanToPark CRM
 // Shows live currency rates and allows quick conversion
 // Uses exchangerate-api.com for free currency data
 
 window.renderCurrencyTicker = () => {
   const [rates, setRates] = React.useState({
-    USD: 0,
-    EUR: 0,
-    GBP: 0,
-    AED: 0,
-    SGD: 0
+    USD: 83.50,
+    EUR: 90.20,
+    GBP: 105.50,
+    AED: 22.75,
+    SGD: 61.80
   });
   const [loading, setLoading] = React.useState(true);
   const [lastUpdate, setLastUpdate] = React.useState(null);
@@ -43,19 +41,10 @@ window.renderCurrencyTicker = () => {
       
     } catch (error) {
       console.error('Failed to fetch currency rates:', error);
-      // Fallback rates
-      const fallbackRates = {
-        USD: 83.50,
-        EUR: 90.20,
-        GBP: 105.50,
-        AED: 22.75,
-        SGD: 61.80
-      };
-      setRates(fallbackRates);
-      window.currentExchangeRates = fallbackRates;
-    } finally {
+      // Use default rates if API fails
       setLoading(false);
     }
+    setLoading(false);
   };
 
   // Fetch rates on mount and every 30 minutes
@@ -67,7 +56,7 @@ window.renderCurrencyTicker = () => {
 
   // Format currency display
   const formatRate = (rate) => {
-    return `₹${rate.toFixed(2)}`;
+    return '₹' + rate.toFixed(2);
   };
 
   // Currency flags/symbols
@@ -82,9 +71,8 @@ window.renderCurrencyTicker = () => {
   return React.createElement('div', { className: 'relative' },
     // Main ticker display
     React.createElement('div', { 
-      className: 'flex items-center gap-3 text-sm',
-      onClick: () => setShowConverter(!showConverter),
-      style: { cursor: 'pointer' }
+      className: 'flex items-center gap-3 text-sm cursor-pointer',
+      onClick: () => setShowConverter(!showConverter)
     },
       // Currency icon
       React.createElement('div', { className: 'text-gray-500' },
@@ -142,7 +130,7 @@ window.renderCurrencyTicker = () => {
           },
             Object.keys(rates).map(currency =>
               React.createElement('option', { key: currency, value: currency }, 
-                `${currencySymbols[currency]} ${currency}`
+                currencySymbols[currency] + ' ' + currency
               )
             )
           ),
@@ -162,16 +150,16 @@ window.renderCurrencyTicker = () => {
         React.createElement('div', { className: 'bg-gray-50 p-3 rounded-md' },
           React.createElement('div', { className: 'text-sm text-gray-600 mb-1' }, 'Indian Rupees'),
           React.createElement('div', { className: 'text-xl font-semibold text-gray-800' }, 
-            `₹${(conversionAmount * rates[fromCurrency]).toLocaleString('en-IN', { 
+            '₹' + (conversionAmount * rates[fromCurrency]).toLocaleString('en-IN', { 
               minimumFractionDigits: 2,
               maximumFractionDigits: 2 
-            })}`
+            })
           )
         ),
         
         // Last update
         lastUpdate && React.createElement('div', { className: 'text-xs text-gray-500 text-center pt-2 border-t' },
-          `Rates updated: ${lastUpdate.toLocaleTimeString()}`
+          'Rates updated: ' + lastUpdate.toLocaleTimeString()
         ),
         
         // Refresh button
