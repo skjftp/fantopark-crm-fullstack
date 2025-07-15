@@ -338,4 +338,106 @@ window.initializeReminderSystem = function() {
   }
 };
 
+// Enhanced filter function that combines all filters
+window.getFilteredReminders = function() {
+  let filtered = [...(window.reminders || [])];
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today.getTime() + 24*60*60*1000);
+  const weekEnd = new Date(today.getTime() + 7*24*60*60*1000);
+  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+  // Search filter
+  if (window.reminderSearchQuery && window.reminderSearchQuery.trim()) {
+    const searchLower = window.reminderSearchQuery.toLowerCase();
+    filtered = filtered.filter(r => {
+      // Search in reminder fields
+      const titleMatch = r.title && r.title.toLowerCase().includes(searchLower);
+      const descMatch = r.description && r.description.toLowerCase().includes(searchLower);
+      
+      // Search in associated lead name
+      const lead = window.leads?.find(l => l.id === r.lead_id);
+      const leadMatch = lead && lead.name && lead.name.toLowerCase().includes(searchLower);
+      
+      return titleMatch || descMatch || leadMatch;
+    });
+  }
+
+  // Status filter
+  if (window.reminderStatusFilter && window.reminderStatusFilter !== 'all') {
+    if (window.reminderStatusFilter === 'overdue') {
+      filtered = filtered.filter(r => 
+        r.status === 'pending' && new Date(r.due_date) < now
+      );
+    } else {
+      filtered = filtered.filter(r => r.status === window.reminderStatusFilter);
+    }
+  }
+
+  // Priority filter
+  if (window.reminderPriorityFilter && window.reminderPriorityFilter !== 'all') {
+    filtered = filtered.filter(r => r.priority === window.reminderPriorityFilter);
+  }
+
+  // Type filter
+  if (window.reminderTypeFilter && window.reminderTypeFilter !== 'all') {
+    filtered = filtered.filter(r => r.reminder_type === window.reminderTypeFilter);
+  }
+
+  // Date filter
+  if (window.reminderDateFilter && window.reminderDateFilter !== 'all') {
+    switch(window.reminderDateFilter) {
+      case 'overdue':
+        filtered = filtered.filter(r => new Date(r.due_date) < now);
+        break;
+      case 'today':
+        filtered = filtered.filter(r => {
+          const dueDate = new Date(r.due_date);
+          return dueDate >= today && dueDate < tomorrow;
+        });
+        break;
+      case 'tomorrow':
+        filtered = filtered.filter(r => {
+          const dueDate = new Date(r.due_date);
+          return dueDate >= tomorrow && dueDate < new Date(tomorrow.getTime() + 24*60*60*1000);
+        });
+        break;
+      case 'week':
+        filtered = filtered.filter(r => {
+          const dueDate = new Date(r.due_date);
+          return dueDate >= today && dueDate <= weekEnd;
+        });
+        break;
+      case 'month':
+        filtered = filtered.filter(r => {
+          const dueDate = new Date(r.due_date);
+          return dueDate >= today && dueDate <= monthEnd;
+        });
+        break;
+    }
+  }
+
+  // Sort
+  filtered.sort((a, b) => {
+    let compareValue = 0;
+    
+    switch(window.reminderSortBy) {
+      case 'due_date':
+        compareValue = new Date(a.due_date) - new Date(b.due_date);
+        break;
+      case 'priority':
+        const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
+        compareValue = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+        break;
+      case 'created_date':
+        compareValue = new Date(b.created_date) - new Date(a.created_date);
+        break;
+    }
+    
+    return window.reminderSortOrder === 'desc' ? -compareValue : compareValue;
+  });
+
+  return filtered;
+};
+
 console.log('✅ Reminder Management Functions component loaded successfully');
