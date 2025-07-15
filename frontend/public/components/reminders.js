@@ -155,8 +155,126 @@ window.ReminderFilters = () => {
           React.createElement('option', { value: 'month' }, 'This Month')
         )
       )
+    ),
+    
+    // Reset Filters Button
+    React.createElement('div', { className: 'mt-4 flex justify-end' },
+      React.createElement('button', {
+        onClick: () => {
+          window.reminderSearchQuery = '';
+          window.reminderStatusFilter = 'all';
+          window.reminderPriorityFilter = 'all';
+          window.reminderTypeFilter = 'all';
+          window.reminderDateFilter = 'all';
+          setLocalSearchQuery('');
+          if (window.fetchReminders) window.fetchReminders();
+        },
+        className: 'px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+      }, '🔄 Reset Filters')
     )
   );
+};
+
+// Enhanced filter function that combines all filters
+window.getFilteredReminders = function() {
+  let filtered = [...(window.reminders || [])];
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today.getTime() + 24*60*60*1000);
+  const weekEnd = new Date(today.getTime() + 7*24*60*60*1000);
+  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+  // Search filter
+  if (window.reminderSearchQuery && window.reminderSearchQuery.trim()) {
+    const searchLower = window.reminderSearchQuery.toLowerCase();
+    filtered = filtered.filter(r => {
+      // Search in reminder fields
+      const titleMatch = r.title && r.title.toLowerCase().includes(searchLower);
+      const descMatch = r.description && r.description.toLowerCase().includes(searchLower);
+      
+      // Search in associated lead name
+      const lead = window.leads?.find(l => l.id === r.lead_id);
+      const leadMatch = lead && lead.name && lead.name.toLowerCase().includes(searchLower);
+      
+      return titleMatch || descMatch || leadMatch;
+    });
+  }
+
+  // Status filter
+  if (window.reminderStatusFilter && window.reminderStatusFilter !== 'all') {
+    if (window.reminderStatusFilter === 'overdue') {
+      filtered = filtered.filter(r => 
+        r.status === 'pending' && new Date(r.due_date) < now
+      );
+    } else {
+      filtered = filtered.filter(r => r.status === window.reminderStatusFilter);
+    }
+  }
+
+  // Priority filter
+  if (window.reminderPriorityFilter && window.reminderPriorityFilter !== 'all') {
+    filtered = filtered.filter(r => r.priority === window.reminderPriorityFilter);
+  }
+
+  // Type filter
+  if (window.reminderTypeFilter && window.reminderTypeFilter !== 'all') {
+    filtered = filtered.filter(r => r.reminder_type === window.reminderTypeFilter);
+  }
+
+  // Date filter
+  if (window.reminderDateFilter && window.reminderDateFilter !== 'all') {
+    switch(window.reminderDateFilter) {
+      case 'overdue':
+        filtered = filtered.filter(r => new Date(r.due_date) < now);
+        break;
+      case 'today':
+        filtered = filtered.filter(r => {
+          const dueDate = new Date(r.due_date);
+          return dueDate >= today && dueDate < tomorrow;
+        });
+        break;
+      case 'tomorrow':
+        filtered = filtered.filter(r => {
+          const dueDate = new Date(r.due_date);
+          return dueDate >= tomorrow && dueDate < new Date(tomorrow.getTime() + 24*60*60*1000);
+        });
+        break;
+      case 'week':
+        filtered = filtered.filter(r => {
+          const dueDate = new Date(r.due_date);
+          return dueDate >= today && dueDate <= weekEnd;
+        });
+        break;
+      case 'month':
+        filtered = filtered.filter(r => {
+          const dueDate = new Date(r.due_date);
+          return dueDate >= today && dueDate <= monthEnd;
+        });
+        break;
+    }
+  }
+
+  // Sort
+  filtered.sort((a, b) => {
+    let compareValue = 0;
+    
+    switch(window.reminderSortBy) {
+      case 'due_date':
+        compareValue = new Date(a.due_date) - new Date(b.due_date);
+        break;
+      case 'priority':
+        const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
+        compareValue = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+        break;
+      case 'created_date':
+        compareValue = new Date(b.created_date) - new Date(a.created_date);
+        break;
+    }
+    
+    return window.reminderSortOrder === 'desc' ? -compareValue : compareValue;
+  });
+
+  return filtered;
 };
 
 // ===== ENHANCED: Main Reminders Content Function with Smart Text Display =====
@@ -248,6 +366,8 @@ window.renderRemindersContent = () => {
       )
     ),
 
+    React.createElement(window.ReminderFilters),
+    
     // ===== ENHANCED: Reminders table with smart text truncation =====
     React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
       React.createElement('div', { className: 'px-6 py-4 border-b border-gray-200 dark:border-gray-700' },
@@ -257,17 +377,52 @@ window.renderRemindersContent = () => {
         React.createElement('table', { className: 'w-full' },
           React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
             React.createElement('tr', null,
+              // Title - not sortable
               React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Title'),
-              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Due Date'),
+              
+              // Due Date - sortable
+              React.createElement('th', { 
+                className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700',
+                onClick: () => {
+                  window.reminderSortBy = 'due_date';
+                  window.reminderSortOrder = window.reminderSortOrder === 'asc' ? 'desc' : 'asc';
+                  if (window.fetchReminders) window.fetchReminders();
+                }
+              }, 
+                React.createElement('span', { className: 'flex items-center gap-1' },
+                  'Due Date',
+                  window.reminderSortBy === 'due_date' && React.createElement('span', null, window.reminderSortOrder === 'asc' ? '↑' : '↓')
+                )
+              ),
+              
+              // Status - not sortable
               React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Status'),
-              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Priority'),
+              
+              // Priority - sortable
+              React.createElement('th', { 
+                className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700',
+                onClick: () => {
+                  window.reminderSortBy = 'priority';
+                  window.reminderSortOrder = window.reminderSortOrder === 'asc' ? 'desc' : 'asc';
+                  if (window.fetchReminders) window.fetchReminders();
+                }
+              }, 
+                React.createElement('span', { className: 'flex items-center gap-1' },
+                  'Priority',
+                  window.reminderSortBy === 'priority' && React.createElement('span', null, window.reminderSortOrder === 'asc' ? '↑' : '↓')
+                )
+              ),
+              
+              // Assigned To - not sortable
               React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Assigned To'),
+              
+              // Actions - not sortable
               React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Actions')
             )
           ),
           React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700' },
-            (window.reminders || []).length > 0 ?
-            (window.reminders || []).map(reminder => {
+            (window.getFilteredReminders ? window.getFilteredReminders() : window.reminders || []).length > 0 ?
+            (window.getFilteredReminders ? window.getFilteredReminders() : window.reminders || []).map(reminder => {
               const isOverdue = new Date(reminder.due_date) < new Date() && reminder.status === 'pending';
               const lead = leads.find(l => l.id === reminder.lead_id);
 
@@ -458,4 +613,4 @@ window.ReminderQuickActions = () => {
   );
 };
 
-console.log('✅ ENHANCED: Reminders component with smart text truncation loaded successfully');
+console.log('✅ ENHANCED: Reminders component with filters and search loaded successfully');
