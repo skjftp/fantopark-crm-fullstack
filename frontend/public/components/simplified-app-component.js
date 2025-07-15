@@ -2519,6 +2519,24 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
 
   // ✅ FIXED FORM SUBMIT HANDLER
   window.handleInventoryFormSubmit = async (e) => {
+    // Calculate and save INR values if using foreign currency
+const currency = window.formData.price_currency || 'INR';
+const exchangeRate = window.formData.exchange_rate || 1;
+
+if (currency !== 'INR') {
+  // Update INR values for all categories
+  const updatedCategories = (window.formData.categories || []).map(cat => ({
+    ...cat,
+    buying_price_inr: (parseFloat(cat.buying_price) || 0) * exchangeRate,
+    selling_price_inr: (parseFloat(cat.selling_price) || 0) * exchangeRate
+  }));
+  
+  window.formData.categories = updatedCategories;
+  
+  // Update totals in INR
+  window.formData.totalPurchaseAmount_inr = (parseFloat(window.formData.totalPurchaseAmount) || 0) * exchangeRate;
+  window.formData.amountPaid_inr = (parseFloat(window.formData.amountPaid) || 0) * exchangeRate;
+}
     e.preventDefault();
     
     try {
