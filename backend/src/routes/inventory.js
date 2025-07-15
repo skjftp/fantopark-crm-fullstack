@@ -1023,7 +1023,7 @@ router.put('/:id/payment', authenticateToken, checkPermission('finance', 'write'
         };
         
         // ADD THIS: If this is a partial payment, track the payment history
-        if (paymentIncrement > 0 && paymentStatus === 'partial') {
+        if (paymentIncrement > 0) {
           // Initialize payment history if it doesn't exist
           const paymentHistory = payableData.payment_history || [];
           
