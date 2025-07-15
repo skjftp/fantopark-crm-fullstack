@@ -11,8 +11,9 @@ const { authenticateToken, checkPermission } = require('../middleware/auth');
  * @returns {Object} - Inventory data with INR fields populated
  */
 function processInventoryCurrency(inventoryData) {
-  const currency = inventoryData.price_currency || 'INR';
-  const exchangeRate = inventoryData.exchange_rate || 1;
+  // ✅ FIXED: Use purchase_currency and purchase_exchange_rate
+  const currency = inventoryData.purchase_currency || 'INR';
+  const exchangeRate = inventoryData.purchase_exchange_rate || 1;
   
   // Process categories if they exist
   if (inventoryData.categories && Array.isArray(inventoryData.categories)) {
@@ -93,18 +94,20 @@ const sanitizeInventoryData = (data) => {
     amountPaid: parseFloat(data.amountPaid) || 0,
     paymentDueDate: data.paymentDueDate || '',
     
-    // Currency fields
-    price_currency: data.price_currency || 'INR',
-    exchange_rate: parseFloat(data.exchange_rate) || 1,
+    // ✅ FIXED: Currency fields with correct names
+    purchase_currency: data.purchase_currency || 'INR',
+    purchase_exchange_rate: parseFloat(data.purchase_exchange_rate) || 1,
     totalPurchaseAmount_inr: parseFloat(data.totalPurchaseAmount_inr) || 0,
     amountPaid_inr: parseFloat(data.amountPaid_inr) || 0,
     
-    // Legacy fields for backward compatibility
+    // Legacy fields for backward compatibility (keep old field names too)
+    price_currency: data.purchase_currency || data.price_currency || 'INR',
+    exchange_rate: data.purchase_exchange_rate || data.exchange_rate || 1,
     vendor_name: data.vendor_name || data.supplierName || '',
     price_per_ticket: parseFloat(data.price_per_ticket) || parseFloat(data.selling_price) || 0,
     number_of_tickets: parseInt(data.number_of_tickets) || parseInt(data.total_tickets) || 0,
     total_value_of_tickets: parseFloat(data.total_value_of_tickets) || 0,
-    currency: data.currency || data.price_currency || 'INR',
+    currency: data.purchase_currency || data.currency || data.price_currency || 'INR',
     base_amount_inr: parseFloat(data.base_amount_inr) || 0,
     gst_18_percent: parseFloat(data.gst_18_percent) || 0,
     selling_price_per_ticket: parseFloat(data.selling_price_per_ticket) || parseFloat(data.selling_price) || 0,
@@ -209,8 +212,8 @@ router.post('/', authenticateToken, checkPermission('inventory', 'create'), asyn
     };
     
     console.log('Creating inventory with currency:', {
-      currency: inventoryData.price_currency,
-      exchange_rate: inventoryData.exchange_rate,
+      currency: inventoryData.purchase_currency,
+      exchange_rate: inventoryData.purchase_exchange_rate,
       totalPurchaseAmount_inr: inventoryData.totalPurchaseAmount_inr
     });
     
@@ -248,26 +251,38 @@ router.post('/', authenticateToken, checkPermission('inventory', 'create'), asyn
           pendingBalanceINR
         });
         
-        if (pendingBalanceINR > 0) {
-          const payableData = {
-            inventoryId: docRef.id,
-            supplierName: inventoryData.supplierName || inventoryData.vendor_name || 'Unknown Supplier',
-            eventName: inventoryData.event_name,
-            invoiceNumber: inventoryData.supplierInvoice || 'INV-' + Date.now(),
-            amount: pendingBalanceINR, // Always in INR
-            currency: 'INR',
-            dueDate: inventoryData.paymentDueDate || null,
-            status: 'pending',
-            created_date: new Date().toISOString(),
-            updated_date: new Date().toISOString(),
-            createdBy: req.user.id,
-            description: `Payment for inventory: ${inventoryData.event_name}`,
-            payment_notes: `Created from inventory - Balance: ₹${pendingBalanceINR.toFixed(2)}`
-          };
-          
-          const payableRef = await db.collection('crm_payables').add(payableData);
-          console.log('Payable created with ID:', payableRef.id, 'Amount (INR):', pendingBalanceINR);
-        }
+if (pendingBalanceINR > 0) {
+  // Calculate original currency values
+  const originalCurrency = inventoryData.purchase_currency || inventoryData.price_currency || 'INR';
+  const exchangeRate = inventoryData.purchase_exchange_rate || inventoryData.exchange_rate || 1;
+  const originalPendingBalance = originalCurrency === 'INR' 
+    ? pendingBalanceINR 
+    : pendingBalanceINR / exchangeRate;
+
+  const payableData = {
+    inventoryId: docRef.id,
+    supplierName: inventoryData.supplierName || inventoryData.vendor_name || 'Unknown Supplier',
+    eventName: inventoryData.event_name,
+    invoiceNumber: inventoryData.supplierInvoice || 'INV-' + Date.now(),
+    amount: pendingBalanceINR, // Always in INR for calculations
+    currency: 'INR', // Keep as INR for compatibility
+    // Add original currency fields
+    original_currency: originalCurrency,
+    original_amount: originalPendingBalance,
+    exchange_rate: exchangeRate,
+    dueDate: inventoryData.paymentDueDate || null,
+    status: 'pending',
+    created_date: new Date().toISOString(),
+    updated_date: new Date().toISOString(),
+    createdBy: req.user.id,
+    description: `Payment for inventory: ${inventoryData.event_name}`,
+    payment_notes: `Created from inventory - Balance: ${originalCurrency} ${originalPendingBalance.toFixed(2)} (₹${pendingBalanceINR.toFixed(2)})`
+  };
+  
+  const payableRef = await db.collection('crm_payables').add(payableData);
+  console.log('Payable created with ID:', payableRef.id, 
+    `Amount: ${originalCurrency} ${originalPendingBalance} (INR: ${pendingBalanceINR})`);
+}
       } catch (payableError) {
         console.error('Error creating payable:', payableError);
         // Don't fail the inventory creation if payable fails
@@ -417,9 +432,9 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
       try {
         console.log('Inventory payment info changed, updating payables...');
         
-        // Calculate new values with INR amounts
-        const currency = updateData.price_currency || oldData.price_currency || 'INR';
-        const exchangeRate = updateData.exchange_rate || oldData.exchange_rate || 1;
+        // ✅ FIXED: Use correct field names for currency
+        const currency = updateData.purchase_currency || oldData.purchase_currency || oldData.price_currency || 'INR';
+        const exchangeRate = updateData.purchase_exchange_rate || oldData.purchase_exchange_rate || oldData.exchange_rate || 1;
         
         const newTotalAmountINR = updateData.totalPurchaseAmount_inr !== undefined 
           ? updateData.totalPurchaseAmount_inr 
@@ -478,27 +493,41 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
         } else {
           // CREATE NEW PAYABLE IF NONE EXISTS AND BALANCE > 0
           if (newBalanceINR > 0 && updateData.paymentStatus !== 'paid') {
-            console.log(`No existing payables found. Creating new payable for pending balance: ${newBalanceINR}`);
+            console.log('Creating new payable for pending balance: ${newBalanceINR}');
+
+// Calculate original currency values
+const originalCurrency = updateData.purchase_currency || oldData.purchase_currency || 
+                        updateData.price_currency || oldData.price_currency || 'INR';
+const exchangeRate = updateData.purchase_exchange_rate || oldData.purchase_exchange_rate || 
+                    updateData.exchange_rate || oldData.exchange_rate || 1;
+const originalNewBalance = originalCurrency === 'INR' 
+  ? newBalanceINR 
+  : newBalanceINR / exchangeRate;
+
+const newPayable = {
+  inventoryId: id,
+  amount: newBalanceINR, // Always in INR for calculations
+  currency: 'INR', // Keep as INR for compatibility
+  // Add original currency fields
+  original_currency: originalCurrency,
+  original_amount: originalNewBalance,
+  exchange_rate: exchangeRate,
+  status: 'pending',
+  supplierName: updateData.supplierName || oldData.supplierName || updateData.vendor_name || oldData.vendor_name || 'Unknown Supplier',
+  event_name: updateData.event_name || oldData.event_name || 'Unknown Event',
+  event_date: updateData.event_date || oldData.event_date || null,
+  totalPurchaseAmount: newTotalAmountINR,
+  amountPaid: newAmountPaidINR,
+  created_date: new Date().toISOString(),
+  payment_notes: `Created from inventory update - Balance: ${originalCurrency} ${originalNewBalance.toFixed(2)} (₹${newBalanceINR.toFixed(2)})`,
+  priority: 'medium',
+  dueDate: updateData.paymentDueDate || oldData.paymentDueDate || null
+};
+
+console.log('About to create payable with data:', JSON.stringify(newPayable, null, 2));
+const docRef = await db.collection('crm_payables').add(newPayable);
+console.log(`✅ New payable created with ID: ${docRef.id} Amount: ${originalCurrency} ${originalNewBalance} (INR: ${newBalanceINR})`);
             
-            const newPayable = {
-              inventoryId: id,
-              amount: newBalanceINR, // Always in INR
-              currency: 'INR',
-              status: 'pending',
-              supplierName: updateData.supplierName || oldData.supplierName || updateData.vendor_name || oldData.vendor_name || 'Unknown Supplier',
-              event_name: updateData.event_name || oldData.event_name || 'Unknown Event',
-              event_date: updateData.event_date || oldData.event_date || null,
-              totalPurchaseAmount: newTotalAmountINR,
-              amountPaid: newAmountPaidINR,
-              created_date: new Date().toISOString(),
-              payment_notes: `Created from inventory update - Balance: ₹${newBalanceINR.toFixed(2)} (Total: ₹${newTotalAmountINR} - Paid: ₹${newAmountPaidINR})`,
-              priority: 'medium',
-              dueDate: updateData.paymentDueDate || oldData.paymentDueDate || null
-            };
-            
-            console.log('About to create payable with data:', JSON.stringify(newPayable, null, 2));
-            const docRef = await db.collection('crm_payables').add(newPayable);
-            console.log(`✅ New payable created with ID: ${docRef.id} Amount (INR): ${newBalanceINR}`);
           } else {
             console.log('No payable needed - balance is 0 or item is fully paid');
           }
@@ -848,8 +877,9 @@ router.put('/:id/payment', authenticateToken, checkPermission('finance', 'write'
     }
     
     const currentData = inventoryDoc.data();
-    const currency = currentData.price_currency || 'INR';
-    const exchangeRate = currentData.exchange_rate || 1;
+    // ✅ FIXED: Use correct field names with fallback
+    const currency = currentData.purchase_currency || currentData.price_currency || 'INR';
+    const exchangeRate = currentData.purchase_exchange_rate || currentData.exchange_rate || 1;
     
     // Calculate INR equivalents
     if (currency !== 'INR') {

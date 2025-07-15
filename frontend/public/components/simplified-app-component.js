@@ -1341,8 +1341,12 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
       window.setEditingInventory(inventory);
     }
     if (window.setFormData) {
-      window.setFormData(inventory);
-    }
+  window.setFormData({
+    ...inventory,
+    purchase_currency: inventory.purchase_currency || 'INR',
+    purchase_exchange_rate: inventory.purchase_exchange_rate || '1'
+  });
+}
     if (window.setShowInventoryForm) {
       window.setShowInventoryForm(true);
     }
@@ -2497,6 +2501,8 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
     { name: 'supplierInvoice', label: 'Supplier Invoice #', type: 'text', required: false },
     { name: 'purchasePrice', label: 'Purchase Price (per ticket)', type: 'number', required: false },
     { name: 'totalPurchaseAmount', label: 'Total Purchase Amount', type: 'number', required: false },
+    { name: 'purchase_currency', label: 'Purchase Currency', type: 'select', options: ['INR', 'USD', 'EUR', 'GBP', 'AED', 'AUD'], required: false },
+    { name: 'purchase_exchange_rate', label: 'Exchange Rate to INR', type: 'number', required: false },
     { name: 'amountPaid', label: 'Amount Paid', type: 'number', required: false },
     { name: 'paymentDueDate', label: 'Payment Due Date', type: 'date', required: false }
   ];
@@ -2518,105 +2524,118 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
   };
 
   // ✅ FIXED FORM SUBMIT HANDLER
-  window.handleInventoryFormSubmit = async (e) => {
-    // Calculate and save INR values if using foreign currency
-const currency = window.formData.price_currency || 'INR';
-const exchangeRate = window.formData.exchange_rate || 1;
-
-if (currency !== 'INR') {
-  // Update INR values for all categories
-  const updatedCategories = (window.formData.categories || []).map(cat => ({
-    ...cat,
-    buying_price_inr: (parseFloat(cat.buying_price) || 0) * exchangeRate,
-    selling_price_inr: (parseFloat(cat.selling_price) || 0) * exchangeRate
-  }));
+// ✅ FIXED FORM SUBMIT HANDLER
+window.handleInventoryFormSubmit = async (e) => {
+  e.preventDefault();
   
-  window.formData.categories = updatedCategories;
-  
-  // Update totals in INR
-  window.formData.totalPurchaseAmount_inr = (parseFloat(window.formData.totalPurchaseAmount) || 0) * exchangeRate;
-  window.formData.amountPaid_inr = (parseFloat(window.formData.amountPaid) || 0) * exchangeRate;
-}
-    e.preventDefault();
+  try {
+    window.setLoading(true);
     
-    try {
-      window.setLoading(true);
+    // Calculate and save INR values if using foreign currency
+    const currency = window.formData.purchase_currency || 'INR';  // Fixed field name
+    const exchangeRate = window.formData.purchase_exchange_rate || 1;  // Fixed field name
+    
+    console.log('=== CURRENCY CALCULATION DEBUG ===');
+    console.log('Currency:', currency);
+    console.log('Exchange Rate:', exchangeRate);
+    
+    if (currency !== 'INR') {
+      // Update INR values for all categories
+      const updatedCategories = (window.formData.categories || []).map(cat => ({
+        ...cat,
+        buying_price_inr: (parseFloat(cat.buying_price) || 0) * exchangeRate,
+        selling_price_inr: (parseFloat(cat.selling_price) || 0) * exchangeRate
+      }));
       
-      // Enhanced debug logging
-      console.log('=== FRONTEND INVENTORY SUBMISSION DEBUG ===');
-      console.log('Inventory ID:', window.editingInventory?.id);
-      console.log('Complete form data being sent:', window.formData);
-      console.log('Payment fields specifically:', {
-        totalPurchaseAmount: window.formData?.totalPurchaseAmount,
-        amountPaid: window.formData?.amountPaid,
-        paymentStatus: window.formData?.paymentStatus,
-        supplierName: window.formData?.supplierName,
-        supplierInvoice: window.formData?.supplierInvoice
+      window.formData.categories = updatedCategories;
+      
+      // Update totals in INR
+      window.formData.totalPurchaseAmount_inr = (parseFloat(window.formData.totalPurchaseAmount) || 0) * exchangeRate;
+      window.formData.amountPaid_inr = (parseFloat(window.formData.amountPaid) || 0) * exchangeRate;
+      
+      console.log('INR Calculations:', {
+        totalPurchaseAmount_inr: window.formData.totalPurchaseAmount_inr,
+        amountPaid_inr: window.formData.amountPaid_inr,
+        categories: updatedCategories
       });
-      console.log('Is from payables?', window.editingInventory?._payableContext?.fromPayables);
-      console.log('Payable amount:', window.editingInventory?._payableContext?.payableAmount);
+    }
+    
+    // Enhanced debug logging
+    console.log('=== FRONTEND INVENTORY SUBMISSION DEBUG ===');
+    console.log('Inventory ID:', window.editingInventory?.id);
+    console.log('Complete form data being sent:', window.formData);
+    console.log('Currency fields:', {
+      purchase_currency: window.formData?.purchase_currency,
+      purchase_exchange_rate: window.formData?.purchase_exchange_rate,
+      totalPurchaseAmount: window.formData?.totalPurchaseAmount,
+      totalPurchaseAmount_inr: window.formData?.totalPurchaseAmount_inr,
+      amountPaid: window.formData?.amountPaid,
+      amountPaid_inr: window.formData?.amountPaid_inr
+    });
+    console.log('Is from payables?', window.editingInventory?._payableContext?.fromPayables);
+    console.log('Payable amount:', window.editingInventory?._payableContext?.payableAmount);
+    
+    if (!window.editingInventory?.id || window.editingInventory.id === null || window.editingInventory.id === undefined) {
+      // CREATE NEW INVENTORY
+      console.log('Creating new inventory item...');
       
-      if (!window.editingInventory?.id || window.editingInventory.id === null || window.editingInventory.id === undefined) {
-        // CREATE NEW INVENTORY
-        console.log('Creating new inventory item...');
-        
-        const response = await window.apiCall('/inventory', {
-          method: 'POST',
-          body: JSON.stringify({
-            ...window.formData,
-            created_by: window.user?.name || 'Unknown User',
-            created_date: new Date().toISOString()
-          })
-        });
-        
-        console.log('Backend response:', response);
-        
-        if (response.error) {
-          throw new Error(response.error);
-        }
-        
-        // Add to local state
-        window.setInventory(prev => [...prev, response.data || response]);
-        alert('✅ Inventory created successfully!');
-        
-      } else {
-        // UPDATE EXISTING INVENTORY
-        console.log('Updating existing inventory...');
-        
-        const response = await window.apiCall(`/inventory/${window.editingInventory.id}`, {
-          method: 'PUT',
-          body: JSON.stringify(window.formData)
-        });
-        
-        console.log('Backend response:', response);
-        
-        if (response.error) {
-          throw new Error(response.error);
-        }
-        
-        // Update local state
-        window.setInventory(prev => prev.map(item => 
-          item.id === window.editingInventory.id ? { ...item, ...window.formData } : item
-        ));
-        
-        // Refresh financial data to show updated payables
-        if (window.fetchFinancialData) {
-          await window.fetchFinancialData();
-        }
-        
-        alert('✅ Inventory updated successfully! Payables have been synced automatically.');
+      const response = await window.apiCall('/inventory', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...window.formData,
+          created_by: window.user?.name || 'Unknown User',
+          created_date: new Date().toISOString()
+        })
+      });
+      
+      console.log('Backend response:', response);
+      
+      if (response.error) {
+        throw new Error(response.error);
       }
       
-      // Close the form
-      window.closeInventoryForm();
+      // Add to local state
+      window.setInventory(prev => [...prev, response.data || response]);
+      alert('✅ Inventory created successfully!');
       
-    } catch (error) {
-      console.error('❌ Error with inventory submission:', error);
-      alert('❌ Error saving inventory: ' + error.message);
-    } finally {
-      window.setLoading(false);
+    } else {
+      // UPDATE EXISTING INVENTORY
+      console.log('Updating existing inventory...');
+      
+      const response = await window.apiCall(`/inventory/${window.editingInventory.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(window.formData)
+      });
+      
+      console.log('Backend response:', response);
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      // Update local state
+      window.setInventory(prev => prev.map(item => 
+        item.id === window.editingInventory.id ? { ...item, ...window.formData } : item
+      ));
+      
+      // Refresh financial data to show updated payables
+      if (window.fetchFinancialData) {
+        await window.fetchFinancialData();
+      }
+      
+      alert('✅ Inventory updated successfully! Payables have been synced automatically.');
     }
-  };
+    
+    // Close the form
+    window.closeInventoryForm();
+    
+  } catch (error) {
+    console.error('❌ Error with inventory submission:', error);
+    alert('❌ Error saving inventory: ' + error.message);
+  } finally {
+    window.setLoading(false);
+  }
+};
 
   console.log("✅ Original inventory form fields loaded:", window.inventoryFormFields.length, "fields");
   console.log("✅ Fixed inventory form submission - removed placeholder, added complete implementation");

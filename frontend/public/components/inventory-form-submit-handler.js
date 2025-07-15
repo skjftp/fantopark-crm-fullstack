@@ -1,5 +1,5 @@
 // Inventory Form Submit Handler Component for FanToPark CRM
-// Updated to support multiple ticket categories
+// Updated to support multiple ticket categories AND multi-currency
 // Uses window.* globals for CDN-based React compatibility
 
 window.renderInventoryFormSubmitHandler = () => {
@@ -16,9 +16,15 @@ window.renderInventoryFormSubmitHandler = () => {
       const formData = window.formData || {};
       const categories = formData.categories || [];
       
+      // ✅ CURRENCY SUPPORT - using correct field names
+      const currency = formData.purchase_currency || 'INR';
+      const exchangeRate = parseFloat(formData.purchase_exchange_rate) || 1;
+      
       console.log('=== INVENTORY SUBMISSION WITH CATEGORIES ===');
       console.log('Form data:', formData);
       console.log('Categories:', categories);
+      console.log('Currency:', currency);
+      console.log('Exchange Rate:', exchangeRate);
       console.log('Is from payables?', window.editingInventory?._payableContext?.fromPayables);
       
       // Validation
@@ -65,18 +71,40 @@ window.renderInventoryFormSubmitHandler = () => {
         }
       }
 
+      // ✅ Calculate and save INR values if using foreign currency
+      let updatedCategories = categories.map(cat => {
+        const catData = {
+          name: cat.name,
+          section: cat.section || '',
+          total_tickets: parseInt(cat.total_tickets),
+          available_tickets: parseInt(cat.available_tickets),
+          buying_price: parseFloat(cat.buying_price),
+          selling_price: parseFloat(cat.selling_price),
+          inclusions: cat.inclusions || ''
+        };
+        
+        // Add INR values if currency is not INR
+        if (currency !== 'INR') {
+          catData.buying_price_inr = catData.buying_price * exchangeRate;
+          catData.selling_price_inr = catData.selling_price * exchangeRate;
+        }
+        
+        return catData;
+      });
+
       // Calculate aggregate values
-      const totals = categories.reduce((acc, cat) => {
-        const totalTickets = parseInt(cat.total_tickets) || 0;
-        const availableTickets = parseInt(cat.available_tickets) || 0;
-        const buyingPrice = parseFloat(cat.buying_price) || 0;
+      const totals = updatedCategories.reduce((acc, cat) => {
+        const totalTickets = cat.total_tickets;
+        const availableTickets = cat.available_tickets;
+        const buyingPrice = cat.buying_price;
         
         return {
           totalTickets: acc.totalTickets + totalTickets,
           availableTickets: acc.availableTickets + availableTickets,
           totalCost: acc.totalCost + (buyingPrice * totalTickets),
+          totalCostINR: acc.totalCostINR + ((currency === 'INR' ? buyingPrice : buyingPrice * exchangeRate) * totalTickets)
         };
-      }, { totalTickets: 0, availableTickets: 0, totalCost: 0 });
+      }, { totalTickets: 0, availableTickets: 0, totalCost: 0, totalCostINR: 0 });
 
       // Prepare inventory data
       const inventoryData = {
@@ -94,16 +122,18 @@ window.renderInventoryFormSubmitHandler = () => {
         available_tickets: totals.availableTickets,
         totalPurchaseAmount: totals.totalCost,
         
-        // Categories array - the new structure!
-        categories: categories.map(cat => ({
-          name: cat.name,
-          section: cat.section || '',
-          total_tickets: parseInt(cat.total_tickets),
-          available_tickets: parseInt(cat.available_tickets),
-          buying_price: parseFloat(cat.buying_price),
-          selling_price: parseFloat(cat.selling_price),
-          inclusions: cat.inclusions || ''
-        })),
+        // ✅ Currency fields
+        purchase_currency: currency,
+        purchase_exchange_rate: exchangeRate,
+        
+        // ✅ INR totals if using foreign currency
+        ...(currency !== 'INR' && {
+          totalPurchaseAmount_inr: totals.totalCostINR,
+          amountPaid_inr: (parseFloat(formData.amountPaid) || 0) * exchangeRate
+        }),
+        
+        // Categories array - the new structure with currency support!
+        categories: updatedCategories,
         
         // Payment/supplier fields (preserve existing)
         paymentStatus: formData.paymentStatus || 'pending',
@@ -116,7 +146,14 @@ window.renderInventoryFormSubmitHandler = () => {
         day_of_match: formData.day_of_match || '',
         procurement_type: formData.procurement_type || '',
         created_by: window.user?.name || 'Unknown User',
-        updated_date: new Date().toISOString()
+        updated_date: new Date().toISOString(),
+        
+        // Keep backward compatibility fields (from first category)
+        category_of_ticket: categories[0]?.name || '',
+        stand: categories[0]?.section || '',
+        buying_price: categories[0]?.buying_price || 0,
+        selling_price: categories[0]?.selling_price || 0,
+        inclusions: categories[0]?.inclusions || ''
       };
 
       // Preserve created_date if editing
@@ -127,6 +164,13 @@ window.renderInventoryFormSubmitHandler = () => {
       }
 
       console.log('Submitting inventory data:', inventoryData);
+      if (currency !== 'INR') {
+        console.log('INR calculations:', {
+          totalPurchaseAmount_inr: inventoryData.totalPurchaseAmount_inr,
+          amountPaid_inr: inventoryData.amountPaid_inr,
+          categories_with_inr: inventoryData.categories.filter(c => c.buying_price_inr)
+        });
+      }
 
       // API call
       let response;
@@ -197,4 +241,4 @@ window.renderInventoryFormSubmitHandler = () => {
   return null;
 };
 
-console.log('✅ Inventory Form Submit Handler with categories support loaded successfully');
+console.log('✅ Inventory Form Submit Handler with categories and currency support loaded successfully');

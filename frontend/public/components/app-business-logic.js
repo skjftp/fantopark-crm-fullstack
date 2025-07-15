@@ -1316,6 +1316,8 @@ const updateOrdersPagination = (orders) => {
       supplierName: '',
       supplierInvoice: '',
       totalPurchaseAmount: '',
+      purchase_currency: 'INR',
+      purchase_exchange_rate: '1',
       amountPaid: '',
       paymentDueDate: ''
     });
