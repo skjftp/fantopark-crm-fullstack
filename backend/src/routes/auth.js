@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { db, collections } = require('../config/db');
+const { authenticateToken } = require('../middleware/auth'); // ADD THIS LINE
 
 // Login
 router.post('/login', async (req, res) => {
@@ -72,6 +73,43 @@ router.get('/verify', async (req, res) => {
   } catch (error) {
     res.status(401).json({ valid: false, error: 'Invalid token' });
   }
+});
+
+// Change password endpoint
+router.post('/change-password', authenticateToken, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const userId = req.user.id;
+        
+        // Get user from database
+        const userDoc = await db.collection(collections.users).doc(userId).get();
+        if (!userDoc.exists) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const userData = userDoc.data();
+        
+        // Verify current password
+        const isValidPassword = await bcrypt.compare(currentPassword, userData.password);
+        if (!isValidPassword) {
+            return res.status(400).json({ error: 'Current password is incorrect' });
+        }
+        
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        
+        // Update password
+        await db.collection(collections.users).doc(userId).update({
+            password: hashedPassword,
+            passwordUpdatedAt: new Date().toISOString()
+        });
+        
+        res.json({ success: true, message: 'Password changed successfully' });
+        
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({ error: 'Failed to change password' });
+    }
 });
 
 module.exports = router;

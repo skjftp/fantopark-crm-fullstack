@@ -1,419 +1,50 @@
-// ============================================================================
-// FIXED PAGINATION FINANCIALS COMPONENT - USES PROPER REACT STATE
-// ============================================================================
-// This fixes the pagination by using proper React state management
+// Override renderFinancials to ensure data is loaded first
 
-// Enhanced pagination render function - FIXED TO USE REACT STATE
-window.renderFinancialPagination = (tabName, totalItems) => {
-    // Get pagination state from React state (not window globals)
-    const { financialPagination, setFinancialPagination } = window.appState || {};
+const originalRenderFinancials = window.renderFinancials;
+window.renderFinancials = function() {
+
+    console.log('🔍 ENHANCED FINANCIALS COMPONENT DEBUG: Starting render');
     
-    if (!financialPagination || !setFinancialPagination) {
-        console.warn('Financial pagination state not available');
-        return null;
+    // Check if financial data needs loading
+    const needsDataLoad = !window.appState?.financialData || 
+                         (window.appState.financialData.sales.length === 0 && 
+                          window.appState.financialData.activeSales.length === 0);
+    
+    if (needsDataLoad && window.fetchFinancialData) {
+        console.log('Financial data empty on render, loading now...');
+        window.fetchFinancialData();
+        
+        // Return loading state while data loads
+        return React.createElement('div', { className: 'p-6 text-center' }, 
+            'Loading financial data...'
+        );
     }
     
-    const pagination = financialPagination[tabName];
-    if (!pagination || totalItems <= pagination.itemsPerPage) return null;
-
-    const totalPages = Math.ceil(totalItems / pagination.itemsPerPage);
-    const currentPage = pagination.currentPage;
-
-    // FIXED: Use proper React state setter
-    const changePage = (newPage) => {
-        console.log(`🔍 Changing ${tabName} page to:`, newPage);
-        setFinancialPagination(prev => ({
-            ...prev,
-            [tabName]: {
-                ...prev[tabName],
-                currentPage: newPage
-            }
-        }));
-    };
-
-    return React.createElement('div', { className: 'px-6 py-4 border-t border-gray-200 dark:border-gray-700' },
-        React.createElement('div', { className: 'flex items-center justify-between' },
-            React.createElement('div', { className: 'text-sm text-gray-700 dark:text-gray-300' },
-                `Showing ${((currentPage - 1) * pagination.itemsPerPage) + 1} to ${Math.min(currentPage * pagination.itemsPerPage, totalItems)} of ${totalItems} results`
-            ),
-            React.createElement('div', { className: 'flex items-center space-x-1' },
-                React.createElement('button', {
-                    onClick: () => changePage(Math.max(1, currentPage - 1)),
-                    disabled: currentPage === 1,
-                    className: 'px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
-                }, 'Previous'),
-                
-                // Page numbers
-                Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const pageNum = i + 1;
-                    return React.createElement('button', {
-                        key: pageNum,
-                        onClick: () => changePage(pageNum),
-                        className: `px-3 py-2 text-sm font-medium border ${
-                            currentPage === pageNum 
-                                ? 'bg-blue-600 text-white border-blue-600' 
-                                : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50'
-                        }`
-                    }, pageNum);
-                }),
-                
-                React.createElement('button', {
-                    onClick: () => changePage(Math.min(totalPages, currentPage + 1)),
-                    disabled: currentPage === totalPages,
-                    className: 'px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
-                }, 'Next')
-            )
-        )
-    );
-};
-
-// Enhanced Sales Chart Creation - FIXED TO WORK WITH EXISTING SYSTEM
-window.createFinancialSalesChart = () => {
-    // Wait for Chart.js to be available
-    if (!window.Chart) {
-        console.log('Chart.js not available, will retry...');
-        setTimeout(window.createFinancialSalesChart, 500);
-        return;
-    }
-
-    const canvas = document.getElementById('financialSalesChart');
-    if (!canvas) {
-        console.log('Sales chart canvas not found');
-        return;
-    }
-
-    // Destroy existing chart if it exists
-    if (window.financialSalesChartInstance) {
-        window.financialSalesChartInstance.destroy();
-    }
-
-    // Generate sample data based on current financial data
-    const financialData = window.appState?.financialData || {};
-    const sales = financialData.sales || financialData.activeSales || [];
+    // Check if financial data is empty but orders exist
+    const fd = window.appState?.financialData;
+    const needsLoading = fd && 
+        fd.sales.length === 0 && 
+        fd.activeSales.length === 0 && 
+        window.orders && 
+        window.orders.length > 0;
     
-    // Process sales data for chart or use sample data
-    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
-    const revenueData = [850000, 1200000, 980000, 1450000, 1100000, 1680000, 1350000];
-    const countData = [45, 62, 38, 71, 54, 83, 67];
-
-    // If we have real sales data, process it
-    if (sales.length > 0) {
-        const monthlyData = {};
-        sales.forEach(sale => {
-            const month = new Date(sale.date || sale.created_date).toLocaleDateString('en-US', { month: 'short' });
-            if (!monthlyData[month]) {
-                monthlyData[month] = { revenue: 0, count: 0 };
-            }
-            monthlyData[month].revenue += sale.amount || 0;
-            monthlyData[month].count += 1;
+    if (needsLoading) {
+        console.log('Financial data empty, loading before render...');
+        
+        // Load data first, then render
+        window.loadFinancialData().then(() => {
+            console.log('Data loaded, rendering financials...');
+            originalRenderFinancials.call(this);
         });
+        
+        // Return loading state
+        return React.createElement('div', { className: 'p-6 text-center' }, 
+            'Loading financial data...'
+        );
     }
-
-    const chartData = {
-        labels: labels,
-        datasets: [{
-            label: 'Revenue (₹)',
-            data: revenueData,
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            fill: true,
-            tension: 0.4,
-            yAxisID: 'y'
-        }, {
-            label: 'Sales Count',
-            data: countData,
-            borderColor: 'rgb(16, 185, 129)',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            fill: true,
-            tension: 0.4,
-            yAxisID: 'y1'
-        }]
-    };
-
-    try {
-        window.financialSalesChartInstance = new Chart(canvas, {
-            type: 'line',
-            data: chartData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    title: {
-                        display: true,
-                        text: 'Sales Performance Trend'
-                    }
-                },
-                scales: {
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        ticks: {
-                            callback: function(value) {
-                                return '₹' + (value / 100000).toFixed(1) + 'L';
-                            }
-                        }
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        grid: {
-                            drawOnChartArea: false,
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return value + ' sales';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        console.log('✅ Financial sales chart created successfully');
-    } catch (error) {
-        console.error('❌ Failed to create financial sales chart:', error);
-    }
-};
-
-// Calculate Enhanced Financial Metrics with Margin
-// Update the calculateEnhancedFinancialMetrics function in financials.js
-window.calculateEnhancedFinancialMetrics = () => {
-    const financialData = window.appState?.financialData || {};
-    const inventory = window.inventory || [];
     
-    // Get sales data from financialData
-    const activeSales = financialData.activeSales || [];
-    const sales = financialData.sales || [];
-    const payables = financialData.payables || [];
-    const receivables = financialData.receivables || [];
-
-    // Calculate totals - FIX: Calculate total amount for active sales
-    const totalActiveSales = activeSales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
-    const totalSales = sales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
-    const totalPayables = payables.reduce((sum, payable) => sum + (payable.amount || 0), 0);
-    const totalReceivables = receivables.reduce((sum, receivable) => sum + (receivable.amount || receivable.balance_amount || 0), 0);
-
-    // Calculate margin from inventory data
-    let totalCost = 0;
-    let totalRevenue = 0;
-    
-    inventory.forEach(item => {
-        const soldTickets = (item.total_tickets || 0) - (item.available_tickets || 0);
-        totalCost += soldTickets * (item.buying_price || 0);
-        totalRevenue += soldTickets * (item.selling_price || 0);
-    });
-
-    const totalMargin = totalRevenue - totalCost;
-    const marginPercentage = totalRevenue > 0 ? ((totalMargin / totalRevenue) * 100) : 0;
-
-    return {
-        totalSales: totalSales + totalActiveSales, // Combined total
-        totalActiveSales, // Total amount of active sales
-        totalPayables,
-        totalReceivables,
-        totalMargin,
-        marginPercentage: Math.round(marginPercentage * 100) / 100,
-        activeSalesCount: activeSales.length // Count of active sales
-    };
-};
-
-// Update the renderEnhancedFinancialStats function to show amount instead of count
-window.renderEnhancedFinancialStats = () => {
-    const metrics = window.calculateEnhancedFinancialMetrics();
-
-    const statsCards = [
-        {
-            title: 'Total Sales',
-            value: `₹${metrics.totalSales.toLocaleString()}`,
-            change: '+12.5%',
-            changeType: 'positive',
-            icon: '📈'
-        },
-        {
-            title: 'Total Active Sales',
-            value: `₹${metrics.totalActiveSales.toLocaleString()}`, // Changed from count to amount
-            change: '+5.2%',
-            changeType: 'positive',
-            icon: '🎯'
-        },
-        {
-            title: 'Total Receivables',
-            value: `₹${metrics.totalReceivables.toLocaleString()}`,
-            change: '-2.1%',
-            changeType: 'negative',
-            icon: '💰'
-        },
-        {
-            title: 'Total Payables',
-            value: `₹${metrics.totalPayables.toLocaleString()}`,
-            change: '+8.3%',
-            changeType: 'negative',
-            icon: '💸'
-        },
-        {
-            title: 'Total Margin',
-            value: `₹${metrics.totalMargin.toLocaleString()}`,
-            change: '+15.7%',
-            changeType: 'positive',
-            icon: '📊'
-        },
-        {
-            title: 'Margin %',
-            value: `${metrics.marginPercentage}%`,
-            change: '+2.3%',
-            changeType: 'positive',
-            icon: '📈'
-        }
-    ];
-
-    return React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6' },
-        statsCards.map((stat, index) =>
-            React.createElement('div', { 
-                key: index,
-                className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow'
-            },
-                React.createElement('div', { className: 'flex items-center justify-between' },
-                    React.createElement('div', null,
-                        React.createElement('p', { className: 'text-sm font-medium text-gray-600 dark:text-gray-400' }, stat.title),
-                        React.createElement('p', { className: 'text-2xl font-bold text-gray-900 dark:text-white mt-1' }, stat.value)
-                    ),
-                    React.createElement('div', { className: 'text-2xl' }, stat.icon)
-                ),
-                React.createElement('div', { className: 'flex items-center mt-4' },
-                    React.createElement('span', {
-                        className: `text-sm font-medium ${
-                            stat.changeType === 'positive' ? 
-                                'text-green-600' : 'text-red-600'
-                        }`
-                    }, stat.change),
-                    React.createElement('span', { className: 'text-sm text-gray-500 ml-2' }, 'vs last month')
-                )
-            )
-        )
-    );
-};
-
-// Enhanced Stats Cards Renderer
-window.renderEnhancedFinancialStats = () => {
-    const metrics = window.calculateEnhancedFinancialMetrics();
-
-    const statsCards = [
-        {
-            title: 'Total Sales',
-            value: `₹${metrics.totalSales.toLocaleString()}`,
-            change: '+12.5%',
-            changeType: 'positive',
-            icon: '📈'
-        },
-        {
-            title: 'Total Active Sales',
-            value: metrics.activeSalesCount.toString(),
-            change: '+5.2%',
-            changeType: 'positive',
-            icon: '🎯'
-        },
-        {
-            title: 'Total Receivables',
-            value: `₹${metrics.totalReceivables.toLocaleString()}`,
-            change: '-2.1%',
-            changeType: 'negative',
-            icon: '💰'
-        },
-        {
-            title: 'Total Payables',
-            value: `₹${metrics.totalPayables.toLocaleString()}`,
-            change: '+8.3%',
-            changeType: 'negative',
-            icon: '💸'
-        },
-        {
-            title: 'Total Margin',
-            value: `₹${metrics.totalMargin.toLocaleString()}`,
-            change: '+15.7%',
-            changeType: 'positive',
-            icon: '📊'
-        },
-        {
-            title: 'Margin %',
-            value: `${metrics.marginPercentage}%`,
-            change: '+2.3%',
-            changeType: 'positive',
-            icon: '📈'
-        }
-    ];
-
-    return React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6' },
-        statsCards.map((stat, index) =>
-            React.createElement('div', { 
-                key: index,
-                className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow'
-            },
-                React.createElement('div', { className: 'flex items-center justify-between' },
-                    React.createElement('div', null,
-                        React.createElement('p', { className: 'text-sm font-medium text-gray-600 dark:text-gray-400' }, stat.title),
-                        React.createElement('p', { className: 'text-2xl font-bold text-gray-900 dark:text-white mt-1' }, stat.value)
-                    ),
-                    React.createElement('div', { className: 'text-2xl' }, stat.icon)
-                ),
-                React.createElement('div', { className: 'flex items-center mt-4' },
-                    React.createElement('span', {
-                        className: `text-sm font-medium ${
-                            stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                        }`
-                    }, stat.change),
-                    React.createElement('span', { className: 'text-sm text-gray-500 ml-2' }, 'vs last month')
-                )
-            )
-        )
-    );
-};
-
-// Enhanced Expiring Inventory Data Processing
-window.getEnhancedExpiringInventory = () => {
-    if (!window.inventory) return [];
-    
-    const now = new Date();
-    const sevenDaysFromNow = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
-    
-    return window.inventory
-        .filter(item => {
-            const eventDate = new Date(item.event_date);
-            return eventDate <= sevenDaysFromNow && eventDate >= now;
-        })
-        .map(item => {
-            const eventDate = new Date(item.event_date);
-            const daysLeft = Math.ceil((eventDate - now) / (1000 * 60 * 60 * 1000));
-            const costPrice = item.buying_price || 0;
-            const potentialLoss = (item.available_tickets || 0) * costPrice;
-            
-            return {
-                ...item,
-                daysLeft: Math.max(0, daysLeft),
-                costPrice,
-                potentialLoss,
-                eventDateFormatted: eventDate.toLocaleDateString(),
-                itemName: item.event_name || 'Unknown Event'
-            };
-        })
-        .sort((a, b) => a.daysLeft - b.daysLeft);
-};
-
-// Safe date formatting function
-window.formatFinancialDate = (dateValue) => {
-    if (!dateValue) return 'Invalid Date';
-    
-    try {
-        const date = new Date(dateValue);
-        if (isNaN(date.getTime())) return 'Invalid Date';
-        return date.toLocaleDateString();
-    } catch (error) {
-        console.warn('Date formatting error:', error);
-        return 'Invalid Date';
-    }
+    // Data already loaded, render normally
+    return originalRenderFinancials.call(this);
 };
 
 // Main render function for financials dashboard - ENHANCED WITH FIXED PAGINATION
@@ -662,6 +293,474 @@ window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financi
             )
         )
     );
+};
+
+
+// Hook into tab switching
+if (!window.financialsAutoLoader) {
+    window.financialsAutoLoader = true;
+    
+    const originalSetActiveTab = window.setActiveTab;
+    window.setActiveTab = function(tab) {
+        if (originalSetActiveTab) {
+            originalSetActiveTab(tab);
+        }
+        
+        if (tab === 'finance') {
+            console.log('Loading financial data for finance tab...');
+            setTimeout(() => {
+                // Use fetchFinancialData instead of loadFinancialData
+                if (window.fetchFinancialData) {
+                    window.fetchFinancialData();
+                } else if (window.loadFinancialData) {
+                    window.loadFinancialData();
+                }
+            }, 100);
+        }
+    };
+    
+    // If already on finance tab, load now
+    if (window.appState?.activeTab === 'finance') {
+        if (window.fetchFinancialData) {
+            window.fetchFinancialData();
+        }
+    }
+}
+
+// Enhanced pagination render function - FIXED TO USE REACT STATE
+window.renderFinancialPagination = (tabName, totalItems) => {
+    // Get pagination state from React state (not window globals)
+    const { financialPagination, setFinancialPagination } = window.appState || {};
+    
+    if (!financialPagination || !setFinancialPagination) {
+        console.warn('Financial pagination state not available');
+        return null;
+    }
+    
+    const pagination = financialPagination[tabName];
+    if (!pagination || totalItems <= pagination.itemsPerPage) return null;
+
+    const totalPages = Math.ceil(totalItems / pagination.itemsPerPage);
+    const currentPage = pagination.currentPage;
+
+    // FIXED: Use proper React state setter
+    const changePage = (newPage) => {
+        console.log(`🔍 Changing ${tabName} page to:`, newPage);
+        setFinancialPagination(prev => ({
+            ...prev,
+            [tabName]: {
+                ...prev[tabName],
+                currentPage: newPage
+            }
+        }));
+    };
+
+    return React.createElement('div', { className: 'px-6 py-4 border-t border-gray-200 dark:border-gray-700' },
+        React.createElement('div', { className: 'flex items-center justify-between' },
+            React.createElement('div', { className: 'text-sm text-gray-700 dark:text-gray-300' },
+                `Showing ${((currentPage - 1) * pagination.itemsPerPage) + 1} to ${Math.min(currentPage * pagination.itemsPerPage, totalItems)} of ${totalItems} results`
+            ),
+            React.createElement('div', { className: 'flex items-center space-x-1' },
+                React.createElement('button', {
+                    onClick: () => changePage(Math.max(1, currentPage - 1)),
+                    disabled: currentPage === 1,
+                    className: 'px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
+                }, 'Previous'),
+                
+                // Page numbers
+                Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum = i + 1;
+                    return React.createElement('button', {
+                        key: pageNum,
+                        onClick: () => changePage(pageNum),
+                        className: `px-3 py-2 text-sm font-medium border ${
+                            currentPage === pageNum 
+                                ? 'bg-blue-600 text-white border-blue-600' 
+                                : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50'
+                        }`
+                    }, pageNum);
+                }),
+                
+                React.createElement('button', {
+                    onClick: () => changePage(Math.min(totalPages, currentPage + 1)),
+                    disabled: currentPage === totalPages,
+                    className: 'px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
+                }, 'Next')
+            )
+        )
+    );
+};
+
+// Enhanced Sales Chart Creation - FIXED TO WORK WITH EXISTING SYSTEM
+window.createFinancialSalesChart = () => {
+    // Wait for Chart.js to be available
+    if (!window.Chart) {
+        console.log('Chart.js not available, will retry...');
+        setTimeout(window.createFinancialSalesChart, 500);
+        return;
+    }
+
+    const canvas = document.getElementById('financialSalesChart');
+    if (!canvas) {
+        console.log('Sales chart canvas not found');
+        return;
+    }
+
+    // Destroy existing chart if it exists
+    if (window.financialSalesChartInstance) {
+        window.financialSalesChartInstance.destroy();
+    }
+
+    // Generate sample data based on current financial data
+    const financialData = window.appState?.financialData || {};
+    const sales = financialData.sales || financialData.activeSales || [];
+    
+    // Process sales data for chart or use sample data
+    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+    const revenueData = [850000, 1200000, 980000, 1450000, 1100000, 1680000, 1350000];
+    const countData = [45, 62, 38, 71, 54, 83, 67];
+
+    // If we have real sales data, process it
+    if (sales.length > 0) {
+        const monthlyData = {};
+        sales.forEach(sale => {
+            const month = new Date(sale.date || sale.created_date).toLocaleDateString('en-US', { month: 'short' });
+            if (!monthlyData[month]) {
+                monthlyData[month] = { revenue: 0, count: 0 };
+            }
+            monthlyData[month].revenue += sale.amount || 0;
+            monthlyData[month].count += 1;
+        });
+    }
+
+    const chartData = {
+        labels: labels,
+        datasets: [{
+            label: 'Revenue (₹)',
+            data: revenueData,
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: true,
+            tension: 0.4,
+            yAxisID: 'y'
+        }, {
+            label: 'Sales Count',
+            data: countData,
+            borderColor: 'rgb(16, 185, 129)',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            fill: true,
+            tension: 0.4,
+            yAxisID: 'y1'
+        }]
+    };
+
+    try {
+        window.financialSalesChartInstance = new Chart(canvas, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Sales Performance Trend'
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        ticks: {
+                            callback: function(value) {
+                                return '₹' + (value / 100000).toFixed(1) + 'L';
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value + ' sales';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        console.log('✅ Financial sales chart created successfully');
+    } catch (error) {
+        console.error('❌ Failed to create financial sales chart:', error);
+    }
+};
+
+
+// Final renderEnhancedFinancialStats - NO async, NO hooks
+window.renderEnhancedFinancialStats = () => {
+    // Get metrics synchronously
+    const metrics = window.calculateEnhancedFinancialMetricsSync() || {
+        totalSales: 0,
+        totalActiveSales: 0,
+        totalPayables: 0,
+        totalReceivables: 0,
+        totalMargin: 0,
+        marginPercentage: 0,
+        percentageChanges: {
+            sales: 0,
+            margin: 0
+        }
+    };
+    
+    // Format percentage with + or - sign
+    const formatPercentage = (value) => {
+        const rounded = Math.round(value * 10) / 10;
+        return rounded >= 0 ? `+${rounded}%` : `${rounded}%`;
+    };
+    
+    const statsCards = [
+        {
+            title: 'Total Sales',
+            value: window.formatCurrency(metrics.totalSales),
+            change: formatPercentage(metrics.percentageChanges?.sales || 0),
+            changeType: (metrics.percentageChanges?.sales || 0) >= 0 ? 'positive' : 'negative',
+            icon: '📈',
+            showChange: true // Show percentage
+        },
+        {
+            title: 'Total Active Sales',
+            value: window.formatCurrency(metrics.totalActiveSales),
+            icon: '🎯',
+            showChange: false // No percentage
+        },
+        {
+            title: 'Total Receivables',
+            value: window.formatCurrency(metrics.totalReceivables),
+            icon: '💰',
+            showChange: false // No percentage
+        },
+        {
+            title: 'Total Payables',
+            value: window.formatCurrency(metrics.totalPayables),
+            icon: '💸',
+            showChange: false // No percentage
+        },
+        {
+            title: 'Total Margin',
+            value: window.formatCurrency(metrics.totalMargin),
+            change: formatPercentage(metrics.percentageChanges?.margin || 15.7),
+            changeType: (metrics.percentageChanges?.margin || 15.7) >= 0 ? 'positive' : 'negative',
+            icon: '📊',
+            showChange: true // Show percentage
+        },
+        {
+            title: 'Margin %',
+            value: `${metrics.marginPercentage}%`,
+            icon: '📈',
+            showChange: false // No percentage
+        }
+    ];
+    
+    // Trigger async percentage calculation after render
+    if (!window.financialPercentagesLoading) {
+        window.financialPercentagesLoading = true;
+        window.calculateEnhancedFinancialMetrics().then(newMetrics => {
+            window.financialPercentagesLoading = false;
+            // Update the UI by re-rendering
+            if (window.appState?.activeTab === 'financials' && window.renderFinancials) {
+                window.renderFinancials();
+            }
+        });
+    }
+    
+    return React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6' },
+        statsCards.map((stat, index) =>
+            React.createElement('div', { 
+                key: index,
+                className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow'
+            },
+                React.createElement('div', { className: 'flex items-center justify-between' },
+                    React.createElement('div', null,
+                        React.createElement('p', { className: 'text-sm font-medium text-gray-600 dark:text-gray-400' }, stat.title),
+                        React.createElement('p', { className: 'text-2xl font-bold text-gray-900 dark:text-white mt-1' }, stat.value)
+                    ),
+                    React.createElement('div', { className: 'text-2xl' }, stat.icon)
+                ),
+                stat.showChange ? React.createElement('div', { className: 'flex items-center mt-4' },
+                    React.createElement('span', {
+                        className: `text-sm font-medium ${
+                            stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                        }`
+                    }, stat.change),
+                    React.createElement('span', { className: 'text-sm text-gray-500 ml-2' }, 'vs last month')
+                ) : null
+            )
+        )
+    );
+};
+
+// Synchronous version for immediate display
+window.calculateEnhancedFinancialMetricsSync = () => {
+    const financialData = window.appState?.financialData || {};
+    const inventory = window.inventory || [];
+    
+    // Get data from financial data
+    const activeSales = financialData.activeSales || [];
+    const sales = financialData.sales || [];
+    const payables = financialData.payables || [];
+    const receivables = financialData.receivables || [];
+    
+    // Calculate totals
+    const totalActiveSales = activeSales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
+    const totalSales = sales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
+    const totalPayables = payables.reduce((sum, payable) => sum + (payable.amount || 0), 0);
+    const totalReceivables = receivables.reduce((sum, receivable) => sum + (receivable.amount || receivable.balance_amount || 0), 0);
+    
+    // Calculate margin from inventory data
+    let totalCost = 0;
+    let totalRevenue = 0;
+    
+    inventory.forEach(item => {
+        const soldTickets = (item.total_tickets || 0) - (item.available_tickets || 0);
+        totalCost += soldTickets * (item.buying_price || 0);
+        totalRevenue += soldTickets * (item.selling_price || 0);
+    });
+    
+    const totalMargin = totalRevenue - totalCost;
+    const marginPercentage = totalRevenue > 0 ? ((totalMargin / totalRevenue) * 100) : 0;
+    
+    // Get cached percentages or defaults
+    const cachedPercentages = window.financialPercentageCache || {
+        sales: 0,
+        margin: 15.7
+    };
+    
+    return {
+        totalSales: totalSales + totalActiveSales, // Combined total
+        totalActiveSales,
+        totalPayables,
+        totalReceivables,
+        totalMargin,
+        marginPercentage: Math.round(marginPercentage * 100) / 100,
+        activeSalesCount: activeSales.length,
+        percentageChanges: cachedPercentages
+    };
+};
+
+// Async version that calculates percentage changes
+window.calculateEnhancedFinancialMetrics = async () => {
+    // Get base metrics first
+    const baseMetrics = window.calculateEnhancedFinancialMetricsSync();
+    
+    // Get date ranges
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    
+    const formatDate = (date) => date.toISOString().split('T')[0];
+    
+    try {
+        // Fetch month-over-month data
+        const [currentMonthOrders, previousMonthOrders] = await Promise.all([
+            window.apiCall(`/orders?from_date=${formatDate(currentMonthStart)}&to_date=${formatDate(currentMonthEnd)}`),
+            window.apiCall(`/orders?from_date=${formatDate(previousMonthStart)}&to_date=${formatDate(previousMonthEnd)}`)
+        ]);
+        
+        const currentOrders = currentMonthOrders.data || [];
+        const previousOrders = previousMonthOrders.data || [];
+        
+        // Calculate sales totals for percentage change
+        const currentMonthSales = currentOrders.reduce((sum, order) => sum + (order.final_amount || 0), 0);
+        const previousMonthSales = previousOrders.reduce((sum, order) => sum + (order.final_amount || 0), 0);
+        
+        // Calculate percentage change
+        const calculatePercentageChange = (current, previous) => {
+            if (previous === 0) return current > 0 ? 100 : 0;
+            return ((current - previous) / previous * 100);
+        };
+        
+        const salesChange = calculatePercentageChange(currentMonthSales, previousMonthSales);
+        
+        // TODO: Calculate margin percentage change based on inventory
+        // For now, using default value
+        const marginChange = 15.7;
+        
+        // Cache the percentages
+        window.financialPercentageCache = {
+            sales: salesChange,
+            margin: marginChange
+        };
+        
+        return {
+            ...baseMetrics,
+            percentageChanges: window.financialPercentageCache
+        };
+        
+    } catch (error) {
+        console.error('Error calculating percentage changes:', error);
+        return baseMetrics;
+    }
+};
+
+
+// Now call it immediately
+//window.loadFinancialData();
+
+
+
+
+// Enhanced Expiring Inventory Data Processing
+window.getEnhancedExpiringInventory = () => {
+    if (!window.inventory) return [];
+    
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
+    
+    return window.inventory
+        .filter(item => {
+            const eventDate = new Date(item.event_date);
+            return eventDate <= sevenDaysFromNow && eventDate >= now;
+        })
+        .map(item => {
+            const eventDate = new Date(item.event_date);
+            const daysLeft = Math.ceil((eventDate - now) / (1000 * 60 * 60 * 1000));
+            const costPrice = item.buying_price || 0;
+            const potentialLoss = (item.available_tickets || 0) * costPrice;
+            
+            return {
+                ...item,
+                daysLeft: Math.max(0, daysLeft),
+                costPrice,
+                potentialLoss,
+                eventDateFormatted: eventDate.toLocaleDateString(),
+                itemName: item.event_name || 'Unknown Event'
+            };
+        })
+        .sort((a, b) => a.daysLeft - b.daysLeft);
+};
+
+// Safe date formatting function
+window.formatFinancialDate = (dateValue) => {
+    if (!dateValue) return 'Invalid Date';
+    
+    try {
+        const date = new Date(dateValue);
+        if (isNaN(date.getTime())) return 'Invalid Date';
+        return date.toLocaleDateString();
+    } catch (error) {
+        console.warn('Date formatting error:', error);
+        return 'Invalid Date';
+    }
 };
 
 // Fix 1: Update the renderActiveSalesTab function to remove "Post-Service Payment Orders" text
@@ -1515,8 +1614,32 @@ window.renderExchangeImpactSummary = (financialData) => {
   );
 };
 
-// If the function is not being called, add this to ensure it's called after the stats cards
-// Find where renderEnhancedFinancialStats() is called and add this right after it:
-// window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financialData),
+
+// ============================================================================
+// AUTO-LOADING SETUP
+// ============================================================================
+
+// Update the auto-loader to check for the correct tab name
+
+window.setActiveTab = function(tab) {
+    if (originalSetActiveTab) {
+        originalSetActiveTab(tab);
+    }
+    
+    // Check for both 'finance' and 'financials' to be safe
+    if (tab === 'finance' || tab === 'financials') {
+        console.log('Loading financial data for finance tab...');
+        setTimeout(() => {
+            window.loadFinancialData();
+        }, 100);
+    }
+};
+
+// Also check if already on finance tab
+if (window.appState?.activeTab === 'finance' || window.appState?.activeTab === 'financials') {
+    window.loadFinancialData();
+}
+
+console.log('✅ FIXED PAGINATION Financials Component loaded successfully - All functionality preserved');
 
 console.log('✅ FIXED PAGINATION Financials Component loaded successfully - All functionality preserved');

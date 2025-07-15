@@ -25,4 +25,5 @@ const checkPermission = (module, action) => {
   };
 };
 
+
 module.exports = { authenticateToken, checkPermission };

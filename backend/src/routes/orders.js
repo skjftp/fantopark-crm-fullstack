@@ -52,15 +52,46 @@ function ensureCurrencyFields(orderData) {
 // GET all orders
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const snapshot = await db.collection(collections.orders)
-      .orderBy('created_date', 'desc')
-      .get();
+    // Extract date filters from query parameters
+    const { from_date, to_date } = req.query;
+    
+    let query = db.collection(collections.orders);
+    
+    // Apply date filters if provided
+    if (from_date || to_date) {
+      // Filter by event_date when date parameters are provided
+      query = query.orderBy('event_date', 'asc');
+      
+      if (from_date) {
+        // Convert from_date to ISO string format for comparison
+        const fromDateISO = new Date(from_date).toISOString();
+        query = query.where('event_date', '>=', fromDateISO);
+        console.log('Filtering orders with event_date from:', fromDateISO);
+      }
+      
+      if (to_date) {
+        // Add 1 day to to_date to include the entire day
+        const toDateEnd = new Date(to_date);
+        toDateEnd.setDate(toDateEnd.getDate() + 1);
+        const toDateISO = toDateEnd.toISOString();
+        query = query.where('event_date', '<', toDateISO);
+        console.log('Filtering orders with event_date to:', toDateISO);
+      }
+    } else {
+      // No date filters, use default ordering by created_date
+      query = query.orderBy('created_date', 'desc');
+    }
+    
+    const snapshot = await query.get();
     const orders = [];
     snapshot.forEach(doc => {
       orders.push({ id: doc.id, ...doc.data() });
     });
+    
+    console.log(`Returning ${orders.length} orders with event_date filters:`, { from_date, to_date });
     res.json({ data: orders });
   } catch (error) {
+    console.error('Error fetching orders:', error);
     res.status(500).json({ error: error.message });
   }
 });
