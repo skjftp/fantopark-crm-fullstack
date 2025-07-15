@@ -93,20 +93,45 @@ window.handleMarkAsPaid = async function(payableIdOrObject) {
           action: 'Setting form to mark as fully paid'
         });
 
+        // NEW: Handle exchange rate for foreign currency inventory
+        let exchangeRateToUse = inventoryItem.purchase_exchange_rate || '1';
+        
+        if (inventoryItem.purchase_currency && inventoryItem.purchase_currency !== 'INR') {
+          const currentRates = window.currentExchangeRates || {
+            USD: 86.00,
+            EUR: 93.00,
+            GBP: 108.00,
+            AED: 23.50
+          };
+          
+          const suggestedRate = currentRates[inventoryItem.purchase_currency] || inventoryItem.purchase_exchange_rate;
+          const inputRate = prompt(
+            `Enter current exchange rate for ${inventoryItem.purchase_currency} (original: ₹${inventoryItem.purchase_exchange_rate}, current market: ₹${suggestedRate}):`,
+            suggestedRate
+          );
+          
+          if (!inputRate) {
+            window.setLoading(false);
+            return; // User cancelled
+          }
+          
+          exchangeRateToUse = inputRate;
+        }
+
         // Pre-fill form to mark as FULLY PAID by default
         window.setFormData({
           ...inventoryItem,
           totalPurchaseAmount: currentTotal,
           amountPaid: currentTotal, // Set to total to mark as fully paid
           paymentStatus: 'paid',
-          // Add currency fields with defaults if not present
+          // Add currency fields with current exchange rate
           purchase_currency: inventoryItem.purchase_currency || 'INR',
-          purchase_exchange_rate: inventoryItem.purchase_exchange_rate || '1'
+          purchase_exchange_rate: exchangeRateToUse
         });
 
         console.log('✅ Form data set with currency fields:', {
           currency: inventoryItem.purchase_currency || 'INR',
-          rate: inventoryItem.purchase_exchange_rate || '1',
+          rate: exchangeRateToUse,
           fromPayables: true
         });
 
@@ -116,18 +141,49 @@ window.handleMarkAsPaid = async function(payableIdOrObject) {
 
       // For non-inventory payables, use traditional mark as paid
       console.log('Processing non-inventory payable...');
-      const confirmPaid = confirm(`Mark payable of ₹${payable.amount} as paid?`);
+      
+      // NEW: Handle exchange rate for non-inventory foreign currency payables
+      let paymentData = {
+        status: 'paid',
+        paid_date: new Date().toISOString(),
+        payment_notes: 'Marked as paid manually'
+      };
+      
+      if (payable.currency && payable.currency !== 'INR') {
+        const currentRates = window.currentExchangeRates || {
+          USD: 86.00,
+          EUR: 93.00,
+          GBP: 108.00,
+          AED: 23.50
+        };
+        
+        const suggestedRate = currentRates[payable.currency] || payable.exchange_rate;
+        const inputRate = prompt(
+          `Enter current exchange rate for ${payable.currency} (original: ₹${payable.exchange_rate}, current market: ₹${suggestedRate}):`,
+          suggestedRate
+        );
+        
+        if (!inputRate) {
+          window.setLoading(false);
+          return; // User cancelled
+        }
+        
+        paymentData.exchange_rate = parseFloat(inputRate);
+        paymentData.payment_reference = prompt('Enter payment reference:') || '';
+      }
+      
+      const confirmAmount = payable.currency && payable.currency !== 'INR' 
+        ? `${payable.currency} ${payable.original_amount || payable.amount}`
+        : `₹${payable.amount}`;
+        
+      const confirmPaid = confirm(`Mark payable of ${confirmAmount} as paid?`);
       if (!confirmPaid) return;
 
       window.setLoading(true);
 
-      const response = await window.apiCall(`/finance/payables/${payable.id}`, {
+      const response = await window.apiCall(`/payables/${payable.id}`, {
         method: 'PUT',
-        body: JSON.stringify({
-          status: 'paid',
-          paid_date: new Date().toISOString(),
-          payment_notes: 'Marked as paid manually'
-        })
+        body: JSON.stringify(paymentData)
       });
 
       if (response.error) {
@@ -135,7 +191,14 @@ window.handleMarkAsPaid = async function(payableIdOrObject) {
       }
 
       console.log('Payable marked as paid successfully');
-      alert('Payable marked as paid!');
+      
+      // Show exchange impact if applicable
+      if (response.exchange_impact) {
+        alert(`Payable marked as paid!\n\nExchange ${response.exchange_impact.type}: ₹${response.exchange_impact.amount.toFixed(2)}`);
+      } else {
+        alert('Payable marked as paid!');
+      }
+      
       await window.fetchFinancialData();
     }
 
@@ -209,7 +272,10 @@ window.fetchFinancialData = async function() {
         event_date: order.event_date,
         payment_status: order.payment_status || 'pending',
         order_type: order.order_type,
-        order_status: order.status // Keep original status for reference
+        order_status: order.status, // Keep original status for reference
+        // NEW: Add currency info for orders
+        original_currency: order.payment_currency || 'INR',
+        original_amount: order.final_amount || order.total_amount || 0
       }));
 
     // FIXED: Process completed sales - orders that are completed OR have past event dates
@@ -244,7 +310,10 @@ window.fetchFinancialData = async function() {
         amount: parseFloat(order.final_amount || order.total_amount || 0),
         status: order.payment_status === 'paid' ? 'paid' : 'completed',
         event_date: order.event_date,
-        payment_status: order.payment_status || 'pending'
+        payment_status: order.payment_status || 'pending',
+        // NEW: Add currency info
+        original_currency: order.payment_currency || 'INR',
+        original_amount: order.final_amount || order.total_amount || 0
       }));
 
     // Process receivables - ensure all fields are properly mapped
@@ -259,7 +328,11 @@ window.fetchFinancialData = async function() {
         due_date: r.due_date || r.expected_payment_date || new Date().toISOString(),
         client_name: r.client_name || 'N/A',
         assigned_to: r.assigned_to || 'Unassigned',
-        status: r.status || 'pending'
+        status: r.status || 'pending',
+        // Ensure currency fields for receivables
+        currency: r.currency || 'INR',
+        original_amount: r.original_amount || r.expected_amount || r.amount || 0,
+        exchange_rate: r.exchange_rate || 1
       };
     });
 
@@ -313,24 +386,67 @@ window.fetchFinancialData = async function() {
   }
 };
 
-// Record payment for receivable
+// UPDATED: Record payment for receivable with exchange rate handling
 window.recordPayment = async function(receivableId) {
-  const paymentAmount = prompt('Enter payment amount:');
-  if (!paymentAmount) return;
-
-  const paymentMode = prompt('Enter payment mode (bank_transfer/cash/cheque):', 'bank_transfer');
-  const transactionId = prompt('Enter transaction ID (optional):');
-
   try {
+    // Find the receivable
+    const receivable = window.financialData.receivables?.find(r => r.id === receivableId);
+    if (!receivable) {
+      alert('Receivable not found. Please refresh and try again.');
+      return;
+    }
+    
+    // Get payment amount
+    const paymentAmount = prompt(`Enter payment amount in ${receivable.currency || 'INR'}:`, receivable.original_amount || receivable.amount);
+    if (!paymentAmount) return;
+
+    // Handle exchange rate for foreign currency
+    let exchangeRate = receivable.exchange_rate || 1;
+    
+    if (receivable.currency && receivable.currency !== 'INR') {
+      const currentRates = window.currentExchangeRates || {
+        USD: 86.00,
+        EUR: 93.00,
+        GBP: 108.00,
+        AED: 23.50
+      };
+      
+      const suggestedRate = currentRates[receivable.currency] || receivable.exchange_rate;
+      const inputRate = prompt(
+        `Enter current exchange rate for ${receivable.currency} (original: ₹${receivable.exchange_rate}, current market: ₹${suggestedRate}):`,
+        suggestedRate
+      );
+      
+      if (!inputRate) return; // User cancelled
+      
+      exchangeRate = parseFloat(inputRate);
+      if (isNaN(exchangeRate)) {
+        alert('Invalid exchange rate');
+        return;
+      }
+    }
+
+    const paymentMode = prompt('Enter payment mode (bank_transfer/cash/cheque):', 'bank_transfer');
+    const transactionId = prompt('Enter transaction ID/reference:');
+
     window.setLoading(true);
     const response = await window.apiCall('/receivables/record-payment/' + receivableId, 'PUT', {
       payment_amount: parseFloat(paymentAmount),
       payment_date: new Date().toISOString(),
       payment_mode: paymentMode,
-      transaction_id: transactionId
+      transaction_id: transactionId,
+      // NEW: Add exchange rate fields
+      receipt_exchange_rate: exchangeRate,
+      receipt_reference: transactionId
     });
 
-    alert('Payment recorded successfully!');
+    // Show exchange impact if applicable
+    if (response.exchange_impact) {
+      alert(`Payment recorded successfully!\n\nExchange ${response.exchange_impact.type}: ₹${response.exchange_impact.amount.toFixed(2)}`);
+    } else {
+      alert('Payment recorded successfully!');
+    }
+    
     window.fetchFinancialData(); // Refresh data
   } catch (error) {
     console.error('Error recording payment:', error);
@@ -347,10 +463,35 @@ window.calculateFinancialSummary = function(financialData) {
     totalCompletedSales: financialData.sales.reduce((sum, sale) => sum + sale.amount, 0),
     totalReceivables: financialData.receivables.reduce((sum, rec) => sum + (rec.balance_amount || rec.amount || 0), 0),
     totalPayables: financialData.payables.reduce((sum, pay) => sum + parseFloat(pay.amount || 0), 0),
-    netPosition: 0
+    netPosition: 0,
+    // NEW: Add exchange impact totals
+    totalExchangeGain: 0,
+    totalExchangeLoss: 0
   };
 
+  // Calculate exchange impacts
+  financialData.payables.forEach(p => {
+    if (p.exchange_difference) {
+      if (p.exchange_difference_type === 'gain') {
+        summary.totalExchangeGain += Math.abs(p.exchange_difference);
+      } else {
+        summary.totalExchangeLoss += Math.abs(p.exchange_difference);
+      }
+    }
+  });
+  
+  financialData.receivables.forEach(r => {
+    if (r.exchange_difference) {
+      if (r.exchange_difference_type === 'gain') {
+        summary.totalExchangeGain += Math.abs(r.exchange_difference);
+      } else {
+        summary.totalExchangeLoss += Math.abs(r.exchange_difference);
+      }
+    }
+  });
+
   summary.netPosition = summary.totalReceivables - summary.totalPayables;
+  summary.netExchangeImpact = summary.totalExchangeGain - summary.totalExchangeLoss;
 
   return summary;
 };
@@ -431,6 +572,14 @@ window.exportFinancialData = function(financialData, format = 'csv') {
     csvContent += `Total Receivables,₹${report.summary.totalReceivables.toLocaleString()}\n`;
     csvContent += `Total Payables,₹${report.summary.totalPayables.toLocaleString()}\n`;
     csvContent += `Net Position,₹${report.summary.netPosition.toLocaleString()}\n\n`;
+    
+    // NEW: Add exchange impact summary
+    if (report.summary.totalExchangeGain > 0 || report.summary.totalExchangeLoss > 0) {
+      csvContent += "Exchange Rate Impact\n";
+      csvContent += `Total Exchange Gain,₹${report.summary.totalExchangeGain.toLocaleString()}\n`;
+      csvContent += `Total Exchange Loss,₹${report.summary.totalExchangeLoss.toLocaleString()}\n`;
+      csvContent += `Net Exchange Impact,₹${report.summary.netExchangeImpact.toLocaleString()}\n\n`;
+    }
 
     // Add receivables
     csvContent += "Receivables\n";
@@ -450,7 +599,7 @@ window.exportFinancialData = function(financialData, format = 'csv') {
   }
 };
 
-// Mark receivable as paid
+// Mark receivable as paid - keeping your existing function
 window.markReceivableAsPaid = async function(receivableId, paymentDetails = {}) {
   try {
     window.setLoading(true);
@@ -523,4 +672,7 @@ window.filterFinancialData = function(data, filters) {
   return filtered;
 };
 
-console.log('✅ Financial System component loaded successfully');
+// NEW: Add handleMarkPaymentFromReceivable for the button in receivables table
+window.handleMarkPaymentFromReceivable = window.recordPayment;
+
+console.log('✅ Financial System component loaded successfully with exchange rate handling');
