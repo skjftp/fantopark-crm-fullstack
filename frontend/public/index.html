@@ -924,12 +924,12 @@ window.renderEnhancedFinancialStats = () => {
         },
         {
             title: 'Total Active Sales',
-            value: metrics.activeSalesCount.toString(),
+            value: `₹${metrics.totalActiveSales.toLocaleString()}`,  // ✅ This shows amount (₹10.5)
             change: '+5.2%',
             changeType: 'positive',
             icon: '🎯'
         },
-        {
+                {
             title: 'Total Receivables',
             value: window.formatCurrency(metrics.totalReceivables), // ✅ Use Indian format
             change: '-2.1%',

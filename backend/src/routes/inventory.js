@@ -30,14 +30,14 @@ function processInventoryCurrency(inventoryData) {
   }
   
   // Calculate total purchase amount in INR
-  if (inventoryData.totalPurchaseAmount) {
+  if (inventoryData.totalPurchaseAmount !== undefined) {
     inventoryData.totalPurchaseAmount_inr = currency === 'INR' 
       ? inventoryData.totalPurchaseAmount 
       : inventoryData.totalPurchaseAmount * exchangeRate;
   }
   
   // Calculate amount paid in INR
-  if (inventoryData.amountPaid) {
+  if (inventoryData.amountPaid !== undefined) {
     inventoryData.amountPaid_inr = currency === 'INR' 
       ? inventoryData.amountPaid 
       : inventoryData.amountPaid * exchangeRate;
@@ -91,7 +91,7 @@ const sanitizeInventoryData = (data) => {
     supplierInvoice: data.supplierInvoice || '',
     purchasePrice: parseFloat(data.purchasePrice) || 0,
     totalPurchaseAmount: parseFloat(data.totalPurchaseAmount) || 0,
-    amountPaid: parseFloat(data.amountPaid) || 0,
+    amountPaid: parseFloat(data.amountPaid) || 0,  // This should be in purchase_currency
     paymentDueDate: data.paymentDueDate || '',
     
     // ✅ FIXED: Currency fields with correct names
@@ -530,14 +530,39 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
               status: payableData.status
             });
             
-            // Calculate payment increment
+            // FIXED: Calculate payment increment correctly for foreign currency
             const oldAmountPaidINR = parseFloat(oldData.amountPaid_inr || oldData.amountPaid || 0);
-            const paymentIncrementINR = newAmountPaidINR - oldAmountPaidINR;
             
-            console.log('Payment increment:', {
-              old: oldAmountPaidINR,
-              new: newAmountPaidINR,
-              increment: paymentIncrementINR
+            // For foreign currency, we need to work with the original currency amounts
+            let paymentIncrementINR;
+            let paymentIncrementForeign;
+            
+            if (currency === 'INR') {
+              // For INR inventory, simple calculation
+              paymentIncrementINR = newAmountPaidINR - oldAmountPaidINR;
+              paymentIncrementForeign = paymentIncrementINR;
+            } else {
+              // For foreign currency inventory
+              // The form should be sending amounts in the original currency (e.g., USD)
+              const oldAmountPaidForeign = parseFloat(oldData.amountPaid || 0);
+              const newAmountPaidForeign = parseFloat(updateData.amountPaid || 0);
+              
+              paymentIncrementForeign = newAmountPaidForeign - oldAmountPaidForeign;
+              paymentIncrementINR = paymentIncrementForeign * currentExchangeRate;
+              
+              console.log('Foreign currency payment calculation:', {
+                currency,
+                oldAmountPaidForeign,
+                newAmountPaidForeign,
+                paymentIncrementForeign,
+                currentExchangeRate,
+                paymentIncrementINR
+              });
+            }
+            
+            console.log('Payment increment calculated:', {
+              foreign: paymentIncrementForeign,
+              inr: paymentIncrementINR
             });
             
             // Determine the update data based on payment status
@@ -558,11 +583,11 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
               };
               
               // If there's a payment increment for the final payment, add it to history
-              if (paymentIncrementINR > 0) {
+              if (paymentIncrementForeign > 0) {
                 const finalPaymentRecord = {
                   payment_id: 'PAY-FINAL-' + Date.now(),
                   date: new Date().toISOString(),
-                  amount_foreign: currency === 'INR' ? paymentIncrementINR : paymentIncrementINR / currentExchangeRate,
+                  amount_foreign: paymentIncrementForeign,
                   currency: payableData.original_currency || payableData.currency || 'INR',
                   exchange_rate: currentExchangeRate,
                   amount_inr: paymentIncrementINR,
@@ -594,11 +619,11 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
               };
               
               // ADD PAYMENT HISTORY FOR PARTIAL PAYMENTS
-              if (paymentIncrementINR > 0 && updateData.paymentStatus === 'partial') {
+              if (paymentIncrementForeign > 0 && updateData.paymentStatus === 'partial') {
                 const paymentRecord = {
                   payment_id: 'PAY-' + Date.now(),
                   date: new Date().toISOString(),
-                  amount_foreign: currency === 'INR' ? paymentIncrementINR : paymentIncrementINR / currentExchangeRate,
+                  amount_foreign: paymentIncrementForeign, // This will be exactly the difference (e.g., 1000 USD)
                   currency: payableData.original_currency || payableData.currency || 'INR',
                   exchange_rate: currentExchangeRate,
                   amount_inr: paymentIncrementINR,
@@ -610,9 +635,13 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
                 // Calculate FX impact if foreign currency
                 if (payableData.original_currency && payableData.original_currency !== 'INR') {
                   const creationRate = payableData.creation_exchange_rate || payableData.exchange_rate || 1;
-                  const fxDifference = (paymentRecord.amount_foreign * currentExchangeRate) - (paymentRecord.amount_foreign * creationRate);
+                  const expectedINR = paymentIncrementForeign * creationRate;
+                  const actualINR = paymentIncrementForeign * currentExchangeRate;
+                  const fxDifference = actualINR - expectedINR;
+                  
                   paymentRecord.fx_difference = fxDifference;
                   paymentRecord.fx_type = fxDifference > 0 ? 'loss' : 'gain';
+                  paymentRecord.creation_rate = creationRate;
                 }
                 
                 payableUpdateData.payment_history = [
@@ -620,7 +649,7 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
                   paymentRecord
                 ];
                 
-                // Update totals
+                // Update totals using foreign currency amounts
                 const totalPaidForeign = (payableData.payment_history || [])
                   .reduce((sum, p) => sum + (p.amount_foreign || 0), 0) + paymentRecord.amount_foreign;
                 
@@ -1055,7 +1084,7 @@ router.put('/:id/payment', authenticateToken, checkPermission('finance', 'write'
     
     const currentData = inventoryDoc.data();
     
-    // ADD THIS: Calculate payment increment for partial payments
+    // Calculate payment increment
     const oldAmountPaid = parseFloat(currentData.amountPaid || 0);
     const newAmountPaid = parseFloat(amountPaid || 0);
     const paymentIncrement = newAmountPaid - oldAmountPaid;
@@ -1086,7 +1115,7 @@ router.put('/:id/payment', authenticateToken, checkPermission('finance', 'write'
     
     await db.collection('crm_inventory').doc(id).update(updateData);
     
-    // UPDATE THIS SECTION: Handle payable updates with partial payment tracking
+    // Handle payable updates with partial payment tracking
     const payablesSnapshot = await db.collection('crm_payables')
       .where('inventoryId', '==', id)
       .get();
@@ -1101,7 +1130,7 @@ router.put('/:id/payment', authenticateToken, checkPermission('finance', 'write'
           updated_date: new Date().toISOString()
         };
         
-        // ADD THIS: If this is a partial payment, track the payment history
+        // If this is a partial payment, track the payment history
         if (paymentIncrement > 0) {
           // Initialize payment history if it doesn't exist
           const paymentHistory = payableData.payment_history || [];
