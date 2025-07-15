@@ -1,9 +1,252 @@
-// ============================================================================
-// FIXED PAGINATION FINANCIALS COMPONENT - USES PROPER REACT STATE
-// ============================================================================
-// This fixes the pagination by using proper React state management
+// Main render function for financials dashboard - ENHANCED WITH FIXED PAGINATION
+window.renderFinancials = () => {
+    console.log('🔍 ENHANCED FINANCIALS COMPONENT DEBUG: Starting render');
+    
+    // 1. Extract state with fallbacks - PROVEN PATTERN
+    const {
+        financialData = window.appState?.financialData || {
+            activeSales: [],
+            sales: [],
+            receivables: [],
+            payables: [],
+            expiringInventory: []
+        },
+        financialFilters = window.appState?.financialFilters || {
+            clientName: '',
+            assignedPerson: '',
+            dateFrom: '',
+            dateTo: '',
+            status: 'all'
+        },
+        activeFinancialTab = window.appState?.activeFinancialTab || 'activesales',
+        financialPagination = window.appState?.financialPagination || {
+            activesales: { currentPage: 1, itemsPerPage: 10 },
+            sales: { currentPage: 1, itemsPerPage: 10 },
+            receivables: { currentPage: 1, itemsPerPage: 10 },
+            payables: { currentPage: 1, itemsPerPage: 10 },
+            expiring: { currentPage: 1, itemsPerPage: 10 }
+        },
+        setFinancialFilters = window.setFinancialFilters || (() => {
+            console.warn("setFinancialFilters not implemented");
+        }),
+        setActiveFinancialTab = window.setActiveFinancialTab || (() => {
+            console.warn("setActiveFinancialTab not implemented");
+        })
+    } = window.appState || {};
 
-// Create the loadFinancialData function
+    // 2. Apply filters function - ENHANCED FOR TAB-SPECIFIC FILTERING
+    const applyFilters = (data) => {
+        if (!data || !Array.isArray(data)) return [];
+        
+        return data.filter(item => {
+            // Client/Supplier name filter (tab-specific)
+            if (financialFilters.clientName) {
+                const nameField = activeFinancialTab === 'payables' ? 'supplier' : 'client';
+                const itemName = (item[nameField] || item[`${nameField}_name`] || '').toLowerCase();
+                if (!itemName.includes(financialFilters.clientName.toLowerCase())) {
+                    return false;
+                }
+            }
+            
+            // Date range filter
+            if (financialFilters.dateFrom) {
+                const itemDate = new Date(item.date || item.due_date || item.created_date);
+                const filterDate = new Date(financialFilters.dateFrom);
+                if (itemDate < filterDate) return false;
+            }
+            
+            if (financialFilters.dateTo) {
+                const itemDate = new Date(item.date || item.due_date || item.created_date);
+                const filterDate = new Date(financialFilters.dateTo);
+                if (itemDate > filterDate) return false;
+            }
+            
+            // Status filter
+            if (financialFilters.status && financialFilters.status !== 'all') {
+                if (item.status !== financialFilters.status) return false;
+            }
+            
+            return true;
+        });
+    };
+
+    // 3. Get paginated data for current tab - FIXED TO USE REACT STATE
+    const getCurrentTabData = window.getCurrentTabData = () => {
+        let data = [];
+        switch (activeFinancialTab) {
+            case 'activesales':
+                data = applyFilters(financialData.activeSales || []);
+                break;
+            case 'sales':
+                data = applyFilters(financialData.sales || []);
+                break;
+            case 'receivables':
+                data = applyFilters(financialData.receivables || []);
+                break;
+            case 'payables':
+                data = applyFilters(financialData.payables || []);
+                break;
+            case 'expiring':
+                data = window.getEnhancedExpiringInventory();
+                break;
+            default:
+                data = [];
+        }
+        
+        // Apply pagination using React state
+        const pagination = financialPagination[activeFinancialTab];
+        if (pagination) {
+            const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
+            const endIndex = startIndex + pagination.itemsPerPage;
+            return {
+                data: data.slice(startIndex, endIndex),
+                totalItems: data.length
+            };
+        }
+        
+        return { data, totalItems: data.length };
+    };
+
+    const currentTabData = getCurrentTabData();
+
+    // 4. Main component render - ENHANCED WITH STATS AND FILTERS
+    return React.createElement('div', { className: 'space-y-6' },
+        // Enhanced Stats Cards
+        window.renderEnhancedFinancialStats(),
+        // Exchange Impact Summary
+window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financialData),                       
+
+        // Enhanced Filter System
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border' },
+            React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Filters'),
+            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4' },
+                // Client/Supplier Name Filter (tab-specific)
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' },
+                        activeFinancialTab === 'payables' ? 'Supplier Name' : 'Client Name'
+                    ),
+                    React.createElement('input', {
+                        type: 'text',
+                        value: financialFilters.clientName || '',
+                        onChange: (e) => setFinancialFilters({...financialFilters, clientName: e.target.value}),
+                        placeholder: activeFinancialTab === 'payables' ? 'Search by supplier...' : 'Search by client...',
+                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    })
+                ),
+                
+                // Date From Filter
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'From Date'),
+                    React.createElement('input', {
+                        type: 'date',
+                        value: financialFilters.dateFrom || '',
+                        onChange: (e) => setFinancialFilters({...financialFilters, dateFrom: e.target.value}),
+                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    })
+                ),
+                
+                // Date To Filter
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'To Date'),
+                    React.createElement('input', {
+                        type: 'date',
+                        value: financialFilters.dateTo || '',
+                        onChange: (e) => setFinancialFilters({...financialFilters, dateTo: e.target.value}),
+                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    })
+                ),
+                
+                // Status Filter
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Status'),
+                    React.createElement('select', {
+                        value: financialFilters.status || 'all',
+                        onChange: (e) => setFinancialFilters({...financialFilters, status: e.target.value}),
+                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    },
+                        React.createElement('option', { value: 'all' }, 'All Status'),
+                        React.createElement('option', { value: 'paid' }, 'Paid'),
+                        React.createElement('option', { value: 'pending' }, 'Pending'),
+                        React.createElement('option', { value: 'overdue' }, 'Overdue')
+                    )
+                )
+            ),
+            React.createElement('div', { className: 'flex justify-end mt-4 space-x-2' },
+                React.createElement('button', {
+                    onClick: () => setFinancialFilters({
+                        clientName: '',
+                        assignedPerson: '',
+                        dateFrom: '',
+                        dateTo: '',
+                        status: 'all'
+                    }),
+                    className: 'px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50'
+                }, 'Clear Filters')
+            )
+        ),
+
+        // Main Content Area with Tabs
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
+            // Tab Navigation - ENHANCED
+            React.createElement('div', { className: 'border-b border-gray-200 dark:border-gray-700' },
+                React.createElement('nav', { className: '-mb-px flex space-x-8 px-6' },
+                    ['activesales', 'sales', 'receivables', 'payables', 'expiring'].map(tab =>
+                        React.createElement('button', {
+                            key: tab,
+                            onClick: () => setActiveFinancialTab(tab),
+                            className: `py-4 px-1 border-b-2 font-medium text-sm ${
+                                activeFinancialTab === tab
+                                    ? 'text-blue-600 border-b-2 border-blue-600'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`
+                        }, tab.charAt(0).toUpperCase() + tab.slice(1).replace('activesales', 'Active Sales'))
+                    )
+                )
+            ),
+
+            // Tab Content - ENHANCED WITH WORKING PAGINATION
+            React.createElement('div', { className: 'p-6' },
+                activeFinancialTab === 'activesales' && (() => {
+                    console.log('🔍 Calling renderActiveSalesTab with data:', currentTabData.data);
+                    return React.createElement('div', null,
+                        window.renderActiveSalesTab(currentTabData.data),
+                        window.renderFinancialPagination('activesales', currentTabData.totalItems)
+                    );
+                })(),
+                activeFinancialTab === 'sales' && (() => {
+                    console.log('🔍 Calling renderSalesTab with data:', currentTabData.data);
+                    return React.createElement('div', null,
+                        window.renderSalesTab(currentTabData.data),
+                        window.renderFinancialPagination('sales', currentTabData.totalItems)
+                    );
+                })(),
+                activeFinancialTab === 'receivables' && (() => {
+                    console.log('🔍 Calling renderReceivablesTab with data:', currentTabData.data);
+                    return React.createElement('div', null,
+                        window.renderReceivablesTab(currentTabData.data),
+                        window.renderFinancialPagination('receivables', currentTabData.totalItems)
+                    );
+                })(),
+                activeFinancialTab === 'payables' && (() => {
+                    console.log('🔍 Calling renderPayablesTab with data:', currentTabData.data);
+                    return React.createElement('div', null,
+                        window.renderPayablesTab(currentTabData.data),
+                        window.renderFinancialPagination('payables', currentTabData.totalItems)
+                    );
+                })(),
+                activeFinancialTab === 'expiring' && (() => {
+                    console.log('🔍 Calling renderExpiringTab with data:', currentTabData.data);
+                    return React.createElement('div', null,
+                        window.renderExpiringTab(currentTabData.data),
+                        window.renderFinancialPagination('expiring', currentTabData.totalItems)
+                    );
+                })()
+            )
+        )
+    );
+};
+
+
 window.loadFinancialData = async function() {
     console.log('Loading financial data...');
     
@@ -541,254 +784,6 @@ window.formatFinancialDate = (dateValue) => {
         console.warn('Date formatting error:', error);
         return 'Invalid Date';
     }
-};
-
-// Main render function for financials dashboard - ENHANCED WITH FIXED PAGINATION
-window.renderFinancials = () => {
-    console.log('🔍 ENHANCED FINANCIALS COMPONENT DEBUG: Starting render');
-    
-    // 1. Extract state with fallbacks - PROVEN PATTERN
-    const {
-        financialData = window.appState?.financialData || {
-            activeSales: [],
-            sales: [],
-            receivables: [],
-            payables: [],
-            expiringInventory: []
-        },
-        financialFilters = window.appState?.financialFilters || {
-            clientName: '',
-            assignedPerson: '',
-            dateFrom: '',
-            dateTo: '',
-            status: 'all'
-        },
-        activeFinancialTab = window.appState?.activeFinancialTab || 'activesales',
-        financialPagination = window.appState?.financialPagination || {
-            activesales: { currentPage: 1, itemsPerPage: 10 },
-            sales: { currentPage: 1, itemsPerPage: 10 },
-            receivables: { currentPage: 1, itemsPerPage: 10 },
-            payables: { currentPage: 1, itemsPerPage: 10 },
-            expiring: { currentPage: 1, itemsPerPage: 10 }
-        },
-        setFinancialFilters = window.setFinancialFilters || (() => {
-            console.warn("setFinancialFilters not implemented");
-        }),
-        setActiveFinancialTab = window.setActiveFinancialTab || (() => {
-            console.warn("setActiveFinancialTab not implemented");
-        })
-    } = window.appState || {};
-
-    // 2. Apply filters function - ENHANCED FOR TAB-SPECIFIC FILTERING
-    const applyFilters = (data) => {
-        if (!data || !Array.isArray(data)) return [];
-        
-        return data.filter(item => {
-            // Client/Supplier name filter (tab-specific)
-            if (financialFilters.clientName) {
-                const nameField = activeFinancialTab === 'payables' ? 'supplier' : 'client';
-                const itemName = (item[nameField] || item[`${nameField}_name`] || '').toLowerCase();
-                if (!itemName.includes(financialFilters.clientName.toLowerCase())) {
-                    return false;
-                }
-            }
-            
-            // Date range filter
-            if (financialFilters.dateFrom) {
-                const itemDate = new Date(item.date || item.due_date || item.created_date);
-                const filterDate = new Date(financialFilters.dateFrom);
-                if (itemDate < filterDate) return false;
-            }
-            
-            if (financialFilters.dateTo) {
-                const itemDate = new Date(item.date || item.due_date || item.created_date);
-                const filterDate = new Date(financialFilters.dateTo);
-                if (itemDate > filterDate) return false;
-            }
-            
-            // Status filter
-            if (financialFilters.status && financialFilters.status !== 'all') {
-                if (item.status !== financialFilters.status) return false;
-            }
-            
-            return true;
-        });
-    };
-
-    // 3. Get paginated data for current tab - FIXED TO USE REACT STATE
-    const getCurrentTabData = window.getCurrentTabData = () => {
-        let data = [];
-        switch (activeFinancialTab) {
-            case 'activesales':
-                data = applyFilters(financialData.activeSales || []);
-                break;
-            case 'sales':
-                data = applyFilters(financialData.sales || []);
-                break;
-            case 'receivables':
-                data = applyFilters(financialData.receivables || []);
-                break;
-            case 'payables':
-                data = applyFilters(financialData.payables || []);
-                break;
-            case 'expiring':
-                data = window.getEnhancedExpiringInventory();
-                break;
-            default:
-                data = [];
-        }
-        
-        // Apply pagination using React state
-        const pagination = financialPagination[activeFinancialTab];
-        if (pagination) {
-            const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
-            const endIndex = startIndex + pagination.itemsPerPage;
-            return {
-                data: data.slice(startIndex, endIndex),
-                totalItems: data.length
-            };
-        }
-        
-        return { data, totalItems: data.length };
-    };
-
-    const currentTabData = getCurrentTabData();
-
-    // 4. Main component render - ENHANCED WITH STATS AND FILTERS
-    return React.createElement('div', { className: 'space-y-6' },
-        // Enhanced Stats Cards
-        window.renderEnhancedFinancialStats(),
-        // Exchange Impact Summary
-window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financialData),                       
-
-        // Enhanced Filter System
-        React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border' },
-            React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Filters'),
-            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4' },
-                // Client/Supplier Name Filter (tab-specific)
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' },
-                        activeFinancialTab === 'payables' ? 'Supplier Name' : 'Client Name'
-                    ),
-                    React.createElement('input', {
-                        type: 'text',
-                        value: financialFilters.clientName || '',
-                        onChange: (e) => setFinancialFilters({...financialFilters, clientName: e.target.value}),
-                        placeholder: activeFinancialTab === 'payables' ? 'Search by supplier...' : 'Search by client...',
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    })
-                ),
-                
-                // Date From Filter
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'From Date'),
-                    React.createElement('input', {
-                        type: 'date',
-                        value: financialFilters.dateFrom || '',
-                        onChange: (e) => setFinancialFilters({...financialFilters, dateFrom: e.target.value}),
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    })
-                ),
-                
-                // Date To Filter
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'To Date'),
-                    React.createElement('input', {
-                        type: 'date',
-                        value: financialFilters.dateTo || '',
-                        onChange: (e) => setFinancialFilters({...financialFilters, dateTo: e.target.value}),
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    })
-                ),
-                
-                // Status Filter
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Status'),
-                    React.createElement('select', {
-                        value: financialFilters.status || 'all',
-                        onChange: (e) => setFinancialFilters({...financialFilters, status: e.target.value}),
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    },
-                        React.createElement('option', { value: 'all' }, 'All Status'),
-                        React.createElement('option', { value: 'paid' }, 'Paid'),
-                        React.createElement('option', { value: 'pending' }, 'Pending'),
-                        React.createElement('option', { value: 'overdue' }, 'Overdue')
-                    )
-                )
-            ),
-            React.createElement('div', { className: 'flex justify-end mt-4 space-x-2' },
-                React.createElement('button', {
-                    onClick: () => setFinancialFilters({
-                        clientName: '',
-                        assignedPerson: '',
-                        dateFrom: '',
-                        dateTo: '',
-                        status: 'all'
-                    }),
-                    className: 'px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50'
-                }, 'Clear Filters')
-            )
-        ),
-
-        // Main Content Area with Tabs
-        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
-            // Tab Navigation - ENHANCED
-            React.createElement('div', { className: 'border-b border-gray-200 dark:border-gray-700' },
-                React.createElement('nav', { className: '-mb-px flex space-x-8 px-6' },
-                    ['activesales', 'sales', 'receivables', 'payables', 'expiring'].map(tab =>
-                        React.createElement('button', {
-                            key: tab,
-                            onClick: () => setActiveFinancialTab(tab),
-                            className: `py-4 px-1 border-b-2 font-medium text-sm ${
-                                activeFinancialTab === tab
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-500 hover:text-gray-700'
-                            }`
-                        }, tab.charAt(0).toUpperCase() + tab.slice(1).replace('activesales', 'Active Sales'))
-                    )
-                )
-            ),
-
-            // Tab Content - ENHANCED WITH WORKING PAGINATION
-            React.createElement('div', { className: 'p-6' },
-                activeFinancialTab === 'activesales' && (() => {
-                    console.log('🔍 Calling renderActiveSalesTab with data:', currentTabData.data);
-                    return React.createElement('div', null,
-                        window.renderActiveSalesTab(currentTabData.data),
-                        window.renderFinancialPagination('activesales', currentTabData.totalItems)
-                    );
-                })(),
-                activeFinancialTab === 'sales' && (() => {
-                    console.log('🔍 Calling renderSalesTab with data:', currentTabData.data);
-                    return React.createElement('div', null,
-                        window.renderSalesTab(currentTabData.data),
-                        window.renderFinancialPagination('sales', currentTabData.totalItems)
-                    );
-                })(),
-                activeFinancialTab === 'receivables' && (() => {
-                    console.log('🔍 Calling renderReceivablesTab with data:', currentTabData.data);
-                    return React.createElement('div', null,
-                        window.renderReceivablesTab(currentTabData.data),
-                        window.renderFinancialPagination('receivables', currentTabData.totalItems)
-                    );
-                })(),
-                activeFinancialTab === 'payables' && (() => {
-                    console.log('🔍 Calling renderPayablesTab with data:', currentTabData.data);
-                    return React.createElement('div', null,
-                        window.renderPayablesTab(currentTabData.data),
-                        window.renderFinancialPagination('payables', currentTabData.totalItems)
-                    );
-                })(),
-                activeFinancialTab === 'expiring' && (() => {
-                    console.log('🔍 Calling renderExpiringTab with data:', currentTabData.data);
-                    return React.createElement('div', null,
-                        window.renderExpiringTab(currentTabData.data),
-                        window.renderFinancialPagination('expiring', currentTabData.totalItems)
-                    );
-                })()
-            )
-        )
-    );
 };
 
 // Fix 1: Update the renderActiveSalesTab function to remove "Post-Service Payment Orders" text
@@ -1648,7 +1643,7 @@ window.renderExchangeImpactSummary = (financialData) => {
 // ============================================================================
 
 // Update the auto-loader to check for the correct tab name
-const originalSetActiveTab = window.setActiveTab;
+
 window.setActiveTab = function(tab) {
     if (originalSetActiveTab) {
         originalSetActiveTab(tab);
