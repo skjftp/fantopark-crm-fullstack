@@ -109,8 +109,8 @@ window.renderInventoryCurrencySection = () => {
 window.renderEnhancedPaymentSection = () => {
   const formData = window.formData || {};
   const isFromPayables = window.editingInventory?._payableContext?.fromPayables;
-  const currency = formData.price_currency || 'INR';
-  const exchangeRate = formData.exchange_rate || 1;
+  const currency = formData.purchase_currency || 'INR';  // Changed from price_currency
+  const exchangeRate = formData.purchase_exchange_rate || 1;  // Changed from exchange_rate
   
   // Calculate amount paid in INR
   const amountPaid = parseFloat(formData.amountPaid) || 0;
@@ -173,14 +173,27 @@ window.renderEnhancedPaymentSection = () => {
             window.handleFormDataChange('amountPaid_inr', currency === 'INR' ? value : value * exchangeRate);
           },
           className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-orange-500',
-          min: '0',
-          step: '0.01'
+          min: 0,
+          step: 0.01
         }),
         currency !== 'INR' && React.createElement('div', { 
           className: 'text-xs text-green-600 dark:text-green-400 mt-1' 
         }, 
           '₹ ' + amountPaidINR.toFixed(2)
         )
+      ),
+      
+      // Payment Due Date
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
+          'Payment Due Date'
+        ),
+        React.createElement('input', {
+          type: 'date',
+          value: formData.paymentDueDate || '',
+          onChange: (e) => window.handleFormDataChange('paymentDueDate', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-orange-500'
+        })
       ),
       
       // Supplier Name
@@ -192,8 +205,7 @@ window.renderEnhancedPaymentSection = () => {
           type: 'text',
           value: formData.supplierName || '',
           onChange: (e) => window.handleFormDataChange('supplierName', e.target.value),
-          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-orange-500',
-          placeholder: 'Enter supplier name'
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-orange-500'
         })
       ),
       
@@ -206,20 +218,6 @@ window.renderEnhancedPaymentSection = () => {
           type: 'text',
           value: formData.supplierInvoice || '',
           onChange: (e) => window.handleFormDataChange('supplierInvoice', e.target.value),
-          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-orange-500',
-          placeholder: 'Enter invoice number'
-        })
-      ),
-      
-      // Payment Due Date
-      React.createElement('div', null,
-        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
-          'Payment Due Date'
-        ),
-        React.createElement('input', {
-          type: 'date',
-          value: formData.paymentDueDate || '',
-          onChange: (e) => window.handleFormDataChange('paymentDueDate', e.target.value),
           className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-orange-500'
         })
       )
@@ -282,9 +280,9 @@ window.renderInventoryForm = () => {
     }
   }
 
-  // Get currency info
-  const currency = window.formData.price_currency || 'INR';
-  const exchangeRate = window.formData.exchange_rate || 1;
+  // Get currency info - FIXED to use purchase_currency
+  const currency = window.formData.purchase_currency || 'INR';
+  const exchangeRate = window.formData.purchase_exchange_rate || 1;
 
   // Category management functions
   const addCategory = () => {
@@ -365,13 +363,19 @@ window.renderInventoryForm = () => {
 
   const categories = window.formData.categories || [];
 
-  // Calculate totals for display
+  // Calculate totals for display - FIXED to use purchase_currency
   const calculateTotals = () => {
-    return categories.reduce((acc, cat) => {
-      const totalTickets = parseInt(cat.total_tickets) || 0;
-      const availableTickets = parseInt(cat.available_tickets) || 0;
-      const buyingPrice = parseFloat(cat.buying_price) || 0;
-      const sellingPrice = parseFloat(cat.selling_price) || 0;
+    const categories = window.formData.categories || [];
+    const currency = window.formData.purchase_currency || 'INR';  // Changed
+    const exchangeRate = window.formData.purchase_exchange_rate || 1;  // Changed
+    
+    return categories.reduce((acc, category) => {
+      const totalTickets = parseInt(category.total_tickets) || 0;
+      const availableTickets = parseInt(category.available_tickets) || 0;
+      const buyingPrice = parseFloat(category.buying_price) || 0;
+      const sellingPrice = parseFloat(category.selling_price) || 0;
+      
+      // Calculate INR values
       const buyingPriceINR = currency === 'INR' ? buyingPrice : buyingPrice * exchangeRate;
       const sellingPriceINR = currency === 'INR' ? sellingPrice : sellingPrice * exchangeRate;
       
@@ -499,10 +503,10 @@ window.renderInventoryForm = () => {
                   })
                 ),
 
-                // Buying Price with INR display
+                // Buying Price with INR display - FIXED
                 React.createElement('div', null,
                   React.createElement('label', { className: 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1' }, 
-                    `Buying Price (${currency}) *`
+                    `Buying Price (${window.formData.purchase_currency || 'INR'}) *`  // Changed
                   ),
                   React.createElement('input', {
                     type: 'number',
@@ -513,17 +517,17 @@ window.renderInventoryForm = () => {
                     min: '0',
                     step: '0.01'
                   }),
-                  currency !== 'INR' && React.createElement('div', { 
+                  (window.formData.purchase_currency || 'INR') !== 'INR' && React.createElement('div', { 
                     className: 'text-xs text-green-600 dark:text-green-400 mt-1' 
                   }, 
-                    '₹ ' + ((parseFloat(category.buying_price) || 0) * exchangeRate).toFixed(2)
+                    '₹ ' + ((parseFloat(category.buying_price) || 0) * (parseFloat(window.formData.purchase_exchange_rate) || 1)).toFixed(2)
                   )
                 ),
 
-                // Selling Price with INR display
+                // Selling Price with INR display - FIXED
                 React.createElement('div', null,
                   React.createElement('label', { className: 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1' }, 
-                    `Selling Price (${currency}) *`
+                    `Selling Price (${window.formData.purchase_currency || 'INR'}) *`  // Changed
                   ),
                   React.createElement('input', {
                     type: 'number',
@@ -534,10 +538,10 @@ window.renderInventoryForm = () => {
                     min: '0',
                     step: '0.01'
                   }),
-                  currency !== 'INR' && React.createElement('div', { 
+                  (window.formData.purchase_currency || 'INR') !== 'INR' && React.createElement('div', { 
                     className: 'text-xs text-green-600 dark:text-green-400 mt-1' 
                   }, 
-                    '₹ ' + ((parseFloat(category.selling_price) || 0) * exchangeRate).toFixed(2)
+                    '₹ ' + ((parseFloat(category.selling_price) || 0) * (parseFloat(window.formData.purchase_exchange_rate) || 1)).toFixed(2)
                   )
                 ),
 
@@ -627,7 +631,8 @@ window.renderInventoryForm = () => {
               if (['category_of_ticket', 'total_tickets', 'available_tickets', 'mrp_of_ticket', 
                    'buying_price', 'selling_price', 'stand', 'inclusions', 
                    'paymentStatus', 'supplierName', 'supplierInvoice', 'purchasePrice',
-                   'totalPurchaseAmount', 'amountPaid', 'paymentDueDate'].includes(field.name)) {
+                   'totalPurchaseAmount', 'amountPaid', 'paymentDueDate',
+                   'purchase_currency', 'purchase_exchange_rate'].includes(field.name)) {
                 return null;
               }
               
