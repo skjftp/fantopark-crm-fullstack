@@ -553,7 +553,10 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
                     amount_inr: paymentAmountINR,
                     difference: payableUpdateData.exchange_difference,
                     reference: 'Inventory payment',
-                    created_by: req.user.email
+                    created_by: req.user.email,
+                    fx_difference: 0, // For now, just store 0
+                    fx_type: 'none',  // For now, just store 'none' 
+                    fx_note: 'No FX impact calculated' // For now, just a placeholder
                   };
                   
                   payableUpdateData.payment_history = [...(payableData.payment_history || []), paymentRecord];
