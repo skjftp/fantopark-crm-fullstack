@@ -2725,6 +2725,19 @@ window.fetchFinancialData = window.fetchFinancialData || function() {
     setTimeout(initializeMobileResponsive, 2000);
 })();
 </script>
+
+ <script>
+// Ensure financial data loads when finance tab is active
+document.addEventListener('DOMContentLoaded', function() {
+    // Small delay to ensure everything is initialized
+    setTimeout(() => {
+        if (window.appState?.activeTab === 'finance' && window.fetchFinancialData) {
+            console.log('Finance tab active on load, fetching data...');
+            window.fetchFinancialData();
+        }
+    }, 500);
+});
+</script>   
   
 </body>
 </html>
