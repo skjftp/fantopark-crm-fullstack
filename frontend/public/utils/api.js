@@ -256,33 +256,42 @@ window.deleteReceivable = async function(receivableId, setLoading, setReceivable
 };
 
 // Delete Payable Function  
-window.deletePayable = async function(payableId, setLoading, setFinancialData, fetchData) {
-  if (!window.confirm('Are you sure you want to delete this payable? This action cannot be undone.')) {
+// In api.js, update the deletePayable function:
+
+window.deletePayable = async function(payableId) {
+  if (!confirm('Are you sure you want to delete this payable?')) {
     return;
   }
 
   try {
-    setLoading(true);
+    // Use window.setLoading if available
+    if (window.setLoading) {
+      window.setLoading(true);
+    }
 
     const response = await window.apiCall(`/payables/${payableId}`, {
       method: 'DELETE'
     });
 
-    // Update financialData state instead of separate payables state
-    setFinancialData(prev => ({
-      ...prev,
-      payables: prev.payables ? prev.payables.filter(p => p.id !== payableId) : []
-    }));
+    if (response.error) {
+      throw new Error(response.error);
+    }
 
-    // Update analytics by recalculating totals
-    await fetchData(); // This will refresh all data including analytics
-
-    alert('Payable deleted successfully!');
-
+    console.log('Payable deleted successfully');
+    
+    // Refresh financial data
+    if (window.fetchFinancialData) {
+      await window.fetchFinancialData();
+    }
+    
+    return response;
   } catch (error) {
     console.error('Error deleting payable:', error);
     alert('Failed to delete payable: ' + error.message);
   } finally {
-    setLoading(false);
+    // Use window.setLoading if available
+    if (window.setLoading) {
+      window.setLoading(false);
+    }
   }
 };
