@@ -3270,6 +3270,7 @@ console.log("✅ AssignmentRulesTab exposed to window");
     window.renderUserForm && window.renderUserForm(),
     window.renderGSTInvoicePreview && window.renderGSTInvoicePreview(),
     window.renderOrderDetailModal && window.renderOrderDetailModal(),
+    window.PaymentHistoryModal && React.createElement(window.PaymentHistoryModal),                         
     renderOrderAssignmentModal(),
     window.renderDeliveryForm && window.renderDeliveryForm(),
     window.renderOrderDetail && window.renderOrderDetail(),
