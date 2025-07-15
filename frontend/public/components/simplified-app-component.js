@@ -3143,6 +3143,9 @@ console.log("✅ AssignmentRulesTab exposed to window");
             React.createElement('h1', { className: 'text-lg font-semibold' }, 'Welcome, ' + (state.user?.name || 'Admin User')),
             React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, window.USER_ROLES[state.user?.role]?.label + ' • ' + state.user?.department)
           ),
+            React.createElement('div', { className: 'mx-4' },
+            window.renderCurrencyTicker && window.renderCurrencyTicker()
+        ),
           React.createElement('div', { className: 'flex items-center space-x-4' },
             React.createElement('span', { className: 'text-lg' }, '🔔'),
             React.createElement('button', {
