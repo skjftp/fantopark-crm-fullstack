@@ -180,6 +180,7 @@ window.createFinancialSalesChart = () => {
 };
 
 // Calculate Enhanced Financial Metrics with Margin
+// Update the calculateEnhancedFinancialMetrics function in financials.js
 window.calculateEnhancedFinancialMetrics = () => {
     const financialData = window.appState?.financialData || {};
     const inventory = window.inventory || [];
@@ -190,7 +191,7 @@ window.calculateEnhancedFinancialMetrics = () => {
     const payables = financialData.payables || [];
     const receivables = financialData.receivables || [];
 
-    // Calculate totals
+    // Calculate totals - FIX: Calculate total amount for active sales
     const totalActiveSales = activeSales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
     const totalSales = sales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
     const totalPayables = payables.reduce((sum, payable) => sum + (payable.amount || 0), 0);
@@ -210,14 +211,90 @@ window.calculateEnhancedFinancialMetrics = () => {
     const marginPercentage = totalRevenue > 0 ? ((totalMargin / totalRevenue) * 100) : 0;
 
     return {
-        totalSales: totalSales || totalActiveSales, // Use sales data if available, otherwise activeSales
-        totalActiveSales,
+        totalSales: totalSales + totalActiveSales, // Combined total
+        totalActiveSales, // Total amount of active sales
         totalPayables,
         totalReceivables,
         totalMargin,
         marginPercentage: Math.round(marginPercentage * 100) / 100,
-        activeSalesCount: activeSales.filter(sale => sale.status === 'active' || sale.status === 'paid').length
+        activeSalesCount: activeSales.length // Count of active sales
     };
+};
+
+// Update the renderEnhancedFinancialStats function to show amount instead of count
+window.renderEnhancedFinancialStats = () => {
+    const metrics = window.calculateEnhancedFinancialMetrics();
+
+    const statsCards = [
+        {
+            title: 'Total Sales',
+            value: `₹${metrics.totalSales.toLocaleString()}`,
+            change: '+12.5%',
+            changeType: 'positive',
+            icon: '📈'
+        },
+        {
+            title: 'Total Active Sales',
+            value: `₹${metrics.totalActiveSales.toLocaleString()}`, // Changed from count to amount
+            change: '+5.2%',
+            changeType: 'positive',
+            icon: '🎯'
+        },
+        {
+            title: 'Total Receivables',
+            value: `₹${metrics.totalReceivables.toLocaleString()}`,
+            change: '-2.1%',
+            changeType: 'negative',
+            icon: '💰'
+        },
+        {
+            title: 'Total Payables',
+            value: `₹${metrics.totalPayables.toLocaleString()}`,
+            change: '+8.3%',
+            changeType: 'negative',
+            icon: '💸'
+        },
+        {
+            title: 'Total Margin',
+            value: `₹${metrics.totalMargin.toLocaleString()}`,
+            change: '+15.7%',
+            changeType: 'positive',
+            icon: '📊'
+        },
+        {
+            title: 'Margin %',
+            value: `${metrics.marginPercentage}%`,
+            change: '+2.3%',
+            changeType: 'positive',
+            icon: '📈'
+        }
+    ];
+
+    return React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6' },
+        statsCards.map((stat, index) =>
+            React.createElement('div', { 
+                key: index,
+                className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow'
+            },
+                React.createElement('div', { className: 'flex items-center justify-between' },
+                    React.createElement('div', null,
+                        React.createElement('p', { className: 'text-sm font-medium text-gray-600 dark:text-gray-400' }, stat.title),
+                        React.createElement('p', { className: 'text-2xl font-bold text-gray-900 dark:text-white mt-1' }, stat.value)
+                    ),
+                    React.createElement('div', { className: 'text-2xl' }, stat.icon)
+                ),
+                React.createElement('div', { className: 'flex items-center mt-4' },
+                    React.createElement('span', {
+                        className: `text-sm font-medium ${
+                            stat.changeType === 'positive' ? 
+                                'text-green-600' : 'text-red-600'
+                        }`
+                    }, stat.change),
+                    React.createElement('span', { className: 'text-sm text-gray-500 ml-2' }, 'vs last month')
+                )
+            )
+        )
+    );
 };
 
 // Enhanced Stats Cards Renderer
