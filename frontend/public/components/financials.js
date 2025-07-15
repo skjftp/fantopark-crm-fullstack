@@ -826,6 +826,12 @@ window.renderReceivablesTab = (receivables) => {
 // Adds event name column and converts action buttons to icons
 
 // Modified Payables Tab with INR column
+// Fix for FX Impact display in payables table
+// Add this code to update the renderPayablesTab function in financials.js
+
+// Find the payables.map section in renderPayablesTab and update it to include the FX Impact cell
+// This should be added after the Status cell and before the Actions cell
+
 window.renderPayablesTab = (payables) => {
     console.log('🔍 renderPayablesTab called with:', payables);
     
@@ -848,6 +854,19 @@ window.renderPayablesTab = (payables) => {
                 payables && payables.length > 0 ?
                     payables.map(payable => {
                         const showCurrency = payable.original_currency && payable.original_currency !== 'INR';
+                        
+                        // Calculate total FX impact from payment history
+                        let totalFxImpact = 0;
+                        if (payable.payment_history && payable.payment_history.length > 0) {
+                            totalFxImpact = payable.payment_history.reduce((sum, payment) => {
+                                return sum + (payment.fx_difference || payment.exchange_difference || 0);
+                            }, 0);
+                        }
+                        
+                        // Also check for total_exchange_difference field (set when fully paid)
+                        if (payable.total_exchange_difference !== undefined) {
+                            totalFxImpact = payable.total_exchange_difference;
+                        }
                         
                         return React.createElement('tr', { key: payable.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
                             // Due Date
@@ -884,83 +903,54 @@ window.renderPayablesTab = (payables) => {
                                 React.createElement('span', {
                                     className: `px-2 py-1 text-xs rounded-full ${
                                         (payable.payment_status || payable.status) === 'paid' ?
-                                        'bg-green-100 text-green-800' : 
-                                        (payable.payment_status || payable.status) === 'pending' ?
-                                        'bg-yellow-100 text-yellow-800' :
-                                        'bg-gray-100 text-gray-800'
+                                            'bg-green-100 text-green-800' :
+                                        (payable.payment_status || payable.status) === 'partial' ?
+                                            'bg-yellow-100 text-yellow-800' :
+                                            'bg-red-100 text-red-800'
                                     }`
                                 }, payable.payment_status || payable.status || 'pending')
                             ),
-                             React.createElement('td', { className: 'px-4 py-3' },
-  payable.exchange_difference ? 
-    React.createElement('span', {
-      className: `font-medium ${payable.exchange_difference_type === 'gain' ? 'text-green-600' : 'text-red-600'}`
-    }, 
-      `${payable.exchange_difference_type === 'gain' ? '+' : '-'}₹${Math.abs(payable.exchange_difference).toFixed(0)}`
-    ) : '-'
-),                      
-                            // Actions
-                            React.createElement('td', { className: 'px-4 py-3' },
-                                React.createElement('div', { className: 'flex items-center justify-center space-x-2' },
-                                    // Mark as Paid Button
-                                    (payable.payment_status || payable.status) !== 'paid' && React.createElement('button', {
-                                        onClick: () => {
-                                            if (window.handleMarkAsPaid) {
-                                                window.handleMarkAsPaid(payable);
-                                            } else {
-                                                console.error('handleMarkAsPaid function not found');
-                                            }
-                                        },
-                                        className: 'text-green-600 hover:text-green-800 transition-colors p-1',
-                                        title: 'Mark as Paid'
-                                    },
-                                        React.createElement('svg', {
-                                            className: 'w-5 h-5',
-                                            fill: 'none',
-                                            stroke: 'currentColor',
-                                            viewBox: '0 0 24 24'
-                                        },
-                                            React.createElement('path', {
-                                                strokeLinecap: 'round',
-                                                strokeLinejoin: 'round',
-                                                strokeWidth: 2,
-                                                d: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
-                                            })
-                                        )
-                                    ),
-                                    // Delete Button
+                            // FX Impact - THIS IS THE NEW CELL THAT WAS MISSING
+                            React.createElement('td', { className: 'px-4 py-3 text-sm' },
+                                totalFxImpact !== 0 ?
+                                    React.createElement('span', {
+                                        className: totalFxImpact > 0 ? 'text-red-600 font-medium' : 'text-green-600 font-medium'
+                                    }, 
+                                    `${totalFxImpact > 0 ? '-' : '+'}₹${Math.abs(totalFxImpact).toLocaleString()}`
+                                    ) :
+                                    React.createElement('span', { className: 'text-gray-400' }, '—')
+                            ),
+                            // Actions (with icons)
+                            React.createElement('td', { className: 'px-4 py-3 text-center' },
+                                React.createElement('div', { className: 'flex justify-center space-x-2' },
+                                    // Eye icon for view
                                     React.createElement('button', {
-                                        onClick: async () => {
-                                            if (window.deletePayable) {
-                                                await window.deletePayable(payable.id);
-                                            } else {
-                                                console.error('deletePayable function not found. Please refresh the page.');
-                                            }
-                                        },
-                                        className: 'text-red-600 hover:text-red-800 transition-colors p-1',
+                                        onClick: () => window.viewPayableDetails(payable),
+                                        className: 'text-blue-600 hover:text-blue-800',
+                                        title: 'View Details'
+                                    }, React.createElement('i', { className: 'fas fa-eye' })),
+                                    
+                                    // Check icon for mark paid (if not already paid)
+                                    (payable.payment_status || payable.status) !== 'paid' && 
+                                    React.createElement('button', {
+                                        onClick: () => window.handleRecordPaymentClick(payable),
+                                        className: 'text-green-600 hover:text-green-800',
+                                        title: 'Record Payment'
+                                    }, React.createElement('i', { className: 'fas fa-check-circle' })),
+                                    
+                                    // Trash icon for delete
+                                    React.createElement('button', {
+                                        onClick: () => window.deletePayable(payable.id),
+                                        className: 'text-red-600 hover:text-red-800',
                                         title: 'Delete'
-                                    },
-                                        React.createElement('svg', {
-                                            className: 'w-5 h-5',
-                                            fill: 'none',
-                                            stroke: 'currentColor',
-                                            viewBox: '0 0 24 24'
-                                        },
-                                            React.createElement('path', {
-                                                strokeLinecap: 'round',
-                                                strokeLinejoin: 'round',
-                                                strokeWidth: 2,
-                                                d: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
-                                            })
-                                        )
-                                    )
+                                    }, React.createElement('i', { className: 'fas fa-trash' }))
                                 )
                             )
                         );
                     }) : 
                     React.createElement('tr', null,
                         React.createElement('td', { 
-                            colSpan: 8, 
+                            colSpan: 9, 
                             className: 'px-4 py-8 text-center text-gray-500' 
                         }, 'No payables found')
                     )
