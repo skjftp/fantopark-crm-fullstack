@@ -905,7 +905,113 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
   
 })();
 </script>   
+  
+<script>
+  // ===== FINANCIALS DISPLAY FIX FOR INDIAN FORMAT =====
+// Add this script to fix the financial dashboard numbers
+
+// Step 1: Override the renderEnhancedFinancialStats function
+window.renderEnhancedFinancialStats = () => {
+    const metrics = window.calculateEnhancedFinancialMetrics();
+
+    const statsCards = [
+        {
+            title: 'Total Sales',
+            value: window.formatCurrency(metrics.totalSales), // ✅ Use Indian format
+            change: '+12.5%',
+            changeType: 'positive',
+            icon: '📈'
+        },
+        {
+            title: 'Total Active Sales',
+            value: `₹${metrics.totalActiveSales.toLocaleString()}`,  // ✅ This shows amount (₹10.5)
+            change: '+5.2%',
+            changeType: 'positive',
+            icon: '🎯'
+        },
+                {
+            title: 'Total Receivables',
+            value: window.formatCurrency(metrics.totalReceivables), // ✅ Use Indian format
+            change: '-2.1%',
+            changeType: 'negative',
+            icon: '💰'
+        },
+        {
+            title: 'Total Payables',
+            value: window.formatCurrency(metrics.totalPayables), // ✅ Use Indian format
+            change: '+8.3%',
+            changeType: 'negative',
+            icon: '💸'
+        },
+        {
+            title: 'Total Margin',
+            value: window.formatCurrency(metrics.totalMargin), // ✅ Use Indian format
+            change: '+15.7%',
+            changeType: 'positive',
+            icon: '📊'
+        },
+        {
+            title: 'Margin %',
+            value: `${metrics.marginPercentage}%`,
+            change: '+2.3%',
+            changeType: 'positive',
+            icon: '📈'
+        }
+    ];
+
+    return React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6' },
+        statsCards.map((stat, index) =>
+            React.createElement('div', { 
+                key: index,
+                className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow'
+            },
+                React.createElement('div', { className: 'flex items-center justify-between' },
+                    React.createElement('div', null,
+                        React.createElement('p', { className: 'text-sm font-medium text-gray-600 dark:text-gray-400' }, stat.title),
+                        React.createElement('p', { className: 'text-2xl font-bold text-gray-900 dark:text-white mt-1' }, stat.value)
+                    ),
+                    React.createElement('div', { className: 'text-2xl' }, stat.icon)
+                ),
+                React.createElement('div', { className: 'flex items-center mt-4' },
+                    React.createElement('span', {
+                        className: `text-sm font-medium ${
+                            stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                        }`
+                    }, stat.change),
+                    React.createElement('span', { className: 'text-sm text-gray-500 ml-2' }, 'vs last month')
+                )
+            )
+        )
+    );
+};
+
+// Step 2: Force refresh the financial display
+window.forceFinancialRefresh = function() {
+    console.log('🔄 Forcing financial display refresh with Indian formatting...');
     
+    // Trigger re-render of the financials component
+    if (window.setActiveTab && window.activeTab === 'financials') {
+        // Force a re-render by switching tabs and back
+        window.setActiveTab('dashboard');
+        setTimeout(() => {
+            window.setActiveTab('financials');
+        }, 100);
+    } else {
+        // Or just reload financial data
+        if (window.loadFinancialData) {
+            window.loadFinancialData();
+        }
+    }
+};
+
+console.log('✅ Financials display fix loaded - Indian formatting will be applied');
+
+// Auto-refresh when this script loads
+setTimeout(() => {
+    window.forceFinancialRefresh();
+}, 500);
+</script>
+  
 <script>
 // Login Performance Optimization
 window.optimizeLoginPerformance = function() {
