@@ -94,6 +94,20 @@ const [financeInvoiceNumber, setFinanceInvoiceNumber] = useState('');
   priorityFilter: 'all'
 });
 
+  // Add to your state initialization
+const [reminderFilters, setReminderFilters] = React.useState({
+  searchQuery: '',
+  status: 'all', // all, pending, completed, overdue
+  dateRange: 'all', // all, today, thisWeek, thisMonth, custom
+  startDate: '',
+  endDate: '',
+  type: 'all', // all, follow_up, meeting, payment, other
+  priority: 'all', // all, high, medium, low
+  assignedTo: 'all' // all, me, specific user
+});
+
+
+
 // My Actions pagination state  
 const [myActionsPagination, setMyActionsPagination] = useState({
   leads: { currentPage: 1, itemsPerPage: 5 },
@@ -549,6 +563,9 @@ window.ordersPagination = ordersPagination;
 window.setOrdersPagination = setOrdersPagination;
 window.ordersSorting = ordersSorting;
 window.setOrdersSorting = setOrdersSorting;
+// Add to window.appState
+window.reminderFilters = reminderFilters;
+window.setReminderFilters = setReminderFilters;  
 window.ordersShowFilters = ordersShowFilters;
 window.setOrdersShowFilters = setOrdersShowFilters;
   window.setShowQuoteUploadModal = setShowQuoteUploadModal;
