@@ -19,7 +19,7 @@ router.get('/', authenticateToken, async (req, res) => {
         id: doc.id,
         ...data,
         // Ensure currency fields exist for frontend
-        currency: data.currency || 'INR',
+        currency: data.currency || data.original_currency || 'INR',
         original_amount: data.original_amount || data.amount || 0,
         exchange_rate: data.exchange_rate || 1,
         amount_inr: data.amount_inr || data.amount || 0
@@ -54,12 +54,17 @@ router.get('/diagnostic', authenticateToken, async (req, res) => {
         inventoryId: data.inventoryId || 'NOT SET',
         amount: data.amount,
         currency: data.currency || 'INR',
+        original_currency: data.original_currency,
         original_amount: data.original_amount,
         exchange_rate: data.exchange_rate,
         amount_inr: data.amount_inr,
         status: data.status,
         supplierName: data.supplierName,
-        created_date: data.created_date
+        created_date: data.created_date,
+        creation_exchange_rate: data.creation_exchange_rate,
+        payment_exchange_rate: data.payment_exchange_rate,
+        exchange_difference: data.exchange_difference,
+        exchange_difference_type: data.exchange_difference_type
       });
     });
     
@@ -68,6 +73,8 @@ router.get('/diagnostic', authenticateToken, async (req, res) => {
       withInventoryId: payables.filter(p => p.hasInventoryId).length,
       withoutInventoryId: payables.filter(p => !p.hasInventoryId).length,
       withCurrency: payables.filter(p => p.currency && p.currency !== 'INR').length,
+      withOriginalCurrency: payables.filter(p => p.original_currency && p.original_currency !== 'INR').length,
+      withExchangeDifference: payables.filter(p => p.exchange_difference).length,
       payables: payables
     };
     
@@ -96,7 +103,7 @@ router.get('/by-inventory/:inventoryId', authenticateToken, async (req, res) => 
         id: doc.id,
         ...data,
         // Ensure currency fields
-        currency: data.currency || 'INR',
+        currency: data.currency || data.original_currency || 'INR',
         original_amount: data.original_amount || data.amount || 0,
         exchange_rate: data.exchange_rate || 1,
         amount_inr: data.amount_inr || data.amount || 0
@@ -134,8 +141,13 @@ router.post('/', authenticateToken, async (req, res) => {
       amount: amount_inr,  // Store INR amount in main amount field for backward compatibility
       original_amount: original_amount,
       currency: currency,
+      original_currency: currency, // Store original currency
       exchange_rate: exchange_rate,
       amount_inr: amount_inr,
+      // Store creation exchange rate info
+      creation_exchange_rate: exchange_rate,
+      creation_date: new Date().toISOString(),
+      creation_amount_inr: amount_inr,
       created_date: new Date().toISOString(),
       created_by: req.user.email
     };
@@ -155,7 +167,7 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT update payable with currency support
+// PUT update payable - ENHANCED version with exchange difference calculation
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -171,33 +183,94 @@ router.put('/:id', authenticateToken, async (req, res) => {
       amount,
       currency,
       exchange_rate,
+      status,
+      payment_date,
+      payment_reference,
       ...otherData
     } = req.body;
     
-    // Handle currency updates
     let updateData = {
       ...otherData,
       updated_date: new Date().toISOString(),
       updated_by: req.user.email
     };
     
-    // If amount or currency info is being updated
+    // Store creation exchange rate if this is the first time and not already stored
+    if (!existingData.creation_exchange_rate && existingData.exchange_rate) {
+      updateData.creation_exchange_rate = existingData.exchange_rate;
+      updateData.creation_amount_inr = existingData.amount_inr || existingData.amount;
+    }
+    
+    // Handle currency/amount updates
     if (amount !== undefined || currency !== undefined || exchange_rate !== undefined) {
-      const newCurrency = currency || existingData.currency || 'INR';
+      const newCurrency = currency || existingData.currency || existingData.original_currency || 'INR';
       const newExchangeRate = exchange_rate || existingData.exchange_rate || 1;
       const newAmount = amount !== undefined ? amount : existingData.original_amount;
       
       updateData.original_amount = newAmount;
       updateData.currency = newCurrency;
+      updateData.original_currency = newCurrency;
       updateData.exchange_rate = newExchangeRate;
       
       // Calculate INR amount
       if (newCurrency !== 'INR') {
         updateData.amount_inr = newAmount * newExchangeRate;
-        updateData.amount = updateData.amount_inr; // For backward compatibility
+        updateData.amount = updateData.amount_inr;
       } else {
         updateData.amount_inr = newAmount;
         updateData.amount = newAmount;
+      }
+    }
+    
+    // ENHANCED: If marking as paid, calculate exchange difference
+    if (status === 'paid' && existingData.status !== 'paid') {
+      updateData.status = 'paid';
+      updateData.payment_date = payment_date || new Date().toISOString();
+      updateData.payment_reference = payment_reference;
+      
+      // Check both currency and original_currency fields for foreign currency
+      const payableCurrency = existingData.original_currency || existingData.currency;
+      
+      // Calculate exchange difference for foreign currency
+      if (payableCurrency && payableCurrency !== 'INR') {
+        console.log('Calculating exchange difference for:', {
+          currency: payableCurrency,
+          original_amount: existingData.original_amount,
+          creation_rate: existingData.creation_exchange_rate || existingData.exchange_rate,
+          current_rate: exchange_rate || existingData.exchange_rate
+        });
+        
+        const currentExchangeRate = exchange_rate || existingData.exchange_rate || 1;
+        const originalAmount = existingData.original_amount || (existingData.amount / existingData.exchange_rate);
+        const creationRate = existingData.creation_exchange_rate || existingData.exchange_rate || 1;
+        
+        const paymentAmountINR = originalAmount * currentExchangeRate;
+        const creationAmountINR = existingData.creation_amount_inr || (originalAmount * creationRate);
+        
+        updateData.payment_exchange_rate = currentExchangeRate;
+        updateData.payment_amount_inr = paymentAmountINR;
+        updateData.exchange_difference = paymentAmountINR - creationAmountINR;
+        updateData.exchange_difference_type = updateData.exchange_difference > 0 ? 'loss' : 'gain';
+        
+        console.log('Exchange calculation result:', {
+          creation_inr: creationAmountINR,
+          payment_inr: paymentAmountINR,
+          difference: updateData.exchange_difference,
+          type: updateData.exchange_difference_type
+        });
+        
+        // Add to payment history
+        const paymentRecord = {
+          date: updateData.payment_date,
+          amount_foreign: originalAmount,
+          exchange_rate: currentExchangeRate,
+          amount_inr: paymentAmountINR,
+          difference: updateData.exchange_difference,
+          reference: payment_reference,
+          created_by: req.user.email
+        };
+        
+        updateData.payment_history = [...(existingData.payment_history || []), paymentRecord];
       }
     }
     
@@ -230,9 +303,23 @@ router.put('/:id', authenticateToken, async (req, res) => {
       }
     }
     
-    // Return the complete updated document
-    const updatedData = { ...existingData, ...updateData };
-    res.json({ data: { id, ...updatedData } });
+    // Return response with exchange difference info if applicable
+    const response = { 
+      data: { id, ...existingData, ...updateData },
+      success: true
+    };
+    
+    if (updateData.exchange_difference !== undefined) {
+      response.exchange_impact = {
+        amount: Math.abs(updateData.exchange_difference),
+        type: updateData.exchange_difference_type,
+        creation_rate: existingData.creation_exchange_rate || existingData.exchange_rate,
+        payment_rate: updateData.payment_exchange_rate,
+        message: `Exchange ${updateData.exchange_difference_type}: ₹${Math.abs(updateData.exchange_difference).toFixed(2)}`
+      };
+    }
+    
+    res.json(response);
   } catch (error) {
     console.error('Error updating payable:', error);
     res.status(500).json({ error: error.message });

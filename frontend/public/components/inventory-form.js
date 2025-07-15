@@ -240,6 +240,24 @@ window.renderEnhancedPaymentSection = () => {
   );
 };
 
+
+window.renderEnhancedPaymentSection(),
+// Add the exchange impact preview
+window.editingInventory && 
+window.formData.paymentStatus === 'paid' && 
+window.editingInventory.paymentStatus !== 'paid' &&
+window.formData.purchase_currency !== 'INR' &&
+window.renderExchangeImpactPreview({
+  status: window.formData.paymentStatus,
+  exchange_rate: window.formData.purchase_exchange_rate
+}, {
+  ...window.editingInventory,
+  currency: window.formData.purchase_currency,
+  creation_exchange_rate: window.editingInventory.purchase_exchange_rate,
+  exchange_rate: window.editingInventory.purchase_exchange_rate,
+  original_amount: window.formData.totalPurchaseAmount
+}, 'payable'),
+
 window.renderInventoryForm = () => {
   if (!window.showInventoryForm || !window.editingInventory) return null;
 
