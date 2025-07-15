@@ -593,7 +593,7 @@ window.renderActiveSalesTab = (activeSales) => {
     console.log('🔍 activeSales.length:', activeSales?.length || 0);
     
     return React.createElement('div', { className: 'space-y-4' },
-        React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Active Sales (Post-Service Payment Orders)'),
+        React.createElement('h4', { className: 'text-lg font-semibold mb-4' }, 'Active Sales'), // Changed from 'Active Sales (Post-Service Payment Orders)'
 
         React.createElement('div', { className: 'overflow-x-auto' },
             React.createElement('table', { className: 'w-full' },
@@ -602,6 +602,8 @@ window.renderActiveSalesTab = (activeSales) => {
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Date'),
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Order Number'),
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Client'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event Date'),
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status')
                     )
@@ -619,6 +621,12 @@ window.renderActiveSalesTab = (activeSales) => {
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
                                     sale.client || sale.clientName || 'N/A'
                                 ),
+                                React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                                    sale.event_name || 'N/A'
+                                ),
+                                React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                                    window.formatFinancialDate(sale.event_date)
+                                ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
                                     `₹${(sale.amount || 0).toLocaleString()}`
                                 ),
@@ -627,14 +635,16 @@ window.renderActiveSalesTab = (activeSales) => {
                                         className: `px-2 py-1 text-xs rounded-full ${
                                             sale.status === 'paid' ? 'bg-green-100 text-green-800' :
                                             sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                            sale.status === 'completed' ? 'bg-blue-100 text-blue-800' :
                                             'bg-gray-100 text-gray-800'
                                         }`
                                     }, sale.status || 'N/A')
                                 )
                             )
-                        ) : React.createElement('tr', null,
+                        ) : 
+                        React.createElement('tr', null,
                             React.createElement('td', { 
-                                colSpan: 5, 
+                                colSpan: 7, 
                                 className: 'px-4 py-8 text-center text-gray-500' 
                             }, 'No active sales')
                         )
