@@ -251,26 +251,38 @@ router.post('/', authenticateToken, checkPermission('inventory', 'create'), asyn
           pendingBalanceINR
         });
         
-        if (pendingBalanceINR > 0) {
-          const payableData = {
-            inventoryId: docRef.id,
-            supplierName: inventoryData.supplierName || inventoryData.vendor_name || 'Unknown Supplier',
-            eventName: inventoryData.event_name,
-            invoiceNumber: inventoryData.supplierInvoice || 'INV-' + Date.now(),
-            amount: pendingBalanceINR, // Always in INR
-            currency: 'INR',
-            dueDate: inventoryData.paymentDueDate || null,
-            status: 'pending',
-            created_date: new Date().toISOString(),
-            updated_date: new Date().toISOString(),
-            createdBy: req.user.id,
-            description: `Payment for inventory: ${inventoryData.event_name}`,
-            payment_notes: `Created from inventory - Balance: ₹${pendingBalanceINR.toFixed(2)}`
-          };
-          
-          const payableRef = await db.collection('crm_payables').add(payableData);
-          console.log('Payable created with ID:', payableRef.id, 'Amount (INR):', pendingBalanceINR);
-        }
+if (pendingBalanceINR > 0) {
+  // Calculate original currency values
+  const originalCurrency = inventoryData.purchase_currency || inventoryData.price_currency || 'INR';
+  const exchangeRate = inventoryData.purchase_exchange_rate || inventoryData.exchange_rate || 1;
+  const originalPendingBalance = originalCurrency === 'INR' 
+    ? pendingBalanceINR 
+    : pendingBalanceINR / exchangeRate;
+
+  const payableData = {
+    inventoryId: docRef.id,
+    supplierName: inventoryData.supplierName || inventoryData.vendor_name || 'Unknown Supplier',
+    eventName: inventoryData.event_name,
+    invoiceNumber: inventoryData.supplierInvoice || 'INV-' + Date.now(),
+    amount: pendingBalanceINR, // Always in INR for calculations
+    currency: 'INR', // Keep as INR for compatibility
+    // Add original currency fields
+    original_currency: originalCurrency,
+    original_amount: originalPendingBalance,
+    exchange_rate: exchangeRate,
+    dueDate: inventoryData.paymentDueDate || null,
+    status: 'pending',
+    created_date: new Date().toISOString(),
+    updated_date: new Date().toISOString(),
+    createdBy: req.user.id,
+    description: `Payment for inventory: ${inventoryData.event_name}`,
+    payment_notes: `Created from inventory - Balance: ${originalCurrency} ${originalPendingBalance.toFixed(2)} (₹${pendingBalanceINR.toFixed(2)})`
+  };
+  
+  const payableRef = await db.collection('crm_payables').add(payableData);
+  console.log('Payable created with ID:', payableRef.id, 
+    `Amount: ${originalCurrency} ${originalPendingBalance} (INR: ${pendingBalanceINR})`);
+}
       } catch (payableError) {
         console.error('Error creating payable:', payableError);
         // Don't fail the inventory creation if payable fails
@@ -481,27 +493,41 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
         } else {
           // CREATE NEW PAYABLE IF NONE EXISTS AND BALANCE > 0
           if (newBalanceINR > 0 && updateData.paymentStatus !== 'paid') {
-            console.log(`No existing payables found. Creating new payable for pending balance: ${newBalanceINR}`);
+            console.log('Creating new payable for pending balance: ${newBalanceINR}');
+
+// Calculate original currency values
+const originalCurrency = updateData.purchase_currency || oldData.purchase_currency || 
+                        updateData.price_currency || oldData.price_currency || 'INR';
+const exchangeRate = updateData.purchase_exchange_rate || oldData.purchase_exchange_rate || 
+                    updateData.exchange_rate || oldData.exchange_rate || 1;
+const originalNewBalance = originalCurrency === 'INR' 
+  ? newBalanceINR 
+  : newBalanceINR / exchangeRate;
+
+const newPayable = {
+  inventoryId: id,
+  amount: newBalanceINR, // Always in INR for calculations
+  currency: 'INR', // Keep as INR for compatibility
+  // Add original currency fields
+  original_currency: originalCurrency,
+  original_amount: originalNewBalance,
+  exchange_rate: exchangeRate,
+  status: 'pending',
+  supplierName: updateData.supplierName || oldData.supplierName || updateData.vendor_name || oldData.vendor_name || 'Unknown Supplier',
+  event_name: updateData.event_name || oldData.event_name || 'Unknown Event',
+  event_date: updateData.event_date || oldData.event_date || null,
+  totalPurchaseAmount: newTotalAmountINR,
+  amountPaid: newAmountPaidINR,
+  created_date: new Date().toISOString(),
+  payment_notes: `Created from inventory update - Balance: ${originalCurrency} ${originalNewBalance.toFixed(2)} (₹${newBalanceINR.toFixed(2)})`,
+  priority: 'medium',
+  dueDate: updateData.paymentDueDate || oldData.paymentDueDate || null
+};
+
+console.log('About to create payable with data:', JSON.stringify(newPayable, null, 2));
+const docRef = await db.collection('crm_payables').add(newPayable);
+console.log(`✅ New payable created with ID: ${docRef.id} Amount: ${originalCurrency} ${originalNewBalance} (INR: ${newBalanceINR})`);
             
-            const newPayable = {
-              inventoryId: id,
-              amount: newBalanceINR, // Always in INR
-              currency: 'INR',
-              status: 'pending',
-              supplierName: updateData.supplierName || oldData.supplierName || updateData.vendor_name || oldData.vendor_name || 'Unknown Supplier',
-              event_name: updateData.event_name || oldData.event_name || 'Unknown Event',
-              event_date: updateData.event_date || oldData.event_date || null,
-              totalPurchaseAmount: newTotalAmountINR,
-              amountPaid: newAmountPaidINR,
-              created_date: new Date().toISOString(),
-              payment_notes: `Created from inventory update - Balance: ₹${newBalanceINR.toFixed(2)} (Total: ₹${newTotalAmountINR} - Paid: ₹${newAmountPaidINR})`,
-              priority: 'medium',
-              dueDate: updateData.paymentDueDate || oldData.paymentDueDate || null
-            };
-            
-            console.log('About to create payable with data:', JSON.stringify(newPayable, null, 2));
-            const docRef = await db.collection('crm_payables').add(newPayable);
-            console.log(`✅ New payable created with ID: ${docRef.id} Amount (INR): ${newBalanceINR}`);
           } else {
             console.log('No payable needed - balance is 0 or item is fully paid');
           }
