@@ -1294,14 +1294,39 @@ window.renderResponsiveSalesTab = (sales) => {
     );
 };
 
+// Updated renderExchangeImpactSummary function to calculate from payment history
 window.renderExchangeImpactSummary = (financialData) => {
-  // Calculate total exchange differences
+  // Calculate total exchange differences from payment history
   let payablesGain = 0, payablesLoss = 0;
   let receivablesGain = 0, receivablesLoss = 0;
   
-  // Calculate from payables
+  // Calculate from payables - check both direct fields and payment history
   financialData.payables?.forEach(p => {
-    if (p.exchange_difference) {
+    // First check for total_exchange_difference (set when fully paid)
+    if (p.total_exchange_difference !== undefined && p.total_exchange_difference !== 0) {
+      if (p.total_exchange_difference_type === 'gain' || p.total_exchange_difference < 0) {
+        payablesGain += Math.abs(p.total_exchange_difference);
+      } else {
+        payablesLoss += Math.abs(p.total_exchange_difference);
+      }
+    } 
+    // Otherwise, sum up from payment history
+    else if (p.payment_history && p.payment_history.length > 0) {
+      p.payment_history.forEach(payment => {
+        const fxDiff = payment.fx_difference || payment.exchange_difference || 0;
+        const fxType = payment.fx_type || payment.exchange_difference_type;
+        
+        if (fxDiff !== 0) {
+          if (fxType === 'gain' || fxDiff < 0) {
+            payablesGain += Math.abs(fxDiff);
+          } else {
+            payablesLoss += Math.abs(fxDiff);
+          }
+        }
+      });
+    }
+    // Fallback to direct exchange_difference field
+    else if (p.exchange_difference) {
       if (p.exchange_difference_type === 'gain') {
         payablesGain += Math.abs(p.exchange_difference);
       } else {
@@ -1310,9 +1335,34 @@ window.renderExchangeImpactSummary = (financialData) => {
     }
   });
   
-  // Calculate from receivables  
+  // Calculate from receivables - similar logic
   financialData.receivables?.forEach(r => {
-    if (r.exchange_difference) {
+    // Check for total_exchange_difference (set when fully paid)
+    if (r.total_exchange_difference !== undefined && r.total_exchange_difference !== 0) {
+      if (r.total_exchange_difference_type === 'gain' || r.total_exchange_difference > 0) {
+        receivablesGain += Math.abs(r.total_exchange_difference);
+      } else {
+        receivablesLoss += Math.abs(r.total_exchange_difference);
+      }
+    }
+    // Check payment history
+    else if (r.payment_history && r.payment_history.length > 0) {
+      r.payment_history.forEach(payment => {
+        const fxDiff = payment.fx_difference || payment.exchange_difference || 0;
+        const fxType = payment.fx_type || payment.exchange_difference_type;
+        
+        if (fxDiff !== 0) {
+          // For receivables, the logic is opposite of payables
+          if (fxType === 'gain' || fxDiff > 0) {
+            receivablesGain += Math.abs(fxDiff);
+          } else {
+            receivablesLoss += Math.abs(fxDiff);
+          }
+        }
+      });
+    }
+    // Fallback to direct exchange_difference field
+    else if (r.exchange_difference) {
       if (r.exchange_difference_type === 'gain') {
         receivablesGain += Math.abs(r.exchange_difference);
       } else {
@@ -1330,50 +1380,54 @@ window.renderExchangeImpactSummary = (financialData) => {
     return null;
   }
   
-  return React.createElement('div', { className: 'bg-white rounded-lg shadow p-6 mb-6' },
-    React.createElement('h3', { className: 'text-lg font-semibold mb-4 flex items-center' }, 
+  return React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6' },
+    React.createElement('h3', { className: 'text-lg font-semibold mb-4 flex items-center text-gray-900 dark:text-white' }, 
       '💱 Exchange Rate Impact Summary'
     ),
     
     React.createElement('div', { className: 'grid grid-cols-3 gap-4 mb-4' },
       // Total Gains
-      React.createElement('div', { className: 'text-center p-4 bg-green-50 rounded-lg' },
-        React.createElement('p', { className: 'text-sm text-gray-600 mb-1' }, 'Total Gains'),
-        React.createElement('p', { className: 'text-2xl font-bold text-green-600' }, 
+      React.createElement('div', { className: 'text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg' },
+        React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400 mb-1' }, 'Total Gains'),
+        React.createElement('p', { className: 'text-2xl font-bold text-green-600 dark:text-green-400' }, 
           `+₹${totalGain.toLocaleString()}`
         ),
-        React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 
+        React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 
           `Payables: ₹${payablesGain.toLocaleString()} | Receivables: ₹${receivablesGain.toLocaleString()}`
         )
       ),
       
       // Total Losses
-      React.createElement('div', { className: 'text-center p-4 bg-red-50 rounded-lg' },
-        React.createElement('p', { className: 'text-sm text-gray-600 mb-1' }, 'Total Losses'),
-        React.createElement('p', { className: 'text-2xl font-bold text-red-600' }, 
+      React.createElement('div', { className: 'text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg' },
+        React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400 mb-1' }, 'Total Losses'),
+        React.createElement('p', { className: 'text-2xl font-bold text-red-600 dark:text-red-400' }, 
           `-₹${totalLoss.toLocaleString()}`
         ),
-        React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 
+        React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 
           `Payables: ₹${payablesLoss.toLocaleString()} | Receivables: ₹${receivablesLoss.toLocaleString()}`
         )
       ),
       
       // Net Impact
       React.createElement('div', { 
-        className: `text-center p-4 rounded-lg ${netImpact >= 0 ? 'bg-blue-50' : 'bg-orange-50'}` 
+        className: `text-center p-4 rounded-lg ${netImpact >= 0 ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-orange-50 dark:bg-orange-900/20'}` 
       },
-        React.createElement('p', { className: 'text-sm text-gray-600 mb-1' }, 'Net Impact'),
+        React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400 mb-1' }, 'Net Impact'),
         React.createElement('p', { 
-          className: `text-2xl font-bold ${netImpact >= 0 ? 'text-blue-600' : 'text-orange-600'}` 
+          className: `text-2xl font-bold ${netImpact >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}` 
         }, 
           `${netImpact >= 0 ? '+' : '-'}₹${Math.abs(netImpact).toLocaleString()}`
         ),
-        React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 
+        React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 
           netImpact >= 0 ? 'Net Gain' : 'Net Loss'
         )
       )
     )
   );
 };
+
+// If the function is not being called, add this to ensure it's called after the stats cards
+// Find where renderEnhancedFinancialStats() is called and add this right after it:
+// window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financialData),
 
 console.log('✅ FIXED PAGINATION Financials Component loaded successfully - All functionality preserved');
