@@ -1,20 +1,27 @@
-// Inventory Detail Component for FanToPark CRM
-// Extracted from index.html - maintains 100% functionality
-// Uses window.* globals for CDN-based React compatibility
+// Enhanced Inventory Detail Component for FanToPark CRM
+// Shows comprehensive category breakdown for multi-category inventory items
+// Maintains window globals pattern for CDN-based React compatibility
 
 window.renderInventoryDetail = () => {
-  if (!window.showInventoryDetail || !currentInventoryDetail) return null;
+  if (!window.showInventoryDetail || !window.currentInventoryDetail) return null;
 
   const item = window.currentInventoryDetail;
   const daysUntilEvent = Math.ceil((new Date(item.event_date) - new Date()) / (1000 * 60 * 60 * 24));
-  const marginAmount = (item.selling_price || 0) - (item.buying_price || 0);
-  const marginPercentage = item.buying_price > 0 ? ((marginAmount / item.selling_price) * 100) : 0;
+  
+  // Calculate total available and total tickets across all categories
+  const totalAvailable = item.categories?.reduce((sum, cat) => sum + (cat.available_tickets || 0), 0) || item.available_tickets || 0;
+  const totalTickets = item.categories?.reduce((sum, cat) => sum + (cat.total_tickets || 0), 0) || item.total_tickets || 0;
+  
+  // Calculate total revenue potential across all categories
+  const totalRevenuePotential = item.categories?.reduce((sum, cat) => 
+    sum + ((cat.total_tickets || 0) * (cat.selling_price || 0)), 0
+  ) || (item.total_tickets * item.selling_price) || 0;
 
   // Status based on availability
   const getAvailabilityStatus = () => {
-    if (item.available_tickets <= 0) return { label: 'Sold Out', color: 'bg-red-100 text-red-800' };
-    if (item.available_tickets === item.total_tickets) return { label: 'Available', color: 'bg-green-100 text-green-800' };
-    if (item.available_tickets > 5) return { label: 'Limited', color: 'bg-yellow-100 text-yellow-800' };
+    if (totalAvailable <= 0) return { label: 'Sold Out', color: 'bg-red-100 text-red-800' };
+    if (totalAvailable === totalTickets) return { label: 'Available', color: 'bg-green-100 text-green-800' };
+    if (totalAvailable > 5) return { label: 'Limited', color: 'bg-yellow-100 text-yellow-800' };
     return { label: 'Nearly Sold', color: 'bg-orange-100 text-orange-800' };
   };
 
@@ -22,208 +29,343 @@ window.renderInventoryDetail = () => {
 
   return React.createElement('div', { 
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
-    onClick: (e) => e.target === e.currentTarget && closeInventoryDetail()
+    onClick: (e) => e.target === e.currentTarget && window.closeInventoryDetail()
   },
-    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-5xl max-h-[95vh] overflow-y-auto' },
-      React.createElement('div', { className: 'sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center' },
+    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-5xl max-h-[95vh] overflow-y-auto shadow-xl' },
+      // Header
+      React.createElement('div', { className: 'sticky top-0 bg-white dark:bg-gray-800 border-b px-6 py-4 flex justify-between items-center' },
         React.createElement('div', null,
-          React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, item.event_name),
+          React.createElement('h2', { className: 'text-2xl font-bold text-gray-900 dark:text-white' }, item.event_name),
           React.createElement('div', { className: 'flex items-center mt-2 space-x-4' },
             React.createElement('span', {
               className: `px-3 py-1 text-sm rounded-full ${availabilityStatus.color}`
             }, availabilityStatus.label),
-            React.createElement('span', { className: 'text-sm text-gray-600' }, 
-              `${item.available_tickets}/${item.total_tickets} tickets available`
+            React.createElement('span', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 
+              `${window.formatIndianNumber(totalAvailable)}/${window.formatIndianNumber(totalTickets)} tickets available`
             ),
             daysUntilEvent >= 0 && React.createElement('span', { 
-              className: `text-sm px-2 py-1 rounded ${daysUntilEvent <= 7 ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`
+              className: `text-sm px-2 py-1 rounded ${daysUntilEvent <= 7 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`
             }, `${daysUntilEvent} days until event`)
           )
         ),
-        React.createElement('button', {
-          onClick: closeInventoryDetail,
-          className: 'text-gray-400 hover:text-gray-600 text-2xl'
-        }, '✕')
+        React.createElement('div', { className: 'flex gap-2' },
+          // Edit Inventory Button
+          window.hasPermission('edit_inventory') && React.createElement('button', {
+            onClick: () => {
+              window.closeInventoryDetail();
+              window.editInventory(item);
+            },
+            className: 'px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+          }, 'Edit Inventory'),
+          // Copy Inventory Button
+          React.createElement('button', {
+            onClick: () => window.handleCopyInventory(item),
+            className: 'px-3 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors'
+          }, 'Copy'),
+          // View Allocations Button
+          React.createElement('button', {
+            onClick: () => {
+              window.closeInventoryDetail();
+              window.openAllocationManagement(item);
+            },
+            className: 'px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors'
+          }, 'View Allocations'),
+          // Close Button
+          React.createElement('button', {
+            onClick: window.closeInventoryDetail,
+            className: 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+          }, '✕')
+        )
       ),
 
+      // Main Content
       React.createElement('div', { className: 'p-6' },
-        // Action Buttons
-        React.createElement('div', { className: 'mb-6 flex flex-wrap gap-2' },
-          window.hasPermission('inventory', 'write') && React.createElement('button', { 
-            className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700',
-            onClick: () => {
-              closeInventoryDetail();
-              setTimeout(() => openEditInventoryForm(item), 100);
-            }
-          }, '✏️ Edit Inventory'),
-          window.hasPermission('inventory', 'write') && React.createElement('button', { 
-            className: 'bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700',
-            onClick: () => {
-              closeInventoryDetail();
-              setTimeout(() => handleCopyInventory(item), 100);
-            }
-          }, '📋 Copy Inventory'),
-          window.hasPermission('inventory', 'allocate') && item.available_tickets > 0 && React.createElement('button', { 
-            className: 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700',
-            onClick: () => {
-              closeInventoryDetail();
-              setTimeout(() => openAllocationForm(item), 100);
-            }
-          }, '🎫 Allocate Tickets'),
-          window.hasPermission('inventory', 'read') && React.createElement('button', { 
-            className: 'bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700',
-            onClick: () => {
-              closeInventoryDetail();
-              setTimeout(() => openAllocationManagement(item), 100);
-            }
-          }, '👁️ View Allocations')
+        // Event Information Section
+        React.createElement('div', { className: 'mb-6' },
+          React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center' },
+            React.createElement('span', { className: 'text-blue-600 mr-2' }, '📅'),
+            'Event Information'
+          ),
+          React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' },
+            React.createElement('div', null,
+              React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Event Type: '),
+              React.createElement('span', { className: 'text-gray-900 dark:text-white' }, item.event_type || 'Not specified')
+            ),
+            React.createElement('div', null,
+              React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Sports: '),
+              React.createElement('span', { className: 'text-gray-900 dark:text-white' }, item.sports || 'Not specified')
+            ),
+            React.createElement('div', null,
+              React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Venue: '),
+              React.createElement('span', { className: 'text-gray-900 dark:text-white' }, item.venue || 'Not specified')
+            ),
+            React.createElement('div', null,
+              React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Event Date: '),
+              React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
+                new Date(item.event_date).toLocaleDateString('en-US', { 
+                  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                })
+              )
+            )
+          )
         ),
 
-        // Main Content Grid
-        React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-2 gap-6' },
-          // Event Information
-          React.createElement('div', { className: 'bg-gray-50 rounded-lg p-4' },
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-3' }, '🎪 Event Information'),
-            React.createElement('div', { className: 'space-y-2' },
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Event Type: '),
-                React.createElement('span', { className: 'text-gray-900' }, item.event_type || 'Not specified')
-              ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Sports: '),
-                React.createElement('span', { className: 'text-gray-900' }, item.sports || 'Not specified')
-              ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Venue: '),
-                React.createElement('span', { className: 'text-gray-900' }, item.venue || 'Not specified')
-              ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Event Date: '),
-                React.createElement('span', { className: 'text-gray-900' }, new Date(item.event_date).toLocaleDateString('en-US', { 
-                  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-                }))
-              ),
-              item.day_of_match && item.day_of_match !== 'Not Applicable' && React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Day of Match: '),
-                React.createElement('span', { className: 'text-gray-900' }, item.day_of_match)
-              ),
-              item.stand && React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Stand/Section: '),
-                React.createElement('span', { className: 'text-gray-900' }, item.stand)
+        // Ticket Categories Section - NEW ENHANCED SECTION
+        React.createElement('div', { className: 'mb-6' },
+          React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center' },
+            React.createElement('span', { className: 'text-green-600 mr-2' }, '🎫'),
+            'Ticket Categories'
+          ),
+          
+          item.categories && item.categories.length > 0 ? 
+            React.createElement('div', { className: 'space-y-4' },
+              item.categories.map((category, index) => {
+                const marginAmount = (category.selling_price || 0) - (category.buying_price || 0);
+                const marginPercentage = category.selling_price > 0 ? 
+                  ((marginAmount / category.selling_price) * 100).toFixed(1) : 0;
+                
+                return React.createElement('div', { 
+                  key: index,
+                  className: 'bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600'
+                },
+                  // Category Header
+                  React.createElement('div', { className: 'flex justify-between items-start mb-3' },
+                    React.createElement('div', null,
+                      React.createElement('h4', { className: 'font-semibold text-gray-900 dark:text-white text-lg' }, 
+                        category.name || 'Category ' + (index + 1)
+                      ),
+                      category.section && React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 
+                        'Section: ' + category.section
+                      )
+                    ),
+                    React.createElement('div', { className: 'text-right' },
+                      React.createElement('span', { 
+                        className: `px-3 py-1 text-sm rounded-full ${
+                          category.available_tickets === 0 ? 'bg-red-100 text-red-800' :
+                          category.available_tickets < 5 ? 'bg-orange-100 text-orange-800' :
+                          category.available_tickets < 20 ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800'
+                        }`
+                      }, 
+                        category.available_tickets === 0 ? 'Sold Out' :
+                        `${category.available_tickets} available`
+                      )
+                    )
+                  ),
+                  
+                  // Category Details Grid
+                  React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' },
+                    // Ticket Information
+                    React.createElement('div', null,
+                      React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300 block text-sm' }, 
+                        'Total Tickets'
+                      ),
+                      React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
+                        window.formatIndianNumber(category.total_tickets || 0)
+                      )
+                    ),
+                    React.createElement('div', null,
+                      React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300 block text-sm' }, 
+                        'Available'
+                      ),
+                      React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
+                        window.formatIndianNumber(category.available_tickets || 0)
+                      )
+                    ),
+                    React.createElement('div', null,
+                      React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300 block text-sm' }, 
+                        'Allocated'
+                      ),
+                      React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
+                        window.formatIndianNumber((category.total_tickets || 0) - (category.available_tickets || 0))
+                      )
+                    ),
+                    
+                    // Pricing Information
+                    React.createElement('div', null,
+                      React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300 block text-sm' }, 
+                        'Buying Price'
+                      ),
+                      React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
+                        '₹' + window.formatIndianNumber(category.buying_price || 0)
+                      )
+                    ),
+                    React.createElement('div', null,
+                      React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300 block text-sm' }, 
+                        'Selling Price'
+                      ),
+                      React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
+                        '₹' + window.formatIndianNumber(category.selling_price || 0)
+                      )
+                    ),
+                    React.createElement('div', null,
+                      React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300 block text-sm' }, 
+                        'Margin'
+                      ),
+                      React.createElement('span', { 
+                        className: `text-lg font-semibold ${marginAmount > 0 ? 'text-green-600' : 'text-red-600'}`
+                      }, 
+                        '₹' + window.formatIndianNumber(marginAmount) + ` (${marginPercentage}%)`
+                      )
+                    )
+                  ),
+                  
+                  // Inclusions if available
+                  category.inclusions && React.createElement('div', { className: 'mt-3 pt-3 border-t border-gray-200 dark:border-gray-600' },
+                    React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300 text-sm' }, 
+                      'Inclusions: '
+                    ),
+                    React.createElement('span', { className: 'text-sm text-gray-900 dark:text-white' }, 
+                      category.inclusions
+                    )
+                  )
+                );
+              })
+            ) :
+            // Fallback for old single-category format
+            React.createElement('div', { className: 'bg-gray-50 dark:bg-gray-700 rounded-lg p-4' },
+              React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4' },
+                React.createElement('div', null,
+                  React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300 block' }, 'Total Tickets'),
+                  React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
+                    window.formatIndianNumber(item.total_tickets || 0)
+                  )
+                ),
+                React.createElement('div', null,
+                  React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300 block' }, 'Available'),
+                  React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
+                    window.formatIndianNumber(item.available_tickets || 0)
+                  )
+                ),
+                React.createElement('div', null,
+                  React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300 block' }, 'Allocated'),
+                  React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
+                    window.formatIndianNumber((item.total_tickets || 0) - (item.available_tickets || 0))
+                  )
+                )
               )
             )
-          ),
+        ),
 
-          // Ticket Information
-          React.createElement('div', { className: 'bg-gray-50 rounded-lg p-4' },
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-3' }, '🎫 Ticket Information'),
-            React.createElement('div', { className: 'space-y-2' },
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Category: '),
-                React.createElement('span', { className: 'text-gray-900' }, item.category_of_ticket || 'Not specified')
-              ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Total Tickets: '),
-                React.createElement('span', { className: 'text-gray-900 font-bold' }, item.total_tickets?.toLocaleString() || '0')
-              ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Available: '),
-                React.createElement('span', { className: `font-bold ${item.available_tickets > 5 ? 'text-green-600' : 'text-red-600'}` }, 
-                  item.available_tickets?.toLocaleString() || '0'
+        // Financial Information Section
+        React.createElement('div', { className: 'mb-6' },
+          React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center' },
+            React.createElement('span', { className: 'text-yellow-600 mr-2' }, '💰'),
+            'Financial Information'
+          ),
+          React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' },
+            item.categories && item.categories.length > 0 ? 
+              // Show category-based financial summary
+              React.createElement(React.Fragment, null,
+                React.createElement('div', null,
+                  React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'MRP per Ticket: '),
+                  React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
+                    item.categories.map(cat => 
+                      `${cat.name}: ₹${window.formatIndianNumber(cat.mrp || 0)}`
+                    ).join(', ') || '₹0'
+                  )
+                ),
+                React.createElement('div', null,
+                  React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Buying Price Range: '),
+                  React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
+                    '₹' + window.formatIndianNumber(Math.min(...item.categories.map(c => c.buying_price || 0))) +
+                    ' - ₹' + window.formatIndianNumber(Math.max(...item.categories.map(c => c.buying_price || 0)))
+                  )
+                ),
+                React.createElement('div', null,
+                  React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Selling Price Range: '),
+                  React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
+                    '₹' + window.formatIndianNumber(Math.min(...item.categories.map(c => c.selling_price || 0))) +
+                    ' - ₹' + window.formatIndianNumber(Math.max(...item.categories.map(c => c.selling_price || 0)))
+                  )
+                )
+              ) :
+              // Show single price for old format
+              React.createElement(React.Fragment, null,
+                React.createElement('div', null,
+                  React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'MRP per Ticket: '),
+                  React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
+                    '₹' + window.formatIndianNumber(item.mrp || 0)
+                  )
+                ),
+                React.createElement('div', null,
+                  React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Buying Price: '),
+                  React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
+                    '₹' + window.formatIndianNumber(item.buying_price || 0)
+                  )
+                ),
+                React.createElement('div', null,
+                  React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Selling Price: '),
+                  React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
+                    '₹' + window.formatIndianNumber(item.selling_price || 0)
+                  )
                 )
               ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Allocated: '),
-                React.createElement('span', { className: 'text-gray-900 font-bold' }, 
-                  ((item.total_tickets || 0) - (item.available_tickets || 0)).toLocaleString()
-                )
-              ),
-              item.inclusions && React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Inclusions: '),
-                React.createElement('span', { className: 'text-gray-900' }, item.inclusions)
+            React.createElement('div', null,
+              React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Total Revenue Potential: '),
+              React.createElement('span', { className: 'text-green-600 font-semibold text-lg' }, 
+                '₹' + window.formatIndianNumber(totalRevenuePotential)
               )
             )
-          ),
+          )
+        ),
 
-          // Financial Information
-          window.hasPermission('finance', 'read') && React.createElement('div', { className: 'bg-gray-50 rounded-lg p-4' },
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-3' }, '💰 Financial Information'),
-            React.createElement('div', { className: 'space-y-2' },
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'MRP per Ticket: '),
-                React.createElement('span', { className: 'text-gray-900' }, '₹' + (item.mrp_of_ticket?.toLocaleString() || '0'))
-              ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Buying Price: '),
-                React.createElement('span', { className: 'text-gray-900' }, '₹' + (item.buying_price?.toLocaleString() || '0'))
-              ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Selling Price: '),
-                React.createElement('span', { className: 'text-gray-900' }, '₹' + (item.selling_price?.toLocaleString() || '0'))
-              ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Margin per Ticket: '),
-                React.createElement('span', { className: `font-bold ${marginAmount > 0 ? 'text-green-600' : 'text-red-600'}` }, 
-                  '₹' + marginAmount.toLocaleString() + ` (${marginPercentage.toFixed(1)}%)`
-                )
-              ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Total Revenue Potential: '),
-                React.createElement('span', { className: 'text-gray-900 font-bold' }, 
-                  '₹' + ((item.selling_price || 0) * (item.total_tickets || 0)).toLocaleString()
-                )
-              )
-            )
+        // Procurement Information Section
+        React.createElement('div', { className: 'mb-6' },
+          React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center' },
+            React.createElement('span', { className: 'text-purple-600 mr-2' }, '🛒'),
+            'Procurement Information'
           ),
-
-          // Procurement Information
-          React.createElement('div', { className: 'bg-gray-50 rounded-lg p-4' },
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-3' }, '📦 Procurement Information'),
-            React.createElement('div', { className: 'space-y-2' },
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Booking Person: '),
-                React.createElement('span', { className: 'text-gray-900' }, item.booking_person || 'Not specified')
-              ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Procurement Type: '),
-                React.createElement('span', { className: 'px-2 py-1 text-xs rounded bg-blue-100 text-blue-800' }, 
-                  (item.procurement_type || 'not_specified').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
-                )
-              ),
-              item.supplierName && React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Supplier: '),
-                React.createElement('span', { className: 'text-gray-900' }, item.supplierName)
-              ),
-              item.paymentStatus && React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Payment Status: '),
-                React.createElement('span', { 
-                  className: `px-2 py-1 text-xs rounded ${item.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`
-                }, (item.paymentStatus || 'unknown').charAt(0).toUpperCase() + (item.paymentStatus || 'unknown').slice(1))
-              ),
-              React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Created: '),
-                React.createElement('span', { className: 'text-gray-900' }, 
-                  new Date(item.created_date || Date.now()).toLocaleDateString('en-US', { 
-                    year: 'numeric', month: 'short', day: 'numeric' 
-                  })
-                )
-              ),
-              item.created_by && React.createElement('div', null,
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Created By: '),
-                React.createElement('span', { className: 'text-gray-900' }, item.created_by)
+          React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' },
+            React.createElement('div', null,
+              React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Booking Person: '),
+              React.createElement('span', { className: 'text-gray-900 dark:text-white' }, item.booking_person || 'Not specified')
+            ),
+            React.createElement('div', null,
+              React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Procurement Type: '),
+              React.createElement('span', { className: 'text-gray-900 dark:text-white capitalize' }, 
+                item.procurement_type || 'Not specified'
               )
+            ),
+            React.createElement('div', null,
+              React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Payment Status: '),
+              React.createElement('span', { 
+                className: `px-2 py-1 text-sm rounded ${
+                  item.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' : 
+                  item.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
+                }`
+              }, (item.paymentStatus || 'Pending').charAt(0).toUpperCase() + (item.paymentStatus || 'pending').slice(1))
+            ),
+            React.createElement('div', null,
+              React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Created: '),
+              React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
+                new Date(item.created_date || Date.now()).toLocaleDateString('en-US', { 
+                  year: 'numeric', month: 'short', day: 'numeric' 
+                })
+              )
+            ),
+            item.created_by && React.createElement('div', null,
+              React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Created By: '),
+              React.createElement('span', { className: 'text-gray-900 dark:text-white' }, item.created_by)
             )
           )
         ),
 
         // Notes Section (Full Width)
-        item.notes && React.createElement('div', { className: 'mt-6 bg-gray-50 rounded-lg p-4' },
-          React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-3' }, '📝 Notes'),
-          React.createElement('p', { className: 'text-gray-900 whitespace-pre-wrap' }, item.notes)
+        item.notes && React.createElement('div', { className: 'bg-gray-50 dark:bg-gray-700 rounded-lg p-4' },
+          React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-3' }, '📝 Notes'),
+          React.createElement('p', { className: 'text-gray-900 dark:text-white whitespace-pre-wrap' }, item.notes)
         )
       )
     )
   );
 };
 
-console.log('✅ Inventory Detail component loaded successfully');
+// Helper function to close the inventory detail modal
+window.closeInventoryDetail = () => {
+  window.setShowInventoryDetail(false);
+  window.setCurrentInventoryDetail(null);
+};
+
+console.log('✅ Enhanced Inventory Detail component loaded successfully');
