@@ -757,18 +757,19 @@ window.loadFinancialData();
 if (!window.financialsTabHooked) {
     window.financialsTabHooked = true;
     
-    const originalSetActiveTab = window.setActiveTab;
-    window.setActiveTab = function(tab) {
-        if (originalSetActiveTab) {
-            originalSetActiveTab(tab);
-        }
-        
-        if (tab === 'financials') {
-            setTimeout(() => {
-                window.loadFinancialData();
-            }, 100);
-        }
-    };
+const originalSetActiveTab = window.setActiveTab;
+window.setActiveTab = async function(tab) {
+    // If switching to finance, load data FIRST
+    if (tab === 'finance') {
+        console.log('Switching to finance tab, pre-loading data...');
+        await window.loadFinancialData();
+    }
+    
+    // Then switch tab (which triggers render)
+    if (originalSetActiveTab) {
+        originalSetActiveTab(tab);
+    }
+};
 }
 
 
