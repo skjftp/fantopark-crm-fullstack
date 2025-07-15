@@ -13,11 +13,13 @@ window.renderInventoryCurrencySection = () => {
     USD: 83.50,
     EUR: 90.20,
     GBP: 105.50,
-    AED: 22.75
+    AED: 22.75,
+    AUD: 55.25
   };
   
-  const currency = formData.price_currency || 'INR';
-  const exchangeRate = formData.exchange_rate || currentRates[currency] || 1;
+  // Use purchase_currency and purchase_exchange_rate (matching our initialization)
+  const currency = formData.purchase_currency || 'INR';
+  const exchangeRate = formData.purchase_exchange_rate || currentRates[currency] || 1;
   
   return React.createElement('div', { className: 'mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700' },
     React.createElement('h3', { className: 'text-lg font-semibold text-purple-800 dark:text-purple-200 mb-4' }, 
@@ -28,20 +30,20 @@ window.renderInventoryCurrencySection = () => {
       // Currency Selection
       React.createElement('div', null,
         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
-          'Price Currency *'
+          'Purchase Currency *'
         ),
         React.createElement('select', {
-          value: formData.price_currency || 'INR',
+          value: formData.purchase_currency || 'INR',
           onChange: (e) => {
             const newCurrency = e.target.value;
-            window.handleFormDataChange('price_currency', newCurrency);
+            window.handleFormDataChange('purchase_currency', newCurrency);
             
             // Auto-update exchange rate when currency changes
             if (newCurrency !== 'INR') {
               const rate = currentRates[newCurrency] || 1;
-              window.handleFormDataChange('exchange_rate', rate);
+              window.handleFormDataChange('purchase_exchange_rate', rate);
             } else {
-              window.handleFormDataChange('exchange_rate', 1);
+              window.handleFormDataChange('purchase_exchange_rate', 1);
             }
           },
           className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-purple-500'
@@ -50,7 +52,8 @@ window.renderInventoryCurrencySection = () => {
           React.createElement('option', { value: 'USD' }, 'USD (US Dollars)'),
           React.createElement('option', { value: 'EUR' }, 'EUR (Euros)'),
           React.createElement('option', { value: 'GBP' }, 'GBP (British Pounds)'),
-          React.createElement('option', { value: 'AED' }, 'AED (UAE Dirham)')
+          React.createElement('option', { value: 'AED' }, 'AED (UAE Dirham)'),
+          React.createElement('option', { value: 'AUD' }, 'AUD (Australian Dollars)')
         )
       ),
       
@@ -62,9 +65,9 @@ window.renderInventoryCurrencySection = () => {
         React.createElement('div', { className: 'flex items-center gap-2' },
           React.createElement('input', {
             type: 'number',
-            value: formData.exchange_rate || exchangeRate,
+            value: formData.purchase_exchange_rate || exchangeRate,
             onChange: (e) => {
-              window.handleFormDataChange('exchange_rate', parseFloat(e.target.value) || 0);
+              window.handleFormDataChange('purchase_exchange_rate', parseFloat(e.target.value) || 0);
             },
             className: 'flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-purple-500',
             step: 0.01,
@@ -74,7 +77,7 @@ window.renderInventoryCurrencySection = () => {
             type: 'button',
             onClick: () => {
               const currentRate = currentRates[currency] || 1;
-              window.handleFormDataChange('exchange_rate', currentRate);
+              window.handleFormDataChange('purchase_exchange_rate', currentRate);
             },
             className: 'px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm',
             title: 'Use current market rate'
