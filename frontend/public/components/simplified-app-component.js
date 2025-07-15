@@ -3054,6 +3054,23 @@ React.createElement('div', { className: 'flex items-center space-x-3' },
           'Role Management'
         )
       ),
+      React.createElement('li', null,
+    React.createElement('a', {
+        href: '#',
+        onClick: (e) => {
+            e.preventDefault();
+            window.setActiveTab('changePassword');
+        },
+        className: `flex items-center px-4 py-2 text-sm font-medium rounded-md ${
+            activeTab === 'changePassword' 
+                ? 'bg-indigo-100 text-indigo-700' 
+                : 'text-gray-700 hover:bg-gray-100'
+        }`
+    },
+        React.createElement('span', { className: 'mr-3' }, '🔐'),
+        'Change Password'
+    )
+),                         
       React.createElement('div', { className: 'mt-auto p-4' },
         React.createElement('button', {
           onClick: handlers.handleLogout,
