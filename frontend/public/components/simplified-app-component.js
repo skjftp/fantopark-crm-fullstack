@@ -1341,8 +1341,12 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
       window.setEditingInventory(inventory);
     }
     if (window.setFormData) {
-      window.setFormData(inventory);
-    }
+  window.setFormData({
+    ...inventory,
+    purchase_currency: inventory.purchase_currency || 'INR',
+    purchase_exchange_rate: inventory.purchase_exchange_rate || '1'
+  });
+}
     if (window.setShowInventoryForm) {
       window.setShowInventoryForm(true);
     }
