@@ -872,9 +872,12 @@ window.renderPayablesTab = (payables) => {
                                     `${payable.original_currency} ${(payable.original_amount || 0).toLocaleString()}` : 
                                     `₹${(payable.original_amount || payable.amount || 0).toLocaleString()}`
                             ),
-                            // Amount in INR
+                            // Amount in INR (clickable)
                             React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
-                                `₹${(payable.amount || 0).toLocaleString()}`
+                                React.createElement('button', {
+                                    onClick: () => window.showPaymentHistory(payable),
+                                    className: 'text-blue-600 hover:text-blue-800 hover:underline'
+                                }, `₹${(payable.amount || 0).toLocaleString()}`)
                             ),
                             // Status
                             React.createElement('td', { className: 'px-4 py-3' },
