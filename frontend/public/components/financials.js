@@ -1,3 +1,33 @@
+// Override renderFinancials to ensure data is loaded first
+const originalRenderFinancials = window.renderFinancials;
+window.renderFinancials = function() {
+    // Check if financial data is empty but orders exist
+    const fd = window.appState?.financialData;
+    const needsLoading = fd && 
+        fd.sales.length === 0 && 
+        fd.activeSales.length === 0 && 
+        window.orders && 
+        window.orders.length > 0;
+    
+    if (needsLoading) {
+        console.log('Financial data empty, loading before render...');
+        
+        // Load data first, then render
+        window.loadFinancialData().then(() => {
+            console.log('Data loaded, rendering financials...');
+            originalRenderFinancials.call(this);
+        });
+        
+        // Return loading state
+        return React.createElement('div', { className: 'p-6 text-center' }, 
+            'Loading financial data...'
+        );
+    }
+    
+    // Data already loaded, render normally
+    return originalRenderFinancials.call(this);
+};
+
 // Main render function for financials dashboard - ENHANCED WITH FIXED PAGINATION
 window.renderFinancials = () => {
     console.log('🔍 ENHANCED FINANCIALS COMPONENT DEBUG: Starting render');
