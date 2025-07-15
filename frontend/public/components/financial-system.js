@@ -687,16 +687,30 @@ window.showPaymentHistory = function(payable) {
   historyText += `Original Amount: ${payable.original_currency || 'INR'} ${payable.original_amount || payable.amount}\n`;
   historyText += `\n--- Payments ---\n`;
   
+  // Track totals
+  let totalPaid = 0;
+  let totalFxImpact = 0;
+  
   payable.payment_history.forEach((payment, index) => {
     historyText += `\n${index + 1}. Date: ${new Date(payment.date).toLocaleDateString()}\n`;
     historyText += `   Amount: ${payment.currency} ${payment.amount_foreign.toFixed(2)} @ ₹${payment.exchange_rate}\n`;
     historyText += `   INR Value: ₹${payment.amount_inr.toFixed(2)}\n`;
-    if (payment.fx_difference !== 0) {
+    if (payment.fx_difference && payment.fx_difference !== 0) {
       historyText += `   FX ${payment.fx_type}: ₹${Math.abs(payment.fx_difference).toFixed(2)}\n`;
+      totalFxImpact += payment.fx_difference;
     }
+    totalPaid += payment.amount_foreign;
   });
   
-  // Show in alert for now
+  // Add summary
+  historyText += `\n--- Summary ---\n`;
+  historyText += `Total Paid: ${payable.original_currency || 'INR'} ${totalPaid.toFixed(2)}\n`;
+  historyText += `Remaining: ${payable.original_currency || 'INR'} ${((payable.original_amount || payable.amount) - totalPaid).toFixed(2)}\n`;
+  if (totalFxImpact !== 0) {
+    historyText += `Total FX ${totalFxImpact > 0 ? 'Loss' : 'Gain'}: ₹${Math.abs(totalFxImpact).toFixed(2)}\n`;
+  }
+  
+  // Show in alert
   alert(historyText);
 };
 
