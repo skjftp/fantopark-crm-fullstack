@@ -222,51 +222,62 @@ window.calculateEnhancedFinancialMetrics = () => {
 };
 
 // Update the renderEnhancedFinancialStats function to show amount instead of count
-window.renderEnhancedFinancialStats = () => {
-    const metrics = window.calculateEnhancedFinancialMetrics();
+// Update the renderEnhancedFinancialStats function
+window.renderEnhancedFinancialStats = async () => {
+    // Show loading state
+    const container = document.getElementById('financial-stats-container');
+    if (container) {
+        container.innerHTML = '<div class="text-center py-4">Loading financial metrics...</div>';
+    }
+    
+    const metrics = await window.calculateEnhancedFinancialMetrics();
+    
+    // Format percentage with + or - sign
+    const formatPercentage = (value) => {
+        const rounded = Math.round(value * 10) / 10;
+        return rounded >= 0 ? `+${rounded}%` : `${rounded}%`;
+    };
 
     const statsCards = [
         {
             title: 'Total Sales',
             value: `₹${metrics.totalSales.toLocaleString()}`,
-            change: '+12.5%',
-            changeType: 'positive',
-            icon: '📈'
+            change: formatPercentage(metrics.percentageChanges.sales),
+            changeType: metrics.percentageChanges.sales >= 0 ? 'positive' : 'negative',
+            icon: '📈',
+            showChange: true // Show percentage for this card
         },
         {
             title: 'Total Active Sales',
-            value: `₹${metrics.totalActiveSales.toLocaleString()}`, // Changed from count to amount
-            change: '+5.2%',
-            changeType: 'positive',
-            icon: '🎯'
+            value: `₹${metrics.totalActiveSales.toLocaleString()}`,
+            icon: '🎯',
+            showChange: false // No percentage for this card
         },
         {
             title: 'Total Receivables',
             value: `₹${metrics.totalReceivables.toLocaleString()}`,
-            change: '-2.1%',
-            changeType: 'negative',
-            icon: '💰'
+            icon: '💰',
+            showChange: false // No percentage for this card
         },
         {
             title: 'Total Payables',
             value: `₹${metrics.totalPayables.toLocaleString()}`,
-            change: '+8.3%',
-            changeType: 'negative',
-            icon: '💸'
+            icon: '💸',
+            showChange: false // No percentage for this card
         },
         {
             title: 'Total Margin',
             value: `₹${metrics.totalMargin.toLocaleString()}`,
-            change: '+15.7%',
-            changeType: 'positive',
-            icon: '📊'
+            change: formatPercentage(metrics.percentageChanges.margin),
+            changeType: metrics.percentageChanges.margin >= 0 ? 'positive' : 'negative',
+            icon: '📊',
+            showChange: true // Show percentage for this card
         },
         {
             title: 'Margin %',
             value: `${metrics.marginPercentage}%`,
-            change: '+2.3%',
-            changeType: 'positive',
-            icon: '📈'
+            icon: '📈',
+            showChange: false // No percentage for this card
         }
     ];
 
@@ -283,15 +294,15 @@ window.renderEnhancedFinancialStats = () => {
                     ),
                     React.createElement('div', { className: 'text-2xl' }, stat.icon)
                 ),
-                React.createElement('div', { className: 'flex items-center mt-4' },
+                // Only show percentage change if showChange is true
+                stat.showChange ? React.createElement('div', { className: 'flex items-center mt-4' },
                     React.createElement('span', {
                         className: `text-sm font-medium ${
-                            stat.changeType === 'positive' ? 
-                                'text-green-600' : 'text-red-600'
+                            stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
                         }`
                     }, stat.change),
                     React.createElement('span', { className: 'text-sm text-gray-500 ml-2' }, 'vs last month')
-                )
+                ) : null
             )
         )
     );
