@@ -454,6 +454,8 @@ window.renderFinancials = () => {
     return React.createElement('div', { className: 'space-y-6' },
         // Enhanced Stats Cards
         window.renderEnhancedFinancialStats(),
+        // Exchange Impact Summary
+window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financialData),                       
 
         // Enhanced Filter System
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border' },
@@ -736,6 +738,7 @@ window.renderReceivablesTab = (receivables) => {
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Original Amount'),
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount (INR)'),
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Days Overdue'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'FX Impact'),
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
                     )
                 ),
@@ -781,6 +784,14 @@ window.renderReceivablesTab = (receivables) => {
                                     isOverdue ? `${Math.abs(daysDiff)} days overdue` : 
                                     daysDiff === 0 ? 'Due today' : 'Not due'
                                 ),
+                                React.createElement('td', { className: 'px-4 py-3' },
+  payable.exchange_difference ? 
+    React.createElement('span', {
+      className: `font-medium ${payable.exchange_difference_type === 'gain' ? 'text-green-600' : 'text-red-600'}`
+    }, 
+      `${payable.exchange_difference_type === 'gain' ? '+' : '-'}₹${Math.abs(payable.exchange_difference).toFixed(0)}`
+    ) : '-'
+),                       
                                 // Actions
                                 React.createElement('td', { className: 'px-4 py-3' },
                                     React.createElement('div', { className: 'flex space-x-2' },
@@ -829,6 +840,7 @@ window.renderPayablesTab = (payables) => {
                     React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Original Amount'),
                     React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount (INR)'),
                     React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
+                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'FX Impact'),                
                     React.createElement('th', { className: 'px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase' }, 'Actions')
                 )
             ),
@@ -876,6 +888,14 @@ window.renderPayablesTab = (payables) => {
                                     }`
                                 }, payable.payment_status || payable.status || 'pending')
                             ),
+                             React.createElement('td', { className: 'px-4 py-3' },
+  payable.exchange_difference ? 
+    React.createElement('span', {
+      className: `font-medium ${payable.exchange_difference_type === 'gain' ? 'text-green-600' : 'text-red-600'}`
+    }, 
+      `${payable.exchange_difference_type === 'gain' ? '+' : '-'}₹${Math.abs(payable.exchange_difference).toFixed(0)}`
+    ) : '-'
+),                      
                             // Actions
                             React.createElement('td', { className: 'px-4 py-3' },
                                 React.createElement('div', { className: 'flex items-center justify-center space-x-2' },
