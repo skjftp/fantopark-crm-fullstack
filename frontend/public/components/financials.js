@@ -785,7 +785,7 @@ window.renderReceivablesTab = (receivables) => {
                                     daysDiff === 0 ? 'Due today' : 'Not due'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3' },
-  payable.exchange_difference ? 
+  rec.exchange_difference ? 
     React.createElement('span', {
       className: `font-medium ${rec.exchange_difference_type === 'gain' ? 'text-green-600' : 'text-red-600'}`
     }, 
