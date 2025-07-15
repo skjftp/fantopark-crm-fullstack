@@ -1,5 +1,5 @@
-// Enhanced Financials UI Component with Currency Display
-// This updates the financials tables to show original currency and INR values
+// Fixed Enhanced Financials UI Component with Currency Display
+// This properly integrates with your existing financials view
 
 // Enhanced Receivables Table with Currency Info
 window.renderEnhancedReceivablesTable = () => {
@@ -161,7 +161,6 @@ window.renderEnhancedPayablesTable = () => {
                 onClick: () => console.log('View details:', payable),
                 className: 'text-blue-600 hover:text-blue-900'
               }, 'View')
-            )
           );
         })
       )
@@ -235,31 +234,42 @@ window.renderEnhancedActiveSalesTable = () => {
   );
 };
 
-// Update the main financials render to use enhanced tables
-window.updateFinancialsRenderForCurrency = () => {
-  const originalRenderFinancials = window.renderFinancials;
+// FIXED: Properly integrate enhanced tables without breaking the full financials view
+window.enhanceFinancialsWithCurrency = () => {
+  // Store references to original table rendering functions
+  window.originalReceivablesTable = window.renderReceivablesTable;
+  window.originalPayablesTable = window.renderPayablesTable;
+  window.originalActiveSalesTable = window.renderActiveSalesTable;
   
-  window.renderFinancials = () => {
-    const { activeFinancialTab } = window.appState || {};
-    
-    // Replace table rendering based on active tab
-    if (activeFinancialTab === 'receivables') {
-      return window.renderEnhancedReceivablesTable();
-    } else if (activeFinancialTab === 'payables') {
-      return window.renderEnhancedPayablesTable();
-    } else if (activeFinancialTab === 'sales') {
-      return window.renderEnhancedActiveSalesTable();
-    } else {
-      // Fall back to original for other tabs
-      return originalRenderFinancials ? originalRenderFinancials() : null;
-    }
-  };
+  // Replace just the table rendering functions
+  window.renderReceivablesTable = window.renderEnhancedReceivablesTable;
+  window.renderPayablesTable = window.renderEnhancedPayablesTable;
+  window.renderActiveSalesTable = window.renderEnhancedActiveSalesTable;
+  
+  console.log('✅ Enhanced financials tables integrated successfully');
+};
+
+// Function to restore original tables if needed
+window.restoreOriginalFinancialsTables = () => {
+  if (window.originalReceivablesTable) {
+    window.renderReceivablesTable = window.originalReceivablesTable;
+  }
+  if (window.originalPayablesTable) {
+    window.renderPayablesTable = window.originalPayablesTable;
+  }
+  if (window.originalActiveSalesTable) {
+    window.renderActiveSalesTable = window.originalActiveSalesTable;
+  }
+  
+  console.log('✅ Original financials tables restored');
 };
 
 // Initialize on load
 if (typeof window !== 'undefined') {
   window.addEventListener('load', () => {
-    window.updateFinancialsRenderForCurrency();
-    console.log('✅ Enhanced Financials UI with currency display loaded');
+    // Wait a bit to ensure all components are loaded
+    setTimeout(() => {
+      window.enhanceFinancialsWithCurrency();
+    }, 1000);
   });
 }
