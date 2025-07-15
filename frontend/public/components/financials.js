@@ -388,6 +388,115 @@ window.calculateEnhancedFinancialMetrics = async () => {
     }
 };
 
+// Create the loadFinancialData function
+window.loadFinancialData = async function() {
+    console.log('Loading financial data...');
+    
+    try {
+        const orders = window.orders || [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Fetch receivables and payables
+        const [receivablesRes, payablesRes] = await Promise.all([
+            window.apiCall('/receivables').catch(() => ({ data: [] })),
+            window.apiCall('/payables').catch(() => ({ data: [] }))
+        ]);
+        
+        // Both Active Sales and Sales use payment_received or completed status
+        const paidStatuses = ['payment_received', 'completed'];
+        
+        // Filter only paid orders
+        const paidOrders = orders.filter(order => paidStatuses.includes(order.status));
+        
+        // Active Sales = Paid orders where event date is in the future
+        const activeSales = paidOrders
+            .filter(order => {
+                if (!order.event_date) return false;
+                const eventDate = new Date(order.event_date);
+                eventDate.setHours(0, 0, 0, 0);
+                return eventDate > today;
+            })
+            .map(order => ({
+                ...order,
+                amount: order.final_amount || 0,
+                date: order.created_date,
+                client: order.client_name,
+                clientName: order.client_name,
+                order_number: order.order_number,
+                event_name: order.event_name,
+                event_date: order.event_date
+            }));
+        
+        // Sales = Paid orders where event date has passed
+        const completedSales = paidOrders
+            .filter(order => {
+                if (!order.event_date) return false;
+                const eventDate = new Date(order.event_date);
+                eventDate.setHours(0, 0, 0, 0);
+                return eventDate <= today;
+            })
+            .map(order => ({
+                ...order,
+                amount: order.final_amount || 0,
+                date: order.created_date,
+                client: order.client_name,
+                clientName: order.client_name,
+                invoice: order.invoice_number,
+                invoice_number: order.invoice_number,
+                assignedTo: order.assigned_to
+            }));
+        
+        const financialData = {
+            activeSales: activeSales,
+            sales: completedSales,
+            receivables: receivablesRes.data || [],
+            payables: payablesRes.data || [],
+            expiringInventory: []
+        };
+        
+        console.log('Financial data loaded:', {
+            activeSales: `${activeSales.length} future paid events, Total: ₹${activeSales.reduce((s,o) => s + o.amount, 0)}`,
+            sales: `${completedSales.length} past paid events, Total: ₹${completedSales.reduce((s,o) => s + o.amount, 0)}`,
+            receivables: financialData.receivables.length,
+            payables: financialData.payables.length
+        });
+        
+        if (window.appState?.setFinancialData) {
+            window.appState.setFinancialData(financialData);
+        }
+        
+        // Re-render if on financials tab
+        if (window.appState?.activeTab === 'financials') {
+            setTimeout(() => window.renderFinancials(), 100);
+        }
+        
+    } catch (error) {
+        console.error('Error loading financial data:', error);
+    }
+};
+
+// Now call it immediately
+window.loadFinancialData();
+
+// Hook into tab switching
+if (!window.financialsTabHooked) {
+    window.financialsTabHooked = true;
+    
+    const originalSetActiveTab = window.setActiveTab;
+    window.setActiveTab = function(tab) {
+        if (originalSetActiveTab) {
+            originalSetActiveTab(tab);
+        }
+        
+        if (tab === 'financials') {
+            setTimeout(() => {
+                window.loadFinancialData();
+            }, 100);
+        }
+    };
+}
+
 
 // Enhanced Expiring Inventory Data Processing
 window.getEnhancedExpiringInventory = () => {
