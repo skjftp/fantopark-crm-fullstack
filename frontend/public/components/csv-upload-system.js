@@ -1,4 +1,4 @@
-// ===== FANTOPARK CRM - CSV UPLOAD SYSTEM (CLEAN VERSION) =====
+// ===== FANTOPARK CRM - CSV UPLOAD SYSTEM (WITH CATEGORIES SUPPORT) =====
 // Complete implementation with all functionality, no debug logs
 
 // ===== MAIN CSV DOWNLOAD FUNCTION =====
@@ -12,6 +12,7 @@ window.downloadSampleCSV = function(eventOrType) {
   let csvContent, filename;
   
   if (type === 'leads') {
+    // Keep leads template unchanged
     filename = 'fantopark_leads_template.csv';
     csvContent = 'name,email,phone,company,business_type,source,date_of_enquiry,first_touch_base_done_by,city_of_residence,country_of_residence,lead_for_event,number_of_people,has_valid_passport,visa_available,attended_sporting_event_before,annual_income_bracket,potential_value,status,assigned_to,last_quoted_price,notes\n';
     csvContent += '"John Smith","john.smith@email.com","9876543210","Smith Enterprises","B2B","LinkedIn","2024-12-25","Ankita","Mumbai City North East","India","Cricket Match","4","Yes","Not Required","Yes","₹50-100 Lakhs","150000","contacted","Ankita","140000","Interested in VIP cricket packages"\n';
@@ -19,33 +20,47 @@ window.downloadSampleCSV = function(eventOrType) {
     csvContent += '"Mike Brown","mike.brown@email.com","9876543212","Tech Solutions Ltd","B2B","Website","2025-01-15","Pratik","Bangalore City","India","Football Match","8","No","Processing","Yes","₹100+ Lakhs","200000","warm","Pratik","190000","Large group booking for international match"\n';
     csvContent += '"Lisa Davis","lisa.davis@email.com","9876543213","","B2C","Friends and Family","2025-02-20","Rahul","Chennai Metro","India","Basketball Game","1","Yes","Not Required","No","₹10-25 Lakhs","25000","hot","Rahul","24000","Ready to book premium basketball seats"';
   } else {
-    filename = 'fantopark_inventory_template.csv';
-    csvContent = 'event_name,event_date,event_type,sports,venue,day_of_match,category_of_ticket,stand,total_tickets,available_tickets,mrp_of_ticket,buying_price,selling_price,inclusions,booking_person,procurement_type,notes,paymentStatus,supplierName,supplierInvoice,totalPurchaseAmount,amountPaid,paymentDueDate\n';
-    csvContent += '"IPL Mumbai Indians vs Chennai Super Kings Final","2024-12-25","IPL","Cricket","Wankhede Stadium","Not Applicable","VIP","North Stand Premium","100","100","8000","6000","7500","Premium food, beverages, parking, merchandise","Sports Events Pvt Ltd","pre_inventory","Premium match tickets with hospitality package","paid","Mumbai Sports Supplier","INV-2024-001","600000","600000","2024-12-20"\n';
-    csvContent += '"Tennis Grand Slam Quarterfinal","2024-12-31","Tennis","Tennis","Delhi Tennis Complex","Not Applicable","Premium","Center Court","50","45","5000","3500","4500","Refreshments, reserved seating","Tennis Pro Events","on_demand","Center court premium seating with refreshments","pending","Delhi Sports Distributor","INV-TEN-001","175000","100000","2024-12-28"\n';
-    csvContent += '"Football World Cup Group Stage","2025-01-15","Football","Football","Salt Lake Stadium","Not Applicable","Gold","East Block","200","180","3000","2200","2800","Match program, refreshments","Football Federation Events","partnership","Group stage match with good visibility","partial","Kolkata Sports Partners","INV-FB-102","440000","220000","2025-01-10"\n';
-    csvContent += '"Basketball Championship Final","2025-02-20","Basketball","Basketball","Indira Gandhi Arena","Not Applicable","Premium","Court Side","80","75","4000","3000","3500","VIP seating, complimentary drinks","Basketball Pro League","on_demand","Championship final premium seats","paid","Delhi Basketball Suppliers","INV-BB-003","240000","240000","2025-02-15"';
+    // UPDATED INVENTORY TEMPLATE WITH CATEGORIES
+    filename = 'fantopark_inventory_template_with_categories.csv';
+    
+    // Add instructions as comments at the top
+    csvContent = '# INSTRUCTIONS: For events with multiple ticket categories, create one row per category with the same event_name and event_date\n';
+    csvContent += '# The system will automatically group rows with matching event_name and event_date into a single inventory item with multiple categories\n';
+    csvContent += '# IMPORTANT: Keep event_name and event_date EXACTLY the same for all categories of the same event\n';
+    csvContent += '#\n';
+    
+    // Headers
+    csvContent += 'event_name,event_date,event_type,sports,venue,day_of_match,category_name,section,total_tickets,available_tickets,buying_price,selling_price,inclusions,booking_person,procurement_type,notes,paymentStatus,supplierName,supplierInvoice,paymentDueDate\n';
+    
+    // Example 1: IPL Match with 3 categories (VIP, Premium, General)
+    csvContent += '"IPL Mumbai Indians vs Chennai Super Kings Final","2024-12-25","IPL","Cricket","Wankhede Stadium","Not Applicable","VIP","North Stand Premium","50","50","6000","7500","Premium food, beverages, parking, merchandise","Sports Events Pvt Ltd","pre_inventory","Premium match tickets","pending","BookMyShow","INV-2024-001","2024-12-20"\n';
+    csvContent += '"IPL Mumbai Indians vs Chennai Super Kings Final","2024-12-25","IPL","Cricket","Wankhede Stadium","Not Applicable","Premium","East Stand","100","100","3500","4500","Food court access, merchandise","Sports Events Pvt Ltd","pre_inventory","Premium match tickets","pending","BookMyShow","INV-2024-001","2024-12-20"\n';
+    csvContent += '"IPL Mumbai Indians vs Chennai Super Kings Final","2024-12-25","IPL","Cricket","Wankhede Stadium","Not Applicable","General","South Stand","200","200","1500","2000","Stadium entry only","Sports Events Pvt Ltd","pre_inventory","Premium match tickets","pending","BookMyShow","INV-2024-001","2024-12-20"\n';
+    
+    // Example 2: Football match with 2 categories
+    csvContent += '"ISL Bengaluru FC vs Mumbai City","2025-01-15","ISL","Football","Sree Kanteerava Stadium","Not Applicable","Premium","West Stand","75","75","2000","2800","Covered seating, refreshments","Football Federation","on_demand","Regular season match","paid","TicketGenie","INV-2025-045","2025-01-10"\n';
+    csvContent += '"ISL Bengaluru FC vs Mumbai City","2025-01-15","ISL","Football","Sree Kanteerava Stadium","Not Applicable","General","East Stand","150","150","800","1200","Open seating","Football Federation","on_demand","Regular season match","paid","TicketGenie","INV-2025-045","2025-01-10"\n';
+    
+    // Example 3: Single category event (backward compatible)
+    csvContent += '"Tennis Masters Cup Semi-Final","2025-02-20","International","Tennis","R.K. Khanna Stadium","Not Applicable","Box Seats","Center Court","30","30","8000","12000","Premium seating, hospitality, player meet & greet","Tennis India","pre_inventory","High demand match","partial","StubHub","INV-2025-089","2025-02-15"\n';
   }
   
-  if (!filename) {
-    alert('ERROR: No filename generated!');
-    return;
+  // Create and download the file
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  
+  if (navigator.msSaveBlob) { // IE 10+
+    navigator.msSaveBlob(blob, filename);
+  } else {
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
   
-  try {
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  } catch (error) {
-    alert('Download failed: ' + error.message);
-  }
+  console.log(`✅ Downloaded ${type} template with categories support`);
 };
 
 // ===== STATE SYNCHRONIZATION FUNCTIONS =====
@@ -130,6 +145,18 @@ window.downloadSampleExcelV2 = function() {
 window.downloadInventoryCSVDirect = function() {
   window.csvUploadType = 'inventory';
   window.downloadSampleCSV('inventory');
+  
+  // Show instructions alert
+  setTimeout(() => {
+    alert(
+      '📋 CSV Template Instructions:\n\n' +
+      '• For events with multiple ticket categories, create one row per category\n' +
+      '• Keep event_name and event_date EXACTLY the same for all categories of the same event\n' +
+      '• The system will automatically group matching events into a single item with multiple categories\n' +
+      '• Check the template for examples of multi-category events\n\n' +
+      '💡 Tip: The first 3 rows show how to create an IPL match with VIP, Premium, and General categories'
+    );
+  }, 500);
 };
 
 window.downloadLeadsCSVDirect = function() {
@@ -288,7 +315,20 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
           // Silent fail for refresh
         }
 
-        const message = `✅ Upload completed!\n📈 Imported: ${result.successCount || 0} ${type}\n${result.errorCount ? `⚠️ Errors: ${result.errorCount}\n` : ''}${result.clientDetectionCount ? `🔍 Existing clients: ${result.clientDetectionCount}` : ''}`;
+        // Enhanced message for inventory with categories
+        let message = `✅ Upload completed!\n`;
+        if (type === 'inventory' && result.summary) {
+          message += `📦 Created: ${result.successCount || 0} events\n`;
+          if (result.summary.eventsWithMultipleCategories > 0) {
+            message += `🎫 Multi-category events: ${result.summary.eventsWithMultipleCategories}\n`;
+            message += `📊 Total categories: ${result.summary.totalCategories}\n`;
+          }
+        } else {
+          message += `📈 Imported: ${result.successCount || 0} ${type}\n`;
+        }
+        message += result.errorCount ? `⚠️ Errors: ${result.errorCount}\n` : '';
+        message += result.clientDetectionCount ? `🔍 Existing clients: ${result.clientDetectionCount}` : '';
+        
         alert(message);
         
         setTimeout(() => onClose(), 1000);
@@ -339,6 +379,49 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
             React.createElement('li', null, '• Auto-assigns leads to the same person who handled previous leads'),
             React.createElement('li', null, '• Groups leads by client with relationship tracking'),
             React.createElement('li', null, '• Preview your upload to review assignments before import')
+          )
+        ),
+
+        // NEW: Categories instructions for inventory
+        type === 'inventory' && React.createElement('div', {
+          className: 'p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg'
+        },
+          React.createElement('h3', {
+            className: 'font-semibold text-green-800 dark:text-green-200 mb-2 flex items-center'
+          }, 
+            React.createElement('span', { className: 'mr-2' }, '🎫'),
+            'Multiple Ticket Categories Support'
+          ),
+          React.createElement('div', { className: 'text-green-700 dark:text-green-300 text-sm space-y-3' },
+            React.createElement('p', { className: 'font-medium' }, 
+              'To create an event with multiple ticket categories (e.g., VIP, Premium, General):'
+            ),
+            React.createElement('ol', { className: 'list-decimal list-inside space-y-1 ml-2' },
+              React.createElement('li', null, 'Create one row per category in your CSV'),
+              React.createElement('li', null, 'Keep event_name and event_date EXACTLY the same for all categories'),
+              React.createElement('li', null, 'The system will automatically group them into one inventory item')
+            ),
+            
+            // Visual example
+            React.createElement('div', { className: 'mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-green-300 dark:border-green-600' },
+              React.createElement('p', { className: 'text-xs font-mono mb-2 text-gray-600 dark:text-gray-400' }, 
+                'Example: IPL Final with 3 categories'
+              ),
+              React.createElement('div', { className: 'text-xs font-mono space-y-1' },
+                React.createElement('div', { className: 'text-gray-700 dark:text-gray-300' },
+                  '"IPL Final","2024-12-25",...,"VIP","North Stand",50,50,6000,7500,...'
+                ),
+                React.createElement('div', { className: 'text-gray-700 dark:text-gray-300' },
+                  '"IPL Final","2024-12-25",...,"Premium","East Stand",100,100,3500,4500,...'
+                ),
+                React.createElement('div', { className: 'text-gray-700 dark:text-gray-300' },
+                  '"IPL Final","2024-12-25",...,"General","South Stand",200,200,1500,2000,...'
+                ),
+                React.createElement('div', { className: 'mt-2 text-green-600 dark:text-green-400' },
+                  '↓ Creates 1 inventory item with 3 categories'
+                )
+              )
+            )
           )
         ),
 
@@ -542,3 +625,5 @@ if (typeof window.csvUploadType === 'undefined') {
 if (typeof window.clientDetectionResults === 'undefined') {
   window.clientDetectionResults = [];
 }
+
+console.log('✅ CSV Upload System with Categories Support loaded successfully');

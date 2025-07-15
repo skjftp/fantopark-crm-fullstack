@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { Storage } = require('@google-cloud/storage');
+const { db, collections } = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 const csv = require('csv-parser');
 const { Readable } = require('stream');
@@ -59,6 +60,14 @@ const parseDate = (dateValue) => {
   if (!dateValue || dateValue === '' || dateValue === null || dateValue === undefined) {
     console.log('⚠️ No date value provided, using current date');
     return new Date().toISOString();
+  }
+
+    // Add handling for DD/MM/YY format
+  if (typeof dateValue === 'string' && dateValue.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)) {
+    const [day, month, year] = dateValue.split('/');
+    const fullYear = year.length === 2 ? '20' + year : year;
+    const isoDate = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    return isoDate;
   }
   
   // If it's already a Date object, convert to ISO string
@@ -649,6 +658,10 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
 });
 
 // POST bulk upload inventory from CSV/Excel - ENHANCED VERSION (unchanged from your original)
+// In backend/src/routes/upload.js
+// Replace the inventory CSV upload endpoint with this updated version:
+
+// POST bulk upload inventory from CSV/Excel - WITH CATEGORIES SUPPORT
 router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -664,113 +677,182 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
     const errors = [];
     let successCount = 0;
     let errorCount = 0;
+    const createdInventoryIds = [];
 
-    for (const [index, row] of results.entries()) {
-      try {
-        // DIRECT field mapping with date parsing
-        const inventoryData = {
-          // Basic Event Information
-          event_name: row.event_name || row['Event Name'] || '',
-          event_date: parseDate(row.event_date || row['Event Date']),
-          event_type: row.event_type || row['Event Type'] || '',
-          sports: row.sports || row.Sports || '',
-          venue: row.venue || row.Venue || '',
-          day_of_match: row.day_of_match || row['Day of Match'] || 'Not Applicable',
-          
-          // Ticket Details
-          category_of_ticket: row.category_of_ticket || row['Category of Ticket'] || '',
-          stand: row.stand || row['Stand/Section'] || row['Stand'] || '',
-          total_tickets: parseInt(row.total_tickets || row['Total Tickets'] || '0'),
-          available_tickets: parseInt(row.available_tickets || row['Available Tickets'] || '0'),
-          
-          // Pricing Information
-          mrp_of_ticket: parseFloat(row.mrp_of_ticket || row['MRP of Ticket'] || '0'),
-          buying_price: parseFloat(row.buying_price || row['Buying Price'] || '0'),
-          selling_price: parseFloat(row.selling_price || row['Selling Price'] || '0'),
-          
-          // Additional Information
-          inclusions: row.inclusions || row['Inclusions'] || '',
-          booking_person: row.booking_person || row['Booking Person'] || '',
-          procurement_type: row.procurement_type || row['Procurement Type'] || 'pre_inventory',
-          notes: row.notes || row['Notes'] || '',
-          
-          // PAYMENT INFORMATION with date parsing
-          paymentStatus: row.paymentStatus || row['Payment Status'] || 'pending',
-          supplierName: row.supplierName || row['Supplier Name'] || '',
-          supplierInvoice: row.supplierInvoice || row['Supplier Invoice'] || '',
-          purchasePrice: parseFloat(row.purchasePrice || row['Purchase Price'] || '0'),
-          totalPurchaseAmount: parseFloat(row.totalPurchaseAmount || row['Total Purchase Amount'] || '0'),
-          amountPaid: parseFloat(row.amountPaid || row['Amount Paid'] || '0'),
-          paymentDueDate: parseDate(row.paymentDueDate || row['Payment Due Date']),
-          
-          // System fields
-          created_date: new Date().toISOString(),
-          updated_date: new Date().toISOString(),
-          created_by: req.user.name || 'Excel/CSV Import'
+    // Group rows by event_name and event_date for multi-category support
+    const groupedEvents = {};
+    
+    results.forEach((row, index) => {
+      // Skip empty rows or comment rows
+      if (!row.event_name || row.event_name.startsWith('#')) {
+        return;
+      }
+      
+      // Create a unique key for grouping
+      const eventKey = `${row.event_name}||${row.event_date}`;
+      
+      if (!groupedEvents[eventKey]) {
+        groupedEvents[eventKey] = {
+          eventInfo: {
+            event_name: row.event_name || '',
+            event_date: parseDate(row.event_date || ''),
+            event_type: row.event_type || '',
+            sports: row.sports || '',
+            venue: row.venue || '',
+            day_of_match: row.day_of_match || 'Not Applicable',
+            booking_person: row.booking_person || '',
+            procurement_type: row.procurement_type || 'pre_inventory',
+            notes: row.notes || '',
+            paymentStatus: row.paymentStatus || 'pending',
+            supplierName: row.supplierName || '',
+            supplierInvoice: row.supplierInvoice || '',
+            paymentDueDate: row.paymentDueDate || ''
+          },
+          categories: [],
+          rowIndices: []
         };
+      }
+      
+      // Add category data
+      const categoryData = {
+        name: row.category_name || row.category_of_ticket || 'General',
+        section: row.section || row.stand || '',
+        total_tickets: parseInt(row.total_tickets) || 0,
+        available_tickets: parseInt(row.available_tickets) || parseInt(row.total_tickets) || 0,
+        buying_price: parseFloat(row.buying_price) || 0,
+        selling_price: parseFloat(row.selling_price) || 0,
+        inclusions: row.inclusions || ''
+      };
+      
+      groupedEvents[eventKey].categories.push(categoryData);
+      groupedEvents[eventKey].rowIndices.push(index + 2); // Excel row number (1-indexed + header)
+    });
 
-        // Auto-calculate missing values
-        if (!inventoryData.totalPurchaseAmount && inventoryData.buying_price && inventoryData.total_tickets) {
-          inventoryData.totalPurchaseAmount = inventoryData.buying_price * inventoryData.total_tickets;
-        }
+    console.log(`📦 Grouped into ${Object.keys(groupedEvents).length} unique events`);
 
+    // Process each grouped event
+    for (const [eventKey, eventData] of Object.entries(groupedEvents)) {
+      try {
+        const { eventInfo, categories, rowIndices } = eventData;
+        
         // Validate required fields
-        if (!inventoryData.event_name || !inventoryData.event_date || !inventoryData.venue) {
+        if (!eventInfo.event_name || !eventInfo.event_date) {
           errors.push({
-            row: index + 2,
-            error: 'Missing required fields (Event Name, Event Date, or Venue)'
+            rows: rowIndices,
+            error: 'Missing required fields (event_name or event_date)',
+            event: eventKey
           });
           errorCount++;
           continue;
         }
 
-        // SAVE DIRECTLY TO DATABASE
-        const { db } = require('../config/db');
+        // Calculate aggregate values from categories
+        const totals = categories.reduce((acc, cat) => {
+          const catTotal = cat.total_tickets * cat.buying_price;
+          return {
+            total_tickets: acc.total_tickets + cat.total_tickets,
+            available_tickets: acc.available_tickets + cat.available_tickets,
+            total_purchase_amount: acc.total_purchase_amount + catTotal
+          };
+        }, { total_tickets: 0, available_tickets: 0, total_purchase_amount: 0 });
+
+        // Create inventory data with categories
+        const inventoryData = {
+          ...eventInfo,
+          categories: categories,
+          total_tickets: totals.total_tickets,
+          available_tickets: totals.available_tickets,
+          totalPurchaseAmount: totals.total_purchase_amount,
+          
+          // Set amount paid based on payment status
+          amountPaid: eventInfo.paymentStatus === 'paid' ? totals.total_purchase_amount : 0,
+          
+          // Legacy fields for backward compatibility (use first category values)
+          category_of_ticket: categories[0].name,
+          stand: categories[0].section,
+          buying_price: categories[0].buying_price,
+          selling_price: categories[0].selling_price,
+          inclusions: categories[0].inclusions,
+          
+          // Metadata
+          created_by: req.user.name,
+          created_date: new Date().toISOString(),
+          updated_date: new Date().toISOString()
+        };
+
+        console.log(`Creating inventory: ${eventInfo.event_name} with ${categories.length} categories`);
+
+        // Save to database
         const docRef = await db.collection('crm_inventory').add(inventoryData);
+        createdInventoryIds.push(docRef.id);
         
         // Create payable if needed
-        if ((inventoryData.paymentStatus === 'pending' || inventoryData.paymentStatus === 'partial') && inventoryData.totalPurchaseAmount > 0) {
-          const totalAmount = parseFloat(inventoryData.totalPurchaseAmount) || 0;
-          const amountPaid = parseFloat(inventoryData.amountPaid) || 0;
-          const pendingBalance = totalAmount - amountPaid;
-          
-          if (pendingBalance > 0) {
-            const payableData = {
-              inventoryId: docRef.id,
-              supplierName: inventoryData.supplierName || 'Unknown Supplier',
-              eventName: inventoryData.event_name,
-              invoiceNumber: inventoryData.supplierInvoice || 'INV-' + Date.now(),
-              amount: pendingBalance,
-              dueDate: inventoryData.paymentDueDate || null,
-              status: 'pending',
-              created_date: new Date().toISOString(),
-              createdBy: req.user.id,
-              description: `Payment for inventory: ${inventoryData.event_name}`
-            };
+        if ((inventoryData.paymentStatus === 'pending' || inventoryData.paymentStatus === 'partial') && 
+            inventoryData.totalPurchaseAmount > 0) {
+          try {
+            const pendingAmount = inventoryData.totalPurchaseAmount - (inventoryData.amountPaid || 0);
             
-            await db.collection('crm_payables').add(payableData);
+            if (pendingAmount > 0) {
+              const payableData = {
+                inventoryId: docRef.id,
+                supplierName: inventoryData.supplierName || 'Unknown Supplier',
+                eventName: inventoryData.event_name,
+                invoiceNumber: inventoryData.supplierInvoice || `INV-${Date.now()}`,
+                amount: pendingAmount,
+                dueDate: inventoryData.paymentDueDate || null,
+                status: 'pending',
+                created_date: new Date().toISOString(),
+                updated_date: new Date().toISOString(),
+                createdBy: req.user.id,
+                description: `Payment for inventory: ${inventoryData.event_name}`,
+                payment_notes: `Created from CSV import - ${categories.length} categories`
+              };
+              
+              await db.collection('crm_payables').add(payableData);
+              console.log(`Payable created for ${eventInfo.event_name}`);
+            }
+          } catch (payableError) {
+            console.error('Error creating payable:', payableError);
+            // Don't fail the import if payable creation fails
           }
         }
         
         successCount++;
+        console.log(`✅ Successfully created: ${eventInfo.event_name}`);
+        
       } catch (error) {
+        console.error(`❌ Error processing event ${eventKey}:`, error);
         errors.push({
-          row: index + 2,
-          error: error.message
+          rows: rowIndices,
+          error: error.message,
+          event: eventKey
         });
         errorCount++;
       }
     }
 
+    // Prepare summary with categories info
+    const summary = {
+      totalRows: results.length,
+      uniqueEvents: Object.keys(groupedEvents).length,
+      eventsWithMultipleCategories: Object.values(groupedEvents).filter(e => e.categories.length > 1).length,
+      totalCategories: Object.values(groupedEvents).reduce((sum, e) => sum + e.categories.length, 0)
+    };
+
     res.json({
       success: true,
-      message: `Import completed. ${successCount} inventory items imported successfully, ${errorCount} failed.`,
-      totalProcessed: results.length,
+      message: `Import completed. ${successCount} inventory items created with categories.`,
+      summary: summary,
       successCount,
       errorCount,
-      errors: errors.slice(0, 10)
+      createdInventoryIds: createdInventoryIds,
+      errors: errors.slice(0, 10), // Limit error reporting
+      uploadSessionId: `inventory_upload_${Date.now()}_${req.user.email}`,
+      fileName: req.file.originalname
     });
+    
   } catch (error) {
+    console.error('❌ Bulk upload error:', error);
     res.status(500).json({ error: error.message });
   }
 });

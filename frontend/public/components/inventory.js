@@ -424,6 +424,7 @@ window.renderInventoryContent = () => {
                 React.createElement('table', { className: 'w-full' },
                     React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
                         React.createElement('tr', null,
+                            React.createElement('th', { className: 'w-10 px-2' }, ''), // Empty header for expand button
                             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider' }, 'Event'),
                             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider' }, 'Sports'),
                             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider' }, 'Category'),
@@ -443,175 +444,274 @@ window.renderInventoryContent = () => {
                             
                             const revenueData = window.calculateInventoryRevenue(item);
                             
-                            return React.createElement('tr', { 
-                                key: item.id,
-                                className: 'hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors'
-                            },
-                                // Event Details
-                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
-                                    React.createElement('div', { className: 'text-sm font-medium text-gray-900 dark:text-white' },
-                                        item.event_name || 'Unnamed Event'
-                                    ),
-                                    React.createElement('div', { className: 'text-sm text-gray-500 dark:text-gray-400' },
-                                        item.venue
-                                    )
-                                ),
-                                
-                                // Sports
-                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
-                                    React.createElement('span', { 
-                                        className: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
-                                    }, item.sports || 'N/A')
-                                ),
-                                
-                                // Category
-                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
-                                    React.createElement('div', { className: 'text-sm text-gray-900 dark:text-white' },
-                                        item.category_of_ticket
-                                    ),
-                                    React.createElement('div', { className: 'text-sm text-gray-500 dark:text-gray-400' },
-                                        item.stand
-                                    )
-                                ),
-                                
-                                // Date
-                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
-                                    React.createElement('div', { className: `text-sm font-medium ${statusColor}` },
-                                        window.formatDate(item.event_date)
-                                    ),
-                                    React.createElement('div', { className: `text-xs ${statusColor}` },
-                                        daysUntilEvent >= 0 ? `${daysUntilEvent} days left` : `${Math.abs(daysUntilEvent)} days ago`
-                                    )
-                                ),
-                                
-                                // Available Tickets
-                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
-                                    React.createElement('div', { className: 'text-sm text-gray-900 dark:text-white' },
-                                        `${item.available_tickets || 0} / ${item.total_tickets || 0}`
-                                    ),
-                                    React.createElement('div', { className: 'w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-1' },
-                                        React.createElement('div', {
-                                            className: 'bg-blue-600 h-2 rounded-full',
-                                            style: { 
-                                                width: `${((item.available_tickets || 0) / (item.total_tickets || 1)) * 100}%` 
-                                            }
-                                        })
-                                    )
-                                ),
-                                
-                                // Revenue (if permission)
-                                window.hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
-                                    React.createElement('div', { className: 'text-sm font-medium text-gray-900 dark:text-white' },
-                                        `₹${(window.formatNumber ? window.formatNumber(revenueData.potential) : revenueData.potential.toLocaleString())}`
-                                    ),
-                                    React.createElement('div', { className: 'text-xs text-gray-500 dark:text-gray-400' },
-                                        `Cost: ₹${(window.formatNumber ? window.formatNumber(revenueData.cost) : revenueData.cost.toLocaleString())}`
-                                    )
-                                ),
-                                
-                                // Payment Status
-                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
-                                    React.createElement('span', {
-                                        className: `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                            item.paymentStatus === 'paid' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
-                                            item.paymentStatus === 'partial' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
-                                            'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
-                                        }`
-                                    }, item.paymentStatus || 'unpaid')
-                                ),
-                                
-                                // Actions
-                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-right text-sm font-medium' },
-                                    React.createElement('div', { className: 'flex items-center gap-2' },
-                                        // View Details Button
-                                        React.createElement('button', {
-                                            onClick: () => window.openInventoryDetail(item),
-                                            className: 'text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 transition-colors',
-                                            title: 'View Details'
+                            // NEW: Check if this item has categories and if it's expanded
+                            const hasCategories = item.categories && Array.isArray(item.categories) && item.categories.length > 0;
+                            const isExpanded = window.isInventoryExpanded(item.id);
+                            
+                            // Return a Fragment to allow multiple rows (main + category rows)
+                            return React.createElement(React.Fragment, { key: item.id },
+                                // Main inventory row
+                                React.createElement('tr', { 
+                                    className: `hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isExpanded ? 'bg-gray-50 dark:bg-gray-700' : ''}`
+                                },
+                                    // NEW: Expand/collapse button cell
+                                    React.createElement('td', { className: 'w-10 px-2 py-4' },
+                                        hasCategories ? React.createElement('button', {
+                                            onClick: (e) => {
+                                                e.stopPropagation();
+                                                window.toggleInventoryExpansion(item.id);
+                                            },
+                                            className: 'p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors',
+                                            title: isExpanded ? 'Collapse categories' : `Expand categories (${item.categories.length})`
                                         },
                                             React.createElement('svg', {
-                                                className: 'w-5 h-5',
+                                                className: `w-4 h-4 text-gray-600 dark:text-gray-400 transform transition-transform ${isExpanded ? 'rotate-90' : ''}`,
                                                 fill: 'none',
-                                                stroke: 'currentColor',
-                                                viewBox: '0 0 24 24'
+                                                viewBox: '0 0 24 24',
+                                                stroke: 'currentColor'
                                             },
                                                 React.createElement('path', {
                                                     strokeLinecap: 'round',
                                                     strokeLinejoin: 'round',
                                                     strokeWidth: 2,
-                                                    d: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z'
-                                                }),
-                                                React.createElement('path', {
-                                                    strokeLinecap: 'round',
-                                                    strokeLinejoin: 'round',
-                                                    strokeWidth: 2,
-                                                    d: 'M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'
+                                                    d: 'M9 5l7 7-7 7'
                                                 })
                                             )
+                                        ) : null
+                                    ),
+                                    
+                                    // Event Details (modified to show category count)
+                                    React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                                        React.createElement('div', { className: 'text-sm font-medium text-gray-900 dark:text-white' },
+                                            item.event_name || 'Unnamed Event',
+                                            // Show category count badge if has categories
+                                            hasCategories && React.createElement('span', { 
+                                                className: 'ml-2 inline-flex items-center px-2 py-0.5 text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-full' 
+                                            }, item.categories.length)
                                         ),
-                                        
-                                        // Edit Button (if permission)
-                                        window.hasPermission('inventory', 'write') && React.createElement('button', {
-                                            onClick: () => window.openEditInventoryForm(item),
-                                            className: 'text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 transition-colors',
-                                            title: 'Edit Event'
-                                        },
-                                            React.createElement('svg', {
-                                                className: 'w-5 h-5',
-                                                fill: 'none',
-                                                stroke: 'currentColor',
-                                                viewBox: '0 0 24 24'
-                                            },
-                                                React.createElement('path', {
-                                                    strokeLinecap: 'round',
-                                                    strokeLinejoin: 'round',
-                                                    strokeWidth: 2,
-                                                    d: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'
-                                                })
-                                            )
+                                        React.createElement('div', { className: 'text-sm text-gray-500 dark:text-gray-400' },
+                                            item.venue
+                                        )
+                                    ),
+                                    
+                                    // Sports
+                                    React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                                        React.createElement('span', { 
+                                            className: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                                        }, item.sports || 'N/A')
+                                    ),
+                                    
+                                    // Category (show aggregate if has categories)
+                                    React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                                        React.createElement('div', { className: 'text-sm text-gray-900 dark:text-white' },
+                                            hasCategories ? 'Multiple' : (item.category_of_ticket || 'N/A')
                                         ),
-                                        
-                                        // Allocation Management Button
-                                        React.createElement('button', {
-                                            onClick: () => window.openAllocationManagement(item),
-                                            className: 'text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300 transition-colors',
-                                            title: 'Manage Allocations'
-                                        },
-                                            React.createElement('svg', {
-                                                className: 'w-5 h-5',
-                                                fill: 'none',
-                                                stroke: 'currentColor',
-                                                viewBox: '0 0 24 24'
-                                            },
-                                                React.createElement('path', {
-                                                    strokeLinecap: 'round',
-                                                    strokeLinejoin: 'round',
-                                                    strokeWidth: 2,
-                                                    d: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'
-                                                })
-                                            )
+                                        React.createElement('div', { className: 'text-sm text-gray-500 dark:text-gray-400' },
+                                            hasCategories ? `${item.categories.length} categories` : item.stand
+                                        )
+                                    ),
+                                    
+                                    // Date
+                                    React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                                        React.createElement('div', { className: `text-sm font-medium ${statusColor}` },
+                                            window.formatDate(item.event_date)
                                         ),
-                                        
-                                        // Delete Button (if permission)
-                                        window.hasPermission('inventory', 'delete') && React.createElement('button', {
-                                            onClick: () => window.handleDeleteInventory(item.id),
-                                            className: 'text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors',
-                                            title: 'Delete Event'
-                                        },
-                                            React.createElement('svg', {
-                                                className: 'w-5 h-5',
-                                                fill: 'none',
-                                                stroke: 'currentColor',
-                                                viewBox: '0 0 24 24'
+                                        React.createElement('div', { className: `text-xs ${statusColor}` },
+                                            daysUntilEvent >= 0 ? `${daysUntilEvent} days left` : `${Math.abs(daysUntilEvent)} days ago`
+                                        )
+                                    ),
+                                    
+                                    // Available Tickets
+                                    React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                                        React.createElement('div', { className: 'text-sm text-gray-900 dark:text-white' },
+                                            `${item.available_tickets || 0} / ${item.total_tickets || 0}`
+                                        ),
+                                        React.createElement('div', { className: 'w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-1' },
+                                            React.createElement('div', {
+                                                className: 'bg-blue-600 h-2 rounded-full',
+                                                style: { 
+                                                    width: `${((item.available_tickets || 0) / (item.total_tickets || 1)) * 100}%` 
+                                                }
+                                            })
+                                        )
+                                    ),
+                                    
+                                    // Revenue (if permission)
+                                    window.hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                                        React.createElement('div', { className: 'text-sm font-medium text-gray-900 dark:text-white' },
+                                            `₹${(window.formatNumber ? window.formatNumber(revenueData.potential) : revenueData.potential.toLocaleString())}`
+                                        ),
+                                        React.createElement('div', { className: 'text-xs text-gray-500 dark:text-gray-400' },
+                                            `Cost: ₹${(window.formatNumber ? window.formatNumber(revenueData.cost) : revenueData.cost.toLocaleString())}`
+                                        )
+                                    ),
+                                    
+                                    // Payment Status
+                                    React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                                        React.createElement('span', {
+                                            className: `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                item.paymentStatus === 'paid' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
+                                                item.paymentStatus === 'partial' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
+                                                'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                                            }`
+                                        }, item.paymentStatus || 'unpaid')
+                                    ),
+                                    
+                                    // Actions
+                                    React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-right text-sm font-medium' },
+                                        React.createElement('div', { className: 'flex items-center gap-2' },
+                                            // View Details Button
+                                            React.createElement('button', {
+                                                onClick: () => window.openInventoryDetail(item),
+                                                className: 'text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 transition-colors',
+                                                title: 'View Details'
                                             },
-                                                React.createElement('path', {
-                                                    strokeLinecap: 'round',
-                                                    strokeLinejoin: 'round',
-                                                    strokeWidth: 2,
-                                                    d: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
-                                                })
+                                                React.createElement('svg', {
+                                                    className: 'w-5 h-5',
+                                                    fill: 'none',
+                                                    stroke: 'currentColor',
+                                                    viewBox: '0 0 24 24'
+                                                },
+                                                    React.createElement('path', {
+                                                        strokeLinecap: 'round',
+                                                        strokeLinejoin: 'round',
+                                                        strokeWidth: 2,
+                                                        d: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z'
+                                                    }),
+                                                    React.createElement('path', {
+                                                        strokeLinecap: 'round',
+                                                        strokeLinejoin: 'round',
+                                                        strokeWidth: 2,
+                                                        d: 'M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'
+                                                    })
+                                                )
+                                            ),
+                                            
+                                            // Edit Button (if permission)
+                                            window.hasPermission('inventory', 'write') && React.createElement('button', {
+                                                onClick: () => window.openEditInventoryForm(item),
+                                                className: 'text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 transition-colors',
+                                                title: 'Edit Event'
+                                            },
+                                                React.createElement('svg', {
+                                                    className: 'w-5 h-5',
+                                                    fill: 'none',
+                                                    stroke: 'currentColor',
+                                                    viewBox: '0 0 24 24'
+                                                },
+                                                    React.createElement('path', {
+                                                        strokeLinecap: 'round',
+                                                        strokeLinejoin: 'round',
+                                                        strokeWidth: 2,
+                                                        d: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'
+                                                    })
+                                                )
+                                            ),
+                                            
+                                            // Allocation Management Button
+                                            React.createElement('button', {
+                                                onClick: () => window.openAllocationManagement(item),
+                                                className: 'text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300 transition-colors',
+                                                title: 'Manage Allocations'
+                                            },
+                                                React.createElement('svg', {
+                                                    className: 'w-5 h-5',
+                                                    fill: 'none',
+                                                    stroke: 'currentColor',
+                                                    viewBox: '0 0 24 24'
+                                                },
+                                                    React.createElement('path', {
+                                                        strokeLinecap: 'round',
+                                                        strokeLinejoin: 'round',
+                                                        strokeWidth: 2,
+                                                        d: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'
+                                                    })
+                                                )
+                                            ),
+                                            
+                                            // Delete Button (if permission)
+                                            window.hasPermission('inventory', 'delete') && React.createElement('button', {
+                                                onClick: () => window.handleDeleteInventory(item.id),
+                                                className: 'text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors',
+                                                title: 'Delete Event'
+                                            },
+                                                React.createElement('svg', {
+                                                    className: 'w-5 h-5',
+                                                    fill: 'none',
+                                                    stroke: 'currentColor',
+                                                    viewBox: '0 0 24 24'
+                                                },
+                                                    React.createElement('path', {
+                                                        strokeLinecap: 'round',
+                                                        strokeLinejoin: 'round',
+                                                        strokeWidth: 2,
+                                                        d: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+                                                    })
+                                                )
                                             )
                                         )
+                                    )
+                                ),
+                                
+                                // Category rows when expanded
+                                isExpanded && hasCategories && item.categories.map((category, catIndex) => 
+                                    React.createElement('tr', {
+                                        key: `${item.id}-cat-${catIndex}`,
+                                        className: 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border-l-4 border-blue-500'
+                                    },
+                                        // Empty cell for expand column
+                                        React.createElement('td', { className: 'w-10 px-2 py-2' }, ''),
+                                        
+                                        // Category details cell
+                                        React.createElement('td', { 
+                                            className: 'px-6 py-2',
+                                            colSpan: 3 // Spans Event, Sports, Category columns
+                                        },
+                                            React.createElement('div', { className: 'flex items-center justify-between' },
+                                                React.createElement('div', null,
+                                                    React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 
+                                                        category.name
+                                                    ),
+                                                    category.section && React.createElement('span', { 
+                                                        className: 'ml-2 text-sm text-gray-500 dark:text-gray-400' 
+                                                    }, `(${category.section})`)
+                                                ),
+                                                React.createElement('div', { className: 'text-xs text-gray-500' },
+                                                    category.inclusions || 'No inclusions'
+                                                )
+                                            )
+                                        ),
+                                        
+                                        // Date cell (empty for category rows)
+                                        React.createElement('td', { className: 'px-6 py-2' }, ''),
+                                        
+                                        // Available tickets for this category
+                                        React.createElement('td', { className: 'px-6 py-2' },
+                                            React.createElement('div', { className: 'text-sm' },
+                                                `${category.available_tickets || 0} / ${category.total_tickets || 0}`
+                                            )
+                                        ),
+                                        
+                                        // Revenue for this category (if permission)
+                                        window.hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-2' },
+                                            React.createElement('div', { className: 'text-sm' },
+                                                React.createElement('div', null, `₹${((category.selling_price || 0) * (category.total_tickets || 0)).toLocaleString()}`),
+                                                React.createElement('div', { className: 'text-xs text-gray-500' }, 
+                                                    `₹${category.selling_price || 0} per ticket`
+                                                )
+                                            )
+                                        ),
+                                        
+                                        // Status cell (shows pricing)
+                                        React.createElement('td', { className: 'px-6 py-2' },
+                                            React.createElement('div', { className: 'text-xs' },
+                                                React.createElement('div', null, `Buy: ₹${category.buying_price || 0}`),
+                                                React.createElement('div', null, `Sell: ₹${category.selling_price || 0}`)
+                                            )
+                                        ),
+                                        
+                                        // Actions (empty for category rows)
+                                        React.createElement('td', { className: 'px-6 py-2' }, '')
                                     )
                                 )
                             );
