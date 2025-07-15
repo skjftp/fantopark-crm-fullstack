@@ -808,6 +808,12 @@ window.renderReceivablesTab = (receivables) => {
 window.renderPayablesTab = (payables) => {
     console.log('🔍 renderPayablesTab called with:', payables);
     
+    // Debug: Check if deletePayable function is available
+    console.log('deletePayable function available:', !!window.deletePayable);
+    console.log('setLoading available:', !!window.setLoading);
+    console.log('setFinancialData available:', !!window.setFinancialData);
+    console.log('fetchFinancialData available:', !!window.fetchFinancialData);
+    
     return React.createElement('div', { className: 'overflow-x-auto' },
         React.createElement('table', { className: 'w-full' },
             React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
@@ -890,24 +896,19 @@ window.renderPayablesTab = (payables) => {
                                 ),
                                 // Delete Icon Button
                                 React.createElement('button', {
-                                    onClick: async () => {
-                                        if (confirm('Are you sure you want to delete this payable?')) {
-                                            try {
-                                                // Use the existing delete handler if available
-                                                if (window.handleDelete) {
-                                                    await window.handleDelete('payables', payable.id, 'payable');
-                                                } else {
-                                                    // Fallback API call
-                                                    const response = await window.apiCall(`/payables/${payable.id}`, 'DELETE');
-                                                    if (response) {
-                                                        alert('Payable deleted successfully!');
-                                                        window.fetchFinancialData(); // Refresh data
-                                                    }
-                                                }
-                                            } catch (error) {
-                                                console.error('Error deleting payable:', error);
-                                                alert('Failed to delete payable. Please try again.');
-                                            }
+                                    onClick: () => {
+                                        // Use the specific deletePayable function
+                                        if (window.deletePayable) {
+                                            // Pass the required parameters
+                                            window.deletePayable(
+                                                payable.id, 
+                                                window.setLoading, 
+                                                window.setFinancialData, 
+                                                window.fetchFinancialData
+                                            );
+                                        } else {
+                                            console.error('deletePayable function not found');
+                                            alert('Delete function not available. Please refresh the page.');
                                         }
                                     },
                                     className: 'text-red-600 hover:text-red-800 transition-colors p-1',
@@ -941,6 +942,20 @@ window.renderPayablesTab = (payables) => {
         )
     );
 };
+
+// Helper function for formatting dates (if not already exists)
+if (!window.formatFinancialDate) {
+    window.formatFinancialDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'N/A';
+        return date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        }).replace(/\//g, '/');
+    };
+}
 
 // Helper function for formatting dates (if not already exists)
 if (!window.formatFinancialDate) {
