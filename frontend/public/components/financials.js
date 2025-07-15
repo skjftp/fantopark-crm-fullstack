@@ -719,6 +719,7 @@ window.renderSalesTab = (sales) => {
 };
 
 // CORRECTED: Receivables Tab with ORIGINAL PAYMENT FORM FUNCTIONALITY
+// Modified Receivables Tab with INR column
 window.renderReceivablesTab = (receivables) => {
     console.log('🔍 renderReceivablesTab called with:', receivables);
     
@@ -732,66 +733,74 @@ window.renderReceivablesTab = (receivables) => {
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Due Date'),
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Invoice #'),
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Client'),
-                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Original Amount'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount (INR)'),
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Days Overdue'),
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
                     )
                 ),
                 React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
                     receivables && receivables.length > 0 ?
-                        receivables.map(receivable => {
-                            const dueDate = new Date(receivable.due_date || receivable.date);
+                        receivables.map(rec => {
+                            const dueDate = new Date(rec.due_date || rec.expected_payment_date);
                             const today = new Date();
-                            const daysDiff = Math.ceil((today - dueDate) / (1000 * 60 * 60 * 24));
-                            const isOverdue = daysDiff > 0;
+                            const daysDiff = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+                            const isOverdue = daysDiff > 0 && rec.status !== 'paid';
+                            const showCurrency = rec.original_currency && rec.original_currency !== 'INR';
                             
-                            return React.createElement('tr', { key: receivable.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
-                                React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    window.formatFinancialDate(receivable.due_date || receivable.date)
+                            return React.createElement('tr', { 
+                                key: rec.id,
+                                className: isOverdue ? 'bg-red-50 dark:bg-red-900/20' : ''
+                            },
+                                // Due Date
+                                React.createElement('td', { className: 'px-4 py-3 text-sm' }, 
+                                    window.formatFinancialDate(rec.due_date || rec.expected_payment_date)
                                 ),
-                                React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    receivable.invoice_number || receivable.invoice || 'N/A'
+                                // Invoice Number
+                                React.createElement('td', { className: 'px-4 py-3 text-sm font-medium' }, 
+                                    rec.invoice_number || rec.invoice_id || 'N/A'
                                 ),
-                                React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    receivable.client_name || receivable.client || 'N/A'
+                                // Client Name
+                                React.createElement('td', { className: 'px-4 py-3 text-sm' }, 
+                                    rec.client_name || 'N/A'
                                 ),
-                                React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
-                                    `₹${(receivable.balance_amount || receivable.amount || 0).toLocaleString()}`
+                                // Original Amount (with currency)
+                                React.createElement('td', { className: 'px-4 py-3 text-sm' }, 
+                                    showCurrency ? 
+                                        `${rec.original_currency} ${(rec.original_amount || 0).toLocaleString()}` : 
+                                        `₹${(rec.original_amount || rec.amount || 0).toLocaleString()}`
                                 ),
-                                React.createElement('td', { className: `px-4 py-3 text-sm ${isOverdue ? 'text-red-600' : 'text-green-600'}` }, 
-                                    isOverdue ? `${Math.abs(daysDiff)} days overdue` : daysDiff === 0 ? 'Due today' : `Not due`
+                                // Amount in INR
+                                React.createElement('td', { className: 'px-4 py-3 text-sm font-medium' }, 
+                                    `₹${(rec.amount || 0).toLocaleString()}`
                                 ),
+                                // Days Overdue
+                                React.createElement('td', { 
+                                    className: `px-4 py-3 text-sm ${isOverdue ? 'text-red-600' : 'text-green-600'}`
+                                }, 
+                                    isOverdue ? `${Math.abs(daysDiff)} days overdue` : 
+                                    daysDiff === 0 ? 'Due today' : 'Not due'
+                                ),
+                                // Actions
                                 React.createElement('td', { className: 'px-4 py-3' },
                                     React.createElement('div', { className: 'flex space-x-2' },
-                                        // RESTORED: Original "Mark Payment" button that opens payment form
                                         React.createElement('button', {
                                             className: 'text-blue-600 hover:text-blue-800 font-medium',
-                                            onClick: () => {
-                                                console.log('🔍 Mark Payment clicked for receivable:', receivable);
-                                                if (window.handleMarkPaymentFromReceivable) {
-                                                    window.handleMarkPaymentFromReceivable(receivable);
-                                                } else {
-                                                    console.warn('handleMarkPaymentFromReceivable function not found');
-                                                    alert('Payment function not available. Please refresh the page.');
-                                                }
-                                            },
-                                            title: 'Open Payment Form'
+                                            onClick: () => handleMarkPaymentFromReceivable(rec),
+                                            title: 'Mark Payment Received'
                                         }, 'Mark Payment'),
                                         React.createElement('button', {
-                                            onClick: () => {
-                                                if (confirm('Are you sure you want to delete this receivable?')) {
-                                                    alert('This would delete the receivable. Please refresh the page.');
-                                                }
-                                            },
+                                            onClick: () => deleteReceivable(rec.id),
                                             className: 'text-red-600 hover:text-red-800 font-medium',
                                             title: 'Delete Receivable'
                                         }, '🗑️ Delete')
                                     )
                                 )
                             );
-                        }) : React.createElement('tr', null,
+                        }) : 
+                        React.createElement('tr', null,
                             React.createElement('td', { 
-                                colSpan: 6, 
+                                colSpan: 7, 
                                 className: 'px-4 py-8 text-center text-gray-500' 
                             }, 'No receivables found')
                         )
@@ -805,14 +814,9 @@ window.renderReceivablesTab = (receivables) => {
 // Enhanced Payables Tab Component for FanToPark CRM
 // Adds event name column and converts action buttons to icons
 
+// Modified Payables Tab with INR column
 window.renderPayablesTab = (payables) => {
     console.log('🔍 renderPayablesTab called with:', payables);
-    
-    // Debug: Check if deletePayable function is available
-    console.log('deletePayable function available:', !!window.deletePayable);
-    console.log('setLoading available:', !!window.setLoading);
-    console.log('setFinancialData available:', !!window.setFinancialData);
-    console.log('fetchFinancialData available:', !!window.fetchFinancialData);
     
     return React.createElement('div', { className: 'overflow-x-auto' },
         React.createElement('table', { className: 'w-full' },
@@ -822,122 +826,121 @@ window.renderPayablesTab = (payables) => {
                     React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Supplier'),
                     React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event'),
                     React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Invoice #'),
-                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
+                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Original Amount'),
+                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount (INR)'),
                     React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
                     React.createElement('th', { className: 'px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase' }, 'Actions')
                 )
             ),
             React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
                 payables && payables.length > 0 ?
-                payables.map(payable =>
-                    React.createElement('tr', { key: payable.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
-                        // Due Date
-                        React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                            window.formatFinancialDate(payable.dueDate || payable.due_date || payable.created_date)
-                        ),
-                        // Supplier Name
-                        React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                            payable.supplierName || payable.supplier_name || payable.supplier || 'N/A'
-                        ),
-                        // Event Name - NEW COLUMN
-                        React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                            payable.event_name || payable.eventName || 'N/A'
-                        ),
-                        // Invoice Number
-                        React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                            payable.invoiceNumber || payable.supplier_invoice || payable.invoice_number || 'N/A'
-                        ),
-                        // Amount
-                        React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
-                            window.formatCurrency(payable.amount || 0)
-                        ),
-                        // Status
-                        React.createElement('td', { className: 'px-4 py-3' },
-                            React.createElement('span', {
-                                className: `px-2 py-1 text-xs rounded-full ${
-                                    (payable.payment_status || payable.status) === 'paid' ?
-                                    'bg-green-100 text-green-800' : 
-                                    (payable.payment_status || payable.status) === 'pending' ?
-                                    'bg-yellow-100 text-yellow-800' :
-                                    'bg-red-100 text-red-800'
-                                }`
-                            }, (payable.payment_status || payable.status || 'pending'))
-                        ),
-                        // Actions - CONVERTED TO ICONS
-                        React.createElement('td', { className: 'px-4 py-3' },
-                            React.createElement('div', { className: 'flex items-center justify-center gap-2' },
-                                // Mark Paid Icon Button (only show if not already paid)
-                                (payable.payment_status || payable.status) !== 'paid' && 
-                                React.createElement('button', {
-                                    onClick: () => {
-                                        console.log('Mark paid clicked for:', payable);
-                                        if (window.handleMarkAsPaid) {
-                                            window.handleMarkAsPaid(payable.id);
-                                        } else {
-                                            alert('This will mark the payable as paid. Implementation pending.');
-                                        }
+                    payables.map(payable => {
+                        const showCurrency = payable.original_currency && payable.original_currency !== 'INR';
+                        
+                        return React.createElement('tr', { key: payable.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
+                            // Due Date
+                            React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                                window.formatFinancialDate(payable.dueDate || payable.due_date || payable.created_date)
+                            ),
+                            // Supplier Name
+                            React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                                payable.supplierName || payable.supplier_name || payable.supplier || 'N/A'
+                            ),
+                            // Event Name
+                            React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                                payable.event_name || payable.eventName || 'N/A'
+                            ),
+                            // Invoice Number
+                            React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                                payable.invoiceNumber || payable.supplier_invoice || payable.invoice_number || 'N/A'
+                            ),
+                            // Original Amount (with currency)
+                            React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                                showCurrency ? 
+                                    `${payable.original_currency} ${(payable.original_amount || 0).toLocaleString()}` : 
+                                    `₹${(payable.original_amount || payable.amount || 0).toLocaleString()}`
+                            ),
+                            // Amount in INR
+                            React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
+                                `₹${(payable.amount || 0).toLocaleString()}`
+                            ),
+                            // Status
+                            React.createElement('td', { className: 'px-4 py-3' },
+                                React.createElement('span', {
+                                    className: `px-2 py-1 text-xs rounded-full ${
+                                        (payable.payment_status || payable.status) === 'paid' ?
+                                        'bg-green-100 text-green-800' : 
+                                        (payable.payment_status || payable.status) === 'pending' ?
+                                        'bg-yellow-100 text-yellow-800' :
+                                        'bg-gray-100 text-gray-800'
+                                    }`
+                                }, payable.payment_status || payable.status || 'pending')
+                            ),
+                            // Actions
+                            React.createElement('td', { className: 'px-4 py-3' },
+                                React.createElement('div', { className: 'flex items-center justify-center space-x-2' },
+                                    // Mark as Paid Button
+                                    (payable.payment_status || payable.status) !== 'paid' && React.createElement('button', {
+                                        onClick: () => {
+                                            if (window.handleMarkAsPaid) {
+                                                window.handleMarkAsPaid(payable);
+                                            } else {
+                                                console.error('handleMarkAsPaid function not found');
+                                            }
+                                        },
+                                        className: 'text-green-600 hover:text-green-800 transition-colors p-1',
+                                        title: 'Mark as Paid'
                                     },
-                                    className: 'text-green-600 hover:text-green-800 transition-colors p-1',
-                                    title: 'Mark as Paid'
-                                },
-                                    React.createElement('svg', {
-                                        className: 'w-5 h-5',
-                                        fill: 'none',
-                                        stroke: 'currentColor',
-                                        viewBox: '0 0 24 24'
+                                        React.createElement('svg', {
+                                            className: 'w-5 h-5',
+                                            fill: 'none',
+                                            stroke: 'currentColor',
+                                            viewBox: '0 0 24 24'
+                                        },
+                                            React.createElement('path', {
+                                                strokeLinecap: 'round',
+                                                strokeLinejoin: 'round',
+                                                strokeWidth: 2,
+                                                d: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
+                                            })
+                                        )
+                                    ),
+                                    // Delete Button
+                                    React.createElement('button', {
+                                        onClick: async () => {
+                                            if (window.deletePayable) {
+                                                await window.deletePayable(payable.id);
+                                            } else {
+                                                console.error('deletePayable function not found. Please refresh the page.');
+                                            }
+                                        },
+                                        className: 'text-red-600 hover:text-red-800 transition-colors p-1',
+                                        title: 'Delete'
                                     },
-                                        React.createElement('path', {
-                                            strokeLinecap: 'round',
-                                            strokeLinejoin: 'round',
-                                            strokeWidth: 2,
-                                            d: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
-                                        })
-                                    )
-                                ),
-                                // Delete Icon Button
-                                React.createElement('button', {
-                                    onClick: () => {
-                                        // Use the specific deletePayable function
-                                        if (window.deletePayable) {
-                                            // Pass the required parameters
-                                            window.deletePayable(
-                                                payable.id, 
-                                                window.setLoading, 
-                                                window.setFinancialData, 
-                                                window.fetchFinancialData
-                                            );
-                                        } else {
-                                            console.error('deletePayable function not found');
-                                            alert('Delete function not available. Please refresh the page.');
-                                        }
-                                    },
-                                    className: 'text-red-600 hover:text-red-800 transition-colors p-1',
-                                    title: 'Delete'
-                                },
-                                    React.createElement('svg', {
-                                        className: 'w-5 h-5',
-                                        fill: 'none',
-                                        stroke: 'currentColor',
-                                        viewBox: '0 0 24 24'
-                                    },
-                                        React.createElement('path', {
-                                            strokeLinecap: 'round',
-                                            strokeLinejoin: 'round',
-                                            strokeWidth: 2,
-                                            d: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
-                                        })
+                                        React.createElement('svg', {
+                                            className: 'w-5 h-5',
+                                            fill: 'none',
+                                            stroke: 'currentColor',
+                                            viewBox: '0 0 24 24'
+                                        },
+                                            React.createElement('path', {
+                                                strokeLinecap: 'round',
+                                                strokeLinejoin: 'round',
+                                                strokeWidth: 2,
+                                                d: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+                                            })
+                                        )
                                     )
                                 )
                             )
-                        )
+                        );
+                    }) : 
+                    React.createElement('tr', null,
+                        React.createElement('td', { 
+                            colSpan: 8, 
+                            className: 'px-4 py-8 text-center text-gray-500' 
+                        }, 'No payables found')
                     )
-                ) : 
-                React.createElement('tr', null,
-                    React.createElement('td', { 
-                        colSpan: 7, 
-                        className: 'px-4 py-8 text-center text-gray-500' 
-                    }, 'No payables found')
-                )
             )
         )
     );
@@ -972,6 +975,7 @@ if (!window.formatFinancialDate) {
 }
 
 // Expiring Inventory Tab Renderer - FIXED FIELDS
+// Modified Expiring Inventory Tab with INR column
 window.renderExpiringTab = (expiringInventory) => {
     console.log('🔍 renderExpiringTab called with:', expiringInventory);
     
@@ -985,26 +989,62 @@ window.renderExpiringTab = (expiringInventory) => {
             React.createElement('table', { className: 'w-full' },
                 React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
                     React.createElement('tr', null,
-                        // FIXED: Proper field headers
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event Name'),
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event Date'),
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Days Left'),
                         React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Available Tickets'),
-                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Cost Price'),
-                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Potential Loss')
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Original Value'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Value (INR)'),
+                        React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Potential Loss (INR)')
                     )
                 ),
                 React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
                     enhancedData && enhancedData.length > 0 ?
-                        enhancedData.map(item =>
-                            React.createElement('tr', { key: item.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
-                                // FIXED: Proper field values instead of N/A
+                        enhancedData.map(item => {
+                            // Calculate total original value and INR value
+                            let totalOriginalValue = 0;
+                            let totalINRValue = 0;
+                            let originalCurrency = 'INR';
+                            
+                            if (item.categories && Array.isArray(item.categories)) {
+                                // Multi-category inventory
+                                item.categories.forEach(cat => {
+                                    const price = cat.price || cat.buying_price || 0;
+                                    const qty = cat.available_tickets || 0;
+                                    const currency = cat.price_currency || 'INR';
+                                    const exchangeRate = cat.exchange_rate || 1;
+                                    
+                                    if (currency && currency !== 'INR' && !originalCurrency) {
+                                        originalCurrency = currency;
+                                    }
+                                    
+                                    totalOriginalValue += price * qty;
+                                    totalINRValue += (price * exchangeRate) * qty;
+                                });
+                            } else {
+                                // Single category inventory
+                                const price = item.buying_price || item.costPrice || 0;
+                                const qty = item.available_tickets || 0;
+                                const currency = item.price_currency || 'INR';
+                                const exchangeRate = item.exchange_rate || 1;
+                                
+                                originalCurrency = currency;
+                                totalOriginalValue = price * qty;
+                                totalINRValue = (price * exchangeRate) * qty;
+                            }
+                            
+                            const showCurrency = originalCurrency && originalCurrency !== 'INR';
+                            
+                            return React.createElement('tr', { key: item.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
+                                // Event Name
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
                                     item.itemName || item.event_name || 'Unknown Event'
                                 ),
+                                // Event Date
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
                                     item.eventDateFormatted || window.formatFinancialDate(item.event_date)
                                 ),
+                                // Days Left
                                 React.createElement('td', { className: 'px-4 py-3 text-sm' },
                                     React.createElement('span', {
                                         className: `px-2 py-1 text-xs rounded-full ${
@@ -1014,19 +1054,29 @@ window.renderExpiringTab = (expiringInventory) => {
                                         }`
                                     }, `${item.daysLeft || 0} day${item.daysLeft !== 1 ? 's' : ''}`)
                                 ),
+                                // Available Tickets
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
                                     item.available_tickets || 0
                                 ),
+                                // Original Value (with currency)
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    `₹${(item.costPrice || item.buying_price || 0).toLocaleString()}`
+                                    showCurrency ? 
+                                        `${originalCurrency} ${totalOriginalValue.toLocaleString()}` : 
+                                        `₹${totalOriginalValue.toLocaleString()}`
                                 ),
+                                // Value in INR
+                                React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
+                                    `₹${totalINRValue.toLocaleString()}`
+                                ),
+                                // Potential Loss in INR
                                 React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-red-600' }, 
-                                    `₹${(item.potentialLoss || 0).toLocaleString()}`
+                                    `₹${(item.potentialLoss || totalINRValue || 0).toLocaleString()}`
                                 )
-                            )
-                        ) : React.createElement('tr', null,
+                            );
+                        }) : 
+                        React.createElement('tr', null,
                             React.createElement('td', { 
-                                colSpan: 6, 
+                                colSpan: 7, 
                                 className: 'px-4 py-8 text-center text-gray-500' 
                             }, 'No expiring inventory in the next 7 days')
                         )
