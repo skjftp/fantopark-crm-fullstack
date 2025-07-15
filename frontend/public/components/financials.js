@@ -802,6 +802,9 @@ window.renderReceivablesTab = (receivables) => {
 };
 
 // CORRECTED: Payables Tab with ORIGINAL INVENTORY FORM FUNCTIONALITY & FIXED SUPPLIER MAPPING
+// Enhanced Payables Tab Component for FanToPark CRM
+// Adds event name column and converts action buttons to icons
+
 window.renderPayablesTab = (payables) => {
     console.log('🔍 renderPayablesTab called with:', payables);
     
@@ -811,76 +814,147 @@ window.renderPayablesTab = (payables) => {
                 React.createElement('tr', null,
                     React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Due Date'),
                     React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Supplier'),
+                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Event'),
                     React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Invoice #'),
                     React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
                     React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
-                    React.createElement('th', { className: 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
+                    React.createElement('th', { className: 'px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase' }, 'Actions')
                 )
             ),
             React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
                 payables && payables.length > 0 ?
-                    payables.map(payable =>
-                        React.createElement('tr', { key: payable.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
-                            React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                window.formatFinancialDate(payable.dueDate || payable.due_date || payable.created_date)
-                            ),
-                            // FIXED: Proper supplier name mapping with multiple fallbacks
-                            React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                payable.supplierName || payable.supplier_name || payable.supplier || 'N/A'
-                            ),
-                            React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                payable.invoiceNumber || payable.supplier_invoice || payable.invoice_number || 'N/A'
-                            ),
-                            React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
-                                `₹${(payable.amount || 0).toLocaleString()}`
-                            ),
-                            React.createElement('td', { className: 'px-4 py-3' },
-                                React.createElement('span', {
-                                    className: `px-2 py-1 text-xs rounded-full ${
-                                        (payable.payment_status || payable.status) === 'paid' ? 'bg-green-100 text-green-800' :
-                                        'bg-yellow-100 text-yellow-800'
-                                    }`
-                                }, payable.payment_status || payable.status || 'pending')
-                            ),
-                            React.createElement('td', { className: 'px-4 py-3' },
-                                React.createElement('div', { className: 'flex space-x-2' },
-                                    // RESTORED: Original "Mark Paid" button that opens inventory form for linked payables
-                                    (payable.payment_status || payable.status) !== 'paid' &&
-                                        React.createElement('button', {
-                                            className: 'text-blue-600 hover:text-blue-800 font-medium',
-                                            onClick: () => {
-                                                console.log('🔍 Mark Paid clicked for payable:', payable);
-                                                if (window.handleMarkAsPaid) {
-                                                    window.handleMarkAsPaid(payable.id);
+                payables.map(payable =>
+                    React.createElement('tr', { key: payable.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
+                        // Due Date
+                        React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                            window.formatFinancialDate(payable.dueDate || payable.due_date || payable.created_date)
+                        ),
+                        // Supplier Name
+                        React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                            payable.supplierName || payable.supplier_name || payable.supplier || 'N/A'
+                        ),
+                        // Event Name - NEW COLUMN
+                        React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                            payable.event_name || payable.eventName || 'N/A'
+                        ),
+                        // Invoice Number
+                        React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
+                            payable.invoiceNumber || payable.supplier_invoice || payable.invoice_number || 'N/A'
+                        ),
+                        // Amount
+                        React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
+                            window.formatCurrency(payable.amount || 0)
+                        ),
+                        // Status
+                        React.createElement('td', { className: 'px-4 py-3' },
+                            React.createElement('span', {
+                                className: `px-2 py-1 text-xs rounded-full ${
+                                    (payable.payment_status || payable.status) === 'paid' ?
+                                    'bg-green-100 text-green-800' : 
+                                    (payable.payment_status || payable.status) === 'pending' ?
+                                    'bg-yellow-100 text-yellow-800' :
+                                    'bg-red-100 text-red-800'
+                                }`
+                            }, (payable.payment_status || payable.status || 'pending'))
+                        ),
+                        // Actions - CONVERTED TO ICONS
+                        React.createElement('td', { className: 'px-4 py-3' },
+                            React.createElement('div', { className: 'flex items-center justify-center gap-2' },
+                                // Mark Paid Icon Button (only show if not already paid)
+                                (payable.payment_status || payable.status) !== 'paid' && 
+                                React.createElement('button', {
+                                    onClick: () => {
+                                        console.log('Mark paid clicked for:', payable);
+                                        if (window.handleMarkAsPaid) {
+                                            window.handleMarkAsPaid(payable.id);
+                                        } else {
+                                            alert('This will mark the payable as paid. Implementation pending.');
+                                        }
+                                    },
+                                    className: 'text-green-600 hover:text-green-800 transition-colors p-1',
+                                    title: 'Mark as Paid'
+                                },
+                                    React.createElement('svg', {
+                                        className: 'w-5 h-5',
+                                        fill: 'none',
+                                        stroke: 'currentColor',
+                                        viewBox: '0 0 24 24'
+                                    },
+                                        React.createElement('path', {
+                                            strokeLinecap: 'round',
+                                            strokeLinejoin: 'round',
+                                            strokeWidth: 2,
+                                            d: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
+                                        })
+                                    )
+                                ),
+                                // Delete Icon Button
+                                React.createElement('button', {
+                                    onClick: async () => {
+                                        if (confirm('Are you sure you want to delete this payable?')) {
+                                            try {
+                                                // Use the existing delete handler if available
+                                                if (window.handleDelete) {
+                                                    await window.handleDelete('payables', payable.id, 'payable');
                                                 } else {
-                                                    console.warn('handleMarkAsPaid function not found');
-                                                    alert('Mark Paid function not available. Please refresh the page.');
+                                                    // Fallback API call
+                                                    const response = await window.apiCall(`/payables/${payable.id}`, 'DELETE');
+                                                    if (response) {
+                                                        alert('Payable deleted successfully!');
+                                                        window.fetchFinancialData(); // Refresh data
+                                                    }
                                                 }
-                                            },
-                                            title: 'Mark as Paid (Opens Inventory Form if linked)'
-                                        }, 'Mark Paid'),
-                                    React.createElement('button', {
-                                        onClick: () => {
-                                            if (confirm('Are you sure you want to delete this payable?')) {
-                                                alert('This would delete the payable. Please refresh the page.');
+                                            } catch (error) {
+                                                console.error('Error deleting payable:', error);
+                                                alert('Failed to delete payable. Please try again.');
                                             }
-                                        },
-                                        className: 'text-red-600 hover:text-red-800 font-medium',
-                                        title: 'Delete Payable'
-                                    }, '🗑️ Delete')
+                                        }
+                                    },
+                                    className: 'text-red-600 hover:text-red-800 transition-colors p-1',
+                                    title: 'Delete'
+                                },
+                                    React.createElement('svg', {
+                                        className: 'w-5 h-5',
+                                        fill: 'none',
+                                        stroke: 'currentColor',
+                                        viewBox: '0 0 24 24'
+                                    },
+                                        React.createElement('path', {
+                                            strokeLinecap: 'round',
+                                            strokeLinejoin: 'round',
+                                            strokeWidth: 2,
+                                            d: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+                                        })
+                                    )
                                 )
                             )
                         )
-                    ) : React.createElement('tr', null,
-                        React.createElement('td', { 
-                            colSpan: 6, 
-                            className: 'px-4 py-8 text-center text-gray-500' 
-                        }, 'No payables found')
                     )
+                ) : 
+                React.createElement('tr', null,
+                    React.createElement('td', { 
+                        colSpan: 7, 
+                        className: 'px-4 py-8 text-center text-gray-500' 
+                    }, 'No payables found')
+                )
             )
         )
     );
 };
+
+// Helper function for formatting dates (if not already exists)
+if (!window.formatFinancialDate) {
+    window.formatFinancialDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'N/A';
+        return date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        }).replace(/\//g, '/');
+    };
+}
 
 // Expiring Inventory Tab Renderer - FIXED FIELDS
 window.renderExpiringTab = (expiringInventory) => {
