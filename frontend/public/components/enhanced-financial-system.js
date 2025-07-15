@@ -60,17 +60,42 @@ window.fetchFinancialDataWithINR = async () => {
         original_amount: order.final_amount || 0
       }));
 
-    // Process receivables - use INR values
+    // Process receivables - properly preserve original amounts
     const receivablesData = receivablesRes.data || [];
     const processedReceivables = receivablesData.map(r => {
-      console.log('Processing receivable with INR:', r);
+      console.log('Processing receivable with currency:', r);
       
-      // Determine the INR amount
-      let inrAmount = r.amount_inr || r.expected_amount_inr || r.inr_equivalent || r.amount || 0;
+      // IMPORTANT: First, determine and preserve the original foreign currency amount
+      let originalAmount;
+      let originalCurrency = r.currency || r.payment_currency || 'INR';
       
-      // If currency is not INR and no INR field exists, calculate it
-      if (r.currency && r.currency !== 'INR' && !r.amount_inr && r.exchange_rate) {
-        inrAmount = (r.amount || 0) * r.exchange_rate;
+      // Check if we have a specific foreign currency amount field
+      if (r.original_amount !== undefined) {
+        originalAmount = r.original_amount;
+      } else if (r.expected_amount !== undefined) {
+        originalAmount = r.expected_amount;
+      } else {
+        originalAmount = r.amount || 0;
+      }
+      
+      // Now determine the INR amount
+      let inrAmount;
+      
+      // If we have a pre-calculated INR amount, use it
+      if (r.amount_inr !== undefined) {
+        inrAmount = r.amount_inr;
+      } else if (r.expected_amount_inr !== undefined) {
+        inrAmount = r.expected_amount_inr;
+      } else if (r.inr_equivalent !== undefined) {
+        inrAmount = r.inr_equivalent;
+      }
+      // If currency is not INR and we have exchange rate, calculate INR
+      else if (originalCurrency && originalCurrency !== 'INR' && r.exchange_rate) {
+        inrAmount = originalAmount * r.exchange_rate;
+      }
+      // If currency is INR or no exchange rate, use original amount
+      else {
+        inrAmount = originalAmount;
       }
       
       return {
@@ -84,8 +109,8 @@ window.fetchFinancialDataWithINR = async () => {
         assigned_to: r.assigned_to || 'Unassigned',
         status: r.status || 'pending',
         // Keep original currency info for display
-        original_currency: r.currency || r.payment_currency || 'INR',
-        original_amount: r.amount || r.expected_amount || 0,
+        original_currency: originalCurrency,
+        original_amount: parseFloat(originalAmount),
         exchange_rate: r.exchange_rate || 1
       };
     });
@@ -93,14 +118,39 @@ window.fetchFinancialDataWithINR = async () => {
     // Filter only unpaid receivables
     const unpaidReceivables = processedReceivables.filter(r => r.status !== 'paid');
 
-    // Process payables - use INR values
+    // Process payables - properly preserve original amounts
     const payablesData = (payablesRes.data || []).map(p => {
-      // Determine the INR amount
-      let inrAmount = p.amount_inr || p.totalPurchaseAmount_inr || p.amount || 0;
+      console.log('Processing payable with currency:', p);
       
-      // If currency is not INR and no INR field exists, calculate it
-      if (p.currency && p.currency !== 'INR' && !p.amount_inr && p.exchange_rate) {
-        inrAmount = (p.amount || 0) * p.exchange_rate;
+      // IMPORTANT: First, determine and preserve the original foreign currency amount
+      let originalAmount;
+      let originalCurrency = p.currency || p.price_currency || 'INR';
+      
+      // Check if we have a specific foreign currency amount field
+      if (p.original_amount !== undefined) {
+        originalAmount = p.original_amount;
+      } else if (p.totalPurchaseAmount !== undefined) {
+        originalAmount = p.totalPurchaseAmount;
+      } else {
+        originalAmount = p.amount || 0;
+      }
+      
+      // Now determine the INR amount
+      let inrAmount;
+      
+      // If we have a pre-calculated INR amount, use it
+      if (p.amount_inr !== undefined) {
+        inrAmount = p.amount_inr;
+      } else if (p.totalPurchaseAmount_inr !== undefined) {
+        inrAmount = p.totalPurchaseAmount_inr;
+      }
+      // If currency is not INR and we have exchange rate, calculate INR
+      else if (originalCurrency && originalCurrency !== 'INR' && p.exchange_rate) {
+        inrAmount = originalAmount * p.exchange_rate;
+      }
+      // If currency is INR or no exchange rate, use original amount
+      else {
+        inrAmount = originalAmount;
       }
       
       return {
@@ -108,8 +158,8 @@ window.fetchFinancialDataWithINR = async () => {
         // Use INR amount for calculations
         amount: parseFloat(inrAmount),
         // Keep original currency info
-        original_currency: p.currency || p.price_currency || 'INR',
-        original_amount: p.amount || p.totalPurchaseAmount || 0,
+        original_currency: originalCurrency,
+        original_amount: parseFloat(originalAmount),
         exchange_rate: p.exchange_rate || 1
       };
     });
@@ -159,6 +209,17 @@ window.fetchFinancialDataWithINR = async () => {
     console.log(`Completed Sales: ${salesData.length} orders, Total: ₹${totalSales.toLocaleString()}`);
     console.log(`Receivables: ${unpaidReceivables.length} entries, Total: ₹${totalReceivables.toLocaleString()}`);
     console.log(`Payables: ${payablesData.length} entries, Total: ₹${totalPayables.toLocaleString()}`);
+    
+    // Debug log for currency verification
+    if (payablesData.length > 0) {
+      const samplePayable = payablesData[0];
+      console.log('Sample payable currency data:', {
+        original_currency: samplePayable.original_currency,
+        original_amount: samplePayable.original_amount,
+        amount_inr: samplePayable.amount,
+        exchange_rate: samplePayable.exchange_rate
+      });
+    }
 
     // Update state
     window.setFinancialData({
