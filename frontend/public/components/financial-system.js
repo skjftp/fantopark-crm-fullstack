@@ -62,11 +62,13 @@ window.handleMarkAsPaid = async function(payableId) {
 
       // Pre-fill form to mark as FULLY PAID by default
       window.setFormData({
-        ...inventoryItem,
-        totalPurchaseAmount: currentTotal, // Keep original total
-        amountPaid: currentTotal, // Set paid amount = total amount (fully paid)
-        paymentStatus: 'paid' // Mark as paid by default
-      });
+  ...inventoryItem,
+  totalPurchaseAmount: currentTotal,
+  amountPaid: currentTotal,
+  paymentStatus: 'paid',
+  purchase_currency: inventoryItem.purchase_currency || 'INR',
+  purchase_exchange_rate: inventoryItem.purchase_exchange_rate || '1'
+});
 
       window.setShowInventoryForm(true);
 
