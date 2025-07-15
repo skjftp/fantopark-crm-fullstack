@@ -2,6 +2,24 @@
 
 const originalRenderFinancials = window.renderFinancials;
 window.renderFinancials = function() {
+
+    console.log('🔍 ENHANCED FINANCIALS COMPONENT DEBUG: Starting render');
+    
+    // Check if financial data needs loading
+    const needsDataLoad = !window.appState?.financialData || 
+                         (window.appState.financialData.sales.length === 0 && 
+                          window.appState.financialData.activeSales.length === 0);
+    
+    if (needsDataLoad && window.fetchFinancialData) {
+        console.log('Financial data empty on render, loading now...');
+        window.fetchFinancialData();
+        
+        // Return loading state while data loads
+        return React.createElement('div', { className: 'p-6 text-center' }, 
+            'Loading financial data...'
+        );
+    }
+    
     // Check if financial data is empty but orders exist
     const fd = window.appState?.financialData;
     const needsLoading = fd && 
