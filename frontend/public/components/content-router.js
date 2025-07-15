@@ -116,6 +116,9 @@ window.renderContent = () => {
             case 'sports-calendar':
                 return window.renderSportsCalendarContent();
 
+            case 'changePassword':
+            return window.renderChangePassword();    
+
             case 'roles':
                 // PRESERVED: Complete existing roles logic
                 if (window.user?.role === 'super_admin' && !window.rolesInitialized) {
