@@ -268,10 +268,58 @@ window.calculateEnhancedFinancialMetrics = async () => {
     return result;
 };
 
-// Update the renderEnhancedFinancialStats function to show amount instead of count
-window.renderEnhancedFinancialStats = async () => {
-    // Calculate metrics (with API calls for percentage changes)
-    const metrics = await window.calculateEnhancedFinancialMetrics();
+// Updated renderEnhancedFinancialStats - NOT async, handles loading internally
+window.renderEnhancedFinancialStats = () => {
+    // Use React hooks to manage async state
+    const [metrics, setMetrics] = React.useState(null);
+    const [isLoading, setIsLoading] = React.useState(true);
+    
+    React.useEffect(() => {
+        // Load metrics asynchronously
+        const loadMetrics = async () => {
+            try {
+                const calculatedMetrics = await window.calculateEnhancedFinancialMetrics();
+                setMetrics(calculatedMetrics);
+                setIsLoading(false);
+            } catch (error) {
+                console.error('Error calculating metrics:', error);
+                // Set default metrics on error
+                setMetrics({
+                    totalSales: 0,
+                    totalActiveSales: 0,
+                    totalPayables: 0,
+                    totalReceivables: 0,
+                    totalMargin: 0,
+                    marginPercentage: 0,
+                    percentageChanges: {
+                        sales: 0,
+                        margin: 0
+                    }
+                });
+                setIsLoading(false);
+            }
+        };
+        
+        loadMetrics();
+    }, []); // Empty dependency array means this runs once on mount
+    
+    // Show loading state while metrics are being calculated
+    if (isLoading || !metrics) {
+        return React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6' },
+            // Show 6 loading cards
+            Array.from({ length: 6 }).map((_, index) =>
+                React.createElement('div', { 
+                    key: index,
+                    className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700'
+                },
+                    React.createElement('div', { className: 'animate-pulse' },
+                        React.createElement('div', { className: 'h-4 bg-gray-200 rounded w-24 mb-2' }),
+                        React.createElement('div', { className: 'h-8 bg-gray-200 rounded w-32' })
+                    )
+                )
+            )
+        );
+    }
     
     // Format percentage with + or - sign
     const formatPercentage = (value) => {
