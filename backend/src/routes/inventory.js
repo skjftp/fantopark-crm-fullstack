@@ -546,11 +546,11 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
                   });
 
                   // Calculate FX impact (add this BEFORE const paymentRecord = {...})
-                    const creationRate = payableData.creation_exchange_rate || payableData.exchange_rate || exchangeRate;
+                    const payableCreationRate = payableData.creation_exchange_rate || payableData.exchange_rate || exchangeRate;
                     const paymentAmountForeign = currency === 'INR' ? paymentIncrement : paymentIncrement / exchangeRate;
                     
                     // How much INR it would have cost at creation vs now
-                    const creationValueINR = paymentAmountForeign * creationRate;
+                    const creationValueINR = paymentAmountForeign * payableCreationRate;
                     const currentValueINR = paymentAmountForeign * exchangeRate;
                     const fxDifference = currentValueINR - creationValueINR;
                     const fxType = fxDifference > 0 ? 'loss' : 'gain';
