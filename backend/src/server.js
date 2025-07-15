@@ -1,6 +1,6 @@
 // ===============================================
-// UPDATED BACKEND CORS CONFIGURATION
-// Update your backend/server.js CORS section
+// UPDATED BACKEND WITH INSTAGRAM WEBHOOK INTEGRATION
+// backend/src/server.js
 // ===============================================
 
 const express = require('express');
@@ -81,11 +81,57 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rest of your server configuration remains the same...
-app.use(express.json());
+// ===============================================
+// 🆕 WEBHOOK BODY PARSER CONFIGURATION
+// Special handling for Instagram/Meta webhooks
+// ===============================================
+
+// Raw body parser for webhooks (needed for signature verification)
+app.use('/webhooks', express.raw({ 
+  type: 'application/json',
+  limit: '10mb'
+}));
+
+// Regular JSON parser for all other routes
+app.use((req, res, next) => {
+  if (!req.originalUrl.startsWith('/webhooks')) {
+    express.json()(req, res, next);
+  } else {
+    next();
+  }
+});
+
+// URL encoded for forms
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
+// ===============================================
+// 🆕 WEBHOOK ROUTES (PUBLIC - NO AUTH)
+// Must be before authenticated routes
+// ===============================================
+
+// Webhook middleware to convert raw body to JSON
+app.use('/webhooks', (req, res, next) => {
+  if (req.body && Buffer.isBuffer(req.body)) {
+    try {
+      // Store raw body for signature verification
+      req.rawBody = req.body.toString('utf8');
+      // Parse JSON for handler use
+      req.body = JSON.parse(req.rawBody);
+    } catch (e) {
+      console.error('❌ Webhook JSON parse error:', e);
+      return res.status(400).json({ error: 'Invalid JSON payload' });
+    }
+  }
+  next();
+});
+
+// Import and mount webhook routes
+const webhookRoutes = require('./routes/webhooks');
+app.use('/webhooks', webhookRoutes);
+
+// ===============================================
+// AUTHENTICATED ROUTES (existing routes)
+// ===============================================
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/leads', require('./routes/leads'));
@@ -107,7 +153,7 @@ app.use('/api/reminders', require('./routes/reminders'));
 app.use('/api/assignment-rules', require('./routes/assignmentRules'));
 app.use('/api/events', require('./routes/events'));
 
-// ✅ UPDATED: Enhanced health check
+// ✅ UPDATED: Enhanced health check with webhook status
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -115,7 +161,13 @@ app.get('/health', (req, res) => {
     environment: process.env.NODE_ENV || 'Development',
     corsOrigins: allowedOrigins.length,
     port: PORT,
-    origin: req.headers.origin
+    origin: req.headers.origin,
+    webhooks: {
+      endpoint: 'https://lehrado.com/webhooks/meta-leads',
+      verifyToken: process.env.META_VERIFY_TOKEN ? 'Configured ✓' : 'Not configured ⚠️',
+      appSecret: process.env.META_APP_SECRET ? 'Configured ✓' : 'Not configured ⚠️',
+      pageToken: process.env.META_PAGE_ACCESS_TOKEN ? 'Configured ✓' : 'Not configured ⚠️'
+    }
   });
 });
 
@@ -179,6 +231,8 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🔍 CORS test: http://localhost:${PORT}/api/cors-test`);
   console.log(`✅ CORS configured for Cloud Workstations and other origins`);
   console.log(`📁 Routes loaded successfully`);
+  console.log(`📡 Webhook endpoint: https://lehrado.com/webhooks/meta-leads`);
+  console.log(`🔐 Webhook verify token: ${process.env.META_VERIFY_TOKEN ? 'Set ✓' : 'Not set ⚠️'}`);
 });
 
 module.exports = app;
