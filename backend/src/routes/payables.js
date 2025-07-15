@@ -112,45 +112,113 @@ router.get('/by-inventory/:inventoryId', authenticateToken, async (req, res) => 
 });
 
 // POST create payable with currency support
-router.post('/', authenticateToken, async (req, res) => {
+// PUT update payable - ENHANCED version of your existing endpoint
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
+    const { id } = req.params;
+    const payableRef = db.collection('crm_payables').doc(id);
+    const payable = await payableRef.get();
+    
+    if (!payable.exists) {
+      return res.status(404).json({ error: 'Payable not found' });
+    }
+    
+    const existingData = payable.data();
     const {
       amount,
-      currency = 'INR',
-      exchange_rate = 1,
+      currency,
+      exchange_rate,
+      status,
+      payment_date,
+      payment_reference,
       ...otherData
     } = req.body;
     
-    // Calculate INR amount
-    let amount_inr = amount;
-    let original_amount = amount;
-    
-    if (currency !== 'INR' && exchange_rate) {
-      amount_inr = amount * exchange_rate;
-    }
-    
-    const payableData = {
+    let updateData = {
       ...otherData,
-      amount: amount_inr,  // Store INR amount in main amount field for backward compatibility
-      original_amount: original_amount,
-      currency: currency,
-      exchange_rate: exchange_rate,
-      amount_inr: amount_inr,
-      created_date: new Date().toISOString(),
-      created_by: req.user.email
+      updated_date: new Date().toISOString(),
+      updated_by: req.user.email
     };
     
-    console.log('Creating payable with currency:', {
-      currency,
-      original_amount,
-      exchange_rate,
-      amount_inr
-    });
+    // Store creation exchange rate if this is the first time
+    if (!existingData.creation_exchange_rate && existingData.exchange_rate) {
+      updateData.creation_exchange_rate = existingData.exchange_rate;
+      updateData.creation_amount_inr = existingData.amount_inr || existingData.amount;
+    }
     
-    const docRef = await db.collection('crm_payables').add(payableData);
-    res.status(201).json({ data: { id: docRef.id, ...payableData } });
+    // Handle currency/amount updates
+    if (amount !== undefined || currency !== undefined || exchange_rate !== undefined) {
+      const newCurrency = currency || existingData.currency || 'INR';
+      const newExchangeRate = exchange_rate || existingData.exchange_rate || 1;
+      const newAmount = amount !== undefined ? amount : existingData.original_amount;
+      
+      updateData.original_amount = newAmount;
+      updateData.currency = newCurrency;
+      updateData.exchange_rate = newExchangeRate;
+      
+      // Calculate INR amount
+      if (newCurrency !== 'INR') {
+        updateData.amount_inr = newAmount * newExchangeRate;
+        updateData.amount = updateData.amount_inr;
+      } else {
+        updateData.amount_inr = newAmount;
+        updateData.amount = newAmount;
+      }
+    }
+    
+    // ENHANCED: If marking as paid, calculate exchange difference
+    if (status === 'paid' && existingData.status !== 'paid') {
+      updateData.status = 'paid';
+      updateData.payment_date = payment_date || new Date().toISOString();
+      updateData.payment_reference = payment_reference;
+      
+      // Calculate exchange difference
+      if (existingData.currency !== 'INR') {
+        const currentExchangeRate = exchange_rate || updateData.exchange_rate;
+        const paymentAmountINR = (updateData.original_amount || existingData.original_amount) * currentExchangeRate;
+        const creationAmountINR = existingData.creation_amount_inr || existingData.amount_inr;
+        
+        updateData.payment_exchange_rate = currentExchangeRate;
+        updateData.payment_amount_inr = paymentAmountINR;
+        updateData.exchange_difference = paymentAmountINR - creationAmountINR;
+        updateData.exchange_difference_type = updateData.exchange_difference > 0 ? 'loss' : 'gain';
+        
+        // Add to payment history
+        const paymentRecord = {
+          date: updateData.payment_date,
+          amount_foreign: updateData.original_amount || existingData.original_amount,
+          exchange_rate: currentExchangeRate,
+          amount_inr: paymentAmountINR,
+          difference: updateData.exchange_difference,
+          reference: payment_reference,
+          created_by: req.user.email
+        };
+        
+        updateData.payment_history = [...(existingData.payment_history || []), paymentRecord];
+      }
+    }
+    
+    await payableRef.update(updateData);
+    
+    // Return response with exchange difference info if applicable
+    const response = { 
+      data: { id, ...existingData, ...updateData },
+      success: true
+    };
+    
+    if (updateData.exchange_difference !== undefined) {
+      response.exchange_impact = {
+        amount: Math.abs(updateData.exchange_difference),
+        type: updateData.exchange_difference_type,
+        creation_rate: existingData.creation_exchange_rate || existingData.exchange_rate,
+        payment_rate: updateData.payment_exchange_rate,
+        message: `Exchange ${updateData.exchange_difference_type}: ₹${Math.abs(updateData.exchange_difference).toFixed(2)}`
+      };
+    }
+    
+    res.json(response);
   } catch (error) {
-    console.error('Error creating payable:', error);
+    console.error('Error updating payable:', error);
     res.status(500).json({ error: error.message });
   }
 });
