@@ -1647,31 +1647,25 @@ window.renderExchangeImpactSummary = (financialData) => {
 // AUTO-LOADING SETUP
 // ============================================================================
 
-// Ensure financial data loads automatically when visiting financials tab
-if (!window.financialsAutoLoader) {
-    window.financialsAutoLoader = true;
-    
-    // Hook into tab switching
-    const originalSetActiveTab = window.setActiveTab;
-    window.setActiveTab = function(tab) {
-        if (originalSetActiveTab) {
-            originalSetActiveTab(tab);
-        }
-        
-        if (tab === 'financials') {
-            console.log('Loading financial data for financials tab...');
-            setTimeout(() => {
-                if (window.loadFinancialData) {
-                    window.loadFinancialData();
-                }
-            }, 100);
-        }
-    };
-    
-    // If already on financials tab, load now
-    if (window.appState?.activeTab === 'financials') {
-        window.loadFinancialData();
+// Update the auto-loader to check for the correct tab name
+const originalSetActiveTab = window.setActiveTab;
+window.setActiveTab = function(tab) {
+    if (originalSetActiveTab) {
+        originalSetActiveTab(tab);
     }
+    
+    // Check for both 'finance' and 'financials' to be safe
+    if (tab === 'finance' || tab === 'financials') {
+        console.log('Loading financial data for finance tab...');
+        setTimeout(() => {
+            window.loadFinancialData();
+        }, 100);
+    }
+};
+
+// Also check if already on finance tab
+if (window.appState?.activeTab === 'finance' || window.appState?.activeTab === 'financials') {
+    window.loadFinancialData();
 }
 
 console.log('✅ FIXED PAGINATION Financials Component loaded successfully - All functionality preserved');
