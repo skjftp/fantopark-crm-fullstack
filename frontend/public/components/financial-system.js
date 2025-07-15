@@ -239,22 +239,14 @@ window.fetchFinancialData = async function() {
     // FIXED: Process active sales (orders in progress with event date in future)
     const activeSalesData = ordersData
   .filter(order => {
-    // Exclude rejected or cancelled orders
-    if (order.status === 'rejected' || order.status === 'cancelled') {
+    // Exclude orders that haven't reached approved stage yet
+    const preApprovalStatuses = ['new', 'pending', 'rejected', 'cancelled', 'draft', 'pending_approval'];
+    if (preApprovalStatuses.includes(order.status)) {
       return false;
     }
     
-    // Include only approved/converted orders
-    const isApproved = order.status === 'approved' || 
-                      order.status === 'service_assigned' || 
-                      order.status === 'in_progress' || 
-                      order.status === 'delivery_scheduled' ||
-                      order.status === 'completed' ||
-                      order.status === 'delivered';
-    
-    if (!isApproved) {
-      return false;
-    }
+    // Include all orders at approved stage or beyond
+    // This includes: approved, service_assigned, in_progress, delivery_scheduled, completed, delivered
     
     // Check if event date is in the future
     if (order.event_date) {
@@ -289,8 +281,9 @@ window.fetchFinancialData = async function() {
 // Update the sales data processing to include all orders with past event dates:
 const salesData = ordersData
   .filter(order => {
-    // Exclude rejected or cancelled orders
-    if (order.status === 'rejected' || order.status === 'cancelled') {
+    // Exclude orders that haven't reached approved stage yet
+    const preApprovalStatuses = ['new', 'pending', 'rejected', 'cancelled', 'draft', 'pending_approval'];
+    if (preApprovalStatuses.includes(order.status)) {
       return false;
     }
     
