@@ -1,4 +1,36 @@
 // Override renderFinancials to ensure data is loaded first
+
+// Hook into tab switching
+if (!window.financialsAutoLoader) {
+    window.financialsAutoLoader = true;
+    
+    const originalSetActiveTab = window.setActiveTab;
+    window.setActiveTab = function(tab) {
+        if (originalSetActiveTab) {
+            originalSetActiveTab(tab);
+        }
+        
+        if (tab === 'finance') {
+            console.log('Loading financial data for finance tab...');
+            setTimeout(() => {
+                // Use fetchFinancialData instead of loadFinancialData
+                if (window.fetchFinancialData) {
+                    window.fetchFinancialData();
+                } else if (window.loadFinancialData) {
+                    window.loadFinancialData();
+                }
+            }, 100);
+        }
+    };
+    
+    // If already on finance tab, load now
+    if (window.appState?.activeTab === 'finance') {
+        if (window.fetchFinancialData) {
+            window.fetchFinancialData();
+        }
+    }
+}
+
 const originalRenderFinancials = window.renderFinancials;
 window.renderFinancials = function() {
     // Check if financial data is empty but orders exist
@@ -751,26 +783,9 @@ window.calculateEnhancedFinancialMetrics = async () => {
 
 
 // Now call it immediately
-window.loadFinancialData();
+//window.loadFinancialData();
 
-// Hook into tab switching
-if (!window.financialsTabHooked) {
-    window.financialsTabHooked = true;
-    
-const originalSetActiveTab = window.setActiveTab;
-window.setActiveTab = async function(tab) {
-    // If switching to finance, load data FIRST
-    if (tab === 'finance') {
-        console.log('Switching to finance tab, pre-loading data...');
-        await window.loadFinancialData();
-    }
-    
-    // Then switch tab (which triggers render)
-    if (originalSetActiveTab) {
-        originalSetActiveTab(tab);
-    }
-};
-}
+
 
 
 // Enhanced Expiring Inventory Data Processing
