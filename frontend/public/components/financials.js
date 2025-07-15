@@ -1493,8 +1493,5 @@ window.renderExchangeImpactSummary = (financialData) => {
   );
 };
 
-// If the function is not being called, add this to ensure it's called after the stats cards
-// Find where renderEnhancedFinancialStats() is called and add this right after it:
-// window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financialData),
 
 console.log('✅ FIXED PAGINATION Financials Component loaded successfully - All functionality preserved');
