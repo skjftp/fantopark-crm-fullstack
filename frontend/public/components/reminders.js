@@ -14,6 +14,14 @@ window.reminderStats = window.reminderStats || {
     completedReminders: 0
 };
 
+window.reminderSearchQuery = window.reminderSearchQuery || '';
+window.reminderStatusFilter = window.reminderStatusFilter || 'all';
+window.reminderPriorityFilter = window.reminderPriorityFilter || 'all';
+window.reminderTypeFilter = window.reminderTypeFilter || 'all';
+window.reminderDateFilter = window.reminderDateFilter || 'all';
+window.reminderSortBy = window.reminderSortBy || 'due_date';
+window.reminderSortOrder = window.reminderSortOrder || 'asc';
+
 // ===== NEW: Smart Text Truncation Component =====
 window.TruncatedText = ({ text, maxLength = 80 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
@@ -38,6 +46,116 @@ window.TruncatedText = ({ text, maxLength = 80 }) => {
       },
       className: 'ml-2 text-blue-600 hover:text-blue-800 text-xs font-medium underline focus:outline-none'
     }, isExpanded ? 'Show less' : 'Show more')
+  );
+};
+
+// Add after TruncatedText component
+window.ReminderFilters = () => {
+  const [localSearchQuery, setLocalSearchQuery] = React.useState(window.reminderSearchQuery || '');
+
+  const handleSearchChange = (value) => {
+    setLocalSearchQuery(value);
+    window.reminderSearchQuery = value;
+    if (window.fetchReminders) window.fetchReminders();
+  };
+
+  const handleFilterChange = (filterType, value) => {
+    switch(filterType) {
+      case 'status':
+        window.reminderStatusFilter = value;
+        break;
+      case 'priority':
+        window.reminderPriorityFilter = value;
+        break;
+      case 'type':
+        window.reminderTypeFilter = value;
+        break;
+      case 'date':
+        window.reminderDateFilter = value;
+        break;
+    }
+    if (window.fetchReminders) window.fetchReminders();
+  };
+
+  return React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6' },
+    // Search Bar
+    React.createElement('div', { className: 'mb-4' },
+      React.createElement('input', {
+        type: 'text',
+        value: localSearchQuery,
+        onChange: (e) => handleSearchChange(e.target.value),
+        placeholder: 'Search reminders by title, description, or lead name...',
+        className: 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white'
+      })
+    ),
+
+    // Filter Controls
+    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-3' },
+      // Status Filter
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Status'),
+        React.createElement('select', {
+          value: window.reminderStatusFilter,
+          onChange: (e) => handleFilterChange('status', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white'
+        },
+          React.createElement('option', { value: 'all' }, 'All Status'),
+          React.createElement('option', { value: 'pending' }, 'Pending'),
+          React.createElement('option', { value: 'completed' }, 'Completed'),
+          React.createElement('option', { value: 'snoozed' }, 'Snoozed'),
+          React.createElement('option', { value: 'overdue' }, 'Overdue')
+        )
+      ),
+
+      // Priority Filter
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Priority'),
+        React.createElement('select', {
+          value: window.reminderPriorityFilter,
+          onChange: (e) => handleFilterChange('priority', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white'
+        },
+          React.createElement('option', { value: 'all' }, 'All Priorities'),
+          React.createElement('option', { value: 'urgent' }, 'Urgent'),
+          React.createElement('option', { value: 'high' }, 'High'),
+          React.createElement('option', { value: 'medium' }, 'Medium'),
+          React.createElement('option', { value: 'low' }, 'Low')
+        )
+      ),
+
+      // Type Filter
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Type'),
+        React.createElement('select', {
+          value: window.reminderTypeFilter,
+          onChange: (e) => handleFilterChange('type', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white'
+        },
+          React.createElement('option', { value: 'all' }, 'All Types'),
+          React.createElement('option', { value: 'follow_up' }, 'Follow Up'),
+          React.createElement('option', { value: 'call_back' }, 'Call Back'),
+          React.createElement('option', { value: 'quote_follow_up' }, 'Quote Follow Up'),
+          React.createElement('option', { value: 'manual' }, 'Manual')
+        )
+      ),
+
+      // Date Filter
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Due Date'),
+        React.createElement('select', {
+          value: window.reminderDateFilter,
+          onChange: (e) => handleFilterChange('date', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white'
+        },
+          React.createElement('option', { value: 'all' }, 'All Dates'),
+          React.createElement('option', { value: 'overdue' }, 'Overdue'),
+          React.createElement('option', { value: 'today' }, 'Due Today'),
+          React.createElement('option', { value: 'tomorrow' }, 'Due Tomorrow'),
+          React.createElement('option', { value: 'week' }, 'This Week'),
+          React.createElement('option', { value: 'month' }, 'This Month')
+        )
+      )
+    )
   );
 };
 
