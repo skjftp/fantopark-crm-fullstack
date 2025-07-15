@@ -587,6 +587,7 @@ window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financi
     );
 };
 
+// Fix 1: Update the renderActiveSalesTab function to remove "Post-Service Payment Orders" text
 window.renderActiveSalesTab = (activeSales) => {
     console.log('🔍 renderActiveSalesTab called with:', activeSales);
     console.log('🔍 activeSales.length:', activeSales?.length || 0);
@@ -624,7 +625,7 @@ window.renderActiveSalesTab = (activeSales) => {
                                     sale.event_name || 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm text-gray-900 dark:text-white' }, 
-                                    window.formatFinancialDate(sale.event_date)
+                                    sale.event_date ? window.formatFinancialDate(sale.event_date) : 'N/A'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3 text-sm font-medium text-gray-900 dark:text-white' }, 
                                     `₹${(sale.amount || 0).toLocaleString()}`
@@ -652,6 +653,7 @@ window.renderActiveSalesTab = (activeSales) => {
         )
     );
 };
+
 
 
 // Sales Tab Renderer with FIXED Chart Implementation
