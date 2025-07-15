@@ -2,110 +2,153 @@
 // Extracted from index.html - maintains 100% functionality
 // Handles financial data processing, payment management, and receivables
 
-// Enhanced handleMarkAsPaid function with inventory integration
-window.handleMarkAsPaid = async function(payableId) {
+// Replace the beginning of your handleMarkAsPaid function with this:
+window.handleMarkAsPaid = async function(payableIdOrObject) {
   try {
-    console.log('handleMarkAsPaid called with payableId:', payableId);
-
+    // Log what we received
+    console.log('handleMarkAsPaid called with:', payableIdOrObject);
+    
+    // Extract the ID whether we received a string or object
+    let payableId;
+    if (typeof payableIdOrObject === 'string') {
+      payableId = payableIdOrObject;
+    } else if (payableIdOrObject && typeof payableIdOrObject === 'object') {
+      payableId = payableIdOrObject.id;
+    } else {
+      console.error('Invalid payable parameter:', payableIdOrObject);
+      alert('Invalid payable data.');
+      return;
+    }
+    
+    console.log('Looking for payable with ID:', payableId);
+    
+    // Find the payable in the array
     const payable = window.financialData.payables?.find(p => p.id === payableId);
 
     if (!payable) {
-      console.error('Payable not found:', payableId);
-      alert('Payable not found.');
+      // If not found in array but we have the object, use it directly
+      if (typeof payableIdOrObject === 'object' && payableIdOrObject.inventoryId) {
+        console.log('Using payable object directly as it was not found in financialData.payables');
+        // Use the passed object but make sure it has an id
+        const payableToUse = {
+          ...payableIdOrObject,
+          id: payableIdOrObject.id || payableId
+        };
+        
+        // Continue with the rest of the function using payableToUse instead of payable
+        processPayable(payableToUse);
+        return;
+      }
+      
+      console.error('Payable not found in array:', payableId);
+      console.error('Available payables:', window.financialData.payables?.map(p => p.id));
+      alert('Payable not found. Please refresh the page and try again.');
       return;
     }
 
-    console.log('Found payable:', payable);
+    // Continue with the found payable
+    processPayable(payable);
+    
+    // Helper function to avoid code duplication
+    async function processPayable(payable) {
+      console.log('Processing payable:', payable);
 
-    // If linked to inventory, open inventory edit form
-    if (payable.inventoryId) {
-      console.log('Payable is linked to inventory:', payable.inventoryId);
+      // If linked to inventory, open inventory edit form
+      if (payable.inventoryId) {
+        console.log('Payable is linked to inventory:', payable.inventoryId);
 
-      const inventoryItem = window.inventory.find(inv => inv.id === payable.inventoryId);
+        const inventoryItem = window.inventory.find(inv => inv.id === payable.inventoryId);
 
-      if (!inventoryItem) {
-        console.error('Related inventory item not found:', payable.inventoryId);
-        alert('Related inventory item not found. Please refresh and try again.');
-        await window.fetchInventory();
+        if (!inventoryItem) {
+          console.error('Related inventory item not found:', payable.inventoryId);
+          alert('Related inventory item not found. Please refresh and try again.');
+          await window.fetchInventory();
+          return;
+        }
+
+        console.log('Found inventory item:', inventoryItem);
+        console.log('Opening inventory edit form for payable payment...');
+
+        // Set up for editing with payment focus
+        const inventoryWithContext = {
+          ...inventoryItem,
+          _payableContext: {
+            payableId: payable.id,
+            payableAmount: payable.amount,
+            fromPayables: true
+          }
+        };
+
+        window.setEditingInventory(inventoryWithContext);
+
+        // Calculate correct payment amounts
+        const currentTotal = parseFloat(inventoryItem.totalPurchaseAmount || 0);
+        const currentPaid = parseFloat(inventoryItem.amountPaid || 0);
+        const pendingBalance = parseFloat(payable.amount || 0);
+
+        console.log('Payable form pre-fill calculation:', {
+          currentTotal,
+          currentPaid,
+          pendingBalance,
+          action: 'Setting form to mark as fully paid'
+        });
+
+        // Pre-fill form to mark as FULLY PAID by default
+        window.setFormData({
+          ...inventoryItem,
+          totalPurchaseAmount: currentTotal,
+          amountPaid: currentTotal, // Set to total to mark as fully paid
+          paymentStatus: 'paid',
+          // Add currency fields with defaults if not present
+          purchase_currency: inventoryItem.purchase_currency || 'INR',
+          purchase_exchange_rate: inventoryItem.purchase_exchange_rate || '1'
+        });
+
+        console.log('✅ Form data set with currency fields:', {
+          currency: inventoryItem.purchase_currency || 'INR',
+          rate: inventoryItem.purchase_exchange_rate || '1',
+          fromPayables: true
+        });
+
+        window.setShowInventoryForm(true);
         return;
       }
 
-      console.log('Found inventory item:', inventoryItem);
-      console.log('Opening inventory edit form for payable payment...');
+      // For non-inventory payables, use traditional mark as paid
+      console.log('Processing non-inventory payable...');
+      const confirmPaid = confirm(`Mark payable of ₹${payable.amount} as paid?`);
+      if (!confirmPaid) return;
 
-      // Set up for editing with payment focus
-      // Pre-fill form data with payment context
-      const inventoryWithContext = {
-        ...inventoryItem,
-        _payableContext: {
-          payableId: payable.id,
-          payableAmount: payable.amount,
-          fromPayables: true
-        }
-      };
+      window.setLoading(true);
 
-      window.setEditingInventory(inventoryWithContext);
-
-      // Pre-fill form data for payment
-      // Calculate correct payment amounts
-      // When coming from payables, we're paying off the pending balance
-      const currentTotal = parseFloat(inventoryItem.totalPurchaseAmount || 0);
-      const currentPaid = parseFloat(inventoryItem.amountPaid || 0);
-      const pendingBalance = parseFloat(payable.amount || 0); // What we owe
-
-      console.log('Payable form pre-fill calculation:', {
-        currentTotal,
-        currentPaid,
-        pendingBalance,
-        action: 'Setting form to mark as fully paid'
+      const response = await window.apiCall(`/finance/payables/${payable.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          status: 'paid',
+          paid_date: new Date().toISOString(),
+          payment_notes: 'Marked as paid manually'
+        })
       });
 
-      // Pre-fill form to mark as FULLY PAID by default
-      window.setFormData({
-  ...inventoryItem,
-  totalPurchaseAmount: currentTotal,
-  amountPaid: currentTotal,
-  paymentStatus: 'paid',
-  purchase_currency: inventoryItem.purchase_currency || 'INR',
-  purchase_exchange_rate: inventoryItem.purchase_exchange_rate || '1'
-});
+      if (response.error) {
+        throw new Error(response.error);
+      }
 
-      window.setShowInventoryForm(true);
-
-      return;
+      console.log('Payable marked as paid successfully');
+      alert('Payable marked as paid!');
+      await window.fetchFinancialData();
     }
-
-    // For non-inventory payables, use traditional mark as paid
-    console.log('Processing non-inventory payable...');
-    const confirmPaid = confirm(`Mark payable of ₹${payable.amount} as paid?`);
-    if (!confirmPaid) return;
-
-    window.setLoading(true);
-
-    const response = await window.apiCall(`/finance/payables/${payableId}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        status: 'paid',
-        paid_date: new Date().toISOString(),
-        payment_notes: 'Marked as paid manually'
-      })
-    });
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-
-    console.log('Payable marked as paid successfully');
-    alert('Payable marked as paid!');
-    await window.fetchFinancialData();
 
   } catch (error) {
-    console.error('Error handling mark as paid:', error);
-    alert('Failed to process payment: ' + error.message);
+    console.error('Error marking payable as paid:', error);
+    alert('Failed to mark payable as paid: ' + error.message);
   } finally {
     window.setLoading(false);
   }
 };
+
+// Create alias for enhanced UI compatibility
+window.markPayableAsPaid = window.handleMarkAsPaid;
 
 // Comprehensive financial data fetching and processing function
 window.fetchFinancialData = async function() {
