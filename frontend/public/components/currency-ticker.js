@@ -1,4 +1,4 @@
-// Currency Ticker Component for FanToPark CRM - Enhanced Version
+// Currency Ticker Component for FanToPark CRM - No Hooks Version
 
 // Initialize state in window
 window.currencyTickerState = {
@@ -19,7 +19,8 @@ window.currencyTickerState = {
   loading: false,
   lastUpdate: null,
   error: null,
-  updateInterval: null
+  updateInterval: null,
+  initialized: false
 };
 
 // Currency configuration
@@ -32,9 +33,8 @@ window.CURRENCY_CONFIG = {
   ALL_CURRENCIES: ['USD', 'EUR', 'GBP', 'AED', 'SGD', 'JPY', 'CHF', 'CAD']
 };
 
-// Currency service for better organization
+// Currency service
 window.CurrencyService = {
-  // Get cached rates
   getCachedRates: function() {
     try {
       const cached = localStorage.getItem(window.CURRENCY_CONFIG.CACHE_KEY);
@@ -51,7 +51,6 @@ window.CurrencyService = {
     return null;
   },
 
-  // Save rates to cache
   cacheRates: function(rates, timestamp) {
     try {
       localStorage.setItem(window.CURRENCY_CONFIG.CACHE_KEY, JSON.stringify({
@@ -64,7 +63,6 @@ window.CurrencyService = {
     }
   },
 
-  // Save daily rates for comparison
   saveDailyRates: function(rates) {
     const today = new Date().toDateString();
     const lastSaveDate = localStorage.getItem('fantopark_rates_date');
@@ -77,7 +75,6 @@ window.CurrencyService = {
     return false;
   },
 
-  // Get previous day rates
   getPreviousDayRates: function() {
     try {
       const stored = localStorage.getItem('fantopark_daily_rates');
@@ -88,137 +85,141 @@ window.CurrencyService = {
   }
 };
 
+// Fetch rates function
+window.fetchCurrencyRates = async function() {
+  window.currencyTickerState.loading = true;
+  window.currencyTickerState.error = null;
+  if (window.forceUpdate) window.forceUpdate();
+  
+  try {
+    // Check cache first
+    const cached = window.CurrencyService.getCachedRates();
+    if (cached && !window.currencyTickerState.showConverter) {
+      window.currencyTickerState.rates = cached.rates;
+      window.currencyTickerState.lastUpdate = new Date(cached.timestamp);
+      window.currencyTickerState.loading = false;
+      if (window.forceUpdate) window.forceUpdate();
+      return;
+    }
+
+    const response = await fetch(window.CURRENCY_CONFIG.API_URL);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data || !data.rates) {
+      throw new Error('Invalid API response');
+    }
+    
+    // Get previous rates
+    const previousRates = window.currencyTickerState.previousRates || 
+                         window.CurrencyService.getPreviousDayRates() || 
+                         window.currencyTickerState.rates;
+    
+    // Convert to INR rates
+    const newRates = {};
+    window.CURRENCY_CONFIG.ALL_CURRENCIES.forEach(currency => {
+      if (data.rates[currency]) {
+        newRates[currency] = Math.round(1 / data.rates[currency] * 100) / 100;
+      }
+    });
+    
+    const timestamp = Date.now();
+    
+    // Cache the rates
+    window.CurrencyService.cacheRates(newRates, timestamp);
+    
+    // Save daily rates
+    if (window.CurrencyService.saveDailyRates(newRates)) {
+      window.currencyTickerState.previousRates = window.currencyTickerState.rates;
+    } else if (!window.currencyTickerState.previousRates) {
+      window.currencyTickerState.previousRates = previousRates;
+    }
+    
+    // Update state
+    window.currencyTickerState.rates = newRates;
+    window.currencyTickerState.lastUpdate = new Date(timestamp);
+    window.currencyTickerState.loading = false;
+    window.currencyTickerState.error = null;
+    
+    // Update global rates
+    window.currentExchangeRates = newRates;
+    
+  } catch (error) {
+    console.error('Failed to fetch rates:', error);
+    window.currencyTickerState.loading = false;
+    window.currencyTickerState.error = 'Failed to update rates. Using cached values.';
+    
+    // Try cached rates
+    const cached = window.CurrencyService.getCachedRates();
+    if (cached) {
+      window.currencyTickerState.rates = cached.rates;
+      window.currencyTickerState.lastUpdate = new Date(cached.timestamp);
+    }
+  }
+  
+  if (window.forceUpdate) window.forceUpdate();
+};
+
+// Initialize rates
+window.initializeCurrencyTicker = function() {
+  if (window.currencyTickerState.initialized) return;
+  
+  window.currencyTickerState.initialized = true;
+  
+  // Load cached rates
+  const cached = window.CurrencyService.getCachedRates();
+  if (cached) {
+    window.currencyTickerState.rates = cached.rates;
+    window.currencyTickerState.lastUpdate = new Date(cached.timestamp);
+  }
+  
+  // Set previous rates
+  if (!window.currencyTickerState.previousRates) {
+    const dailyRates = window.CurrencyService.getPreviousDayRates();
+    if (dailyRates) {
+      window.currencyTickerState.previousRates = dailyRates;
+    }
+  }
+  
+  // Fetch fresh rates
+  window.fetchCurrencyRates();
+  
+  // Set up auto-refresh
+  if (window.currencyTickerState.updateInterval) {
+    clearInterval(window.currencyTickerState.updateInterval);
+  }
+  window.currencyTickerState.updateInterval = setInterval(
+    window.fetchCurrencyRates, 
+    window.CURRENCY_CONFIG.UPDATE_INTERVAL
+  );
+};
+
+// Main render function
 window.renderCurrencyTicker = () => {
   const state = window.currencyTickerState;
-  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
   
-  // Update state and trigger re-render
-  const updateState = (updates) => {
-    Object.assign(window.currencyTickerState, updates);
-    forceUpdate();
-  };
-
+  // Initialize on first render
+  if (!state.initialized) {
+    window.initializeCurrencyTicker();
+  }
+  
   const toggleConverter = () => {
-    updateState({ showConverter: !state.showConverter });
+    window.currencyTickerState.showConverter = !window.currencyTickerState.showConverter;
+    if (window.forceUpdate) window.forceUpdate();
   };
 
   const updateAmount = (value) => {
-    updateState({ conversionAmount: parseFloat(value) || 0 });
+    window.currencyTickerState.conversionAmount = parseFloat(value) || 0;
+    if (window.forceUpdate) window.forceUpdate();
   };
 
   const updateCurrency = (value) => {
-    updateState({ fromCurrency: value });
+    window.currencyTickerState.fromCurrency = value;
+    if (window.forceUpdate) window.forceUpdate();
   };
-
-  const fetchRates = async () => {
-    updateState({ loading: true, error: null });
-    
-    try {
-      // Check cache first
-      const cached = window.CurrencyService.getCachedRates();
-      if (cached && !state.showConverter) {
-        updateState({
-          rates: cached.rates,
-          lastUpdate: new Date(cached.timestamp),
-          loading: false
-        });
-        return;
-      }
-
-      // Fetch fresh rates
-      const response = await fetch(window.CURRENCY_CONFIG.API_URL);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (!data || !data.rates) {
-        throw new Error('Invalid API response');
-      }
-      
-      // Get previous rates for comparison
-      const previousRates = state.previousRates || window.CurrencyService.getPreviousDayRates() || state.rates;
-      
-      // Convert to INR rates (API returns INR to other currencies)
-      const newRates = {};
-      window.CURRENCY_CONFIG.ALL_CURRENCIES.forEach(currency => {
-        if (data.rates[currency]) {
-          newRates[currency] = Math.round(1 / data.rates[currency] * 100) / 100;
-        }
-      });
-      
-      const timestamp = Date.now();
-      
-      // Cache the rates
-      window.CurrencyService.cacheRates(newRates, timestamp);
-      
-      // Save daily rates if it's a new day
-      if (window.CurrencyService.saveDailyRates(newRates)) {
-        updateState({ previousRates: state.rates });
-      }
-      
-      updateState({
-        rates: newRates,
-        previousRates: previousRates,
-        lastUpdate: new Date(timestamp),
-        loading: false,
-        error: null
-      });
-      
-      // Update global rates
-      window.currentExchangeRates = newRates;
-      
-    } catch (error) {
-      console.error('Failed to fetch rates:', error);
-      updateState({ 
-        loading: false, 
-        error: 'Failed to update rates. Using cached values.' 
-      });
-      
-      // Try to use cached rates on error
-      const cached = window.CurrencyService.getCachedRates();
-      if (cached) {
-        updateState({
-          rates: cached.rates,
-          lastUpdate: new Date(cached.timestamp)
-        });
-      }
-    }
-  };
-
-  // Initialize on mount
-  React.useEffect(() => {
-    // Load cached rates immediately
-    const cached = window.CurrencyService.getCachedRates();
-    if (cached) {
-      updateState({
-        rates: cached.rates,
-        lastUpdate: new Date(cached.timestamp)
-      });
-    }
-    
-    // Set previous rates if not set
-    if (!state.previousRates) {
-      const dailyRates = window.CurrencyService.getPreviousDayRates();
-      if (dailyRates) {
-        updateState({ previousRates: dailyRates });
-      }
-    }
-    
-    // Fetch fresh rates
-    fetchRates();
-    
-    // Set up auto-refresh
-    const interval = setInterval(fetchRates, window.CURRENCY_CONFIG.UPDATE_INTERVAL);
-    window.currencyTickerState.updateInterval = interval;
-    
-    return () => {
-      if (window.currencyTickerState.updateInterval) {
-        clearInterval(window.currencyTickerState.updateInterval);
-      }
-    };
-  }, []);
 
   const getChangePercent = (currency) => {
     if (!state.previousRates || !state.previousRates[currency]) return 0;
@@ -277,7 +278,7 @@ window.renderCurrencyTicker = () => {
           )
         ),
         
-        // Scrolling ticker content
+        // Scrolling ticker
         React.createElement('div', { className: 'flex-1 overflow-hidden max-w-md' },
           React.createElement('div', { 
             className: 'flex animate-scroll',
@@ -287,7 +288,7 @@ window.renderCurrencyTicker = () => {
             }
           },
             tickerItems,
-            tickerItems // Double for seamless loop
+            tickerItems
           )
         ),
         
@@ -312,7 +313,7 @@ window.renderCurrencyTicker = () => {
       )
     ),
     
-    // CSS for animation
+    // CSS
     React.createElement('style', null, `
       @keyframes scroll {
         0% { transform: translateX(0); }
@@ -396,7 +397,9 @@ window.renderCurrencyTicker = () => {
           ),
           React.createElement('div', { className: 'flex gap-2 mt-2' },
             React.createElement('button', {
-              onClick: fetchRates,
+              onClick: () => {
+                window.fetchCurrencyRates();
+              },
               className: 'text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors disabled:opacity-50',
               disabled: state.loading
             }, state.loading ? 'Updating...' : 'Refresh Rates'),
@@ -416,7 +419,7 @@ window.convertToINR = (amount, currency) => {
   if (!amount || currency === 'INR') return amount;
   
   const rates = window.currencyTickerState.rates;
-  const rate = rates[currency] || 83.50; // Fallback to USD rate
+  const rate = rates[currency] || 83.50;
   return amount * rate;
 };
 
@@ -435,4 +438,12 @@ window.formatCurrencyAmount = (amount, currency = 'INR') => {
 // Initialize global exchange rates
 window.currentExchangeRates = window.currencyTickerState.rates;
 
-console.log('✅ Enhanced Currency Ticker component loaded successfully');
+// Cleanup function
+window.cleanupCurrencyTicker = function() {
+  if (window.currencyTickerState.updateInterval) {
+    clearInterval(window.currencyTickerState.updateInterval);
+    window.currencyTickerState.updateInterval = null;
+  }
+};
+
+console.log('✅ Currency Ticker component loaded successfully (No Hooks Version)');
