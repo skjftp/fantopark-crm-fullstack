@@ -179,21 +179,12 @@ window.createFinancialSalesChart = () => {
     }
 };
 
-window.calculateEnhancedFinancialMetrics = async () => {
+// Add a synchronous version that returns immediate results
+window.calculateEnhancedFinancialMetricsSync = () => {
     const financialData = window.appState?.financialData || {};
     const inventory = window.inventory || [];
     
-    // Get current month and previous month dates
-    const now = new Date();
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-    
-    // Format dates for API calls
-    const formatDate = (date) => date.toISOString().split('T')[0];
-    
-    // Calculate base metrics first (synchronous)
+    // Calculate base metrics synchronously
     const activeSales = financialData.activeSales || [];
     const sales = financialData.sales || [];
     const payables = financialData.payables || [];
@@ -217,8 +208,13 @@ window.calculateEnhancedFinancialMetrics = async () => {
     const totalMargin = totalRevenue - totalCost;
     const marginPercentage = totalRevenue > 0 ? ((totalMargin / totalRevenue) * 100) : 0;
     
-    // Default result object
-    const result = {
+    // Check if we have cached percentage values
+    const cachedPercentages = window.financialPercentageCache || {
+        sales: 0,
+        margin: 15.7
+    };
+    
+    return {
         totalSales: totalSales + totalActiveSales,
         totalActiveSales,
         totalPayables,
@@ -226,11 +222,23 @@ window.calculateEnhancedFinancialMetrics = async () => {
         totalMargin,
         marginPercentage: Math.round(marginPercentage * 100) / 100,
         activeSalesCount: activeSales.length,
-        percentageChanges: {
-            sales: 0,
-            margin: 15.7 // Default value
-        }
+        percentageChanges: cachedPercentages
     };
+};
+
+// Keep the async version that updates the cache
+window.calculateEnhancedFinancialMetrics = async () => {
+    // Get synchronous metrics first
+    const baseMetrics = window.calculateEnhancedFinancialMetricsSync();
+    
+    // Get current month and previous month dates
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    
+    const formatDate = (date) => date.toISOString().split('T')[0];
     
     try {
         // Fetch current and previous month orders for percentage calculation
@@ -239,87 +247,50 @@ window.calculateEnhancedFinancialMetrics = async () => {
             window.apiCall(`/orders?from_date=${formatDate(previousMonthStart)}&to_date=${formatDate(previousMonthEnd)}`)
         ]);
         
-        console.log('Current month orders:', currentMonthOrders.data.length);
-        console.log('Previous month orders:', previousMonthOrders.data.length);
-        
-        // Calculate sales totals for both months
         const currentOrders = currentMonthOrders.data || [];
         const previousOrders = previousMonthOrders.data || [];
         
         const currentMonthSales = currentOrders.reduce((sum, order) => sum + (order.final_amount || 0), 0);
         const previousMonthSales = previousOrders.reduce((sum, order) => sum + (order.final_amount || 0), 0);
         
-        // Calculate percentage changes
         const calculatePercentageChange = (current, previous) => {
             if (previous === 0) return current > 0 ? 100 : 0;
             return ((current - previous) / previous * 100);
         };
         
-        result.percentageChanges.sales = calculatePercentageChange(currentMonthSales, previousMonthSales);
+        const salesChange = calculatePercentageChange(currentMonthSales, previousMonthSales);
         
-        // You can add margin percentage calculation here if needed
-        // For now keeping the default 15.7
+        // Cache the percentage values
+        window.financialPercentageCache = {
+            sales: salesChange,
+            margin: 15.7 // You can calculate this similarly if needed
+        };
+        
+        return {
+            ...baseMetrics,
+            percentageChanges: window.financialPercentageCache
+        };
         
     } catch (error) {
         console.error('Error calculating percentage changes:', error);
-        // Return default percentages on error
+        return baseMetrics;
     }
-    
-    return result;
 };
 
-// Updated renderEnhancedFinancialStats - NOT async, handles loading internally
 window.renderEnhancedFinancialStats = () => {
-    // Use React hooks to manage async state
-    const [metrics, setMetrics] = React.useState(null);
-    const [isLoading, setIsLoading] = React.useState(true);
-    
-    React.useEffect(() => {
-        // Load metrics asynchronously
-        const loadMetrics = async () => {
-            try {
-                const calculatedMetrics = await window.calculateEnhancedFinancialMetrics();
-                setMetrics(calculatedMetrics);
-                setIsLoading(false);
-            } catch (error) {
-                console.error('Error calculating metrics:', error);
-                // Set default metrics on error
-                setMetrics({
-                    totalSales: 0,
-                    totalActiveSales: 0,
-                    totalPayables: 0,
-                    totalReceivables: 0,
-                    totalMargin: 0,
-                    marginPercentage: 0,
-                    percentageChanges: {
-                        sales: 0,
-                        margin: 0
-                    }
-                });
-                setIsLoading(false);
-            }
-        };
-        
-        loadMetrics();
-    }, []); // Empty dependency array means this runs once on mount
-    
-    // Show loading state while metrics are being calculated
-    if (isLoading || !metrics) {
-        return React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6' },
-            // Show 6 loading cards
-            Array.from({ length: 6 }).map((_, index) =>
-                React.createElement('div', { 
-                    key: index,
-                    className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700'
-                },
-                    React.createElement('div', { className: 'animate-pulse' },
-                        React.createElement('div', { className: 'h-4 bg-gray-200 rounded w-24 mb-2' }),
-                        React.createElement('div', { className: 'h-8 bg-gray-200 rounded w-32' })
-                    )
-                )
-            )
-        );
-    }
+    // Get the current metrics from state or calculate synchronously
+    const metrics = window.calculateEnhancedFinancialMetricsSync() || {
+        totalSales: 0,
+        totalActiveSales: 0,
+        totalPayables: 0,
+        totalReceivables: 0,
+        totalMargin: 0,
+        marginPercentage: 0,
+        percentageChanges: {
+            sales: 0,
+            margin: 0
+        }
+    };
     
     // Format percentage with + or - sign
     const formatPercentage = (value) => {
@@ -330,45 +301,57 @@ window.renderEnhancedFinancialStats = () => {
     const statsCards = [
         {
             title: 'Total Sales',
-            value: window.formatCurrency(metrics.totalSales), // ✅ Indian format
+            value: window.formatCurrency(metrics.totalSales),
             change: formatPercentage(metrics.percentageChanges?.sales || 0),
             changeType: (metrics.percentageChanges?.sales || 0) >= 0 ? 'positive' : 'negative',
             icon: '📈',
-            showChange: true // Show percentage for Total Sales
+            showChange: true
         },
         {
             title: 'Total Active Sales',
-            value: window.formatCurrency(metrics.totalActiveSales), // ✅ Indian format
+            value: window.formatCurrency(metrics.totalActiveSales),
             icon: '🎯',
-            showChange: false // No percentage
+            showChange: false
         },
         {
             title: 'Total Receivables',
-            value: window.formatCurrency(metrics.totalReceivables), // ✅ Indian format
+            value: window.formatCurrency(metrics.totalReceivables),
             icon: '💰',
-            showChange: false // No percentage
+            showChange: false
         },
         {
             title: 'Total Payables',
-            value: window.formatCurrency(metrics.totalPayables), // ✅ Indian format
+            value: window.formatCurrency(metrics.totalPayables),
             icon: '💸',
-            showChange: false // No percentage
+            showChange: false
         },
         {
             title: 'Total Margin',
-            value: window.formatCurrency(metrics.totalMargin), // ✅ Indian format
-            change: formatPercentage(metrics.percentageChanges?.margin || 15.7), // Use calculated or fallback
+            value: window.formatCurrency(metrics.totalMargin),
+            change: formatPercentage(metrics.percentageChanges?.margin || 15.7),
             changeType: (metrics.percentageChanges?.margin || 15.7) >= 0 ? 'positive' : 'negative',
             icon: '📊',
-            showChange: true // Show percentage for Total Margin
+            showChange: true
         },
         {
             title: 'Margin %',
             value: `${metrics.marginPercentage}%`,
             icon: '📈',
-            showChange: false // No percentage
+            showChange: false
         }
     ];
+    
+    // Trigger async percentage calculation after render
+    if (!window.financialPercentagesLoading) {
+        window.financialPercentagesLoading = true;
+        window.calculateEnhancedFinancialMetrics().then(newMetrics => {
+            window.financialPercentagesLoading = false;
+            // Update the UI by re-rendering the financial component
+            if (window.appState?.activeTab === 'financials' && window.renderFinancials) {
+                window.renderFinancials();
+            }
+        });
+    }
     
     return React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6' },
         statsCards.map((stat, index) =>
@@ -383,7 +366,6 @@ window.renderEnhancedFinancialStats = () => {
                     ),
                     React.createElement('div', { className: 'text-2xl' }, stat.icon)
                 ),
-                // Conditionally render percentage change only if showChange is true
                 stat.showChange ? React.createElement('div', { className: 'flex items-center mt-4' },
                     React.createElement('span', {
                         className: `text-sm font-medium ${
@@ -396,7 +378,6 @@ window.renderEnhancedFinancialStats = () => {
         )
     );
 };
-
 
 // Enhanced Expiring Inventory Data Processing
 window.getEnhancedExpiringInventory = () => {
