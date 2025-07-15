@@ -11,8 +11,9 @@ const { authenticateToken, checkPermission } = require('../middleware/auth');
  * @returns {Object} - Inventory data with INR fields populated
  */
 function processInventoryCurrency(inventoryData) {
-  const currency = inventoryData.price_currency || 'INR';
-  const exchangeRate = inventoryData.exchange_rate || 1;
+  // ✅ FIXED: Use purchase_currency and purchase_exchange_rate
+  const currency = inventoryData.purchase_currency || 'INR';
+  const exchangeRate = inventoryData.purchase_exchange_rate || 1;
   
   // Process categories if they exist
   if (inventoryData.categories && Array.isArray(inventoryData.categories)) {
@@ -93,18 +94,20 @@ const sanitizeInventoryData = (data) => {
     amountPaid: parseFloat(data.amountPaid) || 0,
     paymentDueDate: data.paymentDueDate || '',
     
-    // Currency fields
-    price_currency: data.price_currency || 'INR',
-    exchange_rate: parseFloat(data.exchange_rate) || 1,
+    // ✅ FIXED: Currency fields with correct names
+    purchase_currency: data.purchase_currency || 'INR',
+    purchase_exchange_rate: parseFloat(data.purchase_exchange_rate) || 1,
     totalPurchaseAmount_inr: parseFloat(data.totalPurchaseAmount_inr) || 0,
     amountPaid_inr: parseFloat(data.amountPaid_inr) || 0,
     
-    // Legacy fields for backward compatibility
+    // Legacy fields for backward compatibility (keep old field names too)
+    price_currency: data.purchase_currency || data.price_currency || 'INR',
+    exchange_rate: data.purchase_exchange_rate || data.exchange_rate || 1,
     vendor_name: data.vendor_name || data.supplierName || '',
     price_per_ticket: parseFloat(data.price_per_ticket) || parseFloat(data.selling_price) || 0,
     number_of_tickets: parseInt(data.number_of_tickets) || parseInt(data.total_tickets) || 0,
     total_value_of_tickets: parseFloat(data.total_value_of_tickets) || 0,
-    currency: data.currency || data.price_currency || 'INR',
+    currency: data.purchase_currency || data.currency || data.price_currency || 'INR',
     base_amount_inr: parseFloat(data.base_amount_inr) || 0,
     gst_18_percent: parseFloat(data.gst_18_percent) || 0,
     selling_price_per_ticket: parseFloat(data.selling_price_per_ticket) || parseFloat(data.selling_price) || 0,
@@ -209,8 +212,8 @@ router.post('/', authenticateToken, checkPermission('inventory', 'create'), asyn
     };
     
     console.log('Creating inventory with currency:', {
-      currency: inventoryData.price_currency,
-      exchange_rate: inventoryData.exchange_rate,
+      currency: inventoryData.purchase_currency,
+      exchange_rate: inventoryData.purchase_exchange_rate,
       totalPurchaseAmount_inr: inventoryData.totalPurchaseAmount_inr
     });
     
@@ -417,9 +420,9 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
       try {
         console.log('Inventory payment info changed, updating payables...');
         
-        // Calculate new values with INR amounts
-        const currency = updateData.price_currency || oldData.price_currency || 'INR';
-        const exchangeRate = updateData.exchange_rate || oldData.exchange_rate || 1;
+        // ✅ FIXED: Use correct field names for currency
+        const currency = updateData.purchase_currency || oldData.purchase_currency || oldData.price_currency || 'INR';
+        const exchangeRate = updateData.purchase_exchange_rate || oldData.purchase_exchange_rate || oldData.exchange_rate || 1;
         
         const newTotalAmountINR = updateData.totalPurchaseAmount_inr !== undefined 
           ? updateData.totalPurchaseAmount_inr 
@@ -848,8 +851,9 @@ router.put('/:id/payment', authenticateToken, checkPermission('finance', 'write'
     }
     
     const currentData = inventoryDoc.data();
-    const currency = currentData.price_currency || 'INR';
-    const exchangeRate = currentData.exchange_rate || 1;
+    // ✅ FIXED: Use correct field names with fallback
+    const currency = currentData.purchase_currency || currentData.price_currency || 'INR';
+    const exchangeRate = currentData.purchase_exchange_rate || currentData.exchange_rate || 1;
     
     // Calculate INR equivalents
     if (currency !== 'INR') {
