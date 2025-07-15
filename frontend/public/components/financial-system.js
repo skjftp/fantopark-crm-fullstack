@@ -237,7 +237,7 @@ window.fetchFinancialData = async function() {
     today.setHours(0, 0, 0, 0);
 
     // FIXED: Process active sales (orders in progress with event date in future)
-    const activeSalesData = ordersData
+   const activeSalesData = ordersData
   .filter(order => {
     // Exclude orders that haven't reached approved stage yet
     const preApprovalStatuses = ['new', 'pending', 'rejected', 'cancelled', 'draft', 'pending_approval'];
@@ -248,16 +248,20 @@ window.fetchFinancialData = async function() {
     // Include all orders at approved stage or beyond
     // This includes: approved, service_assigned, in_progress, delivery_scheduled, completed, delivered
     
+    // If no event date, include it in active sales
+    if (!order.event_date) {
+      console.log(`Including order without event date ${order.id}: status=${order.status}`);
+      return true;
+    }
+    
     // Check if event date is in the future
-    if (order.event_date) {
-      const eventDate = new Date(order.event_date);
-      eventDate.setHours(0, 0, 0, 0);
-      const isEventFuture = eventDate >= today;
-      
-      if (isEventFuture) {
-        console.log(`Including future event order ${order.id}: eventDate=${order.event_date}, status=${order.status}`);
-        return true;
-      }
+    const eventDate = new Date(order.event_date);
+    eventDate.setHours(0, 0, 0, 0);
+    const isEventFuture = eventDate >= today;
+    
+    if (isEventFuture) {
+      console.log(`Including future event order ${order.id}: eventDate=${order.event_date}, status=${order.status}`);
+      return true;
     }
     
     return false;
@@ -266,8 +270,8 @@ window.fetchFinancialData = async function() {
     id: order.id,
     date: order.created_at || order.created_date || new Date().toISOString(),
     order_number: order.order_number || order.id,
-    clientName: order.lead_name || order.client_name || 'N/A',
-    client: order.lead_name || order.client_name || 'N/A',
+    clientName: order.lead_name || order.client_name || order.legal_name || 'N/A',
+    client: order.lead_name || order.client_name || order.legal_name || 'N/A',
     assignedTo: order.assigned_to || order.sales_person || order.created_by || 'Unassigned',
     amount: parseFloat(order.final_amount || order.total_amount || 0),
     status: order.payment_status || order.status || 'pending',
@@ -287,7 +291,7 @@ const salesData = ordersData
       return false;
     }
     
-    // Check if event date has passed
+    // Only include orders with past event dates (not orders without event dates)
     if (order.event_date) {
       const eventDate = new Date(order.event_date);
       eventDate.setHours(0, 0, 0, 0);
