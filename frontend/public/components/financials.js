@@ -587,7 +587,6 @@ window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financi
     );
 };
 
-// Active Sales Tab Renderer - ENHANCED DEBUG LOGGING
 window.renderActiveSalesTab = (activeSales) => {
     console.log('🔍 renderActiveSalesTab called with:', activeSales);
     console.log('🔍 activeSales.length:', activeSales?.length || 0);
@@ -653,6 +652,7 @@ window.renderActiveSalesTab = (activeSales) => {
         )
     );
 };
+
 
 // Sales Tab Renderer with FIXED Chart Implementation
 window.renderSalesTab = (sales) => {
