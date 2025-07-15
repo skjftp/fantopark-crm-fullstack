@@ -544,6 +544,16 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
                     difference: payableUpdateData.exchange_difference,
                     type: payableUpdateData.exchange_difference_type
                   });
+
+                  // Calculate FX impact (add this BEFORE const paymentRecord = {...})
+                    const creationRate = payableData.creation_exchange_rate || payableData.exchange_rate || exchangeRate;
+                    const paymentAmountForeign = currency === 'INR' ? paymentIncrement : paymentIncrement / exchangeRate;
+                    
+                    // How much INR it would have cost at creation vs now
+                    const creationValueINR = paymentAmountForeign * creationRate;
+                    const currentValueINR = paymentAmountForeign * exchangeRate;
+                    const fxDifference = currentValueINR - creationValueINR;
+                    const fxType = fxDifference > 0 ? 'loss' : 'gain';
                   
                   // Add to payment history
                   const paymentRecord = {
@@ -554,9 +564,9 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
                     difference: payableUpdateData.exchange_difference,
                     reference: 'Inventory payment',
                     created_by: req.user.email,
-                    fx_difference: 0, // For now, just store 0
-                    fx_type: 'none',  // For now, just store 'none' 
-                    fx_note: 'No FX impact calculated' // For now, just a placeholder
+                    fx_difference: fxDifference,
+                    fx_type: fxType,
+                    fx_note: `Exchange ${fxType}: ₹${Math.abs(fxDifference).toFixed(2)}`
                   };
                   
                   payableUpdateData.payment_history = [...(payableData.payment_history || []), paymentRecord];
