@@ -237,52 +237,100 @@ router.post('/', authenticateToken, checkPermission('inventory', 'create'), asyn
     console.log('  totalPurchaseAmount:', savedData.totalPurchaseAmount);
     console.log('  totalPurchaseAmount_inr:', savedData.totalPurchaseAmount_inr);
     
-    // Create payable if payment is pending or partial
+    // REVAMPED: Create payable with FULL amount and initial payment history
     if ((inventoryData.paymentStatus === 'pending' || inventoryData.paymentStatus === 'partial') && inventoryData.totalPurchaseAmount > 0) {
       try {
         // Use INR amounts for payables
         const totalAmountINR = inventoryData.totalPurchaseAmount_inr || inventoryData.totalPurchaseAmount || 0;
         const amountPaidINR = inventoryData.amountPaid_inr || inventoryData.amountPaid || 0;
-        const pendingBalanceINR = totalAmountINR - amountPaidINR;
         
-        console.log('Creating payable on inventory creation:', {
+        console.log('Creating payable with ledger system:', {
           totalAmountINR,
           amountPaidINR,
-          pendingBalanceINR
+          hasInitialPayment: amountPaidINR > 0
         });
         
-if (pendingBalanceINR > 0) {
-  // Calculate original currency values
-  const originalCurrency = inventoryData.purchase_currency || inventoryData.price_currency || 'INR';
-  const exchangeRate = inventoryData.purchase_exchange_rate || inventoryData.exchange_rate || 1;
-  const originalPendingBalance = originalCurrency === 'INR' 
-    ? pendingBalanceINR 
-    : pendingBalanceINR / exchangeRate;
+        // Always create payable with FULL amount if total > 0
+        if (totalAmountINR > 0) {
+          const originalCurrency = inventoryData.purchase_currency || inventoryData.price_currency || 'INR';
+          const exchangeRate = inventoryData.purchase_exchange_rate || inventoryData.exchange_rate || 1;
+          const originalTotalAmount = originalCurrency === 'INR' 
+            ? totalAmountINR 
+            : totalAmountINR / exchangeRate;
 
-  const payableData = {
-    inventoryId: docRef.id,
-    supplierName: inventoryData.supplierName || inventoryData.vendor_name || 'Unknown Supplier',
-    eventName: inventoryData.event_name,
-    invoiceNumber: inventoryData.supplierInvoice || 'INV-' + Date.now(),
-    amount: pendingBalanceINR, // Always in INR for calculations
-    currency: 'INR', // Keep as INR for compatibility
-    // Add original currency fields
-    original_currency: originalCurrency,
-    original_amount: originalPendingBalance,
-    exchange_rate: exchangeRate,
-    dueDate: inventoryData.paymentDueDate || null,
-    status: 'pending',
-    created_date: new Date().toISOString(),
-    updated_date: new Date().toISOString(),
-    createdBy: req.user.id,
-    description: `Payment for inventory: ${inventoryData.event_name}`,
-    payment_notes: `Created from inventory - Balance: ${originalCurrency} ${originalPendingBalance.toFixed(2)} (₹${pendingBalanceINR.toFixed(2)})`
-  };
-  
-  const payableRef = await db.collection('crm_payables').add(payableData);
-  console.log('Payable created with ID:', payableRef.id, 
-    `Amount: ${originalCurrency} ${originalPendingBalance} (INR: ${pendingBalanceINR})`);
-}
+          // Initialize payment history array
+          const paymentHistory = [];
+          
+          // If there's an initial payment, record it as the first transaction
+          if (amountPaidINR > 0) {
+            const initialPaymentRecord = {
+              payment_id: 'PAY-INITIAL-' + Date.now(),
+              date: new Date().toISOString(),
+              amount_foreign: originalCurrency === 'INR' ? amountPaidINR : amountPaidINR / exchangeRate,
+              currency: originalCurrency,
+              exchange_rate: exchangeRate,
+              amount_inr: amountPaidINR,
+              creation_rate: exchangeRate, // Same as current rate for initial payment
+              fx_difference: 0, // No FX difference on initial payment
+              fx_type: null,
+              reference: `Initial payment - Invoice: ${inventoryData.supplierInvoice || 'N/A'}`,
+              notes: 'Initial payment recorded at inventory creation',
+              created_by: req.user?.email || 'system',
+              created_date: new Date().toISOString()
+            };
+            paymentHistory.push(initialPaymentRecord);
+          }
+
+          const payableData = {
+            inventoryId: docRef.id,
+            supplierName: inventoryData.supplierName || inventoryData.vendor_name || 'Unknown Supplier',
+            eventName: inventoryData.event_name,
+            event_name: inventoryData.event_name,
+            event_date: inventoryData.event_date || null,
+            invoiceNumber: inventoryData.supplierInvoice || 'INV-' + Date.now(),
+            
+            // Store FULL amount, not balance
+            amount: totalAmountINR, // Always in INR for calculations
+            currency: 'INR', // Keep as INR for compatibility
+            
+            // Original amount tracking
+            original_currency: originalCurrency,
+            original_amount: originalTotalAmount, // FULL amount in original currency
+            exchange_rate: exchangeRate,
+            
+            // Creation tracking
+            creation_exchange_rate: exchangeRate,
+            creation_date: new Date().toISOString(),
+            creation_amount_inr: totalAmountINR,
+            
+            // Payment tracking
+            payment_history: paymentHistory,
+            total_paid_foreign: amountPaidINR > 0 ? (originalCurrency === 'INR' ? amountPaidINR : amountPaidINR / exchangeRate) : 0,
+            total_paid_inr: amountPaidINR,
+            remaining_amount_foreign: originalTotalAmount - (amountPaidINR > 0 ? (originalCurrency === 'INR' ? amountPaidINR : amountPaidINR / exchangeRate) : 0),
+            
+            // Status based on payment
+            status: amountPaidINR >= totalAmountINR ? 'paid' : (amountPaidINR > 0 ? 'partial' : 'pending'),
+            
+            // Metadata
+            dueDate: inventoryData.paymentDueDate || null,
+            priority: 'medium',
+            created_date: new Date().toISOString(),
+            updated_date: new Date().toISOString(),
+            createdBy: req.user.id,
+            totalPurchaseAmount: totalAmountINR,
+            amountPaid: amountPaidINR,
+            description: `Payment for inventory: ${inventoryData.event_name}`,
+            payment_notes: `Payable created - Total: ${originalCurrency} ${originalTotalAmount.toFixed(2)} (₹${totalAmountINR.toFixed(2)}), Paid: ₹${amountPaidINR.toFixed(2)}`,
+            
+            // Add tracking fields
+            last_payment_date: amountPaidINR > 0 ? new Date().toISOString() : null
+          };
+          
+          const payableRef = await db.collection('crm_payables').add(payableData);
+          console.log('✅ Payable created with ID:', payableRef.id, 
+            `Total Amount: ${originalCurrency} ${originalTotalAmount} (INR: ${totalAmountINR}), Initial Payment: ${amountPaidINR}`);
+        }
       } catch (payableError) {
         console.error('Error creating payable:', payableError);
         // Don't fail the inventory creation if payable fails
@@ -474,6 +522,7 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
           for (const doc of payablesSnapshot.docs) {
             const payableData = doc.data();
             const payableId = doc.id;
+            const payableRef = db.collection('crm_payables').doc(payableId);
             
             console.log(`Processing payable ${payableId}:`, {
               original_currency: payableData.original_currency,
@@ -481,153 +530,183 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
               status: payableData.status
             });
             
+            // Calculate payment increment
+            const oldAmountPaidINR = parseFloat(oldData.amountPaid_inr || oldData.amountPaid || 0);
+            const paymentIncrementINR = newAmountPaidINR - oldAmountPaidINR;
+            
+            console.log('Payment increment:', {
+              old: oldAmountPaidINR,
+              new: newAmountPaidINR,
+              increment: paymentIncrementINR
+            });
+            
             // Determine the update data based on payment status
             let payableUpdateData = {
-              updated_date: new Date().toISOString()
+              updated_date: new Date().toISOString(),
+              updated_by: req.user?.email || 'system'
             };
             
             if (newBalanceINR <= 0 || updateData.paymentStatus === 'paid') {
-              // MARKING AS PAID - Include exchange rate for calculation
+              // MARKING AS PAID
               payableUpdateData = {
                 ...payableUpdateData,
                 status: 'paid',
                 payment_date: new Date().toISOString(),
                 amount: 0,
                 payment_notes: 'Paid through inventory update',
-                // Include current exchange rate if foreign currency
                 ...(currency !== 'INR' && { exchange_rate: currentExchangeRate })
               };
               
-              console.log(`Marking payable ${payableId} as paid with exchange rate:`, currentExchangeRate);
-              
+              // If there's a payment increment for the final payment, add it to history
+              if (paymentIncrementINR > 0) {
+                const finalPaymentRecord = {
+                  payment_id: 'PAY-FINAL-' + Date.now(),
+                  date: new Date().toISOString(),
+                  amount_foreign: currency === 'INR' ? paymentIncrementINR : paymentIncrementINR / currentExchangeRate,
+                  currency: payableData.original_currency || payableData.currency || 'INR',
+                  exchange_rate: currentExchangeRate,
+                  amount_inr: paymentIncrementINR,
+                  reference: `Final payment - Invoice: ${updateData.supplierInvoice || oldData.supplierInvoice || 'N/A'}`,
+                  notes: 'Final payment recorded through inventory form',
+                  created_by: req.user?.email || 'system'
+                };
+                
+                payableUpdateData.payment_history = [
+                  ...(payableData.payment_history || []),
+                  finalPaymentRecord
+                ];
+                
+                // Calculate total FX impact if foreign currency
+                if (payableData.original_currency && payableData.original_currency !== 'INR') {
+                  const creationRate = payableData.creation_exchange_rate || payableData.exchange_rate || 1;
+                  const fxDifference = (finalPaymentRecord.amount_foreign * currentExchangeRate) - (finalPaymentRecord.amount_foreign * creationRate);
+                  finalPaymentRecord.fx_difference = fxDifference;
+                  finalPaymentRecord.fx_type = fxDifference > 0 ? 'loss' : 'gain';
+                }
+              }
             } else {
               // UPDATE BALANCE
               payableUpdateData = {
                 ...payableUpdateData,
                 amount: newBalanceINR,
+                status: updateData.paymentStatus === 'partial' ? 'partial' : 'pending',
                 payment_notes: `Balance updated to ₹${newBalanceINR.toFixed(2)} (Total: ₹${newTotalAmountINR} - Paid: ₹${newAmountPaidINR})`
               };
+              
+              // ADD PAYMENT HISTORY FOR PARTIAL PAYMENTS
+              if (paymentIncrementINR > 0 && updateData.paymentStatus === 'partial') {
+                const paymentRecord = {
+                  payment_id: 'PAY-' + Date.now(),
+                  date: new Date().toISOString(),
+                  amount_foreign: currency === 'INR' ? paymentIncrementINR : paymentIncrementINR / currentExchangeRate,
+                  currency: payableData.original_currency || payableData.currency || 'INR',
+                  exchange_rate: currentExchangeRate,
+                  amount_inr: paymentIncrementINR,
+                  reference: `Partial payment - Invoice: ${updateData.supplierInvoice || oldData.supplierInvoice || 'N/A'}`,
+                  notes: 'Payment recorded through inventory form',
+                  created_by: req.user?.email || 'system'
+                };
+                
+                // Calculate FX impact if foreign currency
+                if (payableData.original_currency && payableData.original_currency !== 'INR') {
+                  const creationRate = payableData.creation_exchange_rate || payableData.exchange_rate || 1;
+                  const fxDifference = (paymentRecord.amount_foreign * currentExchangeRate) - (paymentRecord.amount_foreign * creationRate);
+                  paymentRecord.fx_difference = fxDifference;
+                  paymentRecord.fx_type = fxDifference > 0 ? 'loss' : 'gain';
+                }
+                
+                payableUpdateData.payment_history = [
+                  ...(payableData.payment_history || []),
+                  paymentRecord
+                ];
+                
+                // Update totals
+                const totalPaidForeign = (payableData.payment_history || [])
+                  .reduce((sum, p) => sum + (p.amount_foreign || 0), 0) + paymentRecord.amount_foreign;
+                
+                payableUpdateData.total_paid_foreign = totalPaidForeign;
+                payableUpdateData.total_paid_inr = newAmountPaidINR;
+                payableUpdateData.last_payment_date = paymentRecord.date;
+                payableUpdateData.remaining_amount_foreign = (payableData.original_amount || 0) - totalPaidForeign;
+                
+                console.log('Recording partial payment:', paymentRecord);
+              }
             }
             
-            // Make internal API call to payables PUT endpoint to trigger exchange calculation
-            try {
-              // Use the payables collection to update via Firestore (similar to PUT endpoint logic)
-              const payableRef = db.collection('crm_payables').doc(payableId);
-              
-              // If marking as paid and foreign currency, calculate exchange difference
-              if (payableUpdateData.status === 'paid' && payableData.status !== 'paid') {
-                // Check both currency and original_currency fields
-                const payableCurrency = payableData.original_currency || payableData.currency;
-                
-                if (payableCurrency && payableCurrency !== 'INR') {
-                  console.log('Calculating exchange difference for payable:', {
-                    currency: payableCurrency,
-                    original_amount: payableData.original_amount,
-                    creation_rate: payableData.creation_exchange_rate || payableData.exchange_rate,
-                    current_rate: currentExchangeRate
-                  });
-                  
-                  const originalAmount = payableData.original_amount || (payableData.amount / payableData.exchange_rate);
-                  const creationRate = payableData.creation_exchange_rate || payableData.exchange_rate || 1;
-                  
-                  const paymentAmountINR = originalAmount * currentExchangeRate;
-                  const creationAmountINR = payableData.creation_amount_inr || (originalAmount * creationRate);
-                  
-                  payableUpdateData.payment_exchange_rate = currentExchangeRate;
-                  payableUpdateData.payment_amount_inr = paymentAmountINR;
-                  payableUpdateData.exchange_difference = paymentAmountINR - creationAmountINR;
-                  payableUpdateData.exchange_difference_type = payableUpdateData.exchange_difference > 0 ? 'loss' : 'gain';
-                  
-                  console.log('Exchange calculation result:', {
-                    creation_inr: creationAmountINR,
-                    payment_inr: paymentAmountINR,
-                    difference: payableUpdateData.exchange_difference,
-                    type: payableUpdateData.exchange_difference_type
-                  });
-
-                  // Calculate FX impact (add this BEFORE const paymentRecord = {...})
-                    const payableCreationRate = payableData.creation_exchange_rate || payableData.exchange_rate || exchangeRate;
-                    const paymentAmountForeign = currency === 'INR' ? paymentIncrement : paymentIncrement / exchangeRate;
-                    
-                    // How much INR it would have cost at creation vs now
-                    const creationValueINR = paymentAmountForeign * payableCreationRate;
-                    const currentValueINR = paymentAmountForeign * exchangeRate;
-                    const fxDifference = currentValueINR - creationValueINR;
-                    const fxType = fxDifference > 0 ? 'loss' : 'gain';
-                  
-                  // Add to payment history
-                  const paymentRecord = {
-                    date: payableUpdateData.payment_date,
-                    amount_foreign: originalAmount,
-                    exchange_rate: currentExchangeRate,
-                    amount_inr: paymentAmountINR,
-                    difference: payableUpdateData.exchange_difference,
-                    reference: 'Inventory payment',
-                    created_by: req.user.email,
-                    fx_difference: fxDifference,
-                    fx_type: fxType,
-                    fx_note: `Exchange ${fxType}: ₹${Math.abs(fxDifference).toFixed(2)}`
-                  };
-                  
-                  payableUpdateData.payment_history = [...(payableData.payment_history || []), paymentRecord];
-                }
-              }
-              
-              // Update the payable
-              await payableRef.update(payableUpdateData);
-              console.log(`✅ Payable ${payableId} updated successfully`);
-              
-            } catch (payableUpdateError) {
-              console.error(`Error updating payable ${payableId}:`, payableUpdateError);
-            }
+            // Update the payable
+            await payableRef.update(payableUpdateData);
+            console.log(`✅ Payable ${payableId} updated successfully with payment history`);
+            
           }
           
           console.log('All payables updated successfully');
           
         } else {
-          // CREATE NEW PAYABLE IF NONE EXISTS AND BALANCE > 0
-          if (newBalanceINR > 0 && updateData.paymentStatus !== 'paid') {
-            console.log(`Creating new payable for pending balance: ${newBalanceINR}`);
+          // REVAMPED: CREATE NEW PAYABLE IF NONE EXISTS AND TOTAL > 0
+          if (newTotalAmountINR > 0 && updateData.paymentStatus !== 'paid') {
+            console.log(`Creating new payable for total amount: ${newTotalAmountINR}`);
 
             // Calculate original currency values
             const originalCurrency = updateData.purchase_currency || oldData.purchase_currency || 
                                     updateData.price_currency || oldData.price_currency || 'INR';
             const exchangeRate = updateData.purchase_exchange_rate || oldData.purchase_exchange_rate || 
                                 updateData.exchange_rate || oldData.exchange_rate || 1;
-            const originalNewBalance = originalCurrency === 'INR' 
-              ? newBalanceINR 
-              : newBalanceINR / exchangeRate;
+            const originalTotalAmount = originalCurrency === 'INR' 
+              ? newTotalAmountINR 
+              : newTotalAmountINR / exchangeRate;
+
+            // Initialize payment history with any existing payment
+            const paymentHistory = [];
+            if (newAmountPaidINR > 0) {
+              paymentHistory.push({
+                payment_id: 'PAY-INITIAL-' + Date.now(),
+                date: new Date().toISOString(),
+                amount_foreign: originalCurrency === 'INR' ? newAmountPaidINR : newAmountPaidINR / exchangeRate,
+                currency: originalCurrency,
+                exchange_rate: exchangeRate,
+                amount_inr: newAmountPaidINR,
+                reference: `Initial payment - Invoice: ${updateData.supplierInvoice || oldData.supplierInvoice || 'N/A'}`,
+                notes: 'Initial payment recorded during inventory update',
+                created_by: req.user?.email || 'system'
+              });
+            }
 
             const newPayable = {
               inventoryId: id,
-              amount: newBalanceINR, // Always in INR for calculations
-              currency: originalCurrency, // Set actual currency
+              amount: newTotalAmountINR, // Store FULL amount, not balance
+              currency: originalCurrency,
               // Add original currency fields
               original_currency: originalCurrency,
-              original_amount: originalNewBalance,
+              original_amount: originalTotalAmount, // FULL amount in original currency
               exchange_rate: exchangeRate,
               // Store creation exchange rate
               creation_exchange_rate: exchangeRate,
               creation_date: new Date().toISOString(),
-              creation_amount_inr: newBalanceINR,
-              status: 'pending',
+              creation_amount_inr: newTotalAmountINR,
+              // Payment tracking
+              payment_history: paymentHistory,
+              total_paid_foreign: newAmountPaidINR > 0 ? (originalCurrency === 'INR' ? newAmountPaidINR : newAmountPaidINR / exchangeRate) : 0,
+              total_paid_inr: newAmountPaidINR,
+              remaining_amount_foreign: originalTotalAmount - (newAmountPaidINR > 0 ? (originalCurrency === 'INR' ? newAmountPaidINR : newAmountPaidINR / exchangeRate) : 0),
+              status: newAmountPaidINR >= newTotalAmountINR ? 'paid' : (newAmountPaidINR > 0 ? 'partial' : 'pending'),
               supplierName: updateData.supplierName || oldData.supplierName || updateData.vendor_name || oldData.vendor_name || 'Unknown Supplier',
               event_name: updateData.event_name || oldData.event_name || 'Unknown Event',
               event_date: updateData.event_date || oldData.event_date || null,
               totalPurchaseAmount: newTotalAmountINR,
               amountPaid: newAmountPaidINR,
               created_date: new Date().toISOString(),
-              payment_notes: `Created from inventory update - Balance: ${originalCurrency} ${originalNewBalance.toFixed(2)} (₹${newBalanceINR.toFixed(2)})`,
+              payment_notes: `Payable created - Total: ${originalCurrency} ${originalTotalAmount.toFixed(2)} (₹${newTotalAmountINR.toFixed(2)}), Paid: ₹${newAmountPaidINR.toFixed(2)}`,
               priority: 'medium',
-              dueDate: updateData.paymentDueDate || oldData.paymentDueDate || null
+              dueDate: updateData.paymentDueDate || oldData.paymentDueDate || null,
+              last_payment_date: newAmountPaidINR > 0 ? new Date().toISOString() : null
             };
 
             console.log('About to create payable with data:', JSON.stringify(newPayable, null, 2));
             const docRef = await db.collection('crm_payables').add(newPayable);
-            console.log(`✅ New payable created with ID: ${docRef.id} Amount: ${originalCurrency} ${originalNewBalance} (INR: ${newBalanceINR})`);
+            console.log(`✅ New payable created with ID: ${docRef.id} Total Amount: ${originalCurrency} ${originalTotalAmount} (INR: ${newTotalAmountINR})`);
             
           } else {
-            console.log('No payable needed - balance is 0 or item is fully paid');
+            console.log('No payable needed - total is 0 or item is fully paid');
           }
         }
         
