@@ -486,28 +486,51 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
               updated_date: new Date().toISOString()
             };
             
-            if (newBalanceINR <= 0 || updateData.paymentStatus === 'paid') {
-              // MARKING AS PAID - Include exchange rate for calculation
-              payableUpdateData = {
-                ...payableUpdateData,
-                status: 'paid',
-                payment_date: new Date().toISOString(),
-                amount: 0,
-                payment_notes: 'Paid through inventory update',
-                // Include current exchange rate if foreign currency
-                ...(currency !== 'INR' && { exchange_rate: currentExchangeRate })
-              };
-              
-              console.log(`Marking payable ${payableId} as paid with exchange rate:`, currentExchangeRate);
-              
-            } else {
-              // UPDATE BALANCE
-              payableUpdateData = {
-                ...payableUpdateData,
-                amount: newBalanceINR,
-                payment_notes: `Balance updated to ₹${newBalanceINR.toFixed(2)} (Total: ₹${newTotalAmountINR} - Paid: ₹${newAmountPaidINR})`
-              };
-            }
+// Calculate payment increment
+const oldAmountPaidINR = parseFloat(oldData.amountPaid_inr || oldData.amountPaid || 0);
+const paymentIncrementINR = newAmountPaidINR - oldAmountPaidINR;
+
+if (newBalanceINR <= 0 || updateData.paymentStatus === 'paid') {
+  // MARKING AS PAID - Keep your existing code here
+  payableUpdateData = {
+    ...payableUpdateData,
+    status: 'paid',
+    payment_date: new Date().toISOString(),
+    amount: 0,
+    payment_notes: 'Paid through inventory update',
+    ...(currency !== 'INR' && { exchange_rate: currentExchangeRate })
+  };
+} else {
+  // UPDATE BALANCE
+  payableUpdateData = {
+    ...payableUpdateData,
+    amount: newBalanceINR,
+    status: updateData.paymentStatus === 'partial' ? 'partial' : 'pending',
+    payment_notes: `Balance updated to ₹${newBalanceINR.toFixed(2)} (Total: ₹${newTotalAmountINR} - Paid: ₹${newAmountPaidINR})`
+  };
+  
+  // ADD PAYMENT HISTORY FOR PARTIAL PAYMENTS
+  if (paymentIncrementINR > 0 && updateData.paymentStatus === 'partial') {
+    const paymentRecord = {
+      payment_id: 'PAY-' + Date.now(),
+      date: new Date().toISOString(),
+      amount_foreign: currency === 'INR' ? paymentIncrementINR : paymentIncrementINR / currentExchangeRate,
+      currency: payableData.original_currency || payableData.currency || 'INR',
+      exchange_rate: currentExchangeRate,
+      amount_inr: paymentIncrementINR,
+      reference: `Partial payment - Invoice: ${updateData.supplierInvoice || 'N/A'}`,
+      notes: 'Payment recorded through inventory form',
+      created_by: req.user?.email || 'system'
+    };
+    
+    payableUpdateData.payment_history = [
+      ...(payableData.payment_history || []),
+      paymentRecord
+    ];
+    
+    console.log('Recording partial payment:', paymentRecord);
+  }
+}
             
             // Make internal API call to payables PUT endpoint to trigger exchange calculation
             try {
