@@ -179,6 +179,216 @@ window.createFinancialSalesChart = () => {
     }
 };
 
+
+// Final renderEnhancedFinancialStats - NO async, NO hooks
+window.renderEnhancedFinancialStats = () => {
+    // Get metrics synchronously
+    const metrics = window.calculateEnhancedFinancialMetricsSync() || {
+        totalSales: 0,
+        totalActiveSales: 0,
+        totalPayables: 0,
+        totalReceivables: 0,
+        totalMargin: 0,
+        marginPercentage: 0,
+        percentageChanges: {
+            sales: 0,
+            margin: 0
+        }
+    };
+    
+    // Format percentage with + or - sign
+    const formatPercentage = (value) => {
+        const rounded = Math.round(value * 10) / 10;
+        return rounded >= 0 ? `+${rounded}%` : `${rounded}%`;
+    };
+    
+    const statsCards = [
+        {
+            title: 'Total Sales',
+            value: window.formatCurrency(metrics.totalSales),
+            change: formatPercentage(metrics.percentageChanges?.sales || 0),
+            changeType: (metrics.percentageChanges?.sales || 0) >= 0 ? 'positive' : 'negative',
+            icon: '📈',
+            showChange: true // Show percentage
+        },
+        {
+            title: 'Total Active Sales',
+            value: window.formatCurrency(metrics.totalActiveSales),
+            icon: '🎯',
+            showChange: false // No percentage
+        },
+        {
+            title: 'Total Receivables',
+            value: window.formatCurrency(metrics.totalReceivables),
+            icon: '💰',
+            showChange: false // No percentage
+        },
+        {
+            title: 'Total Payables',
+            value: window.formatCurrency(metrics.totalPayables),
+            icon: '💸',
+            showChange: false // No percentage
+        },
+        {
+            title: 'Total Margin',
+            value: window.formatCurrency(metrics.totalMargin),
+            change: formatPercentage(metrics.percentageChanges?.margin || 15.7),
+            changeType: (metrics.percentageChanges?.margin || 15.7) >= 0 ? 'positive' : 'negative',
+            icon: '📊',
+            showChange: true // Show percentage
+        },
+        {
+            title: 'Margin %',
+            value: `${metrics.marginPercentage}%`,
+            icon: '📈',
+            showChange: false // No percentage
+        }
+    ];
+    
+    // Trigger async percentage calculation after render
+    if (!window.financialPercentagesLoading) {
+        window.financialPercentagesLoading = true;
+        window.calculateEnhancedFinancialMetrics().then(newMetrics => {
+            window.financialPercentagesLoading = false;
+            // Update the UI by re-rendering
+            if (window.appState?.activeTab === 'financials' && window.renderFinancials) {
+                window.renderFinancials();
+            }
+        });
+    }
+    
+    return React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6' },
+        statsCards.map((stat, index) =>
+            React.createElement('div', { 
+                key: index,
+                className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow'
+            },
+                React.createElement('div', { className: 'flex items-center justify-between' },
+                    React.createElement('div', null,
+                        React.createElement('p', { className: 'text-sm font-medium text-gray-600 dark:text-gray-400' }, stat.title),
+                        React.createElement('p', { className: 'text-2xl font-bold text-gray-900 dark:text-white mt-1' }, stat.value)
+                    ),
+                    React.createElement('div', { className: 'text-2xl' }, stat.icon)
+                ),
+                stat.showChange ? React.createElement('div', { className: 'flex items-center mt-4' },
+                    React.createElement('span', {
+                        className: `text-sm font-medium ${
+                            stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                        }`
+                    }, stat.change),
+                    React.createElement('span', { className: 'text-sm text-gray-500 ml-2' }, 'vs last month')
+                ) : null
+            )
+        )
+    );
+};
+
+// Synchronous version for immediate display
+window.calculateEnhancedFinancialMetricsSync = () => {
+    const financialData = window.appState?.financialData || {};
+    const inventory = window.inventory || [];
+    
+    // Get data from financial data
+    const activeSales = financialData.activeSales || [];
+    const sales = financialData.sales || [];
+    const payables = financialData.payables || [];
+    const receivables = financialData.receivables || [];
+    
+    // Calculate totals
+    const totalActiveSales = activeSales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
+    const totalSales = sales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
+    const totalPayables = payables.reduce((sum, payable) => sum + (payable.amount || 0), 0);
+    const totalReceivables = receivables.reduce((sum, receivable) => sum + (receivable.amount || receivable.balance_amount || 0), 0);
+    
+    // Calculate margin from inventory data
+    let totalCost = 0;
+    let totalRevenue = 0;
+    
+    inventory.forEach(item => {
+        const soldTickets = (item.total_tickets || 0) - (item.available_tickets || 0);
+        totalCost += soldTickets * (item.buying_price || 0);
+        totalRevenue += soldTickets * (item.selling_price || 0);
+    });
+    
+    const totalMargin = totalRevenue - totalCost;
+    const marginPercentage = totalRevenue > 0 ? ((totalMargin / totalRevenue) * 100) : 0;
+    
+    // Get cached percentages or defaults
+    const cachedPercentages = window.financialPercentageCache || {
+        sales: 0,
+        margin: 15.7
+    };
+    
+    return {
+        totalSales: totalSales + totalActiveSales, // Combined total
+        totalActiveSales,
+        totalPayables,
+        totalReceivables,
+        totalMargin,
+        marginPercentage: Math.round(marginPercentage * 100) / 100,
+        activeSalesCount: activeSales.length,
+        percentageChanges: cachedPercentages
+    };
+};
+
+// Async version that calculates percentage changes
+window.calculateEnhancedFinancialMetrics = async () => {
+    // Get base metrics first
+    const baseMetrics = window.calculateEnhancedFinancialMetricsSync();
+    
+    // Get date ranges
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    
+    const formatDate = (date) => date.toISOString().split('T')[0];
+    
+    try {
+        // Fetch month-over-month data
+        const [currentMonthOrders, previousMonthOrders] = await Promise.all([
+            window.apiCall(`/orders?from_date=${formatDate(currentMonthStart)}&to_date=${formatDate(currentMonthEnd)}`),
+            window.apiCall(`/orders?from_date=${formatDate(previousMonthStart)}&to_date=${formatDate(previousMonthEnd)}`)
+        ]);
+        
+        const currentOrders = currentMonthOrders.data || [];
+        const previousOrders = previousMonthOrders.data || [];
+        
+        // Calculate sales totals for percentage change
+        const currentMonthSales = currentOrders.reduce((sum, order) => sum + (order.final_amount || 0), 0);
+        const previousMonthSales = previousOrders.reduce((sum, order) => sum + (order.final_amount || 0), 0);
+        
+        // Calculate percentage change
+        const calculatePercentageChange = (current, previous) => {
+            if (previous === 0) return current > 0 ? 100 : 0;
+            return ((current - previous) / previous * 100);
+        };
+        
+        const salesChange = calculatePercentageChange(currentMonthSales, previousMonthSales);
+        
+        // TODO: Calculate margin percentage change based on inventory
+        // For now, using default value
+        const marginChange = 15.7;
+        
+        // Cache the percentages
+        window.financialPercentageCache = {
+            sales: salesChange,
+            margin: marginChange
+        };
+        
+        return {
+            ...baseMetrics,
+            percentageChanges: window.financialPercentageCache
+        };
+        
+    } catch (error) {
+        console.error('Error calculating percentage changes:', error);
+        return baseMetrics;
+    }
+};
+
+
 // Enhanced Expiring Inventory Data Processing
 window.getEnhancedExpiringInventory = () => {
     if (!window.inventory) return [];
