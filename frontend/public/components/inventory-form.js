@@ -1,6 +1,244 @@
 // Enhanced Inventory Form with REAL Categories Implementation
 // Uses your existing patterns without React hooks
 
+// Enhanced Currency Section for Inventory Form
+// Add this to your inventory-form.js file
+
+// 1. Currency Selection Section - Add this after the event basic details
+window.renderInventoryCurrencySection = () => {
+  const formData = window.formData || {};
+  
+  // Get current exchange rates from the currency ticker
+  const currentRates = window.currentExchangeRates || {
+    USD: 83.50,
+    EUR: 90.20,
+    GBP: 105.50,
+    AED: 22.75
+  };
+  
+  const currency = formData.price_currency || 'INR';
+  const exchangeRate = formData.exchange_rate || currentRates[currency] || 1;
+  
+  return React.createElement('div', { className: 'mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700' },
+    React.createElement('h3', { className: 'text-lg font-semibold text-purple-800 dark:text-purple-200 mb-4' }, 
+      '💱 Currency & Pricing Configuration'
+    ),
+    
+    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4' },
+      // Currency Selection
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
+          'Price Currency *'
+        ),
+        React.createElement('select', {
+          value: formData.price_currency || 'INR',
+          onChange: (e) => {
+            const newCurrency = e.target.value;
+            window.handleFormDataChange('price_currency', newCurrency);
+            
+            // Auto-update exchange rate when currency changes
+            if (newCurrency !== 'INR') {
+              const rate = currentRates[newCurrency] || 1;
+              window.handleFormDataChange('exchange_rate', rate);
+            } else {
+              window.handleFormDataChange('exchange_rate', 1);
+            }
+          },
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-purple-500'
+        },
+          React.createElement('option', { value: 'INR' }, 'INR (Indian Rupees)'),
+          React.createElement('option', { value: 'USD' }, 'USD (US Dollars)'),
+          React.createElement('option', { value: 'EUR' }, 'EUR (Euros)'),
+          React.createElement('option', { value: 'GBP' }, 'GBP (British Pounds)'),
+          React.createElement('option', { value: 'AED' }, 'AED (UAE Dirham)')
+        )
+      ),
+      
+      // Exchange Rate (Only show for non-INR)
+      currency !== 'INR' && React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
+          'Exchange Rate (1 ' + currency + ' = ₹)'
+        ),
+        React.createElement('div', { className: 'flex items-center gap-2' },
+          React.createElement('input', {
+            type: 'number',
+            value: formData.exchange_rate || exchangeRate,
+            onChange: (e) => {
+              window.handleFormDataChange('exchange_rate', parseFloat(e.target.value) || 0);
+            },
+            className: 'flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-purple-500',
+            step: 0.01,
+            min: 0
+          }),
+          React.createElement('button', {
+            type: 'button',
+            onClick: () => {
+              const currentRate = currentRates[currency] || 1;
+              window.handleFormDataChange('exchange_rate', currentRate);
+            },
+            className: 'px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm',
+            title: 'Use current market rate'
+          }, '↻')
+        )
+      ),
+      
+      // Currency Info
+      currency !== 'INR' && React.createElement('div', { className: 'flex items-center p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded' },
+        React.createElement('div', { className: 'text-sm' },
+          React.createElement('div', { className: 'font-medium text-yellow-800 dark:text-yellow-200' }, 
+            '💡 Multi-Currency Mode Active'
+          ),
+          React.createElement('div', { className: 'text-xs text-yellow-700 dark:text-yellow-300 mt-1' }, 
+            'All amounts will be converted to INR for reporting'
+          )
+        )
+      )
+    ),
+    
+    // Note about pricing
+    React.createElement('div', { className: 'mt-3 text-xs text-gray-600 dark:text-gray-400' },
+      '📌 Enter all prices in ', currency, '. INR equivalents will be calculated automatically and stored for financial reporting.'
+    )
+  );
+};
+
+// 3. Enhanced Payment Section with Currency
+window.renderEnhancedPaymentSection = () => {
+  const formData = window.formData || {};
+  const isFromPayables = window.editingInventory?._payableContext?.fromPayables;
+  const currency = formData.price_currency || 'INR';
+  const exchangeRate = formData.exchange_rate || 1;
+  
+  // Calculate amount paid in INR
+  const amountPaid = parseFloat(formData.amountPaid) || 0;
+  const amountPaidINR = currency === 'INR' ? amountPaid : amountPaid * exchangeRate;
+  
+  return React.createElement('div', { className: 'mb-6 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg' },
+    React.createElement('h3', { className: 'text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center' }, 
+      '💰 Payment Information',
+      isFromPayables && React.createElement('span', { 
+        className: 'ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded' 
+      }, 'From Payables')
+    ),
+    
+    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+      // Payment Status
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
+          'Payment Status *'
+        ),
+        React.createElement('select', {
+          value: formData.paymentStatus || 'pending',
+          onChange: (e) => window.handleFormDataChange('paymentStatus', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-orange-500',
+          required: true
+        },
+          React.createElement('option', { value: 'pending' }, 'Pending'),
+          React.createElement('option', { value: 'paid' }, 'Paid')
+        )
+      ),
+      
+      // Total Purchase Amount (readonly, calculated)
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
+          `Total Purchase Amount (${currency})`
+        ),
+        React.createElement('input', {
+          type: 'number',
+          value: formData.totalPurchaseAmount || 0,
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-100 dark:text-gray-400 rounded-md',
+          readOnly: true
+        }),
+        currency !== 'INR' && React.createElement('div', { 
+          className: 'text-xs text-green-600 dark:text-green-400 mt-1' 
+        }, 
+          '₹ ' + ((formData.totalPurchaseAmount || 0) * exchangeRate).toFixed(2)
+        )
+      ),
+      
+      // Amount Paid
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
+          `Amount Paid (${currency})`
+        ),
+        React.createElement('input', {
+          type: 'number',
+          value: formData.amountPaid || '',
+          onChange: (e) => {
+            const value = parseFloat(e.target.value) || 0;
+            window.handleFormDataChange('amountPaid', value);
+            window.handleFormDataChange('amountPaid_inr', currency === 'INR' ? value : value * exchangeRate);
+          },
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-orange-500',
+          min: '0',
+          step: '0.01'
+        }),
+        currency !== 'INR' && React.createElement('div', { 
+          className: 'text-xs text-green-600 dark:text-green-400 mt-1' 
+        }, 
+          '₹ ' + amountPaidINR.toFixed(2)
+        )
+      ),
+      
+      // Supplier Name
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
+          'Supplier Name'
+        ),
+        React.createElement('input', {
+          type: 'text',
+          value: formData.supplierName || '',
+          onChange: (e) => window.handleFormDataChange('supplierName', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-orange-500',
+          placeholder: 'Enter supplier name'
+        })
+      ),
+      
+      // Supplier Invoice
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
+          'Supplier Invoice #'
+        ),
+        React.createElement('input', {
+          type: 'text',
+          value: formData.supplierInvoice || '',
+          onChange: (e) => window.handleFormDataChange('supplierInvoice', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-orange-500',
+          placeholder: 'Enter invoice number'
+        })
+      ),
+      
+      // Payment Due Date
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
+          'Payment Due Date'
+        ),
+        React.createElement('input', {
+          type: 'date',
+          value: formData.paymentDueDate || '',
+          onChange: (e) => window.handleFormDataChange('paymentDueDate', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-orange-500'
+        })
+      )
+    ),
+    
+    // Balance calculation
+    React.createElement('div', { className: 'mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded' },
+      React.createElement('div', { className: 'flex justify-between items-center' },
+        React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 
+          'Balance Due:'
+        ),
+        React.createElement('span', { className: 'font-bold text-lg text-red-600 dark:text-red-400' }, 
+          currency + ' ' + ((formData.totalPurchaseAmount || 0) - (formData.amountPaid || 0)).toFixed(2),
+          currency !== 'INR' && React.createElement('span', { className: 'text-sm ml-2' },
+            '(₹ ' + (((formData.totalPurchaseAmount || 0) - (formData.amountPaid || 0)) * exchangeRate).toFixed(2) + ')'
+          )
+        )
+      )
+    )
+  );
+};
+
 window.renderInventoryForm = () => {
   if (!window.showInventoryForm || !window.editingInventory) return null;
 
@@ -41,6 +279,10 @@ window.renderInventoryForm = () => {
     }
   }
 
+  // Get currency info
+  const currency = window.formData.price_currency || 'INR';
+  const exchangeRate = window.formData.exchange_rate || 1;
+
   // Category management functions
   const addCategory = () => {
     const newCategory = {
@@ -60,31 +302,40 @@ window.renderInventoryForm = () => {
   };
 
   const removeCategory = (index) => {
-  if (window.formData.categories.length > 1) {
-    const updatedCategories = window.formData.categories.filter((_, i) => i !== index);
-    window.handleFormDataChange('categories', updatedCategories);
-  } else {
-    alert('You must have at least one ticket category');
-  }
-};
-
-const updateCategory = (index, field, value) => {
-  // Create a new array to trigger React re-render
-  const updatedCategories = [...window.formData.categories];
-  updatedCategories[index] = {
-    ...updatedCategories[index],
-    [field]: value
+    if (window.formData.categories.length > 1) {
+      const updatedCategories = window.formData.categories.filter((_, i) => i !== index);
+      window.handleFormDataChange('categories', updatedCategories);
+    } else {
+      alert('You must have at least one ticket category');
+    }
   };
 
+  const updateCategory = (index, field, value) => {
+    // Create a new array to trigger React re-render
+    const updatedCategories = [...window.formData.categories];
+    updatedCategories[index] = {
+      ...updatedCategories[index],
+      [field]: value
+    };
+
+    // Calculate INR values if currency is not INR
+    if (currency !== 'INR') {
+      if (field === 'buying_price') {
+        updatedCategories[index].buying_price_inr = (parseFloat(value) || 0) * exchangeRate;
+      } else if (field === 'selling_price') {
+        updatedCategories[index].selling_price_inr = (parseFloat(value) || 0) * exchangeRate;
+      }
+    }
+
     // Use handleFormDataChange to properly update state
-  window.handleFormDataChange('categories', updatedCategories);
-  
-  // Update totals when ticket numbers change
-  if (['total_tickets', 'available_tickets'].includes(field)) {
-    // Delay this slightly to ensure state is updated first
-    setTimeout(() => updateInventoryTotals(), 0);
-  }
-};
+    window.handleFormDataChange('categories', updatedCategories);
+    
+    // Update totals when ticket numbers or prices change
+    if (['total_tickets', 'available_tickets', 'buying_price', 'selling_price'].includes(field)) {
+      // Delay this slightly to ensure state is updated first
+      setTimeout(() => updateInventoryTotals(), 0);
+    }
+  };
 
   // Update main inventory totals based on categories
   const updateInventoryTotals = () => {
@@ -92,18 +343,21 @@ const updateCategory = (index, field, value) => {
       const totalTickets = parseInt(cat.total_tickets) || 0;
       const availableTickets = parseInt(cat.available_tickets) || 0;
       const buyingPrice = parseFloat(cat.buying_price) || 0;
+      const buyingPriceINR = currency === 'INR' ? buyingPrice : buyingPrice * exchangeRate;
       
       return {
         totalTickets: acc.totalTickets + totalTickets,
         availableTickets: acc.availableTickets + availableTickets,
-        totalCost: acc.totalCost + (buyingPrice * totalTickets)
+        totalCost: acc.totalCost + (buyingPrice * totalTickets),
+        totalCostINR: acc.totalCostINR + (buyingPriceINR * totalTickets)
       };
-    }, { totalTickets: 0, availableTickets: 0, totalCost: 0 });
+    }, { totalTickets: 0, availableTickets: 0, totalCost: 0, totalCostINR: 0 });
 
     // Update main form fields
     window.handleFormDataChange('total_tickets', totals.totalTickets);
     window.handleFormDataChange('available_tickets', totals.availableTickets);
     window.handleFormDataChange('totalPurchaseAmount', totals.totalCost);
+    window.handleFormDataChange('totalPurchaseAmount_inr', totals.totalCostINR);
   };
 
   const categories = window.formData.categories || [];
@@ -115,14 +369,18 @@ const updateCategory = (index, field, value) => {
       const availableTickets = parseInt(cat.available_tickets) || 0;
       const buyingPrice = parseFloat(cat.buying_price) || 0;
       const sellingPrice = parseFloat(cat.selling_price) || 0;
+      const buyingPriceINR = currency === 'INR' ? buyingPrice : buyingPrice * exchangeRate;
+      const sellingPriceINR = currency === 'INR' ? sellingPrice : sellingPrice * exchangeRate;
       
       return {
         totalTickets: acc.totalTickets + totalTickets,
         availableTickets: acc.availableTickets + availableTickets,
         totalCost: acc.totalCost + (buyingPrice * totalTickets),
-        potentialRevenue: acc.potentialRevenue + (sellingPrice * totalTickets)
+        totalCostINR: acc.totalCostINR + (buyingPriceINR * totalTickets),
+        potentialRevenue: acc.potentialRevenue + (sellingPrice * totalTickets),
+        potentialRevenueINR: acc.potentialRevenueINR + (sellingPriceINR * totalTickets)
       };
-    }, { totalTickets: 0, availableTickets: 0, totalCost: 0, potentialRevenue: 0 });
+    }, { totalTickets: 0, availableTickets: 0, totalCost: 0, totalCostINR: 0, potentialRevenue: 0, potentialRevenueINR: 0 });
   };
 
   const totals = calculateTotals();
@@ -143,6 +401,10 @@ const updateCategory = (index, field, value) => {
       ),
 
       React.createElement('form', { onSubmit: window.handleInventoryFormSubmit },
+        
+        // Currency Configuration Section
+        window.renderInventoryCurrencySection(),
+
         // CATEGORIES SECTION
         React.createElement('div', { className: 'mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg' },
           React.createElement('div', { className: 'flex justify-between items-center mb-4' },
@@ -234,10 +496,10 @@ const updateCategory = (index, field, value) => {
                   })
                 ),
 
-                // Buying Price
+                // Buying Price with INR display
                 React.createElement('div', null,
                   React.createElement('label', { className: 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1' }, 
-                    'Buying Price *'
+                    `Buying Price (${currency}) *`
                   ),
                   React.createElement('input', {
                     type: 'number',
@@ -247,13 +509,18 @@ const updateCategory = (index, field, value) => {
                     required: true,
                     min: '0',
                     step: '0.01'
-                  })
+                  }),
+                  currency !== 'INR' && React.createElement('div', { 
+                    className: 'text-xs text-green-600 dark:text-green-400 mt-1' 
+                  }, 
+                    '₹ ' + ((parseFloat(category.buying_price) || 0) * exchangeRate).toFixed(2)
+                  )
                 ),
 
-                // Selling Price
+                // Selling Price with INR display
                 React.createElement('div', null,
                   React.createElement('label', { className: 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1' }, 
-                    'Selling Price *'
+                    `Selling Price (${currency}) *`
                   ),
                   React.createElement('input', {
                     type: 'number',
@@ -263,7 +530,12 @@ const updateCategory = (index, field, value) => {
                     required: true,
                     min: '0',
                     step: '0.01'
-                  })
+                  }),
+                  currency !== 'INR' && React.createElement('div', { 
+                    className: 'text-xs text-green-600 dark:text-green-400 mt-1' 
+                  }, 
+                    '₹ ' + ((parseFloat(category.selling_price) || 0) * exchangeRate).toFixed(2)
+                  )
                 ),
 
                 // Inclusions (full width)
@@ -279,11 +551,26 @@ const updateCategory = (index, field, value) => {
                     placeholder: 'e.g., Grandstand seat, event program, parking'
                   })
                 )
+              ),
+              
+              // Category margin display
+              currency !== 'INR' && React.createElement('div', { 
+                className: 'mt-3 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs' 
+              },
+                React.createElement('div', { className: 'flex justify-between' },
+                  React.createElement('span', { className: 'text-gray-600 dark:text-gray-400' }, 
+                    'Margin per ticket:'
+                  ),
+                  React.createElement('span', { className: 'font-medium' }, 
+                    currency + ' ' + ((parseFloat(category.selling_price) || 0) - (parseFloat(category.buying_price) || 0)).toFixed(2) +
+                    ' (₹ ' + (((parseFloat(category.selling_price) || 0) - (parseFloat(category.buying_price) || 0)) * exchangeRate).toFixed(2) + ')'
+                  )
+                )
               )
             )
           ),
 
-          // Summary Stats
+          // Summary Stats with INR
           React.createElement('div', { className: 'bg-blue-50 dark:bg-blue-900 p-4 rounded-lg' },
             React.createElement('h4', { className: 'font-medium text-blue-900 dark:text-blue-100 mb-2' }, 
               '📊 Summary'
@@ -303,19 +590,28 @@ const updateCategory = (index, field, value) => {
               ),
               React.createElement('div', null,
                 React.createElement('span', { className: 'text-blue-700 dark:text-blue-300' }, 'Total Cost: '),
-                React.createElement('span', { className: 'font-semibold text-blue-900 dark:text-blue-100' }, 
-                  '₹' + totals.totalCost.toLocaleString('en-IN')
+                React.createElement('div', { className: 'font-semibold text-blue-900 dark:text-blue-100' }, 
+                  currency + ' ' + totals.totalCost.toFixed(2),
+                  currency !== 'INR' && React.createElement('div', { className: 'text-xs text-green-600' },
+                    '(₹ ' + totals.totalCostINR.toFixed(2) + ')'
+                  )
                 )
               ),
               React.createElement('div', null,
                 React.createElement('span', { className: 'text-blue-700 dark:text-blue-300' }, 'Potential Revenue: '),
-                React.createElement('span', { className: 'font-semibold text-blue-900 dark:text-blue-100' }, 
-                  '₹' + totals.potentialRevenue.toLocaleString('en-IN')
+                React.createElement('div', { className: 'font-semibold text-blue-900 dark:text-blue-100' }, 
+                  currency + ' ' + totals.potentialRevenue.toFixed(2),
+                  currency !== 'INR' && React.createElement('div', { className: 'text-xs text-green-600' },
+                    '(₹ ' + totals.potentialRevenueINR.toFixed(2) + ')'
+                  )
                 )
               )
             )
           )
         ),
+
+        // Enhanced Payment Section
+        window.renderEnhancedPaymentSection(),
 
         // EXISTING FORM FIELDS
         React.createElement('div', { className: 'mt-6' },
@@ -324,9 +620,11 @@ const updateCategory = (index, field, value) => {
           ),
           React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' },
             window.inventoryFormFields.map(field => {
-              // Skip fields that are now handled by categories
+              // Skip fields that are now handled by categories or payment section
               if (['category_of_ticket', 'total_tickets', 'available_tickets', 'mrp_of_ticket', 
-                   'buying_price', 'selling_price', 'stand', 'inclusions'].includes(field.name)) {
+                   'buying_price', 'selling_price', 'stand', 'inclusions', 
+                   'paymentStatus', 'supplierName', 'supplierInvoice', 'purchasePrice',
+                   'totalPurchaseAmount', 'amountPaid', 'paymentDueDate'].includes(field.name)) {
                 return null;
               }
               
