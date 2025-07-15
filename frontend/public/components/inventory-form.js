@@ -240,9 +240,8 @@ window.renderEnhancedPaymentSection = () => {
   );
 };
 
-// In inventory-form.js, find where the payment section is rendered
-// Add this after the payment section (after renderEnhancedPaymentSection)
 
+window.renderEnhancedPaymentSection(),
 // Add the exchange impact preview
 window.editingInventory && 
 window.formData.paymentStatus === 'paid' && 
