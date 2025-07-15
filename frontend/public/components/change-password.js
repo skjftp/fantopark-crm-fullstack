@@ -71,11 +71,13 @@ class ChangePasswordComponent extends React.Component {
         this.setState({ loading: true });
 
         try {
-            const response = await window.apiCall('/auth/change-password', 'POST', {
-                currentPassword,
-                newPassword
-            });
-
+            const response = await window.apiCall('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({
+        currentPassword,
+        newPassword
+    })
+});
             if (response.success) {
                 this.setState({ 
                     message: { type: 'success', text: 'Password changed successfully!' },
