@@ -69,6 +69,13 @@ router.post('/', authenticateToken, async (req, res) => {
       exchange_rate: exchange_rate,
       amount_inr: amount_inr,
       expected_amount_inr: amount_inr,
+      
+      // NEW: Store creation exchange rate info
+      creation_exchange_rate: exchange_rate,
+      creation_date: new Date().toISOString(),
+      creation_amount_inr: amount_inr,
+      receipt_history: [],
+      
       created_date: new Date().toISOString(),
       created_by: req.user.email
     };
@@ -88,11 +95,18 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT record payment for receivable with currency awareness
+// PUT record payment for receivable with currency awareness AND exchange difference
 router.put('/record-payment/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const { payment_amount, payment_date, payment_mode, transaction_id } = req.body;
+        const { 
+          payment_amount, 
+          payment_date, 
+          payment_mode, 
+          transaction_id,
+          receipt_exchange_rate,  // NEW: current exchange rate at time of receipt
+          receipt_reference       // NEW: payment reference
+        } = req.body;
         
         const receivableRef = db.collection('crm_receivables').doc(id);
         const receivable = await receivableRef.get();
@@ -113,9 +127,54 @@ router.put('/record-payment/:id', authenticateToken, async (req, res) => {
             payment_date: payment_date || new Date().toISOString(),
             payment_mode: payment_mode || 'bank_transfer',
             transaction_id: transaction_id || '',
+            receipt_reference: receipt_reference || transaction_id || '',
             updated_at: new Date().toISOString(),
             updated_by: req.user.email
         };
+        
+        // NEW: Calculate exchange difference if foreign currency
+        if (data.currency !== 'INR') {
+            // Get the current exchange rate (provided or use existing)
+            const currentExchangeRate = receipt_exchange_rate || data.exchange_rate;
+            
+            // Calculate receipt amount in INR
+            const receiptAmountINR = data.original_amount * currentExchangeRate;
+            
+            // Get creation amount in INR
+            const creationAmountINR = data.creation_amount_inr || data.amount_inr || expectedAmountINR;
+            
+            // Calculate difference (positive = gain for receivables)
+            const exchangeDifference = receiptAmountINR - creationAmountINR;
+            
+            updateData.receipt_exchange_rate = currentExchangeRate;
+            updateData.receipt_amount_inr = receiptAmountINR;
+            updateData.exchange_difference = exchangeDifference;
+            updateData.exchange_difference_type = exchangeDifference > 0 ? 'gain' : 'loss';
+            
+            // Update payment amounts with actual INR received
+            updateData.payment_amount_inr = receiptAmountINR;
+            
+            // Add to receipt history
+            const receiptRecord = {
+                date: updateData.payment_date,
+                amount_foreign: data.original_amount,
+                exchange_rate: currentExchangeRate,
+                amount_inr: receiptAmountINR,
+                difference: exchangeDifference,
+                reference: receipt_reference || transaction_id || '',
+                method: payment_mode || 'bank_transfer',
+                created_by: req.user.email
+            };
+            
+            updateData.receipt_history = [...(data.receipt_history || []), receiptRecord];
+            
+            console.log('Exchange difference calculated:', {
+                creation_rate: data.creation_exchange_rate || data.exchange_rate,
+                receipt_rate: currentExchangeRate,
+                difference: exchangeDifference,
+                type: updateData.exchange_difference_type
+            });
+        }
         
         await receivableRef.update(updateData);
         
@@ -139,6 +198,17 @@ router.put('/record-payment/:id', authenticateToken, async (req, res) => {
             exchange_rate: data.exchange_rate || 1,
             amount_inr: data.amount_inr || expectedAmountINR
         };
+        
+        // Add exchange impact info to response if applicable
+        if (updateData.exchange_difference !== undefined) {
+            responseData.exchange_impact = {
+                amount: Math.abs(updateData.exchange_difference),
+                type: updateData.exchange_difference_type,
+                creation_rate: data.creation_exchange_rate || data.exchange_rate,
+                receipt_rate: updateData.receipt_exchange_rate,
+                message: `Exchange ${updateData.exchange_difference_type}: ₹${Math.abs(updateData.exchange_difference).toFixed(2)}`
+            };
+        }
         
         res.json(responseData);
     } catch (error) {
@@ -164,6 +234,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
       amount,
       currency,
       exchange_rate,
+      status,
+      receipt_exchange_rate,  // NEW: for when marking as paid through general update
+      receipt_reference,      // NEW: for when marking as paid through general update
       ...otherData
     } = req.body;
     
@@ -173,6 +246,12 @@ router.put('/:id', authenticateToken, async (req, res) => {
       updated_date: new Date().toISOString(),
       updated_by: req.user.email
     };
+    
+    // NEW: Store creation exchange rate if this is the first update
+    if (!existingData.creation_exchange_rate && existingData.exchange_rate) {
+      updateData.creation_exchange_rate = existingData.exchange_rate;
+      updateData.creation_amount_inr = existingData.amount_inr || existingData.expected_amount_inr || existingData.amount;
+    }
     
     // If amount or currency info is being updated
     if (expected_amount !== undefined || amount !== undefined || currency !== undefined || exchange_rate !== undefined) {
@@ -198,6 +277,38 @@ router.put('/:id', authenticateToken, async (req, res) => {
       }
     }
     
+    // NEW: If marking as paid/received through general update, calculate exchange difference
+    if ((status === 'paid' || status === 'received') && 
+        existingData.status !== 'paid' && 
+        existingData.status !== 'received' &&
+        existingData.currency !== 'INR') {
+      
+      updateData.status = status;
+      const currentExchangeRate = receipt_exchange_rate || exchange_rate || existingData.exchange_rate;
+      const receiptAmountINR = (existingData.original_amount || existingData.expected_amount) * currentExchangeRate;
+      const creationAmountINR = existingData.creation_amount_inr || existingData.amount_inr;
+      
+      updateData.receipt_exchange_rate = currentExchangeRate;
+      updateData.receipt_amount_inr = receiptAmountINR;
+      updateData.exchange_difference = receiptAmountINR - creationAmountINR;
+      updateData.exchange_difference_type = updateData.exchange_difference > 0 ? 'gain' : 'loss';
+      updateData.receipt_date = new Date().toISOString();
+      updateData.receipt_reference = receipt_reference || '';
+      
+      // Add to receipt history
+      const receiptRecord = {
+        date: updateData.receipt_date,
+        amount_foreign: existingData.original_amount || existingData.expected_amount,
+        exchange_rate: currentExchangeRate,
+        amount_inr: receiptAmountINR,
+        difference: updateData.exchange_difference,
+        reference: receipt_reference || '',
+        created_by: req.user.email
+      };
+      
+      updateData.receipt_history = [...(existingData.receipt_history || []), receiptRecord];
+    }
+    
     await receivableRef.update(updateData);
     
     // Return updated receivable with all fields
@@ -208,6 +319,17 @@ router.put('/:id', authenticateToken, async (req, res) => {
         ...updateData
       }
     };
+    
+    // Add exchange impact info if calculated
+    if (updateData.exchange_difference !== undefined) {
+      responseData.exchange_impact = {
+        amount: Math.abs(updateData.exchange_difference),
+        type: updateData.exchange_difference_type,
+        creation_rate: existingData.creation_exchange_rate || existingData.exchange_rate,
+        receipt_rate: updateData.receipt_exchange_rate,
+        message: `Exchange ${updateData.exchange_difference_type}: ₹${Math.abs(updateData.exchange_difference).toFixed(2)}`
+      };
+    }
     
     res.json(responseData);
   } catch (error) {
