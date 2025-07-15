@@ -1,4 +1,4 @@
-// Currency Ticker Component for FanToPark CRM - Wall Street Style
+// Currency Ticker Component for FanToPark CRM - Fixed Width Version
 
 // Initialize state in window
 window.currencyTickerState = {
@@ -92,7 +92,7 @@ window.renderCurrencyTicker = () => {
 
   const getChangeColor = (currency) => {
     const change = getChangePercent(currency);
-    return change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-600';
+    return change > 0 ? 'text-green-500' : change < 0 ? 'text-red-500' : 'text-gray-500';
   };
 
   const getArrow = (currency) => {
@@ -102,45 +102,49 @@ window.renderCurrencyTicker = () => {
 
   const convertedAmount = state.conversionAmount * state.rates[state.fromCurrency];
 
-  // Create ticker items for scrolling
-  const tickerItems = Object.entries(state.rates).map(([currency, rate]) => {
+  // Create ticker items for scrolling - only show most important currencies
+  const mainCurrencies = ['USD', 'EUR', 'GBP', 'AED'];
+  const tickerItems = mainCurrencies.map((currency) => {
+    const rate = state.rates[currency];
     const change = getChangePercent(currency);
     const color = getChangeColor(currency);
     const arrow = getArrow(currency);
     
     return React.createElement('div', {
       key: currency,
-      className: 'flex items-center gap-2 px-4 border-r border-gray-700 whitespace-nowrap'
+      className: 'flex items-center gap-1 px-3 border-r border-gray-700 whitespace-nowrap'
     },
-      React.createElement('span', { className: 'font-bold text-gray-300' }, currency),
-      React.createElement('span', { className: 'font-mono text-white' }, '₹' + rate.toFixed(2)),
-      React.createElement('span', { className: color + ' font-mono text-sm flex items-center gap-1' },
+      React.createElement('span', { className: 'font-bold text-gray-300 text-xs' }, currency),
+      React.createElement('span', { className: 'font-mono text-white text-sm' }, '₹' + rate.toFixed(2)),
+      React.createElement('span', { className: color + ' font-mono text-xs flex items-center gap-0.5' },
         arrow,
         Math.abs(change) + '%'
       )
     );
   });
 
-  return React.createElement('div', { className: 'relative' },
+  return React.createElement('div', { className: 'relative max-w-xl' }, // Added max-width constraint
     // Wall Street Style Ticker
     React.createElement('div', { 
-      className: 'bg-gray-900 text-white overflow-hidden cursor-pointer rounded-lg border border-gray-700',
+      className: 'bg-gray-900 text-white overflow-hidden cursor-pointer rounded-lg border border-gray-700 h-8 flex items-center', // Fixed height
       onClick: toggleConverter,
       title: 'Click to open currency converter'
     },
-      React.createElement('div', { className: 'flex items-center' },
+      React.createElement('div', { className: 'flex items-center h-full' },
         // Live indicator
-        React.createElement('div', { className: 'bg-red-600 px-3 py-1 flex items-center gap-2 border-r border-gray-700' },
-          React.createElement('div', { className: 'w-2 h-2 bg-white rounded-full animate-pulse' }),
+        React.createElement('div', { className: 'bg-red-600 px-2 h-full flex items-center gap-1 border-r border-gray-700' },
+          React.createElement('div', { className: 'w-1.5 h-1.5 bg-white rounded-full animate-pulse' }),
           React.createElement('span', { className: 'text-xs font-bold' }, 'LIVE')
         ),
         
-        // Scrolling ticker content
-        React.createElement('div', { className: 'flex-1 overflow-hidden' },
+        // Scrolling ticker content with fixed width
+        React.createElement('div', { 
+          className: 'flex-1 overflow-hidden max-w-md' // Added max-width to prevent overflow
+        },
           React.createElement('div', { 
             className: 'flex animate-scroll',
             style: {
-              animation: 'scroll 30s linear infinite',
+              animation: 'scroll 20s linear infinite',
               whiteSpace: 'nowrap'
             }
           },
@@ -151,9 +155,9 @@ window.renderCurrencyTicker = () => {
         ),
         
         // Converter button
-        React.createElement('div', { className: 'bg-gray-800 px-3 py-1 border-l border-gray-700 hover:bg-gray-700' },
+        React.createElement('div', { className: 'bg-gray-800 px-2 h-full flex items-center border-l border-gray-700 hover:bg-gray-700' },
           React.createElement('svg', {
-            className: 'w-4 h-4',
+            className: 'w-3 h-3',
             fill: 'none',
             stroke: 'currentColor',
             viewBox: '0 0 24 24'
@@ -207,7 +211,7 @@ window.renderCurrencyTicker = () => {
             React.createElement('select', {
               value: state.fromCurrency,
               onChange: (e) => updateCurrency(e.target.value),
-              className: 'flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500'
+              className: 'flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:outline-none focus:border-blue-500'
             },
               Object.keys(state.rates).map(currency =>
                 React.createElement('option', { key: currency, value: currency }, currency)
@@ -217,44 +221,25 @@ window.renderCurrencyTicker = () => {
               type: 'number',
               value: state.conversionAmount,
               onChange: (e) => updateAmount(e.target.value),
-              className: 'w-32 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500',
-              placeholder: 'Amount'
+              className: 'w-32 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white focus:outline-none focus:border-blue-500'
             })
+          )
+        ),
+        
+        // To INR
+        React.createElement('div', null,
+          React.createElement('label', { className: 'text-xs font-medium text-gray-400 mb-1 block uppercase' }, 'To INR'),
+          React.createElement('div', { className: 'px-3 py-2 bg-gray-700 rounded text-2xl font-mono text-green-400' },
+            '₹' + convertedAmount.toFixed(2)
           )
         ),
         
         // Exchange rate display
-        React.createElement('div', { className: 'bg-gray-800 p-3 rounded border border-gray-700' },
-          React.createElement('div', { className: 'flex justify-between items-center' },
-            React.createElement('span', { className: 'text-gray-400 text-sm' }, 'Exchange Rate'),
-            React.createElement('span', { className: 'font-mono' }, 
-              '1 ' + state.fromCurrency + ' = ₹' + state.rates[state.fromCurrency].toFixed(2)
-            )
+        React.createElement('div', { className: 'text-xs text-gray-400 border-t border-gray-700 pt-3' },
+          React.createElement('p', null, 
+            '1 ' + state.fromCurrency + ' = ₹' + state.rates[state.fromCurrency].toFixed(2)
           ),
-          React.createElement('div', { className: 'flex items-center gap-2 mt-1' },
-            React.createElement('span', { 
-              className: getChangeColor(state.fromCurrency) + ' text-sm font-mono flex items-center gap-1' 
-            },
-              getArrow(state.fromCurrency),
-              Math.abs(getChangePercent(state.fromCurrency)) + '%'
-            )
-          )
-        ),
-        
-        // Result
-        React.createElement('div', { className: 'bg-green-900 bg-opacity-20 border border-green-600 p-4 rounded' },
-          React.createElement('div', { className: 'text-xs font-medium text-gray-400 mb-1 uppercase' }, 'Indian Rupees'),
-          React.createElement('div', { className: 'text-2xl font-bold text-green-400 font-mono' }, 
-            '₹' + convertedAmount.toLocaleString('en-IN', { 
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2 
-            })
-          )
-        ),
-        
-        // Footer
-        React.createElement('div', { className: 'flex justify-between items-center pt-3 border-t border-gray-700' },
-          React.createElement('span', { className: 'text-xs text-gray-500' },
+          React.createElement('p', { className: 'mt-1' }, 
             state.lastUpdate ? 
               'Last updated: ' + state.lastUpdate.toLocaleTimeString() : 
               'Using cached rates'
@@ -264,7 +249,7 @@ window.renderCurrencyTicker = () => {
               e.stopPropagation();
               fetchRates();
             },
-            className: 'text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors',
+            className: 'text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors mt-2',
             disabled: state.loading
           }, state.loading ? 'Updating...' : 'Refresh')
         )
