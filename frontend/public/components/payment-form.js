@@ -2,6 +2,272 @@
 // Extracted from index.html - maintains 100% functionality
 // Uses window.* globals for CDN-based React compatibility
 
+// Enhanced Payment Form Currency Section for FanToPark CRM
+// This adds real-time INR conversion and exchange rate management to the existing payment form
+
+// Enhanced Customer Classification Section with Currency Conversion
+window.renderEnhancedCurrencySection = () => {
+  const { paymentData } = window.appState || {};
+  
+  // Get current exchange rates from the currency ticker
+  const currentRates = window.currentExchangeRates || {
+    USD: 83.50,
+    EUR: 90.20,
+    GBP: 105.50,
+    AED: 22.75
+  };
+  
+  // Calculate invoice total for conversion display
+  const invoiceTotal = paymentData.invoice_items?.reduce((sum, item) => 
+    sum + ((item.quantity || 0) * (item.rate || 0)), 0
+  ) || 0;
+  
+  const baseAmount = paymentData.type_of_sale === 'Service Fee' 
+    ? (parseFloat(paymentData.service_fee_amount) || 0)
+    : invoiceTotal;
+  
+  // Calculate INR equivalent
+  const currency = paymentData.payment_currency || 'INR';
+  const exchangeRate = paymentData.exchange_rate || currentRates[currency] || 1;
+  const inrEquivalent = currency === 'INR' ? baseAmount : baseAmount * exchangeRate;
+  
+  return React.createElement('div', { className: 'mb-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200' },
+    React.createElement('h3', { className: 'text-lg font-semibold text-gray-800 mb-4' }, 
+      '🌍 Customer & Event Classification'
+    ),
+    
+    // Main fields grid
+    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4' },
+      // Customer Type
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+          'Customer Type *'
+        ),
+        React.createElement('select', {
+          value: paymentData.customer_type || 'indian',
+          onChange: (e) => window.handlePaymentInputChange('customer_type', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
+          required: true
+        },
+          React.createElement('option', { value: 'indian' }, 'Indian'),
+          React.createElement('option', { value: 'nri' }, 'NRI (Non-Resident Indian)'),
+          React.createElement('option', { value: 'foreigner' }, 'Foreigner')
+        )
+      ),
+
+      // Event Location
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+          'Event Location *'
+        ),
+        React.createElement('select', {
+          value: paymentData.event_location || 'india',
+          onChange: (e) => window.handlePaymentInputChange('event_location', e.target.value),
+          className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
+          required: true
+        },
+          React.createElement('option', { value: 'india' }, 'India'),
+          React.createElement('option', { value: 'outside_india' }, 'Outside India')
+        )
+      ),
+
+      // Payment Currency
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+          'Payment Currency *'
+        ),
+        React.createElement('select', {
+          value: paymentData.payment_currency || 'INR',
+          onChange: (e) => {
+            const newCurrency = e.target.value;
+            window.handlePaymentInputChange('payment_currency', newCurrency);
+            
+            // Auto-update exchange rate when currency changes
+            if (newCurrency !== 'INR') {
+              const rate = currentRates[newCurrency] || 1;
+              window.handlePaymentInputChange('exchange_rate', rate);
+              window.handlePaymentInputChange('conversion_date', new Date().toISOString());
+            } else {
+              window.handlePaymentInputChange('exchange_rate', 1);
+            }
+          },
+          className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
+          required: true
+        },
+          React.createElement('option', { value: 'INR' }, 'INR (Indian Rupees)'),
+          React.createElement('option', { value: 'USD' }, 'USD (US Dollars)'),
+          React.createElement('option', { value: 'EUR' }, 'EUR (Euros)'),
+          React.createElement('option', { value: 'GBP' }, 'GBP (British Pounds)'),
+          React.createElement('option', { value: 'AED' }, 'AED (UAE Dirham)')
+        )
+      )
+    ),
+    
+    // Tax Applicability Info (existing section)
+    React.createElement('div', { className: 'mt-4 p-3 bg-white rounded border border-indigo-300' },
+      React.createElement('h4', { className: 'text-sm font-medium text-indigo-800 mb-2' }, 
+        '📊 Tax Applicability Preview'
+      ),
+      (() => {
+        const calculation = window.calculateGSTAndTCS(inrEquivalent, paymentData);
+        
+        return React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4 text-sm' },
+          React.createElement('div', null,
+            React.createElement('div', { className: 'flex items-center gap-2' },
+              React.createElement('span', null, 'GST:'),
+              React.createElement('span', { 
+                className: `px-2 py-1 rounded text-xs ${calculation.gst.applicable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`
+              }, calculation.gst.applicable ? `${calculation.gst.rate}% Applicable` : 'Not Applicable')
+            ),
+            React.createElement('div', { className: 'text-xs text-gray-600 mt-1' },
+              (() => {
+                const isIndian = paymentData.customer_type === 'indian';
+                const isCorporate = paymentData.category_of_sale === 'Corporate';
+                const isOutsideIndia = paymentData.event_location === 'outside_india';
+                const isINRPayment = paymentData.payment_currency === 'INR';
+                const isServiceFee = paymentData.type_of_sale === 'Service Fee';
+
+                if (isServiceFee) {
+                  return 'Service Fee: Always 18% GST';
+                } else if (isIndian) {
+                  return isCorporate ? 'Indian Corporate: 5% GST' : 'Indian Retail: 5% GST';
+                } else if (isOutsideIndia) {
+                  return 'Event Outside India: No GST (Export)';
+                } else {
+                  return 'NRI/Foreigner in India: ' + (isINRPayment ? '5% GST' : 'No GST');
+                }
+              })()
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('div', { className: 'flex items-center gap-2' },
+              React.createElement('span', null, 'TCS:'),
+              React.createElement('span', { 
+                className: `px-2 py-1 rounded text-xs ${calculation.tcs.applicable ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-600'}`
+              }, calculation.tcs.applicable ? `${calculation.tcs.rate}% Applicable` : 'Not Applicable')
+            ),
+            React.createElement('div', { className: 'text-xs text-gray-600 mt-1' },
+              calculation.tcs.applicable 
+                ? `TCS @ ${calculation.tcs.rate}% on package value`
+                : 'No TCS applicable'
+            )
+          )
+        );
+      })()
+    )
+  );
+};
+
+// NEW: Separate function for currency conversion section to be placed after tax calculation
+window.renderCurrencyConversionSection = () => {
+  const { paymentData } = window.appState || {};
+  
+  const currentRates = window.currentExchangeRates || {
+    USD: 83.50,
+    EUR: 90.20,
+    GBP: 105.50,
+    AED: 22.75
+  };
+  
+  const currency = paymentData.payment_currency || 'INR';
+  const exchangeRate = paymentData.exchange_rate || currentRates[currency] || 1;
+  
+  // Calculate the FINAL amount (including taxes)
+  const invoiceTotal = paymentData.invoice_items?.reduce((sum, item) => 
+    sum + ((item.quantity || 0) * (item.rate || 0)), 0
+  ) || 0;
+  
+  const baseAmount = paymentData.type_of_sale === 'Service Fee' 
+    ? (parseFloat(paymentData.service_fee_amount) || 0)
+    : invoiceTotal;
+  
+  const calculation = window.calculateGSTAndTCS(baseAmount, paymentData);
+  const finalAmount = calculation.finalAmount || baseAmount;
+  const inrEquivalent = currency === 'INR' ? finalAmount : finalAmount * exchangeRate;
+  
+  // Only show for non-INR currencies
+  if (currency === 'INR') return null;
+  
+  return React.createElement('div', { 
+    className: 'mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg' 
+  },
+    React.createElement('h4', { className: 'text-sm font-semibold text-yellow-800 mb-3' }, 
+      '💱 Currency Conversion Details'
+    ),
+    
+    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4' },
+      // Exchange Rate (Editable)
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+          'Exchange Rate (1 ' + currency + ' = ₹)'
+        ),
+        React.createElement('div', { className: 'flex items-center gap-2' },
+          React.createElement('input', {
+            type: 'number',
+            value: paymentData.exchange_rate || exchangeRate,
+            onChange: (e) => {
+              window.handlePaymentInputChange('exchange_rate', parseFloat(e.target.value) || 0);
+              window.handlePaymentInputChange('conversion_date', new Date().toISOString());
+            },
+            className: 'flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
+            step: 0.01,
+            min: 0
+          }),
+          React.createElement('button', {
+            type: 'button',
+            onClick: () => {
+              const currentRate = currentRates[currency] || 1;
+              window.handlePaymentInputChange('exchange_rate', currentRate);
+              window.handlePaymentInputChange('conversion_date', new Date().toISOString());
+            },
+            className: 'px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm',
+            title: 'Use current market rate'
+          }, '↻')
+        )
+      ),
+      
+      // Final Amount in Currency
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+          'Final Amount in ' + currency
+        ),
+        React.createElement('div', { 
+          className: 'px-3 py-2 bg-gray-100 border border-gray-300 rounded-md font-mono' 
+        }, 
+          currency + ' ' + finalAmount.toFixed(2)
+        )
+      ),
+      
+      // INR Equivalent
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+          'INR Equivalent'
+        ),
+        React.createElement('div', { 
+          className: 'px-3 py-2 bg-green-100 border border-green-300 rounded-md font-mono font-semibold text-green-800' 
+        }, 
+          '₹ ' + inrEquivalent.toFixed(2)
+        )
+      )
+    ),
+    
+    // Conversion Info
+    React.createElement('div', { className: 'mt-3 text-xs text-gray-600' },
+      React.createElement('div', { className: 'flex items-center gap-2' },
+        React.createElement('span', null, '📅 Conversion Date:'),
+        React.createElement('span', { className: 'font-medium' }, 
+          paymentData.conversion_date 
+            ? new Date(paymentData.conversion_date).toLocaleString('en-IN')
+            : new Date().toLocaleString('en-IN')
+        )
+      ),
+      React.createElement('div', { className: 'mt-1' },
+        '💡 INR amount will be used as the source of truth for all financial reporting'
+      )
+    )
+  );
+};
+
 window.renderEnhancedPaymentForm = () => {
   // ✅ COMPONENT INTEGRATION PATTERN: Extract state from window globals
   const {
@@ -79,140 +345,7 @@ window.renderEnhancedPaymentForm = () => {
       ),
       React.createElement('form', { onSubmit: handlePaymentSubmit },
 
-        // NEW: Enhanced Customer Classification Section
-        React.createElement('div', { className: 'mb-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200' },
-          React.createElement('h3', { className: 'text-lg font-semibold text-gray-800 mb-4' }, 
-            '🌍 Customer & Event Classification'
-          ),
-          React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4' },
-
-            // Customer Type
-            React.createElement('div', null,
-              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                'Customer Type *'
-              ),
-              React.createElement('select', {
-                value: paymentData.customer_type || 'indian',
-                onChange: (e) => handlePaymentInputChange('customer_type', e.target.value),
-                className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
-                required: true
-              },
-                React.createElement('option', { value: 'indian' }, 'Indian'),
-                React.createElement('option', { value: 'nri' }, 'NRI (Non-Resident Indian)'),
-                React.createElement('option', { value: 'foreigner' }, 'Foreigner')
-              )
-            ),
-
-            // Event Location
-            React.createElement('div', null,
-              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                'Event Location *'
-              ),
-              React.createElement('select', {
-                value: paymentData.event_location || 'india',
-                onChange: (e) => handlePaymentInputChange('event_location', e.target.value),
-                className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
-                required: true
-              },
-                React.createElement('option', { value: 'india' }, 'India'),
-                React.createElement('option', { value: 'outside_india' }, 'Outside India')
-              )
-            ),
-
-            // Payment Currency
-            React.createElement('div', null,
-              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                'Payment Currency *'
-              ),
-              React.createElement('select', {
-                value: paymentData.payment_currency || 'INR',
-                onChange: (e) => handlePaymentInputChange('payment_currency', e.target.value),
-                className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
-                required: true
-              },
-                React.createElement('option', { value: 'INR' }, 'INR (Indian Rupees)'),
-                React.createElement('option', { value: 'USD' }, 'USD (US Dollars)'),
-                React.createElement('option', { value: 'EUR' }, 'EUR (Euros)'),
-                React.createElement('option', { value: 'GBP' }, 'GBP (British Pounds)')
-              )
-            )
-          ),
-
-          // Tax Applicability Info
-          React.createElement('div', { className: 'mt-4 p-3 bg-white rounded border border-indigo-300' },
-            React.createElement('h4', { className: 'text-sm font-medium text-indigo-800 mb-2' }, 
-              '📊 Tax Applicability Preview'
-            ),
-            (() => {
-              const invoiceTotal = paymentData.invoice_items?.reduce((sum, item) => 
-                sum + ((item.quantity || 0) * (item.rate || 0)), 0
-              ) || 0;
-
-              const baseAmount = paymentData.type_of_sale === 'Service Fee' 
-                ? (parseFloat(paymentData.service_fee_amount) || 0)
-                : invoiceTotal;
-
-              const calculation = calculateGSTAndTCS(baseAmount, paymentData);
-
-              return React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4 text-sm' },
-                React.createElement('div', null,
-                  React.createElement('div', { className: 'flex items-center gap-2' },
-                    React.createElement('span', null, 'GST:'),
-                    React.createElement('span', { 
-                      className: `px-2 py-1 rounded text-xs ${calculation.gst.applicable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`
-                    }, calculation.gst.applicable ? `${calculation.gst.rate}% Applicable` : 'Not Applicable')
-                  ),
-                  React.createElement('div', { className: 'text-xs text-gray-600 mt-1' },
-                    (() => {
-                      const isIndian = paymentData.customer_type === 'indian';
-                      const isCorporate = paymentData.category_of_sale === 'Corporate';
-                      const isOutsideIndia = paymentData.event_location === 'outside_india';
-                      const isINRPayment = paymentData.payment_currency === 'INR';
-                      const isServiceFee = paymentData.type_of_sale === 'Service Fee';
-
-                      if (isServiceFee) {
-                        return 'Service Fee: Always 18% GST';
-                      } else if (isIndian) {
-                        return isCorporate ? 'Tour Package - Domestic B2B: 18%' : 'Tour Package - Domestic B2C: 5%';
-                      } else {
-                        if (!isOutsideIndia) {
-                          return 'Tour Package - International in India: 5%';
-                        } else {
-                          return isINRPayment ? 'Tour Package - International outside India (INR): 5%' : 'Tour Package - International outside India (Foreign): No GST';
-                        }
-                      }
-                    })()
-                  )
-                ),
-                React.createElement('div', null,
-                  React.createElement('div', { className: 'flex items-center gap-2' },
-                    React.createElement('span', null, 'TCS:'),
-                    React.createElement('span', { 
-                      className: `px-2 py-1 rounded text-xs ${calculation.tcs.applicable ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`
-                    }, calculation.tcs.applicable ? `${calculation.tcs.rate}% Applicable` : 'Not Applicable')
-                  ),
-                  React.createElement('div', { className: 'text-xs text-gray-600 mt-1' },
-                    (() => {
-                      const isIndian = paymentData.customer_type === 'indian';
-                      const isOutsideIndia = paymentData.event_location === 'outside_india';
-                      const isINRPayment = paymentData.payment_currency === 'INR';
-
-                      if (!isOutsideIndia) {
-                        return 'Event in India: No TCS';
-                      } else {
-                        if (isIndian) {
-                          return 'Indian client, event outside India: TCS applies';
-                        } else {
-                          return isINRPayment ? 'International client, event outside India (INR): TCS applies' : 'International client, event outside India (Foreign): No TCS';
-                        }
-                      }
-                    })()
-                  )
-                )
-              );
-            })()
-          )
-        ),
+        window.renderEnhancedCurrencySection(),
 
         // ADD THIS: TCS Rate Selection Dropdown as a SEPARATE section
         (() => {
@@ -600,7 +733,7 @@ window.renderEnhancedPaymentForm = () => {
                   // Rate Field
                   React.createElement('div', null,
                     React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                      'Rate (₹) *'
+                      'Rate *'
                     ),
                     React.createElement('input', {
                       type: 'number',
@@ -819,6 +952,7 @@ window.renderEnhancedPaymentForm = () => {
           })(),
         ),
 
+         window.renderCurrencyConversionSection(),                  
         // Additional Notes
         React.createElement('div', { className: 'mb-6' },
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Additional Notes'),

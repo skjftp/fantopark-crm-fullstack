@@ -1,0 +1,361 @@
+// Enhanced Financial System with Multi-Currency INR Support
+// This updates the financial calculations to use INR values
+
+// Enhanced fetch financial data with INR support
+window.fetchFinancialDataWithINR = async () => {
+  try {
+    window.setLoading(true);
+    console.log('Fetching financial data with INR support...');
+
+    // Fetch all required data
+    const [inventoryRes, ordersRes, receivablesRes, payablesRes] = await Promise.all([
+      window.apiCall('/inventory'),
+      window.apiCall('/orders'),
+      window.apiCall('/receivables'),
+      window.apiCall('/payables')
+    ]);
+
+    // Process inventory with INR values
+    const inventoryData = inventoryRes.data || [];
+    console.log('Inventory data:', inventoryData);
+
+    // Process orders with INR values
+    const ordersData = ordersRes.data || [];
+    console.log('Orders data:', ordersData);
+
+    // Process active sales (delivered orders) - use INR values
+    const activeSalesData = ordersData
+      .filter(order => order.status === 'delivered' || order.payment_status === 'paid')
+      .map(order => ({
+        ...order,
+        // Use INR equivalent if available, otherwise original amount
+        amount: order.inr_equivalent || order.final_amount_inr || order.final_amount || 0,
+        event_name: order.event_name,
+        client_name: order.client_name,
+        delivery_date: order.delivery_date || order.event_date,
+        status: order.payment_status === 'paid' ? 'paid' : 'completed',
+        event_date: order.event_date,
+        payment_status: order.payment_status || 'pending',
+        // Currency info for display
+        original_currency: order.payment_currency || 'INR',
+        original_amount: order.final_amount || 0,
+        exchange_rate: order.exchange_rate || 1
+      }));
+
+    // Process completed sales - use INR values
+    const salesData = ordersData
+      .filter(order => order.status === 'completed' || order.status === 'delivered')
+      .map(order => ({
+        ...order,
+        // Use INR equivalent if available
+        amount: order.inr_equivalent || order.final_amount_inr || order.final_amount || 0,
+        event_name: order.event_name,
+        client_name: order.client_name,
+        sale_date: order.created_date,
+        status: order.payment_status === 'paid' ? 'paid' : 'completed',
+        event_date: order.event_date,
+        payment_status: order.payment_status || 'pending',
+        // Currency info
+        original_currency: order.payment_currency || 'INR',
+        original_amount: order.final_amount || 0
+      }));
+
+    // Process receivables - use INR values
+    const receivablesData = receivablesRes.data || [];
+    const processedReceivables = receivablesData.map(r => {
+      console.log('Processing receivable with INR:', r);
+      
+      // Determine the INR amount
+      let inrAmount = r.amount_inr || r.expected_amount_inr || r.inr_equivalent || r.amount || 0;
+      
+      // If currency is not INR and no INR field exists, calculate it
+      if (r.currency && r.currency !== 'INR' && !r.amount_inr && r.exchange_rate) {
+        inrAmount = (r.amount || 0) * r.exchange_rate;
+      }
+      
+      return {
+        ...r,
+        // Use INR amount for calculations
+        amount: parseFloat(inrAmount),
+        balance_amount: parseFloat(r.balance_amount_inr || inrAmount),
+        invoice_number: r.invoice_number || r.invoice_id || 'N/A',
+        due_date: r.due_date || r.expected_payment_date || new Date().toISOString(),
+        client_name: r.client_name || 'N/A',
+        assigned_to: r.assigned_to || 'Unassigned',
+        status: r.status || 'pending',
+        // Keep original currency info for display
+        original_currency: r.currency || r.payment_currency || 'INR',
+        original_amount: r.amount || r.expected_amount || 0,
+        exchange_rate: r.exchange_rate || 1
+      };
+    });
+
+    // Filter only unpaid receivables
+    const unpaidReceivables = processedReceivables.filter(r => r.status !== 'paid');
+
+    // Process payables - use INR values
+    const payablesData = (payablesRes.data || []).map(p => {
+      // Determine the INR amount
+      let inrAmount = p.amount_inr || p.totalPurchaseAmount_inr || p.amount || 0;
+      
+      // If currency is not INR and no INR field exists, calculate it
+      if (p.currency && p.currency !== 'INR' && !p.amount_inr && p.exchange_rate) {
+        inrAmount = (p.amount || 0) * p.exchange_rate;
+      }
+      
+      return {
+        ...p,
+        // Use INR amount for calculations
+        amount: parseFloat(inrAmount),
+        // Keep original currency info
+        original_currency: p.currency || p.price_currency || 'INR',
+        original_amount: p.amount || p.totalPurchaseAmount || 0,
+        exchange_rate: p.exchange_rate || 1
+      };
+    });
+
+    // Calculate totals using INR values
+    const totalActiveSales = activeSalesData.reduce((sum, sale) => sum + sale.amount, 0);
+    const totalSales = salesData.reduce((sum, sale) => sum + sale.amount, 0);
+    const totalReceivables = unpaidReceivables.reduce((sum, rec) => 
+      sum + (rec.balance_amount || rec.amount || 0), 0
+    );
+    const totalPayables = payablesData.reduce((sum, pay) => 
+      sum + parseFloat(pay.amount || 0), 0
+    );
+
+    // Calculate expiring inventory value in INR
+    const expiringInventory = inventoryData.filter(item => {
+      if (!item.event_date || item.allocated) return false;
+      const days = Math.ceil((new Date(item.event_date) - new Date()) / (1000 * 60 * 60 * 24));
+      return days <= 7 && days >= 0;
+    }).map(item => {
+      // Calculate total value in INR
+      let totalValueINR = 0;
+      
+      if (item.categories && Array.isArray(item.categories)) {
+        // Multi-category inventory
+        totalValueINR = item.categories.reduce((sum, cat) => {
+          const sellingPriceINR = cat.selling_price_inr || cat.selling_price || 0;
+          const availableTickets = cat.available_tickets || 0;
+          return sum + (sellingPriceINR * availableTickets);
+        }, 0);
+      } else {
+        // Single category (legacy)
+        const sellingPriceINR = item.selling_price_inr || item.selling_price || 0;
+        const availableTickets = item.available_tickets || 0;
+        totalValueINR = sellingPriceINR * availableTickets;
+      }
+      
+      return {
+        ...item,
+        value_inr: totalValueINR
+      };
+    });
+
+    // Log the results
+    console.log('=== FINANCIAL DATA SUMMARY (INR) ===');
+    console.log(`Active Sales: ${activeSalesData.length} orders, Total: ₹${totalActiveSales.toLocaleString()}`);
+    console.log(`Completed Sales: ${salesData.length} orders, Total: ₹${totalSales.toLocaleString()}`);
+    console.log(`Receivables: ${unpaidReceivables.length} entries, Total: ₹${totalReceivables.toLocaleString()}`);
+    console.log(`Payables: ${payablesData.length} entries, Total: ₹${totalPayables.toLocaleString()}`);
+
+    // Update state
+    window.setFinancialData({
+      activeSales: activeSalesData,
+      sales: salesData,
+      receivables: unpaidReceivables,
+      payables: payablesData,
+      expiringInventory: expiringInventory
+    });
+
+    console.log('Financial data set with INR values:', {
+      activeSales: activeSalesData.length,
+      sales: salesData.length,
+      receivables: unpaidReceivables.length,
+      payables: payablesData.length
+    });
+
+  } catch (error) {
+    console.error('Error fetching financial data:', error);
+    alert('Failed to load financial data. Please refresh the page.');
+  } finally {
+    window.setLoading(false);
+  }
+};
+
+// Enhanced dashboard metrics calculation with INR
+window.calculateDashboardMetricsINR = () => {
+  const financialData = window.appState?.financialData || {};
+  const inventory = window.inventory || [];
+  const orders = window.orders || [];
+  
+  // Calculate sales totals (already in INR from fetchFinancialDataWithINR)
+  const totalSales = (financialData.activeSales || []).reduce((sum, sale) => 
+    sum + (sale.amount || 0), 0
+  );
+  const activeSalesCount = (financialData.activeSales || []).filter(sale => 
+    sale.status === 'active' || sale.status === 'paid'
+  ).length;
+  const totalReceivables = (financialData.receivables || []).reduce((sum, receivable) => 
+    sum + (receivable.amount || 0), 0
+  );
+  const totalPayables = (financialData.payables || []).reduce((sum, payable) => 
+    sum + (payable.amount || 0), 0
+  );
+
+  // Calculate margin from inventory using INR values
+  let totalCost = 0;
+  let totalRevenue = 0;
+  
+  inventory.forEach(item => {
+    if (item.categories && Array.isArray(item.categories)) {
+      // Multi-category inventory
+      item.categories.forEach(cat => {
+        const soldTickets = (cat.total_tickets || 0) - (cat.available_tickets || 0);
+        const buyingPriceINR = cat.buying_price_inr || cat.buying_price || 0;
+        const sellingPriceINR = cat.selling_price_inr || cat.selling_price || 0;
+        
+        totalCost += soldTickets * buyingPriceINR;
+        totalRevenue += soldTickets * sellingPriceINR;
+      });
+    } else {
+      // Single category (legacy)
+      const soldTickets = (item.total_tickets || 0) - (item.available_tickets || 0);
+      const buyingPriceINR = item.buying_price_inr || item.buying_price || 0;
+      const sellingPriceINR = item.selling_price_inr || item.selling_price || 0;
+      
+      totalCost += soldTickets * buyingPriceINR;
+      totalRevenue += soldTickets * sellingPriceINR;
+    }
+  });
+
+  const totalMargin = totalRevenue - totalCost;
+  const marginPercentage = totalRevenue > 0 ? ((totalMargin / totalRevenue) * 100) : 0;
+
+  return {
+    totalSales,
+    activeSalesCount,
+    totalReceivables,
+    totalPayables,
+    totalMargin,
+    marginPercentage: Math.round(marginPercentage * 100) / 100,
+    totalCost,
+    totalRevenue
+  };
+};
+
+// Enhanced financial summary with currency details
+window.calculateFinancialSummaryINR = function(financialData) {
+  const summary = {
+    totalActiveSales: financialData.activeSales.reduce((sum, sale) => sum + sale.amount, 0),
+    totalCompletedSales: financialData.sales.reduce((sum, sale) => sum + sale.amount, 0),
+    totalReceivables: financialData.receivables.reduce((sum, rec) => sum + (rec.balance_amount || rec.amount || 0), 0),
+    totalPayables: financialData.payables.reduce((sum, pay) => sum + parseFloat(pay.amount || 0), 0),
+    netPosition: 0,
+    // Currency breakdown
+    currencyBreakdown: {
+      receivables: {},
+      payables: {},
+      sales: {}
+    }
+  };
+
+  // Calculate currency breakdown for receivables
+  financialData.receivables.forEach(r => {
+    const currency = r.original_currency || 'INR';
+    if (!summary.currencyBreakdown.receivables[currency]) {
+      summary.currencyBreakdown.receivables[currency] = {
+        count: 0,
+        originalAmount: 0,
+        inrAmount: 0
+      };
+    }
+    summary.currencyBreakdown.receivables[currency].count++;
+    summary.currencyBreakdown.receivables[currency].originalAmount += (r.original_amount || 0);
+    summary.currencyBreakdown.receivables[currency].inrAmount += (r.amount || 0);
+  });
+
+  // Calculate currency breakdown for payables
+  financialData.payables.forEach(p => {
+    const currency = p.original_currency || 'INR';
+    if (!summary.currencyBreakdown.payables[currency]) {
+      summary.currencyBreakdown.payables[currency] = {
+        count: 0,
+        originalAmount: 0,
+        inrAmount: 0
+      };
+    }
+    summary.currencyBreakdown.payables[currency].count++;
+    summary.currencyBreakdown.payables[currency].originalAmount += (p.original_amount || 0);
+    summary.currencyBreakdown.payables[currency].inrAmount += (p.amount || 0);
+  });
+
+  summary.netPosition = summary.totalReceivables - summary.totalPayables;
+
+  return summary;
+};
+
+// Override the existing fetchFinancialData with the enhanced version
+window.fetchFinancialData = window.fetchFinancialDataWithINR;
+
+// Enhanced financial report export with currency details
+window.exportFinancialDataWithCurrency = function(financialData, format = 'csv') {
+  const report = window.generateFinancialReport(financialData);
+  
+  if (format === 'csv') {
+    // Create CSV content
+    let csvContent = "data:text/csv;charset=utf-8,";
+    
+    // Add summary
+    csvContent += "Financial Summary (All amounts in INR)\n";
+    csvContent += `Total Active Sales,₹${report.summary.totalActiveSales.toLocaleString()}\n`;
+    csvContent += `Total Completed Sales,₹${report.summary.totalCompletedSales.toLocaleString()}\n`;
+    csvContent += `Total Receivables,₹${report.summary.totalReceivables.toLocaleString()}\n`;
+    csvContent += `Total Payables,₹${report.summary.totalPayables.toLocaleString()}\n`;
+    csvContent += `Net Position,₹${report.summary.netPosition.toLocaleString()}\n\n`;
+
+    // Add currency breakdown
+    csvContent += "Currency Breakdown\n";
+    csvContent += "Type,Currency,Count,Original Amount,INR Amount\n";
+    
+    // Receivables breakdown
+    Object.entries(report.summary.currencyBreakdown.receivables).forEach(([currency, data]) => {
+      csvContent += `Receivables,${currency},${data.count},${data.originalAmount.toFixed(2)},₹${data.inrAmount.toFixed(2)}\n`;
+    });
+    
+    // Payables breakdown
+    Object.entries(report.summary.currencyBreakdown.payables).forEach(([currency, data]) => {
+      csvContent += `Payables,${currency},${data.count},${data.originalAmount.toFixed(2)},₹${data.inrAmount.toFixed(2)}\n`;
+    });
+    
+    csvContent += "\n";
+
+    // Add receivables details
+    csvContent += "Receivables Details\n";
+    csvContent += "Client,Original Amount,Currency,Exchange Rate,INR Amount,Due Date,Assigned To,Status\n";
+    financialData.receivables.forEach(r => {
+      csvContent += `"${r.client_name}",${r.original_amount || 0},${r.original_currency || 'INR'},${r.exchange_rate || 1},₹${(r.amount || 0).toLocaleString()},"${r.due_date}","${r.assigned_to}","${r.status}"\n`;
+    });
+    
+    csvContent += "\n";
+    
+    // Add payables details
+    csvContent += "Payables Details\n";
+    csvContent += "Supplier,Original Amount,Currency,Exchange Rate,INR Amount,Due Date,Status\n";
+    financialData.payables.forEach(p => {
+      csvContent += `"${p.supplierName || 'Unknown'}",${p.original_amount || 0},${p.original_currency || 'INR'},${p.exchange_rate || 1},₹${(p.amount || 0).toLocaleString()},"${p.due_date || 'N/A'}","${p.status || 'pending'}"\n`;
+    });
+
+    // Download file
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `financial_report_INR_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+};
+
+console.log('✅ Enhanced Financial System with INR support loaded successfully');
