@@ -103,86 +103,6 @@ window.renderEnhancedCurrencySection = () => {
       )
     ),
     
-    // Currency Conversion Section - Only show for non-INR currencies
-    currency !== 'INR' && React.createElement('div', { 
-      className: 'mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg' 
-    },
-      React.createElement('h4', { className: 'text-sm font-semibold text-yellow-800 mb-3' }, 
-        '💱 Currency Conversion Details'
-      ),
-      
-      React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4' },
-        // Exchange Rate (Editable)
-        React.createElement('div', null,
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-            'Exchange Rate (1 ' + currency + ' = ₹)'
-          ),
-          React.createElement('div', { className: 'flex items-center gap-2' },
-            React.createElement('input', {
-              type: 'number',
-              value: paymentData.exchange_rate || exchangeRate,
-              onChange: (e) => {
-                window.handlePaymentInputChange('exchange_rate', parseFloat(e.target.value) || 0);
-                window.handlePaymentInputChange('conversion_date', new Date().toISOString());
-              },
-              className: 'flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
-              step: 0.01,
-              min: 0
-            }),
-            React.createElement('button', {
-              type: 'button',
-              onClick: () => {
-                const currentRate = currentRates[currency] || 1;
-                window.handlePaymentInputChange('exchange_rate', currentRate);
-                window.handlePaymentInputChange('conversion_date', new Date().toISOString());
-              },
-              className: 'px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm',
-              title: 'Use current market rate'
-            }, '↻')
-          )
-        ),
-        
-        // Original Amount
-        React.createElement('div', null,
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-            'Amount in ' + currency
-          ),
-          React.createElement('div', { 
-            className: 'px-3 py-2 bg-gray-100 border border-gray-300 rounded-md font-mono' 
-          }, 
-            currency + ' ' + baseAmount.toFixed(2)
-          )
-        ),
-        
-        // INR Equivalent
-        React.createElement('div', null,
-          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-            'INR Equivalent'
-          ),
-          React.createElement('div', { 
-            className: 'px-3 py-2 bg-green-100 border border-green-300 rounded-md font-mono font-semibold text-green-800' 
-          }, 
-            '₹ ' + inrEquivalent.toFixed(2)
-          )
-        )
-      ),
-      
-      // Conversion Info
-      React.createElement('div', { className: 'mt-3 text-xs text-gray-600' },
-        React.createElement('div', { className: 'flex items-center gap-2' },
-          React.createElement('span', null, '📅 Conversion Date:'),
-          React.createElement('span', { className: 'font-medium' }, 
-            paymentData.conversion_date 
-              ? new Date(paymentData.conversion_date).toLocaleString('en-IN')
-              : new Date().toLocaleString('en-IN')
-          )
-        ),
-        React.createElement('div', { className: 'mt-1' },
-          '💡 INR amount will be used as the source of truth for all financial reporting'
-        )
-      )
-    ),
-    
     // Tax Applicability Info (existing section)
     React.createElement('div', { className: 'mt-4 p-3 bg-white rounded border border-indigo-300' },
       React.createElement('h4', { className: 'text-sm font-medium text-indigo-800 mb-2' }, 
@@ -234,6 +154,116 @@ window.renderEnhancedCurrencySection = () => {
           )
         );
       })()
+    )
+  );
+};
+
+// NEW: Separate function for currency conversion section to be placed after tax calculation
+window.renderCurrencyConversionSection = () => {
+  const { paymentData } = window.appState || {};
+  
+  const currentRates = window.currentExchangeRates || {
+    USD: 83.50,
+    EUR: 90.20,
+    GBP: 105.50,
+    AED: 22.75
+  };
+  
+  const currency = paymentData.payment_currency || 'INR';
+  const exchangeRate = paymentData.exchange_rate || currentRates[currency] || 1;
+  
+  // Calculate the FINAL amount (including taxes)
+  const invoiceTotal = paymentData.invoice_items?.reduce((sum, item) => 
+    sum + ((item.quantity || 0) * (item.rate || 0)), 0
+  ) || 0;
+  
+  const baseAmount = paymentData.type_of_sale === 'Service Fee' 
+    ? (parseFloat(paymentData.service_fee_amount) || 0)
+    : invoiceTotal;
+  
+  const calculation = window.calculateGSTAndTCS(baseAmount, paymentData);
+  const finalAmount = calculation.finalAmount || baseAmount;
+  const inrEquivalent = currency === 'INR' ? finalAmount : finalAmount * exchangeRate;
+  
+  // Only show for non-INR currencies
+  if (currency === 'INR') return null;
+  
+  return React.createElement('div', { 
+    className: 'mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg' 
+  },
+    React.createElement('h4', { className: 'text-sm font-semibold text-yellow-800 mb-3' }, 
+      '💱 Currency Conversion Details'
+    ),
+    
+    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4' },
+      // Exchange Rate (Editable)
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+          'Exchange Rate (1 ' + currency + ' = ₹)'
+        ),
+        React.createElement('div', { className: 'flex items-center gap-2' },
+          React.createElement('input', {
+            type: 'number',
+            value: paymentData.exchange_rate || exchangeRate,
+            onChange: (e) => {
+              window.handlePaymentInputChange('exchange_rate', parseFloat(e.target.value) || 0);
+              window.handlePaymentInputChange('conversion_date', new Date().toISOString());
+            },
+            className: 'flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
+            step: 0.01,
+            min: 0
+          }),
+          React.createElement('button', {
+            type: 'button',
+            onClick: () => {
+              const currentRate = currentRates[currency] || 1;
+              window.handlePaymentInputChange('exchange_rate', currentRate);
+              window.handlePaymentInputChange('conversion_date', new Date().toISOString());
+            },
+            className: 'px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm',
+            title: 'Use current market rate'
+          }, '↻')
+        )
+      ),
+      
+      // Final Amount in Currency
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+          'Final Amount in ' + currency
+        ),
+        React.createElement('div', { 
+          className: 'px-3 py-2 bg-gray-100 border border-gray-300 rounded-md font-mono' 
+        }, 
+          currency + ' ' + finalAmount.toFixed(2)
+        )
+      ),
+      
+      // INR Equivalent
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+          'INR Equivalent'
+        ),
+        React.createElement('div', { 
+          className: 'px-3 py-2 bg-green-100 border border-green-300 rounded-md font-mono font-semibold text-green-800' 
+        }, 
+          '₹ ' + inrEquivalent.toFixed(2)
+        )
+      )
+    ),
+    
+    // Conversion Info
+    React.createElement('div', { className: 'mt-3 text-xs text-gray-600' },
+      React.createElement('div', { className: 'flex items-center gap-2' },
+        React.createElement('span', null, '📅 Conversion Date:'),
+        React.createElement('span', { className: 'font-medium' }, 
+          paymentData.conversion_date 
+            ? new Date(paymentData.conversion_date).toLocaleString('en-IN')
+            : new Date().toLocaleString('en-IN')
+        )
+      ),
+      React.createElement('div', { className: 'mt-1' },
+        '💡 INR amount will be used as the source of truth for all financial reporting'
+      )
     )
   );
 };
@@ -703,7 +733,7 @@ window.renderEnhancedPaymentForm = () => {
                   // Rate Field
                   React.createElement('div', null,
                     React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                      'Rate (₹) *'
+                      'Rate *'
                     ),
                     React.createElement('input', {
                       type: 'number',
@@ -922,6 +952,7 @@ window.renderEnhancedPaymentForm = () => {
           })(),
         ),
 
+         window.renderCurrencyConversionSection(),                  
         // Additional Notes
         React.createElement('div', { className: 'mb-6' },
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Additional Notes'),
