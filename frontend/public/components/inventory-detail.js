@@ -41,7 +41,7 @@ window.renderInventoryDetail = () => {
               className: `px-3 py-1 text-sm rounded-full ${availabilityStatus.color}`
             }, availabilityStatus.label),
             React.createElement('span', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 
-              `${window.formatIndianNumber(totalAvailable)}/${window.formatIndianNumber(totalTickets)} tickets available`
+              `${window.formatNumber(totalAvailable)}/${window.formatNumber(totalTickets)} tickets available`
             ),
             daysUntilEvent >= 0 && React.createElement('span', { 
               className: `text-sm px-2 py-1 rounded ${daysUntilEvent <= 7 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`
@@ -161,7 +161,7 @@ window.renderInventoryDetail = () => {
                         'Total Tickets'
                       ),
                       React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
-                        window.formatIndianNumber(category.total_tickets || 0)
+                        window.formatNumber(category.total_tickets || 0)
                       )
                     ),
                     React.createElement('div', null,
@@ -169,7 +169,7 @@ window.renderInventoryDetail = () => {
                         'Available'
                       ),
                       React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
-                        window.formatIndianNumber(category.available_tickets || 0)
+                        window.formatNumber(category.available_tickets || 0)
                       )
                     ),
                     React.createElement('div', null,
@@ -177,7 +177,7 @@ window.renderInventoryDetail = () => {
                         'Allocated'
                       ),
                       React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
-                        window.formatIndianNumber((category.total_tickets || 0) - (category.available_tickets || 0))
+                        window.formatNumber((category.total_tickets || 0) - (category.available_tickets || 0))
                       )
                     ),
                     
@@ -187,7 +187,7 @@ window.renderInventoryDetail = () => {
                         'Buying Price'
                       ),
                       React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
-                        '₹' + window.formatIndianNumber(category.buying_price || 0)
+                        window.formatCurrency(category.buying_price || 0)
                       )
                     ),
                     React.createElement('div', null,
@@ -195,7 +195,7 @@ window.renderInventoryDetail = () => {
                         'Selling Price'
                       ),
                       React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
-                        '₹' + window.formatIndianNumber(category.selling_price || 0)
+                        window.formatCurrency(category.selling_price || 0)
                       )
                     ),
                     React.createElement('div', null,
@@ -205,7 +205,7 @@ window.renderInventoryDetail = () => {
                       React.createElement('span', { 
                         className: `text-lg font-semibold ${marginAmount > 0 ? 'text-green-600' : 'text-red-600'}`
                       }, 
-                        '₹' + window.formatIndianNumber(marginAmount) + ` (${marginPercentage}%)`
+                        window.formatCurrency(marginAmount) + ` (${marginPercentage}%)`
                       )
                     )
                   ),
@@ -228,19 +228,19 @@ window.renderInventoryDetail = () => {
                 React.createElement('div', null,
                   React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300 block' }, 'Total Tickets'),
                   React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
-                    window.formatIndianNumber(item.total_tickets || 0)
+                    window.formatNumber(item.total_tickets || 0)
                   )
                 ),
                 React.createElement('div', null,
                   React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300 block' }, 'Available'),
                   React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
-                    window.formatIndianNumber(item.available_tickets || 0)
+                    window.formatNumber(item.available_tickets || 0)
                   )
                 ),
                 React.createElement('div', null,
                   React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300 block' }, 'Allocated'),
                   React.createElement('span', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
-                    window.formatIndianNumber((item.total_tickets || 0) - (item.available_tickets || 0))
+                    window.formatNumber((item.total_tickets || 0) - (item.available_tickets || 0))
                   )
                 )
               )
@@ -261,22 +261,22 @@ window.renderInventoryDetail = () => {
                   React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'MRP per Ticket: '),
                   React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
                     item.categories.map(cat => 
-                      `${cat.name}: ₹${window.formatIndianNumber(cat.mrp || 0)}`
+                      `${cat.name}: ₹${window.formatNumber(cat.mrp || 0)}`
                     ).join(', ') || '₹0'
                   )
                 ),
                 React.createElement('div', null,
                   React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Buying Price Range: '),
                   React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
-                    '₹' + window.formatIndianNumber(Math.min(...item.categories.map(c => c.buying_price || 0))) +
-                    ' - ₹' + window.formatIndianNumber(Math.max(...item.categories.map(c => c.buying_price || 0)))
+                    '₹' + window.formatNumber(Math.min(...item.categories.map(c => c.buying_price || 0))) +
+                    ' - ₹' + window.formatNumber(Math.max(...item.categories.map(c => c.buying_price || 0)))
                   )
                 ),
                 React.createElement('div', null,
                   React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Selling Price Range: '),
                   React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
-                    '₹' + window.formatIndianNumber(Math.min(...item.categories.map(c => c.selling_price || 0))) +
-                    ' - ₹' + window.formatIndianNumber(Math.max(...item.categories.map(c => c.selling_price || 0)))
+                    '₹' + window.formatNumber(Math.min(...item.categories.map(c => c.selling_price || 0))) +
+                    ' - ₹' + window.formatNumber(Math.max(...item.categories.map(c => c.selling_price || 0)))
                   )
                 )
               ) :
@@ -285,26 +285,26 @@ window.renderInventoryDetail = () => {
                 React.createElement('div', null,
                   React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'MRP per Ticket: '),
                   React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
-                    '₹' + window.formatIndianNumber(item.mrp || 0)
+                    '₹' + window.formatNumber(item.mrp || 0)
                   )
                 ),
                 React.createElement('div', null,
                   React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Buying Price: '),
                   React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
-                    '₹' + window.formatIndianNumber(item.buying_price || 0)
+                    '₹' + window.formatNumber(item.buying_price || 0)
                   )
                 ),
                 React.createElement('div', null,
                   React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Selling Price: '),
                   React.createElement('span', { className: 'text-gray-900 dark:text-white' }, 
-                    '₹' + window.formatIndianNumber(item.selling_price || 0)
+                    '₹' + window.formatNumber(item.selling_price || 0)
                   )
                 )
               ),
             React.createElement('div', null,
               React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Total Revenue Potential: '),
               React.createElement('span', { className: 'text-green-600 font-semibold text-lg' }, 
-                '₹' + window.formatIndianNumber(totalRevenuePotential)
+                window.formatCurrency(totalRevenuePotential)
               )
             )
           )
