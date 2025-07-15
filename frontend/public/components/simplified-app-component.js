@@ -2497,6 +2497,8 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
     { name: 'supplierInvoice', label: 'Supplier Invoice #', type: 'text', required: false },
     { name: 'purchasePrice', label: 'Purchase Price (per ticket)', type: 'number', required: false },
     { name: 'totalPurchaseAmount', label: 'Total Purchase Amount', type: 'number', required: false },
+    { name: 'purchase_currency', label: 'Purchase Currency', type: 'select', options: ['INR', 'USD', 'EUR', 'GBP', 'AED', 'AUD'], required: false },
+    { name: 'purchase_exchange_rate', label: 'Exchange Rate to INR', type: 'number', required: false },
     { name: 'amountPaid', label: 'Amount Paid', type: 'number', required: false },
     { name: 'paymentDueDate', label: 'Payment Due Date', type: 'date', required: false }
   ];
