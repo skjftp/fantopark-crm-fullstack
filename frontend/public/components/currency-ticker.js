@@ -86,6 +86,7 @@ window.CurrencyService = {
 };
 
 // Fetch rates function
+// Fetch rates function
 window.fetchCurrencyRates = async function() {
   window.currencyTickerState.loading = true;
   window.currencyTickerState.error = null;
@@ -138,6 +139,16 @@ window.fetchCurrencyRates = async function() {
       window.currencyTickerState.previousRates = previousRates;
     }
     
+    // Log rate changes (moved inside try block where newRates is available)
+    const oldUSD = window.currencyTickerState.rates.USD;
+    const newUSD = newRates.USD;
+    
+    if (oldUSD !== newUSD) {
+      console.log(`USD rate changed: ${oldUSD} → ${newUSD} (${newUSD > oldUSD ? '+' : ''}${(newUSD - oldUSD).toFixed(2)})`);
+    } else {
+      console.log('USD rate unchanged at:', newUSD);
+    }
+    
     // Update state
     window.currencyTickerState.rates = newRates;
     window.currencyTickerState.lastUpdate = new Date(timestamp);
@@ -159,16 +170,6 @@ window.fetchCurrencyRates = async function() {
       window.currencyTickerState.lastUpdate = new Date(cached.timestamp);
     }
   }
-
-  // Add this to your fetchCurrencyRates function after updating rates
-const oldUSD = window.currencyTickerState.rates.USD;
-const newUSD = newRates.USD;
-
-if (oldUSD !== newUSD) {
-  console.log(`USD rate changed: ${oldUSD} → ${newUSD} (${newUSD > oldUSD ? '+' : ''}${(newUSD - oldUSD).toFixed(2)})`);
-} else {
-  console.log('USD rate unchanged at:', newUSD);
-}
   
   if (window.forceUpdate) window.forceUpdate();
 };
