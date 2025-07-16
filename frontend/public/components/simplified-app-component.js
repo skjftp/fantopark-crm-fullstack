@@ -3208,13 +3208,28 @@ console.log("✅ AssignmentRulesTab exposed to window");
               title: 'How to use CRM'
             }, '❓'),
             React.createElement('button', {
-  onClick: () => {
-    // Only update the state - let the useEffect handle DOM and localStorage
-    state.setDarkMode(!state.darkMode);
-  },
-  className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
-  title: state.darkMode ? 'Switch to light mode' : 'Switch to dark mode'
-}, state.darkMode ? '☀️' : '🌙'),
+            onClick: () => {
+              // Toggle the state
+              const newDarkMode = !state.darkMode;
+              state.setDarkMode(newDarkMode);
+              
+              // Immediately update DOM and localStorage as a fallback
+              // This ensures the change happens even if useEffect doesn't trigger
+              if (newDarkMode) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('crm_dark_mode', 'true');
+              } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('crm_dark_mode', 'false');
+              }
+              
+              // Also update the global window state for consistency
+              window.darkMode = newDarkMode;
+              window.appState.darkMode = newDarkMode;
+            },
+            className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
+            title: state.darkMode ? 'Switch to light mode' : 'Switch to dark mode'
+          }, state.darkMode ? '☀️' : '🌙'),
             React.createElement('div', { className: 'w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center' },
               React.createElement('span', { className: 'text-white text-sm' }, (state.user?.name || 'A')[0])
             ),
