@@ -28,9 +28,7 @@ const allowedOrigins = [
   /^https:\/\/enduring-wharf-464005-h7.*\.web\.app$/
 ];
 
-const journeyRoutes = require('./routes/journeys');
-app.use('/api/journeys', journeyRoutes);
-
+// ✅ IMPORTANT: CORS MUST COME BEFORE ROUTES!
 // ✅ UPDATED: More flexible CORS configuration
 app.use(cors({
   origin: function (origin, callback) {
@@ -138,6 +136,7 @@ app.use('/webhooks', webhookRoutes);
 
 // ===============================================
 // AUTHENTICATED ROUTES (existing routes)
+// ✅ MOVED: Journey routes now AFTER CORS setup
 // ===============================================
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
@@ -159,6 +158,10 @@ app.use('/api/clients', require('./routes/clients'));
 app.use('/api/reminders', require('./routes/reminders'));
 app.use('/api/assignment-rules', require('./routes/assignmentRules'));
 app.use('/api/events', require('./routes/events'));
+
+// ✅ JOURNEY ROUTES - NOW AFTER CORS SETUP!
+const journeyRoutes = require('./routes/journeys');
+app.use('/api/journeys', journeyRoutes);
 
 // ✅ UPDATED: Enhanced health check with webhook status
 app.get('/health', (req, res) => {
