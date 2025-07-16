@@ -1076,19 +1076,40 @@ window.renderEnhancedOrderActions = function(order) {
       }
 
         // ADD JOURNEY BUTTON HERE
-  if (hasPermission('orders', 'write')) {
-    actions.push(
-      React.createElement('button', {
-        key: 'journey',
-        onClick: () => {
-          window.setSelectedOrder && window.setSelectedOrder(order);
-          window.setShowJourneyGenerator && window.setShowJourneyGenerator(true);
-        },
-        className: 'px-2 py-1 text-xs bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded hover:from-yellow-600 hover:to-yellow-700',
-        title: 'Generate Premium Journey'
-      }, '✨')
-    );
-  }
+// Journey Experience button
+if (hasPermission('orders', 'write') && 
+    ['quote_sent', 'processing', 'payment_pending', 'confirmed', 'completed'].includes(order.status)) {
+  actions.push(
+    React.createElement('button', {
+      key: 'journey',
+      onClick: () => {
+        console.log('Journey button clicked for order:', order.id);
+        
+        // Remove any existing modal
+        const existing = document.getElementById('journey-modal-container');
+        if (existing) existing.remove();
+        
+        // Create new modal
+        const div = document.createElement('div');
+        div.id = 'journey-modal-container';
+        document.body.appendChild(div);
+        
+        ReactDOM.render(
+          React.createElement(window.JourneyGenerator, {
+            order: order,
+            onClose: () => {
+              ReactDOM.unmountComponentAtNode(div);
+              div.remove();
+            }
+          }),
+          div
+        );
+      },
+      className: 'px-2 py-1 text-xs bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded hover:from-yellow-600 hover:to-yellow-700',
+      title: 'Generate Premium Journey'
+    }, '✨')
+  );
+}
 
       if (hasPermission('orders', 'assign')) {
         actions.push(
