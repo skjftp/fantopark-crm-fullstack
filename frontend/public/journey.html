@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Cricket Journey - FanToPark</title>
+    <title>Your Sports Journey - FanToPark</title>
     
     <!-- React and ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -25,21 +25,66 @@
             overflow-x: hidden;
         }
         
-        /* Cricket-specific backgrounds */
-        .cricket-bg {
+        /* Base Sport Backgrounds */
+        .sport-bg {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            z-index: -2;
+        }
+        
+        /* Cricket-specific backgrounds */
+        .cricket-bg {
             background: 
                 radial-gradient(circle at 20% 50%, rgba(34, 139, 34, 0.1) 0%, transparent 50%),
                 radial-gradient(circle at 80% 50%, rgba(34, 139, 34, 0.1) 0%, transparent 50%),
                 linear-gradient(135deg, #0a0a0a 0%, #0f1f0f 100%);
-            z-index: -2;
         }
         
-        /* Cricket pitch pattern */
+        /* Football-specific backgrounds */
+        .football-bg {
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(46, 125, 50, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 70%, rgba(76, 175, 80, 0.1) 0%, transparent 50%),
+                linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+        }
+        
+        /* Tennis-specific backgrounds */
+        .tennis-bg {
+            background: 
+                radial-gradient(circle at 50% 50%, rgba(139, 195, 74, 0.1) 0%, transparent 50%),
+                linear-gradient(135deg, #0a0a0a 0%, #1a2a1a 100%);
+        }
+        
+        /* F1-specific backgrounds */
+        .f1-bg {
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(244, 67, 54, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(33, 33, 33, 0.2) 0%, transparent 40%),
+                linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 100%);
+        }
+        
+        /* Basketball-specific backgrounds */
+        .basketball-bg {
+            background: 
+                radial-gradient(circle at 50% 0%, rgba(255, 152, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 100%, rgba(255, 87, 34, 0.1) 0%, transparent 50%),
+                linear-gradient(135deg, #0a0a0a 0%, #1a0f0a 100%);
+        }
+        
+        /* Rugby-specific backgrounds */
+        .rugby-bg {
+            background: 
+                radial-gradient(circle at 25% 25%, rgba(0, 150, 136, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(0, 188, 212, 0.1) 0%, transparent 50%),
+                linear-gradient(135deg, #0a0a0a 0%, #0a1a1a 100%);
+        }
+        
+        /* Sport-specific field/court overlays */
+        
+        /* Cricket pitch */
         .cricket-pitch {
             position: fixed;
             top: 50%;
@@ -71,7 +116,103 @@
             right: 100px;
         }
         
-        /* Animated cricket ball */
+        /* Football field lines */
+        .football-field {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 900px;
+            height: 600px;
+            border: 3px solid rgba(255, 255, 255, 0.05);
+            z-index: -1;
+        }
+        
+        .football-field::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.05);
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .football-field::after {
+            content: '';
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border: 3px solid rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        /* Tennis court */
+        .tennis-court {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 400px;
+            border: 3px solid rgba(139, 195, 74, 0.1);
+            z-index: -1;
+        }
+        
+        .tennis-court::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 3px;
+            background: rgba(139, 195, 74, 0.1);
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        /* F1 track pattern */
+        .f1-track {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 500px;
+            border: 8px dashed rgba(255, 255, 255, 0.05);
+            border-radius: 200px;
+            z-index: -1;
+        }
+        
+        /* Basketball court */
+        .basketball-court {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 700px;
+            height: 400px;
+            border: 3px solid rgba(255, 152, 0, 0.1);
+            z-index: -1;
+        }
+        
+        .basketball-court::before {
+            content: '';
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border: 3px solid rgba(255, 152, 0, 0.1);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        /* Animated elements */
+        
+        /* Cricket ball */
         @keyframes ballBounce {
             0%, 100% { transform: translateY(0) rotate(0deg); }
             50% { transform: translateY(-200px) rotate(180deg); }
@@ -99,7 +240,279 @@
             transform: translateY(-50%);
         }
         
-        /* Team vs display */
+        /* Football */
+        @keyframes footballKick {
+            0%, 100% { transform: rotate(0deg) translateX(0); }
+            50% { transform: rotate(360deg) translateX(300px); }
+        }
+        
+        .football {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle at 30% 30%, #ffffff, #000000);
+            border-radius: 50%;
+            animation: footballKick 6s ease-in-out infinite;
+            z-index: 100;
+        }
+        
+        /* Tennis ball */
+        @keyframes tennisBounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-150px) scale(0.9); }
+        }
+        
+        .tennis-ball {
+            position: fixed;
+            width: 35px;
+            height: 35px;
+            background: radial-gradient(circle at 30% 30%, #ccff00, #9acd32);
+            border-radius: 50%;
+            animation: tennisBounce 3s ease-in-out infinite;
+            z-index: 100;
+        }
+        
+        /* F1 car */
+        @keyframes f1Race {
+            0% { left: -100px; }
+            100% { left: 110%; }
+        }
+        
+        .f1-car {
+            position: fixed;
+            bottom: 20%;
+            width: 80px;
+            height: 30px;
+            background: linear-gradient(90deg, #ff0000 0%, #ff0000 70%, #333333 70%, #333333 100%);
+            animation: f1Race 5s linear infinite;
+            z-index: 100;
+        }
+        
+        /* Basketball */
+        @keyframes basketballDribble {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-100px) rotate(90deg); }
+            50% { transform: translateY(0) rotate(180deg); }
+            75% { transform: translateY(-50px) rotate(270deg); }
+        }
+        
+        .basketball {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle at 30% 30%, #ff6f00, #e65100);
+            border-radius: 50%;
+            animation: basketballDribble 2s ease-in-out infinite;
+            z-index: 100;
+        }
+        
+        /* Cricket stumps */
+        .stumps {
+            position: fixed;
+            bottom: 0;
+            right: 10%;
+            width: 60px;
+            height: 100px;
+            opacity: 0.1;
+            z-index: -1;
+        }
+        
+        .stump {
+            position: absolute;
+            bottom: 0;
+            width: 15px;
+            height: 80px;
+            background: linear-gradient(to bottom, #8b6914, #daa520);
+            border-radius: 2px;
+        }
+        
+        .stump:nth-child(1) { left: 0; }
+        .stump:nth-child(2) { left: 20px; }
+        .stump:nth-child(3) { left: 40px; }
+        
+        .bails {
+            position: absolute;
+            top: 0;
+            left: -2px;
+            width: 64px;
+            height: 5px;
+            background: #daa520;
+            border-radius: 2px;
+        }
+        
+        /* Football goal posts */
+        .goal-posts {
+            position: fixed;
+            bottom: 0;
+            left: 10%;
+            width: 120px;
+            height: 80px;
+            opacity: 0.1;
+            z-index: -1;
+        }
+        
+        .goal-post {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        
+        .goal-post.left {
+            left: 0;
+            width: 5px;
+            height: 100%;
+        }
+        
+        .goal-post.right {
+            right: 0;
+            width: 5px;
+            height: 100%;
+        }
+        
+        .goal-post.top {
+            top: 0;
+            width: 100%;
+            height: 5px;
+        }
+        
+        /* Tennis net */
+        .tennis-net {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 3px;
+            background: repeating-linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0.2),
+                rgba(255, 255, 255, 0.2) 5px,
+                transparent 5px,
+                transparent 10px
+            );
+            z-index: -1;
+        }
+        
+        /* F1 checkered flag */
+        @keyframes flagWave {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+        
+        .checkered-flag {
+            position: fixed;
+            top: 10%;
+            right: 5%;
+            width: 60px;
+            height: 40px;
+            background: repeating-conic-gradient(
+                #000000 0deg 90deg,
+                #ffffff 90deg 180deg
+            );
+            animation: flagWave 2s ease-in-out infinite;
+            opacity: 0.1;
+            z-index: -1;
+        }
+        
+        /* Hero section */
+        .hero {
+            min-height: 100vh;
+            position: relative;
+            padding: 40px 20px;
+        }
+        
+        .content {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 10;
+        }
+        
+        /* Loading screen */
+        .loading-screen {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #d4af37;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            margin-top: 20px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #d4af37;
+        }
+        
+        /* Error screen */
+        .error-screen {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .error-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
+        .error-message {
+            color: #666;
+            margin: 20px 0;
+        }
+        
+        /* Welcome section */
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .package-badge {
+            display: inline-block;
+            padding: 8px 24px;
+            background: rgba(212, 175, 55, 0.2);
+            border: 1px solid #d4af37;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #d4af37;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .welcome-text {
+            font-size: 18px;
+            color: #888;
+            margin-top: 10px;
+        }
+        
+        h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin: 20px 0;
+            background: linear-gradient(90deg, #ffffff, #d4af37);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* Teams display */
         .teams-display {
             background: rgba(255, 255, 255, 0.05);
             border: 2px solid rgba(212, 175, 55, 0.3);
@@ -183,41 +596,7 @@
             left: 120%;
         }
         
-        /* Cricket stumps animation */
-        .stumps {
-            position: fixed;
-            bottom: 0;
-            right: 10%;
-            width: 60px;
-            height: 100px;
-            opacity: 0.1;
-            z-index: -1;
-        }
-        
-        .stump {
-            position: absolute;
-            bottom: 0;
-            width: 15px;
-            height: 80px;
-            background: linear-gradient(to bottom, #8b6914, #daa520);
-            border-radius: 2px;
-        }
-        
-        .stump:nth-child(1) { left: 0; }
-        .stump:nth-child(2) { left: 20px; }
-        .stump:nth-child(3) { left: 40px; }
-        
-        .bails {
-            position: absolute;
-            top: 0;
-            left: -2px;
-            width: 64px;
-            height: 5px;
-            background: #daa520;
-            border-radius: 2px;
-        }
-        
-        /* Match format badge */
+        /* Match format badges */
         .match-format-badge {
             display: inline-block;
             padding: 8px 20px;
@@ -251,280 +630,115 @@
             color: #8a2be2;
         }
         
-        /* Stadium info section */
-        .stadium-section {
-            margin: 60px 0;
-            padding: 40px;
-            background: rgba(255, 255, 255, 0.03);
+        .match-format-badge.league {
+            background: rgba(76, 175, 80, 0.2);
+            border-color: #4caf50;
+            color: #4caf50;
+        }
+        
+        .match-format-badge.cup {
+            background: rgba(255, 193, 7, 0.2);
+            border-color: #ffc107;
+            color: #ffc107;
+        }
+        
+        .match-format-badge.grand-slam {
+            background: rgba(156, 39, 176, 0.2);
+            border-color: #9c27b0;
+            color: #9c27b0;
+        }
+        
+        .match-format-badge.race-weekend {
+            background: rgba(244, 67, 54, 0.2);
+            border-color: #f44336;
+            color: #f44336;
+        }
+        
+        /* Event info */
+        .event-info {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px;
-            position: relative;
-            overflow: hidden;
+            padding: 30px;
+            margin: 40px 0;
         }
         
-        .stadium-section::before {
-            content: '🏏';
-            position: absolute;
-            font-size: 200px;
-            opacity: 0.05;
-            right: -50px;
-            top: -50px;
-            transform: rotate(-15deg);
-        }
-        
-        /* Loading and Error States */
-        .loading-screen, .error-screen {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-        
-        .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 3px solid rgba(212, 175, 55, 0.1);
-            border-top-color: #d4af37;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .loading-text {
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
             margin-top: 20px;
-            font-size: 14px;
-            color: #888;
-            letter-spacing: 2px;
-            text-transform: uppercase;
         }
         
-        /* Hero Section */
-        .hero {
-            min-height: 100vh;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .content {
-            position: relative;
-            z-index: 10;
-            padding: 120px 50px 50px;
-            max-width: 1400px;
-            margin: 0 auto;
-            width: 100%;
-        }
-        
-        .welcome-section {
-            text-align: center;
-            margin-bottom: 80px;
-            animation: fadeInUp 1s ease;
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .welcome-text {
-            font-size: 18px;
-            color: #d4af37;
-            margin-bottom: 20px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-        
-        .client-name {
-            font-size: 48px;
-            font-weight: 700;
-            margin-bottom: 30px;
-            background: linear-gradient(90deg, #ffffff, #d4af37);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .event-title {
-            font-size: 36px;
-            margin-bottom: 10px;
-            color: #ffffff;
-        }
-        
-        .venue-info {
-            font-size: 20px;
-            color: #888;
-        }
-        
-        /* Countdown Timer */
-        .countdown-section {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            padding: 40px;
-            margin: 60px 0;
-            text-align: center;
-            backdrop-filter: blur(10px);
-        }
-        
-        .countdown-title {
-            font-size: 24px;
-            margin-bottom: 30px;
-            color: #d4af37;
-        }
-        
-        .countdown-timer {
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-            flex-wrap: wrap;
-        }
-        
-        .countdown-item {
-            text-align: center;
-        }
-        
-        .countdown-value {
-            font-size: 48px;
-            font-weight: 700;
-            color: #ffffff;
-            display: block;
-        }
-        
-        .countdown-label {
+        .info-item h3 {
             font-size: 14px;
             color: #888;
             text-transform: uppercase;
             letter-spacing: 1px;
+            margin-bottom: 8px;
         }
         
-        /* Services Grid */
-        .services-section {
-            margin: 80px 0;
+        .info-item p {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        /* Journey timeline */
+        .journey-section {
+            margin: 60px 0;
         }
         
         .section-title {
             font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 40px;
             text-align: center;
-            margin-bottom: 50px;
-            color: #d4af37;
-        }
-        
-        .services-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
-            margin-bottom: 60px;
-        }
-        
-        .service-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 15px;
-            padding: 30px;
-            text-align: center;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-        
-        .service-card:hover {
-            transform: translateY(-5px);
-            border-color: #d4af37;
-            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
-        }
-        
-        .service-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-        
-        .service-title {
-            font-size: 20px;
-            margin-bottom: 10px;
-            color: #ffffff;
-        }
-        
-        .service-description {
-            font-size: 14px;
-            color: #888;
-            line-height: 1.6;
-        }
-        
-        /* Journey Timeline */
-        .journey-container {
-            position: relative;
-            margin: 100px 0;
         }
         
         .timeline {
             position: relative;
-            padding: 50px 0;
+            padding: 0 20px;
         }
         
         .timeline::before {
             content: '';
             position: absolute;
             left: 50%;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: linear-gradient(180deg, transparent, #d4af37, transparent);
             transform: translateX(-50%);
+            width: 2px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
         }
         
         .milestone {
             position: relative;
-            margin: 80px 0;
-            opacity: 0;
-            animation: fadeIn 0.8s ease forwards;
+            margin: 40px 0;
+            display: flex;
+            align-items: center;
         }
         
-        .milestone:nth-child(1) { animation-delay: 0.2s; }
-        .milestone:nth-child(2) { animation-delay: 0.4s; }
-        .milestone:nth-child(3) { animation-delay: 0.6s; }
-        .milestone:nth-child(4) { animation-delay: 0.8s; }
-        .milestone:nth-child(5) { animation-delay: 1.0s; }
-        .milestone:nth-child(6) { animation-delay: 1.2s; }
-        
-        @keyframes fadeIn {
-            to {
-                opacity: 1;
-            }
+        .milestone:nth-child(even) {
+            flex-direction: row-reverse;
         }
         
         .milestone-content {
-            position: relative;
-            width: 45%;
+            flex: 1;
             padding: 30px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-        }
-        
-        .milestone:nth-child(odd) .milestone-content {
-            margin-left: auto;
-            text-align: left;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            position: relative;
+            max-width: 45%;
         }
         
         .milestone:nth-child(even) .milestone-content {
-            margin-right: auto;
             text-align: right;
         }
         
         .milestone-icon {
             position: absolute;
-            top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
             width: 60px;
             height: 60px;
             background: #0a0a0a;
@@ -534,51 +748,35 @@
             align-items: center;
             justify-content: center;
             font-size: 24px;
-            z-index: 10;
+            z-index: 2;
         }
         
-        .milestone-title {
-            font-size: 24px;
+        .milestone-content h3 {
+            font-size: 22px;
             margin-bottom: 10px;
-            color: #d4af37;
         }
         
-        .milestone-description {
-            font-size: 16px;
+        .milestone-content p {
             color: #888;
             line-height: 1.6;
         }
         
-        .milestone-status {
-            display: inline-block;
-            margin-top: 15px;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .milestone.completed .milestone-icon {
+            background: #d4af37;
         }
         
-        .status-completed {
-            background: rgba(76, 175, 80, 0.2);
-            color: #4caf50;
-            border: 1px solid #4caf50;
+        .milestone.completed .milestone-content {
+            border-color: #d4af37;
         }
         
-        .status-pending {
-            background: rgba(212, 175, 55, 0.2);
-            color: #d4af37;
-            border: 1px solid #d4af37;
-        }
-        
-        /* Weather Widget */
+        /* Weather widget */
         .weather-widget {
             position: fixed;
             top: 20px;
             right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
             padding: 20px;
             backdrop-filter: blur(10px);
             z-index: 100;
@@ -586,10 +784,10 @@
         
         .weather-title {
             font-size: 12px;
-            color: #888;
-            margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            color: #888;
+            margin-bottom: 10px;
         }
         
         .weather-info {
@@ -599,35 +797,53 @@
         }
         
         .weather-temp {
-            font-size: 36px;
+            font-size: 32px;
             font-weight: 700;
-            color: #ffffff;
         }
         
         .weather-condition {
-            font-size: 14px;
+            font-size: 16px;
+        }
+        
+        /* Countdown timer */
+        .countdown-section {
+            text-align: center;
+            margin: 60px 0;
+        }
+        
+        .countdown-timer {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .countdown-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px 30px;
+            min-width: 120px;
+        }
+        
+        .countdown-value {
+            font-size: 48px;
+            font-weight: 700;
             color: #d4af37;
         }
         
-        /* Call to Action */
+        .countdown-label {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 5px;
+        }
+        
+        /* CTA section */
         .cta-section {
             text-align: center;
-            margin: 100px 0;
-            padding: 60px;
-            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
-            border-radius: 20px;
-        }
-        
-        .cta-title {
-            font-size: 36px;
-            margin-bottom: 20px;
-            color: #ffffff;
-        }
-        
-        .cta-text {
-            font-size: 18px;
-            color: #888;
-            margin-bottom: 30px;
+            margin: 80px 0 40px;
         }
         
         .cta-button {
@@ -638,66 +854,60 @@
             text-decoration: none;
             border-radius: 30px;
             font-weight: 600;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-size: 18px;
+            transition: transform 0.3s;
         }
         
         .cta-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
         }
         
-        /* Mobile Responsive */
+        /* Responsive */
         @media (max-width: 768px) {
-            .content {
-                padding: 80px 20px 20px;
-            }
-            
-            .client-name {
-                font-size: 32px;
-            }
-            
-            .event-title {
-                font-size: 24px;
-            }
-            
             .teams-container {
                 flex-direction: column;
                 gap: 20px;
             }
             
-            .team {
-                font-size: 24px;
-            }
-            
-            .cricket-pitch {
-                width: 300px;
-                height: 100px;
+            .vs::before,
+            .vs::after {
+                display: none;
             }
             
             .timeline::before {
-                left: 30px;
+                left: 20px;
+            }
+            
+            .milestone {
+                flex-direction: column !important;
+                margin-left: 40px;
             }
             
             .milestone-content {
-                width: calc(100% - 60px);
-                margin-left: 60px !important;
+                max-width: 100%;
                 text-align: left !important;
             }
             
             .milestone-icon {
-                left: 30px;
+                left: 20px;
+                transform: translateX(-50%);
+            }
+            
+            .countdown-timer {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+            
+            .countdown-item {
+                min-width: 100px;
+                padding: 15px 20px;
             }
             
             .weather-widget {
                 position: relative;
-                margin: 20px auto;
-                max-width: 300px;
-            }
-            
-            .services-grid {
-                grid-template-columns: 1fr;
+                top: auto;
+                right: auto;
+                margin: 20px 0;
             }
         }
     </style>
@@ -708,141 +918,168 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         
-        // API Configuration
-        const API_URL = window.location.hostname === 'localhost' 
-            ? 'http://localhost:8080/api' 
-            : 'https://fantopark-backend-150582227311.us-central1.run.app/api';
+        // Sport-specific components
+        const CricketBall = ({ position }) => (
+            <div className="cricket-ball" style={{ left: `${position}%`, bottom: '30%' }}></div>
+        );
         
-        // Service Icons Mapping
-        const serviceIcons = {
-            flights: '✈️',
-            accommodation: '🏨',
-            visa_assistance: '📄',
-            transfers: '🚗',
-            hospitality: '🥂',
-            meals: '🍽️',
-            city_tour: '🏛️',
-            insurance: '🛡️',
-            parking: '🚗',
-            merchandise: '👕'
-        };
+        const Football = ({ position }) => (
+            <div className="football" style={{ left: `${position}%`, top: '20%' }}></div>
+        );
         
-        // Service Names Mapping
-        const serviceNames = {
-            flights: 'Flights',
-            accommodation: 'Hotel Accommodation',
-            visa_assistance: 'Visa Assistance',
-            transfers: 'Airport & Venue Transfers',
-            hospitality: 'VIP Hospitality',
-            meals: 'Meal Packages',
-            city_tour: 'City Tours',
-            insurance: 'Travel Insurance',
-            parking: 'Premium Parking',
-            merchandise: 'Official Merchandise'
-        };
+        const TennisBall = ({ position }) => (
+            <div className="tennis-ball" style={{ right: `${position}%`, top: '30%' }}></div>
+        );
         
-        // Service Descriptions
-        const serviceDescriptions = {
-            flights: 'Premium flight arrangements with flexible booking options',
-            accommodation: 'Luxury hotel accommodation near the venue',
-            visa_assistance: 'Complete visa processing and documentation support',
-            transfers: 'Private transfers between airport, hotel, and venue',
-            hospitality: 'Exclusive VIP lounge access and premium hospitality',
-            meals: 'Curated dining experiences and meal packages',
-            city_tour: 'Guided tours of local attractions and experiences',
-            insurance: 'Comprehensive travel and health insurance coverage',
-            parking: 'Reserved parking spots near the stadium',
-            merchandise: 'Official team merchandise and memorabilia'
-        };
+        const F1Car = () => (
+            <div className="f1-car"></div>
+        );
         
-        // Package Type Labels
-        const packageLabels = {
-            tickets_only: 'Essential Package',
-            standard_package: 'Standard Package',
-            premium_package: 'Premium Package',
-            hospitality: 'Hospitality Package',
-            premium_local: 'Premium Experience',
-            custom: 'Customized Package'
-        };
+        const Basketball = ({ position }) => (
+            <div className="basketball" style={{ left: `${position}%`, bottom: '40%' }}></div>
+        );
         
-        // Cricket-specific components
-        const CricketBall = ({ position }) => {
-            return <div className="cricket-ball" style={{ left: position + '%', top: '10%' }}></div>;
-        };
+        const Stumps = () => (
+            <div className="stumps">
+                <div className="stump"></div>
+                <div className="stump"></div>
+                <div className="stump"></div>
+                <div className="bails"></div>
+            </div>
+        );
         
-        const Stumps = () => {
-            return (
-                <div className="stumps">
-                    <div className="stump"></div>
-                    <div className="stump"></div>
-                    <div className="stump"></div>
-                    <div className="bails"></div>
-                </div>
-            );
-        };
+        const GoalPosts = () => (
+            <div className="goal-posts">
+                <div className="goal-post left"></div>
+                <div className="goal-post right"></div>
+                <div className="goal-post top"></div>
+            </div>
+        );
         
-        // Main Journey App Component
-        const JourneyApp = () => {
+        const TennisNet = () => (
+            <div className="tennis-net"></div>
+        );
+        
+        const CheckeredFlag = () => (
+            <div className="checkered-flag"></div>
+        );
+        
+        // Main Journey Component
+        const JourneyPage = () => {
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             const [journeyData, setJourneyData] = useState(null);
             const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0 });
             const [ballPosition, setBallPosition] = useState(10);
             
-            // Get token from URL
-            const getTokenFromUrl = () => {
-                const path = window.location.pathname;
-                const match = path.match(/\/journey\/([A-Z0-9]+)/i);
-                return match ? match[1] : null;
+            // Get journey token from URL
+            const getJourneyToken = () => {
+                const pathParts = window.location.pathname.split('/');
+                return pathParts[pathParts.length - 1];
+            };
+            
+            // Package labels
+            const packageLabels = {
+                tickets_only: 'Match Tickets',
+                hospitality: 'Hospitality Package',
+                premium: 'Premium Experience',
+                standard: 'Standard Package',
+                travel_premium: 'All-Inclusive Experience'
+            };
+            
+            // Sport-specific content
+            const sportContent = {
+                cricket: {
+                    name: 'Cricket',
+                    icon: '🏏',
+                    loadingText: 'PREPARING YOUR CRICKET JOURNEY',
+                    welcomeText: 'Welcome to the gentleman\'s game',
+                    weatherTitle: 'Pitch Conditions'
+                },
+                football: {
+                    name: 'Football',
+                    icon: '⚽',
+                    loadingText: 'PREPARING YOUR FOOTBALL JOURNEY',
+                    welcomeText: 'Experience the beautiful game',
+                    weatherTitle: 'Match Day Weather'
+                },
+                tennis: {
+                    name: 'Tennis',
+                    icon: '🎾',
+                    loadingText: 'PREPARING YOUR TENNIS JOURNEY',
+                    welcomeText: 'Welcome to centre court',
+                    weatherTitle: 'Court Conditions'
+                },
+                f1: {
+                    name: 'Formula 1',
+                    icon: '🏎️',
+                    loadingText: 'PREPARING YOUR F1 JOURNEY',
+                    welcomeText: 'Feel the speed, live the thrill',
+                    weatherTitle: 'Track Conditions'
+                },
+                basketball: {
+                    name: 'Basketball',
+                    icon: '🏀',
+                    loadingText: 'PREPARING YOUR BASKETBALL JOURNEY',
+                    welcomeText: 'Experience courtside action',
+                    weatherTitle: 'Arena Conditions'
+                },
+                rugby: {
+                    name: 'Rugby',
+                    icon: '🏉',
+                    loadingText: 'PREPARING YOUR RUGBY JOURNEY',
+                    welcomeText: 'Feel the power of the scrum',
+                    weatherTitle: 'Field Conditions'
+                }
             };
             
             // Fetch journey data
             const fetchJourneyData = async () => {
-                const token = getTokenFromUrl();
-                if (!token) {
-                    setError('Invalid journey link');
-                    setLoading(false);
-                    return;
-                }
-                
                 try {
-                    const response = await fetch(`${API_URL}/journeys/public/${token}`);
+                    const token = getJourneyToken();
+                    const response = await fetch(`https://fantopark-backend-150582227311.us-central1.run.app/api/journeys/public/${token}`);
+                    
                     if (!response.ok) {
                         throw new Error('Journey not found');
                     }
                     
-                    const result = await response.json();
-                    if (result.success && result.data) {
-                        setJourneyData(result.data);
-                        setLoading(false);
-                    } else {
-                        throw new Error('Invalid journey data');
+                    const data = await response.json();
+                    setJourneyData(data);
+                    
+                    // Simulate weather data (in real app, this would come from an API)
+                    if (!data.weather) {
+                        data.weather = {
+                            temperature: Math.floor(Math.random() * 10) + 20,
+                            condition: ['Sunny', 'Partly Cloudy', 'Clear'][Math.floor(Math.random() * 3)]
+                        };
                     }
+                    
+                    setLoading(false);
                 } catch (err) {
                     console.error('Error fetching journey:', err);
-                    setError(err.message || 'Failed to load journey');
+                    setError(err.message);
                     setLoading(false);
                 }
             };
             
             // Update countdown
             const updateCountdown = () => {
-                if (!journeyData?.event_date) return;
-                
-                const eventDate = new Date(journeyData.event_date);
-                const now = new Date();
-                const diff = eventDate - now;
-                
-                if (diff > 0) {
-                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                if (journeyData && journeyData.event_date) {
+                    const eventDate = new Date(journeyData.event_date);
+                    const now = new Date();
+                    const diff = eventDate - now;
                     
-                    setCountdown({ days, hours, minutes });
+                    if (diff > 0) {
+                        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        
+                        setCountdown({ days, hours, minutes });
+                    }
                 }
             };
             
-            // Animate cricket ball
+            // Animate ball/object
             const animateBall = () => {
                 setBallPosition(prev => {
                     if (prev >= 90) return 10;
@@ -859,25 +1096,26 @@
                     updateCountdown();
                     const countdownInterval = setInterval(updateCountdown, 60000);
                     
-                    // Only animate for cricket
-                    if (journeyData.sport_type === 'cricket') {
-                        const ballInterval = setInterval(animateBall, 50);
-                        return () => {
-                            clearInterval(countdownInterval);
-                            clearInterval(ballInterval);
-                        };
-                    }
+                    // Animate sport-specific elements
+                    const ballInterval = setInterval(animateBall, 50);
                     
-                    return () => clearInterval(countdownInterval);
+                    return () => {
+                        clearInterval(countdownInterval);
+                        clearInterval(ballInterval);
+                    };
                 }
             }, [journeyData]);
+            
+            // Get sport type with fallback
+            const sportType = journeyData?.sport_type || 'cricket';
+            const sport = sportContent[sportType] || sportContent.cricket;
             
             // Loading Screen
             if (loading) {
                 return (
                     <div className="loading-screen">
                         <div className="loading-spinner"></div>
-                        <div className="loading-text">PREPARING YOUR CRICKET JOURNEY</div>
+                        <div className="loading-text">{sport.loadingText}</div>
                     </div>
                 );
             }
@@ -894,18 +1132,63 @@
                 );
             }
             
-            // Main Journey Display
-            const isCricket = journeyData.sport_type === 'cricket';
+            // Get match format class
+            const getMatchFormatClass = (format) => {
+                const formatMap = {
+                    'T20': 't20',
+                    'ODI': 'odi',
+                    'Test': 'test',
+                    'League': 'league',
+                    'Cup': 'cup',
+                    'Grand Slam': 'grand-slam',
+                    'Race Weekend': 'race-weekend'
+                };
+                return formatMap[format] || '';
+            };
             
+            // Main Journey Display
             return (
                 <div className="hero">
-                    {/* Cricket-specific backgrounds */}
-                    {isCricket && (
+                    {/* Sport-specific backgrounds */}
+                    <div className={`sport-bg ${sportType}-bg`}></div>
+                    
+                    {/* Sport-specific field/court elements */}
+                    {sportType === 'cricket' && (
                         <>
-                            <div className="cricket-bg"></div>
                             <div className="cricket-pitch"></div>
                             <CricketBall position={ballPosition} />
                             <Stumps />
+                        </>
+                    )}
+                    
+                    {sportType === 'football' && (
+                        <>
+                            <div className="football-field"></div>
+                            <Football position={ballPosition} />
+                            <GoalPosts />
+                        </>
+                    )}
+                    
+                    {sportType === 'tennis' && (
+                        <>
+                            <div className="tennis-court"></div>
+                            <TennisBall position={ballPosition} />
+                            <TennisNet />
+                        </>
+                    )}
+                    
+                    {sportType === 'f1' && (
+                        <>
+                            <div className="f1-track"></div>
+                            <F1Car />
+                            <CheckeredFlag />
+                        </>
+                    )}
+                    
+                    {sportType === 'basketball' && (
+                        <>
+                            <div className="basketball-court"></div>
+                            <Basketball position={ballPosition} />
                         </>
                     )}
                     
@@ -913,13 +1196,13 @@
                     {journeyData.weather && (
                         <div className="weather-widget">
                             <div className="weather-title">
-                                {isCricket ? 'Pitch Conditions' : 'Event Day Weather'}
+                                {sport.weatherTitle}
                             </div>
                             <div className="weather-info">
                                 <div className="weather-temp">{journeyData.weather.temperature}°C</div>
                                 <div>
                                     <div className="weather-condition">{journeyData.weather.condition}</div>
-                                    {isCricket && (
+                                    {sportType === 'cricket' && (
                                         <div className="text-xs text-gray-400">Good for batting</div>
                                     )}
                                 </div>
@@ -936,173 +1219,106 @@
                                 </div>
                             )}
                             <div className="welcome-text">
-                                {isCricket ? 'Welcome to Your Cricket Experience' : 'Welcome to Your Premium Journey'}
+                                {sport.welcomeText}
                             </div>
-                            <h1 className="client-name">{journeyData.client_name}</h1>
-                            <h2 className="event-title">{journeyData.event_name || 'Premium Event Experience'}</h2>
-                            <p className="venue-info">{journeyData.venue}</p>
-                            
-                            {/* Match Format Badge for Cricket */}
-                            {isCricket && journeyData.match_format && (
-                                <div className={`match-format-badge ${journeyData.match_format.toLowerCase()}`}>
-                                    {journeyData.match_format} Match
-                                </div>
-                            )}
+                            <h1>{journeyData.client_name}'s {sport.name} Journey</h1>
                         </div>
                         
-                        {/* Teams Display */}
+                        {/* Teams Display (if available) */}
                         {journeyData.teams && (journeyData.teams.home || journeyData.teams.away) && (
                             <div className="teams-display">
-                                {isCricket && <div className="text-sm text-gray-400 mb-2">MATCH</div>}
+                                {journeyData.match_format && (
+                                    <div className={`match-format-badge ${getMatchFormatClass(journeyData.match_format)}`}>
+                                        {journeyData.match_format}
+                                    </div>
+                                )}
                                 <div className="teams-container">
-                                    <div className="team team-home">
-                                        {journeyData.teams.home || 'Home Team'}
-                                    </div>
+                                    <div className="team team-home">{journeyData.teams.home || 'TBD'}</div>
                                     <div className="vs">VS</div>
-                                    <div className="team team-away">
-                                        {journeyData.teams.away || 'Away Team'}
-                                    </div>
+                                    <div className="team team-away">{journeyData.teams.away || 'TBD'}</div>
                                 </div>
-                                {isCricket && journeyData.match_format === 'T20' && (
-                                    <div className="text-sm text-gray-400 mt-4">
-                                        🔥 Expect fireworks in this T20 thriller!
+                            </div>
+                        )}
+                        
+                        {/* Event Info */}
+                        <div className="event-info">
+                            <h2>Event Details</h2>
+                            <div className="info-grid">
+                                <div className="info-item">
+                                    <h3>Event</h3>
+                                    <p>{journeyData.event_name}</p>
+                                </div>
+                                <div className="info-item">
+                                    <h3>Venue</h3>
+                                    <p>{journeyData.venue}</p>
+                                </div>
+                                <div className="info-item">
+                                    <h3>Date</h3>
+                                    <p>{new Date(journeyData.event_date).toLocaleDateString('en-US', {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })}</p>
+                                </div>
+                                {journeyData.package_type && (
+                                    <div className="info-item">
+                                        <h3>Package</h3>
+                                        <p>{packageLabels[journeyData.package_type]}</p>
                                     </div>
                                 )}
                             </div>
-                        )}
+                        </div>
                         
                         {/* Countdown Timer */}
                         <div className="countdown-section">
-                            <h3 className="countdown-title">
-                                {isCricket ? 'FIRST BALL IN' : 'YOUR EXPERIENCE BEGINS IN'}
-                            </h3>
+                            <h2 className="section-title">Countdown to {sport.name}</h2>
                             <div className="countdown-timer">
                                 <div className="countdown-item">
-                                    <span className="countdown-value">{countdown.days}</span>
-                                    <span className="countdown-label">Days</span>
+                                    <div className="countdown-value">{countdown.days}</div>
+                                    <div className="countdown-label">Days</div>
                                 </div>
                                 <div className="countdown-item">
-                                    <span className="countdown-value">{countdown.hours}</span>
-                                    <span className="countdown-label">Hours</span>
+                                    <div className="countdown-value">{countdown.hours}</div>
+                                    <div className="countdown-label">Hours</div>
                                 </div>
                                 <div className="countdown-item">
-                                    <span className="countdown-value">{countdown.minutes}</span>
-                                    <span className="countdown-label">Minutes</span>
+                                    <div className="countdown-value">{countdown.minutes}</div>
+                                    <div className="countdown-label">Minutes</div>
                                 </div>
                             </div>
                         </div>
                         
-                        {/* Stadium Information for Cricket */}
-                        {isCricket && journeyData.stadium_info && (
-                            <div className="stadium-section">
-                                <h2 className="section-title">Stadium Information</h2>
-                                <div className="text-center">
-                                    <h3 className="text-2xl mb-2">{journeyData.stadium_info.name || journeyData.venue}</h3>
-                                    <p className="text-gray-400 mb-4">{journeyData.stadium_info.city}</p>
-                                    {journeyData.match_format === 'Test' && (
-                                        <p className="text-sm text-yellow-500">
-                                            📅 Remember: Test match spans multiple days. Your ticket includes all days.
-                                        </p>
-                                    )}
-                                    {journeyData.is_local_event && (
-                                        <p className="text-sm text-blue-400 mt-2">
-                                            🚗 Gates open 2 hours before play. Parking details will be sent separately.
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                        
-                        {/* Included Services */}
-                        {journeyData.included_services && journeyData.included_services.length > 0 && (
-                            <div className="services-section">
-                                <h2 className="section-title">Your Package Includes</h2>
-                                <div className="services-grid">
-                                    {/* Always show tickets */}
-                                    <div className="service-card">
-                                        <div className="service-icon">🎫</div>
-                                        <h3 className="service-title">
-                                            {isCricket ? 'Cricket Match Tickets' : 'Event Tickets'}
-                                        </h3>
-                                        <p className="service-description">
-                                            {isCricket && journeyData.match_format === 'Test' 
-                                                ? 'All 5 days included' 
-                                                : 'Premium tickets secured'}
-                                        </p>
-                                    </div>
-                                    
-                                    {/* Show other included services */}
-                                    {journeyData.included_services.map(service => (
-                                        <div key={service} className="service-card">
-                                            <div className="service-icon">{serviceIcons[service] || '⭐'}</div>
-                                            <h3 className="service-title">{serviceNames[service] || service}</h3>
-                                            <p className="service-description">
-                                                {serviceDescriptions[service] || 'Premium service included'}
-                                            </p>
+                        {/* Journey Timeline */}
+                        {journeyData.milestones && journeyData.milestones.length > 0 && (
+                            <div className="journey-section">
+                                <h2 className="section-title">Your Journey Timeline</h2>
+                                <div className="timeline">
+                                    {journeyData.milestones.map((milestone, index) => (
+                                        <div key={milestone.id} className={`milestone ${milestone.status === 'completed' ? 'completed' : ''}`}>
+                                            <div className="milestone-icon">
+                                                {milestone.icon || sport.icon}
+                                            </div>
+                                            <div className="milestone-content">
+                                                <h3>{milestone.title}</h3>
+                                                <p>{milestone.description}</p>
+                                                {milestone.status === 'completed' && milestone.completed_date && (
+                                                    <p className="text-sm text-green-500 mt-2">
+                                                        ✓ Completed on {new Date(milestone.completed_date).toLocaleDateString()}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         )}
                         
-                        {/* Journey Timeline */}
-                        <div className="journey-container">
-                            <h2 className="section-title">Your Journey Timeline</h2>
-                            <div className="timeline">
-                                {journeyData.milestones && journeyData.milestones.map((milestone, index) => (
-                                    <div key={milestone.id} className="milestone">
-                                        <div className="milestone-icon">{milestone.icon}</div>
-                                        <div className="milestone-content">
-                                            <h3 className="milestone-title">{milestone.title}</h3>
-                                            <p className="milestone-description">{milestone.description}</p>
-                                            <span className={`milestone-status status-${milestone.status}`}>
-                                                {milestone.status}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        
-                        {/* Cricket-specific Tips */}
-                        {isCricket && (
-                            <div className="stadium-section">
-                                <h2 className="section-title">Match Day Tips</h2>
-                                <div className="services-grid">
-                                    <div className="service-card">
-                                        <div className="service-icon">📱</div>
-                                        <h3 className="service-title">Stadium App</h3>
-                                        <p className="service-description">
-                                            Download the official app for live scores and replays
-                                        </p>
-                                    </div>
-                                    <div className="service-card">
-                                        <div className="service-icon">🌤️</div>
-                                        <h3 className="service-title">Weather Ready</h3>
-                                        <p className="service-description">
-                                            {journeyData.match_format === 'Test' 
-                                                ? 'Bring sun protection for day sessions'
-                                                : 'Check weather forecast before leaving'}
-                                        </p>
-                                    </div>
-                                    <div className="service-card">
-                                        <div className="service-icon">🎺</div>
-                                        <h3 className="service-title">Fan Zone</h3>
-                                        <p className="service-description">
-                                            Arrive early to enjoy pre-match entertainment
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        
-                        {/* Call to Action */}
+                        {/* CTA Section */}
                         <div className="cta-section">
-                            <h2 className="cta-title">Questions About Your Journey?</h2>
-                            <p className="cta-text">
-                                Our concierge team is here to assist you with any requests
-                            </p>
-                            <a href="mailto:support@fantopark.com" className="cta-button">Contact Concierge</a>
+                            <a href="https://fantopark.com" className="cta-button">
+                                Visit FanToPark
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -1110,7 +1326,7 @@
         };
         
         // Render the app
-        ReactDOM.render(<JourneyApp />, document.getElementById('root'));
+        ReactDOM.render(<JourneyPage />, document.getElementById('root'));
     </script>
 </body>
 </html>
