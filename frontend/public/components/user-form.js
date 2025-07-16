@@ -82,6 +82,15 @@ window.renderUserForm = () => {
               )
             )
           ),
+          React.createElement('div', { className: 'mb-4' },
+  React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' }, 'Birthday'),
+  React.createElement('input', {
+    type: 'date',
+    value: userFormData.birthday || '',
+    onChange: (e) => setUserFormData({ ...userFormData, birthday: e.target.value }),
+    className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500'
+  })
+),                  
           React.createElement('div', null,
             React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Status *'),
             React.createElement('select', {
