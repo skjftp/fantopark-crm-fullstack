@@ -25,7 +25,7 @@
             overflow-x: hidden;
         }
         
-        /* Base Sport Backgrounds */
+        /* Base sport backgrounds */
         .sport-bg {
             position: fixed;
             top: 0;
@@ -82,9 +82,7 @@
                 linear-gradient(135deg, #0a0a0a 0%, #0a1a1a 100%);
         }
         
-        /* Sport-specific field/court overlays */
-        
-        /* Cricket pitch */
+        /* Cricket pitch pattern */
         .cricket-pitch {
             position: fixed;
             top: 50%;
@@ -116,7 +114,7 @@
             right: 100px;
         }
         
-        /* Football field lines */
+        /* Football field */
         .football-field {
             position: fixed;
             top: 50%;
@@ -173,7 +171,7 @@
             transform: translateY(-50%);
         }
         
-        /* F1 track pattern */
+        /* F1 track */
         .f1-track {
             position: fixed;
             top: 50%;
@@ -210,9 +208,7 @@
             transform: translate(-50%, -50%);
         }
         
-        /* Animated elements */
-        
-        /* Cricket ball */
+        /* Animated cricket ball */
         @keyframes ballBounce {
             0%, 100% { transform: translateY(0) rotate(0deg); }
             50% { transform: translateY(-200px) rotate(180deg); }
@@ -240,7 +236,7 @@
             transform: translateY(-50%);
         }
         
-        /* Football */
+        /* Football animation */
         @keyframes footballKick {
             0%, 100% { transform: rotate(0deg) translateX(0); }
             50% { transform: rotate(360deg) translateX(300px); }
@@ -256,7 +252,7 @@
             z-index: 100;
         }
         
-        /* Tennis ball */
+        /* Tennis ball animation */
         @keyframes tennisBounce {
             0%, 100% { transform: translateY(0) scale(1); }
             50% { transform: translateY(-150px) scale(0.9); }
@@ -272,7 +268,7 @@
             z-index: 100;
         }
         
-        /* F1 car */
+        /* F1 car animation */
         @keyframes f1Race {
             0% { left: -100px; }
             100% { left: 110%; }
@@ -288,7 +284,7 @@
             z-index: 100;
         }
         
-        /* Basketball */
+        /* Basketball animation */
         @keyframes basketballDribble {
             0%, 100% { transform: translateY(0) rotate(0deg); }
             25% { transform: translateY(-100px) rotate(90deg); }
@@ -306,7 +302,91 @@
             z-index: 100;
         }
         
-        /* Cricket stumps */
+        /* Team vs display */
+        .teams-display {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 40px 0;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .teams-display::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(212, 175, 55, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%); }
+            100% { transform: translateX(100%) translateY(100%); }
+        }
+        
+        .teams-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            margin: 20px 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .team {
+            font-size: 32px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .team-home {
+            background: linear-gradient(90deg, #1e90ff, #4169e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .team-away {
+            background: linear-gradient(90deg, #ff6347, #ff4500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .vs {
+            font-size: 24px;
+            color: #d4af37;
+            font-weight: 300;
+            position: relative;
+        }
+        
+        .vs::before,
+        .vs::after {
+            content: '';
+            position: absolute;
+            width: 50px;
+            height: 2px;
+            background: #d4af37;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .vs::before {
+            right: 120%;
+        }
+        
+        .vs::after {
+            left: 120%;
+        }
+        
+        /* Cricket stumps animation */
         .stumps {
             position: fixed;
             bottom: 0;
@@ -413,190 +493,7 @@
             z-index: -1;
         }
         
-        /* Hero section */
-        .hero {
-            min-height: 100vh;
-            position: relative;
-            padding: 40px 20px;
-        }
-        
-        .content {
-            max-width: 1200px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 10;
-        }
-        
-        /* Loading screen */
-        .loading-screen {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top-color: #d4af37;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .loading-text {
-            margin-top: 20px;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #d4af37;
-        }
-        
-        /* Error screen */
-        .error-screen {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 20px;
-        }
-        
-        .error-icon {
-            font-size: 60px;
-            margin-bottom: 20px;
-        }
-        
-        .error-message {
-            color: #666;
-            margin: 20px 0;
-        }
-        
-        /* Welcome section */
-        .welcome-section {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-        
-        .package-badge {
-            display: inline-block;
-            padding: 8px 24px;
-            background: rgba(212, 175, 55, 0.2);
-            border: 1px solid #d4af37;
-            border-radius: 20px;
-            font-size: 14px;
-            color: #d4af37;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .welcome-text {
-            font-size: 18px;
-            color: #888;
-            margin-top: 10px;
-        }
-        
-        h1 {
-            font-size: 48px;
-            font-weight: 700;
-            margin: 20px 0;
-            background: linear-gradient(90deg, #ffffff, #d4af37);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        /* Teams display */
-        .teams-display {
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px solid rgba(212, 175, 55, 0.3);
-            border-radius: 20px;
-            padding: 30px;
-            margin: 40px 0;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .teams-display::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(212, 175, 55, 0.1), transparent);
-            animation: shimmer 3s infinite;
-        }
-        
-        @keyframes shimmer {
-            0% { transform: translateX(-100%) translateY(-100%); }
-            100% { transform: translateX(100%) translateY(100%); }
-        }
-        
-        .teams-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 40px;
-            margin: 20px 0;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .team {
-            font-size: 32px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        
-        .team-home {
-            background: linear-gradient(90deg, #1e90ff, #4169e1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .team-away {
-            background: linear-gradient(90deg, #ff6347, #ff4500);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .vs {
-            font-size: 24px;
-            color: #d4af37;
-            font-weight: 300;
-            position: relative;
-        }
-        
-        .vs::before,
-        .vs::after {
-            content: '';
-            position: absolute;
-            width: 50px;
-            height: 2px;
-            background: #d4af37;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        
-        .vs::before {
-            right: 120%;
-        }
-        
-        .vs::after {
-            left: 120%;
-        }
-        
-        /* Match format badges */
+        /* Match format badge */
         .match-format-badge {
             display: inline-block;
             padding: 8px 20px;
@@ -654,91 +551,286 @@
             color: #f44336;
         }
         
-        /* Event info */
-        .event-info {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        /* Stadium info section */
+        .stadium-section {
+            margin: 60px 0;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.03);
             border-radius: 20px;
-            padding: 30px;
-            margin: 40px 0;
+            position: relative;
+            overflow: hidden;
         }
         
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
+        .stadium-section::before {
+            content: '🏏';
+            position: absolute;
+            font-size: 200px;
+            opacity: 0.05;
+            right: -50px;
+            top: -50px;
+            transform: rotate(-15deg);
+        }
+        
+        .stadium-section.football::before { content: '⚽'; }
+        .stadium-section.tennis::before { content: '🎾'; }
+        .stadium-section.f1::before { content: '🏎️'; }
+        .stadium-section.basketball::before { content: '🏀'; }
+        .stadium-section.rugby::before { content: '🏉'; }
+        
+        /* Loading and Error States */
+        .loading-screen, .error-screen {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(212, 175, 55, 0.1);
+            border-top-color: #d4af37;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
             margin-top: 20px;
+            font-size: 14px;
+            color: #888;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
         
-        .info-item h3 {
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .content {
+            position: relative;
+            z-index: 10;
+            padding: 120px 50px 50px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 80px;
+            animation: fadeInUp 1s ease;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .welcome-text {
+            font-size: 18px;
+            color: #d4af37;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        
+        .client-name {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            background: linear-gradient(90deg, #ffffff, #d4af37);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .event-title {
+            font-size: 36px;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+        
+        .venue-info {
+            font-size: 20px;
+            color: #888;
+        }
+        
+        /* Countdown Timer */
+        .countdown-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 60px 0;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .countdown-title {
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #d4af37;
+        }
+        
+        .countdown-timer {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .countdown-item {
+            text-align: center;
+        }
+        
+        .countdown-value {
+            font-size: 48px;
+            font-weight: 700;
+            color: #ffffff;
+            display: block;
+        }
+        
+        .countdown-label {
             font-size: 14px;
             color: #888;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 8px;
         }
         
-        .info-item p {
-            font-size: 20px;
-            font-weight: 600;
-        }
-        
-        /* Journey timeline */
-        .journey-section {
-            margin: 60px 0;
+        /* Services Grid */
+        .services-section {
+            margin: 80px 0;
         }
         
         .section-title {
             font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 40px;
             text-align: center;
+            margin-bottom: 50px;
+            color: #d4af37;
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+        
+        .service-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .service-card:hover {
+            transform: translateY(-5px);
+            border-color: #d4af37;
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
+        }
+        
+        .service-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .service-title {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+        
+        .service-description {
+            font-size: 14px;
+            color: #888;
+            line-height: 1.6;
+        }
+        
+        /* Journey Timeline */
+        .journey-container {
+            position: relative;
+            margin: 100px 0;
         }
         
         .timeline {
             position: relative;
-            padding: 0 20px;
+            padding: 50px 0;
         }
         
         .timeline::before {
             content: '';
             position: absolute;
             left: 50%;
-            transform: translateX(-50%);
+            top: 0;
+            bottom: 0;
             width: 2px;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.1);
+            background: linear-gradient(180deg, transparent, #d4af37, transparent);
+            transform: translateX(-50%);
         }
         
         .milestone {
             position: relative;
-            margin: 40px 0;
-            display: flex;
-            align-items: center;
+            margin: 80px 0;
+            opacity: 0;
+            animation: fadeIn 0.8s ease forwards;
         }
         
-        .milestone:nth-child(even) {
-            flex-direction: row-reverse;
+        .milestone:nth-child(1) { animation-delay: 0.2s; }
+        .milestone:nth-child(2) { animation-delay: 0.4s; }
+        .milestone:nth-child(3) { animation-delay: 0.6s; }
+        .milestone:nth-child(4) { animation-delay: 0.8s; }
+        .milestone:nth-child(5) { animation-delay: 1.0s; }
+        .milestone:nth-child(6) { animation-delay: 1.2s; }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
         }
         
         .milestone-content {
-            flex: 1;
-            padding: 30px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
             position: relative;
-            max-width: 45%;
+            width: 45%;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .milestone:nth-child(odd) .milestone-content {
+            margin-left: auto;
+            text-align: left;
         }
         
         .milestone:nth-child(even) .milestone-content {
+            margin-right: auto;
             text-align: right;
         }
         
         .milestone-icon {
             position: absolute;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translate(-50%, -50%);
             width: 60px;
             height: 60px;
             background: #0a0a0a;
@@ -748,35 +840,51 @@
             align-items: center;
             justify-content: center;
             font-size: 24px;
-            z-index: 2;
+            z-index: 10;
         }
         
-        .milestone-content h3 {
-            font-size: 22px;
+        .milestone-title {
+            font-size: 24px;
             margin-bottom: 10px;
+            color: #d4af37;
         }
         
-        .milestone-content p {
+        .milestone-description {
+            font-size: 16px;
             color: #888;
             line-height: 1.6;
         }
         
-        .milestone.completed .milestone-icon {
-            background: #d4af37;
+        .milestone-status {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
-        .milestone.completed .milestone-content {
-            border-color: #d4af37;
+        .status-completed {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            border: 1px solid #4caf50;
         }
         
-        /* Weather widget */
+        .status-pending {
+            background: rgba(212, 175, 55, 0.2);
+            color: #d4af37;
+            border: 1px solid #d4af37;
+        }
+        
+        /* Weather Widget - Fixed for mobile */
         .weather-widget {
             position: fixed;
             top: 20px;
             right: 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 15px;
             padding: 20px;
             backdrop-filter: blur(10px);
             z-index: 100;
@@ -784,10 +892,10 @@
         
         .weather-title {
             font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
             color: #888;
             margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
         .weather-info {
@@ -797,53 +905,35 @@
         }
         
         .weather-temp {
-            font-size: 32px;
+            font-size: 36px;
             font-weight: 700;
+            color: #ffffff;
         }
         
         .weather-condition {
-            font-size: 16px;
-        }
-        
-        /* Countdown timer */
-        .countdown-section {
-            text-align: center;
-            margin: 60px 0;
-        }
-        
-        .countdown-timer {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-top: 30px;
-        }
-        
-        .countdown-item {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 20px 30px;
-            min-width: 120px;
-        }
-        
-        .countdown-value {
-            font-size: 48px;
-            font-weight: 700;
+            font-size: 14px;
             color: #d4af37;
         }
         
-        .countdown-label {
-            font-size: 14px;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 5px;
-        }
-        
-        /* CTA section */
+        /* Call to Action */
         .cta-section {
             text-align: center;
-            margin: 80px 0 40px;
+            margin: 100px 0;
+            padding: 60px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
+            border-radius: 20px;
+        }
+        
+        .cta-title {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+        
+        .cta-text {
+            font-size: 18px;
+            color: #888;
+            margin-bottom: 30px;
         }
         
         .cta-button {
@@ -854,19 +944,37 @@
             text-decoration: none;
             border-radius: 30px;
             font-weight: 600;
-            font-size: 18px;
-            transition: transform 0.3s;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
         .cta-button:hover {
             transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
         }
         
-        /* Responsive */
+        /* Mobile Responsive - FIXED WEATHER WIDGET */
         @media (max-width: 768px) {
+            .content {
+                padding: 80px 20px 20px;
+            }
+            
+            .client-name {
+                font-size: 32px;
+            }
+            
+            .event-title {
+                font-size: 24px;
+            }
+            
             .teams-container {
                 flex-direction: column;
                 gap: 20px;
+            }
+            
+            .team {
+                font-size: 24px;
             }
             
             .vs::before,
@@ -874,40 +982,47 @@
                 display: none;
             }
             
-            .timeline::before {
-                left: 20px;
+            .cricket-pitch,
+            .football-field,
+            .tennis-court,
+            .f1-track,
+            .basketball-court {
+                width: 300px;
+                height: 100px;
             }
             
-            .milestone {
-                flex-direction: column !important;
-                margin-left: 40px;
+            /* Fix weather widget for mobile */
+            .weather-widget {
+                position: static;
+                margin: 20px auto 30px;
+                max-width: 350px;
+                display: block;
+            }
+            
+            .timeline::before {
+                left: 30px;
             }
             
             .milestone-content {
-                max-width: 100%;
+                width: calc(100% - 60px);
+                margin-left: 60px !important;
                 text-align: left !important;
             }
             
             .milestone-icon {
-                left: 20px;
-                transform: translateX(-50%);
+                left: 30px;
+            }
+            
+            .services-grid {
+                grid-template-columns: 1fr;
             }
             
             .countdown-timer {
-                flex-wrap: wrap;
-                gap: 15px;
+                gap: 20px;
             }
             
-            .countdown-item {
-                min-width: 100px;
-                padding: 15px 20px;
-            }
-            
-            .weather-widget {
-                position: relative;
-                top: auto;
-                right: auto;
-                margin: 20px 0;
+            .countdown-value {
+                font-size: 36px;
             }
         }
     </style>
@@ -918,164 +1033,243 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         
+        // API Configuration
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:8080/api' 
+            : 'https://fantopark-backend-150582227311.us-central1.run.app/api';
+        
+        // Service Icons Mapping
+        const serviceIcons = {
+            flights: '✈️',
+            accommodation: '🏨',
+            visa_assistance: '📄',
+            transfers: '🚗',
+            hospitality: '🥂',
+            meals: '🍽️',
+            city_tour: '🏛️',
+            insurance: '🛡️',
+            parking: '🚗',
+            merchandise: '👕'
+        };
+        
+        // Service Names Mapping
+        const serviceNames = {
+            flights: 'Flights',
+            accommodation: 'Hotel Accommodation',
+            visa_assistance: 'Visa Assistance',
+            transfers: 'Airport & Venue Transfers',
+            hospitality: 'VIP Hospitality',
+            meals: 'Meal Packages',
+            city_tour: 'City Tours',
+            insurance: 'Travel Insurance',
+            parking: 'Premium Parking',
+            merchandise: 'Official Merchandise'
+        };
+        
+        // Service Descriptions
+        const serviceDescriptions = {
+            flights: 'Premium flight arrangements with flexible booking options',
+            accommodation: 'Luxury hotel accommodation near the venue',
+            visa_assistance: 'Complete visa processing and documentation support',
+            transfers: 'Private transfers between airport, hotel, and venue',
+            hospitality: 'Exclusive VIP lounge access and premium hospitality',
+            meals: 'Curated dining experiences and meal packages',
+            city_tour: 'Guided tours of local attractions and experiences',
+            insurance: 'Comprehensive travel and health insurance coverage',
+            parking: 'Reserved parking spots near the stadium',
+            merchandise: 'Official team merchandise and memorabilia'
+        };
+        
+        // Package Type Labels
+        const packageLabels = {
+            tickets_only: 'Essential Package',
+            standard_package: 'Standard Package',
+            premium_package: 'Premium Package',
+            hospitality: 'Hospitality Package',
+            premium_local: 'Premium Experience',
+            custom: 'Customized Package'
+        };
+        
+        // Sport-specific content
+        const sportContent = {
+            cricket: {
+                name: 'Cricket',
+                icon: '🏏',
+                loadingText: 'PREPARING YOUR CRICKET JOURNEY',
+                welcomeText: 'Welcome to Your Cricket Experience',
+                weatherTitle: 'Pitch Conditions',
+                countdownTitle: 'FIRST BALL IN',
+                eventTitle: 'Cricket Match Tickets'
+            },
+            football: {
+                name: 'Football',
+                icon: '⚽',
+                loadingText: 'PREPARING YOUR FOOTBALL JOURNEY',
+                welcomeText: 'Welcome to the Beautiful Game',
+                weatherTitle: 'Match Day Weather',
+                countdownTitle: 'KICK-OFF IN',
+                eventTitle: 'Football Match Tickets'
+            },
+            tennis: {
+                name: 'Tennis',
+                icon: '🎾',
+                loadingText: 'PREPARING YOUR TENNIS JOURNEY',
+                welcomeText: 'Welcome to Centre Court',
+                weatherTitle: 'Court Conditions',
+                countdownTitle: 'FIRST SERVE IN',
+                eventTitle: 'Tennis Match Tickets'
+            },
+            f1: {
+                name: 'Formula 1',
+                icon: '🏎️',
+                loadingText: 'PREPARING YOUR F1 JOURNEY',
+                welcomeText: 'Experience the Speed',
+                weatherTitle: 'Track Conditions',
+                countdownTitle: 'RACE STARTS IN',
+                eventTitle: 'F1 Race Tickets'
+            },
+            basketball: {
+                name: 'Basketball',
+                icon: '🏀',
+                loadingText: 'PREPARING YOUR BASKETBALL JOURNEY',
+                welcomeText: 'Welcome to the Court',
+                weatherTitle: 'Arena Conditions',
+                countdownTitle: 'TIP-OFF IN',
+                eventTitle: 'Basketball Game Tickets'
+            },
+            rugby: {
+                name: 'Rugby',
+                icon: '🏉',
+                loadingText: 'PREPARING YOUR RUGBY JOURNEY',
+                welcomeText: 'Experience the Scrum',
+                weatherTitle: 'Field Conditions',
+                countdownTitle: 'KICK-OFF IN',
+                eventTitle: 'Rugby Match Tickets'
+            }
+        };
+        
         // Sport-specific components
-        const CricketBall = ({ position }) => (
-            <div className="cricket-ball" style={{ left: `${position}%`, bottom: '30%' }}></div>
-        );
+        const CricketBall = ({ position }) => {
+            return <div className="cricket-ball" style={{ left: position + '%', top: '10%' }}></div>;
+        };
         
-        const Football = ({ position }) => (
-            <div className="football" style={{ left: `${position}%`, top: '20%' }}></div>
-        );
+        const Football = ({ position }) => {
+            return <div className="football" style={{ left: position + '%', top: '20%' }}></div>;
+        };
         
-        const TennisBall = ({ position }) => (
-            <div className="tennis-ball" style={{ right: `${position}%`, top: '30%' }}></div>
-        );
+        const TennisBall = ({ position }) => {
+            return <div className="tennis-ball" style={{ right: position + '%', top: '30%' }}></div>;
+        };
         
-        const F1Car = () => (
-            <div className="f1-car"></div>
-        );
+        const F1Car = () => {
+            return <div className="f1-car"></div>;
+        };
         
-        const Basketball = ({ position }) => (
-            <div className="basketball" style={{ left: `${position}%`, bottom: '40%' }}></div>
-        );
+        const Basketball = ({ position }) => {
+            return <div className="basketball" style={{ left: position + '%', bottom: '40%' }}></div>;
+        };
         
-        const Stumps = () => (
-            <div className="stumps">
-                <div className="stump"></div>
-                <div className="stump"></div>
-                <div className="stump"></div>
-                <div className="bails"></div>
-            </div>
-        );
+        const Stumps = () => {
+            return (
+                <div className="stumps">
+                    <div className="stump"></div>
+                    <div className="stump"></div>
+                    <div className="stump"></div>
+                    <div className="bails"></div>
+                </div>
+            );
+        };
         
-        const GoalPosts = () => (
-            <div className="goal-posts">
-                <div className="goal-post left"></div>
-                <div className="goal-post right"></div>
-                <div className="goal-post top"></div>
-            </div>
-        );
+        const GoalPosts = () => {
+            return (
+                <div className="goal-posts">
+                    <div className="goal-post left"></div>
+                    <div className="goal-post right"></div>
+                    <div className="goal-post top"></div>
+                </div>
+            );
+        };
         
-        const TennisNet = () => (
-            <div className="tennis-net"></div>
-        );
+        const TennisNet = () => {
+            return <div className="tennis-net"></div>;
+        };
         
-        const CheckeredFlag = () => (
-            <div className="checkered-flag"></div>
-        );
+        const CheckeredFlag = () => {
+            return <div className="checkered-flag"></div>;
+        };
         
-        // Main Journey Component
-        const JourneyPage = () => {
+        // Get match format class
+        const getMatchFormatClass = (format) => {
+            const formatMap = {
+                'T20': 't20',
+                'ODI': 'odi',
+                'Test': 'test',
+                'League': 'league',
+                'Cup': 'cup',
+                'Grand Slam': 'grand-slam',
+                'Race Weekend': 'race-weekend'
+            };
+            return formatMap[format] || '';
+        };
+        
+        // Main Journey App Component
+        const JourneyApp = () => {
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             const [journeyData, setJourneyData] = useState(null);
             const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0 });
             const [ballPosition, setBallPosition] = useState(10);
             
-            // Get journey token from URL
-            const getJourneyToken = () => {
-                const pathParts = window.location.pathname.split('/');
-                return pathParts[pathParts.length - 1];
-            };
-            
-            // Package labels
-            const packageLabels = {
-                tickets_only: 'Match Tickets',
-                hospitality: 'Hospitality Package',
-                premium: 'Premium Experience',
-                standard: 'Standard Package',
-                travel_premium: 'All-Inclusive Experience'
-            };
-            
-            // Sport-specific content
-            const sportContent = {
-                cricket: {
-                    name: 'Cricket',
-                    icon: '🏏',
-                    loadingText: 'PREPARING YOUR CRICKET JOURNEY',
-                    welcomeText: 'Welcome to the gentleman\'s game',
-                    weatherTitle: 'Pitch Conditions'
-                },
-                football: {
-                    name: 'Football',
-                    icon: '⚽',
-                    loadingText: 'PREPARING YOUR FOOTBALL JOURNEY',
-                    welcomeText: 'Experience the beautiful game',
-                    weatherTitle: 'Match Day Weather'
-                },
-                tennis: {
-                    name: 'Tennis',
-                    icon: '🎾',
-                    loadingText: 'PREPARING YOUR TENNIS JOURNEY',
-                    welcomeText: 'Welcome to centre court',
-                    weatherTitle: 'Court Conditions'
-                },
-                f1: {
-                    name: 'Formula 1',
-                    icon: '🏎️',
-                    loadingText: 'PREPARING YOUR F1 JOURNEY',
-                    welcomeText: 'Feel the speed, live the thrill',
-                    weatherTitle: 'Track Conditions'
-                },
-                basketball: {
-                    name: 'Basketball',
-                    icon: '🏀',
-                    loadingText: 'PREPARING YOUR BASKETBALL JOURNEY',
-                    welcomeText: 'Experience courtside action',
-                    weatherTitle: 'Arena Conditions'
-                },
-                rugby: {
-                    name: 'Rugby',
-                    icon: '🏉',
-                    loadingText: 'PREPARING YOUR RUGBY JOURNEY',
-                    welcomeText: 'Feel the power of the scrum',
-                    weatherTitle: 'Field Conditions'
-                }
+            // Get token from URL
+            const getTokenFromUrl = () => {
+                const path = window.location.pathname;
+                const match = path.match(/\/journey\/([A-Z0-9]+)/i);
+                return match ? match[1] : null;
             };
             
             // Fetch journey data
             const fetchJourneyData = async () => {
+                const token = getTokenFromUrl();
+                if (!token) {
+                    setError('Invalid journey link');
+                    setLoading(false);
+                    return;
+                }
+                
                 try {
-                    const token = getJourneyToken();
-                    const response = await fetch(`https://fantopark-backend-150582227311.us-central1.run.app/api/journeys/public/${token}`);
-                    
+                    const response = await fetch(`${API_URL}/journeys/public/${token}`);
                     if (!response.ok) {
                         throw new Error('Journey not found');
                     }
                     
-                    const data = await response.json();
-                    setJourneyData(data);
-                    
-                    // Simulate weather data (in real app, this would come from an API)
-                    if (!data.weather) {
-                        data.weather = {
-                            temperature: Math.floor(Math.random() * 10) + 20,
-                            condition: ['Sunny', 'Partly Cloudy', 'Clear'][Math.floor(Math.random() * 3)]
-                        };
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        setJourneyData(result.data);
+                        setLoading(false);
+                    } else {
+                        throw new Error('Invalid journey data');
                     }
-                    
-                    setLoading(false);
                 } catch (err) {
                     console.error('Error fetching journey:', err);
-                    setError(err.message);
+                    setError(err.message || 'Failed to load journey');
                     setLoading(false);
                 }
             };
             
             // Update countdown
             const updateCountdown = () => {
-                if (journeyData && journeyData.event_date) {
-                    const eventDate = new Date(journeyData.event_date);
-                    const now = new Date();
-                    const diff = eventDate - now;
+                if (!journeyData?.event_date) return;
+                
+                const eventDate = new Date(journeyData.event_date);
+                const now = new Date();
+                const diff = eventDate - now;
+                
+                if (diff > 0) {
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                     
-                    if (diff > 0) {
-                        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                        
-                        setCountdown({ days, hours, minutes });
-                    }
+                    setCountdown({ days, hours, minutes });
                 }
             };
             
@@ -1096,7 +1290,7 @@
                     updateCountdown();
                     const countdownInterval = setInterval(updateCountdown, 60000);
                     
-                    // Animate sport-specific elements
+                    // Animate sport elements
                     const ballInterval = setInterval(animateBall, 50);
                     
                     return () => {
@@ -1131,20 +1325,6 @@
                     </div>
                 );
             }
-            
-            // Get match format class
-            const getMatchFormatClass = (format) => {
-                const formatMap = {
-                    'T20': 't20',
-                    'ODI': 'odi',
-                    'Test': 'test',
-                    'League': 'league',
-                    'Cup': 'cup',
-                    'Grand Slam': 'grand-slam',
-                    'Race Weekend': 'race-weekend'
-                };
-                return formatMap[format] || '';
-            };
             
             // Main Journey Display
             return (
@@ -1221,104 +1401,171 @@
                             <div className="welcome-text">
                                 {sport.welcomeText}
                             </div>
-                            <h1>{journeyData.client_name}'s {sport.name} Journey</h1>
+                            <h1 className="client-name">{journeyData.client_name}</h1>
+                            <h2 className="event-title">{journeyData.event_name || 'Premium Event Experience'}</h2>
+                            <p className="venue-info">{journeyData.venue}</p>
+                            
+                            {/* Match Format Badge */}
+                            {journeyData.match_format && (
+                                <div className={`match-format-badge ${getMatchFormatClass(journeyData.match_format)}`}>
+                                    {journeyData.match_format} {sportType === 'cricket' ? 'Match' : ''}
+                                </div>
+                            )}
                         </div>
                         
-                        {/* Teams Display (if available) */}
+                        {/* Teams Display */}
                         {journeyData.teams && (journeyData.teams.home || journeyData.teams.away) && (
                             <div className="teams-display">
-                                {journeyData.match_format && (
-                                    <div className={`match-format-badge ${getMatchFormatClass(journeyData.match_format)}`}>
-                                        {journeyData.match_format}
+                                {sportType === 'cricket' && <div className="text-sm text-gray-400 mb-2">MATCH</div>}
+                                <div className="teams-container">
+                                    <div className="team team-home">
+                                        {journeyData.teams.home || 'Home Team'}
+                                    </div>
+                                    <div className="vs">VS</div>
+                                    <div className="team team-away">
+                                        {journeyData.teams.away || 'Away Team'}
+                                    </div>
+                                </div>
+                                {sportType === 'cricket' && journeyData.match_format === 'T20' && (
+                                    <div className="text-sm text-gray-400 mt-4">
+                                        🔥 Expect fireworks in this T20 thriller!
                                     </div>
                                 )}
-                                <div className="teams-container">
-                                    <div className="team team-home">{journeyData.teams.home || 'TBD'}</div>
-                                    <div className="vs">VS</div>
-                                    <div className="team team-away">{journeyData.teams.away || 'TBD'}</div>
+                            </div>
+                        )}
+                        
+                        {/* Countdown Timer */}
+                        <div className="countdown-section">
+                            <h3 className="countdown-title">
+                                {sport.countdownTitle}
+                            </h3>
+                            <div className="countdown-timer">
+                                <div className="countdown-item">
+                                    <span className="countdown-value">{countdown.days}</span>
+                                    <span className="countdown-label">Days</span>
+                                </div>
+                                <div className="countdown-item">
+                                    <span className="countdown-value">{countdown.hours}</span>
+                                    <span className="countdown-label">Hours</span>
+                                </div>
+                                <div className="countdown-item">
+                                    <span className="countdown-value">{countdown.minutes}</span>
+                                    <span className="countdown-label">Minutes</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Stadium Information */}
+                        {journeyData.stadium_info && (
+                            <div className={`stadium-section ${sportType}`}>
+                                <h2 className="section-title">Stadium Information</h2>
+                                <div className="text-center">
+                                    <h3 className="text-2xl mb-2">{journeyData.stadium_info.name || journeyData.venue}</h3>
+                                    <p className="text-gray-400 mb-4">{journeyData.stadium_info.city}</p>
+                                    {sportType === 'cricket' && journeyData.match_format === 'Test' && (
+                                        <p className="text-sm text-yellow-500">
+                                            📅 Remember: Test match spans multiple days. Your ticket includes all days.
+                                        </p>
+                                    )}
+                                    {journeyData.is_local_event && (
+                                        <p className="text-sm text-blue-400 mt-2">
+                                            🚗 Gates open 2 hours before play. Parking details will be sent separately.
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         )}
                         
-                        {/* Event Info */}
-                        <div className="event-info">
-                            <h2>Event Details</h2>
-                            <div className="info-grid">
-                                <div className="info-item">
-                                    <h3>Event</h3>
-                                    <p>{journeyData.event_name}</p>
-                                </div>
-                                <div className="info-item">
-                                    <h3>Venue</h3>
-                                    <p>{journeyData.venue}</p>
-                                </div>
-                                <div className="info-item">
-                                    <h3>Date</h3>
-                                    <p>{new Date(journeyData.event_date).toLocaleDateString('en-US', {
-                                        weekday: 'long',
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric'
-                                    })}</p>
-                                </div>
-                                {journeyData.package_type && (
-                                    <div className="info-item">
-                                        <h3>Package</h3>
-                                        <p>{packageLabels[journeyData.package_type]}</p>
+                        {/* Included Services */}
+                        {journeyData.included_services && journeyData.included_services.length > 0 && (
+                            <div className="services-section">
+                                <h2 className="section-title">Your Package Includes</h2>
+                                <div className="services-grid">
+                                    {/* Always show tickets */}
+                                    <div className="service-card">
+                                        <div className="service-icon">🎫</div>
+                                        <h3 className="service-title">
+                                            {sport.eventTitle}
+                                        </h3>
+                                        <p className="service-description">
+                                            {sportType === 'cricket' && journeyData.match_format === 'Test' 
+                                                ? 'All 5 days included' 
+                                                : 'Premium tickets secured'}
+                                        </p>
                                     </div>
-                                )}
-                            </div>
-                        </div>
-                        
-                        {/* Countdown Timer */}
-                        <div className="countdown-section">
-                            <h2 className="section-title">Countdown to {sport.name}</h2>
-                            <div className="countdown-timer">
-                                <div className="countdown-item">
-                                    <div className="countdown-value">{countdown.days}</div>
-                                    <div className="countdown-label">Days</div>
-                                </div>
-                                <div className="countdown-item">
-                                    <div className="countdown-value">{countdown.hours}</div>
-                                    <div className="countdown-label">Hours</div>
-                                </div>
-                                <div className="countdown-item">
-                                    <div className="countdown-value">{countdown.minutes}</div>
-                                    <div className="countdown-label">Minutes</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        {/* Journey Timeline */}
-                        {journeyData.milestones && journeyData.milestones.length > 0 && (
-                            <div className="journey-section">
-                                <h2 className="section-title">Your Journey Timeline</h2>
-                                <div className="timeline">
-                                    {journeyData.milestones.map((milestone, index) => (
-                                        <div key={milestone.id} className={`milestone ${milestone.status === 'completed' ? 'completed' : ''}`}>
-                                            <div className="milestone-icon">
-                                                {milestone.icon || sport.icon}
-                                            </div>
-                                            <div className="milestone-content">
-                                                <h3>{milestone.title}</h3>
-                                                <p>{milestone.description}</p>
-                                                {milestone.status === 'completed' && milestone.completed_date && (
-                                                    <p className="text-sm text-green-500 mt-2">
-                                                        ✓ Completed on {new Date(milestone.completed_date).toLocaleDateString()}
-                                                    </p>
-                                                )}
-                                            </div>
+                                    
+                                    {/* Show other included services */}
+                                    {journeyData.included_services.map(service => (
+                                        <div key={service} className="service-card">
+                                            <div className="service-icon">{serviceIcons[service] || '⭐'}</div>
+                                            <h3 className="service-title">{serviceNames[service] || service}</h3>
+                                            <p className="service-description">
+                                                {serviceDescriptions[service] || 'Premium service included'}
+                                            </p>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         )}
                         
-                        {/* CTA Section */}
+                        {/* Journey Timeline */}
+                        <div className="journey-container">
+                            <h2 className="section-title">Your Journey Timeline</h2>
+                            <div className="timeline">
+                                {journeyData.milestones && journeyData.milestones.map((milestone, index) => (
+                                    <div key={milestone.id} className="milestone">
+                                        <div className="milestone-icon">{milestone.icon}</div>
+                                        <div className="milestone-content">
+                                            <h3 className="milestone-title">{milestone.title}</h3>
+                                            <p className="milestone-description">{milestone.description}</p>
+                                            <span className={`milestone-status status-${milestone.status}`}>
+                                                {milestone.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        {/* Sport-specific Tips */}
+                        {sportType === 'cricket' && (
+                            <div className="stadium-section">
+                                <h2 className="section-title">Match Day Tips</h2>
+                                <div className="services-grid">
+                                    <div className="service-card">
+                                        <div className="service-icon">📱</div>
+                                        <h3 className="service-title">Stadium App</h3>
+                                        <p className="service-description">
+                                            Download the official app for live scores and replays
+                                        </p>
+                                    </div>
+                                    <div className="service-card">
+                                        <div className="service-icon">🌤️</div>
+                                        <h3 className="service-title">Weather Ready</h3>
+                                        <p className="service-description">
+                                            {journeyData.match_format === 'Test' 
+                                                ? 'Bring sun protection for day sessions'
+                                                : 'Check weather forecast before leaving'}
+                                        </p>
+                                    </div>
+                                    <div className="service-card">
+                                        <div className="service-icon">🎺</div>
+                                        <h3 className="service-title">Fan Zone</h3>
+                                        <p className="service-description">
+                                            Arrive early to enjoy pre-match entertainment
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Call to Action */}
                         <div className="cta-section">
-                            <a href="https://fantopark.com" className="cta-button">
-                                Visit FanToPark
-                            </a>
+                            <h2 className="cta-title">Questions About Your Journey?</h2>
+                            <p className="cta-text">
+                                Our concierge team is here to assist you with any requests
+                            </p>
+                            <a href="mailto:support@fantopark.com" className="cta-button">Contact Concierge</a>
                         </div>
                     </div>
                 </div>
@@ -1326,7 +1573,7 @@
         };
         
         // Render the app
-        ReactDOM.render(<JourneyPage />, document.getElementById('root'));
+        ReactDOM.render(<JourneyApp />, document.getElementById('root'));
     </script>
 </body>
 </html>
