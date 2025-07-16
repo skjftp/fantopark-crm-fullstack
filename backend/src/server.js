@@ -20,6 +20,8 @@ const allowedOrigins = [
   'https://skjftp.github.io',
   'https://lehrado.com',
   'https://www.lehrado.com',
+  'https://enduring-wharf-464005-h7.web.app',
+  'https://enduring-wharf-464005-h7.firebaseapp.com',
   // ✅ ADD: Cloud Workstation patterns
   /^https:\/\/\d+-.*\.cluster-.*\.cloudworkstations\.dev$/,
   /^https:\/\/.*-my-workstation\.cluster-.*\.cloudworkstations\.dev$/
