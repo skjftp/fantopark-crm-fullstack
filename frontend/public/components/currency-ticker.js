@@ -24,8 +24,14 @@ window.currencyTickerState = {
 };
 
 // Currency configuration
+// Currency configuration - Using a CORS-friendly API
 window.CURRENCY_CONFIG = {
-  API_URL: 'https://api.exchangerate-api.com/v4/latest/INR',
+  // Option 1: Use Frankfurter API (free, no key required, CORS-enabled)
+  API_URL: 'https://api.frankfurter.app/latest?from=INR',
+  
+  // Option 2: Use exchangerate.host (free, no key required, CORS-enabled)
+  // API_URL: 'https://api.exchangerate.host/latest?base=INR',
+  
   UPDATE_INTERVAL: 30 * 60 * 1000, // 30 minutes
   CACHE_KEY: 'fantopark_currency_rates',
   CACHE_DURATION: 60 * 60 * 1000, // 1 hour
@@ -86,7 +92,6 @@ window.CurrencyService = {
 };
 
 // Fetch rates function
-// Fetch rates function with better cache handling and debugging
 window.fetchCurrencyRates = async function(forceRefresh = false) {
   console.log('🔄 Fetching currency rates...', { forceRefresh });
   
@@ -105,7 +110,6 @@ window.fetchCurrencyRates = async function(forceRefresh = false) {
         const cacheAge = Date.now() - cached.timestamp;
         console.log('📦 Cache found, age:', Math.round(cacheAge / 1000 / 60), 'minutes');
         
-        // Use cache if less than 1 hour old
         if (cacheAge < window.CURRENCY_CONFIG.CACHE_DURATION) {
           window.currencyTickerState.rates = cached.rates;
           window.currencyTickerState.lastUpdate = new Date(cached.timestamp);
@@ -119,15 +123,9 @@ window.fetchCurrencyRates = async function(forceRefresh = false) {
     console.log('🌐 Fetching from API...');
     
     // Add timestamp to bypass browser cache
-    const apiUrl = window.CURRENCY_CONFIG.API_URL + '?t=' + Date.now();
+    const apiUrl = window.CURRENCY_CONFIG.API_URL + '&t=' + Date.now();
     
-    const response = await fetch(apiUrl, {
-      cache: 'no-cache',
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
-    });
+    const response = await fetch(apiUrl);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -143,11 +141,12 @@ window.fetchCurrencyRates = async function(forceRefresh = false) {
     // Get previous rates for comparison
     const previousRates = window.currencyTickerState.rates;
     
-    // Convert to INR rates
+    // Convert from the API format (rates are already relative to INR with Frankfurter)
     const newRates = {};
     window.CURRENCY_CONFIG.ALL_CURRENCIES.forEach(currency => {
       if (data.rates[currency]) {
-        newRates[currency] = Math.round(1 / data.rates[currency] * 100) / 100;
+        // Frankfurter gives rates FROM INR, so we need to invert them
+        newRates[currency] = Math.round((1 / data.rates[currency]) * 100) / 100;
       }
     });
     
