@@ -27,6 +27,9 @@ router.post('/create', authenticateToken, async (req, res) => {
 // Get journey by token (public route)
 // Get journey by token (public route)
 router.get('/public/:token', async (req, res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
   try {
     const journey = await Journey.findByToken(req.params.token);
     if (!journey) {
