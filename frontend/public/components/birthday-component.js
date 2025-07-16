@@ -68,10 +68,10 @@ window.BirthdayBalloons = function({ userName = "User", onClose }) {
         };
     }, []);
     
-    const handleClose = () => {
-        setShowAnimation(false);
-        setTimeout(() => onClose(false), 300);
-    };
+const handleClose = () => {
+    setShowAnimation(false);
+    setTimeout(() => onClose(), 300);  // ✅ Fixed
+};
     
     const handleDontShowAgain = () => {
         // Store in localStorage with user identifier
