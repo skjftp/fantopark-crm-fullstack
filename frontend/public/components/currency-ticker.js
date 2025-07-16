@@ -86,38 +86,62 @@ window.CurrencyService = {
 };
 
 // Fetch rates function
-// Fetch rates function
-window.fetchCurrencyRates = async function() {
+// Fetch rates function with better cache handling and debugging
+window.fetchCurrencyRates = async function(forceRefresh = false) {
+  console.log('🔄 Fetching currency rates...', { forceRefresh });
+  
   window.currencyTickerState.loading = true;
   window.currencyTickerState.error = null;
   if (window.forceUpdate) window.forceUpdate();
   
   try {
-    // Check cache first
-    const cached = window.CurrencyService.getCachedRates();
-    if (cached && !window.currencyTickerState.showConverter) {
-      window.currencyTickerState.rates = cached.rates;
-      window.currencyTickerState.lastUpdate = new Date(cached.timestamp);
-      window.currencyTickerState.loading = false;
-      if (window.forceUpdate) window.forceUpdate();
-      return;
+    // Skip cache if force refresh or converter is open
+    const skipCache = forceRefresh || window.currencyTickerState.showConverter;
+    
+    // Check cache first (unless skipping)
+    if (!skipCache) {
+      const cached = window.CurrencyService.getCachedRates();
+      if (cached) {
+        const cacheAge = Date.now() - cached.timestamp;
+        console.log('📦 Cache found, age:', Math.round(cacheAge / 1000 / 60), 'minutes');
+        
+        // Use cache if less than 1 hour old
+        if (cacheAge < window.CURRENCY_CONFIG.CACHE_DURATION) {
+          window.currencyTickerState.rates = cached.rates;
+          window.currencyTickerState.lastUpdate = new Date(cached.timestamp);
+          window.currencyTickerState.loading = false;
+          if (window.forceUpdate) window.forceUpdate();
+          return;
+        }
+      }
     }
 
-    const response = await fetch(window.CURRENCY_CONFIG.API_URL);
+    console.log('🌐 Fetching from API...');
+    
+    // Add timestamp to bypass browser cache
+    const apiUrl = window.CURRENCY_CONFIG.API_URL + '?t=' + Date.now();
+    
+    const response = await fetch(apiUrl, {
+      cache: 'no-cache',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+    
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const data = await response.json();
+    console.log('📊 API Response:', data);
     
     if (!data || !data.rates) {
       throw new Error('Invalid API response');
     }
     
-    // Get previous rates
-    const previousRates = window.currencyTickerState.previousRates || 
-                         window.CurrencyService.getPreviousDayRates() || 
-                         window.currencyTickerState.rates;
+    // Get previous rates for comparison
+    const previousRates = window.currencyTickerState.rates;
     
     // Convert to INR rates
     const newRates = {};
@@ -127,27 +151,30 @@ window.fetchCurrencyRates = async function() {
       }
     });
     
+    console.log('💱 New rates:', newRates);
+    
     const timestamp = Date.now();
     
-    // Cache the rates
+    // Always cache the new rates
     window.CurrencyService.cacheRates(newRates, timestamp);
     
-    // Save daily rates
-    if (window.CurrencyService.saveDailyRates(newRates)) {
-      window.currencyTickerState.previousRates = window.currencyTickerState.rates;
-    } else if (!window.currencyTickerState.previousRates) {
+    // Save daily rates if it's a new day
+    const savedToday = window.CurrencyService.saveDailyRates(newRates);
+    if (savedToday) {
       window.currencyTickerState.previousRates = previousRates;
+      console.log('📅 Saved as today\'s rates');
     }
     
-    // Log rate changes (moved inside try block where newRates is available)
-    const oldUSD = window.currencyTickerState.rates.USD;
-    const newUSD = newRates.USD;
-    
-    if (oldUSD !== newUSD) {
-      console.log(`USD rate changed: ${oldUSD} → ${newUSD} (${newUSD > oldUSD ? '+' : ''}${(newUSD - oldUSD).toFixed(2)})`);
-    } else {
-      console.log('USD rate unchanged at:', newUSD);
-    }
+    // Log rate changes
+    Object.keys(newRates).forEach(currency => {
+      const oldRate = previousRates[currency];
+      const newRate = newRates[currency];
+      if (oldRate !== newRate) {
+        const change = newRate - oldRate;
+        const changePercent = ((change / oldRate) * 100).toFixed(2);
+        console.log(`${currency}: ${oldRate} → ${newRate} (${change > 0 ? '+' : ''}${change.toFixed(2)}, ${changePercent}%)`);
+      }
+    });
     
     // Update state
     window.currencyTickerState.rates = newRates;
@@ -158,17 +185,12 @@ window.fetchCurrencyRates = async function() {
     // Update global rates
     window.currentExchangeRates = newRates;
     
-  } catch (error) {
-    console.error('Failed to fetch rates:', error);
-    window.currencyTickerState.loading = false;
-    window.currencyTickerState.error = 'Failed to update rates. Using cached values.';
+    console.log('✅ Rates updated successfully');
     
-    // Try cached rates
-    const cached = window.CurrencyService.getCachedRates();
-    if (cached) {
-      window.currencyTickerState.rates = cached.rates;
-      window.currencyTickerState.lastUpdate = new Date(cached.timestamp);
-    }
+  } catch (error) {
+    console.error('❌ Failed to fetch rates:', error);
+    window.currencyTickerState.loading = false;
+    window.currencyTickerState.error = 'Failed to update rates. ' + error.message;
   }
   
   if (window.forceUpdate) window.forceUpdate();
@@ -407,13 +429,14 @@ window.renderCurrencyTicker = () => {
               'Using cached rates'
           ),
           React.createElement('div', { className: 'flex gap-2 mt-2' },
-            React.createElement('button', {
-              onClick: () => {
-                window.fetchCurrencyRates();
-              },
-              className: 'text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors disabled:opacity-50',
-              disabled: state.loading
-            }, state.loading ? 'Updating...' : 'Refresh Rates'),
+         React.createElement('button', {
+  onClick: () => {
+    console.log('🔄 Manual refresh triggered');
+    window.fetchCurrencyRates(true); // Pass true to force refresh
+  },
+  className: 'text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors disabled:opacity-50',
+  disabled: state.loading
+}, state.loading ? 'Updating...' : 'Refresh Rates'),
             React.createElement('button', {
               onClick: toggleConverter,
               className: 'text-xs bg-gray-700 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors'
