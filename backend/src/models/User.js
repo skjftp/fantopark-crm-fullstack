@@ -9,6 +9,7 @@ class User {
     this.status = data.status;
     this.department = data.department;
     this.password = data.password;
+    this.birthday = data.birthday || null;
     this.created_date = data.created_date;
     this.updated_date = data.updated_date;
   }
