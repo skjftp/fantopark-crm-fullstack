@@ -25,6 +25,7 @@ router.post('/create', authenticateToken, async (req, res) => {
 });
 
 // Get journey by token (public route)
+// Get journey by token (public route)
 router.get('/public/:token', async (req, res) => {
   try {
     const journey = await Journey.findByToken(req.params.token);
@@ -32,9 +33,17 @@ router.get('/public/:token', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Journey not found' });
     }
     
-    // Get event details
-    const Event = require('../models/Event');
-    const event = await Event.getById(journey.event_id);
+    // Get event details if event_id exists
+    let event = null;
+    if (journey.event_id) {
+      try {
+        const Event = require('../models/Event');
+        event = await Event.getById(journey.event_id);
+      } catch (eventError) {
+        console.log('Event not found or error:', eventError.message);
+        // Continue without event data
+      }
+    }
     
     // Add weather data (mock for now, integrate with weather API)
     const weatherData = {
@@ -53,6 +62,7 @@ router.get('/public/:token', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Error in /public/:token route:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
