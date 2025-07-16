@@ -190,7 +190,17 @@ window.SimplifiedApp = function() {
   window.appState = window.appState || {};
   
   // ===== CORE SETUP & INITIALIZATION =====
-  const state = window.renderMainApp();
+  let state = null;
+  let handlers = null;
+  
+  try {
+    state = window.renderMainApp();
+  } catch (error) {
+    console.error("❌ Error initializing main app:", error);
+    return React.createElement('div', { className: 'flex justify-center items-center h-screen' },
+      React.createElement('div', { className: 'text-xl text-red-600' }, 'Error initializing app: ' + error.message)
+    );
+  }
   
   // ✅ WAIT FOR STATE TO BE READY
   if (!state || typeof state.setLoading !== 'function') {
@@ -200,7 +210,13 @@ window.SimplifiedApp = function() {
     );
   }
   
-  const handlers = window.renderAppBusinessLogic();
+  try {
+    handlers = window.renderAppBusinessLogic();
+  } catch (error) {
+    console.error("❌ Error initializing business logic:", error);
+    // Continue with empty handlers
+    handlers = {};
+  }
   
   if (ENABLE_DEBUG_LOGS && !window._stateSettersLogged) {
     console.log("🔍 State setters available:", Object.keys(state).filter(k => k.startsWith('set')));
@@ -3810,7 +3826,7 @@ window.SimplifiedApp = function() {
       window.renderQuoteUploadModal && window.renderQuoteUploadModal()
     )
   );
-};
+}; // Close SimplifiedApp function
 
 // SIMPLE MOBILE RESPONSIVE FIX
 // Add this to the bottom of your simplified-app-component.js file
@@ -4108,3 +4124,32 @@ window.renderApp = window.renderApp || (() => {
 
 console.log("✅ Inventory expansion helpers loaded");
 console.log("✅ SimplifiedApp component fully loaded with error handling");
+
+// Ensure SimplifiedApp is available globally
+if (!window.SimplifiedApp) {
+  console.error("❌ SimplifiedApp was not properly defined!");
+}
+
+// ✅ INITIALIZE THE APP
+// Try to render if all dependencies are loaded
+if (typeof window.React !== 'undefined' && 
+    typeof window.ReactDOM !== 'undefined' && 
+    typeof window.SimplifiedApp !== 'undefined') {
+  console.log("✅ All dependencies loaded, app ready to render");
+  
+  // Auto-render if there's a root element
+  if (document.getElementById('root') && !window._appRendered) {
+    window._appRendered = true;
+    setTimeout(() => {
+      if (window.renderApp) {
+        window.renderApp();
+      }
+    }, 100);
+  }
+} else {
+  console.log("⏳ Waiting for dependencies:", {
+    React: typeof window.React !== 'undefined',
+    ReactDOM: typeof window.ReactDOM !== 'undefined',
+    SimplifiedApp: typeof window.SimplifiedApp !== 'undefined'
+  });
+}
