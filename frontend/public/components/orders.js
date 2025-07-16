@@ -1077,8 +1077,7 @@ window.renderEnhancedOrderActions = function(order) {
 
         // ADD JOURNEY BUTTON HERE
 // Journey Experience button
-if (hasPermission('orders', 'write') && 
-    ['quote_sent', 'processing', 'payment_pending', 'confirmed', 'completed'].includes(order.status)) {
+if (hasPermission('orders', 'write')) {
   actions.push(
     React.createElement('button', {
       key: 'journey',
