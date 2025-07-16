@@ -3263,15 +3263,20 @@ console.log("✅ AssignmentRulesTab exposed to window");
           )
         )
       ),
-      React.createElement('main', { className: 'flex-1 overflow-y-auto p-6' },
-        state.testMode && state.user.role === 'super_admin' && React.createElement('div', {
-          className: 'bg-red-100 border-2 border-red-500 text-red-700 p-4 rounded-lg mb-4 text-center font-bold animate-pulse'
-        }, 
-          '⚠️ TEST MODE ACTIVE - Delete buttons and test data fills are enabled!'
-        ),
-        window.renderContent()
-      )
-    ),
+      React.createElement('main', { 
+  className: 'flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-900 transition-colors duration-200' 
+},
+  state.testMode && state.user.role === 'super_admin' && React.createElement('div', {
+    className: 'bg-red-100 border-2 border-red-500 text-red-700 p-4 rounded-lg mb-4 text-center font-bold animate-pulse'
+  }, 
+    '⚠️ TEST MODE ACTIVE - Delete buttons and test data fills are enabled!'
+  ),
+  state.loading ? 
+    React.createElement('div', { className: 'flex justify-center items-center h-64' },
+      React.createElement('div', { className: 'text-xl text-gray-600 dark:text-gray-300' }, 'Loading...')
+    ) :
+    React.createElement(window.ContentRouter, { activeTab: state.activeTab })
+),
 
     // All Modal Forms
     window.renderReminderDashboard && window.renderReminderDashboard(),
