@@ -54,3 +54,4 @@ temp/
 *.bak
 *.backup
 test-quote.pdf
+.firebase/
