@@ -1195,6 +1195,21 @@ window.renderEnhancedOrderActions = function(order) {
     );
   }
 
+  if (hasPermission('orders', 'write') && 
+    ['quote_sent', 'processing', 'payment_pending', 'confirmed', 'completed'].includes(order.status)) {
+  actions.push(
+    React.createElement('button', {
+      key: 'journey',
+      onClick: () => {
+        window.setSelectedOrder && window.setSelectedOrder(order);
+        window.setShowJourneyGenerator && window.setShowJourneyGenerator(true);
+      },
+      className: 'px-2 py-1 text-xs bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded hover:from-yellow-600 hover:to-yellow-700',
+      title: 'Generate Premium Journey'
+    }, '✨')
+  );
+}
+
   // Delete action (for super admins only)
   if (hasPermission('orders', 'delete') && window.user?.role === 'super_admin') {
     actions.push(
