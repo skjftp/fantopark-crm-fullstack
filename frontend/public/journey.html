@@ -274,7 +274,8 @@
             background: radial-gradient(circle at 30% 30%, #ffffff, #000000);
             border-radius: 50%;
             animation: footballKick 6s ease-in-out infinite;
-            z-index: 100;
+            z-index: 1;
+            pointer-events: none;
         }
         
         /* Tennis ball animation */
@@ -290,7 +291,8 @@
             background: radial-gradient(circle at 30% 30%, #ccff00, #9acd32);
             border-radius: 50%;
             animation: tennisBounce 3s ease-in-out infinite;
-            z-index: 100;
+            z-index: 1;
+            pointer-events: none;
         }
         
         /* F1 car animation */
@@ -306,7 +308,8 @@
             height: 30px;
             background: linear-gradient(90deg, #ff0000 0%, #ff0000 70%, #333333 70%, #333333 100%);
             animation: f1Race 5s linear infinite;
-            z-index: 100;
+            z-index: 1;
+            pointer-events: none;
         }
         
         /* Ensure animated elements are positioned correctly */
@@ -580,7 +583,7 @@
             color: #f44336;
         }
         
-        /* Stadium info section */
+        /* Stadium info section - FIXED */
         .stadium-section {
             margin: 60px 0;
             padding: 40px;
@@ -588,6 +591,8 @@
             border-radius: 20px;
             position: relative;
             overflow: hidden;
+            z-index: 10; /* Above animations */
+            isolation: isolate; /* Create new stacking context */
         }
         
         .stadium-section::before {
@@ -598,6 +603,13 @@
             right: -50px;
             top: -50px;
             transform: rotate(-15deg);
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        .stadium-section * {
+            position: relative;
+            z-index: 1;
         }
         
         .stadium-section.football::before { content: '⚽'; }
@@ -922,43 +934,128 @@
             border: 1px solid #d4af37;
         }
         
-        /* Weather Widget - FIXED for desktop and mobile */
-        .weather-widget {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
+        /* Weather Section - NEW DESIGN */
+        .weather-section {
+            margin: 80px 0;
+            padding: 60px 40px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
             border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 15px;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-            z-index: 100;
-            max-width: calc(100vw - 40px); /* Prevent overflow on very small screens */
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .weather-section::before {
+            content: '';
+            position: absolute;
+            top: -100%;
+            left: -100%;
+            width: 300%;
+            height: 300%;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.05) 0%, transparent 70%);
+            animation: weatherPulse 15s ease-in-out infinite;
+        }
+        
+        @keyframes weatherPulse {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(-10%, -10%) scale(1.1); }
+        }
+        
+        .weather-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
         }
         
         .weather-title {
-            font-size: 12px;
-            color: #888;
-            margin-bottom: 10px;
+            font-size: 28px;
+            color: #d4af37;
+            margin-bottom: 40px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
         }
         
-        .weather-info {
+        .weather-main {
             display: flex;
+            justify-content: center;
             align-items: center;
-            gap: 15px;
+            gap: 60px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .weather-temp-display {
+            text-align: center;
         }
         
         .weather-temp {
-            font-size: 36px;
+            font-size: 72px;
             font-weight: 700;
             color: #ffffff;
+            line-height: 1;
+            margin-bottom: 10px;
         }
         
         .weather-condition {
-            font-size: 14px;
+            font-size: 24px;
             color: #d4af37;
+            margin-bottom: 5px;
+        }
+        
+        .weather-location {
+            font-size: 16px;
+            color: #888;
+        }
+        
+        .weather-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .weather-detail-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .weather-detail-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(212, 175, 55, 0.4);
+        }
+        
+        .weather-detail-icon {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+        
+        .weather-detail-label {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+        
+        .weather-detail-value {
+            font-size: 24px;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        
+        .weather-advice {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(212, 175, 55, 0.1);
+            border-radius: 15px;
+            font-size: 16px;
+            color: #d4af37;
+            text-align: center;
         }
         
         /* Call to Action */
@@ -1058,7 +1155,7 @@
             display: none !important;
         }
         
-        /* Mobile Responsive - FIXED WEATHER WIDGET */
+        /* Mobile Responsive */
         @media (max-width: 768px) {
             .content {
                 padding: 80px 20px 20px;
@@ -1121,39 +1218,43 @@
                 display: none !important;
             }
             
-            /* Fix weather widget for mobile - KEEP IT FIXED */
-            .weather-widget {
-                position: fixed !important;
-                top: 10px !important;
-                right: 10px !important;
-                left: auto !important;
-                bottom: auto !important;
-                margin: 0 !important;
-                max-width: 150px;
-                padding: 15px;
-                z-index: 1000;
-                background: rgba(0, 0, 0, 0.9);
-            }
-            
-            .weather-temp {
-                font-size: 24px;
-            }
-            
-            .weather-info {
-                gap: 10px;
+            /* Weather section mobile */
+            .weather-section {
+                padding: 40px 20px;
+                margin: 60px 0;
             }
             
             .weather-title {
-                font-size: 10px;
+                font-size: 24px;
+                margin-bottom: 30px;
+            }
+            
+            .weather-main {
+                gap: 30px;
+            }
+            
+            .weather-temp {
+                font-size: 56px;
             }
             
             .weather-condition {
-                font-size: 12px;
+                font-size: 20px;
             }
             
-            /* Adjust welcome section to avoid overlap */
-            .welcome-section {
-                padding-top: 20px;
+            .weather-details {
+                gap: 20px;
+            }
+            
+            .weather-detail-card {
+                padding: 20px;
+            }
+            
+            .weather-detail-icon {
+                font-size: 28px;
+            }
+            
+            .weather-detail-value {
+                font-size: 20px;
             }
             
             .timeline::before {
@@ -1297,18 +1398,30 @@
                 icon: '🏏',
                 loadingText: 'PREPARING YOUR CRICKET JOURNEY',
                 welcomeText: 'Welcome to Your Cricket Experience',
-                weatherTitle: 'Pitch Conditions',
+                weatherTitle: 'Match Day Conditions',
                 countdownTitle: 'FIRST BALL IN',
-                eventTitle: 'Cricket Match Tickets'
+                eventTitle: 'Cricket Match Tickets',
+                weatherAdvice: {
+                    hot: 'Bring sun protection and stay hydrated during play',
+                    cold: 'Layer up for comfort during the match',
+                    rainy: 'Pack rain gear - play may be interrupted',
+                    perfect: 'Perfect cricket weather expected!'
+                }
             },
             football: {
                 name: 'Football',
                 icon: '⚽',
                 loadingText: 'PREPARING YOUR FOOTBALL JOURNEY',
                 welcomeText: 'Welcome to the Beautiful Game',
-                weatherTitle: 'Match Day Weather',
+                weatherTitle: 'Stadium Weather Forecast',
                 countdownTitle: 'KICK-OFF IN',
-                eventTitle: 'Football Match Tickets'
+                eventTitle: 'Football Match Tickets',
+                weatherAdvice: {
+                    hot: 'Stay hydrated - it\'s going to be a hot match!',
+                    cold: 'Bundle up for the match - it\'ll be chilly',
+                    rainy: 'Wet conditions expected - bring waterproofs',
+                    perfect: 'Great weather for football!'
+                }
             },
             tennis: {
                 name: 'Tennis',
@@ -1317,16 +1430,28 @@
                 welcomeText: 'Welcome to Centre Court',
                 weatherTitle: 'Court Conditions',
                 countdownTitle: 'FIRST SERVE IN',
-                eventTitle: 'Tennis Match Tickets'
+                eventTitle: 'Tennis Match Tickets',
+                weatherAdvice: {
+                    hot: 'Intense heat expected - matches may have heat breaks',
+                    cold: 'Cool conditions may affect ball bounce',
+                    rainy: 'Rain possible - roof may be closed',
+                    perfect: 'Ideal tennis conditions!'
+                }
             },
             f1: {
                 name: 'Formula 1',
                 icon: '🏎️',
                 loadingText: 'PREPARING YOUR F1 JOURNEY',
                 welcomeText: 'Experience the Speed',
-                weatherTitle: 'Track Conditions',
+                weatherTitle: 'Track Weather Report',
                 countdownTitle: 'RACE STARTS IN',
-                eventTitle: 'F1 Race Tickets'
+                eventTitle: 'F1 Race Tickets',
+                weatherAdvice: {
+                    hot: 'Hot track temperatures will affect tire strategy',
+                    cold: 'Cold track - teams may struggle with tire warmup',
+                    rainy: 'Wet race possible - expect dramatic action!',
+                    perfect: 'Optimal racing conditions expected'
+                }
             },
             basketball: {
                 name: 'Basketball',
@@ -1335,16 +1460,28 @@
                 welcomeText: 'Welcome to the Court',
                 weatherTitle: 'Arena Conditions',
                 countdownTitle: 'TIP-OFF IN',
-                eventTitle: 'Basketball Game Tickets'
+                eventTitle: 'Basketball Game Tickets',
+                weatherAdvice: {
+                    hot: 'Indoor arena - climate controlled comfort',
+                    cold: 'Indoor arena - climate controlled comfort',
+                    rainy: 'No weather worries - we\'re playing indoors!',
+                    perfect: 'Perfect conditions inside the arena'
+                }
             },
             rugby: {
                 name: 'Rugby',
                 icon: '🏉',
                 loadingText: 'PREPARING YOUR RUGBY JOURNEY',
                 welcomeText: 'Experience the Scrum',
-                weatherTitle: 'Field Conditions',
+                weatherTitle: 'Pitch Conditions',
                 countdownTitle: 'KICK-OFF IN',
-                eventTitle: 'Rugby Match Tickets'
+                eventTitle: 'Rugby Match Tickets',
+                weatherAdvice: {
+                    hot: 'Hydration will be key for the players',
+                    cold: 'Classic rugby weather - dress warm!',
+                    rainy: 'Muddy conditions - true rugby weather!',
+                    perfect: 'Great conditions for running rugby'
+                }
             }
         };
         
@@ -1412,6 +1549,14 @@
             return formatMap[format] || '';
         };
         
+        // Get weather advice based on temperature
+        const getWeatherAdvice = (temp, sport) => {
+            if (temp >= 30) return sport.weatherAdvice.hot;
+            if (temp <= 10) return sport.weatherAdvice.cold;
+            if (temp >= 20 && temp <= 25) return sport.weatherAdvice.perfect;
+            return sport.weatherAdvice.perfect;
+        };
+        
         // Main Journey App Component
         const JourneyApp = () => {
             const [loading, setLoading] = useState(true);
@@ -1459,11 +1604,15 @@
                     const journeyInfo = data.success ? data.data : data;
                     setJourneyData(journeyInfo);
                     
-                    // Simulate weather data (in real app, this would come from an API)
+                    // Enhanced weather data (in real app, this would come from an API)
                     if (!journeyInfo.weather) {
                         journeyInfo.weather = {
-                            temperature: Math.floor(Math.random() * 10) + 20,
-                            condition: ['Sunny', 'Partly Cloudy', 'Clear'][Math.floor(Math.random() * 3)]
+                            temperature: Math.floor(Math.random() * 15) + 18,
+                            condition: ['Sunny', 'Partly Cloudy', 'Clear', 'Cloudy'][Math.floor(Math.random() * 4)],
+                            humidity: Math.floor(Math.random() * 30) + 40,
+                            windSpeed: Math.floor(Math.random() * 20) + 5,
+                            precipitation: Math.floor(Math.random() * 30),
+                            uvIndex: Math.floor(Math.random() * 8) + 1
                         };
                     }
                     
@@ -1596,24 +1745,6 @@
                             <div className="football-field"></div>
                             <Football position={ballPosition} />
                         </>
-                    )}
-                    
-                    {/* Weather Widget */}
-                    {journeyData.weather && (
-                        <div className="weather-widget">
-                            <div className="weather-title">
-                                {sport.weatherTitle}
-                            </div>
-                            <div className="weather-info">
-                                <div className="weather-temp">{journeyData.weather.temperature}°C</div>
-                                <div>
-                                    <div className="weather-condition">{journeyData.weather.condition}</div>
-                                    {sportType === 'cricket' && (
-                                        <div className="text-xs text-gray-400">Good for batting</div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
                     )}
                     
                     <div className="content">
@@ -1752,6 +1883,53 @@
                                 ))}
                             </div>
                         </div>
+                        
+                        {/* Weather Section - NEW ENHANCED DESIGN */}
+                        {journeyData.weather && (
+                            <div className="weather-section">
+                                <div className="weather-content">
+                                    <h2 className="weather-title">{sport.weatherTitle}</h2>
+                                    
+                                    <div className="weather-main">
+                                        <div className="weather-temp-display">
+                                            <div className="weather-temp">{journeyData.weather.temperature}°C</div>
+                                            <div className="weather-condition">{journeyData.weather.condition}</div>
+                                            <div className="weather-location">{journeyData.venue}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="weather-details">
+                                        <div className="weather-detail-card">
+                                            <div className="weather-detail-icon">💧</div>
+                                            <div className="weather-detail-label">Humidity</div>
+                                            <div className="weather-detail-value">{journeyData.weather.humidity}%</div>
+                                        </div>
+                                        
+                                        <div className="weather-detail-card">
+                                            <div className="weather-detail-icon">💨</div>
+                                            <div className="weather-detail-label">Wind Speed</div>
+                                            <div className="weather-detail-value">{journeyData.weather.windSpeed} km/h</div>
+                                        </div>
+                                        
+                                        <div className="weather-detail-card">
+                                            <div className="weather-detail-icon">🌧️</div>
+                                            <div className="weather-detail-label">Rain Chance</div>
+                                            <div className="weather-detail-value">{journeyData.weather.precipitation}%</div>
+                                        </div>
+                                        
+                                        <div className="weather-detail-card">
+                                            <div className="weather-detail-icon">☀️</div>
+                                            <div className="weather-detail-label">UV Index</div>
+                                            <div className="weather-detail-value">{journeyData.weather.uvIndex}/10</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="weather-advice">
+                                        {getWeatherAdvice(journeyData.weather.temperature, sport)}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         
                         {/* Sport-specific Tips */}
                         {sportType === 'cricket' && (
