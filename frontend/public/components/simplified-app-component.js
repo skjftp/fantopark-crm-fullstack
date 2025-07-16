@@ -1,296 +1,75 @@
 const ENABLE_DEBUG_LOGS = false; // Set to false to reduce logs
 window.debugLog = ENABLE_DEBUG_LOGS ? console.log : () => {};
 
-// Wrap everything in an IIFE to avoid illegal return statements
-(function() {
-  // ✅ INITIALIZATION GUARD
-  if (!window.React || !window.ReactDOM) {
-    console.error("❌ React not loaded!");
-    return;
-  }
 
-  // ✅ ENSURE CRITICAL FUNCTIONS EXIST
-  window.apiCall = window.apiCall || ((endpoint, options = {}) => {
-    console.log("🌐 apiCall:", endpoint);
-    const url = (window.API_CONFIG?.API_URL || 'https://fantopark-backend-150582227311.us-central1.run.app/api') + endpoint;
-    return fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': window.authToken ? 'Bearer ' + window.authToken : '',
-        ...options.headers
-      }
-    }).then(response => response.json());
-  });
-
-// ✅ ERROR BOUNDARY
-window.ErrorBoundary = window.ErrorBoundary || class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return React.createElement('div', { className: 'min-h-screen flex items-center justify-center bg-gray-100' },
-        React.createElement('div', { className: 'bg-white p-8 rounded-lg shadow-md' },
-          React.createElement('h1', { className: 'text-2xl font-bold text-red-600 mb-4' }, 'Something went wrong'),
-          React.createElement('p', { className: 'text-gray-600 mb-4' }, this.state.error?.message || 'An unexpected error occurred'),
-          React.createElement('button', {
-            onClick: () => window.location.reload(),
-            className: 'bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700'
-          }, 'Reload Page')
-        )
-      );
-    }
-
-    return this.props.children;
-  }
-};
-
-// ✅ DEFAULT TAB RENDERERS
-window.renderDashboard = window.renderDashboard || (() => {
-  return React.createElement('div', { className: 'p-6' },
-    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Dashboard'),
-    React.createElement('p', null, 'Dashboard content will be loaded here')
-  );
-});
-
-window.renderLeadsManagement = window.renderLeadsManagement || (() => {
-  return React.createElement('div', { className: 'p-6' },
-    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Leads Management'),
-    React.createElement('p', null, 'Leads content will be loaded here')
-  );
-});
-
-window.renderInventoryManagement = window.renderInventoryManagement || (() => {
-  return React.createElement('div', { className: 'p-6' },
-    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Inventory Management'),
-    React.createElement('p', null, 'Inventory content will be loaded here')
-  );
-});
-
-window.renderOrdersManagement = window.renderOrdersManagement || (() => {
-  return React.createElement('div', { className: 'p-6' },
-    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Orders Management'),
-    React.createElement('p', null, 'Orders content will be loaded here')
-  );
-});
-
-window.renderDeliveryManagement = window.renderDeliveryManagement || (() => {
-  return React.createElement('div', { className: 'p-6' },
-    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Delivery Management'),
-    React.createElement('p', null, 'Delivery content will be loaded here')
-  );
-});
-
-window.renderFinanceManagement = window.renderFinanceManagement || (() => {
-  return React.createElement('div', { className: 'p-6' },
-    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Finance Management'),
-    React.createElement('p', null, 'Finance content will be loaded here')
-  );
-});
-
-window.renderStadiumsManagement = window.renderStadiumsManagement || (() => {
-  return React.createElement('div', { className: 'p-6' },
-    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Stadiums Management'),
-    React.createElement('p', null, 'Stadiums content will be loaded here')
-  );
-});
-
-window.renderRemindersContent = window.renderRemindersContent || (() => {
-  return React.createElement('div', { className: 'p-6' },
-    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Reminders'),
-    React.createElement('p', null, 'Reminders content will be loaded here')
-  );
-});
-
-window.renderMyActionsContent = window.renderMyActionsContent || (() => {
-  return React.createElement('div', { className: 'p-6' },
-    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'My Actions'),
-    React.createElement('p', null, 'My Actions content will be loaded here')
-  );
-});
-
-window.renderRolesManagement = window.renderRolesManagement || (() => {
-  return React.createElement('div', { className: 'p-6' },
-    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Roles Management'),
-    React.createElement('p', null, 'Roles management content will be loaded here')
-  );
-});
-
-window.renderChangePassword = window.renderChangePassword || (() => {
-  return React.createElement('div', { className: 'p-6' },
-    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Change Password'),
-    React.createElement('p', null, 'Change password content will be loaded here')
-  );
-});
-
-// ✅ ADD CONTENT ROUTER COMPONENT
-window.ContentRouter = window.ContentRouter || (({ activeTab }) => {
-  console.log("🔍 ContentRouter rendering for tab:", activeTab);
-  
-  // Map tab IDs to their render functions
-  const tabRenderers = {
-    'dashboard': window.renderDashboard,
-    'leads': window.renderLeadsManagement,
-    'inventory': window.renderInventoryManagement,
-    'orders': window.renderOrdersManagement,
-    'delivery': window.renderDeliveryManagement,
-    'finance': window.renderFinanceManagement,
-    'stadiums': window.renderStadiumsManagement,
-    'sports-calendar': window.renderSportsCalendarContent,
-    'reminders': window.renderRemindersContent,
-    'myactions': window.renderMyActionsContent,
-    'assignment-rules': () => window.AssignmentRulesTab,
-    'roles': window.renderRolesManagement,
-    'changePassword': window.renderChangePassword,
-    'users': window.renderUserManagementContent
-  };
-
-  // Get the renderer for the active tab
-  const renderer = tabRenderers[activeTab];
-  
-  if (!renderer) {
-    console.error("❌ No renderer found for tab:", activeTab);
-    return React.createElement('div', { className: 'text-center py-12' },
-      React.createElement('h2', { className: 'text-2xl text-gray-600' }, 
-        `Content for "${activeTab}" tab is not available yet`
-      )
-    );
-  }
-
-  // Execute the renderer
-  try {
-    const content = typeof renderer === 'function' ? renderer() : renderer;
-    return content || React.createElement('div', null, 'Loading...');
-  } catch (error) {
-    console.error("❌ Error rendering tab content:", error);
-    return React.createElement('div', { className: 'text-center py-12 text-red-600' },
-      React.createElement('h2', { className: 'text-xl' }, 'Error loading content'),
-      React.createElement('p', { className: 'mt-2' }, error.message)
-    );
-  }
-});
-
-const ENABLE_DEBUG_LOGS = false; // Set to false to reduce logs
-window.debugLog = ENABLE_DEBUG_LOGS ? console.log : () => {};
-
-// Define SimplifiedApp immediately to ensure it's available
 window.SimplifiedApp = function() {
-  // ✅ ENSURE WINDOW.APPSTATE EXISTS FIRST
-  window.appState = window.appState || {};
-  
   // ===== CORE SETUP & INITIALIZATION =====
-  let state = null;
-  let handlers = null;
+  const state = window.renderMainApp();
+  const handlers = window.renderAppBusinessLogic();
   
-  try {
-    state = window.renderMainApp();
-    // Mark app state as initialized once we have state
-    if (state) {
-      window.appState.initialized = true;
-    }
-  } catch (error) {
-    console.error("❌ Error initializing main app:", error);
-    return React.createElement('div', { className: 'flex justify-center items-center h-screen bg-gray-100' },
-      React.createElement('div', { className: 'bg-white p-8 rounded-lg shadow-md text-center' },
-        React.createElement('h1', { className: 'text-2xl font-bold text-red-600 mb-4' }, 'Initialization Error'),
-        React.createElement('p', { className: 'text-gray-600' }, error.message),
-        React.createElement('button', {
-          onClick: () => window.location.reload(),
-          className: 'mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700'
-        }, 'Reload Page')
-      )
-    );
-  }
-  
-  // ✅ WAIT FOR STATE TO BE READY
-  if (!state || typeof state.setLoading !== 'function') {
-    console.log("⏳ Waiting for state initialization...");
-    return React.createElement('div', { className: 'flex justify-center items-center h-screen bg-gray-100' },
-      React.createElement('div', { className: 'text-center' },
-        React.createElement('div', { className: 'text-2xl text-gray-600 mb-4' }, 'Initializing...'),
-        React.createElement('div', { className: 'text-sm text-gray-500' }, 'Please wait while we load the application')
-      )
-    );
-  }
-  
-  try {
-    handlers = window.renderAppBusinessLogic();
-  } catch (error) {
-    console.error("❌ Error initializing business logic:", error);
-    // Continue with empty handlers
-    handlers = {};
-  }
-  
-  if (ENABLE_DEBUG_LOGS && !window._stateSettersLogged) {
-    console.log("🔍 State setters available:", Object.keys(state).filter(k => k.startsWith('set')));
-    window._stateSettersLogged = true;
-  }
+  const ENABLE_DEBUG_LOGS = false; // Turn off debug logs
+if (ENABLE_DEBUG_LOGS && !window._stateSettersLogged) {
+  console.log("🔍 State setters available:", Object.keys(state).filter(k => k.startsWith('set')));
+  window._stateSettersLogged = true;
+}
+  // Log available setter
+  const availableSetters = Object.keys(state).filter(key => key.startsWith('set') && key.includes('Inventory'));
   
   // Initialize all effects
   window.renderAppEffects();
 
-  // Make handlers available globally
+  // Make handlers available globall
+  
   window.appHandlers = handlers;
 
   // ✅ ENSURE USER FORM GLOBALS ARE AVAILABLE
-  window.loading = state.loading || false;
-  window.currentUser = state.currentUser || null;
-  window.userFormData = state.userFormData || {};
-  window.roles = state.roles || [];
+window.loading = state.loading || false;
+window.currentUser = state.currentUser || null;
+window.userFormData = state.userFormData || {};
+window.roles = state.roles || [];
 
-  // ✅ ASSIGNMENT RULES HELPER FUNCTIONS
-  window.refreshAssignmentRules = async () => {
-    console.log("🔄 refreshAssignmentRules called");
-    try {
-      if (window.hasPermission('leads', 'assign')) {
-        // Force re-render of assignment rules component
-        console.log("✅ Assignment rules refresh completed");
-      }
-    } catch (error) {
-      console.error("❌ Error refreshing assignment rules:", error);
+// ✅ ASSIGNMENT RULES HELPER FUNCTIONS
+window.refreshAssignmentRules = async () => {
+  console.log("🔄 refreshAssignmentRules called");
+  try {
+    if (window.hasPermission('leads', 'assign')) {
+      // Force re-render of assignment rules component
+      console.log("✅ Assignment rules refresh completed");
     }
-  };
+  } catch (error) {
+    console.error("❌ Error refreshing assignment rules:", error);
+  }
+};
 
-  // Debug function to test assignment rules
-  window.testAssignmentRulesAPI = async () => {
-    try {
-      console.log("🧪 Testing assignment rules API...");
-      const response = await window.apiCall('/assignment-rules');
-      console.log("✅ Assignment rules API working:", response);
-      return response;
-    } catch (error) {
-      console.error("❌ Assignment rules API error:", error);
-      return null;
-    }
-  };
+// Debug function to test assignment rules
+window.testAssignmentRulesAPI = async () => {
+  try {
+    console.log("🧪 Testing assignment rules API...");
+    const response = await window.apiCall('/assignment-rules');
+    console.log("✅ Assignment rules API working:", response);
+    return response;
+  } catch (error) {
+    console.error("❌ Assignment rules API error:", error);
+    return null;
+  }
+};
 
   // ✅ ADD THIS: Assignment Rules Button Debugging
-  window.debugAssignmentRulesButtons = () => {
-    console.log("🔍 Assignment Rules Debug:");
-    console.log("AssignmentRulesManager exists:", typeof window.AssignmentRulesManager);
-    console.log("AssignmentRulesTab exists:", typeof window.AssignmentRulesTab);
-    console.log("apiCall exists:", typeof window.apiCall);
-    console.log("hasPermission exists:", typeof window.hasPermission);
-    console.log("Current user:", window.user);
-    console.log("Permissions for leads assign:", window.hasPermission('leads', 'assign'));
-  };
+window.debugAssignmentRulesButtons = () => {
+  console.log("🔍 Assignment Rules Debug:");
+  console.log("AssignmentRulesManager exists:", typeof window.AssignmentRulesManager);
+  console.log("AssignmentRulesTab exists:", typeof window.AssignmentRulesTab);
+  console.log("apiCall exists:", typeof window.apiCall);
+  console.log("hasPermission exists:", typeof window.hasPermission);
+  console.log("Current user:", window.user);
+  console.log("Permissions for leads assign:", window.hasPermission('leads', 'assign'));
+};
 
-  // Test the buttons work
-  window.testAssignmentRulesButtons = () => {
-    console.log("🧪 Testing Assignment Rules button functionality");
-    // This will help us see if the functions are accessible
-  };
+// Test the buttons work
+window.testAssignmentRulesButtons = () => {
+  console.log("🧪 Testing Assignment Rules button functionality");
+  // This will help us see if the functions are accessible
+};
 
   // ===== STATE VARIABLES =====
   
@@ -350,31 +129,32 @@ window.SimplifiedApp = function() {
   window.appState.stadiumSortDirection = state.stadiumSortDirection || 'asc';
 
   // Sports Calendar States
-  window.appState.sportsEvents = state.sportsEvents || [];
-  window.appState.selectedDate = state.selectedDate || new Date();
-  window.appState.calendarView = state.calendarView || "month";
-  window.appState.calendarFilters = state.calendarFilters || {};
-  window.appState.currentEvent = state.currentEvent || null;
-  window.appState.showEventForm = state.showEventForm || false;
-  window.appState.showImportModal = state.showImportModal || false;
-  window.appState.showEventDetail = state.showEventDetail || false;
-  // ✅ NEW: Sports Calendar Pagination States
-  window.appState.currentEventsPage = state.currentEventsPage || 1;
-  window.appState.eventsPerPage = state.eventsPerPage || 10;
+// Sports Calendar States
+window.appState.sportsEvents = state.sportsEvents || [];
+window.appState.selectedDate = state.selectedDate || new Date();
+window.appState.calendarView = state.calendarView || "month";
+window.appState.calendarFilters = state.calendarFilters || {};
+window.appState.currentEvent = state.currentEvent || null;
+window.appState.showEventForm = state.showEventForm || false;
+window.appState.showImportModal = state.showImportModal || false;
+window.appState.showEventDetail = state.showEventDetail || false;
+// ✅ NEW: Sports Calendar Pagination States
+window.appState.currentEventsPage = state.currentEventsPage || 1;
+window.appState.eventsPerPage = state.eventsPerPage || 10;
 
   // ✅ ADD THESE LINES: Roles Management States
-  window.appState.roles = state.roles || [];
-  window.appState.rolesInitialized = state.rolesInitialized || false;
-  window.appState.showRoleForm = state.showRoleForm || false;
-  window.appState.editingRole = state.editingRole || null;
-  window.appState.roleFormData = state.roleFormData || {};
+window.appState.roles = state.roles || [];
+window.appState.rolesInitialized = state.rolesInitialized || false;
+window.appState.showRoleForm = state.showRoleForm || false;
+window.appState.editingRole = state.editingRole || null;
+window.appState.roleFormData = state.roleFormData || {};
 
-  // ✅ ADD THESE LINES: User Management States
-  window.appState.showUserManagement = state.showUserManagement || false;
-  window.appState.showUserForm = state.showUserForm || false;
-  window.appState.editingUser = state.editingUser || null;
-  window.appState.userFormData = state.userFormData || {};
-  window.appState.currentUser = state.currentUser || null; 
+ // ✅ ADD THESE LINES: User Management States
+window.appState.showUserManagement = state.showUserManagement || false;
+window.appState.showUserForm = state.showUserForm || false;
+window.appState.editingUser = state.editingUser || null;
+window.appState.userFormData = state.userFormData || {};
+window.appState.currentUser = state.currentUser || null; 
 
   // CSV Upload States
   window.appState.showPreview = state.showPreview || false;
@@ -403,11 +183,11 @@ window.SimplifiedApp = function() {
   window.invoices = state.invoices || [];
 
   // ✅ ADD THE MY ACTIONS ARRAYS HERE:
-  window.myLeads = state.myLeads || [];
-  window.myQuoteRequested = state.myQuoteRequested || [];
-  window.myOrders = state.myOrders || [];
-  window.myDeliveries = state.myDeliveries || [];
-  window.myReceivables = state.myReceivables || [];
+window.myLeads = state.myLeads || [];
+window.myQuoteRequested = state.myQuoteRequested || [];
+window.myOrders = state.myOrders || [];
+window.myDeliveries = state.myDeliveries || [];
+window.myReceivables = state.myReceivables || [];
 
   // Modal States - Direct Window Variables
   window.showAddForm = state.showAddForm;
@@ -446,40 +226,31 @@ window.SimplifiedApp = function() {
   window.stadiumSortDirection = state.stadiumSortDirection || 'asc';
 
   // ✅ ADD THESE LINES: Roles States
-  window.roles = state.roles || [];
-  window.rolesInitialized = state.rolesInitialized || false;
-  window.showRoleForm = state.showRoleForm || false;
-  window.editingRole = state.editingRole || null;
-  window.roleFormData = state.roleFormData || {};
+window.roles = state.roles || [];
+window.rolesInitialized = state.rolesInitialized || false;
+window.showRoleForm = state.showRoleForm || false;
+window.editingRole = state.editingRole || null;
+window.roleFormData = state.roleFormData || {};
 
-  // ✅ ADD THESE LINES: User Management States
-  window.showUserManagement = state.showUserManagement || false;
-  window.showUserForm = state.showUserForm || false;
-  window.editingUser = state.editingUser || null;
-  window.userFormData = state.userFormData || {};
-  window.currentUser = state.currentUser || null;  
+// ✅ ADD THESE LINES: User Management States
+window.showUserManagement = state.showUserManagement || false;
+window.showUserForm = state.showUserForm || false;
+window.editingUser = state.editingUser || null;
+window.userFormData = state.userFormData || {};
+window.currentUser = state.currentUser || null;  
 
-  // Sports Calendar States
-  window.sportsEvents = state.sportsEvents || [];
-  window.setSportsEvents = state.setSportsEvents || ((events) => {
-    window.sportsEvents = events;
-    window.appState.sportsEvents = events;
-  });
-  window.selectedDate = state.selectedDate || new Date();
-  window.calendarView = state.calendarView || "month";
-  window.calendarFilters = state.calendarFilters || {};
-  window.currentEvent = state.currentEvent || null;
-  window.showEventForm = state.showEventForm || false;
-  window.showImportModal = state.showImportModal || false;
-  window.showEventDetail = state.showEventDetail || false;
-  window.eventFormData = state.eventFormData || {};
-  window.setEventFormData = state.setEventFormData || ((data) => {
-    window.eventFormData = data;
-    window.appState.eventFormData = data;
-  });
-  // ✅ NEW: Sports Calendar Pagination States
-  window.currentEventsPage = state.currentEventsPage || 1;
-  window.eventsPerPage = state.eventsPerPage || 10;
+// Sports Calendar States
+window.sportsEvents = state.sportsEvents || [];
+window.selectedDate = state.selectedDate || new Date();
+window.calendarView = state.calendarView || "month";
+window.calendarFilters = state.calendarFilters || {};
+window.currentEvent = state.currentEvent || null;
+window.showEventForm = state.showEventForm || false;
+window.showImportModal = state.showImportModal || false;
+window.showEventDetail = state.showEventDetail || false;
+// ✅ NEW: Sports Calendar Pagination States
+window.currentEventsPage = state.currentEventsPage || 1;
+window.eventsPerPage = state.eventsPerPage || 10;
 
   // Client States
   window.clients = state.clients || [];
@@ -538,11 +309,11 @@ window.SimplifiedApp = function() {
   window.currentInventoryDetail = state.currentInventoryDetail || null;
 
   // Expanded inventory items tracking
-  window.expandedInventoryItems = state.expandedInventoryItems || new Set();
-  window.setExpandedInventoryItems = state.setExpandedInventoryItems || ((items) => {
-    console.log("📊 setExpandedInventoryItems called with:", items);
-    window.expandedInventoryItems = items;
-  });
+window.expandedInventoryItems = state.expandedInventoryItems || new Set();
+window.setExpandedInventoryItems = state.setExpandedInventoryItems || ((items) => {
+  console.log("📊 setExpandedInventoryItems called with:", items);
+  window.expandedInventoryItems = items;
+});
 
   // ✅ CRITICAL MISSING: Order Management Variables
   window.currentOrderDetail = state.currentOrderDetail || null;
@@ -619,263 +390,264 @@ window.SimplifiedApp = function() {
     }, 10);
   };
 
+
   // ✅ ADD THIS FUNCTION: User Management Page Component (not modal)
-  window.renderUserManagementContent = () => {
-    console.log("🔍 renderUserManagementContent called");
-    
-    // Fetch users if not already loaded
-    if (!window.users || window.users.length === 0) {
-      window.fetchUsers && window.fetchUsers();
-    }
+window.renderUserManagementContent = () => {
+  console.log("🔍 renderUserManagementContent called");
+  
+  // Fetch users if not already loaded
+  if (!window.users || window.users.length === 0) {
+    window.fetchUsers && window.fetchUsers();
+  }
 
-    return React.createElement('div', { className: 'space-y-6' },
-      // Header
-      React.createElement('div', { className: 'flex justify-between items-center' },
-        React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'User Management'),
-        React.createElement('div', { className: 'flex space-x-2' },
-          window.hasPermission('users', 'write') && React.createElement('button', {
-            onClick: () => {
-              console.log('🔍 Add User button clicked');
-              window.openUserForm && window.openUserForm();
-            },
-            className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
-          }, '+ Add User'),
-          React.createElement('button', {
-            onClick: () => {
-              console.log('🔍 Export Users button clicked');
-              window.exportUsersData && window.exportUsersData(window.users || []);
-            },
-            className: 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700'
-          }, '📥 Export Users')
-        )
-      ),
+  return React.createElement('div', { className: 'space-y-6' },
+    // Header
+    React.createElement('div', { className: 'flex justify-between items-center' },
+      React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'User Management'),
+      React.createElement('div', { className: 'flex space-x-2' },
+        window.hasPermission('users', 'write') && React.createElement('button', {
+          onClick: () => {
+            console.log('🔍 Add User button clicked');
+            window.openUserForm && window.openUserForm();
+          },
+          className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
+        }, '+ Add User'),
+        React.createElement('button', {
+          onClick: () => {
+            console.log('🔍 Export Users button clicked');
+            window.exportUsersData && window.exportUsersData(window.users || []);
+          },
+          className: 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700'
+        }, '📥 Export Users')
+      )
+    ),
 
-      // Users Table
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
-        React.createElement('div', { className: 'overflow-x-auto' },
-          React.createElement('table', { className: 'w-full' },
-            React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
-              React.createElement('tr', null,
-                React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'User'),
-                React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Role'),
-                React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
-                React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Created'),
-                React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
-              )
-            ),
-            React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
-              (window.users || []).length > 0 ?
-                (window.users || []).map((user, index) => 
-                  React.createElement('tr', { key: user.id || index, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
-                    // User Info
-                    React.createElement('td', { className: 'px-6 py-4' },
-                      React.createElement('div', null,
-                        React.createElement('div', { className: 'text-sm font-medium text-gray-900 dark:text-white' }, user.name),
-                        React.createElement('div', { className: 'text-sm text-gray-500' }, user.email)
-                      )
-                    ),
-                    
-                    // Role
-                    React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' },
-                      window.getRoleDisplayName ? window.getRoleDisplayName(user.role) : user.role
-                    ),
-                    
-                    // Status
-                    React.createElement('td', { className: 'px-6 py-4' },
-                      React.createElement('span', { 
-                        className: `px-2 py-1 text-xs font-medium rounded-full ${
-                          user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`
-                      }, user.status || 'active')
-                    ),
-                    
-                    // Created Date
-                    React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' },
-                      user.created_date ? new Date(user.created_date).toLocaleDateString() : 'N/A'
-                    ),
-                    
-                    // Actions
-                    React.createElement('td', { className: 'px-6 py-4' },
-                      React.createElement('div', { className: 'flex items-center space-x-2' },
-                        // Edit Button
-                        window.hasPermission('users', 'write') && React.createElement('button', {
-                          onClick: () => {
-                            console.log('🔍 Edit User clicked:', user.name);
-                            window.openUserForm && window.openUserForm(user);
-                          },
-                          className: 'text-blue-600 hover:text-blue-900 text-sm px-3 py-1 rounded border border-blue-200 hover:bg-blue-50'
-                        }, '✏️ Edit'),
-                        
-                        // Toggle Status Button
-                        window.hasPermission('users', 'write') && React.createElement('button', {
-                          onClick: () => {
-                            console.log('🔍 Toggle Status clicked for:', user.name);
-                            window.toggleUserStatus && window.toggleUserStatus(user.id, user.status);
-                          },
-                          className: `text-sm px-3 py-1 rounded border ${
-                            user.status === 'active' 
-                              ? 'text-red-600 border-red-200 hover:bg-red-50' 
-                              : 'text-green-600 border-green-200 hover:bg-green-50'
-                          }`
-                        }, user.status === 'active' ? '🚫 Deactivate' : '✅ Activate'),
-                        
-                        // Delete Button
-                        window.hasPermission('users', 'delete') && React.createElement('button', {
-                          onClick: () => {
-                            console.log('🔍 Delete User clicked:', user.name);
-                            window.handleDeleteUser && window.handleDeleteUser(user.id, user.name);
-                          },
-                          className: 'text-red-600 hover:text-red-900 text-sm px-3 py-1 rounded border border-red-200 hover:bg-red-50'
-                        }, '🗑️ Delete')
-                      )
+    // Users Table
+    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
+      React.createElement('div', { className: 'overflow-x-auto' },
+        React.createElement('table', { className: 'w-full' },
+          React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
+            React.createElement('tr', null,
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'User'),
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Role'),
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Created'),
+              React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
+            )
+          ),
+          React.createElement('tbody', { className: 'divide-y divide-gray-200 dark:divide-gray-700' },
+            (window.users || []).length > 0 ?
+              (window.users || []).map((user, index) => 
+                React.createElement('tr', { key: user.id || index, className: 'hover:bg-gray-50 dark:hover:bg-gray-700' },
+                  // User Info
+                  React.createElement('td', { className: 'px-6 py-4' },
+                    React.createElement('div', null,
+                      React.createElement('div', { className: 'text-sm font-medium text-gray-900 dark:text-white' }, user.name),
+                      React.createElement('div', { className: 'text-sm text-gray-500' }, user.email)
                     )
-                  )
-                ) :
-                React.createElement('tr', null,
-                  React.createElement('td', { 
-                    colSpan: 5, 
-                    className: 'px-6 py-8 text-center text-gray-500' 
-                  }, 
-                    React.createElement('div', { className: 'text-center' },
-                      React.createElement('div', { className: 'text-4xl mb-2' }, '👥'),
-                      React.createElement('div', { className: 'text-lg font-medium' }, 'No users found'),
-                      React.createElement('div', { className: 'text-sm' }, 'Add new users to get started')
+                  ),
+                  
+                  // Role
+                  React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' },
+                    window.getRoleDisplayName ? window.getRoleDisplayName(user.role) : user.role
+                  ),
+                  
+                  // Status
+                  React.createElement('td', { className: 'px-6 py-4' },
+                    React.createElement('span', { 
+                      className: `px-2 py-1 text-xs font-medium rounded-full ${
+                        user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`
+                    }, user.status || 'active')
+                  ),
+                  
+                  // Created Date
+                  React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' },
+                    user.created_date ? new Date(user.created_date).toLocaleDateString() : 'N/A'
+                  ),
+                  
+                  // Actions
+                  React.createElement('td', { className: 'px-6 py-4' },
+                    React.createElement('div', { className: 'flex items-center space-x-2' },
+                      // Edit Button
+                      window.hasPermission('users', 'write') && React.createElement('button', {
+                        onClick: () => {
+                          console.log('🔍 Edit User clicked:', user.name);
+                          window.openUserForm && window.openUserForm(user);
+                        },
+                        className: 'text-blue-600 hover:text-blue-900 text-sm px-3 py-1 rounded border border-blue-200 hover:bg-blue-50'
+                      }, '✏️ Edit'),
+                      
+                      // Toggle Status Button
+                      window.hasPermission('users', 'write') && React.createElement('button', {
+                        onClick: () => {
+                          console.log('🔍 Toggle Status clicked for:', user.name);
+                          window.toggleUserStatus && window.toggleUserStatus(user.id, user.status);
+                        },
+                        className: `text-sm px-3 py-1 rounded border ${
+                          user.status === 'active' 
+                            ? 'text-red-600 border-red-200 hover:bg-red-50' 
+                            : 'text-green-600 border-green-200 hover:bg-green-50'
+                        }`
+                      }, user.status === 'active' ? '🚫 Deactivate' : '✅ Activate'),
+                      
+                      // Delete Button
+                      window.hasPermission('users', 'delete') && React.createElement('button', {
+                        onClick: () => {
+                          console.log('🔍 Delete User clicked:', user.name);
+                          window.handleDeleteUser && window.handleDeleteUser(user.id, user.name);
+                        },
+                        className: 'text-red-600 hover:text-red-900 text-sm px-3 py-1 rounded border border-red-200 hover:bg-red-50'
+                      }, '🗑️ Delete')
                     )
                   )
                 )
-            )
+              ) :
+              React.createElement('tr', null,
+                React.createElement('td', { 
+                  colSpan: 5, 
+                  className: 'px-6 py-8 text-center text-gray-500' 
+                }, 
+                  React.createElement('div', { className: 'text-center' },
+                    React.createElement('div', { className: 'text-4xl mb-2' }, '👥'),
+                    React.createElement('div', { className: 'text-lg font-medium' }, 'No users found'),
+                    React.createElement('div', { className: 'text-sm' }, 'Add new users to get started')
+                  )
+                )
+              )
           )
         )
       )
-    );
-  };
+    )
+  );
+};
 
   // ✅ REMINDER DASHBOARD MODAL - EXTRACTED FROM EXISTING REMINDERS.JS
-  window.renderReminderDashboard = () => {
-    if (!window.showReminderDashboard) {
-      return null;
-    }
+window.renderReminderDashboard = () => {
+  if (!window.showReminderDashboard) {
+    return null;
+  }
 
-    return React.createElement('div', {
-      className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
-      onClick: (e) => {
-        if (e.target === e.currentTarget) {
-          window.setShowReminderDashboard(false);
-        }
+  return React.createElement('div', {
+    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
+    onClick: (e) => {
+      if (e.target === e.currentTarget) {
+        window.setShowReminderDashboard(false);
       }
+    }
+  },
+    React.createElement('div', {
+      className: 'bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden',
+      onClick: (e) => e.stopPropagation()
     },
+      // Header
       React.createElement('div', {
-        className: 'bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden',
-        onClick: (e) => e.stopPropagation()
+        className: 'flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700'
       },
-        // Header
-        React.createElement('div', {
-          className: 'flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700'
+        React.createElement('h2', {
+          className: 'text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2'
         },
-          React.createElement('h2', {
-            className: 'text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2'
-          },
-            React.createElement('span', null, '🔔'),
-            'Reminder Dashboard'
-          ),
-          React.createElement('button', {
-            onClick: () => window.setShowReminderDashboard(false),
-            className: 'text-gray-400 hover:text-gray-600 text-2xl'
-          }, '×')
+          React.createElement('span', null, '🔔'),
+          'Reminder Dashboard'
         ),
-        
-        // Content - Using existing reminder content structure
-        React.createElement('div', { className: 'p-6 overflow-y-auto max-h-[80vh]' },
-          // Quick stats (copied from reminders.js)
-          React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4 mb-6' },
-            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
-              React.createElement('div', { className: 'text-3xl font-bold text-blue-600' }, window.reminderStats?.total || 0),
-              React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Total Reminders')
-            ),
-            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
-              React.createElement('div', { className: 'text-3xl font-bold text-red-600' }, window.reminderStats?.overdue || 0),
-              React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Overdue')
-            ),
-            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
-              React.createElement('div', { className: 'text-3xl font-bold text-orange-600' }, window.reminderStats?.due_today || 0),
-              React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Due Today')
-            ),
-            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
-              React.createElement('div', { className: 'text-3xl font-bold text-green-600' }, window.reminderStats?.pending || 0),
-              React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Pending')
-            )
+        React.createElement('button', {
+          onClick: () => window.setShowReminderDashboard(false),
+          className: 'text-gray-400 hover:text-gray-600 text-2xl'
+        }, '×')
+      ),
+      
+      // Content - Using existing reminder content structure
+      React.createElement('div', { className: 'p-6 overflow-y-auto max-h-[80vh]' },
+        // Quick stats (copied from reminders.js)
+        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4 mb-6' },
+          React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
+            React.createElement('div', { className: 'text-3xl font-bold text-blue-600' }, window.reminderStats?.total || 0),
+            React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Total Reminders')
           ),
-
-          // Action buttons
-          React.createElement('div', { className: 'flex gap-3 mb-6' },
-            React.createElement('button', {
-              onClick: () => window.fetchReminders && window.fetchReminders(),
-              className: 'px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700'
-            }, '🔄 Refresh')
+          React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
+            React.createElement('div', { className: 'text-3xl font-bold text-red-600' }, window.reminderStats?.overdue || 0),
+            React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Overdue')
           ),
+          React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
+            React.createElement('div', { className: 'text-3xl font-bold text-orange-600' }, window.reminderStats?.due_today || 0),
+            React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Due Today')
+          ),
+          React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 shadow' },
+            React.createElement('div', { className: 'text-3xl font-bold text-green-600' }, window.reminderStats?.pending || 0),
+            React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 'Pending')
+          )
+        ),
 
-          // Reminders table (copied structure from reminders.js)
-          React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
-            React.createElement('div', { className: 'px-6 py-4 border-b border-gray-200 dark:border-gray-700' },
-              React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 'All Reminders')
-            ),
-            React.createElement('div', { className: 'overflow-x-auto' },
-              (window.reminders && window.reminders.length > 0) ? 
-                // Use existing table structure from reminders.js
-                React.createElement('table', { className: 'w-full' },
-                  React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
-                    React.createElement('tr', null,
-                      React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Title'),
-                      React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Due Date'),
-                      React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Priority'),
-                      React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Actions')
-                    )
-                  ),
-                  React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700' },
-                    window.reminders.map((reminder, index) => 
-                      React.createElement('tr', { key: reminder.id || index, className: 'hover:bg-gray-50 dark:hover:bg-gray-600' },
-                        React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white' }, 
-                          reminder.title || 'No title'
-                        ),
-                        React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white' }, 
-                          reminder.due_date ? new Date(reminder.due_date).toLocaleDateString() : 'No date'
-                        ),
-                        React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
-                          React.createElement('span', { 
-                            className: `px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              reminder.priority === 'urgent' ? 'bg-red-100 text-red-800' :
-                              reminder.priority === 'high' ? 'bg-orange-100 text-orange-800' :
-                              reminder.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-green-100 text-green-800'
-                            }`
-                          }, (reminder.priority || 'low').toUpperCase())
-                        ),
-                        React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm font-medium' },
-                          React.createElement('div', { className: 'flex space-x-2' },
-                            reminder.status === 'pending' && React.createElement('button', {
-                              onClick: () => window.completeReminder && window.completeReminder(reminder.id, 'Completed'),
-                              className: 'text-green-600 hover:text-green-900'
-                            }, '✓ Complete'),
-                            React.createElement('button', {
-                              onClick: () => window.deleteReminder && window.deleteReminder(reminder.id),
-                              className: 'text-red-600 hover:text-red-900'
-                            }, '🗑️ Delete')
-                          )
+        // Action buttons
+        React.createElement('div', { className: 'flex gap-3 mb-6' },
+          React.createElement('button', {
+            onClick: () => window.fetchReminders && window.fetchReminders(),
+            className: 'px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700'
+          }, '🔄 Refresh')
+        ),
+
+        // Reminders table (copied structure from reminders.js)
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
+          React.createElement('div', { className: 'px-6 py-4 border-b border-gray-200 dark:border-gray-700' },
+            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 'All Reminders')
+          ),
+          React.createElement('div', { className: 'overflow-x-auto' },
+            (window.reminders && window.reminders.length > 0) ? 
+              // Use existing table structure from reminders.js
+              React.createElement('table', { className: 'w-full' },
+                React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
+                  React.createElement('tr', null,
+                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Title'),
+                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Due Date'),
+                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Priority'),
+                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Actions')
+                  )
+                ),
+                React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700' },
+                  window.reminders.map((reminder, index) => 
+                    React.createElement('tr', { key: reminder.id || index, className: 'hover:bg-gray-50 dark:hover:bg-gray-600' },
+                      React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white' }, 
+                        reminder.title || 'No title'
+                      ),
+                      React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white' }, 
+                        reminder.due_date ? new Date(reminder.due_date).toLocaleDateString() : 'No date'
+                      ),
+                      React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                        React.createElement('span', { 
+                          className: `px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            reminder.priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                            reminder.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                            reminder.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                          }`
+                        }, (reminder.priority || 'low').toUpperCase())
+                      ),
+                      React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm font-medium' },
+                        React.createElement('div', { className: 'flex space-x-2' },
+                          reminder.status === 'pending' && React.createElement('button', {
+                            onClick: () => window.completeReminder && window.completeReminder(reminder.id, 'Completed'),
+                            className: 'text-green-600 hover:text-green-900'
+                          }, '✓ Complete'),
+                          React.createElement('button', {
+                            onClick: () => window.deleteReminder && window.deleteReminder(reminder.id),
+                            className: 'text-red-600 hover:text-red-900'
+                          }, '🗑️ Delete')
                         )
                       )
                     )
                   )
-                ) :
-                React.createElement('div', { className: 'p-8 text-center text-gray-500' },
-                  React.createElement('p', null, 'No reminders found'),
-                  React.createElement('p', { className: 'text-sm mt-2' }, 'Click "🔄 Refresh" to load your reminders')
                 )
-            )
+              ) :
+              React.createElement('div', { className: 'p-8 text-center text-gray-500' },
+                React.createElement('p', null, 'No reminders found'),
+                React.createElement('p', { className: 'text-sm mt-2' }, 'Click "🔄 Refresh" to load your reminders')
+              )
           )
         )
       )
-    );
-  };
+    )
+  );
+};
   
   // ✅ UNIVERSAL MODAL STATE SETTER FACTORY
   const createEnhancedModalSetter = (setterName, stateKey, reactStateSetter) => {
@@ -928,10 +700,6 @@ window.SimplifiedApp = function() {
   window.setLeads = state.setLeads;
   window.setInventory = state.setInventory;
   window.setOrders = state.setOrders;
-  window.setOrdersFilters = state.setOrdersFilters || ((filters) => {
-    console.log("📊 setOrdersFilters called with:", filters);
-    window.ordersFilters = filters;
-  });
   window.setUsers = state.setUsers;
   window.setDeliveries = state.setDeliveries;
   window.setInvoices = state.setInvoices;
@@ -941,17 +709,17 @@ window.SimplifiedApp = function() {
   window.setCurrentForm = state.setCurrentForm;
   window.setFormData = state.setFormData;
 
-  // ✅ ADD THE MY ACTIONS SETTERS HERE:  
-  window.setMyLeads = state.setMyLeads;
-  window.setMyQuoteRequested = state.setMyQuoteRequested;
-  window.setMyOrders = state.setMyOrders;
-  window.setMyDeliveries = state.setMyDeliveries;
-  window.setMyReceivables = state.setMyReceivables;
+// ✅ ADD THE MY ACTIONS SETTERS HERE:  
+window.setMyLeads = state.setMyLeads;
+window.setMyQuoteRequested = state.setMyQuoteRequested;
+window.setMyOrders = state.setMyOrders;
+window.setMyDeliveries = state.setMyDeliveries;
+window.setMyReceivables = state.setMyReceivables;
 
   // ✅ REMINDERS STATE SETTERS - MISSING EXPOSURES FIXED
-  window.setReminders = state.setReminders;
-  window.setReminderStats = state.setReminderStats;
-  window.setShowReminderDashboard = createEnhancedModalSetter('setShowReminderDashboard', 'showReminderDashboard', state.setShowReminderDashboard);
+window.setReminders = state.setReminders;
+window.setReminderStats = state.setReminderStats;
+window.setShowReminderDashboard = createEnhancedModalSetter('setShowReminderDashboard', 'showReminderDashboard', state.setShowReminderDashboard);
 
   // ✅ ENHANCED MODAL STATE SETTERS - Lead Management
   window.setShowAddForm = createEnhancedModalSetter('setShowAddForm', 'showAddForm', state.setShowAddForm);
@@ -981,20 +749,20 @@ window.SimplifiedApp = function() {
   window.setShowEventDetail = createEnhancedModalSetter('setShowEventDetail', 'showEventDetail', state.setShowEventDetail);
 
   // ✅ NEW: Sports Calendar Pagination Setters
-  window.setCurrentEventsPage = (page) => {
-    console.log("🔍 setCurrentEventsPage called:", page);
-    state.setCurrentEventsPage && state.setCurrentEventsPage(page);
-    window.currentEventsPage = page;
-    window.appState.currentEventsPage = page;
-  };
+window.setCurrentEventsPage = (page) => {
+  console.log("🔍 setCurrentEventsPage called:", page);
+  state.setCurrentEventsPage && state.setCurrentEventsPage(page);
+  window.currentEventsPage = page;
+  window.appState.currentEventsPage = page;
+};
 
-  window.setEventsPerPage = (perPage) => {
-    console.log("🔍 setEventsPerPage called:", perPage);
-    state.setEventsPerPage && state.setEventsPerPage(perPage);
-    window.eventsPerPage = perPage;
-    window.appState.eventsPerPage = perPage;
-    window.setCurrentEventsPage(1); // Reset to first page when changing items per page
-  };
+window.setEventsPerPage = (perPage) => {
+  console.log("🔍 setEventsPerPage called:", perPage);
+  state.setEventsPerPage && state.setEventsPerPage(perPage);
+  window.eventsPerPage = perPage;
+  window.appState.eventsPerPage = perPage;
+  window.setCurrentEventsPage(1); // Reset to first page when changing items per page
+};
 
   // ✅ ENHANCED MODAL STATE SETTERS - Other Forms
   window.setShowDeliveryForm = createEnhancedModalSetter('setShowDeliveryForm', 'showDeliveryForm', state.setShowDeliveryForm);
@@ -1166,11 +934,11 @@ window.SimplifiedApp = function() {
   window.setRoleFormData = state.setRoleFormData;
 
   // ✅ ADD THESE LINES: User Management State Setters
-  window.setShowUserManagement = state.setShowUserManagement;
-  window.setShowUserForm = state.setShowUserForm;
-  window.setEditingUser = state.setEditingUser;
-  window.setUserFormData = state.setUserFormData;
-  window.setCurrentUser = state.setCurrentUser;
+window.setShowUserManagement = state.setShowUserManagement;
+window.setShowUserForm = state.setShowUserForm;
+window.setEditingUser = state.setEditingUser;
+window.setUserFormData = state.setUserFormData;
+window.setCurrentUser = state.setCurrentUser;
 
   // ✅ STADIUM FILTER STATE SETTERS
   window.setStadiumSearchQuery = state.setStadiumSearchQuery || ((query) => {
@@ -1230,29 +998,28 @@ window.SimplifiedApp = function() {
   window.setOrderData = state.setOrderData;
   window.setUserFormData = state.setUserFormData;
   window.setEditingUser = state.setEditingUser;
-
   // ✅ ADD THESE MISSING USER FORM FUNCTIONS:
-  window.handleUserInputChange = (field, value) => {
-    console.log("📝 User input change:", field, value);
-    window.setUserFormData(prev => ({ ...prev, [field]: value }));
-  };
+window.handleUserInputChange = (field, value) => {
+  console.log("📝 User input change:", field, value);
+  window.setUserFormData(prev => ({ ...prev, [field]: value }));
+};
 
-  window.closeUserForm = () => {
-    console.log("🔄 closeUserForm called");
-    window.setShowUserForm(false);
-    window.setEditingUser(null);
-    window.setUserFormData({
-      name: '',
-      email: '',
-      password: '',
-      role: 'viewer',
-      department: '',
-      status: 'active'
-    });
-  };
+window.closeUserForm = () => {
+  console.log("🔄 closeUserForm called");
+  window.setShowUserForm(false);
+  window.setEditingUser(null);
+  window.setUserFormData({
+    name: '',
+    email: '',
+    password: '',
+    role: 'viewer',
+    department: '',
+    status: 'active'
+  });
+};
 
-  window.currentUser = state.currentUser || null;
-  window.userFormData = state.userFormData || {};
+window.currentUser = state.currentUser || null;
+window.userFormData = state.userFormData || {};
 
   // Filter State Setters (with fallbacks)
   window.setSearchQuery = state.setSearchQuery || ((query) => {
@@ -1399,133 +1166,60 @@ window.SimplifiedApp = function() {
 
   // ===== FUNCTION EXPOSURES =====
 
+
   // ✅ REMINDERS FUNCTION EXPOSURES - MISSING INTEGRATIONS FIXED
-  // Don't override fetchReminders if it already exists from reminder-management.js
-  if (!window.fetchReminders) {
-    window.fetchReminders = (async () => {
-      console.log("🔔 fetchReminders called");
-      try {
-        const response = await window.apiCall('/reminders');
-        if (response.data) {
-          window.setReminders(response.data);
-          // Calculate stats
-          const stats = {
-            total: response.data.length,
-            overdue: response.data.filter(r => new Date(r.due_date) < new Date() && r.status === 'pending').length,
-            due_today: response.data.filter(r => {
-              const dueDate = new Date(r.due_date);
-              const today = new Date();
-              return dueDate.toDateString() === today.toDateString() && r.status === 'pending';
-            }).length,
-            pending: response.data.filter(r => r.status === 'pending').length
-          };
-          window.setReminderStats(stats);
-        }
-      } catch (error) {
-        console.error("❌ Error fetching reminders:", error);
-      }
-    });
-  }
-  
-  window.completeReminder = window.completeReminder || (async (id, notes) => {
-    console.log("✅ completeReminder called:", id, notes);
-    try {
-      await window.apiCall(`/reminders/${id}/complete`, {
-        method: 'POST',
-        body: JSON.stringify({ notes })
-      });
-      window.fetchReminders();
-    } catch (error) {
-      console.error("❌ Error completing reminder:", error);
-    }
+// Don't override fetchReminders if it already exists from reminder-management.js
+if (!window.fetchReminders) {
+  window.fetchReminders = (() => {
+    console.log("🔔 fetchReminders fallback called");
+    console.warn("⚠️ fetchReminders not fully implemented");
   });
-  
-  window.snoozeReminder = window.snoozeReminder || (async (id, hours) => {
-    console.log("⏰ snoozeReminder called:", id, hours);
-    try {
-      await window.apiCall(`/reminders/${id}/snooze`, {
-        method: 'POST',
-        body: JSON.stringify({ hours })
-      });
-      window.fetchReminders();
-    } catch (error) {
-      console.error("❌ Error snoozing reminder:", error);
-    }
-  });
-  
-  window.deleteReminder = window.deleteReminder || (async (id) => {
-    console.log("🗑️ deleteReminder called:", id);
-    try {
-      await window.apiCall(`/reminders/${id}`, {
-        method: 'DELETE'
-      });
-      window.fetchReminders();
-    } catch (error) {
-      console.error("❌ Error deleting reminder:", error);
-    }
-  });
+}
+window.completeReminder = window.completeReminder || ((id, notes) => {
+  console.log("✅ completeReminder called:", id, notes);
+  console.warn("⚠️ completeReminder not fully implemented");
+});
+window.snoozeReminder = window.snoozeReminder || ((id, hours) => {
+  console.log("⏰ snoozeReminder called:", id, hours);
+  console.warn("⚠️ snoozeReminder not fully implemented");
+});
+window.deleteReminder = window.deleteReminder || ((id) => {
+  console.log("🗑️ deleteReminder called:", id);
+  console.warn("⚠️ deleteReminder not fully implemented");
+});
 
   // ✅ REMINDERS DATA ARRAYS - MISSING WINDOW SYNC FIXED
-  window.reminders = state.reminders || [];
-  window.reminderStats = state.reminderStats || { total: 0, overdue: 0, due_today: 0, pending: 0 };
-  window.showReminderDashboard = state.showReminderDashboard || false;
+window.reminders = state.reminders || [];
+window.reminderStats = state.reminderStats || { total: 0, overdue: 0, due_today: 0, pending: 0 };
+window.showReminderDashboard = state.showReminderDashboard || false;
 
   // ✅ ADD THESE MISSING MY ACTIONS FUNCTION EXPOSURES:
-  window.setActiveTab = state.setActiveTab || ((tab) => {
-    console.log("📍 setActiveTab called with:", tab);
-    if (window.appState) {
-      window.appState.activeTab = tab;
-    }
-  });
-  window.viewLeadDetails = handlers.openLeadDetail || window.openLeadDetail || ((lead) => {
-    console.log("🔍 viewLeadDetails called with lead:", lead);
-    window.setCurrentLead(lead);
-    window.setShowLeadDetail(true);
-  });
+window.setActiveTab = state.setActiveTab;
+window.viewLeadDetails = handlers.openLeadDetail || window.openLeadDetail || ((lead) => {
+  console.log("🔍 viewLeadDetails called with lead:", lead);
+  window.setCurrentLead(lead);
+  window.setShowLeadDetail(true);
+});
   
   // Lead Progression Functions
-  window.handleLeadProgression = handlers.handleLeadProgression || handlers.progressLead || (async (leadId, newStatus) => {
+  window.handleLeadProgression = handlers.handleLeadProgression || handlers.progressLead || ((leadId, newStatus) => {
     console.log("🔄 handleLeadProgression called:", leadId, newStatus);
     if (window.updateLeadStatus) {
-      return window.updateLeadStatus(leadId, newStatus);
+  return window.updateLeadStatus(leadId, newStatus);
     } else {
-      try {
-        const response = await window.apiCall(`/leads/${leadId}/status`, {
-          method: 'PUT',
-          body: JSON.stringify({ status: newStatus })
-        });
-        if (response.success) {
-          window.fetchLeads();
-        }
-        return response;
-      } catch (error) {
-        console.error("❌ Error updating lead status:", error);
-      }
+      console.warn("⚠️ updateLeadStatus handler not available");
     }
   });
+  
 
-  window.handleChoiceSelection = handlers.handleChoiceSelection || (async (choice) => {
+  window.handleChoiceSelection = handlers.handleChoiceSelection || ((choice) => {
     console.log("🎯 handleChoiceSelection called with:", choice);
-    if (window.currentLeadForChoice) {
-      await window.handleLeadProgression(window.currentLeadForChoice.id, choice);
-      window.setShowChoiceModal(false);
-      window.setCurrentLeadForChoice(null);
-    }
+    console.warn("⚠️ handleChoiceSelection not implemented in handlers");
   });
 
-  window.togglePremiumStatus = handlers.togglePremiumStatus || (async (leadId, isPremium) => {
+  window.togglePremiumStatus = handlers.togglePremiumStatus || ((leadId, isPremium) => {
     console.log("⭐ togglePremiumStatus called:", leadId, isPremium);
-    try {
-      const response = await window.apiCall(`/leads/${leadId}/premium`, {
-        method: 'PUT',
-        body: JSON.stringify({ is_premium: !isPremium })
-      });
-      if (response.success) {
-        window.fetchLeads();
-      }
-    } catch (error) {
-      console.error("❌ Error toggling premium status:", error);
-    }
+    console.warn("⚠️ togglePremiumStatus not implemented in handlers");
   });
 
   // Form Opening Functions
@@ -1576,22 +1270,22 @@ window.SimplifiedApp = function() {
     state.setShowAllocationForm(true);
   });
   
-  // ✅ FIXED: Delivery Form Functions - Use Enhanced Window Setters
-  window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
-    console.log("🚚 ENHANCED openDeliveryForm called with delivery:", delivery);
-    
-    // ✅ Permission check
-    if (!window.hasPermission('delivery', 'write')) {
-      alert('You do not have permission to manage deliveries');
-      return;
-    }
-    
-    // ✅ Use enhanced window setters (not direct state setters)
-    window.setCurrentDelivery(delivery);
-    window.setShowDeliveryForm(true);
-    
-    console.log("✅ Enhanced delivery form opened with sync and re-render logic");
-  });
+// ✅ FIXED: Delivery Form Functions - Use Enhanced Window Setters
+window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
+  console.log("🚚 ENHANCED openDeliveryForm called with delivery:", delivery);
+  
+  // ✅ Permission check
+  if (!window.hasPermission('delivery', 'write')) {
+    alert('You do not have permission to manage deliveries');
+    return;
+  }
+  
+  // ✅ Use enhanced window setters (not direct state setters)
+  window.setCurrentDelivery(delivery);
+  window.setShowDeliveryForm(true);
+  
+  console.log("✅ Enhanced delivery form opened with sync and re-render logic");
+});
 
   // ✅ INVENTORY FUNCTIONS - FIXED WITH FORCE RE-RENDER
   window.openInventoryForm = handlers.openInventoryForm || (() => {
@@ -1647,12 +1341,12 @@ window.SimplifiedApp = function() {
       window.setEditingInventory(inventory);
     }
     if (window.setFormData) {
-      window.setFormData({
-        ...inventory,
-        purchase_currency: inventory.purchase_currency || 'INR',
-        purchase_exchange_rate: inventory.purchase_exchange_rate || '1'
-      });
-    }
+  window.setFormData({
+    ...inventory,
+    purchase_currency: inventory.purchase_currency || 'INR',
+    purchase_exchange_rate: inventory.purchase_exchange_rate || '1'
+  });
+}
     if (window.setShowInventoryForm) {
       window.setShowInventoryForm(true);
     }
@@ -1695,100 +1389,29 @@ window.SimplifiedApp = function() {
     console.log("✅ Allocation management modal setup completed");
   });
 
-  window.handleDeleteInventory = handlers.handleDeleteInventory || (async (inventoryId) => {
+  window.handleDeleteInventory = handlers.handleDeleteInventory || ((inventoryId) => {
     console.log("🗑️ handleDeleteInventory called with:", inventoryId);
     if (window.handleDelete) {
       return window.handleDelete('inventory', inventoryId, 'inventory item');
     } else {
-      try {
-        const response = await window.apiCall(`/inventory/${inventoryId}`, {
-          method: 'DELETE'
-        });
-        if (response.success) {
-          window.fetchInventory && window.fetchInventory();
-          alert('✅ Inventory deleted successfully!');
-        }
-      } catch (error) {
-        console.error("❌ Error deleting inventory:", error);
-        alert('❌ Error deleting inventory: ' + error.message);
-      }
+      console.warn("⚠️ handleDeleteInventory not implemented");
     }
   });
 
-  window.handleCopyInventory = handlers.handleCopyInventory || (async (inventory) => {
+  window.handleCopyInventory = handlers.handleCopyInventory || ((inventory) => {
     console.log("📋 handleCopyInventory called with:", inventory);
-    try {
-      const copyData = {
-        ...inventory,
-        id: null,
-        event_name: `${inventory.event_name} (Copy)`,
-        created_date: new Date().toISOString()
-      };
-      
-      const response = await window.apiCall('/inventory', {
-        method: 'POST',
-        body: JSON.stringify(copyData)
-      });
-      
-      if (response.success || response.data) {
-        window.fetchInventory && window.fetchInventory();
-        alert('✅ Inventory copied successfully!');
-      }
-    } catch (error) {
-      console.error("❌ Error copying inventory:", error);
-      alert('❌ Error copying inventory: ' + error.message);
-    }
+    console.warn("⚠️ handleCopyInventory not implemented in handlers");
   });
 
   // ✅ ORDER WORKFLOW FUNCTIONS
-  window.handleOrderApproval = handlers.handleOrderApproval || (async (orderId, action) => {
+  window.handleOrderApproval = handlers.handleOrderApproval || ((orderId, action) => {
     console.log("✅ handleOrderApproval called:", orderId, action);
-    try {
-      const response = await window.apiCall(`/orders/${orderId}/approve`, {
-        method: 'POST',
-        body: JSON.stringify({ action })
-      });
-      if (response.success) {
-        window.fetchOrders && window.fetchOrders();
-        alert(`✅ Order ${action} successfully!`);
-      }
-    } catch (error) {
-      console.error("❌ Error with order approval:", error);
-      alert('❌ Error: ' + error.message);
-    }
+    console.warn("⚠️ handleOrderApproval not implemented in handlers");
   });
 
   window.openInvoicePreview = handlers.openInvoicePreview || ((invoice) => {
     console.log("📄 openInvoicePreview called with:", invoice);
-    
-    if (!invoice) {
-      console.error("❌ No invoice data provided");
-      alert("No invoice data available");
-      return;
-    }
-
-    console.log("📊 Invoice details:", {
-      invoice_number: invoice.invoice_number,
-      client_name: invoice.client_name || invoice.legal_name,
-      final_amount: invoice.final_amount
-    });
-
-    // Set the invoice data in app state
-    if (window.setCurrentInvoice && window.setShowInvoicePreview) {
-      window.setCurrentInvoice(invoice);
-      window.setShowInvoicePreview(true);
-      console.log("✅ Invoice preview opened via app state");
-    } else {
-      // Fallback: Set directly on window for backward compatibility
-      window.currentInvoice = invoice;
-      window.showInvoicePreview = true;
-      console.log("✅ Invoice preview opened via window fallback");
-      
-      // Force a re-render if the function is available
-      if (window.forceRender) {
-        window.forceRender();
-      }
-    }
+    console.warn("⚠️ openInvoicePreview not implemented in handlers");
   });
 
   // ===== SPORTS CALENDAR BUSINESS LOGIC FUNCTIONS =====
@@ -1814,8 +1437,6 @@ window.SimplifiedApp = function() {
       if (state.setSportsEvents) {
         state.setSportsEvents(window.sportsEvents);
       }
-      
-      return window.sportsEvents;
       
     } catch (error) {
       console.error("❌ Error fetching sports events:", error);
@@ -1871,64 +1492,64 @@ window.SimplifiedApp = function() {
     }
   });
 
-  // ✅ IMPORT EVENTS FROM EXCEL FUNCTION - FIXED
-  window.importEventsFromExcel = handlers.importEventsFromExcel || (async (file) => {
-    console.log("📅 importEventsFromExcel called with file:", file?.name);
-    try {
-      window.setLoading && window.setLoading(true);
-      
-      // Parse Excel file on frontend first
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          // Parse Excel file using XLSX library
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+// ✅ IMPORT EVENTS FROM EXCEL FUNCTION - FIXED
+window.importEventsFromExcel = handlers.importEventsFromExcel || (async (file) => {
+  console.log("📅 importEventsFromExcel called with file:", file?.name);
+  try {
+    window.setLoading && window.setLoading(true);
+    
+    // Parse Excel file on frontend first
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        // Parse Excel file using XLSX library
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-          console.log('📊 Parsed Excel data:', jsonData.length, 'rows');
-          console.log('🔍 Sample data:', jsonData.slice(0, 2));
+        console.log('📊 Parsed Excel data:', jsonData.length, 'rows');
+        console.log('🔍 Sample data:', jsonData.slice(0, 2));
 
-          // Send parsed JSON data to backend
-          const response = await fetch(`${window.API_CONFIG.API_URL}/events/import/excel`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${window.authToken}`
-            },
-            body: JSON.stringify({ excelData: jsonData })
-          });
+        // Send parsed JSON data to backend
+        const response = await fetch(`${window.API_CONFIG.API_URL}/events/import/excel`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${window.authToken}`
+          },
+          body: JSON.stringify({ excelData: jsonData })
+        });
 
-          console.log('📤 Response status:', response.status, response.statusText);
-          const result = await response.json();
-          console.log('📥 Response data:', result);
-          
-          if (result.success || response.ok) {
-            alert(`✅ Successfully imported ${result.imported_count || jsonData.length || 'unknown number of'} events!`);
-            window.setShowImportModal && window.setShowImportModal(false);
-            await window.fetchAllEvents(); // Refresh the events
-          } else {
-            throw new Error(result.error || result.message || 'Import failed');
-          }
-        } catch (error) {
-          console.error('❌ Import processing error:', error);
-          alert('Failed to process Excel file: ' + error.message);
-        } finally {
-          window.setLoading && window.setLoading(false);
+        console.log('📤 Response status:', response.status, response.statusText);
+        const result = await response.json();
+        console.log('📥 Response data:', result);
+        
+        if (result.success || response.ok) {
+          alert(`✅ Successfully imported ${result.imported_count || jsonData.length || 'unknown number of'} events!`);
+          window.setShowImportModal && window.setShowImportModal(false);
+          await window.fetchAllEvents(); // Refresh the events
+        } else {
+          throw new Error(result.error || result.message || 'Import failed');
         }
-      };
-      
-      // Read the file as array buffer
-      reader.readAsArrayBuffer(file);
-      
-    } catch (error) {
-      console.error('❌ Import error:', error);
-      alert('Failed to import events: ' + error.message);
-      window.setLoading && window.setLoading(false);
-    }
-  });
+      } catch (error) {
+        console.error('❌ Import processing error:', error);
+        alert('Failed to process Excel file: ' + error.message);
+      } finally {
+        window.setLoading && window.setLoading(false);
+      }
+    };
+    
+    // Read the file as array buffer
+    reader.readAsArrayBuffer(file);
+    
+  } catch (error) {
+    console.error('❌ Import error:', error);
+    alert('Failed to import events: ' + error.message);
+    window.setLoading && window.setLoading(false);
+  }
+});
 
   // ✅ DELETE EVENT FUNCTION
   window.deleteEvent = handlers.deleteEvent || (async (eventId) => {
@@ -1969,72 +1590,72 @@ window.SimplifiedApp = function() {
     }
   });
 
-  // ✅ EVENT FORM HANDLERS - FIXED WITH FORM DATA POPULATION
-  window.openEventForm = handlers.openEventForm || ((event = null) => {
-    console.log("📅 openEventForm called with:", event?.title || event?.event_name || 'new event');
-    
-    // Set current event for editing (null for new event)
-    window.setCurrentEvent(event);
-    
-    // ✅ FIX: Pre-populate form data when editing
-    if (event && window.setEventFormData) {
-      console.log("🔧 Pre-populating form data for edit:", event.event_name || event.title);
-      window.setEventFormData({
-        event_name: event.event_name || event.title || '',
-        event_type: event.event_type || '',
-        sport_type: event.sport_type || event.category || '',
-        geography: event.geography || '',
-        start_date: event.start_date || event.date || '',
-        end_date: event.end_date || '',
-        start_time: event.start_time || event.time || '',
-        end_time: event.end_time || '',
-        venue: event.venue || '',
-        venue_capacity: event.venue_capacity || '',
-        venue_address: event.venue_address || '',
-        official_ticketing_partners: event.official_ticketing_partners || '',
-        primary_source: event.primary_source || '',
-        secondary_source: event.secondary_source || '',
-        ticket_available: event.ticket_available || false,
-        priority: event.priority || '',
-        status: event.status || 'upcoming',
-        sold_out_potential: event.sold_out_potential || '',
-        remarks: event.remarks || '',
-        fantopark_package: event.fantopark_package || '',
-        description: event.description || ''
-      });
-    } else if (!event && window.setEventFormData) {
-      // Reset form for new event
-      console.log("🔧 Resetting form data for new event");
-      window.setEventFormData({
-        event_name: '',
-        event_type: '',
-        sport_type: '',
-        geography: '',
-        start_date: '',
-        end_date: '',
-        start_time: '',
-        end_time: '',
-        venue: '',
-        venue_capacity: '',
-        venue_address: '',
-        official_ticketing_partners: '',
-        primary_source: '',
-        secondary_source: '',
-        ticket_available: false,
-        priority: '',
-        status: 'upcoming',
-        sold_out_potential: '',
-        remarks: '',
-        fantopark_package: '',
-        description: ''
-      });
-    }
-    
-    // Show the event form
-    window.setShowEventForm(true);
-    
-    console.log("✅ Event form opened with form data populated");
-  });
+ // ✅ EVENT FORM HANDLERS - FIXED WITH FORM DATA POPULATION
+window.openEventForm = handlers.openEventForm || ((event = null) => {
+  console.log("📅 openEventForm called with:", event?.title || event?.event_name || 'new event');
+  
+  // Set current event for editing (null for new event)
+  window.setCurrentEvent(event);
+  
+  // ✅ FIX: Pre-populate form data when editing
+  if (event && window.setEventFormData) {
+    console.log("🔧 Pre-populating form data for edit:", event.event_name || event.title);
+    window.setEventFormData({
+      event_name: event.event_name || event.title || '',
+      event_type: event.event_type || '',
+      sport_type: event.sport_type || event.category || '',
+      geography: event.geography || '',
+      start_date: event.start_date || event.date || '',
+      end_date: event.end_date || '',
+      start_time: event.start_time || event.time || '',
+      end_time: event.end_time || '',
+      venue: event.venue || '',
+      venue_capacity: event.venue_capacity || '',
+      venue_address: event.venue_address || '',
+      official_ticketing_partners: event.official_ticketing_partners || '',
+      primary_source: event.primary_source || '',
+      secondary_source: event.secondary_source || '',
+      ticket_available: event.ticket_available || false,
+      priority: event.priority || '',
+      status: event.status || 'upcoming',
+      sold_out_potential: event.sold_out_potential || '',
+      remarks: event.remarks || '',
+      fantopark_package: event.fantopark_package || '',
+      description: event.description || ''
+    });
+  } else if (!event && window.setEventFormData) {
+    // Reset form for new event
+    console.log("🔧 Resetting form data for new event");
+    window.setEventFormData({
+      event_name: '',
+      event_type: '',
+      sport_type: '',
+      geography: '',
+      start_date: '',
+      end_date: '',
+      start_time: '',
+      end_time: '',
+      venue: '',
+      venue_capacity: '',
+      venue_address: '',
+      official_ticketing_partners: '',
+      primary_source: '',
+      secondary_source: '',
+      ticket_available: false,
+      priority: '',
+      status: 'upcoming',
+      sold_out_potential: '',
+      remarks: '',
+      fantopark_package: '',
+      description: ''
+    });
+  }
+  
+  // Show the event form
+  window.setShowEventForm(true);
+  
+  console.log("✅ Event form opened with form data populated");
+});
 
   window.closeEventForm = handlers.closeEventForm || (() => {
     console.log("📅 closeEventForm called");
@@ -2061,19 +1682,17 @@ window.SimplifiedApp = function() {
   });
 
   // Stadium Functions
-  window.fetchStadiums = handlers.fetchStadiums || (async () => {
+  window.fetchStadiums = handlers.fetchStadiums || (() => {
     console.log("🏟️ fetchStadiums called");
-    try {
-      const response = await window.apiCall('/stadiums');
-      if (response.data) {
-        window.setStadiums(response.data);
-        return response.data;
+    return new Promise((resolve, reject) => {
+      if (handlers.fetchStadiums && typeof handlers.fetchStadiums === 'function') {
+        return handlers.fetchStadiums().then(resolve).catch(reject);
+      } else {
+        console.warn("⚠️ fetchStadiums not implemented in handlers");
+        window.stadiums = window.stadiums || [];
+        resolve(window.stadiums);
       }
-      return window.stadiums || [];
-    } catch (error) {
-      console.error("❌ Error fetching stadiums:", error);
-      return window.stadiums || [];
-    }
+    });
   });
 
   window.openStadiumForm = handlers.openStadiumForm || ((stadium = null) => {
@@ -2303,19 +1922,17 @@ window.SimplifiedApp = function() {
   };
 
   // Client Management Functions
-  window.fetchClients = handlers.fetchClients || (async () => {
+  window.fetchClients = handlers.fetchClients || (() => {
     console.log("👥 fetchClients called");
-    try {
-      const response = await window.apiCall('/clients');
-      if (response.data) {
-        window.clients = response.data;
-        return response.data;
+    return new Promise((resolve, reject) => {
+      if (handlers.fetchClients && typeof handlers.fetchClients === 'function') {
+        return handlers.fetchClients().then(resolve).catch(reject);
+      } else {
+        console.warn("⚠️ fetchClients not implemented in handlers");
+        window.clients = window.clients || [];
+        resolve(window.clients);
       }
-      return window.clients || [];
-    } catch (error) {
-      console.error("❌ Error fetching clients:", error);
-      return window.clients || [];
-    }
+    });
   });
 
   window.applyClientSuggestion = handlers.applyClientSuggestion || (() => {
@@ -2340,62 +1957,36 @@ window.SimplifiedApp = function() {
   window.handlePaymentPostServiceInputChange = handlers.handlePaymentPostServiceInputChange || window.handlePaymentPostServiceInputChange;
   window.handlePaymentSubmit = handlers.handlePaymentSubmit || window.handlePaymentSubmit;
   window.handlePaymentInputChange = handlers.handlePaymentInputChange || window.handlePaymentInputChange;
-  window.handleMarkPaymentFromReceivable = handlers.handleMarkPaymentFromReceivable || (async (order) => {
-    console.log("💰 handleMarkPaymentFromReceivable called with order:", order);
-    try {
-      const response = await window.apiCall(`/orders/${order.id}/payment`, {
-        method: 'POST',
-        body: JSON.stringify({
-          amount: order.pending_amount,
-          payment_date: new Date().toISOString()
-        })
-      });
-      if (response.success) {
-        window.fetchOrders && window.fetchOrders();
-        alert('✅ Payment recorded successfully!');
-      }
-    } catch (error) {
-      console.error("❌ Error recording payment:", error);
-      alert('❌ Error recording payment: ' + error.message);
-    }
-  });
+  window.handleMarkPaymentFromReceivable = handlers.handleMarkPaymentFromReceivable || (() => {
+  console.warn("handleMarkPaymentFromReceivable not implemented");
+});
 
   // Bulk Operations Functions
-  window.handleBulkAssignSubmit = handlers.handleBulkAssignSubmit || (async () => {
+  window.handleBulkAssignSubmit = handlers.handleBulkAssignSubmit || (() => {
     console.log("🚀 handleBulkAssignSubmit called");
-    try {
-      const selectedLeadIds = Object.keys(window.bulkAssignSelections || {}).filter(id => window.bulkAssignSelections[id]);
-      if (selectedLeadIds.length === 0) {
-        alert('Please select at least one lead');
-        return;
-      }
-      
-      // Implementation would go here
-      alert("Bulk assign functionality will be implemented in next update!");
-    } catch (error) {
-      console.error("❌ Error with bulk assign:", error);
-    }
+    console.warn("⚠️ handleBulkAssignSubmit not implemented in handlers");
+    alert("Bulk assign functionality will be implemented in next update!");
   });
 
   // CSV Upload Functions
   window.handlePreview = handlers.handlePreview || (() => {
     console.log("🔍 handlePreview called");
-    alert("Preview functionality coming soon!");
+    console.warn("⚠️ handlePreview not implemented in handlers");
   });
 
   window.previewUpload = handlers.previewUpload || (() => {
     console.log("📋 previewUpload called");
-    alert("Upload preview functionality coming soon!");
+    console.warn("⚠️ previewUpload not implemented in handlers");
   });
 
   window.handleUploadPreview = handlers.handleUploadPreview || (() => {
     console.log("📊 handleUploadPreview called");
-    alert("Upload preview functionality coming soon!");
+    console.warn("⚠️ handleUploadPreview not implemented in handlers");
   });
 
   window.handlePreviewClick = handlers.handlePreviewClick || (() => {
     console.log("👆 handlePreviewClick called");
-    alert("Preview click functionality coming soon!");
+    console.warn("⚠️ handlePreviewClick not implemented in handlers");
   });
 
   window.handleProceedFromPreview = handlers.handleProceedFromPreview || (() => {
@@ -2459,42 +2050,18 @@ window.SimplifiedApp = function() {
   });
 
   // Data Fetching Functions
-  window.fetchUsers = handlers.fetchUsers || (async () => {
+  window.fetchUsers = handlers.fetchUsers || (() => {
     console.log("👥 fetchUsers called");
-    try {
-      const response = await window.apiCall('/users');
-      if (response.data) {
-        window.setUsers(response.data);
-      }
-    } catch (error) {
-      console.error("❌ Error fetching users:", error);
-    }
   });
   
-  window.fetchLeads = handlers.fetchLeads || (async () => {
+  window.fetchLeads = handlers.fetchLeads || (() => {
     console.log("👥 fetchLeads called");
-    try {
-      const response = await window.apiCall('/leads');
-      if (response.data) {
-        window.setLeads(response.data);
-      }
-    } catch (error) {
-      console.error("❌ Error fetching leads:", error);
-    }
   });
 
   // ✅ FINANCIAL FUNCTIONS
-  window.fetchFinancialData = handlers.fetchFinancialData || (async () => {
+  window.fetchFinancialData = handlers.fetchFinancialData || (() => {
     console.log("💰 fetchFinancialData called");
-    try {
-      const response = await window.apiCall('/finance/summary');
-      if (response.data) {
-        // Process financial data
-        return response.data;
-      }
-    } catch (error) {
-      console.error("❌ Error fetching financial data:", error);
-    }
+    console.warn("⚠️ fetchFinancialData not implemented in handlers");
   });
 
   // Status Filter Functions
@@ -2506,7 +2073,7 @@ window.SimplifiedApp = function() {
   window.chartInstances = state.chartInstances;
   window.calculateDashboardStats = handlers.calculateDashboardStats;
 
-  // Core Lead Management Functions
+   // Core Lead Management Functions
   window.getStatusFilterDisplayText = handlers.getStatusFilterDisplayText;
   window.openLeadDetail = handlers.openLeadDetail;
   window.editLead = handlers.editLead;
@@ -2756,8 +2323,18 @@ window.SimplifiedApp = function() {
     API_URL: window.API_URL
   };
 
-  // Ensure apiCall is always available
-  window.apiCall = window.apiCall || ((endpoint, options = {}) => {
+  window.checkPhoneForClient = handlers.checkPhoneForClient || ((phone) => {
+    console.log("📞 checkPhoneForClient called with:", phone);
+  });
+
+  // ✅ CRITICAL MISSING: Allocation Management Functions
+  window.handleUnallocate = handlers.handleUnallocate || ((allocationId, ticketsToReturn) => {
+    console.log("🗑️ handleUnallocate called with:", allocationId, ticketsToReturn);
+    console.warn("⚠️ handleUnallocate not implemented in handlers");
+    alert("Unallocate functionality will be implemented in next update!");
+  });
+
+  window.apiCall = window.apiCall || ((endpoint, options) => {
     console.log("🌐 apiCall:", endpoint, options);
     const url = (window.API_CONFIG?.API_URL || window.API_URL) + endpoint;
     return fetch(url, {
@@ -2767,106 +2344,10 @@ window.SimplifiedApp = function() {
         'Authorization': window.authToken ? 'Bearer ' + window.authToken : '',
         ...options.headers
       }
-    }).then(response => response.json())
-    .catch(error => {
-      console.error("❌ API call error:", error);
-      throw error;
-    });
-  });
-
-  window.checkPhoneForClient = handlers.checkPhoneForClient || (async (phone) => {
-    console.log("📞 checkPhoneForClient called with:", phone);
-    try {
-      const response = await window.apiCall(`/clients/check-phone?phone=${phone}`);
-      if (response.client) {
-        return response.client;
-      }
-      return null;
-    } catch (error) {
-      console.error("❌ Error checking phone:", error);
-      return null;
-    }
-  });
-
-  // ✅ CRITICAL MISSING: Allocation Management Functions
-  window.handleUnallocate = handlers.handleUnallocate || (async (allocationId, ticketsToReturn) => {
-    console.log("🗑️ handleUnallocate called with:", allocationId, ticketsToReturn);
-    try {
-      const response = await window.apiCall(`/allocations/${allocationId}/unallocate`, {
-        method: 'POST',
-        body: JSON.stringify({ tickets_to_return: ticketsToReturn })
-      });
-      if (response.success) {
-        // Refresh allocations
-        if (window.allocationManagementInventory) {
-          const allocResponse = await window.apiCall(`/inventory/${window.allocationManagementInventory.id}/allocations`);
-          window.setCurrentAllocations(allocResponse.data || []);
-        }
-        alert('✅ Unallocation successful!');
-      }
-    } catch (error) {
-      console.error("❌ Error unallocating:", error);
-      alert('❌ Error: ' + error.message);
-    }
+    }).then(response => response.json());
   });
 
   // ===== PERMISSION SYSTEM =====
-
-  // ✅ DEFAULT USER ROLES
-  window.USER_ROLES = window.USER_ROLES || {
-    super_admin: {
-      label: 'Super Admin',
-      permissions: {
-        leads: { read: true, write: true, delete: true, assign: true },
-        inventory: { read: true, write: true, delete: true },
-        orders: { read: true, write: true, delete: true },
-        delivery: { read: true, write: true, delete: true },
-        finance: { read: true, write: true, delete: true },
-        stadiums: { read: true, write: true, delete: true },
-        events: { read: true, write: true, delete: true },
-        users: { read: true, write: true, delete: true }
-      }
-    },
-    admin: {
-      label: 'Admin',
-      permissions: {
-        leads: { read: true, write: true, delete: true, assign: true },
-        inventory: { read: true, write: true, delete: true },
-        orders: { read: true, write: true, delete: true },
-        delivery: { read: true, write: true, delete: true },
-        finance: { read: true, write: true, delete: false },
-        stadiums: { read: true, write: true, delete: true },
-        events: { read: true, write: true, delete: true },
-        users: { read: true, write: true, delete: false }
-      }
-    },
-    sales_executive: {
-      label: 'Sales Executive',
-      permissions: {
-        leads: { read: true, write: true, delete: false, assign: false },
-        inventory: { read: true, write: false, delete: false },
-        orders: { read: true, write: true, delete: false },
-        delivery: { read: true, write: false, delete: false },
-        finance: { read: false, write: false, delete: false },
-        stadiums: { read: true, write: false, delete: false },
-        events: { read: true, write: false, delete: false },
-        users: { read: false, write: false, delete: false }
-      }
-    },
-    viewer: {
-      label: 'Viewer',
-      permissions: {
-        leads: { read: true, write: false, delete: false, assign: false },
-        inventory: { read: true, write: false, delete: false },
-        orders: { read: true, write: false, delete: false },
-        delivery: { read: true, write: false, delete: false },
-        finance: { read: false, write: false, delete: false },
-        stadiums: { read: true, write: false, delete: false },
-        events: { read: true, write: false, delete: false },
-        users: { read: false, write: false, delete: false }
-      }
-    }
-  };
 
   window.hasPermission = function(module, action) {
     if (state.user?.role === 'super_admin') return true;
@@ -3015,7 +2496,7 @@ window.SimplifiedApp = function() {
     { name: 'booking_person', label: 'Booking Person (Who Purchased)', type: 'text', required: true, placeholder: 'Name of person/company who purchased inventory' },
     { name: 'procurement_type', label: 'Procurement Type', type: 'select', options: ['pre_inventory', 'on_demand', 'partnership', 'direct_booking'], required: true },
     { name: 'notes', label: 'Additional Notes', type: 'textarea', required: false, placeholder: 'Any special conditions, restrictions, or notes' },
-    { name: 'paymentStatus', label: 'Payment Status', type: 'select', options: ['paid', 'partial', 'pending'], required: true },
+   { name: 'paymentStatus', label: 'Payment Status', type: 'select', options: ['paid', 'partial', 'pending'], required: true },
     { name: 'supplierName', label: 'Supplier Name', type: 'text', required: false },
     { name: 'supplierInvoice', label: 'Supplier Invoice #', type: 'text', required: false },
     { name: 'purchasePrice', label: 'Purchase Price (per ticket)', type: 'number', required: false },
@@ -3026,6 +2507,9 @@ window.SimplifiedApp = function() {
     { name: 'paymentDueDate', label: 'Payment Due Date', type: 'date', required: false }
   ];
 
+
+
+ 
   // ✅ FORM DATA CHANGE HANDLER
   window.handleFormDataChange = (fieldName, value) => {
     console.log(`📝 Form field changed: ${fieldName} = ${value}`);
@@ -3040,117 +2524,118 @@ window.SimplifiedApp = function() {
   };
 
   // ✅ FIXED FORM SUBMIT HANDLER
-  window.handleInventoryFormSubmit = async (e) => {
-    e.preventDefault();
+// ✅ FIXED FORM SUBMIT HANDLER
+window.handleInventoryFormSubmit = async (e) => {
+  e.preventDefault();
+  
+  try {
+    window.setLoading(true);
     
-    try {
-      window.setLoading(true);
+    // Calculate and save INR values if using foreign currency
+    const currency = window.formData.purchase_currency || 'INR';  // Fixed field name
+    const exchangeRate = window.formData.purchase_exchange_rate || 1;  // Fixed field name
+    
+    console.log('=== CURRENCY CALCULATION DEBUG ===');
+    console.log('Currency:', currency);
+    console.log('Exchange Rate:', exchangeRate);
+    
+    if (currency !== 'INR') {
+      // Update INR values for all categories
+      const updatedCategories = (window.formData.categories || []).map(cat => ({
+        ...cat,
+        buying_price_inr: (parseFloat(cat.buying_price) || 0) * exchangeRate,
+        selling_price_inr: (parseFloat(cat.selling_price) || 0) * exchangeRate
+      }));
       
-      // Calculate and save INR values if using foreign currency
-      const currency = window.formData.purchase_currency || 'INR';
-      const exchangeRate = window.formData.purchase_exchange_rate || 1;
+      window.formData.categories = updatedCategories;
       
-      console.log('=== CURRENCY CALCULATION DEBUG ===');
-      console.log('Currency:', currency);
-      console.log('Exchange Rate:', exchangeRate);
+      // Update totals in INR
+      window.formData.totalPurchaseAmount_inr = (parseFloat(window.formData.totalPurchaseAmount) || 0) * exchangeRate;
+      window.formData.amountPaid_inr = (parseFloat(window.formData.amountPaid) || 0) * exchangeRate;
       
-      if (currency !== 'INR') {
-        // Update INR values for all categories
-        const updatedCategories = (window.formData.categories || []).map(cat => ({
-          ...cat,
-          buying_price_inr: (parseFloat(cat.buying_price) || 0) * exchangeRate,
-          selling_price_inr: (parseFloat(cat.selling_price) || 0) * exchangeRate
-        }));
-        
-        window.formData.categories = updatedCategories;
-        
-        // Update totals in INR
-        window.formData.totalPurchaseAmount_inr = (parseFloat(window.formData.totalPurchaseAmount) || 0) * exchangeRate;
-        window.formData.amountPaid_inr = (parseFloat(window.formData.amountPaid) || 0) * exchangeRate;
-        
-        console.log('INR Calculations:', {
-          totalPurchaseAmount_inr: window.formData.totalPurchaseAmount_inr,
-          amountPaid_inr: window.formData.amountPaid_inr,
-          categories: updatedCategories
-        });
-      }
-      
-      // Enhanced debug logging
-      console.log('=== FRONTEND INVENTORY SUBMISSION DEBUG ===');
-      console.log('Inventory ID:', window.editingInventory?.id);
-      console.log('Complete form data being sent:', window.formData);
-      console.log('Currency fields:', {
-        purchase_currency: window.formData?.purchase_currency,
-        purchase_exchange_rate: window.formData?.purchase_exchange_rate,
-        totalPurchaseAmount: window.formData?.totalPurchaseAmount,
-        totalPurchaseAmount_inr: window.formData?.totalPurchaseAmount_inr,
-        amountPaid: window.formData?.amountPaid,
-        amountPaid_inr: window.formData?.amountPaid_inr
+      console.log('INR Calculations:', {
+        totalPurchaseAmount_inr: window.formData.totalPurchaseAmount_inr,
+        amountPaid_inr: window.formData.amountPaid_inr,
+        categories: updatedCategories
       });
-      console.log('Is from payables?', window.editingInventory?._payableContext?.fromPayables);
-      console.log('Payable amount:', window.editingInventory?._payableContext?.payableAmount);
+    }
+    
+    // Enhanced debug logging
+    console.log('=== FRONTEND INVENTORY SUBMISSION DEBUG ===');
+    console.log('Inventory ID:', window.editingInventory?.id);
+    console.log('Complete form data being sent:', window.formData);
+    console.log('Currency fields:', {
+      purchase_currency: window.formData?.purchase_currency,
+      purchase_exchange_rate: window.formData?.purchase_exchange_rate,
+      totalPurchaseAmount: window.formData?.totalPurchaseAmount,
+      totalPurchaseAmount_inr: window.formData?.totalPurchaseAmount_inr,
+      amountPaid: window.formData?.amountPaid,
+      amountPaid_inr: window.formData?.amountPaid_inr
+    });
+    console.log('Is from payables?', window.editingInventory?._payableContext?.fromPayables);
+    console.log('Payable amount:', window.editingInventory?._payableContext?.payableAmount);
+    
+    if (!window.editingInventory?.id || window.editingInventory.id === null || window.editingInventory.id === undefined) {
+      // CREATE NEW INVENTORY
+      console.log('Creating new inventory item...');
       
-      if (!window.editingInventory?.id || window.editingInventory.id === null || window.editingInventory.id === undefined) {
-        // CREATE NEW INVENTORY
-        console.log('Creating new inventory item...');
-        
-        const response = await window.apiCall('/inventory', {
-          method: 'POST',
-          body: JSON.stringify({
-            ...window.formData,
-            created_by: window.user?.name || 'Unknown User',
-            created_date: new Date().toISOString()
-          })
-        });
-        
-        console.log('Backend response:', response);
-        
-        if (response.error) {
-          throw new Error(response.error);
-        }
-        
-        // Add to local state
-        window.setInventory(prev => [...prev, response.data || response]);
-        alert('✅ Inventory created successfully!');
-        
-      } else {
-        // UPDATE EXISTING INVENTORY
-        console.log('Updating existing inventory...');
-        
-        const response = await window.apiCall(`/inventory/${window.editingInventory.id}`, {
-          method: 'PUT',
-          body: JSON.stringify(window.formData)
-        });
-        
-        console.log('Backend response:', response);
-        
-        if (response.error) {
-          throw new Error(response.error);
-        }
-        
-        // Update local state
-        window.setInventory(prev => prev.map(item => 
-          item.id === window.editingInventory.id ? { ...item, ...window.formData } : item
-        ));
-        
-        // Refresh financial data to show updated payables
-        if (window.fetchFinancialData) {
-          await window.fetchFinancialData();
-        }
-        
-        alert('✅ Inventory updated successfully! Payables have been synced automatically.');
+      const response = await window.apiCall('/inventory', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...window.formData,
+          created_by: window.user?.name || 'Unknown User',
+          created_date: new Date().toISOString()
+        })
+      });
+      
+      console.log('Backend response:', response);
+      
+      if (response.error) {
+        throw new Error(response.error);
       }
       
-      // Close the form
-      window.closeInventoryForm();
+      // Add to local state
+      window.setInventory(prev => [...prev, response.data || response]);
+      alert('✅ Inventory created successfully!');
       
-    } catch (error) {
-      console.error('❌ Error with inventory submission:', error);
-      alert('❌ Error saving inventory: ' + error.message);
-    } finally {
-      window.setLoading(false);
+    } else {
+      // UPDATE EXISTING INVENTORY
+      console.log('Updating existing inventory...');
+      
+      const response = await window.apiCall(`/inventory/${window.editingInventory.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(window.formData)
+      });
+      
+      console.log('Backend response:', response);
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      // Update local state
+      window.setInventory(prev => prev.map(item => 
+        item.id === window.editingInventory.id ? { ...item, ...window.formData } : item
+      ));
+      
+      // Refresh financial data to show updated payables
+      if (window.fetchFinancialData) {
+        await window.fetchFinancialData();
+      }
+      
+      alert('✅ Inventory updated successfully! Payables have been synced automatically.');
     }
-  };
+    
+    // Close the form
+    window.closeInventoryForm();
+    
+  } catch (error) {
+    console.error('❌ Error with inventory submission:', error);
+    alert('❌ Error saving inventory: ' + error.message);
+  } finally {
+    window.setLoading(false);
+  }
+};
 
   console.log("✅ Original inventory form fields loaded:", window.inventoryFormFields.length, "fields");
   console.log("✅ Fixed inventory form submission - removed placeholder, added complete implementation");
@@ -3171,255 +2656,289 @@ window.SimplifiedApp = function() {
 
   window.getFilteredLeads = getFilteredLeads;
 
-  // ✅ SPORTS CALENDAR FALLBACK FUNCTION - Ensures always available
-  window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() => {
-    console.log("🔍 FALLBACK: renderSportsCalendarContent called");
+  // ✅ FIXED: Add this function to your existing simplified-app-component.js
+window.openInvoicePreview = handlers.openInvoicePreview || ((invoice) => {
+  console.log("📄 openInvoicePreview called with:", invoice);
+  
+  if (!invoice) {
+    console.error("❌ No invoice data provided");
+    alert("No invoice data available");
+    return;
+  }
+
+  console.log("📊 Invoice details:", {
+    invoice_number: invoice.invoice_number,
+    client_name: invoice.client_name || invoice.legal_name,
+    final_amount: invoice.final_amount
+  });
+
+  // Set the invoice data in app state
+  if (window.setCurrentInvoice && window.setShowInvoicePreview) {
+    window.setCurrentInvoice(invoice);
+    window.setShowInvoicePreview(true);
+    console.log("✅ Invoice preview opened via app state");
+  } else {
+    // Fallback: Set directly on window for backward compatibility
+    window.currentInvoice = invoice;
+    window.showInvoicePreview = true;
+    console.log("✅ Invoice preview opened via window fallback");
     
-    // Extract state with fallbacks
-    const {
-      sportsEvents = window.sportsEvents || [],
-      selectedDate = window.selectedDate || new Date(),
-      calendarView = window.calendarView || "month",
-      calendarFilters = window.calendarFilters || {},
-      showEventForm = window.appState?.showEventForm || false,
-      showImportModal = window.appState?.showImportModal || false,
-      currentEvent = window.appState?.currentEvent || null,
-      showEventDetail = window.appState?.showEventDetail || false,
-      loading = window.loading || false
-    } = window.appState || {};
+    // Force a re-render if the function is available
+    if (window.forceRender) {
+      window.forceRender();
+    }
+  }
+});
 
-    // Extract functions with enhanced fallbacks
-    const {
-      setShowEventForm = window.setShowEventForm || ((show) => {
-        console.log("🔍 setShowEventForm called:", show);
-        window.showEventForm = show;
-        window.appState.showEventForm = show;
-      }),
-      setShowImportModal = window.setShowImportModal || ((show) => {
-        console.log("🔍 setShowImportModal called:", show);
-        window.showImportModal = show;
-        window.appState.showImportModal = show;
-      }),
-      setCurrentEvent = window.setCurrentEvent || ((event) => {
-        console.log("🔍 setCurrentEvent called:", event);
-        window.currentEvent = event;
-        window.appState.currentEvent = event;
-      }),
-      setCalendarFilters = window.setCalendarFilters || ((filters) => {
-        console.log("🔍 setCalendarFilters called:", filters);
-        window.calendarFilters = { ...window.calendarFilters, ...filters };
-        window.appState.calendarFilters = window.calendarFilters;
-      }),
-      fetchAllEvents = window.fetchAllEvents || (() => {
-        console.log("🔍 fetchAllEvents called");
-        console.warn("⚠️ fetchAllEvents not implemented");
-      }),
-      exportEventsToExcel = window.exportEventsToExcel || (() => {
-        console.log("🔍 exportEventsToExcel called");
-        console.warn("⚠️ exportEventsToExcel not implemented");
-      })
-    } = window;
+  // ✅ SPORTS CALENDAR FALLBACK FUNCTION - Ensures always available
+window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() => {
+  console.log("🔍 FALLBACK: renderSportsCalendarContent called");
+  
+  // Extract state with fallbacks
+  const {
+    sportsEvents = window.sportsEvents || [],
+    selectedDate = window.selectedDate || new Date(),
+    calendarView = window.calendarView || "month",
+    calendarFilters = window.calendarFilters || {},
+    showEventForm = window.appState?.showEventForm || false,
+    showImportModal = window.appState?.showImportModal || false,
+    currentEvent = window.appState?.currentEvent || null,
+    showEventDetail = window.appState?.showEventDetail || false,
+    loading = window.loading || false
+  } = window.appState || {};
 
-    // Filter events
-    const filteredEvents = sportsEvents.filter(event => {
-      const eventDate = new Date(event.date || event.start_date);
-      const selectedMonth = selectedDate.getMonth();
-      const selectedYear = selectedDate.getFullYear();
+  // Extract functions with enhanced fallbacks
+  const {
+    setShowEventForm = window.setShowEventForm || ((show) => {
+      console.log("🔍 setShowEventForm called:", show);
+      window.showEventForm = show;
+      window.appState.showEventForm = show;
+    }),
+    setShowImportModal = window.setShowImportModal || ((show) => {
+      console.log("🔍 setShowImportModal called:", show);
+      window.showImportModal = show;
+      window.appState.showImportModal = show;
+    }),
+    setCurrentEvent = window.setCurrentEvent || ((event) => {
+      console.log("🔍 setCurrentEvent called:", event);
+      window.currentEvent = event;
+      window.appState.currentEvent = event;
+    }),
+    setCalendarFilters = window.setCalendarFilters || ((filters) => {
+      console.log("🔍 setCalendarFilters called:", filters);
+      window.calendarFilters = { ...window.calendarFilters, ...filters };
+      window.appState.calendarFilters = window.calendarFilters;
+    }),
+    fetchAllEvents = window.fetchAllEvents || (() => {
+      console.log("🔍 fetchAllEvents called");
+      console.warn("⚠️ fetchAllEvents not implemented");
+    }),
+    exportEventsToExcel = window.exportEventsToExcel || (() => {
+      console.log("🔍 exportEventsToExcel called");
+      console.warn("⚠️ exportEventsToExcel not implemented");
+    })
+  } = window;
 
-      let passesFilter = true;
+  // Filter events
+  const filteredEvents = sportsEvents.filter(event => {
+    const eventDate = new Date(event.date || event.start_date);
+    const selectedMonth = selectedDate.getMonth();
+    const selectedYear = selectedDate.getFullYear();
 
-      // Date filter for month view
-      if (calendarView === 'month') {
-        passesFilter = eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear;
-      }
+    let passesFilter = true;
 
-      // Geography filter
-      if (calendarFilters.geography && passesFilter) {
-        passesFilter = event.geography === calendarFilters.geography;
-      }
+    // Date filter for month view
+    if (calendarView === 'month') {
+      passesFilter = eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear;
+    }
 
-      // Sport type filter
-      if (calendarFilters.sport_type && passesFilter) {
-        passesFilter = event.sport_type === calendarFilters.sport_type || event.category === calendarFilters.sport_type;
-      }
+    // Geography filter
+    if (calendarFilters.geography && passesFilter) {
+      passesFilter = event.geography === calendarFilters.geography;
+    }
 
-      // Priority filter
-      if (calendarFilters.priority && passesFilter) {
-        passesFilter = event.priority === calendarFilters.priority;
-      }
+    // Sport type filter
+    if (calendarFilters.sport_type && passesFilter) {
+      passesFilter = event.sport_type === calendarFilters.sport_type || event.category === calendarFilters.sport_type;
+    }
 
-      return passesFilter;
-    });
+    // Priority filter
+    if (calendarFilters.priority && passesFilter) {
+      passesFilter = event.priority === calendarFilters.priority;
+    }
 
-    return React.createElement('div', { className: 'space-y-6' },
-      // Header
-      React.createElement('div', { className: 'flex justify-between items-center' },
+    return passesFilter;
+  });
+
+  return React.createElement('div', { className: 'space-y-6' },
+    // Header
+    React.createElement('div', { className: 'flex justify-between items-center' },
+      React.createElement('div', null,
+        React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, '📅 Sports Calendar'),
+        React.createElement('p', { className: 'text-gray-600 dark:text-gray-400 mt-1' }, 'Manage your sporting events with advanced filters and Excel integration'),
+        React.createElement('div', { className: 'flex items-center mt-2 text-sm' },
+          React.createElement('span', { 
+            className: `px-2 py-1 rounded-full text-xs ${(sportsEvents || []).length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`
+          }, (sportsEvents || []).length > 0 ? `${filteredEvents.length}/${(sportsEvents || []).length} Events` : 'Loading Events...')
+        )
+      ),
+      React.createElement('div', { className: 'flex flex-wrap gap-2' },
+        React.createElement('button', {
+          onClick: () => {
+            console.log('🔍 Add Event button clicked');
+            window.openEventForm();
+          },
+          className: 'bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
+        }, 
+          React.createElement('span', null, '➕'),
+          'Add Event'
+        ),
+        React.createElement('button', {
+          onClick: () => {
+            console.log('🔍 Export Excel button clicked');
+            exportEventsToExcel();
+          },
+          className: 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
+        }, 
+          React.createElement('span', null, '📥'),
+          'Export Excel'
+        ),
+        React.createElement('button', {
+          onClick: () => {
+            console.log('🔍 Import Excel button clicked');
+            setShowImportModal(true);
+          },
+          className: 'bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
+        }, 
+          React.createElement('span', null, '📤'),
+          'Import Excel'
+        )
+      )
+    ),
+
+    // Calendar Filters
+    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4' },
+      React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '🔍 Filters'),
+      React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
+        // Geography Filter
         React.createElement('div', null,
-          React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, '📅 Sports Calendar'),
-          React.createElement('p', { className: 'text-gray-600 dark:text-gray-400 mt-1' }, 'Manage your sporting events with advanced filters and Excel integration'),
-          React.createElement('div', { className: 'flex items-center mt-2 text-sm' },
-            React.createElement('span', { 
-              className: `px-2 py-1 rounded-full text-xs ${(sportsEvents || []).length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`
-            }, (sportsEvents || []).length > 0 ? `${filteredEvents.length}/${(sportsEvents || []).length} Events` : 'Loading Events...')
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Geography'),
+          React.createElement('select', {
+            value: calendarFilters.geography || '',
+            onChange: (e) => {
+              console.log('🔍 Geography filter changed:', e.target.value);
+              setCalendarFilters({...calendarFilters, geography: e.target.value});
+            },
+            className: 'w-full p-2 border border-gray-300 rounded-lg'
+          },
+            React.createElement('option', { value: '' }, 'All Locations'),
+            React.createElement('option', { value: 'India' }, 'India'),
+            React.createElement('option', { value: 'UAE - Dubai' }, 'UAE - Dubai'),
+            React.createElement('option', { value: 'UK' }, 'UK'),
+            React.createElement('option', { value: 'USA' }, 'USA'),
+            React.createElement('option', { value: 'Australia' }, 'Australia')
           )
         ),
-        React.createElement('div', { className: 'flex flex-wrap gap-2' },
-          React.createElement('button', {
-            onClick: () => {
-              console.log('🔍 Add Event button clicked');
-              window.openEventForm();
+        // Sport Type Filter
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Sport Type'),
+          React.createElement('select', {
+            value: calendarFilters.sport_type || '',
+            onChange: (e) => {
+              console.log('🔍 Sport type filter changed:', e.target.value);
+              setCalendarFilters({...calendarFilters, sport_type: e.target.value});
             },
-            className: 'bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
-          }, 
-            React.createElement('span', null, '➕'),
-            'Add Event'
-          ),
-          React.createElement('button', {
-            onClick: () => {
-              console.log('🔍 Export Excel button clicked');
-              exportEventsToExcel();
-            },
-            className: 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
-          }, 
-            React.createElement('span', null, '📥'),
-            'Export Excel'
-          ),
-          React.createElement('button', {
-            onClick: () => {
-              console.log('🔍 Import Excel button clicked');
-              setShowImportModal(true);
-            },
-            className: 'bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2'
-          }, 
-            React.createElement('span', null, '📤'),
-            'Import Excel'
+            className: 'w-full p-2 border border-gray-300 rounded-lg'
+          },
+            React.createElement('option', { value: '' }, 'All Sports'),
+            React.createElement('option', { value: 'Cricket' }, 'Cricket'),
+            React.createElement('option', { value: 'Football' }, 'Football'),
+            React.createElement('option', { value: 'Tennis' }, 'Tennis'),
+            React.createElement('option', { value: 'Golf' }, 'Golf'),
+            React.createElement('option', { value: 'Formula 1' }, 'Formula 1'),
+            React.createElement('option', { value: 'Basketball' }, 'Basketball')
           )
-        )
-      ),
-
-      // Calendar Filters
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4' },
-        React.createElement('h3', { className: 'text-lg font-semibold mb-3' }, '🔍 Filters'),
-        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
-          // Geography Filter
-          React.createElement('div', null,
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Geography'),
-            React.createElement('select', {
-              value: calendarFilters.geography || '',
-              onChange: (e) => {
-                console.log('🔍 Geography filter changed:', e.target.value);
-                setCalendarFilters({...calendarFilters, geography: e.target.value});
-              },
-              className: 'w-full p-2 border border-gray-300 rounded-lg'
+        ),
+        // Priority Filter
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Priority'),
+          React.createElement('select', {
+            value: calendarFilters.priority || '',
+            onChange: (e) => {
+              console.log('🔍 Priority filter changed:', e.target.value);
+              setCalendarFilters({...calendarFilters, priority: e.target.value});
             },
-              React.createElement('option', { value: '' }, 'All Locations'),
-              React.createElement('option', { value: 'India' }, 'India'),
-              React.createElement('option', { value: 'UAE - Dubai' }, 'UAE - Dubai'),
-              React.createElement('option', { value: 'UK' }, 'UK'),
-              React.createElement('option', { value: 'USA' }, 'USA'),
-              React.createElement('option', { value: 'Australia' }, 'Australia')
-            )
-          ),
-          // Sport Type Filter
-          React.createElement('div', null,
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Sport Type'),
-            React.createElement('select', {
-              value: calendarFilters.sport_type || '',
-              onChange: (e) => {
-                console.log('🔍 Sport type filter changed:', e.target.value);
-                setCalendarFilters({...calendarFilters, sport_type: e.target.value});
-              },
-              className: 'w-full p-2 border border-gray-300 rounded-lg'
-            },
-              React.createElement('option', { value: '' }, 'All Sports'),
-              React.createElement('option', { value: 'Cricket' }, 'Cricket'),
-              React.createElement('option', { value: 'Football' }, 'Football'),
-              React.createElement('option', { value: 'Tennis' }, 'Tennis'),
-              React.createElement('option', { value: 'Golf' }, 'Golf'),
-              React.createElement('option', { value: 'Formula 1' }, 'Formula 1'),
-              React.createElement('option', { value: 'Basketball' }, 'Basketball')
-            )
-          ),
-          // Priority Filter
-          React.createElement('div', null,
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Priority'),
-            React.createElement('select', {
-              value: calendarFilters.priority || '',
-              onChange: (e) => {
-                console.log('🔍 Priority filter changed:', e.target.value);
-                setCalendarFilters({...calendarFilters, priority: e.target.value});
-              },
-              className: 'w-full p-2 border border-gray-300 rounded-lg'
-            },
-              React.createElement('option', { value: '' }, 'All Priorities'),
-              React.createElement('option', { value: 'P1' }, 'P1 - High'),
-              React.createElement('option', { value: 'P2' }, 'P2 - Medium'),
-              React.createElement('option', { value: 'P3' }, 'P3 - Low')
-            )
-          ),
-          // Reset Filters Button
-          React.createElement('div', { className: 'flex items-end' },
-            React.createElement('button', {
-              onClick: () => {
-                console.log('🔍 Reset filters clicked');
-                setCalendarFilters({
-                  geography: '',
-                  sport_type: '',
-                  priority: ''
-                });
-              },
-              className: 'w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg'
-            }, 'Reset Filters')
+            className: 'w-full p-2 border border-gray-300 rounded-lg'
+          },
+            React.createElement('option', { value: '' }, 'All Priorities'),
+            React.createElement('option', { value: 'P1' }, 'P1 - High'),
+            React.createElement('option', { value: 'P2' }, 'P2 - Medium'),
+            React.createElement('option', { value: 'P3' }, 'P3 - Low')
           )
+        ),
+        // Reset Filters Button
+        React.createElement('div', { className: 'flex items-end' },
+          React.createElement('button', {
+            onClick: () => {
+              console.log('🔍 Reset filters clicked');
+              setCalendarFilters({
+                geography: '',
+                sport_type: '',
+                priority: ''
+              });
+            },
+            className: 'w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg'
+          }, 'Reset Filters')
         )
-      ),
+      )
+    ),
 
-      // Basic Events List
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4' },
-        React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Events'),
-        filteredEvents.length > 0 ? 
-          React.createElement('div', { className: 'space-y-2' },
-            filteredEvents.map(event =>
-              React.createElement('div', { 
-                key: event.id,
-                className: 'p-3 border border-gray-200 rounded-lg hover:bg-gray-50'
-              },
-                React.createElement('div', { className: 'flex justify-between items-start' },
-                  React.createElement('div', null,
-                    React.createElement('h4', { className: 'font-medium' }, event.event_name || event.title),
-                    React.createElement('p', { className: 'text-sm text-gray-500' }, event.venue),
-                    React.createElement('p', { className: 'text-sm text-gray-500' }, 
-                      new Date(event.start_date || event.date).toLocaleDateString()
-                    )
-                  ),
-                  React.createElement('div', { className: 'flex gap-2' },
-                    React.createElement('button', {
-                      onClick: () => {
-                        console.log('🔍 Edit event clicked:', event.event_name || event.title);
-                        window.openEventForm(event);
-                      },
-                      className: 'text-indigo-600 hover:text-indigo-900 text-sm'
-                    }, 'Edit'),
-                    React.createElement('button', {
-                      onClick: () => {
-                        console.log('🔍 Delete event clicked:', event.event_name || event.title);
-                        if (confirm('Delete this event?')) {
-                          window.deleteEvent(event.id);
-                        }
-                      },
-                      className: 'text-red-600 hover:text-red-900 text-sm'
-                    }, 'Delete')
+    // Basic Events List
+    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4' },
+      React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Events'),
+      filteredEvents.length > 0 ? 
+        React.createElement('div', { className: 'space-y-2' },
+          filteredEvents.map(event =>
+            React.createElement('div', { 
+              key: event.id,
+              className: 'p-3 border border-gray-200 rounded-lg hover:bg-gray-50'
+            },
+              React.createElement('div', { className: 'flex justify-between items-start' },
+                React.createElement('div', null,
+                  React.createElement('h4', { className: 'font-medium' }, event.event_name || event.title),
+                  React.createElement('p', { className: 'text-sm text-gray-500' }, event.venue),
+                  React.createElement('p', { className: 'text-sm text-gray-500' }, 
+                    new Date(event.start_date || event.date).toLocaleDateString()
                   )
+                ),
+                React.createElement('div', { className: 'flex gap-2' },
+                  React.createElement('button', {
+                    onClick: () => {
+                      console.log('🔍 Edit event clicked:', event.event_name || event.title);
+                      window.openEventForm(event);
+                    },
+                    className: 'text-indigo-600 hover:text-indigo-900 text-sm'
+                  }, 'Edit'),
+                  React.createElement('button', {
+                    onClick: () => {
+                      console.log('🔍 Delete event clicked:', event.event_name || event.title);
+                      if (confirm('Delete this event?')) {
+                        window.deleteEvent(event.id);
+                      }
+                    },
+                    className: 'text-red-600 hover:text-red-900 text-sm'
+                  }, 'Delete')
                 )
               )
             )
-          ) :
-          React.createElement('div', { className: 'text-center py-8 text-gray-500' },
-            'No events found for the selected filters'
           )
-      )
-    );
-  });
+        ) :
+        React.createElement('div', { className: 'text-center py-8 text-gray-500' },
+          'No events found for the selected filters'
+        )
+    )
+  );
+});
 
   // ===== RENDER FUNCTIONS =====
 
@@ -3470,6 +2989,7 @@ window.SimplifiedApp = function() {
     );
   };
 
+ 
   const renderSidebar = () => {
     const menuItems = [
       { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -3487,21 +3007,21 @@ window.SimplifiedApp = function() {
 
     return React.createElement('div', { className: 'w-64 bg-white shadow-lg' },
       React.createElement('div', { className: 'p-4' },
-        React.createElement('div', { className: 'flex items-center space-x-3' },
-          React.createElement('div', { className: 'w-12 h-8 bg-white rounded flex items-center justify-center p-1 shadow-sm border' },
-            React.createElement('img', { 
-              src: 'images/logo.png',
-              alt: 'FanToPark Logo',
-              className: 'w-full h-full object-contain',
-              onError: (e) => {
-                e.target.style.display = 'none';
-                e.target.parentElement.className = 'w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center';
-                e.target.parentElement.innerHTML = '<span class="text-white text-lg">🏆</span>';
-              }
-            })
-          ),
-          React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 'FanToPark CRM')
-        ),
+React.createElement('div', { className: 'flex items-center space-x-3' },
+  React.createElement('div', { className: 'w-12 h-8 bg-white rounded flex items-center justify-center p-1 shadow-sm border' },
+    React.createElement('img', { 
+      src: 'images/logo.png',
+      alt: 'FanToPark Logo',
+      className: 'w-full h-full object-contain',
+      onError: (e) => {
+        e.target.style.display = 'none';
+        e.target.parentElement.className = 'w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center';
+        e.target.parentElement.innerHTML = '<span class="text-white text-lg">🏆</span>';
+      }
+    })
+  ),
+  React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 'FanToPark CRM')
+),
         state.user && React.createElement('div', { className: 'mt-4 p-3 bg-blue-50 rounded-lg' },
           React.createElement('div', { className: 'text-sm font-medium text-blue-900' }, state.user.name),
           React.createElement('div', { className: 'text-xs text-blue-600' }, window.USER_ROLES[state.user.role]?.label || state.user.role),
@@ -3512,59 +3032,48 @@ window.SimplifiedApp = function() {
         menuItems.filter(item => canAccessTab(item.id)).map(item =>
           React.createElement('button', {
             key: item.id,
-            onClick: () => { 
-              if (state.setActiveTab) {
-                state.setActiveTab(item.id); 
-              }
-              if(item.id === 'leads' && state.setViewMode) {
-                state.setViewMode('leads'); 
-              }
-            },
-            className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 ' + ((state.activeTab || 'dashboard') === item.id ? 'bg-blue-50 border-r-2 border-blue-600 text-blue-600' : 'text-gray-700')
+            onClick: () => { state.setActiveTab(item.id); if(item.id === 'leads') state.setViewMode('leads'); },
+            className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 ' + (state.activeTab === item.id ? 'bg-blue-50 border-r-2 border-blue-600 text-blue-600' : 'text-gray-700')
           },
             React.createElement('span', { className: 'mr-3' }, item.icon),
             item.label
           )
         ),
         window.hasPermission('users', 'read') && React.createElement('button', {
-          onClick: () => {
-            if (handlers.openUserManagement) {
-              handlers.openUserManagement();
-            } else if (state.setActiveTab) {
-              state.setActiveTab('users');
-            }
-          },
+          onClick: handlers.openUserManagement,
           className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 text-gray-700'
         },
           React.createElement('span', { className: 'mr-3' }, '👤'),
           'User Management'
         ),
         state.user && state.user.role === 'super_admin' && React.createElement('button', {
-          onClick: () => state.setActiveTab && state.setActiveTab('roles'),
+          onClick: () => state.setActiveTab('roles'),
           className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 text-gray-700'
         },
           React.createElement('span', { className: 'mr-3' }, '🛡️'),
           'Role Management'
-        ),
-        React.createElement('button', {
-          onClick: () => state.setActiveTab && state.setActiveTab('changePassword'),
-          className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 text-gray-700'
-        },
-          React.createElement('span', { className: 'mr-3' }, '🔐'),
-          'Change Password'
         )
       ),
+      React.createElement('li', null,
+    React.createElement('a', {
+        href: '#',
+        onClick: (e) => {
+            e.preventDefault();
+            window.setActiveTab('changePassword');
+        },
+        className: `flex items-center px-4 py-2 text-sm font-medium rounded-md ${
+            activeTab === 'changePassword' 
+                ? 'bg-indigo-100 text-indigo-700' 
+                : 'text-gray-700 hover:bg-gray-100'
+        }`
+    },
+        React.createElement('span', { className: 'mr-3' }, '🔐'),
+        'Change Password'
+    )
+),                         
       React.createElement('div', { className: 'mt-auto p-4' },
         React.createElement('button', {
-          onClick: () => {
-            if (handlers.handleLogout) {
-              handlers.handleLogout();
-            } else {
-              // Fallback logout
-              localStorage.removeItem('crm_auth_token');
-              window.location.reload();
-            }
-          },
+          onClick: handlers.handleLogout,
           className: 'w-full flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 rounded overflow-hidden'
         },
           React.createElement('span', { className: 'mr-3' }, '🚪'),
@@ -3575,55 +3084,30 @@ window.SimplifiedApp = function() {
   };
 
   // ✅ ENHANCED Assignment Rules Tab with better error handling
-  const AssignmentRulesTab = React.useMemo(() => {
-    console.log("🔍 AssignmentRulesTab rendering - user:", state.user?.role);
-    console.log("🔍 Has assign permission:", window.hasPermission('leads', 'assign'));
-    
-    if (!window.AssignmentRulesManager) {
-      console.error("❌ AssignmentRulesManager component not found");
-      return React.createElement('div', { className: 'text-center py-12' },
-        React.createElement('p', { className: 'text-red-500 text-lg' }, 'Assignment Rules component not loaded properly.')
-      );
-    }
-    
-    return window.hasPermission('leads', 'assign') ?
-      React.createElement(window.AssignmentRulesManager, { 
-        key: 'assignment-rules-component',
-        currentUser: state.user 
-      }) :
-      React.createElement('div', { className: 'text-center py-12' },
-        React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to manage assignment rules.')
-      );
-  }, [state.user]);
-
-  // ✅ Expose AssignmentRulesTab to window with debugging
-  window.AssignmentRulesTab = AssignmentRulesTab;
-  console.log("✅ AssignmentRulesTab exposed to window");
+const AssignmentRulesTab = React.useMemo(() => {
+  console.log("🔍 AssignmentRulesTab rendering - user:", state.user?.role);
+  console.log("🔍 Has assign permission:", window.hasPermission('leads', 'assign'));
   
-  // ✅ FIX FORCEUPDATE FUNCTION
-  window.forceUpdate = () => {
-    console.log("🔄 Force update triggered");
-    
-    // Only call setters that exist
-    if (window.setLeads && typeof window.setLeads === 'function') {
-      window.setLeads(prev => [...prev]);
-    }
-    if (window.setInventory && typeof window.setInventory === 'function') {
-      window.setInventory(prev => [...prev]);
-    }
-    if (window.setOrders && typeof window.setOrders === 'function') {
-      window.setOrders(prev => [...prev]);
-    }
-    if (window.setOrdersFilters && typeof window.setOrdersFilters === 'function') {
-      window.setOrdersFilters(prev => ({...prev}));
-    }
-    
-    // Trigger a loading state change to force re-render
-    if (window.setLoading && typeof window.setLoading === 'function') {
-      window.setLoading(true);
-      setTimeout(() => window.setLoading(false), 0);
-    }
-  };
+  if (!window.AssignmentRulesManager) {
+    console.error("❌ AssignmentRulesManager component not found");
+    return React.createElement('div', { className: 'text-center py-12' },
+      React.createElement('p', { className: 'text-red-500 text-lg' }, 'Assignment Rules component not loaded properly.')
+    );
+  }
+  
+  return window.hasPermission('leads', 'assign') ?
+    React.createElement(window.AssignmentRulesManager, { 
+      key: 'assignment-rules-component',
+      currentUser: state.user 
+    }) :
+    React.createElement('div', { className: 'text-center py-12' },
+      React.createElement('p', { className: 'text-red-500 text-lg' }, 'Access Denied: You do not have permission to manage assignment rules.')
+    );
+}, [state.user]);
+
+// ✅ Expose AssignmentRulesTab to window with debugging
+window.AssignmentRulesTab = AssignmentRulesTab;
+console.log("✅ AssignmentRulesTab exposed to window");
 
   // ===== MAIN RENDER LOGIC =====
 
@@ -3631,35 +3115,28 @@ window.SimplifiedApp = function() {
     return React.createElement('div', { className: 'min-h-screen bg-gray-100 flex items-center justify-center'},
       React.createElement('div', { className: 'max-w-md w-full bg-white rounded-lg shadow-md p-6' },
         React.createElement('div', { className: 'text-center mb-8' },
-          React.createElement('div', { className: 'w-16 h-16 bg-white rounded-lg flex items-center justify-center mx-auto mb-4 p-2 shadow-md border' },
-            React.createElement('img', { 
-              src: 'images/logo.png',
-              alt: 'FanToPark Logo',
-              className: 'w-full h-full object-contain',
-              onError: (e) => {
-                // Fallback if logo doesn't load
-                e.target.style.display = 'none';
-                e.target.parentElement.innerHTML = '<span class="text-blue-600 text-2xl">🏆</span>';
-              }
-            })
-          ),
+         React.createElement('div', { className: 'w-16 h-16 bg-white rounded-lg flex items-center justify-center mx-auto mb-4 p-2 shadow-md border' },
+  React.createElement('img', { 
+    src: 'images/logo.png',
+    alt: 'FanToPark Logo',
+    className: 'w-full h-full object-contain',
+    onError: (e) => {
+      // Fallback if logo doesn't load
+      e.target.style.display = 'none';
+      e.target.parentElement.innerHTML = '<span class="text-blue-600 text-2xl">🏆</span>';
+    }
+  })
+),
           React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 'FanToPark CRM'),
           React.createElement('p', { className: 'text-gray-600' }, 'Sign in to your account')
         ),
-        React.createElement('form', { onSubmit: (e) => {
-          e.preventDefault();
-          if (handlers.handleLogin) {
-            handlers.handleLogin(e);
-          } else {
-            console.error("❌ Login handler not available");
-          }
-        }},
+        React.createElement('form', { onSubmit: handlers.handleLogin },
           React.createElement('div', { className: 'mb-4' },
             React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Email'),
             React.createElement('input', {
               type: 'email',
-              value: state.email || '',
-              onChange: (e) => state.setEmail && state.setEmail(e.target.value),
+              value: state.email,
+              onChange: (e) => state.setEmail(e.target.value),
               className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
               required: true
             })
@@ -3669,8 +3146,8 @@ window.SimplifiedApp = function() {
             React.createElement('input', {
               type: 'password',
               autoComplete: 'current-password',
-              value: state.password || '',
-              onChange: (e) => state.setPassword && state.setPassword(e.target.value),
+              value: state.password,
+              onChange: (e) => state.setPassword(e.target.value),
               className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
               required: true
             })
@@ -3680,7 +3157,17 @@ window.SimplifiedApp = function() {
             disabled: state.loading,
             className: 'w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50'
           }, state.loading ? 'Signing in...' : 'Sign In')
-        )
+        ),
+     //   React.createElement('div', { className: 'mt-6 text-sm text-gray-600' },
+       //   React.createElement('p', { className: 'font-medium mb-2' }, 'Demo Accounts:'),
+         // React.createElement('div', { className: 'space-y-1 text-xs' },
+           // React.createElement('p', null, React.createElement('strong', null, 'Super Admin:'), ' admin@fantopark.com / admin123'),
+            //React.createElement('p', null, React.createElement('strong', null, 'Sales Manager:'), ' varun@fantopark.com / sales123'),
+            //React.createElement('p', null, React.createElement('strong', null, 'Sales Executive:'), ' pratik@fantopark.com / sales123'),
+            //React.createElement('p', null, React.createElement('strong', null, 'Supply Manager:'), ' akshay@fantopark.com / supply123'),
+            //React.createElement('p', null, React.createElement('strong', null, 'Finance Manager:'), ' finance@fantopark.com / finance123')
+         // )
+       // )
       )
     );
   }
@@ -3691,58 +3178,58 @@ window.SimplifiedApp = function() {
     React.createElement('div', { className: 'flex-1 flex flex-col overflow-hidden' },
       React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-6 py-4' },
         React.createElement('div', { className: 'flex items-center justify-between' },
-          React.createElement('button', {
-            className: 'lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded mr-4',
-            onClick: () => window.toggleMobileMenu && window.toggleMobileMenu()
-          },
-            React.createElement('svg', {
-              width: '24',
-              height: '24',
-              viewBox: '0 0 24 24',
-              fill: 'none',
-              stroke: 'currentColor',
-              strokeWidth: '2'
-            },
-              React.createElement('path', { d: 'M3 12h18M3 6h18M3 18h18' })
-            )
-          ),
+        React.createElement('button', {
+        className: 'lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded mr-4',
+        onClick: () => window.toggleMobileMenu && window.toggleMobileMenu()
+        },
+        React.createElement('svg', {
+        width: '24',
+        height: '24',
+        viewBox: '0 0 24 24',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: '2'
+        },
+        React.createElement('path', { d: 'M3 12h18M3 6h18M3 18h18' })
+        )
+        ),
           React.createElement('div', null,
             React.createElement('h1', { className: 'text-lg font-semibold' }, 'Welcome, ' + (state.user?.name || 'Admin User')),
             React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, window.USER_ROLES[state.user?.role]?.label + ' • ' + state.user?.department)
           ),
-          React.createElement('div', { className: 'mx-4' },
+            React.createElement('div', { className: 'mx-4' },
             window.renderCurrencyTicker && window.renderCurrencyTicker()
-          ),
+        ),
           React.createElement('div', { className: 'flex items-center space-x-4' },
             React.createElement('span', { className: 'text-lg' }, '🔔'),
             React.createElement('button', {
-              onClick: () => state.setShowHelpGuide && state.setShowHelpGuide(true),
+              onClick: () => state.setShowHelpGuide(true),
               className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
               title: 'How to use CRM'
             }, '❓'),
             React.createElement('button', {
-              onClick: () => {
-                // Toggle the state
-                const newDarkMode = !state.darkMode;
-                state.setDarkMode(newDarkMode);
-                
-                // Immediately update DOM and localStorage as a fallback
-                // This ensures the change happens even if useEffect doesn't trigger
-                if (newDarkMode) {
-                  document.documentElement.classList.add('dark');
-                  localStorage.setItem('crm_dark_mode', 'true');
-                } else {
-                  document.documentElement.classList.remove('dark');
-                  localStorage.setItem('crm_dark_mode', 'false');
-                }
-                
-                // Also update the global window state for consistency
-                window.darkMode = newDarkMode;
-                window.appState.darkMode = newDarkMode;
-              },
-              className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
-              title: state.darkMode ? 'Switch to light mode' : 'Switch to dark mode'
-            }, state.darkMode ? '☀️' : '🌙'),
+            onClick: () => {
+              // Toggle the state
+              const newDarkMode = !state.darkMode;
+              state.setDarkMode(newDarkMode);
+              
+              // Immediately update DOM and localStorage as a fallback
+              // This ensures the change happens even if useEffect doesn't trigger
+              if (newDarkMode) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('crm_dark_mode', 'true');
+              } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('crm_dark_mode', 'false');
+              }
+              
+              // Also update the global window state for consistency
+              window.darkMode = newDarkMode;
+              window.appState.darkMode = newDarkMode;
+            },
+            className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
+            title: state.darkMode ? 'Switch to light mode' : 'Switch to dark mode'
+          }, state.darkMode ? '☀️' : '🌙'),
             React.createElement('div', { className: 'w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center' },
               React.createElement('span', { className: 'text-white text-sm' }, (state.user?.name || 'A')[0])
             ),
@@ -3751,15 +3238,13 @@ window.SimplifiedApp = function() {
             },
               React.createElement('button', {
                 onClick: () => {
-                  if (state.setTestMode) {
-                    const newMode = !state.testMode;
-                    state.setTestMode(newMode);
-                    localStorage.setItem('testMode', newMode.toString());
-                    if (newMode) {
-                      document.body.classList.add('test-mode-active');
-                    } else {
-                      document.body.classList.remove('test-mode-active');
-                    }
+                  const newMode = !state.testMode;
+                  state.setTestMode(newMode);
+                  localStorage.setItem('testMode', newMode.toString());
+                  if (newMode) {
+                    document.body.classList.add('test-mode-active');
+                  } else {
+                    document.body.classList.remove('test-mode-active');
                   }
                 },
                 className: 'relative inline-flex h-6 w-12 items-center rounded-full transition-colors ' + 
@@ -3778,69 +3263,63 @@ window.SimplifiedApp = function() {
           )
         )
       ),
-      React.createElement('main', { 
-        className: 'flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-900 transition-colors duration-200' 
-      },
+      React.createElement('main', { className: 'flex-1 overflow-y-auto p-6' },
         state.testMode && state.user.role === 'super_admin' && React.createElement('div', {
           className: 'bg-red-100 border-2 border-red-500 text-red-700 p-4 rounded-lg mb-4 text-center font-bold animate-pulse'
         }, 
           '⚠️ TEST MODE ACTIVE - Delete buttons and test data fills are enabled!'
         ),
-        state.loading ? 
-          React.createElement('div', { className: 'flex justify-center items-center h-64' },
-            React.createElement('div', { className: 'text-xl text-gray-600 dark:text-gray-300' }, 'Loading...')
-          ) :
-          React.createElement(window.ContentRouter, { activeTab: state.activeTab || 'dashboard' })
-      ),
+        window.renderContent()
+      )
+    ),
 
-      // All Modal Forms
-      window.renderReminderDashboard && window.renderReminderDashboard(),
-      window.renderReminderForm && window.renderReminderForm(),                         
-      window.renderInventoryForm && window.renderInventoryForm(),
-      window.renderForm && window.renderForm(),
-      state.showCSVUploadModal && window.CSVUploadModal && React.createElement(window.CSVUploadModal, {
-        isOpen: state.showCSVUploadModal,
-        onClose: () => {
-          state.setShowCSVUploadModal && state.setShowCSVUploadModal(false);
-          state.setCSVUploadType && state.setCSVUploadType('');
-        },
-        type: state.csvUploadType,
-        authToken: window.authToken
-      }),
-      window.renderAssignForm && window.renderAssignForm(),
-      window.renderBulkAssignModal && window.renderBulkAssignModal(),
-      window.showPaymentForm && !window.paymentData?.is_proforma && window.renderPaymentForm(),
-      window.showFinanceInvoiceModal && window.renderFinanceInvoiceModal && window.renderFinanceInvoiceModal(),                         
-      window.renderLeadDetail && window.renderLeadDetail(),
-      state.showInventoryDetail && window.renderInventoryDetail && window.renderInventoryDetail(),
-      window.renderAllocationForm && window.renderAllocationForm(),
-      window.renderAllocationManagement && window.renderAllocationManagement(),
-      window.renderStadiumForm && window.renderStadiumForm(),
-      window.renderChoiceModal && window.renderChoiceModal(),
-      window.renderUserManagement && window.renderUserManagement(),
-      window.renderStatusProgressModal && window.renderStatusProgressModal(),
-      window.renderUserForm && window.renderUserForm(),
-      window.renderGSTInvoicePreview && window.renderGSTInvoicePreview(),
-      window.renderOrderDetailModal && window.renderOrderDetailModal(),
-      window.PaymentHistoryModal && React.createElement(window.PaymentHistoryModal),                         
-      renderOrderAssignmentModal(),
-      window.renderDeliveryForm && window.renderDeliveryForm(),
-      window.renderOrderDetail && window.renderOrderDetail(),
-      window.renderEditOrderForm && window.renderEditOrderForm(),
-      window.renderPaymentPostServiceForm && window.renderPaymentPostServiceForm(),
-      window.renderPaymentSubmitHandler && window.renderPaymentSubmitHandler(),
-      window.renderInventoryFormSubmitHandler && window.renderInventoryFormSubmitHandler(),
-      window.renderDeleteHandler && window.renderDeleteHandler(),
-      window.renderHelpGuide && window.renderHelpGuide(),
-      state.showClientDetail && window.renderClientDetailModal && window.renderClientDetailModal(),
-      state.showEventDetail && window.renderEventDetailModal && window.renderEventDetailModal(),
-      state.showPreview && window.UploadPreviewModal && React.createElement(window.UploadPreviewModal),
-      state.showClientDetectionResults && window.ClientDetectionResultsModal && React.createElement(window.ClientDetectionResultsModal),
-      state.showEventForm && window.renderEventFormModal && window.renderEventFormModal(),
-      window.renderQuoteUploadModal && window.renderQuoteUploadModal()
-    )
+    // All Modal Forms
+    window.renderReminderDashboard && window.renderReminderDashboard(),
+    window.renderReminderForm && window.renderReminderForm(),                         
+    window.renderInventoryForm && window.renderInventoryForm(),
+    window.renderForm && window.renderForm(),
+    state.showCSVUploadModal && React.createElement(window.CSVUploadModal, {
+      isOpen: state.showCSVUploadModal,
+      onClose: () => {
+        state.setShowCSVUploadModal(false);
+        state.setCSVUploadType('');
+      },
+      type: state.csvUploadType,
+      authToken: window.authToken
+    }),
+    window.renderAssignForm && window.renderAssignForm(),
+    window.renderBulkAssignModal && window.renderBulkAssignModal(),
+    window.showPaymentForm && !paymentData?.is_proforma && window.renderPaymentForm(),
+    window.showFinanceInvoiceModal && window.renderFinanceInvoiceModal && window.renderFinanceInvoiceModal(),                         
+    window.renderLeadDetail && window.renderLeadDetail(),
+    state.showInventoryDetail && window.renderInventoryDetail && window.renderInventoryDetail(),
+    window.renderAllocationForm && window.renderAllocationForm(),
+    window.renderAllocationManagement && window.renderAllocationManagement(),
+    window.renderStadiumForm && window.renderStadiumForm(),
+    window.renderChoiceModal && window.renderChoiceModal(),
+    window.renderUserManagement && window.renderUserManagement(),
+    window.renderStatusProgressModal && window.renderStatusProgressModal(),
+    window.renderUserForm && window.renderUserForm(),
+    window.renderGSTInvoicePreview && window.renderGSTInvoicePreview(),
+    window.renderOrderDetailModal && window.renderOrderDetailModal(),
+    window.PaymentHistoryModal && React.createElement(window.PaymentHistoryModal),                         
+    renderOrderAssignmentModal(),
+    window.renderDeliveryForm && window.renderDeliveryForm(),
+    window.renderOrderDetail && window.renderOrderDetail(),
+    window.renderEditOrderForm && window.renderEditOrderForm(),
+    window.renderPaymentPostServiceForm && window.renderPaymentPostServiceForm(),
+    window.renderPaymentSubmitHandler && window.renderPaymentSubmitHandler(),
+    window.renderInventoryFormSubmitHandler && window.renderInventoryFormSubmitHandler(),
+    window.renderDeleteHandler && window.renderDeleteHandler(),
+    window.renderHelpGuide && window.renderHelpGuide(),
+    state.showClientDetail && window.renderClientDetailModal && window.renderClientDetailModal(),
+    state.showEventDetail && window.renderEventDetailModal && window.renderEventDetailModal(),
+    state.showPreview && React.createElement(window.UploadPreviewModal),
+    state.showClientDetectionResults && React.createElement(window.ClientDetectionResultsModal),
+    state.showEventForm && window.renderEventFormModal && window.renderEventFormModal(),
+    window.renderQuoteUploadModal && window.renderQuoteUploadModal(),
   );
-}; // Close SimplifiedApp function
+};
 
 // SIMPLE MOBILE RESPONSIVE FIX
 // Add this to the bottom of your simplified-app-component.js file
@@ -4116,528 +3595,4 @@ window.isInventoryExpanded = (inventoryId) => {
   return window.expandedInventoryItems && window.expandedInventoryItems.has(inventoryId);
 };
 
-// ✅ RENDER APP WITH ERROR BOUNDARY
-window.renderApp = window.renderApp || (() => {
-  const root = document.getElementById('root');
-  if (root && window.React && window.ReactDOM && window.SimplifiedApp) {
-    ReactDOM.render(
-      React.createElement(window.ErrorBoundary, null,
-        React.createElement(window.SimplifiedApp)
-      ),
-      root
-    );
-  } else {
-    console.error("❌ Missing dependencies:", {
-      root: !!root,
-      React: !!window.React,
-      ReactDOM: !!window.ReactDOM,
-      SimplifiedApp: !!window.SimplifiedApp
-    });
-  }
-});
-
 console.log("✅ Inventory expansion helpers loaded");
-console.log("✅ SimplifiedApp component fully loaded with error handling");
-
-// Ensure SimplifiedApp is available globally
-if (!window.SimplifiedApp) {
-  console.error("❌ SimplifiedApp was not properly defined!");
-}
-
-// ✅ INITIALIZE THE APP
-// Try to render if all dependencies are loaded
-if (typeof window.React !== 'undefined' && 
-    typeof window.ReactDOM !== 'undefined' && 
-    typeof window.SimplifiedApp !== 'undefined') {
-  console.log("✅ All dependencies loaded, app ready to render");
-  
-  // Auto-render if there's a root element
-  if (document.getElementById('root') && !window._appRendered) {
-    window._appRendered = true;
-    setTimeout(() => {
-      if (window.renderApp) {
-        window.renderApp();
-      } else {
-        // Direct render as fallback
-        const root = document.getElementById('root');
-        if (root) {
-          try {
-            ReactDOM.render(
-              React.createElement(window.ErrorBoundary || React.Fragment, null,
-                React.createElement(window.SimplifiedApp)
-              ),
-              root
-            );
-            console.log("✅ App rendered successfully");
-          } catch (error) {
-            console.error("❌ Error rendering app:", error);
-            // Show error screen
-            root.innerHTML = `
-              <div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: #f3f4f6;">
-                <div style="background: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); text-align: center; max-width: 500px;">
-                  <h1 style="color: #dc2626; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">Application Error</h1>
-                  <p style="color: #4b5563; margin-bottom: 1rem;">${error.message || 'An unexpected error occurred while loading the application.'}</p>
-                  <button onclick="window.location.reload()" style="background: #3b82f6; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.25rem; cursor: pointer;">
-                    Reload Page
-                  </button>
-                </div>
-              </div>
-            `;
-          }
-        }
-      }
-    }, 100);
-  }
-} else {
-  console.log("⏳ Waiting for dependencies:", {
-    React: typeof window.React !== 'undefined',
-    ReactDOM: typeof window.ReactDOM !== 'undefined',
-    SimplifiedApp: typeof window.SimplifiedApp !== 'undefined'
-  });
-  
-  // Show loading screen while waiting
-  const root = document.getElementById('root');
-  if (root && !root.innerHTML) {
-    root.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: #f3f4f6;">
-        <div style="text-align: center;">
-          <div style="font-size: 2rem; color: #6b7280; margin-bottom: 1rem;">Initializing...</div>
-          <div style="font-size: 0.875rem; color: #9ca3af;">Please wait while we load the application</div>
-        </div>
-      </div>
-    `;
-  }
-  
-  // Retry initialization after a delay
-  setTimeout(() => {
-    if (window.renderApp && !window._appRendered) {
-      window.renderApp();
-    }
-  }, 500);
-}
-
-// End of file - ensure no missing closing braces
-
-// ✅ FINAL VALIDATION
-console.log("📋 File loaded successfully. Checking components...");
-console.log("SimplifiedApp defined:", typeof window.SimplifiedApp === 'function');
-console.log("ErrorBoundary defined:", typeof window.ErrorBoundary === 'function');
-console.log("ContentRouter defined:", typeof window.ContentRouter === 'function');
-console.log("renderApp defined:", typeof window.renderApp === 'function');
-
-// If all components are ready and app hasn't been rendered, try to render it
-if (typeof window.SimplifiedApp === 'function' && 
-    typeof window.React !== 'undefined' && 
-    typeof window.ReactDOM !== 'undefined' &&
-    !window._appRendered) {
-  console.log("✅ All components ready, attempting to render app...");
-  setTimeout(() => {
-    if (window.renderApp) {
-      window.renderApp();
-    } else {
-      // Fallback render
-      const root = document.getElementById('root');
-      if (root && window.SimplifiedApp) {
-        try {
-          ReactDOM.render(
-            React.createElement(window.SimplifiedApp),
-            root
-          );
-          window._appRendered = true;
-        } catch (error) {
-          console.error("❌ Render failed:", error);
-        }
-      }
-    }
-  }, 100);
-}
-
-// ✅ FILE COMPLETE
-
-// Create a simple initialization system
-window.initializeCRM = function() {
-  console.log("🚀 Starting CRM initialization...");
-  
-  const root = document.getElementById('root');
-  if (!root) {
-    console.error("❌ Root element not found!");
-    return;
-  }
-  
-  // Check dependencies
-  if (!window.React || !window.ReactDOM) {
-    console.error("❌ React not loaded!");
-    root.innerHTML = '<div style="padding: 20px; text-align: center;">Error: React not loaded. Please check script loading order.</div>';
-    return;
-  }
-  
-  // Try to render the app
-  try {
-    if (window.SimplifiedApp) {
-      console.log("✅ Rendering SimplifiedApp...");
-      ReactDOM.render(
-        React.createElement(window.ErrorBoundary || React.Fragment, null,
-          React.createElement(window.SimplifiedApp)
-        ),
-        root
-      );
-    } else if (window.MinimalApp) {
-      console.log("⚠️ SimplifiedApp not found, rendering MinimalApp...");
-      ReactDOM.render(
-        React.createElement(window.MinimalApp),
-        root
-      );
-    } else {
-      console.error("❌ No app component found!");
-      root.innerHTML = '<div style="padding: 20px; text-align: center;">Error: No app component found. Check console for details.</div>';
-    }
-  } catch (error) {
-    console.error("❌ Error rendering app:", error);
-    root.innerHTML = `<div style="padding: 20px; text-align: center;">
-      <h1>Application Error</h1>
-      <p>${error.message}</p>
-      <button onclick="window.location.reload()">Reload</button>
-    </div>`;
-  }
-};
-
-// Auto-initialize on various events
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', window.initializeCRM);
-} else {
-  // DOM already loaded
-  setTimeout(window.initializeCRM, 100);
-}
-
-// Also try on window load
-window.addEventListener('load', () => {
-  if (!window._appRendered) {
-    window.initializeCRM();
-  }
-});
-
-console.log("✅ SimplifiedApp component file loaded completely");
-// Add this to the bottom of your simplified-app-component.js file
-
-// Mobile styles - add these styles to make your app responsive
-const mobileStyles = `
-    /* Mobile Navigation */
-    @media (max-width: 1024px) {
-        /* Hide sidebar on mobile by default */
-        .sidebar {
-            position: fixed;
-            left: -100%;
-            top: 0;
-            height: 100vh;
-            width: 250px;
-            transition: left 0.3s ease;
-            z-index: 50;
-        }
-        
-        /* Show sidebar when menu is open */
-        .sidebar.open {
-            left: 0;
-        }
-        
-        /* Mobile overlay */
-        .mobile-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 40;
-        }
-        
-        .mobile-overlay.show {
-            display: block;
-        }
-        
-        /* Main content takes full width on mobile */
-        .main-content {
-            margin-left: 0 !important;
-            padding-top: 60px; /* Space for mobile header */
-        }
-        
-        /* Mobile header */
-        .mobile-header {
-            display: flex;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background: white;
-            border-bottom: 1px solid #e5e7eb;
-            align-items: center;
-            padding: 0 1rem;
-            z-index: 30;
-        }
-        
-        /* Tables - make them scrollable */
-        .table-container {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        table {
-            min-width: 600px;
-        }
-        
-        /* Responsive grid */
-        .grid {
-            grid-template-columns: 1fr !important;
-            gap: 1rem !important;
-        }
-        
-        /* Responsive padding */
-        .p-6 {
-            padding: 1rem !important;
-        }
-        
-        /* Stack filters vertically */
-        .filters-grid {
-            grid-template-columns: 1fr !important;
-        }
-    }
-    
-    /* Desktop - show sidebar */
-    @media (min-width: 1025px) {
-        .mobile-header {
-            display: none !important;
-        }
-        
-        .mobile-overlay {
-            display: none !important;
-        }
-        
-        .sidebar {
-            position: static !important;
-            left: 0 !important;
-        }
-    }
-`;
-
-// Add styles to document
-if (!document.getElementById('mobile-responsive-styles')) {
-    const styleSheet = document.createElement('style');
-    styleSheet.id = 'mobile-responsive-styles';
-    styleSheet.textContent = mobileStyles;
-    document.head.appendChild(styleSheet);
-}
-
-// Simple mobile menu toggle function
-window.toggleMobileMenu = function() {
-    const sidebar = document.querySelector('.w-64.bg-white');
-    const overlay = document.getElementById('mobile-overlay');
-    
-    if (sidebar) {
-        sidebar.classList.toggle('open');
-        if (overlay) {
-            overlay.classList.toggle('show');
-        }
-    }
-};
-
-// Update your SimplifiedApp component to add mobile header
-window.addMobileHeader = function() {
-    const oldSimplifiedApp = window.SimplifiedApp;
-    
-    window.SimplifiedApp = function() {
-        const result = oldSimplifiedApp();
-        
-        if (!result || !window.appState.isLoggedIn) return result;
-        
-        // Wrap the existing content and add mobile header
-        return React.createElement('div', null,
-            // Mobile Header
-            React.createElement('div', { className: 'mobile-header lg:hidden' },
-                React.createElement('button', {
-                    onClick: window.toggleMobileMenu,
-                    className: 'p-2 hover:bg-gray-100 rounded'
-                },
-                    React.createElement('svg', {
-                        width: '24',
-                        height: '24',
-                        viewBox: '0 0 24 24',
-                        fill: 'none',
-                        stroke: 'currentColor',
-                        strokeWidth: '2'
-                    },
-                        React.createElement('path', {
-                            d: 'M3 12h18M3 6h18M3 18h18'
-                        })
-                    )
-                ),
-                React.createElement('h1', { className: 'text-lg font-semibold flex-1 text-center' }, 
-                    'FanToPark CRM'
-                ),
-                React.createElement('div', { className: 'w-10' }) // Spacer for balance
-            ),
-            
-            // Mobile Overlay
-            React.createElement('div', {
-                id: 'mobile-overlay',
-                className: 'mobile-overlay',
-                onClick: window.toggleMobileMenu
-            }),
-            
-            // Original content
-            result
-        );
-    };
-};
-
-// Add necessary classes to existing elements
-window.addResponsiveClasses = function() {
-    // Add sidebar class
-    const sidebar = document.querySelector('.w-64.bg-white');
-    if (sidebar) {
-        sidebar.classList.add('sidebar');
-    }
-    
-    // Add main-content class
-    const mainContent = document.querySelector('.flex-1.overflow-auto');
-    if (mainContent) {
-        mainContent.classList.add('main-content');
-    }
-    
-    // Add table-container class to tables
-    const tables = document.querySelectorAll('table');
-    tables.forEach(table => {
-        if (!table.parentElement.classList.contains('table-container')) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'table-container';
-            table.parentNode.insertBefore(wrapper, table);
-            wrapper.appendChild(table);
-        }
-    });
-    
-    // Add grid class to dashboard cards
-    const dashboardCards = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.xl\\:grid-cols-5');
-    if (dashboardCards) {
-        dashboardCards.classList.add('grid');
-    }
-};
-
-// Initialize mobile responsive design
-window.initializeMobileResponsive = function() {
-    console.log('🔄 Initializing simple mobile responsive design...');
-    
-    // Add mobile header wrapper
-    window.addMobileHeader();
-    
-    // Add responsive classes after a short delay
-    setTimeout(() => {
-        window.addResponsiveClasses();
-        
-        // Re-apply classes on route changes
-        const observer = new MutationObserver(() => {
-            window.addResponsiveClasses();
-        });
-        
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-    }, 1000);
-    
-    // Force re-render
-    if (window.renderApp) {
-        window.renderApp();
-    }
-    
-    console.log('✅ Simple mobile responsive design initialized');
-};
-
-// Auto-initialize when document is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', window.initializeMobileResponsive);
-} else {
-    window.initializeMobileResponsive();
-}
-
-// Add helper functions for inventory expansion
-window.toggleInventoryExpansion = (inventoryId) => {
-  console.log("🔄 Toggling expansion for inventory:", inventoryId);
-  window.setExpandedInventoryItems(prev => {
-    const newSet = new Set(prev);
-    if (newSet.has(inventoryId)) {
-      newSet.delete(inventoryId);
-      console.log("➖ Collapsed inventory:", inventoryId);
-    } else {
-      newSet.add(inventoryId);
-      console.log("➕ Expanded inventory:", inventoryId);
-    }
-    return newSet;
-  });
-  
-  // Force re-render by triggering a state update
-  if (window.setLoading) {
-    window.setLoading(true);
-    setTimeout(() => window.setLoading(false), 0);
-  }
-};
-
-window.debugInventoryCategories = (inventoryId) => {
-  const item = window.inventory.find(i => i.id === inventoryId);
-  console.log('Item:', item);
-  console.log('Has categories:', item?.categories);
-  console.log('Is expanded:', window.isInventoryExpanded(inventoryId));
-};
-
-// Add helper to check if an item is expanded
-window.isInventoryExpanded = (inventoryId) => {
-  return window.expandedInventoryItems && window.expandedInventoryItems.has(inventoryId);
-};
-
-// ✅ RENDER APP WITH ERROR BOUNDARY
-window.renderApp = window.renderApp || (() => {
-  const root = document.getElementById('root');
-  if (root && window.React && window.ReactDOM && window.SimplifiedApp) {
-    ReactDOM.render(
-      React.createElement(window.ErrorBoundary, null,
-        React.createElement(window.SimplifiedApp)
-      ),
-      root
-    );
-  } else {
-    console.error("❌ Missing dependencies:", {
-      root: !!root,
-      React: !!window.React,
-      ReactDOM: !!window.ReactDOM,
-      SimplifiedApp: !!window.SimplifiedApp
-    });
-  }
-});
-
-console.log("✅ Inventory expansion helpers loaded");
-console.log("✅ SimplifiedApp component fully loaded with error handling");
-
-// Ensure SimplifiedApp is available globally
-if (!window.SimplifiedApp) {
-  console.error("❌ SimplifiedApp was not properly defined!");
-}
-
-// ✅ INITIALIZE THE APP
-// Try to render if all dependencies are loaded
-if (typeof window.React !== 'undefined' && 
-    typeof window.ReactDOM !== 'undefined' && 
-    typeof window.SimplifiedApp !== 'undefined') {
-  console.log("✅ All dependencies loaded, app ready to render");
-  
-  // Auto-render if there's a root element
-  if (document.getElementById('root') && !window._appRendered) {
-    window._appRendered = true;
-    setTimeout(() => {
-      if (window.renderApp) {
-        window.renderApp();
-      }
-    }, 100);
-  }
-} else {
-  console.log("⏳ Waiting for dependencies:", {
-    React: typeof window.React !== 'undefined',
-    ReactDOM: typeof window.ReactDOM !== 'undefined',
-    SimplifiedApp: typeof window.SimplifiedApp !== 'undefined'
-  });
-}
