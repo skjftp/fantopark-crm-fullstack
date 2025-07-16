@@ -3177,9 +3177,9 @@ console.log("✅ AssignmentRulesTab exposed to window");
     renderSidebar(),
     React.createElement('div', { className: 'flex-1 flex flex-col overflow-hidden' },
       React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-6 py-2' },
-  React.createElement('div', { className: 'flex items-center justify-between gap-4' },
+  React.createElement('div', { className: 'flex items-center justify-between' },
     // Left section - Welcome message
-    React.createElement('div', { className: 'flex items-center flex-shrink-0' },
+    React.createElement('div', { className: 'flex items-center flex-shrink-0 min-w-[200px]' },
       React.createElement('button', {
         className: 'lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded mr-4',
         onClick: () => window.toggleMobileMenu && window.toggleMobileMenu()
@@ -3201,16 +3201,22 @@ console.log("✅ AssignmentRulesTab exposed to window");
       )
     ),
     
-    // Middle section - Tickers (with controlled width)
-    React.createElement('div', { className: 'flex-1 mx-4 overflow-hidden' },
-      React.createElement('div', { className: 'flex flex-col gap-1 max-w-2xl' },
-        window.renderCurrencyTicker && window.renderCurrencyTicker(),
-        window.renderDailySummaryTicker && window.renderDailySummaryTicker()
+    // Middle section - Tickers in pyramid style (centered)
+    React.createElement('div', { className: 'flex-1 flex justify-center items-center' },
+      React.createElement('div', { className: 'flex flex-col items-center gap-1' },
+        // Currency ticker - narrower
+        React.createElement('div', { className: 'max-w-lg' },
+          window.renderCurrencyTicker && window.renderCurrencyTicker()
+        ),
+        // Daily summary ticker - wider
+        React.createElement('div', { className: 'max-w-3xl' },
+          window.renderDailySummaryTicker && window.renderDailySummaryTicker()
+        )
       )
     ),
     
     // Right section - Icons (flex-shrink-0 prevents them from disappearing)
-    React.createElement('div', { className: 'flex items-center space-x-4 flex-shrink-0' },
+    React.createElement('div', { className: 'flex items-center space-x-4 flex-shrink-0 min-w-[200px] justify-end' },
       React.createElement('span', { className: 'text-lg' }, '🔔'),
       React.createElement('button', {
         onClick: () => state.setShowHelpGuide(true),
