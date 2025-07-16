@@ -3131,43 +3131,33 @@ console.log("✅ AssignmentRulesTab exposed to window");
           React.createElement('p', { className: 'text-gray-600' }, 'Sign in to your account')
         ),
         React.createElement('form', { onSubmit: handlers.handleLogin },
-          React.createElement('div', { className: 'mb-4' },
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Email'),
-            React.createElement('input', {
-              type: 'email',
-              value: state.email,
-              onChange: (e) => state.setEmail(e.target.value),
-              className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-              required: true
-            })
-          ),
-          React.createElement('div', { className: 'mb-6' },
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Password'),
-            React.createElement('input', {
-              type: 'password',
-              autoComplete: 'current-password',
-              value: state.password,
-              onChange: (e) => state.setPassword(e.target.value),
-              className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-              required: true
-            })
-          ),
-          React.createElement('button', {
-            type: 'submit',
-            disabled: state.loading,
-            className: 'w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50'
-          }, state.loading ? 'Signing in...' : 'Sign In')
-        ),
-     //   React.createElement('div', { className: 'mt-6 text-sm text-gray-600' },
-       //   React.createElement('p', { className: 'font-medium mb-2' }, 'Demo Accounts:'),
-         // React.createElement('div', { className: 'space-y-1 text-xs' },
-           // React.createElement('p', null, React.createElement('strong', null, 'Super Admin:'), ' admin@fantopark.com / admin123'),
-            //React.createElement('p', null, React.createElement('strong', null, 'Sales Manager:'), ' varun@fantopark.com / sales123'),
-            //React.createElement('p', null, React.createElement('strong', null, 'Sales Executive:'), ' pratik@fantopark.com / sales123'),
-            //React.createElement('p', null, React.createElement('strong', null, 'Supply Manager:'), ' akshay@fantopark.com / supply123'),
-            //React.createElement('p', null, React.createElement('strong', null, 'Finance Manager:'), ' finance@fantopark.com / finance123')
-         // )
-       // )
+  React.createElement('div', { className: 'mb-4' },
+    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Email'),
+    React.createElement('input', {
+      type: 'email',
+      value: state.email,
+      onChange: (e) => state.setEmail(e.target.value),
+      className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+      required: true
+    })
+  ),
+  React.createElement('div', { className: 'mb-6' },
+    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Password'),
+    React.createElement('input', {
+      type: 'password',
+      autoComplete: 'current-password',
+      value: state.password,
+      onChange: (e) => state.setPassword(e.target.value),
+      className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+      required: true
+    })
+  ),
+  React.createElement('button', {
+    type: 'submit',
+    disabled: state.loading,
+    className: 'w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50'
+  }, state.loading ? 'Signing in...' : 'Sign In')
+)
       )
     );
   }
