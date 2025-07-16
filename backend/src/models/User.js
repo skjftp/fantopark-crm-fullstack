@@ -88,6 +88,7 @@ class User {
         role: this.role,
         status: this.status,
         department: this.department,
+        birthday: this.birthday,
         updated_date: new Date().toISOString()
       };
 
