@@ -16,6 +16,16 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            /* Global mobile constraints */
+            section, div {
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+            
+            /* Ensure all fixed elements respect mobile bounds */
+            [style*="position: fixed"] {
+                max-width: calc(100vw - 20px);
+            }
         }
         
         body {
@@ -23,6 +33,20 @@
             background: #0a0a0a;
             color: #ffffff;
             overflow-x: hidden;
+            position: relative; /* Ensure proper positioning context */
+        }
+        
+        /* Prevent horizontal scroll on mobile */
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        /* Global container constraints */
+        #root {
+            width: 100%;
+            overflow-x: hidden;
+            position: relative;
         }
         
         /* Base sport backgrounds */
@@ -222,7 +246,8 @@
             border-radius: 50%;
             box-shadow: 0 0 10px rgba(204, 0, 0, 0.5);
             animation: ballBounce 4s ease-in-out infinite;
-            z-index: 100;
+            z-index: 1;
+            pointer-events: none; /* Prevent interaction */
         }
         
         .cricket-ball::after {
@@ -284,22 +309,25 @@
             z-index: 100;
         }
         
-        /* Basketball animation */
-        @keyframes basketballDribble {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            25% { transform: translateY(-100px) rotate(90deg); }
-            50% { transform: translateY(0) rotate(180deg); }
-            75% { transform: translateY(-50px) rotate(270deg); }
-        }
-        
+        /* Ensure animated elements are positioned correctly */
+        .cricket-ball,
+        .football,
+        .tennis-ball,
         .basketball {
             position: fixed;
-            width: 40px;
-            height: 40px;
-            background: radial-gradient(circle at 30% 30%, #ff6f00, #e65100);
-            border-radius: 50%;
-            animation: basketballDribble 2s ease-in-out infinite;
-            z-index: 100;
+            z-index: 1; /* Lower z-index to prevent overlap with content */
+        }
+        
+        .f1-car {
+            position: fixed;
+            z-index: 1;
+        }
+        
+        /* Hide all sport elements on very small screens */
+        @media (max-width: 480px) {
+            .sport-bg {
+                opacity: 0.5; /* Make background subtler on mobile */
+            }
         }
         
         /* Team vs display */
@@ -395,6 +423,7 @@
             height: 100px;
             opacity: 0.1;
             z-index: -1;
+            overflow: hidden; /* Prevent any overflow */
         }
         
         .stump {
@@ -731,6 +760,7 @@
             margin-bottom: 60px;
         }
         
+        /* Service cards - ensure proper text wrapping */
         .service-card {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(212, 175, 55, 0.3);
@@ -739,6 +769,8 @@
             text-align: center;
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
+            overflow: hidden; /* Prevent content overflow */
+            word-wrap: break-word; /* Ensure long words wrap */
         }
         
         .service-card:hover {
@@ -888,6 +920,7 @@
             padding: 20px;
             backdrop-filter: blur(10px);
             z-index: 100;
+            max-width: calc(100vw - 40px); /* Prevent overflow on very small screens */
         }
         
         .weather-title {
@@ -954,6 +987,59 @@
             box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
         }
         
+        /* Utility classes */
+        .text-sm {
+            font-size: 0.875rem;
+        }
+        
+        .text-xs {
+            font-size: 0.75rem;
+        }
+        
+        .text-gray-400 {
+            color: #9ca3af;
+        }
+        
+        .text-gray-500 {
+            color: #6b7280;
+        }
+        
+        .text-yellow-500 {
+            color: #eab308;
+        }
+        
+        .text-blue-400 {
+            color: #60a5fa;
+        }
+        
+        .text-green-500 {
+            color: #22c55e;
+        }
+        
+        .text-2xl {
+            font-size: 1.5rem;
+        }
+        
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+        
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+        
+        .mt-2 {
+            margin-top: 0.5rem;
+        }
+        
+        .mt-4 {
+            margin-top: 1rem;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
         /* Mobile Responsive - FIXED WEATHER WIDGET */
         @media (max-width: 768px) {
             .content {
@@ -973,6 +1059,15 @@
                 gap: 20px;
             }
             
+            .teams-display {
+                padding: 20px;
+                margin: 20px 0;
+            }
+            
+            .teams-display::before {
+                display: none; /* Hide shimmer on mobile */
+            }
+            
             .team {
                 font-size: 24px;
             }
@@ -982,21 +1077,41 @@
                 display: none;
             }
             
+            /* Hide field overlays on mobile */
             .cricket-pitch,
             .football-field,
             .tennis-court,
             .f1-track,
             .basketball-court {
-                width: 300px;
-                height: 100px;
+                display: none;
+            }
+            
+            /* Hide decorative elements on mobile */
+            .stumps,
+            .goal-posts,
+            .tennis-net,
+            .checkered-flag {
+                display: none !important;
+            }
+            
+            /* Better control of animated elements on mobile */
+            .cricket-ball,
+            .football,
+            .tennis-ball,
+            .f1-car,
+            .basketball {
+                display: none !important;
             }
             
             /* Fix weather widget for mobile */
             .weather-widget {
-                position: static;
+                position: relative !important;
+                top: auto !important;
+                right: auto !important;
                 margin: 20px auto 30px;
                 max-width: 350px;
                 display: block;
+                float: none !important;
             }
             
             .timeline::before {
@@ -1017,12 +1132,51 @@
                 grid-template-columns: 1fr;
             }
             
+            .service-card {
+                padding: 20px;
+            }
+            
+            .service-icon {
+                font-size: 36px;
+            }
+            
+            .service-title {
+                font-size: 18px;
+            }
+            
             .countdown-timer {
                 gap: 20px;
             }
             
+            .countdown-section {
+                padding: 30px 20px;
+                margin: 40px 0;
+            }
+            
             .countdown-value {
                 font-size: 36px;
+            }
+            
+            /* Ensure no floating elements */
+            .hero {
+                overflow: hidden;
+                width: 100%;
+                position: relative;
+            }
+            
+            /* Ensure content stays within bounds */
+            .content > * {
+                max-width: 100%;
+                overflow-wrap: break-word;
+            }
+            
+            /* Stadium section mobile fix */
+            .stadium-section {
+                padding: 30px 20px;
+            }
+            
+            .stadium-section::before {
+                display: none;
             }
         }
     </style>
@@ -1150,7 +1304,7 @@
         
         // Sport-specific components
         const CricketBall = ({ position }) => {
-            return <div className="cricket-ball" style={{ left: position + '%', top: '10%' }}></div>;
+            return <div className="cricket-ball" style={{ left: position + '%', bottom: '30%' }}></div>;
         };
         
         const Football = ({ position }) => {
@@ -1219,6 +1373,17 @@
             const [journeyData, setJourneyData] = useState(null);
             const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0 });
             const [ballPosition, setBallPosition] = useState(10);
+            const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+            
+            // Handle window resize
+            useEffect(() => {
+                const handleResize = () => {
+                    setIsMobile(window.innerWidth <= 768);
+                };
+                
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+            }, []);
             
             // Get token from URL
             const getTokenFromUrl = () => {
@@ -1242,13 +1407,21 @@
                         throw new Error('Journey not found');
                     }
                     
-                    const result = await response.json();
-                    if (result.success && result.data) {
-                        setJourneyData(result.data);
-                        setLoading(false);
-                    } else {
-                        throw new Error('Invalid journey data');
+                    const data = await response.json();
+                    
+                    // Ensure data has the success wrapper handled correctly
+                    const journeyInfo = data.success ? data.data : data;
+                    setJourneyData(journeyInfo);
+                    
+                    // Simulate weather data (in real app, this would come from an API)
+                    if (!journeyInfo.weather) {
+                        journeyInfo.weather = {
+                            temperature: Math.floor(Math.random() * 10) + 20,
+                            condition: ['Sunny', 'Partly Cloudy', 'Clear'][Math.floor(Math.random() * 3)]
+                        };
                     }
+                    
+                    setLoading(false);
                 } catch (err) {
                     console.error('Error fetching journey:', err);
                     setError(err.message || 'Failed to load journey');
@@ -1332,8 +1505,8 @@
                     {/* Sport-specific backgrounds */}
                     <div className={`sport-bg ${sportType}-bg`}></div>
                     
-                    {/* Sport-specific field/court elements */}
-                    {sportType === 'cricket' && (
+                    {/* Sport-specific field/court elements - hidden on mobile via CSS */}
+                    {!isMobile && sportType === 'cricket' && (
                         <>
                             <div className="cricket-pitch"></div>
                             <CricketBall position={ballPosition} />
@@ -1341,7 +1514,7 @@
                         </>
                     )}
                     
-                    {sportType === 'football' && (
+                    {!isMobile && sportType === 'football' && (
                         <>
                             <div className="football-field"></div>
                             <Football position={ballPosition} />
@@ -1349,7 +1522,7 @@
                         </>
                     )}
                     
-                    {sportType === 'tennis' && (
+                    {!isMobile && sportType === 'tennis' && (
                         <>
                             <div className="tennis-court"></div>
                             <TennisBall position={ballPosition} />
@@ -1357,7 +1530,7 @@
                         </>
                     )}
                     
-                    {sportType === 'f1' && (
+                    {!isMobile && sportType === 'f1' && (
                         <>
                             <div className="f1-track"></div>
                             <F1Car />
@@ -1365,10 +1538,17 @@
                         </>
                     )}
                     
-                    {sportType === 'basketball' && (
+                    {!isMobile && sportType === 'basketball' && (
                         <>
                             <div className="basketball-court"></div>
                             <Basketball position={ballPosition} />
+                        </>
+                    )}
+                    
+                    {!isMobile && sportType === 'rugby' && (
+                        <>
+                            <div className="football-field"></div>
+                            <Football position={ballPosition} />
                         </>
                     )}
                     
