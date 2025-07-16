@@ -1,9 +1,199 @@
 const ENABLE_DEBUG_LOGS = false; // Set to false to reduce logs
 window.debugLog = ENABLE_DEBUG_LOGS ? console.log : () => {};
 
+// ✅ INITIALIZATION GUARD
+if (!window.React || !window.ReactDOM) {
+  console.error("❌ React not loaded!");
+  return;
+}
+
+// ✅ ENSURE CRITICAL FUNCTIONS EXIST
+window.apiCall = window.apiCall || ((endpoint, options = {}) => {
+  console.log("🌐 apiCall:", endpoint);
+  const url = (window.API_CONFIG?.API_URL || 'https://fantopark-backend-150582227311.us-central1.run.app/api') + endpoint;
+  return fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': window.authToken ? 'Bearer ' + window.authToken : '',
+      ...options.headers
+    }
+  }).then(response => response.json());
+});
+
+// ✅ ERROR BOUNDARY
+window.ErrorBoundary = window.ErrorBoundary || class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return React.createElement('div', { className: 'min-h-screen flex items-center justify-center bg-gray-100' },
+        React.createElement('div', { className: 'bg-white p-8 rounded-lg shadow-md' },
+          React.createElement('h1', { className: 'text-2xl font-bold text-red-600 mb-4' }, 'Something went wrong'),
+          React.createElement('p', { className: 'text-gray-600 mb-4' }, this.state.error?.message || 'An unexpected error occurred'),
+          React.createElement('button', {
+            onClick: () => window.location.reload(),
+            className: 'bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700'
+          }, 'Reload Page')
+        )
+      );
+    }
+
+    return this.props.children;
+  }
+};
+
+// ✅ DEFAULT TAB RENDERERS
+window.renderDashboard = window.renderDashboard || (() => {
+  return React.createElement('div', { className: 'p-6' },
+    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Dashboard'),
+    React.createElement('p', null, 'Dashboard content will be loaded here')
+  );
+});
+
+window.renderLeadsManagement = window.renderLeadsManagement || (() => {
+  return React.createElement('div', { className: 'p-6' },
+    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Leads Management'),
+    React.createElement('p', null, 'Leads content will be loaded here')
+  );
+});
+
+window.renderInventoryManagement = window.renderInventoryManagement || (() => {
+  return React.createElement('div', { className: 'p-6' },
+    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Inventory Management'),
+    React.createElement('p', null, 'Inventory content will be loaded here')
+  );
+});
+
+window.renderOrdersManagement = window.renderOrdersManagement || (() => {
+  return React.createElement('div', { className: 'p-6' },
+    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Orders Management'),
+    React.createElement('p', null, 'Orders content will be loaded here')
+  );
+});
+
+window.renderDeliveryManagement = window.renderDeliveryManagement || (() => {
+  return React.createElement('div', { className: 'p-6' },
+    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Delivery Management'),
+    React.createElement('p', null, 'Delivery content will be loaded here')
+  );
+});
+
+window.renderFinanceManagement = window.renderFinanceManagement || (() => {
+  return React.createElement('div', { className: 'p-6' },
+    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Finance Management'),
+    React.createElement('p', null, 'Finance content will be loaded here')
+  );
+});
+
+window.renderStadiumsManagement = window.renderStadiumsManagement || (() => {
+  return React.createElement('div', { className: 'p-6' },
+    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Stadiums Management'),
+    React.createElement('p', null, 'Stadiums content will be loaded here')
+  );
+});
+
+window.renderRemindersContent = window.renderRemindersContent || (() => {
+  return React.createElement('div', { className: 'p-6' },
+    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Reminders'),
+    React.createElement('p', null, 'Reminders content will be loaded here')
+  );
+});
+
+window.renderMyActionsContent = window.renderMyActionsContent || (() => {
+  return React.createElement('div', { className: 'p-6' },
+    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'My Actions'),
+    React.createElement('p', null, 'My Actions content will be loaded here')
+  );
+});
+
+window.renderRolesManagement = window.renderRolesManagement || (() => {
+  return React.createElement('div', { className: 'p-6' },
+    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Roles Management'),
+    React.createElement('p', null, 'Roles management content will be loaded here')
+  );
+});
+
+window.renderChangePassword = window.renderChangePassword || (() => {
+  return React.createElement('div', { className: 'p-6' },
+    React.createElement('h1', { className: 'text-2xl font-bold mb-4' }, 'Change Password'),
+    React.createElement('p', null, 'Change password content will be loaded here')
+  );
+});
+
+// ✅ ADD CONTENT ROUTER COMPONENT
+window.ContentRouter = window.ContentRouter || (({ activeTab }) => {
+  console.log("🔍 ContentRouter rendering for tab:", activeTab);
+  
+  // Map tab IDs to their render functions
+  const tabRenderers = {
+    'dashboard': window.renderDashboard,
+    'leads': window.renderLeadsManagement,
+    'inventory': window.renderInventoryManagement,
+    'orders': window.renderOrdersManagement,
+    'delivery': window.renderDeliveryManagement,
+    'finance': window.renderFinanceManagement,
+    'stadiums': window.renderStadiumsManagement,
+    'sports-calendar': window.renderSportsCalendarContent,
+    'reminders': window.renderRemindersContent,
+    'myactions': window.renderMyActionsContent,
+    'assignment-rules': () => window.AssignmentRulesTab,
+    'roles': window.renderRolesManagement,
+    'changePassword': window.renderChangePassword,
+    'users': window.renderUserManagementContent
+  };
+
+  // Get the renderer for the active tab
+  const renderer = tabRenderers[activeTab];
+  
+  if (!renderer) {
+    console.error("❌ No renderer found for tab:", activeTab);
+    return React.createElement('div', { className: 'text-center py-12' },
+      React.createElement('h2', { className: 'text-2xl text-gray-600' }, 
+        `Content for "${activeTab}" tab is not available yet`
+      )
+    );
+  }
+
+  // Execute the renderer
+  try {
+    const content = typeof renderer === 'function' ? renderer() : renderer;
+    return content || React.createElement('div', null, 'Loading...');
+  } catch (error) {
+    console.error("❌ Error rendering tab content:", error);
+    return React.createElement('div', { className: 'text-center py-12 text-red-600' },
+      React.createElement('h2', { className: 'text-xl' }, 'Error loading content'),
+      React.createElement('p', { className: 'mt-2' }, error.message)
+    );
+  }
+});
+
 window.SimplifiedApp = function() {
+  // ✅ ENSURE WINDOW.APPSTATE EXISTS FIRST
+  window.appState = window.appState || {};
+  
   // ===== CORE SETUP & INITIALIZATION =====
   const state = window.renderMainApp();
+  
+  // ✅ WAIT FOR STATE TO BE READY
+  if (!state || typeof state.setLoading !== 'function') {
+    console.log("⏳ Waiting for state initialization...");
+    return React.createElement('div', { className: 'flex justify-center items-center h-screen' },
+      React.createElement('div', { className: 'text-xl text-gray-600' }, 'Initializing...')
+    );
+  }
+  
   const handlers = window.renderAppBusinessLogic();
   
   if (ENABLE_DEBUG_LOGS && !window._stateSettersLogged) {
@@ -235,6 +425,10 @@ window.SimplifiedApp = function() {
 
   // Sports Calendar States
   window.sportsEvents = state.sportsEvents || [];
+  window.setSportsEvents = state.setSportsEvents || ((events) => {
+    window.sportsEvents = events;
+    window.appState.sportsEvents = events;
+  });
   window.selectedDate = state.selectedDate || new Date();
   window.calendarView = state.calendarView || "month";
   window.calendarFilters = state.calendarFilters || {};
@@ -242,6 +436,11 @@ window.SimplifiedApp = function() {
   window.showEventForm = state.showEventForm || false;
   window.showImportModal = state.showImportModal || false;
   window.showEventDetail = state.showEventDetail || false;
+  window.eventFormData = state.eventFormData || {};
+  window.setEventFormData = state.setEventFormData || ((data) => {
+    window.eventFormData = data;
+    window.appState.eventFormData = data;
+  });
   // ✅ NEW: Sports Calendar Pagination States
   window.currentEventsPage = state.currentEventsPage || 1;
   window.eventsPerPage = state.eventsPerPage || 10;
@@ -693,6 +892,10 @@ window.SimplifiedApp = function() {
   window.setLeads = state.setLeads;
   window.setInventory = state.setInventory;
   window.setOrders = state.setOrders;
+  window.setOrdersFilters = state.setOrdersFilters || ((filters) => {
+    console.log("📊 setOrdersFilters called with:", filters);
+    window.ordersFilters = filters;
+  });
   window.setUsers = state.setUsers;
   window.setDeliveries = state.setDeliveries;
   window.setInvoices = state.setInvoices;
@@ -1232,7 +1435,12 @@ window.SimplifiedApp = function() {
   window.showReminderDashboard = state.showReminderDashboard || false;
 
   // ✅ ADD THESE MISSING MY ACTIONS FUNCTION EXPOSURES:
-  window.setActiveTab = state.setActiveTab;
+  window.setActiveTab = state.setActiveTab || ((tab) => {
+    console.log("📍 setActiveTab called with:", tab);
+    if (window.appState) {
+      window.appState.activeTab = tab;
+    }
+  });
   window.viewLeadDetails = handlers.openLeadDetail || window.openLeadDetail || ((lead) => {
     console.log("🔍 viewLeadDetails called with lead:", lead);
     window.setCurrentLead(lead);
@@ -1570,6 +1778,8 @@ window.SimplifiedApp = function() {
       if (state.setSportsEvents) {
         state.setSportsEvents(window.sportsEvents);
       }
+      
+      return window.sportsEvents;
       
     } catch (error) {
       console.error("❌ Error fetching sports events:", error);
@@ -2510,6 +2720,24 @@ window.SimplifiedApp = function() {
     API_URL: window.API_URL
   };
 
+  // Ensure apiCall is always available
+  window.apiCall = window.apiCall || ((endpoint, options = {}) => {
+    console.log("🌐 apiCall:", endpoint, options);
+    const url = (window.API_CONFIG?.API_URL || window.API_URL) + endpoint;
+    return fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': window.authToken ? 'Bearer ' + window.authToken : '',
+        ...options.headers
+      }
+    }).then(response => response.json())
+    .catch(error => {
+      console.error("❌ API call error:", error);
+      throw error;
+    });
+  });
+
   window.checkPhoneForClient = handlers.checkPhoneForClient || (async (phone) => {
     console.log("📞 checkPhoneForClient called with:", phone);
     try {
@@ -2546,20 +2774,63 @@ window.SimplifiedApp = function() {
     }
   });
 
-  window.apiCall = window.apiCall || ((endpoint, options = {}) => {
-    console.log("🌐 apiCall:", endpoint, options);
-    const url = (window.API_CONFIG?.API_URL || window.API_URL) + endpoint;
-    return fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': window.authToken ? 'Bearer ' + window.authToken : '',
-        ...options.headers
-      }
-    }).then(response => response.json());
-  });
-
   // ===== PERMISSION SYSTEM =====
+
+  // ✅ DEFAULT USER ROLES
+  window.USER_ROLES = window.USER_ROLES || {
+    super_admin: {
+      label: 'Super Admin',
+      permissions: {
+        leads: { read: true, write: true, delete: true, assign: true },
+        inventory: { read: true, write: true, delete: true },
+        orders: { read: true, write: true, delete: true },
+        delivery: { read: true, write: true, delete: true },
+        finance: { read: true, write: true, delete: true },
+        stadiums: { read: true, write: true, delete: true },
+        events: { read: true, write: true, delete: true },
+        users: { read: true, write: true, delete: true }
+      }
+    },
+    admin: {
+      label: 'Admin',
+      permissions: {
+        leads: { read: true, write: true, delete: true, assign: true },
+        inventory: { read: true, write: true, delete: true },
+        orders: { read: true, write: true, delete: true },
+        delivery: { read: true, write: true, delete: true },
+        finance: { read: true, write: true, delete: false },
+        stadiums: { read: true, write: true, delete: true },
+        events: { read: true, write: true, delete: true },
+        users: { read: true, write: true, delete: false }
+      }
+    },
+    sales_executive: {
+      label: 'Sales Executive',
+      permissions: {
+        leads: { read: true, write: true, delete: false, assign: false },
+        inventory: { read: true, write: false, delete: false },
+        orders: { read: true, write: true, delete: false },
+        delivery: { read: true, write: false, delete: false },
+        finance: { read: false, write: false, delete: false },
+        stadiums: { read: true, write: false, delete: false },
+        events: { read: true, write: false, delete: false },
+        users: { read: false, write: false, delete: false }
+      }
+    },
+    viewer: {
+      label: 'Viewer',
+      permissions: {
+        leads: { read: true, write: false, delete: false, assign: false },
+        inventory: { read: true, write: false, delete: false },
+        orders: { read: true, write: false, delete: false },
+        delivery: { read: true, write: false, delete: false },
+        finance: { read: false, write: false, delete: false },
+        stadiums: { read: true, write: false, delete: false },
+        events: { read: true, write: false, delete: false },
+        users: { read: false, write: false, delete: false }
+      }
+    }
+  };
 
   window.hasPermission = function(module, action) {
     if (state.user?.role === 'super_admin') return true;
@@ -3205,29 +3476,42 @@ window.SimplifiedApp = function() {
         menuItems.filter(item => canAccessTab(item.id)).map(item =>
           React.createElement('button', {
             key: item.id,
-            onClick: () => { state.setActiveTab(item.id); if(item.id === 'leads') state.setViewMode('leads'); },
-            className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 ' + (state.activeTab === item.id ? 'bg-blue-50 border-r-2 border-blue-600 text-blue-600' : 'text-gray-700')
+            onClick: () => { 
+              if (state.setActiveTab) {
+                state.setActiveTab(item.id); 
+              }
+              if(item.id === 'leads' && state.setViewMode) {
+                state.setViewMode('leads'); 
+              }
+            },
+            className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 ' + ((state.activeTab || 'dashboard') === item.id ? 'bg-blue-50 border-r-2 border-blue-600 text-blue-600' : 'text-gray-700')
           },
             React.createElement('span', { className: 'mr-3' }, item.icon),
             item.label
           )
         ),
         window.hasPermission('users', 'read') && React.createElement('button', {
-          onClick: handlers.openUserManagement,
+          onClick: () => {
+            if (handlers.openUserManagement) {
+              handlers.openUserManagement();
+            } else if (state.setActiveTab) {
+              state.setActiveTab('users');
+            }
+          },
           className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 text-gray-700'
         },
           React.createElement('span', { className: 'mr-3' }, '👤'),
           'User Management'
         ),
         state.user && state.user.role === 'super_admin' && React.createElement('button', {
-          onClick: () => state.setActiveTab('roles'),
+          onClick: () => state.setActiveTab && state.setActiveTab('roles'),
           className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 text-gray-700'
         },
           React.createElement('span', { className: 'mr-3' }, '🛡️'),
           'Role Management'
         ),
         React.createElement('button', {
-          onClick: () => state.setActiveTab('changePassword'),
+          onClick: () => state.setActiveTab && state.setActiveTab('changePassword'),
           className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 text-gray-700'
         },
           React.createElement('span', { className: 'mr-3' }, '🔐'),
@@ -3236,7 +3520,15 @@ window.SimplifiedApp = function() {
       ),
       React.createElement('div', { className: 'mt-auto p-4' },
         React.createElement('button', {
-          onClick: handlers.handleLogout,
+          onClick: () => {
+            if (handlers.handleLogout) {
+              handlers.handleLogout();
+            } else {
+              // Fallback logout
+              localStorage.removeItem('crm_auth_token');
+              window.location.reload();
+            }
+          },
           className: 'w-full flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 rounded overflow-hidden'
         },
           React.createElement('span', { className: 'mr-3' }, '🚪'),
@@ -3271,6 +3563,31 @@ window.SimplifiedApp = function() {
   // ✅ Expose AssignmentRulesTab to window with debugging
   window.AssignmentRulesTab = AssignmentRulesTab;
   console.log("✅ AssignmentRulesTab exposed to window");
+  
+  // ✅ FIX FORCEUPDATE FUNCTION
+  window.forceUpdate = () => {
+    console.log("🔄 Force update triggered");
+    
+    // Only call setters that exist
+    if (window.setLeads && typeof window.setLeads === 'function') {
+      window.setLeads(prev => [...prev]);
+    }
+    if (window.setInventory && typeof window.setInventory === 'function') {
+      window.setInventory(prev => [...prev]);
+    }
+    if (window.setOrders && typeof window.setOrders === 'function') {
+      window.setOrders(prev => [...prev]);
+    }
+    if (window.setOrdersFilters && typeof window.setOrdersFilters === 'function') {
+      window.setOrdersFilters(prev => ({...prev}));
+    }
+    
+    // Trigger a loading state change to force re-render
+    if (window.setLoading && typeof window.setLoading === 'function') {
+      window.setLoading(true);
+      setTimeout(() => window.setLoading(false), 0);
+    }
+  };
 
   // ===== MAIN RENDER LOGIC =====
 
@@ -3293,13 +3610,20 @@ window.SimplifiedApp = function() {
           React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 'FanToPark CRM'),
           React.createElement('p', { className: 'text-gray-600' }, 'Sign in to your account')
         ),
-        React.createElement('form', { onSubmit: handlers.handleLogin },
+        React.createElement('form', { onSubmit: (e) => {
+          e.preventDefault();
+          if (handlers.handleLogin) {
+            handlers.handleLogin(e);
+          } else {
+            console.error("❌ Login handler not available");
+          }
+        }},
           React.createElement('div', { className: 'mb-4' },
             React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Email'),
             React.createElement('input', {
               type: 'email',
-              value: state.email,
-              onChange: (e) => state.setEmail(e.target.value),
+              value: state.email || '',
+              onChange: (e) => state.setEmail && state.setEmail(e.target.value),
               className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
               required: true
             })
@@ -3309,8 +3633,8 @@ window.SimplifiedApp = function() {
             React.createElement('input', {
               type: 'password',
               autoComplete: 'current-password',
-              value: state.password,
-              onChange: (e) => state.setPassword(e.target.value),
+              value: state.password || '',
+              onChange: (e) => state.setPassword && state.setPassword(e.target.value),
               className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
               required: true
             })
@@ -3356,7 +3680,7 @@ window.SimplifiedApp = function() {
           React.createElement('div', { className: 'flex items-center space-x-4' },
             React.createElement('span', { className: 'text-lg' }, '🔔'),
             React.createElement('button', {
-              onClick: () => state.setShowHelpGuide(true),
+              onClick: () => state.setShowHelpGuide && state.setShowHelpGuide(true),
               className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
               title: 'How to use CRM'
             }, '❓'),
@@ -3391,13 +3715,15 @@ window.SimplifiedApp = function() {
             },
               React.createElement('button', {
                 onClick: () => {
-                  const newMode = !state.testMode;
-                  state.setTestMode(newMode);
-                  localStorage.setItem('testMode', newMode.toString());
-                  if (newMode) {
-                    document.body.classList.add('test-mode-active');
-                  } else {
-                    document.body.classList.remove('test-mode-active');
+                  if (state.setTestMode) {
+                    const newMode = !state.testMode;
+                    state.setTestMode(newMode);
+                    localStorage.setItem('testMode', newMode.toString());
+                    if (newMode) {
+                      document.body.classList.add('test-mode-active');
+                    } else {
+                      document.body.classList.remove('test-mode-active');
+                    }
                   }
                 },
                 className: 'relative inline-flex h-6 w-12 items-center rounded-full transition-colors ' + 
@@ -3428,7 +3754,7 @@ window.SimplifiedApp = function() {
           React.createElement('div', { className: 'flex justify-center items-center h-64' },
             React.createElement('div', { className: 'text-xl text-gray-600 dark:text-gray-300' }, 'Loading...')
           ) :
-          React.createElement(window.ContentRouter, { activeTab: state.activeTab })
+          React.createElement(window.ContentRouter, { activeTab: state.activeTab || 'dashboard' })
       ),
 
       // All Modal Forms
@@ -3436,11 +3762,11 @@ window.SimplifiedApp = function() {
       window.renderReminderForm && window.renderReminderForm(),                         
       window.renderInventoryForm && window.renderInventoryForm(),
       window.renderForm && window.renderForm(),
-      state.showCSVUploadModal && React.createElement(window.CSVUploadModal, {
+      state.showCSVUploadModal && window.CSVUploadModal && React.createElement(window.CSVUploadModal, {
         isOpen: state.showCSVUploadModal,
         onClose: () => {
-          state.setShowCSVUploadModal(false);
-          state.setCSVUploadType('');
+          state.setShowCSVUploadModal && state.setShowCSVUploadModal(false);
+          state.setCSVUploadType && state.setCSVUploadType('');
         },
         type: state.csvUploadType,
         authToken: window.authToken
@@ -3472,8 +3798,8 @@ window.SimplifiedApp = function() {
       window.renderHelpGuide && window.renderHelpGuide(),
       state.showClientDetail && window.renderClientDetailModal && window.renderClientDetailModal(),
       state.showEventDetail && window.renderEventDetailModal && window.renderEventDetailModal(),
-      state.showPreview && React.createElement(window.UploadPreviewModal),
-      state.showClientDetectionResults && React.createElement(window.ClientDetectionResultsModal),
+      state.showPreview && window.UploadPreviewModal && React.createElement(window.UploadPreviewModal),
+      state.showClientDetectionResults && window.ClientDetectionResultsModal && React.createElement(window.ClientDetectionResultsModal),
       state.showEventForm && window.renderEventFormModal && window.renderEventFormModal(),
       window.renderQuoteUploadModal && window.renderQuoteUploadModal()
     )
@@ -3754,4 +4080,20 @@ window.isInventoryExpanded = (inventoryId) => {
   return window.expandedInventoryItems && window.expandedInventoryItems.has(inventoryId);
 };
 
+// ✅ RENDER APP WITH ERROR BOUNDARY
+window.renderApp = window.renderApp || (() => {
+  const root = document.getElementById('root');
+  if (root) {
+    ReactDOM.render(
+      React.createElement(window.ErrorBoundary, null,
+        React.createElement(window.SimplifiedApp)
+      ),
+      root
+    );
+  } else {
+    console.error("❌ Root element not found!");
+  }
+});
+
 console.log("✅ Inventory expansion helpers loaded");
+console.log("✅ SimplifiedApp component fully loaded with error handling");
