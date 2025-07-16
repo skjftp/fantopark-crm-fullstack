@@ -1,25 +1,27 @@
 const ENABLE_DEBUG_LOGS = false; // Set to false to reduce logs
 window.debugLog = ENABLE_DEBUG_LOGS ? console.log : () => {};
 
-// ✅ INITIALIZATION GUARD
-if (!window.React || !window.ReactDOM) {
-  console.error("❌ React not loaded!");
-  return;
-}
+// Wrap everything in an IIFE to avoid illegal return statements
+(function() {
+  // ✅ INITIALIZATION GUARD
+  if (!window.React || !window.ReactDOM) {
+    console.error("❌ React not loaded!");
+    return;
+  }
 
-// ✅ ENSURE CRITICAL FUNCTIONS EXIST
-window.apiCall = window.apiCall || ((endpoint, options = {}) => {
-  console.log("🌐 apiCall:", endpoint);
-  const url = (window.API_CONFIG?.API_URL || 'https://fantopark-backend-150582227311.us-central1.run.app/api') + endpoint;
-  return fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': window.authToken ? 'Bearer ' + window.authToken : '',
-      ...options.headers
-    }
-  }).then(response => response.json());
-});
+  // ✅ ENSURE CRITICAL FUNCTIONS EXIST
+  window.apiCall = window.apiCall || ((endpoint, options = {}) => {
+    console.log("🌐 apiCall:", endpoint);
+    const url = (window.API_CONFIG?.API_URL || 'https://fantopark-backend-150582227311.us-central1.run.app/api') + endpoint;
+    return fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': window.authToken ? 'Bearer ' + window.authToken : '',
+        ...options.headers
+      }
+    }).then(response => response.json());
+  });
 
 // ✅ ERROR BOUNDARY
 window.ErrorBoundary = window.ErrorBoundary || class ErrorBoundary extends React.Component {
@@ -179,6 +181,10 @@ window.ContentRouter = window.ContentRouter || (({ activeTab }) => {
   }
 });
 
+const ENABLE_DEBUG_LOGS = false; // Set to false to reduce logs
+window.debugLog = ENABLE_DEBUG_LOGS ? console.log : () => {};
+
+// Define SimplifiedApp immediately to ensure it's available
 window.SimplifiedApp = function() {
   // ✅ ENSURE WINDOW.APPSTATE EXISTS FIRST
   window.appState = window.appState || {};
@@ -4083,7 +4089,7 @@ window.isInventoryExpanded = (inventoryId) => {
 // ✅ RENDER APP WITH ERROR BOUNDARY
 window.renderApp = window.renderApp || (() => {
   const root = document.getElementById('root');
-  if (root) {
+  if (root && window.React && window.ReactDOM && window.SimplifiedApp) {
     ReactDOM.render(
       React.createElement(window.ErrorBoundary, null,
         React.createElement(window.SimplifiedApp)
@@ -4091,7 +4097,12 @@ window.renderApp = window.renderApp || (() => {
       root
     );
   } else {
-    console.error("❌ Root element not found!");
+    console.error("❌ Missing dependencies:", {
+      root: !!root,
+      React: !!window.React,
+      ReactDOM: !!window.ReactDOM,
+      SimplifiedApp: !!window.SimplifiedApp
+    });
   }
 });
 
