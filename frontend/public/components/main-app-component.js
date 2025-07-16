@@ -209,6 +209,8 @@ const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
   const [users, setUsers] = useState([]);
   const [myLeads, setMyLeads] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+const [showJourneyGenerator, setShowJourneyGenerator] = useState(false);
   const [myQuoteRequested, setMyQuoteRequested] = useState([]);
   const [myOrders, setMyOrders] = useState([]);
   const [myDeliveries, setMyDeliveries] = useState([]);
@@ -491,6 +493,8 @@ const [ordersShowFilters, setOrdersShowFilters] = useState(false);
     financialFilters, setFinancialFilters,
     activeFinancialTab, setActiveFinancialTab,
     financialStats, setFinancialStats,
+    selectedOrder, setSelectedOrder,
+showJourneyGenerator, setShowJourneyGenerator,
     editingRole, setEditingRole,
     roleFormData, setRoleFormData,
     editingUser, setEditingUser,
