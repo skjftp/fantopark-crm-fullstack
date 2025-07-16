@@ -45,6 +45,22 @@ useEffect(() => {
   }
 }, [isLoggedIn]); // Only depend on login status
 
+  useEffect(() => {
+  console.log('Dark mode effect triggered:', darkMode);
+  try {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('crm_dark_mode', 'true');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('crm_dark_mode', 'false');
+    }
+  } catch (error) {
+    console.error('Error managing dark mode:', error);
+  }
+}, [darkMode]); // Make sure darkMode is in the dependency array
+
+
   
   // ✅ ENHANCED: My Actions state synchronization effect
   useEffect(() => {
