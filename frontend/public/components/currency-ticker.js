@@ -23,7 +23,6 @@ window.currencyTickerState = {
   initialized: false
 };
 
-// Currency configuration
 // Currency configuration - Using a CORS-friendly API
 window.CURRENCY_CONFIG = {
   // Option 1: Use Frankfurter API (free, no key required, CORS-enabled)
@@ -91,13 +90,21 @@ window.CurrencyService = {
   }
 };
 
-// Fetch rates function
+// Fetch rates function with better cache handling and debugging
 window.fetchCurrencyRates = async function(forceRefresh = false) {
   console.log('🔄 Fetching currency rates...', { forceRefresh });
   
   window.currencyTickerState.loading = true;
   window.currencyTickerState.error = null;
-  if (window.forceUpdate) window.forceUpdate();
+  
+  // Safer force update
+  if (window.forceUpdate && typeof window.forceUpdate === 'function') {
+    try {
+      window.forceUpdate();
+    } catch (e) {
+      console.warn('ForceUpdate failed during fetch start:', e);
+    }
+  }
   
   try {
     // Skip cache if force refresh or converter is open
@@ -114,7 +121,15 @@ window.fetchCurrencyRates = async function(forceRefresh = false) {
           window.currencyTickerState.rates = cached.rates;
           window.currencyTickerState.lastUpdate = new Date(cached.timestamp);
           window.currencyTickerState.loading = false;
-          if (window.forceUpdate) window.forceUpdate();
+          
+          // Safer force update
+          if (window.forceUpdate && typeof window.forceUpdate === 'function') {
+            try {
+              window.forceUpdate();
+            } catch (e) {
+              console.warn('ForceUpdate failed after cache load:', e);
+            }
+          }
           return;
         }
       }
@@ -139,14 +154,20 @@ window.fetchCurrencyRates = async function(forceRefresh = false) {
     }
     
     // Get previous rates for comparison
-    const previousRates = window.currencyTickerState.rates;
+    const previousRates = window.currencyTickerState.rates || {};
     
     // Convert from the API format (rates are already relative to INR with Frankfurter)
     const newRates = {};
+    
+    // Ensure all currencies have a value
     window.CURRENCY_CONFIG.ALL_CURRENCIES.forEach(currency => {
-      if (data.rates[currency]) {
+      if (data.rates && data.rates[currency]) {
         // Frankfurter gives rates FROM INR, so we need to invert them
         newRates[currency] = Math.round((1 / data.rates[currency]) * 100) / 100;
+      } else {
+        // Fallback to previous rate or default
+        newRates[currency] = previousRates[currency] || window.currencyTickerState.rates[currency] || 1;
+        console.warn(`No rate found for ${currency}, using fallback: ${newRates[currency]}`);
       }
     });
     
@@ -162,13 +183,16 @@ window.fetchCurrencyRates = async function(forceRefresh = false) {
     if (savedToday) {
       window.currencyTickerState.previousRates = previousRates;
       console.log('📅 Saved as today\'s rates');
+    } else if (!window.currencyTickerState.previousRates) {
+      // Set previous rates if not already set
+      window.currencyTickerState.previousRates = previousRates;
     }
     
     // Log rate changes
     Object.keys(newRates).forEach(currency => {
       const oldRate = previousRates[currency];
       const newRate = newRates[currency];
-      if (oldRate !== newRate) {
+      if (oldRate && newRate && oldRate !== newRate) {
         const change = newRate - oldRate;
         const changePercent = ((change / oldRate) * 100).toFixed(2);
         console.log(`${currency}: ${oldRate} → ${newRate} (${change > 0 ? '+' : ''}${change.toFixed(2)}, ${changePercent}%)`);
@@ -192,7 +216,18 @@ window.fetchCurrencyRates = async function(forceRefresh = false) {
     window.currencyTickerState.error = 'Failed to update rates. ' + error.message;
   }
   
-  if (window.forceUpdate) window.forceUpdate();
+  // Final force update
+  if (window.forceUpdate && typeof window.forceUpdate === 'function') {
+    try {
+      window.forceUpdate();
+    } catch (e) {
+      console.warn('ForceUpdate failed at end:', e);
+      // Try alternative update method
+      setTimeout(() => {
+        if (window.renderApp) window.renderApp();
+      }, 100);
+    }
+  }
 };
 
 // Initialize rates
@@ -213,6 +248,9 @@ window.initializeCurrencyTicker = function() {
     const dailyRates = window.CurrencyService.getPreviousDayRates();
     if (dailyRates) {
       window.currencyTickerState.previousRates = dailyRates;
+    } else {
+      // Use current rates as previous if no daily rates exist
+      window.currencyTickerState.previousRates = { ...window.currencyTickerState.rates };
     }
   }
   
@@ -253,28 +291,41 @@ window.renderCurrencyTicker = () => {
     if (window.forceUpdate) window.forceUpdate();
   };
 
+  // Safe getChangePercent function
   const getChangePercent = (currency) => {
+    if (!state.rates || !state.rates[currency]) return 0;
     if (!state.previousRates || !state.previousRates[currency]) return 0;
+    
     const current = state.rates[currency];
     const previous = state.previousRates[currency];
+    
+    if (!current || !previous || previous === 0) return 0;
+    
     return ((current - previous) / previous * 100).toFixed(2);
   };
 
   const getChangeColor = (currency) => {
-    const change = getChangePercent(currency);
+    const change = parseFloat(getChangePercent(currency));
     return change > 0 ? 'text-green-500' : change < 0 ? 'text-red-500' : 'text-gray-500';
   };
 
   const getArrow = (currency) => {
-    const change = getChangePercent(currency);
+    const change = parseFloat(getChangePercent(currency));
     return change > 0 ? '▲' : change < 0 ? '▼' : '—';
   };
 
-  const convertedAmount = state.conversionAmount * state.rates[state.fromCurrency];
+  const convertedAmount = state.conversionAmount * (state.rates[state.fromCurrency] || 1);
 
-  // Create ticker items
+  // Create ticker items with safety checks
   const tickerItems = window.CURRENCY_CONFIG.MAIN_CURRENCIES.map((currency) => {
     const rate = state.rates[currency];
+    
+    // Safety check for undefined rate
+    if (!rate) {
+      console.warn(`Rate not found for ${currency}`);
+      return null;
+    }
+    
     const change = getChangePercent(currency);
     const color = getChangeColor(currency);
     const arrow = getArrow(currency);
@@ -284,13 +335,13 @@ window.renderCurrencyTicker = () => {
       className: 'flex items-center gap-1 px-3 border-r border-gray-700 whitespace-nowrap'
     },
       React.createElement('span', { className: 'font-bold text-gray-300 text-xs' }, currency),
-      React.createElement('span', { className: 'font-mono text-white text-sm' }, '₹' + rate.toFixed(2)),
+      React.createElement('span', { className: 'font-mono text-white text-sm' }, '₹' + (rate || 0).toFixed(2)),
       React.createElement('span', { className: color + ' font-mono text-xs flex items-center gap-0.5' },
         arrow,
-        Math.abs(change) + '%'
+        Math.abs(parseFloat(change)) + '%'
       )
     );
-  });
+  }).filter(Boolean); // Remove any null items
 
   return React.createElement('div', { className: 'relative max-w-xl' },
     // Wall Street Style Ticker
@@ -320,7 +371,7 @@ window.renderCurrencyTicker = () => {
             }
           },
             tickerItems,
-            tickerItems
+            tickerItems // Duplicate for seamless scrolling
           )
         ),
         
@@ -414,12 +465,12 @@ window.renderCurrencyTicker = () => {
         // Exchange rate info
         React.createElement('div', { className: 'text-xs text-gray-400 border-t border-gray-700 pt-3 space-y-1' },
           React.createElement('p', null, 
-            '1 ' + state.fromCurrency + ' = ₹' + state.rates[state.fromCurrency].toFixed(2)
+            '1 ' + state.fromCurrency + ' = ₹' + (state.rates[state.fromCurrency] || 0).toFixed(2)
           ),
           React.createElement('p', null, 
             'Change: ',
             React.createElement('span', { className: getChangeColor(state.fromCurrency) },
-              getArrow(state.fromCurrency) + ' ' + Math.abs(getChangePercent(state.fromCurrency)) + '%'
+              getArrow(state.fromCurrency) + ' ' + Math.abs(parseFloat(getChangePercent(state.fromCurrency))) + '%'
             )
           ),
           React.createElement('p', null, 
@@ -428,14 +479,14 @@ window.renderCurrencyTicker = () => {
               'Using cached rates'
           ),
           React.createElement('div', { className: 'flex gap-2 mt-2' },
-         React.createElement('button', {
-  onClick: () => {
-    console.log('🔄 Manual refresh triggered');
-    window.fetchCurrencyRates(true); // Pass true to force refresh
-  },
-  className: 'text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors disabled:opacity-50',
-  disabled: state.loading
-}, state.loading ? 'Updating...' : 'Refresh Rates'),
+            React.createElement('button', {
+              onClick: () => {
+                console.log('🔄 Manual refresh triggered');
+                window.fetchCurrencyRates(true); // Pass true to force refresh
+              },
+              className: 'text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors disabled:opacity-50',
+              disabled: state.loading
+            }, state.loading ? 'Updating...' : 'Refresh Rates'),
             React.createElement('button', {
               onClick: toggleConverter,
               className: 'text-xs bg-gray-700 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors'
@@ -479,4 +530,4 @@ window.cleanupCurrencyTicker = function() {
   }
 };
 
-console.log('✅ Currency Ticker component loaded successfully (No Hooks Version)');
+console.log('✅ Currency Ticker component loaded successfully (Fixed Version)');
