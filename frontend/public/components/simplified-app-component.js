@@ -3177,93 +3177,102 @@ console.log("✅ AssignmentRulesTab exposed to window");
     renderSidebar(),
     React.createElement('div', { className: 'flex-1 flex flex-col overflow-hidden' },
       React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-6 py-2' },
-        React.createElement('div', { className: 'flex items-center justify-between' },
-        React.createElement('button', {
+  React.createElement('div', { className: 'flex items-center justify-between gap-4' },
+    // Left section - Welcome message
+    React.createElement('div', { className: 'flex items-center flex-shrink-0' },
+      React.createElement('button', {
         className: 'lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded mr-4',
         onClick: () => window.toggleMobileMenu && window.toggleMobileMenu()
-        },
+      },
         React.createElement('svg', {
-        width: '24',
-        height: '24',
-        viewBox: '0 0 24 24',
-        fill: 'none',
-        stroke: 'currentColor',
-        strokeWidth: '2'
+          width: '24',
+          height: '24',
+          viewBox: '0 0 24 24',
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: '2'
         },
-        React.createElement('path', { d: 'M3 12h18M3 6h18M3 18h18' })
-        )
-        ),
-          React.createElement('div', null,
-            React.createElement('h1', { className: 'text-lg font-semibold' }, 'Welcome, ' + (state.user?.name || 'Admin User')),
-            React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, window.USER_ROLES[state.user?.role]?.label + ' • ' + state.user?.department)
-          ),
-            React.createElement('div', { className: 'mx-4 flex flex-col gap-1' },
-  window.renderCurrencyTicker && window.renderCurrencyTicker(),
-  window.renderDailySummaryTicker && window.renderDailySummaryTicker()
-),
-          React.createElement('div', { className: 'flex items-center space-x-4' },
-            React.createElement('span', { className: 'text-lg' }, '🔔'),
-            React.createElement('button', {
-              onClick: () => state.setShowHelpGuide(true),
-              className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
-              title: 'How to use CRM'
-            }, '❓'),
-            React.createElement('button', {
-            onClick: () => {
-              // Toggle the state
-              const newDarkMode = !state.darkMode;
-              state.setDarkMode(newDarkMode);
-              
-              // Immediately update DOM and localStorage as a fallback
-              // This ensures the change happens even if useEffect doesn't trigger
-              if (newDarkMode) {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('crm_dark_mode', 'true');
-              } else {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('crm_dark_mode', 'false');
-              }
-              
-              // Also update the global window state for consistency
-              window.darkMode = newDarkMode;
-              window.appState.darkMode = newDarkMode;
-            },
-            className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
-            title: state.darkMode ? 'Switch to light mode' : 'Switch to dark mode'
-          }, state.darkMode ? '☀️' : '🌙'),
-            React.createElement('div', { className: 'w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center' },
-              React.createElement('span', { className: 'text-white text-sm' }, (state.user?.name || 'A')[0])
-            ),
-            state.currentUser && state.currentUser.role === 'super_admin' && React.createElement('div', { 
-              className: 'flex items-center gap-2 ml-4'
-            },
-              React.createElement('button', {
-                onClick: () => {
-                  const newMode = !state.testMode;
-                  state.setTestMode(newMode);
-                  localStorage.setItem('testMode', newMode.toString());
-                  if (newMode) {
-                    document.body.classList.add('test-mode-active');
-                  } else {
-                    document.body.classList.remove('test-mode-active');
-                  }
-                },
-                className: 'relative inline-flex h-6 w-12 items-center rounded-full transition-colors ' + 
-                  (state.testMode ? 'bg-red-600' : 'bg-gray-300'),
-                title: 'Toggle Test Mode'
-              },
-                React.createElement('span', {
-                  className: 'inline-block h-4 w-4 transform rounded-full bg-white transition-transform ' +
-                    (state.testMode ? 'translate-x-6' : 'translate-x-1')
-                })
-              ),
-              state.testMode && React.createElement('span', { 
-                className: 'text-red-600 font-bold text-sm ml-2'
-              }, 'TEST MODE')
-            )
-          )
+          React.createElement('path', { d: 'M3 12h18M3 6h18M3 18h18' })
         )
       ),
+      React.createElement('div', null,
+        React.createElement('h1', { className: 'text-lg font-semibold' }, 'Welcome, ' + (state.user?.name || 'Admin User')),
+        React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, window.USER_ROLES[state.user?.role]?.label + ' • ' + state.user?.department)
+      )
+    ),
+    
+    // Middle section - Tickers (with controlled width)
+    React.createElement('div', { className: 'flex-1 mx-4 overflow-hidden' },
+      React.createElement('div', { className: 'flex flex-col gap-1 max-w-2xl' },
+        window.renderCurrencyTicker && window.renderCurrencyTicker(),
+        window.renderDailySummaryTicker && window.renderDailySummaryTicker()
+      )
+    ),
+    
+    // Right section - Icons (flex-shrink-0 prevents them from disappearing)
+    React.createElement('div', { className: 'flex items-center space-x-4 flex-shrink-0' },
+      React.createElement('span', { className: 'text-lg' }, '🔔'),
+      React.createElement('button', {
+        onClick: () => state.setShowHelpGuide(true),
+        className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
+        title: 'How to use CRM'
+      }, '❓'),
+      React.createElement('button', {
+        onClick: () => {
+          // Toggle the state
+          const newDarkMode = !state.darkMode;
+          state.setDarkMode(newDarkMode);
+          
+          // Immediately update DOM and localStorage as a fallback
+          // This ensures the change happens even if useEffect doesn't trigger
+          if (newDarkMode) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('crm_dark_mode', 'true');
+          } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('crm_dark_mode', 'false');
+          }
+          
+          // Also update the global window state for consistency
+          window.darkMode = newDarkMode;
+          window.appState.darkMode = newDarkMode;
+        },
+        className: 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors',
+        title: state.darkMode ? 'Switch to light mode' : 'Switch to dark mode'
+      }, state.darkMode ? '☀️' : '🌙'),
+      React.createElement('div', { className: 'w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center' },
+        React.createElement('span', { className: 'text-white text-sm' }, (state.user?.name || 'A')[0])
+      ),
+      state.currentUser && state.currentUser.role === 'super_admin' && React.createElement('div', { 
+        className: 'flex items-center gap-2 ml-4'
+      },
+        React.createElement('button', {
+          onClick: () => {
+            const newMode = !state.testMode;
+            state.setTestMode(newMode);
+            localStorage.setItem('testMode', newMode.toString());
+            if (newMode) {
+              document.body.classList.add('test-mode-active');
+            } else {
+              document.body.classList.remove('test-mode-active');
+            }
+          },
+          className: 'relative inline-flex h-6 w-12 items-center rounded-full transition-colors ' + 
+            (state.testMode ? 'bg-red-600' : 'bg-gray-300'),
+          title: 'Toggle Test Mode'
+        },
+          React.createElement('span', {
+            className: 'inline-block h-4 w-4 transform rounded-full bg-white transition-transform ' +
+              (state.testMode ? 'translate-x-6' : 'translate-x-1')
+          })
+        ),
+        state.testMode && React.createElement('span', { 
+          className: 'text-red-600 font-bold text-sm ml-2'
+        }, 'TEST MODE')
+      )
+    )
+  )
+),
       React.createElement('main', { className: 'flex-1 overflow-y-auto p-6' },
         state.testMode && state.user.role === 'super_admin' && React.createElement('div', {
           className: 'bg-red-100 border-2 border-red-500 text-red-700 p-4 rounded-lg mb-4 text-center font-bold animate-pulse'
