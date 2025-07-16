@@ -261,7 +261,7 @@
             transform: translateY(-50%);
         }
         
-        /* Football animation */
+        /* Football animation - FIXED to prevent interference */
         @keyframes footballKick {
             0%, 100% { transform: rotate(0deg) translateX(0); }
             50% { transform: rotate(360deg) translateX(300px); }
@@ -276,6 +276,18 @@
             animation: footballKick 6s ease-in-out infinite;
             z-index: 1;
             pointer-events: none;
+            /* Ensure football doesn't create any text nodes */
+            font-size: 0 !important;
+            color: transparent !important;
+            overflow: hidden !important;
+        }
+        
+        /* Specific fix for football sport type */
+        .football-bg ~ * .stadium-section {
+            position: relative !important;
+            z-index: 100 !important;
+            display: block !important;
+            clear: both !important;
         }
         
         /* Tennis ball animation */
@@ -319,11 +331,30 @@
         .basketball {
             position: fixed;
             z-index: 1; /* Lower z-index to prevent overlap with content */
+            pointer-events: none !important;
+            user-select: none !important;
         }
         
         .f1-car {
             position: fixed;
             z-index: 1;
+            pointer-events: none !important;
+            user-select: none !important;
+        }
+        
+        /* Ensure no text elements float */
+        .content * {
+            position: relative;
+            z-index: inherit;
+        }
+        
+        /* Fix any floating text that might appear */
+        body::before,
+        body::after,
+        .hero::before,
+        .hero::after {
+            content: none !important;
+            display: none !important;
         }
         
         /* Hide all sport elements on very small screens */
@@ -589,10 +620,15 @@
             padding: 40px;
             background: rgba(255, 255, 255, 0.03);
             border-radius: 20px;
-            position: relative;
+            position: relative !important;
             overflow: hidden;
-            z-index: 10; /* Above animations */
+            z-index: 20 !important; /* Higher than all animations */
             isolation: isolate; /* Create new stacking context */
+            display: block !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            transform: none !important; /* Prevent any transforms */
+            animation: none !important; /* Prevent any animations */
         }
         
         .stadium-section::before {
@@ -1150,9 +1186,39 @@
             text-align: center;
         }
         
-        /* Hide any stray elements */
-        body > *:not(#root):not(script):not(style) {
+        /* Global fix to prevent any floating text */
+        *:not(.stadium-section):not(.section-title):not(.stadium-section *) {
+            &:contains("St") {
+                display: none !important;
+            }
+        }
+        
+        /* Hide all pseudo elements that might contain text */
+        *::before,
+        *::after {
+            content: '' !important;
+        }
+        
+        /* Specific selectors for potentially problematic elements */
+        div:empty:not(.cricket-ball):not(.football):not(.tennis-ball):not(.basketball):not(.f1-car),
+        span:empty,
+        p:empty {
             display: none !important;
+        }
+        
+        /* Ensure stadium section is always visible and properly styled */
+        .content .stadium-section {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative !important;
+            z-index: 50 !important;
+            margin: 60px 0 !important;
+            transform: none !important;
+            animation: none !important;
+            clear: both !important;
+            float: none !important;
+            width: 100% !important;
         }
         
         /* Mobile Responsive */
@@ -1661,9 +1727,31 @@
                     // Animate sport elements
                     const ballInterval = setInterval(animateBall, 50);
                     
+                    // Fix for any stray floating elements
+                    const cleanupInterval = setInterval(() => {
+                        // Remove any elements that might contain "St" text
+                        const allElements = document.querySelectorAll('*');
+                        allElements.forEach(el => {
+                            if (el.textContent === 'St' || el.textContent === 'St...' || el.textContent === 'ST') {
+                                if (!el.closest('.stadium-section') && !el.closest('.section-title')) {
+                                    el.style.display = 'none';
+                                }
+                            }
+                        });
+                        
+                        // Ensure stadium section is visible
+                        const stadiumSection = document.querySelector('.stadium-section');
+                        if (stadiumSection) {
+                            stadiumSection.style.display = 'block';
+                            stadiumSection.style.position = 'relative';
+                            stadiumSection.style.zIndex = '50';
+                        }
+                    }, 100);
+                    
                     return () => {
                         clearInterval(countdownInterval);
                         clearInterval(ballInterval);
+                        clearInterval(cleanupInterval);
                     };
                 }
             }, [journeyData]);
@@ -1814,21 +1902,23 @@
                         
                         {/* Stadium Information */}
                         {journeyData.stadium_info && (
-                            <div className={`stadium-section ${sportType}`}>
-                                <h2 className="section-title">Stadium Information</h2>
-                                <div className="text-center">
-                                    <h3 className="text-2xl mb-2">{journeyData.stadium_info.name || journeyData.venue}</h3>
-                                    <p className="text-gray-400 mb-4">{journeyData.stadium_info.city}</p>
-                                    {sportType === 'cricket' && journeyData.match_format === 'Test' && (
-                                        <p className="text-sm text-yellow-500">
-                                            📅 Remember: Test match spans multiple days. Your ticket includes all days.
-                                        </p>
-                                    )}
-                                    {journeyData.is_local_event && (
-                                        <p className="text-sm text-blue-400 mt-2">
-                                            🚗 Gates open 2 hours before play. Parking details will be sent separately.
-                                        </p>
-                                    )}
+                            <div className={`stadium-section ${sportType}`} style={{ position: 'relative', zIndex: 50 }}>
+                                <div style={{ position: 'relative', zIndex: 1 }}>
+                                    <h2 className="section-title">Stadium Information</h2>
+                                    <div className="text-center">
+                                        <h3 className="text-2xl mb-2">{journeyData.stadium_info.name || journeyData.venue}</h3>
+                                        <p className="text-gray-400 mb-4">{journeyData.stadium_info.city || ''}</p>
+                                        {sportType === 'cricket' && journeyData.match_format === 'Test' && (
+                                            <p className="text-sm text-yellow-500">
+                                                📅 Remember: Test match spans multiple days. Your ticket includes all days.
+                                            </p>
+                                        )}
+                                        {journeyData.is_local_event && (
+                                            <p className="text-sm text-blue-400 mt-2">
+                                                🚗 Gates open 2 hours before play. Parking details will be sent separately.
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         )}
