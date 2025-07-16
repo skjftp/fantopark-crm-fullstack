@@ -839,6 +839,19 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
     
     return dataFetchPromise;
   };
+
+window.initializeDarkMode = function() {
+  const savedDarkMode = localStorage.getItem('crm_dark_mode') === 'true';
+  if (savedDarkMode) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+  return savedDarkMode;
+};
+
+// Call this before React renders:
+window.initializeDarkMode();
   
   // Override the original functions to use consolidated fetch
   if (originalFetchData) {
@@ -959,6 +972,39 @@ window.optimizeLoginPerformance();
 
 <!-- CSS Styles -->
 <style>
+
+  /* Ensure proper dark mode inheritance */
+.dark main {
+  background-color: rgb(17 24 39); /* gray-900 */
+  color: rgb(243 244 246); /* gray-100 */
+}
+
+/* Fix for any nested containers that might override */
+.dark .bg-white {
+  background-color: rgb(31 41 55); /* gray-800 */
+}
+
+.dark .bg-gray-50 {
+  background-color: rgb(17 24 39); /* gray-900 */
+}
+
+/* Ensure table containers respect dark mode */
+.dark .bg-white.rounded-lg.shadow {
+  background-color: rgb(31 41 55); /* gray-800 */
+}
+
+/* Fix text colors in dark mode */
+.dark .text-gray-900 {
+  color: rgb(243 244 246); /* gray-100 */
+}
+
+.dark .text-gray-600 {
+  color: rgb(156 163 175); /* gray-400 */
+}
+
+.dark .text-gray-500 {
+  color: rgb(209 213 219); /* gray-300 */
+}
 
  /* Quick fix for tab overlay issues */
 .flex-1.overflow-auto > div {

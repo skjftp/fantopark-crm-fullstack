@@ -287,9 +287,20 @@ const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentForm, setCurrentForm] = useState('');
   const [currentLead, setCurrentLead] = useState(null);
   const [currentInventory, setCurrentInventory] = useState(null);
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem('crm_dark_mode') === 'true';
-  });
+const [darkMode, setDarkMode] = useState(() => {
+  // Check localStorage on initialization
+  const savedDarkMode = localStorage.getItem('crm_dark_mode');
+  const isDark = savedDarkMode === 'true';
+  
+  // Apply the dark class immediately on initialization
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+  
+  return isDark;
+});
   const [currentUser, setCurrentUser] = useState(null);
   const [formData, setFormData] = useState({});
   const [allocationData, setAllocationData] = useState({});
