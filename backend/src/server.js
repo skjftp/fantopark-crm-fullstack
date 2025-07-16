@@ -16,6 +16,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:8000', 
   'http://localhost:8080',
+  'https://3000-my-workstation.cluster-zimojywdj5auyrswx7eyn2ckg6.cloudworkstations.dev',
   'https://skjftp.github.io',
   'https://lehrado.com',
   'https://www.lehrado.com',
