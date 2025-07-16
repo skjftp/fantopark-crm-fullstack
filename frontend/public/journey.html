@@ -635,6 +635,8 @@
             color: #888;
             letter-spacing: 2px;
             text-transform: uppercase;
+            overflow: hidden;
+            white-space: nowrap;
         }
         
         /* Hero Section */
@@ -644,6 +646,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden; /* Prevent any element overflow */
         }
         
         .content {
@@ -700,7 +703,7 @@
             color: #888;
         }
         
-        /* Countdown Timer */
+        /* Countdown Timer - FIXED */
         .countdown-section {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 20px;
@@ -708,12 +711,16 @@
             margin: 60px 0;
             text-align: center;
             backdrop-filter: blur(10px);
+            overflow: hidden; /* Prevent text overflow */
+            position: relative;
         }
         
         .countdown-title {
             font-size: 24px;
             margin-bottom: 30px;
             color: #d4af37;
+            overflow: hidden;
+            white-space: nowrap;
         }
         
         .countdown-timer {
@@ -725,6 +732,7 @@
         
         .countdown-item {
             text-align: center;
+            min-width: 100px; /* Ensure enough space for "MINUTES" */
         }
         
         .countdown-value {
@@ -732,6 +740,7 @@
             font-weight: 700;
             color: #ffffff;
             display: block;
+            line-height: 1;
         }
         
         .countdown-label {
@@ -739,6 +748,10 @@
             color: #888;
             text-transform: uppercase;
             letter-spacing: 1px;
+            display: block;
+            margin-top: 10px;
+            white-space: nowrap; /* Prevent text wrapping */
+            overflow: visible; /* Ensure full text displays */
         }
         
         /* Services Grid */
@@ -909,7 +922,7 @@
             border: 1px solid #d4af37;
         }
         
-        /* Weather Widget - Fixed for mobile */
+        /* Weather Widget - FIXED for desktop and mobile */
         .weather-widget {
             position: fixed;
             top: 20px;
@@ -1040,6 +1053,11 @@
             text-align: center;
         }
         
+        /* Hide any stray elements */
+        body > *:not(#root):not(script):not(style) {
+            display: none !important;
+        }
+        
         /* Mobile Responsive - FIXED WEATHER WIDGET */
         @media (max-width: 768px) {
             .content {
@@ -1103,15 +1121,39 @@
                 display: none !important;
             }
             
-            /* Fix weather widget for mobile */
+            /* Fix weather widget for mobile - KEEP IT FIXED */
             .weather-widget {
-                position: relative !important;
-                top: auto !important;
-                right: auto !important;
-                margin: 20px auto 30px;
-                max-width: 350px;
-                display: block;
-                float: none !important;
+                position: fixed !important;
+                top: 10px !important;
+                right: 10px !important;
+                left: auto !important;
+                bottom: auto !important;
+                margin: 0 !important;
+                max-width: 150px;
+                padding: 15px;
+                z-index: 1000;
+                background: rgba(0, 0, 0, 0.9);
+            }
+            
+            .weather-temp {
+                font-size: 24px;
+            }
+            
+            .weather-info {
+                gap: 10px;
+            }
+            
+            .weather-title {
+                font-size: 10px;
+            }
+            
+            .weather-condition {
+                font-size: 12px;
+            }
+            
+            /* Adjust welcome section to avoid overlap */
+            .welcome-section {
+                padding-top: 20px;
             }
             
             .timeline::before {
@@ -1155,6 +1197,10 @@
             
             .countdown-value {
                 font-size: 36px;
+            }
+            
+            .countdown-item {
+                min-width: 80px;
             }
             
             /* Ensure no floating elements */
@@ -1614,7 +1660,7 @@
                             </div>
                         )}
                         
-                        {/* Countdown Timer */}
+                        {/* Countdown Timer - FIXED */}
                         <div className="countdown-section">
                             <h3 className="countdown-title">
                                 {sport.countdownTitle}
@@ -1622,15 +1668,15 @@
                             <div className="countdown-timer">
                                 <div className="countdown-item">
                                     <span className="countdown-value">{countdown.days}</span>
-                                    <span className="countdown-label">Days</span>
+                                    <span className="countdown-label">DAYS</span>
                                 </div>
                                 <div className="countdown-item">
                                     <span className="countdown-value">{countdown.hours}</span>
-                                    <span className="countdown-label">Hours</span>
+                                    <span className="countdown-label">HOURS</span>
                                 </div>
                                 <div className="countdown-item">
                                     <span className="countdown-value">{countdown.minutes}</span>
-                                    <span className="countdown-label">Minutes</span>
+                                    <span className="countdown-label">MINUTES</span>
                                 </div>
                             </div>
                         </div>
