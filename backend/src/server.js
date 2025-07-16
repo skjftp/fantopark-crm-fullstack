@@ -24,6 +24,9 @@ const allowedOrigins = [
   /^https:\/\/.*-my-workstation\.cluster-.*\.cloudworkstations\.dev$/
 ];
 
+const journeyRoutes = require('./routes/journeys');
+app.use('/api/journeys', journeyRoutes);
+
 // ✅ UPDATED: More flexible CORS configuration
 app.use(cors({
   origin: function (origin, callback) {
