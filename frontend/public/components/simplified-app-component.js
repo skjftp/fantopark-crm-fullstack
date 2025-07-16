@@ -195,18 +195,32 @@ window.SimplifiedApp = function() {
   
   try {
     state = window.renderMainApp();
+    // Mark app state as initialized once we have state
+    if (state) {
+      window.appState.initialized = true;
+    }
   } catch (error) {
     console.error("❌ Error initializing main app:", error);
-    return React.createElement('div', { className: 'flex justify-center items-center h-screen' },
-      React.createElement('div', { className: 'text-xl text-red-600' }, 'Error initializing app: ' + error.message)
+    return React.createElement('div', { className: 'flex justify-center items-center h-screen bg-gray-100' },
+      React.createElement('div', { className: 'bg-white p-8 rounded-lg shadow-md text-center' },
+        React.createElement('h1', { className: 'text-2xl font-bold text-red-600 mb-4' }, 'Initialization Error'),
+        React.createElement('p', { className: 'text-gray-600' }, error.message),
+        React.createElement('button', {
+          onClick: () => window.location.reload(),
+          className: 'mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700'
+        }, 'Reload Page')
+      )
     );
   }
   
   // ✅ WAIT FOR STATE TO BE READY
   if (!state || typeof state.setLoading !== 'function') {
     console.log("⏳ Waiting for state initialization...");
-    return React.createElement('div', { className: 'flex justify-center items-center h-screen' },
-      React.createElement('div', { className: 'text-xl text-gray-600' }, 'Initializing...')
+    return React.createElement('div', { className: 'flex justify-center items-center h-screen bg-gray-100' },
+      React.createElement('div', { className: 'text-center' },
+        React.createElement('div', { className: 'text-2xl text-gray-600 mb-4' }, 'Initializing...'),
+        React.createElement('div', { className: 'text-sm text-gray-500' }, 'Please wait while we load the application')
+      )
     );
   }
   
@@ -3829,6 +3843,480 @@ window.SimplifiedApp = function() {
 }; // Close SimplifiedApp function
 
 // SIMPLE MOBILE RESPONSIVE FIX
+// Add this to the bottom of your simplified-app-component.js file
+
+// Mobile styles - add these styles to make your app responsive
+const mobileStyles = `
+    /* Mobile Navigation */
+    @media (max-width: 1024px) {
+        /* Hide sidebar on mobile by default */
+        .sidebar {
+            position: fixed;
+            left: -100%;
+            top: 0;
+            height: 100vh;
+            width: 250px;
+            transition: left 0.3s ease;
+            z-index: 50;
+        }
+        
+        /* Show sidebar when menu is open */
+        .sidebar.open {
+            left: 0;
+        }
+        
+        /* Mobile overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+        }
+        
+        .mobile-overlay.show {
+            display: block;
+        }
+        
+        /* Main content takes full width on mobile */
+        .main-content {
+            margin-left: 0 !important;
+            padding-top: 60px; /* Space for mobile header */
+        }
+        
+        /* Mobile header */
+        .mobile-header {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            align-items: center;
+            padding: 0 1rem;
+            z-index: 30;
+        }
+        
+        /* Tables - make them scrollable */
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        table {
+            min-width: 600px;
+        }
+        
+        /* Responsive grid */
+        .grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+        }
+        
+        /* Responsive padding */
+        .p-6 {
+            padding: 1rem !important;
+        }
+        
+        /* Stack filters vertically */
+        .filters-grid {
+            grid-template-columns: 1fr !important;
+        }
+    }
+    
+    /* Desktop - show sidebar */
+    @media (min-width: 1025px) {
+        .mobile-header {
+            display: none !important;
+        }
+        
+        .mobile-overlay {
+            display: none !important;
+        }
+        
+        .sidebar {
+            position: static !important;
+            left: 0 !important;
+        }
+    }
+`;
+
+// Add styles to document
+if (!document.getElementById('mobile-responsive-styles')) {
+    const styleSheet = document.createElement('style');
+    styleSheet.id = 'mobile-responsive-styles';
+    styleSheet.textContent = mobileStyles;
+    document.head.appendChild(styleSheet);
+}
+
+// Simple mobile menu toggle function
+window.toggleMobileMenu = function() {
+    const sidebar = document.querySelector('.w-64.bg-white');
+    const overlay = document.getElementById('mobile-overlay');
+    
+    if (sidebar) {
+        sidebar.classList.toggle('open');
+        if (overlay) {
+            overlay.classList.toggle('show');
+        }
+    }
+};
+
+// Update your SimplifiedApp component to add mobile header
+window.addMobileHeader = function() {
+    const oldSimplifiedApp = window.SimplifiedApp;
+    
+    window.SimplifiedApp = function() {
+        const result = oldSimplifiedApp();
+        
+        if (!result || !window.appState.isLoggedIn) return result;
+        
+        // Wrap the existing content and add mobile header
+        return React.createElement('div', null,
+            // Mobile Header
+            React.createElement('div', { className: 'mobile-header lg:hidden' },
+                React.createElement('button', {
+                    onClick: window.toggleMobileMenu,
+                    className: 'p-2 hover:bg-gray-100 rounded'
+                },
+                    React.createElement('svg', {
+                        width: '24',
+                        height: '24',
+                        viewBox: '0 0 24 24',
+                        fill: 'none',
+                        stroke: 'currentColor',
+                        strokeWidth: '2'
+                    },
+                        React.createElement('path', {
+                            d: 'M3 12h18M3 6h18M3 18h18'
+                        })
+                    )
+                ),
+                React.createElement('h1', { className: 'text-lg font-semibold flex-1 text-center' }, 
+                    'FanToPark CRM'
+                ),
+                React.createElement('div', { className: 'w-10' }) // Spacer for balance
+            ),
+            
+            // Mobile Overlay
+            React.createElement('div', {
+                id: 'mobile-overlay',
+                className: 'mobile-overlay',
+                onClick: window.toggleMobileMenu
+            }),
+            
+            // Original content
+            result
+        );
+    };
+};
+
+// Add necessary classes to existing elements
+window.addResponsiveClasses = function() {
+    // Add sidebar class
+    const sidebar = document.querySelector('.w-64.bg-white');
+    if (sidebar) {
+        sidebar.classList.add('sidebar');
+    }
+    
+    // Add main-content class
+    const mainContent = document.querySelector('.flex-1.overflow-auto');
+    if (mainContent) {
+        mainContent.classList.add('main-content');
+    }
+    
+    // Add table-container class to tables
+    const tables = document.querySelectorAll('table');
+    tables.forEach(table => {
+        if (!table.parentElement.classList.contains('table-container')) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'table-container';
+            table.parentNode.insertBefore(wrapper, table);
+            wrapper.appendChild(table);
+        }
+    });
+    
+    // Add grid class to dashboard cards
+    const dashboardCards = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.xl\\:grid-cols-5');
+    if (dashboardCards) {
+        dashboardCards.classList.add('grid');
+    }
+};
+
+// Initialize mobile responsive design
+window.initializeMobileResponsive = function() {
+    console.log('🔄 Initializing simple mobile responsive design...');
+    
+    // Add mobile header wrapper
+    window.addMobileHeader();
+    
+    // Add responsive classes after a short delay
+    setTimeout(() => {
+        window.addResponsiveClasses();
+        
+        // Re-apply classes on route changes
+        const observer = new MutationObserver(() => {
+            window.addResponsiveClasses();
+        });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }, 1000);
+    
+    // Force re-render
+    if (window.renderApp) {
+        window.renderApp();
+    }
+    
+    console.log('✅ Simple mobile responsive design initialized');
+};
+
+// Auto-initialize when document is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', window.initializeMobileResponsive);
+} else {
+    window.initializeMobileResponsive();
+}
+
+// Add helper functions for inventory expansion
+window.toggleInventoryExpansion = (inventoryId) => {
+  console.log("🔄 Toggling expansion for inventory:", inventoryId);
+  window.setExpandedInventoryItems(prev => {
+    const newSet = new Set(prev);
+    if (newSet.has(inventoryId)) {
+      newSet.delete(inventoryId);
+      console.log("➖ Collapsed inventory:", inventoryId);
+    } else {
+      newSet.add(inventoryId);
+      console.log("➕ Expanded inventory:", inventoryId);
+    }
+    return newSet;
+  });
+  
+  // Force re-render by triggering a state update
+  if (window.setLoading) {
+    window.setLoading(true);
+    setTimeout(() => window.setLoading(false), 0);
+  }
+};
+
+window.debugInventoryCategories = (inventoryId) => {
+  const item = window.inventory.find(i => i.id === inventoryId);
+  console.log('Item:', item);
+  console.log('Has categories:', item?.categories);
+  console.log('Is expanded:', window.isInventoryExpanded(inventoryId));
+};
+
+// Add helper to check if an item is expanded
+window.isInventoryExpanded = (inventoryId) => {
+  return window.expandedInventoryItems && window.expandedInventoryItems.has(inventoryId);
+};
+
+// ✅ RENDER APP WITH ERROR BOUNDARY
+window.renderApp = window.renderApp || (() => {
+  const root = document.getElementById('root');
+  if (root && window.React && window.ReactDOM && window.SimplifiedApp) {
+    ReactDOM.render(
+      React.createElement(window.ErrorBoundary, null,
+        React.createElement(window.SimplifiedApp)
+      ),
+      root
+    );
+  } else {
+    console.error("❌ Missing dependencies:", {
+      root: !!root,
+      React: !!window.React,
+      ReactDOM: !!window.ReactDOM,
+      SimplifiedApp: !!window.SimplifiedApp
+    });
+  }
+});
+
+console.log("✅ Inventory expansion helpers loaded");
+console.log("✅ SimplifiedApp component fully loaded with error handling");
+
+// Ensure SimplifiedApp is available globally
+if (!window.SimplifiedApp) {
+  console.error("❌ SimplifiedApp was not properly defined!");
+}
+
+// ✅ INITIALIZE THE APP
+// Try to render if all dependencies are loaded
+if (typeof window.React !== 'undefined' && 
+    typeof window.ReactDOM !== 'undefined' && 
+    typeof window.SimplifiedApp !== 'undefined') {
+  console.log("✅ All dependencies loaded, app ready to render");
+  
+  // Auto-render if there's a root element
+  if (document.getElementById('root') && !window._appRendered) {
+    window._appRendered = true;
+    setTimeout(() => {
+      if (window.renderApp) {
+        window.renderApp();
+      } else {
+        // Direct render as fallback
+        const root = document.getElementById('root');
+        if (root) {
+          try {
+            ReactDOM.render(
+              React.createElement(window.ErrorBoundary || React.Fragment, null,
+                React.createElement(window.SimplifiedApp)
+              ),
+              root
+            );
+            console.log("✅ App rendered successfully");
+          } catch (error) {
+            console.error("❌ Error rendering app:", error);
+            // Show error screen
+            root.innerHTML = `
+              <div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: #f3f4f6;">
+                <div style="background: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); text-align: center; max-width: 500px;">
+                  <h1 style="color: #dc2626; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">Application Error</h1>
+                  <p style="color: #4b5563; margin-bottom: 1rem;">${error.message || 'An unexpected error occurred while loading the application.'}</p>
+                  <button onclick="window.location.reload()" style="background: #3b82f6; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.25rem; cursor: pointer;">
+                    Reload Page
+                  </button>
+                </div>
+              </div>
+            `;
+          }
+        }
+      }
+    }, 100);
+  }
+} else {
+  console.log("⏳ Waiting for dependencies:", {
+    React: typeof window.React !== 'undefined',
+    ReactDOM: typeof window.ReactDOM !== 'undefined',
+    SimplifiedApp: typeof window.SimplifiedApp !== 'undefined'
+  });
+  
+  // Show loading screen while waiting
+  const root = document.getElementById('root');
+  if (root && !root.innerHTML) {
+    root.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: #f3f4f6;">
+        <div style="text-align: center;">
+          <div style="font-size: 2rem; color: #6b7280; margin-bottom: 1rem;">Initializing...</div>
+          <div style="font-size: 0.875rem; color: #9ca3af;">Please wait while we load the application</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Retry initialization after a delay
+  setTimeout(() => {
+    if (window.renderApp && !window._appRendered) {
+      window.renderApp();
+    }
+  }, 500);
+}
+
+// End of file - ensure no missing closing braces
+
+// ✅ FINAL VALIDATION
+console.log("📋 File loaded successfully. Checking components...");
+console.log("SimplifiedApp defined:", typeof window.SimplifiedApp === 'function');
+console.log("ErrorBoundary defined:", typeof window.ErrorBoundary === 'function');
+console.log("ContentRouter defined:", typeof window.ContentRouter === 'function');
+console.log("renderApp defined:", typeof window.renderApp === 'function');
+
+// If all components are ready and app hasn't been rendered, try to render it
+if (typeof window.SimplifiedApp === 'function' && 
+    typeof window.React !== 'undefined' && 
+    typeof window.ReactDOM !== 'undefined' &&
+    !window._appRendered) {
+  console.log("✅ All components ready, attempting to render app...");
+  setTimeout(() => {
+    if (window.renderApp) {
+      window.renderApp();
+    } else {
+      // Fallback render
+      const root = document.getElementById('root');
+      if (root && window.SimplifiedApp) {
+        try {
+          ReactDOM.render(
+            React.createElement(window.SimplifiedApp),
+            root
+          );
+          window._appRendered = true;
+        } catch (error) {
+          console.error("❌ Render failed:", error);
+        }
+      }
+    }
+  }, 100);
+}
+
+// ✅ FILE COMPLETE
+
+// Create a simple initialization system
+window.initializeCRM = function() {
+  console.log("🚀 Starting CRM initialization...");
+  
+  const root = document.getElementById('root');
+  if (!root) {
+    console.error("❌ Root element not found!");
+    return;
+  }
+  
+  // Check dependencies
+  if (!window.React || !window.ReactDOM) {
+    console.error("❌ React not loaded!");
+    root.innerHTML = '<div style="padding: 20px; text-align: center;">Error: React not loaded. Please check script loading order.</div>';
+    return;
+  }
+  
+  // Try to render the app
+  try {
+    if (window.SimplifiedApp) {
+      console.log("✅ Rendering SimplifiedApp...");
+      ReactDOM.render(
+        React.createElement(window.ErrorBoundary || React.Fragment, null,
+          React.createElement(window.SimplifiedApp)
+        ),
+        root
+      );
+    } else if (window.MinimalApp) {
+      console.log("⚠️ SimplifiedApp not found, rendering MinimalApp...");
+      ReactDOM.render(
+        React.createElement(window.MinimalApp),
+        root
+      );
+    } else {
+      console.error("❌ No app component found!");
+      root.innerHTML = '<div style="padding: 20px; text-align: center;">Error: No app component found. Check console for details.</div>';
+    }
+  } catch (error) {
+    console.error("❌ Error rendering app:", error);
+    root.innerHTML = `<div style="padding: 20px; text-align: center;">
+      <h1>Application Error</h1>
+      <p>${error.message}</p>
+      <button onclick="window.location.reload()">Reload</button>
+    </div>`;
+  }
+};
+
+// Auto-initialize on various events
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', window.initializeCRM);
+} else {
+  // DOM already loaded
+  setTimeout(window.initializeCRM, 100);
+}
+
+// Also try on window load
+window.addEventListener('load', () => {
+  if (!window._appRendered) {
+    window.initializeCRM();
+  }
+});
+
+console.log("✅ SimplifiedApp component file loaded completely");
 // Add this to the bottom of your simplified-app-component.js file
 
 // Mobile styles - add these styles to make your app responsive
