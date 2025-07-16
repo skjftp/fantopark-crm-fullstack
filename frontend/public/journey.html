@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Premium Sports Journey - FanToPark</title>
+    <title>Your Premium Journey - FanToPark</title>
     
-    <!-- React and Dependencies -->
+    <!-- React and ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel Standalone for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <style>
@@ -22,22 +23,16 @@
             background: #0a0a0a;
             color: #ffffff;
             overflow-x: hidden;
-            line-height: 1.6;
         }
         
-        /* Loading Screen */
-        .loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #0a0a0a;
+        /* Loading and Error States */
+        .loading-screen, .error-screen {
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
+            text-align: center;
         }
         
         .loading-spinner {
@@ -55,66 +50,37 @@
         
         .loading-text {
             margin-top: 20px;
-            color: #d4af37;
-            font-size: 18px;
+            font-size: 14px;
+            color: #888;
             letter-spacing: 2px;
-        }
-        
-        /* Error Screen */
-        .error-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #0a0a0a;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            text-align: center;
-        }
-        
-        .error-icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-        }
-        
-        .error-title {
-            font-size: 24px;
-            color: #ff6b6b;
-            margin-bottom: 10px;
+            text-transform: uppercase;
         }
         
         .error-message {
-            color: #888;
-            margin-bottom: 30px;
+            color: #ff6b6b;
+            margin: 20px 0;
         }
         
-        .error-button {
-            padding: 12px 30px;
-            background: #d4af37;
-            color: #0a0a0a;
-            border: none;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
+        .error-icon {
+            font-size: 48px;
+            color: #ff6b6b;
+            margin-bottom: 20px;
         }
         
-        /* All the styles from the previous artifact */
-        .hero-section {
+        /* Hero Section */
+        .hero {
             min-height: 100vh;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
             position: relative;
-            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
         }
         
         .particles {
             position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
@@ -124,59 +90,19 @@
             position: absolute;
             width: 4px;
             height: 4px;
-            background: rgba(212, 175, 55, 0.3);
+            background: #d4af37;
             border-radius: 50%;
+            opacity: 0.3;
             animation: float 20s infinite linear;
         }
         
         @keyframes float {
             from {
                 transform: translateY(100vh) translateX(0);
-                opacity: 0;
-            }
-            10% {
-                opacity: 1;
-            }
-            90% {
-                opacity: 1;
             }
             to {
-                transform: translateY(-100vh) translateX(100px);
-                opacity: 0;
+                transform: translateY(-100px) translateX(100px);
             }
-        }
-        
-        .header {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            padding: 20px 50px;
-            background: rgba(10, 10, 10, 0.8);
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-        
-        .header-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(90deg, #d4af37, #f4e4c1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .event-date {
-            font-size: 14px;
-            color: #d4af37;
-            font-weight: 500;
         }
         
         .content {
@@ -185,6 +111,19 @@
             padding: 120px 50px 50px;
             max-width: 1400px;
             margin: 0 auto;
+        }
+        
+        .package-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(212, 175, 55, 0.2);
+            border: 1px solid #d4af37;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #d4af37;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
         .welcome-section {
@@ -232,6 +171,100 @@
             color: #888;
         }
         
+        /* Countdown Timer */
+        .countdown-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 60px 0;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .countdown-title {
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #d4af37;
+        }
+        
+        .countdown-timer {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .countdown-item {
+            text-align: center;
+        }
+        
+        .countdown-value {
+            font-size: 48px;
+            font-weight: 700;
+            color: #ffffff;
+            display: block;
+        }
+        
+        .countdown-label {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Included Services */
+        .services-section {
+            margin: 80px 0;
+        }
+        
+        .section-title {
+            font-size: 32px;
+            text-align: center;
+            margin-bottom: 50px;
+            color: #d4af37;
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+        
+        .service-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .service-card:hover {
+            transform: translateY(-5px);
+            border-color: #d4af37;
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
+        }
+        
+        .service-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .service-title {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+        
+        .service-description {
+            font-size: 14px;
+            color: #888;
+            line-height: 1.6;
+        }
+        
+        /* Journey Timeline */
         .journey-container {
             position: relative;
             margin: 100px 0;
@@ -265,6 +298,9 @@
         .milestone:nth-child(3) { animation-delay: 0.6s; }
         .milestone:nth-child(4) { animation-delay: 0.8s; }
         .milestone:nth-child(5) { animation-delay: 1.0s; }
+        .milestone:nth-child(6) { animation-delay: 1.2s; }
+        .milestone:nth-child(7) { animation-delay: 1.4s; }
+        .milestone:nth-child(8) { animation-delay: 1.6s; }
         
         @keyframes fadeIn {
             to {
@@ -275,12 +311,11 @@
         .milestone-content {
             position: relative;
             width: 45%;
-            padding: 40px;
-            background: rgba(26, 26, 46, 0.6);
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 20px;
+            border-radius: 15px;
             backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
         }
         
         .milestone:nth-child(odd) .milestone-content {
@@ -291,12 +326,6 @@
         .milestone:nth-child(even) .milestone-content {
             margin-right: auto;
             text-align: right;
-        }
-        
-        .milestone-content:hover {
-            transform: scale(1.02);
-            border-color: #d4af37;
-            box-shadow: 0 10px 40px rgba(212, 175, 55, 0.2);
         }
         
         .milestone-icon {
@@ -317,205 +346,120 @@
         }
         
         .milestone-title {
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 15px;
+            font-size: 24px;
+            margin-bottom: 10px;
             color: #d4af37;
         }
         
         .milestone-description {
             font-size: 16px;
-            color: #ccc;
-            line-height: 1.8;
+            color: #888;
+            line-height: 1.6;
         }
         
         .milestone-status {
             display: inline-block;
             margin-top: 15px;
-            padding: 8px 20px;
-            background: rgba(212, 175, 55, 0.1);
-            border: 1px solid #d4af37;
-            border-radius: 25px;
-            font-size: 14px;
-            color: #d4af37;
-            font-weight: 500;
-        }
-        
-        .milestone-status.completed {
-            background: rgba(46, 213, 115, 0.1);
-            border-color: #2ed573;
-            color: #2ed573;
-        }
-        
-        .weather-card {
-            background: rgba(26, 26, 46, 0.8);
-            border: 1px solid rgba(212, 175, 55, 0.3);
+            padding: 5px 15px;
             border-radius: 20px;
-            padding: 40px;
-            margin: 80px auto;
-            max-width: 800px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-        }
-        
-        .weather-title {
-            font-size: 24px;
-            color: #d4af37;
-            margin-bottom: 30px;
-        }
-        
-        .weather-info {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .weather-detail {
-            margin: 20px;
-        }
-        
-        .weather-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
-        }
-        
-        .weather-value {
-            font-size: 32px;
-            font-weight: 600;
-            color: #fff;
-        }
-        
-        .weather-label {
-            font-size: 14px;
-            color: #888;
+            font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
         
-        .experiences-section {
-            margin: 100px 0;
+        .status-completed {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            border: 1px solid #4caf50;
         }
         
-        .section-title {
-            font-size: 36px;
-            text-align: center;
-            margin-bottom: 60px;
-            background: linear-gradient(90deg, #ffffff, #d4af37);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .experiences-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 30px;
-        }
-        
-        .experience-card {
-            background: rgba(26, 26, 46, 0.6);
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 20px;
-            padding: 40px;
-            text-align: center;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-        
-        .experience-card:hover {
-            transform: translateY(-5px);
-            border-color: #d4af37;
-            box-shadow: 0 20px 40px rgba(212, 175, 55, 0.2);
-        }
-        
-        .experience-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-        
-        .experience-title {
-            font-size: 24px;
+        .status-pending {
+            background: rgba(212, 175, 55, 0.2);
             color: #d4af37;
-            margin-bottom: 15px;
+            border: 1px solid #d4af37;
         }
         
-        .experience-description {
-            color: #ccc;
-            line-height: 1.8;
+        /* Weather Widget */
+        .weather-widget {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            z-index: 100;
         }
         
+        .weather-title {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .weather-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .weather-temp {
+            font-size: 36px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+        
+        .weather-condition {
+            font-size: 14px;
+            color: #d4af37;
+        }
+        
+        /* Call to Action */
         .cta-section {
             text-align: center;
             margin: 100px 0;
-            padding: 80px 40px;
-            background: rgba(212, 175, 55, 0.05);
-            border-radius: 30px;
-            border: 1px solid rgba(212, 175, 55, 0.2);
+            padding: 60px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
+            border-radius: 20px;
         }
         
         .cta-title {
             font-size: 36px;
             margin-bottom: 20px;
+            color: #ffffff;
         }
         
-        .cta-subtitle {
+        .cta-text {
             font-size: 18px;
             color: #888;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
         
         .cta-button {
             display: inline-block;
-            padding: 18px 50px;
-            background: linear-gradient(90deg, #d4af37, #f4e4c1);
+            padding: 15px 40px;
+            background: linear-gradient(90deg, #d4af37, #f4e4bc);
             color: #0a0a0a;
             text-decoration: none;
-            border-radius: 50px;
-            font-size: 18px;
+            border-radius: 30px;
             font-weight: 600;
             transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
         .cta-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 15px 40px rgba(212, 175, 55, 0.4);
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
         }
         
-        .countdown {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin: 50px 0;
-        }
-        
-        .countdown-item {
-            text-align: center;
-            padding: 20px;
-            background: rgba(212, 175, 55, 0.1);
-            border-radius: 15px;
-            min-width: 100px;
-        }
-        
-        .countdown-value {
-            font-size: 36px;
-            font-weight: 700;
-            color: #d4af37;
-        }
-        
-        .countdown-label {
-            font-size: 14px;
-            color: #888;
-            text-transform: uppercase;
-        }
-        
+        /* Mobile Responsive */
         @media (max-width: 768px) {
-            .header {
-                padding: 15px 20px;
-            }
-            
             .content {
-                padding: 100px 20px 50px;
+                padding: 80px 20px 20px;
             }
             
             .client-name {
@@ -531,7 +475,7 @@
             }
             
             .milestone-content {
-                width: calc(100% - 80px);
+                width: calc(100% - 60px);
                 margin-left: 60px !important;
                 text-align: left !important;
             }
@@ -540,7 +484,13 @@
                 left: 30px;
             }
             
-            .experiences-grid {
+            .weather-widget {
+                position: relative;
+                margin: 20px auto;
+                max-width: 300px;
+            }
+            
+            .services-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -552,10 +502,54 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         
-        // API Configuration - Update this to match your setup
-const API_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:8080/api' 
-    : 'https://fantopark-backend-150582227311.us-central1.run.app/api';
+        // API Configuration
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:8080/api' 
+            : 'https://fantopark-backend-150582227311.us-central1.run.app/api';
+        
+        // Service Icons Mapping
+        const serviceIcons = {
+            flights: '✈️',
+            accommodation: '🏨',
+            visa_assistance: '📄',
+            transfers: '🚗',
+            hospitality: '🥂',
+            meals: '🍽️',
+            city_tour: '🏛️',
+            insurance: '🛡️'
+        };
+        
+        // Service Names Mapping
+        const serviceNames = {
+            flights: 'Flights',
+            accommodation: 'Hotel Accommodation',
+            visa_assistance: 'Visa Assistance',
+            transfers: 'Airport & Venue Transfers',
+            hospitality: 'VIP Hospitality',
+            meals: 'Meal Packages',
+            city_tour: 'City Tours',
+            insurance: 'Travel Insurance'
+        };
+        
+        // Service Descriptions
+        const serviceDescriptions = {
+            flights: 'Premium flight arrangements with flexible booking options',
+            accommodation: 'Luxury hotel accommodation near the venue',
+            visa_assistance: 'Complete visa processing and documentation support',
+            transfers: 'Private transfers between airport, hotel, and venue',
+            hospitality: 'Exclusive VIP lounge access and premium hospitality',
+            meals: 'Curated dining experiences and meal packages',
+            city_tour: 'Guided tours of local attractions and experiences',
+            insurance: 'Comprehensive travel and health insurance coverage'
+        };
+        
+        // Package Type Labels
+        const packageLabels = {
+            tickets_only: 'Essential Package',
+            standard_package: 'Standard Package',
+            premium_package: 'Premium Package',
+            custom: 'Customized Package'
+        };
         
         // Main Journey App Component
         const JourneyApp = () => {
@@ -622,7 +616,7 @@ const API_URL = window.location.hostname === 'localhost'
                 const particlesContainer = document.getElementById('particles');
                 if (!particlesContainer) return;
                 
-                const particleCount = 50;
+                const particleCount = 30;
                 particlesContainer.innerHTML = '';
                 
                 for (let i = 0; i < particleCount; i++) {
@@ -663,57 +657,93 @@ const API_URL = window.location.hostname === 'localhost'
                 return (
                     <div className="error-screen">
                         <div className="error-icon">❌</div>
-                        <h1 className="error-title">Journey Not Found</h1>
+                        <h1>Journey Not Found</h1>
                         <p className="error-message">{error}</p>
-                        <a href="https://fantopark.com" className="error-button">
-                            Go to FanToPark
-                        </a>
+                        <a href="https://fantopark.com" className="cta-button">Go to FanToPark</a>
                     </div>
                 );
             }
             
-            // Main Journey View
+            // Main Journey Display
             return (
-                <div className="hero-section">
-                    <div className="particles" id="particles"></div>
+                <div className="hero">
+                    <div id="particles" className="particles"></div>
                     
-                    <header className="header">
-                        <div className="header-content">
-                            <div className="logo">FanToPark Premium</div>
-                            <div className="event-date">
-                                {journeyData.event_name} • {new Date(journeyData.event_date).toLocaleDateString('en-US', { 
-                                    month: 'long', 
-                                    day: 'numeric', 
-                                    year: 'numeric' 
-                                })}
+                    {/* Weather Widget */}
+                    {journeyData.weather && (
+                        <div className="weather-widget">
+                            <div className="weather-title">Event Day Weather</div>
+                            <div className="weather-info">
+                                <div className="weather-temp">{journeyData.weather.temperature}°C</div>
+                                <div>
+                                    <div className="weather-condition">{journeyData.weather.condition}</div>
+                                </div>
                             </div>
                         </div>
-                    </header>
+                    )}
                     
                     <div className="content">
+                        {/* Welcome Section */}
                         <div className="welcome-section">
-                            <p className="welcome-text">Welcome to Your Premium Journey</p>
+                            {journeyData.package_type && (
+                                <div className="package-badge">
+                                    {packageLabels[journeyData.package_type] || 'Premium Experience'}
+                                </div>
+                            )}
+                            <div className="welcome-text">Welcome to Your Premium Journey</div>
                             <h1 className="client-name">{journeyData.client_name}</h1>
-                            <h2 className="event-title">{journeyData.event_name}</h2>
-                            <p className="venue-info">📍 {journeyData.venue}</p>
-                            
-                            <div className="countdown">
+                            <h2 className="event-title">{journeyData.event_name || 'Premium Event Experience'}</h2>
+                            <p className="venue-info">{journeyData.venue}</p>
+                        </div>
+                        
+                        {/* Countdown Timer */}
+                        <div className="countdown-section">
+                            <h3 className="countdown-title">YOUR EXPERIENCE BEGINS IN</h3>
+                            <div className="countdown-timer">
                                 <div className="countdown-item">
-                                    <div className="countdown-value">{countdown.days}</div>
-                                    <div className="countdown-label">Days</div>
+                                    <span className="countdown-value">{countdown.days}</span>
+                                    <span className="countdown-label">Days</span>
                                 </div>
                                 <div className="countdown-item">
-                                    <div className="countdown-value">{countdown.hours}</div>
-                                    <div className="countdown-label">Hours</div>
+                                    <span className="countdown-value">{countdown.hours}</span>
+                                    <span className="countdown-label">Hours</span>
                                 </div>
                                 <div className="countdown-item">
-                                    <div className="countdown-value">{countdown.minutes}</div>
-                                    <div className="countdown-label">Minutes</div>
+                                    <span className="countdown-value">{countdown.minutes}</span>
+                                    <span className="countdown-label">Minutes</span>
                                 </div>
                             </div>
                         </div>
                         
+                        {/* Included Services - Only show if services are included */}
+                        {journeyData.included_services && journeyData.included_services.length > 0 && (
+                            <div className="services-section">
+                                <h2 className="section-title">Your Package Includes</h2>
+                                <div className="services-grid">
+                                    {/* Always show tickets */}
+                                    <div className="service-card">
+                                        <div className="service-icon">🎫</div>
+                                        <h3 className="service-title">Event Tickets</h3>
+                                        <p className="service-description">Premium tickets secured for your event</p>
+                                    </div>
+                                    
+                                    {/* Show other included services */}
+                                    {journeyData.included_services.map(service => (
+                                        <div key={service} className="service-card">
+                                            <div className="service-icon">{serviceIcons[service] || '⭐'}</div>
+                                            <h3 className="service-title">{serviceNames[service] || service}</h3>
+                                            <p className="service-description">
+                                                {serviceDescriptions[service] || 'Premium service included in your package'}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Journey Timeline - Dynamic Milestones */}
                         <div className="journey-container">
+                            <h2 className="section-title">Your Journey Timeline</h2>
                             <div className="timeline">
                                 {journeyData.milestones && journeyData.milestones.map((milestone, index) => (
                                     <div key={milestone.id} className="milestone">
@@ -721,9 +751,8 @@ const API_URL = window.location.hostname === 'localhost'
                                         <div className="milestone-content">
                                             <h3 className="milestone-title">{milestone.title}</h3>
                                             <p className="milestone-description">{milestone.description}</p>
-                                            <span className={`milestone-status ${milestone.status === 'completed' ? 'completed' : ''}`}>
-                                                {milestone.status === 'completed' ? 'Completed' : 
-                                                 milestone.status === 'in_progress' ? 'In Progress' : 'Upcoming'}
+                                            <span className={`milestone-status status-${milestone.status}`}>
+                                                {milestone.status}
                                             </span>
                                         </div>
                                     </div>
@@ -731,55 +760,36 @@ const API_URL = window.location.hostname === 'localhost'
                             </div>
                         </div>
                         
-                        {journeyData.weather && (
-                            <div className="weather-card">
-                                <h3 className="weather-title">Match Day Weather Forecast</h3>
-                                <div className="weather-info">
-                                    <div className="weather-detail">
-                                        <div className="weather-icon">☀️</div>
-                                        <div className="weather-value">{journeyData.weather.temperature}°C</div>
-                                        <div className="weather-label">Temperature</div>
-                                    </div>
-                                    <div className="weather-detail">
-                                        <div className="weather-icon">💨</div>
-                                        <div className="weather-value">{journeyData.weather.wind_speed} km/h</div>
-                                        <div className="weather-label">Wind Speed</div>
-                                    </div>
-                                    <div className="weather-detail">
-                                        <div className="weather-icon">💧</div>
-                                        <div className="weather-value">{journeyData.weather.precipitation}%</div>
-                                        <div className="weather-label">Precipitation</div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        
+                        {/* Additional Experiences - Only show for premium packages */}
                         {journeyData.experiences && journeyData.experiences.length > 0 && (
-                            <div className="experiences-section">
-                                <h2 className="section-title">Your Premium Experiences</h2>
-                                <div className="experiences-grid">
+                            <div className="services-section">
+                                <h2 className="section-title">Exclusive Experiences</h2>
+                                <div className="services-grid">
                                     {journeyData.experiences.map((exp, index) => (
-                                        <div key={index} className="experience-card">
-                                            <div className="experience-icon">{exp.icon}</div>
-                                            <h3 className="experience-title">{exp.title}</h3>
-                                            <p className="experience-description">{exp.description}</p>
+                                        <div key={index} className="service-card">
+                                            <div className="service-icon">{exp.icon}</div>
+                                            <h3 className="service-title">{exp.title}</h3>
+                                            <p className="service-description">{exp.description}</p>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         )}
                         
+                        {/* Call to Action */}
                         <div className="cta-section">
-                            <h2 className="cta-title">Need Assistance?</h2>
-                            <p className="cta-subtitle">Your dedicated concierge is available 24/7</p>
-                            <a href="tel:+919876543210" className="cta-button">Contact Concierge</a>
+                            <h2 className="cta-title">Questions About Your Journey?</h2>
+                            <p className="cta-text">
+                                Our concierge team is here to assist you with any requests or modifications
+                            </p>
+                            <a href="mailto:support@fantopark.com" className="cta-button">Contact Concierge</a>
                         </div>
                     </div>
                 </div>
             );
         };
         
-        // Mount the app
+        // Render the app
         ReactDOM.render(<JourneyApp />, document.getElementById('root'));
     </script>
 </body>
