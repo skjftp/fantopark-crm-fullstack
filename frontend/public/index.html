@@ -839,6 +839,19 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
     
     return dataFetchPromise;
   };
+
+window.initializeDarkMode = function() {
+  const savedDarkMode = localStorage.getItem('crm_dark_mode') === 'true';
+  if (savedDarkMode) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+  return savedDarkMode;
+};
+
+// Call this before React renders:
+window.initializeDarkMode();
   
   // Override the original functions to use consolidated fetch
   if (originalFetchData) {
