@@ -309,8 +309,19 @@ useEffect(() => {
       if (window.myActionsRefreshInterval) {
         clearInterval(window.myActionsRefreshInterval);
       }
+
+          // Add cleanup for daily summary ticker
+    if (window.cleanupDailySummaryTicker) {
+      window.cleanupDailySummaryTicker();
+    }
+    
+    // Add cleanup for currency ticker if not already there
+    if (window.cleanupCurrencyTicker) {
+      window.cleanupCurrencyTicker();
+    }
     };
   }, []);
+  
 
   console.log('✅ All app effects initialized successfully');
 };
