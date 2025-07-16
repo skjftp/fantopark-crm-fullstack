@@ -3173,7 +3173,8 @@ console.log("✅ AssignmentRulesTab exposed to window");
   }
 
   // Main application layout
-  return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:bg-gray-900' },                          
+  return React.createElement('div', { className: 'flex h-screen bg-gray-100 dark:bg-gray-900' },
+  state.isLoggedIn && state.user && React.createElement(window.BirthdayCheck, { user: state.user }),                           
     renderSidebar(),
     React.createElement('div', { className: 'flex-1 flex flex-col overflow-hidden' },
       React.createElement('header', { className: 'bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-6 py-2' },
