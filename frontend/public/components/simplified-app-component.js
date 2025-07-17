@@ -3488,15 +3488,56 @@ if (!document.getElementById('mobile-responsive-styles')) {
     document.head.appendChild(styleSheet);
 }
 
-// Simple mobile menu toggle function
+// Simple mobile menu toggle function with close button
 window.toggleMobileMenu = function() {
     const sidebar = document.querySelector('.w-64.bg-white');
     const overlay = document.getElementById('mobile-overlay');
     
     if (sidebar) {
-        sidebar.classList.toggle('open');
-        if (overlay) {
-            overlay.classList.toggle('show');
+        const isOpen = sidebar.classList.contains('open');
+        
+        if (!isOpen) {
+            // Opening sidebar
+            sidebar.classList.add('open');
+            if (overlay) {
+                overlay.classList.add('show');
+            }
+            
+            // Add close button if it doesn't exist
+            if (!sidebar.querySelector('.mobile-close-btn')) {
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'mobile-close-btn';
+                closeBtn.innerHTML = '✕';
+                closeBtn.style.cssText = `
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    width: 32px;
+                    height: 32px;
+                    background: #f3f4f6;
+                    border: none;
+                    border-radius: 4px;
+                    font-size: 20px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 100;
+                `;
+                closeBtn.onclick = function() {
+                    sidebar.classList.remove('open');
+                    if (overlay) {
+                        overlay.classList.remove('show');
+                    }
+                };
+                sidebar.insertBefore(closeBtn, sidebar.firstChild);
+            }
+        } else {
+            // Closing sidebar
+            sidebar.classList.remove('open');
+            if (overlay) {
+                overlay.classList.remove('show');
+            }
         }
     }
 };
@@ -3539,10 +3580,10 @@ window.addMobileHeader = function() {
             
             // Mobile Overlay
             React.createElement('div', {
-                id: 'mobile-overlay',
-                className: 'mobile-overlay',
-                onClick: window.toggleMobileMenu
-            }),
+    id: 'mobile-overlay',
+    className: 'mobile-overlay',
+    onClick: window.toggleMobileMenu  // Make sure this line is present
+}),
             
             // Original content
             result
