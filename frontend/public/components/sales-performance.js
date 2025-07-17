@@ -16,101 +16,92 @@ function SalesPerformanceTracker() {
     end: new Date().toISOString().split('T')[0]
   });
 
-  // Initialize with sample data
-  // Fetch real data from API
-React.useEffect(() => {
-  fetchSalesPerformance();
-}, []);
+  // Fetch sales performance data
+  const fetchSalesPerformance = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('crm_auth_token');
+      
+      // Fetch sales team data
+      const salesResponse = await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (salesResponse.ok) {
+        const salesResult = await salesResponse.json();
+        setSalesData(salesResult.salesTeam || []);
+      }
+      
+      // Fetch retail tracker data
+      const retailResponse = await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance/retail-tracker?start_date=${dateRange.start}&end_date=${dateRange.end}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (retailResponse.ok) {
+        const retailResult = await retailResponse.json();
+        setRetailData(retailResult.retailData || []);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching performance data:', error);
+      alert('Error loading performance data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-// Fetch sales performance data
-const fetchSalesPerformance = async () => {
-  setLoading(true);
-  try {
-    const token = localStorage.getItem('crm_auth_token');
-    
-    // Fetch sales team data
-    const salesResponse = await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    
-    if (salesResponse.ok) {
-      const salesResult = await salesResponse.json();
-      setSalesData(salesResult.salesTeam || []);
+  // Fetch retail data separately
+  const fetchRetailData = async () => {
+    try {
+      const token = localStorage.getItem('crm_auth_token');
+      const retailResponse = await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance/retail-tracker?start_date=${dateRange.start}&end_date=${dateRange.end}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (retailResponse.ok) {
+        const retailResult = await retailResponse.json();
+        setRetailData(retailResult.retailData || []);
+      }
+    } catch (error) {
+      console.error('Error fetching retail data:', error);
     }
-    
-    // Fetch retail tracker data
-    const retailResponse = await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance/retail-tracker?start_date=${dateRange.start}&end_date=${dateRange.end}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    
-    if (retailResponse.ok) {
-      const retailResult = await retailResponse.json();
-      setRetailData(retailResult.retailData || []);
-    }
-    
-  } catch (error) {
-    console.error('Error fetching performance data:', error);
-    alert('Error loading performance data');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  // Fetch data on component mount
+  React.useEffect(() => {
+    fetchSalesPerformance();
+  }, []);
 
   // Refresh retail data when date range changes
-React.useEffect(() => {
-  if (!loading) {
-    fetchRetailData();
-  }
-}, [dateRange.start, dateRange.end]);
-
-const fetchRetailData = async () => {
-  try {
-    const token = localStorage.getItem('crm_auth_token');
-    const retailResponse = await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance/retail-tracker?start_date=${dateRange.start}&end_date=${dateRange.end}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    
-    if (retailResponse.ok) {
-      const retailResult = await retailResponse.json();
-      setRetailData(retailResult.retailData || []);
+  React.useEffect(() => {
+    if (!loading) {
+      fetchRetailData();
     }
-  } catch (error) {
-    console.error('Error fetching retail data:', error);
-  }
-};
-
-// Update target via API
-const handleTargetUpdate = async (id, newTarget) => {
-  // Update local state immediately
-  setSalesData(prevData =>
-    prevData.map(person =>
-      person.id === id ? { ...person, target: parseFloat(newTarget) || 0 } : person
-    )
-  );
-  
-  // Send update to backend
-  try {
-    const token = localStorage.getItem('crm_auth_token');
-    await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance/target/${id}`, {
-      method: 'PUT',
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ target: parseFloat(newTarget) || 0 })
-    });
-  } catch (error) {
-    console.error('Error updating target:', error);
-  }
-};
+  }, [dateRange.start, dateRange.end]);
 
   // Handle target update
-  const handleTargetUpdate = (id, newTarget) => {
+  const handleTargetUpdate = async (id, newTarget) => {
+    // Update local state immediately
     setSalesData(prevData =>
       prevData.map(person =>
         person.id === id ? { ...person, target: parseFloat(newTarget) || 0 } : person
       )
     );
+    
+    // Send update to backend
+    try {
+      const token = localStorage.getItem('crm_auth_token');
+      await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance/target/${id}`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ target: parseFloat(newTarget) || 0 })
+      });
+    } catch (error) {
+      console.error('Error updating target:', error);
+    }
   };
 
   // Add new sales team member
@@ -181,6 +172,13 @@ const handleTargetUpdate = async (id, newTarget) => {
     const convertedQual = row.qualified > 0 ? (row.converted / row.qualified * 100).toFixed(0) : 0;
     return { qualTouchbased, convertedQual };
   };
+
+  // Show loading state
+  if (loading) {
+    return React.createElement('div', { className: 'p-6 bg-gray-50 min-h-screen flex items-center justify-center' },
+      React.createElement('div', { className: 'text-gray-500' }, 'Loading performance data...')
+    );
+  }
 
   return React.createElement('div', { className: 'p-6 bg-gray-50 min-h-screen' },
     React.createElement('div', { className: 'max-w-7xl mx-auto space-y-6' },
@@ -260,7 +258,7 @@ const handleTargetUpdate = async (id, newTarget) => {
                     React.createElement('td', { 
                       colSpan: 11, 
                       className: 'border border-gray-300 p-4 text-center text-gray-500' 
-                    }, 'No team members added yet. Click "Add Team Member" to get started.')
+                    }, 'No sales team members found. Add team members or check if users have sales roles.')
                   ) :
                   salesData.map(person =>
                     React.createElement('tr', { key: person.id, className: 'hover:bg-gray-50' },
@@ -280,28 +278,28 @@ const handleTargetUpdate = async (id, newTarget) => {
                       ),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
-                      }, person.totalSales.toFixed(2)),
+                      }, (person.totalSales || 0).toFixed(2)),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
-                      }, person.actualizedSales.toFixed(2)),
+                      }, (person.actualizedSales || 0).toFixed(2)),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
-                      }, person.totalMargin.toFixed(2)),
+                      }, (person.totalMargin || 0).toFixed(2)),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
-                      }, person.actualizedMargin.toFixed(2)),
+                      }, (person.actualizedMargin || 0).toFixed(2)),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
-                      }, person.salesPersonPipeline.toFixed(2)),
+                      }, (person.salesPersonPipeline || 0).toFixed(2)),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
-                      }, person.retailPipeline.toFixed(2)),
+                      }, (person.retailPipeline || 0).toFixed(2)),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
-                      }, person.corporatePipeline.toFixed(2)),
+                      }, (person.corporatePipeline || 0).toFixed(2)),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
-                      }, person.overallPipeline.toFixed(2)),
+                      }, (person.overallPipeline || 0).toFixed(2)),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
                       },
@@ -355,7 +353,7 @@ const handleTargetUpdate = async (id, newTarget) => {
         )
       ),
 
-      // Retail Tracker Section - Now Independent
+      // Retail Tracker Section
       React.createElement('div', { className: 'bg-white rounded-lg shadow' },
         React.createElement('div', { className: 'p-6' },
           React.createElement('div', { className: 'flex justify-between items-center mb-4' },
@@ -411,7 +409,7 @@ const handleTargetUpdate = async (id, newTarget) => {
                     React.createElement('td', { 
                       colSpan: 10, 
                       className: 'border border-gray-300 p-4 text-center text-gray-500' 
-                    }, 'No retail team members added yet. Click "Add Retail Member" to get started.')
+                    }, 'No retail team members found. Add members or check department assignments.')
                   ) :
                   retailData.map(row => {
                     const metrics = calculateRetailMetrics(row);
