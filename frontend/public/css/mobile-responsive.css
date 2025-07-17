@@ -1,172 +1,235 @@
-// Add this to your main-app-component.js after other state declarations
+/* Mobile Responsive Styles - Complete File */
 
-// Mobile menu state
-const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-// Add to window.appState object
-window.appState = {
-  // ... existing state ...
-  isMobileMenuOpen, setIsMobileMenuOpen,
-};
-
-// Mobile Responsive Sidebar Component
-window.renderMobileSidebar = () => {
-  const { activeTab, setActiveTab, user, isMobileMenuOpen, setIsMobileMenuOpen } = window.appState;
-  
-  const navigationItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'leads', label: 'Leads', icon: '👥' },
-    { id: 'inventory', label: 'Inventory', icon: '📦' },
-    { id: 'orders', label: 'Orders', icon: '📋' },
-    { id: 'delivery', label: 'Delivery', icon: '🚚' },
-    { id: 'financials', label: 'Financials', icon: '💰' },
-    { id: 'stadiums', label: 'Stadiums', icon: '🏟️' },
-    { id: 'sports-calendar', label: 'Sports Calendar', icon: '📅' },
-    { id: 'reminders', label: 'Reminders', icon: '🔔' },
-    { id: 'myactions', label: 'My Actions', icon: '📌' }
-  ];
-  
-  // Add role-specific items
-  if (user?.role === 'super_admin' || user?.role === 'admin') {
-    navigationItems.push(
-      { id: 'assignment-rules', label: 'Assignment Rules', icon: '🔄' },
-      { id: 'user-management', label: 'User Management', icon: '👤' }
-    );
-  }
-  
-  if (user?.role === 'super_admin') {
-    navigationItems.push({ id: 'role-management', label: 'Role Management', icon: '🛡️' });
-  }
-
-  const handleNavClick = (tabId) => {
-    setActiveTab(tabId);
-    setIsMobileMenuOpen(false); // Close menu on mobile after selection
-  };
-
-  return React.createElement('div', null,
-    // Mobile Menu Button - Only visible on mobile
-    React.createElement('div', { 
-      className: 'lg:hidden fixed top-4 left-4 z-50'
-    },
-      React.createElement('button', {
-        onClick: () => setIsMobileMenuOpen(!isMobileMenuOpen),
-        className: 'p-2 rounded-md bg-white shadow-lg hover:bg-gray-100'
-      },
-        React.createElement('svg', {
-          className: 'w-6 h-6',
-          fill: 'none',
-          stroke: 'currentColor',
-          viewBox: '0 0 24 24'
-        },
-          isMobileMenuOpen ? 
-            React.createElement('path', {
-              strokeLinecap: 'round',
-              strokeLinejoin: 'round',
-              strokeWidth: 2,
-              d: 'M6 18L18 6M6 6l12 12'
-            }) :
-            React.createElement('path', {
-              strokeLinecap: 'round',
-              strokeLinejoin: 'round',
-              strokeWidth: 2,
-              d: 'M4 6h16M4 12h16M4 18h16'
-            })
-        )
-      )
-    ),
-    
-    // Overlay for mobile - closes menu when clicked
-    isMobileMenuOpen && React.createElement('div', {
-      className: 'lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40',
-      onClick: () => setIsMobileMenuOpen(false)
-    }),
-    
-    // Sidebar
-    React.createElement('div', {
-      className: `fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-800 shadow-lg transform transition-transform duration-300 ease-in-out ${
-        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      }`
-    },
-      // Logo/Header
-      React.createElement('div', { className: 'p-4 border-b dark:border-gray-700' },
-        React.createElement('div', { className: 'flex items-center space-x-3' },
-          React.createElement('img', {
-            src: '/favicon.ico',
-            alt: 'FanToPark',
-            className: 'w-8 h-8'
-          }),
-          React.createElement('h1', { className: 'text-xl font-bold' }, 'FanToPark CRM')
-        )
-      ),
-      
-      // User Info
-      React.createElement('div', { className: 'p-4 border-b dark:border-gray-700' },
-        React.createElement('div', { className: 'text-sm' },
-          React.createElement('p', { className: 'font-semibold' }, user?.name || 'User'),
-          React.createElement('p', { className: 'text-gray-500 text-xs' }, user?.role || 'Role')
-        )
-      ),
-      
-      // Navigation
-      React.createElement('nav', { className: 'flex-1 overflow-y-auto p-4' },
-        React.createElement('ul', { className: 'space-y-2' },
-          navigationItems.map(item =>
-            React.createElement('li', { key: item.id },
-              React.createElement('button', {
-                onClick: () => handleNavClick(item.id),
-                className: `w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${
-                  activeTab === item.id
-                    ? 'bg-blue-500 text-white'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`
-              },
-                React.createElement('span', { className: 'text-lg' }, item.icon),
-                React.createElement('span', { className: 'text-sm font-medium' }, item.label)
-              )
-            )
-          )
-        )
-      ),
-      
-      // Logout Button
-      React.createElement('div', { className: 'p-4 border-t dark:border-gray-700' },
-        React.createElement('button', {
-          onClick: window.handleLogout,
-          className: 'w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600'
-        },
-          React.createElement('span', null, '🚪'),
-          React.createElement('span', { className: 'text-sm font-medium' }, 'Logout')
-        )
-      )
-    )
-  );
-};
-
-/* ADD THESE LINES AT THE END OF mobile-responsive.css */
-
-/* Prevent horizontal scroll on mobile only */
+/* Hide sidebar on mobile */
 @media (max-width: 768px) {
-  /* Prevent body scroll */
-  html, body {
+  /* Main grid adjustments */
+  .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3.xl\:grid-cols-5 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+  
+  /* Stack cards vertically on mobile */
+  .flex.flex-wrap.gap-4 > div {
+    width: 100%;
+  }
+  
+  /* Make tables scrollable */
+  .overflow-x-auto {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  table {
+    min-width: 600px;
+  }
+  
+  /* Responsive padding */
+  .p-6 {
+    padding: 1rem;
+  }
+  
+  /* Responsive text */
+  .text-2xl {
+    font-size: 1.5rem;
+  }
+  
+  .text-xl {
+    font-size: 1.25rem;
+  }
+  
+  /* Hide sidebar initially on mobile */
+  .w-64.bg-white {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    height: 100vh;
+    z-index: 50;
+    transition: left 0.3s ease;
+  }
+  
+  /* Show sidebar when active */
+  .w-64.bg-white.mobile-open {
+    left: 0;
+  }
+  
+  /* Main content full width on mobile */
+  .flex-1.overflow-auto {
+    margin-left: 0 !important;
+  }
+  
+  /* Mobile header */
+  .mobile-header {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    align-items: center;
+    padding: 0 1rem;
+    z-index: 40;
+  }
+  
+  /* Adjust main content for header */
+  .flex-1.overflow-auto {
+    padding-top: 60px;
+  }
+}
+
+/* Desktop - show sidebar normally */
+@media (min-width: 769px) {
+  .mobile-header {
+    display: none !important;
+  }
+  
+  .mobile-overlay {
+    display: none !important;
+  }
+}
+
+/* Mobile overlay */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 45;
+}
+
+.mobile-overlay.show {
+  display: block;
+}
+
+/* Responsive chart containers */
+canvas {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* ===== NEW ADDITIONS FOR HORIZONTAL SCROLL FIX AND TICKER REMOVAL ===== */
+
+/* Remove tickers completely on mobile */
+@media (max-width: 768px) {
+  /* Hide all ticker elements */
+  .bg-gray-900.text-white.py-2,
+  .bg-red-600.text-white.py-1,
+  .bg-gray-800.text-white.py-2,
+  div[class*="ticker"],
+  /* Hide the currency/stock bar */
+  div[class*="bg-gray-900"]:first-child,
+  div[class*="bg-red-600"]:first-child,
+  /* Hide any fixed top bars that might be tickers */
+  .fixed.top-0.left-0.right-0.z-50,
+  /* Hide the info bar with leads data */
+  div:has(> span:contains("Leads Logged Today")),
+  /* Target the parent of elements containing currency symbols */
+  div:has(> *:contains("₹")):has(> *:contains("€")):has(> *:contains("$")) {
+    display: none !important;
+  }
+  
+  /* Adjust main content since ticker is gone */
+  .flex-1.overflow-auto,
+  .main-content,
+  body > div > div:not(:first-child) {
+    padding-top: 60px !important; /* Only account for mobile header */
+    margin-top: 0 !important;
+  }
+  
+  /* If there's a mobile header, ensure it's at top */
+  .mobile-header {
+    top: 0 !important;
+  }
+}
+
+/* Aggressive horizontal scroll prevention - Mobile Only */
+@media (max-width: 768px) {
+  /* Root level prevention */
+  html {
     overflow-x: hidden !important;
+    width: 100% !important;
+    position: relative !important;
+  }
+  
+  body {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    position: relative !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Prevent any element from causing overflow */
+  * {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Main containers */
+  #root, #app, [id^="__next"], .app-wrapper {
+    overflow-x: hidden !important;
+    width: 100% !important;
+  }
+  
+  /* Flex containers shouldn't cause overflow */
+  .flex, [class*="flex"] {
+    flex-wrap: wrap !important;
+  }
+  
+  /* Grid containers */
+  .grid, [class*="grid"] {
     max-width: 100% !important;
   }
   
   /* Ensure all containers stay within viewport */
-  .flex-1.overflow-auto {
-    max-width: 100vw !important;
+  .container, .wrapper, .content, [class*="container"] {
+    max-width: 100% !important;
     overflow-x: hidden !important;
   }
   
-  /* Fix any overflowing elements */
-  * {
+  /* Specific to your app structure */
+  .flex-1.overflow-auto {
     max-width: 100vw !important;
+    overflow-x: hidden !important;
+    position: relative !important;
   }
   
-  /* Make sure tables are scrollable within their containers */
+  /* Tables need special handling */
   .overflow-x-auto {
     max-width: calc(100vw - 2rem) !important;
-    margin: 0 auto !important;
+    margin: 0 1rem !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Ensure tables don't break layout */
+  table {
+    display: block !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Images shouldn't overflow */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* Long text should wrap */
+  p, span, div, h1, h2, h3, h4, h5, h6 {
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    hyphens: auto !important;
+  }
+  
+  /* Buttons and form elements */
+  button, input, select, textarea {
+    max-width: 100% !important;
+  }
+  
+  /* Fixed elements shouldn't extend beyond viewport */
+  .fixed {
+    max-width: 100vw !important;
   }
   
   /* Close button visible only on mobile */
@@ -179,5 +242,27 @@ window.renderMobileSidebar = () => {
 @media (min-width: 769px) {
   .mobile-close-btn {
     display: none !important;
+  }
+}
+
+/* Additional safety measures for horizontal scroll */
+@media (max-width: 768px) {
+  /* Remove margin/padding that might cause issues */
+  body > * {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  /* Ensure nothing has negative margins on mobile */
+  * {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  /* Fix any absolute positioned elements */
+  .absolute {
+    left: 0 !important;
+    right: 0 !important;
+    max-width: 100% !important;
   }
 }
