@@ -206,55 +206,74 @@ function SalesPerformanceTracker() {
   };
 
   // User Selection Modal
-  const renderUserModal = () => {
-    if (!showUserModal) return null;
+  // User Selection Modal
+const renderUserModal = () => {
+  if (!showUserModal) return null;
 
-    return React.createElement('div', {
-      className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
+  // Debug: Check if users are loaded
+  console.log('All users:', allUsers);
+  console.log('Modal type:', modalType);
+
+  return React.createElement('div', {
+    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
+  },
+    React.createElement('div', {
+      className: 'bg-white rounded-lg p-6 max-w-md w-full max-h-96 overflow-y-auto'
     },
-      React.createElement('div', {
-        className: 'bg-white rounded-lg p-6 max-w-md w-full max-h-96 overflow-y-auto'
-      },
-        React.createElement('h3', {
-          className: 'text-lg font-semibold mb-4'
-        }, modalType === 'sales' ? 'Select Sales Team Member' : 'Select Retail Team Member'),
+      React.createElement('h3', {
+        className: 'text-lg font-semibold mb-4'
+      }, modalType === 'sales' ? 'Select Sales Team Member' : 'Select Retail Team Member'),
+      
+      // Show loading or empty state
+      allUsers.length === 0 ? 
+        React.createElement('p', {
+          className: 'text-gray-500 text-center py-4'
+        }, 'Loading users...') :
         
         React.createElement('div', {
           className: 'space-y-2'
         },
           allUsers
             .filter(user => {
-              // Filter out already added users
+              // For now, show all users regardless of filter
+              return true;
+              // Uncomment below to re-enable filtering
+              /*
               if (modalType === 'sales') {
                 return !salesData.some(member => member.email === user.email);
               } else {
                 return !retailData.some(member => member.salesMember === user.name);
               }
+              */
             })
             .map(user =>
               React.createElement('button', {
-                key: user.id,
+                key: user.id || user.email,
                 onClick: () => modalType === 'sales' ? addUserToSalesTeam(user) : addUserToRetailTeam(user),
-                className: 'w-full text-left p-3 hover:bg-gray-100 rounded flex justify-between items-center'
+                className: 'w-full text-left p-3 hover:bg-gray-100 rounded flex justify-between items-center border border-gray-200'
               },
                 React.createElement('div', null,
-                  React.createElement('div', { className: 'font-medium' }, user.name),
+                  React.createElement('div', { className: 'font-medium' }, user.name || 'Unknown User'),
                   React.createElement('div', { className: 'text-sm text-gray-500' }, 
-                    `${user.role} - ${user.department || 'No department'}`
+                    `${user.role || 'No role'} - ${user.department || 'No department'}`
                   )
                 ),
                 React.createElement('span', { className: 'text-blue-600' }, 'Select')
               )
             )
-        ),
-        
-        React.createElement('button', {
-          onClick: () => setShowUserModal(false),
-          className: 'mt-4 w-full py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400'
-        }, 'Cancel')
-      )
-    );
-  };
+      ),
+      
+      allUsers.length === 0 && React.createElement('p', {
+        className: 'text-sm text-gray-500 mt-2'
+      }, 'If no users appear, check console for errors.'),
+      
+      React.createElement('button', {
+        onClick: () => setShowUserModal(false),
+        className: 'mt-4 w-full py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400'
+      }, 'Cancel')
+    )
+  );
+};
 
   // Show loading state
   if (loading) {
