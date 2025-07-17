@@ -28,25 +28,26 @@ const getDefaultDateRange = () => {
 
 const [dateRange, setDateRange] = React.useState(getDefaultDateRange());
 
+  const [usersFetched, setUsersFetched] = React.useState(false);
+
   // Fetch all users for selection
 // Fetch all users for selection
 const fetchAllUsers = async () => {
+  // Prevent multiple fetches
+  if (usersFetched || allUsers.length > 0) return;
+  
   try {
     const token = localStorage.getItem('crm_auth_token');
-    // Remove the /api prefix since API_URL already includes it
     const response = await fetch(`${window.API_CONFIG.API_URL}/users`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
     if (response.ok) {
       const result = await response.json();
-      console.log('Fetched users:', result); // Debug log
-      
-      // Handle different response formats
+      console.log('Fetched users:', result);
       const users = Array.isArray(result) ? result : (result.users || result.data || []);
       setAllUsers(users);
-    } else {
-      console.error('Failed to fetch users:', response.status);
+      setUsersFetched(true);
     }
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -396,11 +397,31 @@ const renderUserModal = () => {
 };
 
   // Show loading state
-  if (loading) {
-    return React.createElement('div', { className: 'p-6 bg-gray-50 min-h-screen flex items-center justify-center' },
-      React.createElement('div', { className: 'text-gray-500' }, 'Loading performance data...')
-    );
-  }
+  // Show loading state with better UI
+if (loading) {
+  return React.createElement('div', { className: 'p-6 bg-gray-50 min-h-screen' },
+    React.createElement('div', { className: 'max-w-7xl mx-auto' },
+      React.createElement('div', { className: 'text-center mb-8' },
+        React.createElement('h1', { className: 'text-3xl font-bold text-gray-900' }, 
+          'Sales Team Performance/Productivity Tracking'
+        )
+      ),
+      React.createElement('div', { className: 'bg-white rounded-lg shadow p-8' },
+        React.createElement('div', { className: 'flex flex-col items-center justify-center' },
+          React.createElement('div', { 
+            className: 'animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4' 
+          }),
+          React.createElement('p', { className: 'text-gray-600' }, 
+            'Loading performance data...'
+          ),
+          React.createElement('p', { className: 'text-sm text-gray-500 mt-2' }, 
+            'This may take a few seconds'
+          )
+        )
+      )
+    )
+  );
+}
 
   return React.createElement('div', { className: 'p-6 bg-gray-50 min-h-screen' },
     renderUserModal(),
