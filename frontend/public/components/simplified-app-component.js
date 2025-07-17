@@ -3586,24 +3586,38 @@ window.addResponsiveClasses = function() {
 window.initializeMobileResponsive = function() {
     console.log('🔄 Initializing simple mobile responsive design...');
     
-    // Add mobile header wrapper
-    window.addMobileHeader();
+
+// Initialize all fixes
+window.addMobileHeader();
 window.initMobileMenuEnhancements();
-window.initTickerFix(); // Initialize ticker fix
+window.initTickerFix();
+window.fixDesktopTicker(); // Add desktop ticker fix
 
 // Also ensure everything runs after React renders
 setTimeout(() => {
   window.initMobileMenuEnhancements();
   window.initTickerFix();
+  window.fixDesktopTicker();
   
   // Force recalculate positions
   const ticker = document.querySelector('.bg-gray-900.text-white.py-2, .bg-red-600.text-white.py-1');
-  if (ticker) {
+  if (ticker && window.innerWidth > 1024) {
+    // Force reflow for desktop
     ticker.style.display = 'none';
-    ticker.offsetHeight; // Force reflow
+    ticker.offsetHeight;
     ticker.style.display = 'flex';
+    
+    // Apply final desktop fixes
+    ticker.style.cssText = `
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-around !important;
+      height: 40px !important;
+      width: 100% !important;
+    `;
   }
-}, 100);
+}, 150);
     
     // Add responsive classes after a short delay
     setTimeout(() => {
