@@ -3,10 +3,11 @@ const router = express.Router();
 const { db, collections } = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 
-// GET sales team performance data - FIXED VERSION
+// GET sales team performance data - OPTIMIZED VERSION
 router.get('/', authenticateToken, async (req, res) => {
   try {
     console.log('📊 Fetching sales performance data...');
+    const startTime = Date.now();
     
     // 1. Get all users first
     const usersSnapshot = await db.collection('crm_users')
@@ -52,13 +53,37 @@ router.get('/', authenticateToken, async (req, res) => {
       emailToName.set(userData.email, userData.name);
     });
     
-    // 2. Get ALL orders at once
-    const allOrdersSnapshot = await db.collection(collections.orders).get();
-    console.log(`Found ${allOrdersSnapshot.size} total orders`);
+    // 2. Get orders from last 3 months only (for performance)
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
     
-    // 3. Get ALL leads at once
-    const allLeadsSnapshot = await db.collection(collections.leads).get();
-    console.log(`Found ${allLeadsSnapshot.size} total leads`);
+    let allOrdersSnapshot;
+    try {
+      // Try with date filter first
+      allOrdersSnapshot = await db.collection(collections.orders)
+        .where('created_date', '>=', threeMonthsAgo.toISOString())
+        .get();
+      console.log(`Found ${allOrdersSnapshot.size} orders from last 3 months`);
+    } catch (err) {
+      // If date filter fails, get all orders
+      console.log('Date filter failed, fetching all orders');
+      allOrdersSnapshot = await db.collection(collections.orders).get();
+      console.log(`Found ${allOrdersSnapshot.size} total orders`);
+    }
+    
+    // 3. Get active leads only (not converted/junk)
+    let allLeadsSnapshot;
+    try {
+      allLeadsSnapshot = await db.collection(collections.leads)
+        .where('status', 'in', ['hot', 'warm', 'cold', 'qualified', 'attempt_1', 'attempt_2', 'attempt_3'])
+        .get();
+      console.log(`Found ${allLeadsSnapshot.size} active leads`);
+    } catch (err) {
+      // If status filter fails, get all leads
+      console.log('Status filter failed, fetching all leads');
+      allLeadsSnapshot = await db.collection(collections.leads).get();
+      console.log(`Found ${allLeadsSnapshot.size} total leads`);
+    }
     
     // 4. Create maps for quick lookup
     const ordersByUser = new Map();
@@ -78,7 +103,6 @@ router.get('/', authenticateToken, async (req, res) => {
           // It's a name, convert to email
           salesPersonEmail = nameToEmail.get(salesPersonField);
           if (!salesPersonEmail) {
-            console.log(`Could not find email for sales_person: ${salesPersonField}`);
             return;
           }
         }
@@ -113,7 +137,6 @@ router.get('/', authenticateToken, async (req, res) => {
       
       // Get user's orders
       const userOrders = ordersByUser.get(userEmail) || [];
-      console.log(`User ${userData.name} (${userEmail}) has ${userOrders.length} orders`);
       
       // Calculate metrics from orders
       let totalSales = 0;
@@ -145,7 +168,6 @@ router.get('/', authenticateToken, async (req, res) => {
       
       // Get user's leads for pipeline
       const userLeads = leadsByUser.get(userEmail) || [];
-      console.log(`User ${userData.name} has ${userLeads.length} leads`);
       
       let salesPersonPipeline = 0;
       let retailPipeline = 0;
@@ -192,11 +214,13 @@ router.get('/', authenticateToken, async (req, res) => {
       });
     }
     
-    console.log(`Returning ${salesTeam.length} team members`);
+    const endTime = Date.now();
+    console.log(`Performance API took ${endTime - startTime}ms`);
     
     res.json({
       success: true,
-      salesTeam: salesTeam
+      salesTeam: salesTeam,
+      responseTime: endTime - startTime
     });
     
   } catch (error) {
@@ -209,9 +233,10 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// GET retail tracker data
+// GET retail tracker data - OPTIMIZED
 router.get('/retail-tracker', authenticateToken, async (req, res) => {
   try {
+    const startTime = Date.now();
     const { start_date, end_date } = req.query;
     
     // Get retail team members by department
@@ -220,19 +245,31 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
       .get();
     
     // Get manually added retail members
-    const manualRetailSnapshot = await db.collection('retail_tracker_members').get();
-    const manualRetailIds = manualRetailSnapshot.docs.map(doc => doc.data().userId);
+    let manualRetailIds = [];
+    try {
+      const manualRetailSnapshot = await db.collection('retail_tracker_members').get();
+      manualRetailIds = manualRetailSnapshot.docs.map(doc => doc.data().userId);
+    } catch (err) {
+      console.log('No manual retail members yet');
+    }
     
     // Get user details for manually added retail members
-    const manualRetailPromises = manualRetailIds.map(id => 
-      db.collection('crm_users').doc(id).get()
-    );
-    const manualRetailDocs = await Promise.all(manualRetailPromises);
+    const manualRetailDocs = [];
+    for (const id of manualRetailIds) {
+      try {
+        const doc = await db.collection('crm_users').doc(id).get();
+        if (doc.exists) {
+          manualRetailDocs.push(doc);
+        }
+      } catch (err) {
+        console.log(`Failed to fetch user ${id}`);
+      }
+    }
     
-    // Combine all retail users (avoid duplicates)
+    // Combine all retail users
     const allRetailDocs = [...retailTeamSnapshot.docs];
     manualRetailDocs.forEach(doc => {
-      if (doc.exists && !allRetailDocs.find(d => d.id === doc.id)) {
+      if (!allRetailDocs.find(d => d.id === doc.id)) {
         allRetailDocs.push(doc);
       }
     });
@@ -243,21 +280,32 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
       const userData = userDoc.data();
       const userEmail = userData.email;
       
-      // Build date query
-      let leadsQuery = db.collection(collections.leads)
-        .where('assigned_to', '==', userEmail);
+      // Get ALL leads for this user first (no date filter in query)
+      const allLeadsSnapshot = await db.collection(collections.leads)
+        .where('assigned_to', '==', userEmail)
+        .get();
+      
+      // Filter by date in memory if dates provided
+      let leadsToProcess = allLeadsSnapshot.docs;
       
       if (start_date && end_date) {
-        leadsQuery = leadsQuery
-          .where('created_date', '>=', start_date)
-          .where('created_date', '<=', end_date);
+        const startDate = new Date(start_date);
+        const endDate = new Date(end_date);
+        endDate.setHours(23, 59, 59, 999); // Include full end date
+        
+        leadsToProcess = allLeadsSnapshot.docs.filter(doc => {
+          const lead = doc.data();
+          if (lead.created_date) {
+            const createdDate = new Date(lead.created_date);
+            return createdDate >= startDate && createdDate <= endDate;
+          }
+          return false;
+        });
       }
-      
-      const leadsSnapshot = await leadsQuery.get();
       
       // Calculate metrics
       const metrics = {
-        assigned: leadsSnapshot.size,
+        assigned: leadsToProcess.length,
         touchbased: 0,
         qualified: 0,
         hotWarm: 0,
@@ -265,7 +313,7 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
         notTouchbased: 0
       };
       
-      leadsSnapshot.docs.forEach(doc => {
+      leadsToProcess.forEach(doc => {
         const lead = doc.data();
         
         if (lead.last_contact_date) metrics.touchbased++;
@@ -282,16 +330,20 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
       });
     }
     
+    const endTime = Date.now();
+    console.log(`Retail tracker API took ${endTime - startTime}ms`);
+    
     res.json({
       success: true,
-      retailData: retailData
+      retailData: retailData,
+      responseTime: endTime - startTime
     });
     
   } catch (error) {
     console.error('❌ Retail tracker error:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message 
+      error: error.message
     });
   }
 });
