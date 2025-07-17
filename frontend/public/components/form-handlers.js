@@ -1901,8 +1901,54 @@ window.saveFinanceInvoiceNumber = async (order, financeInvoiceNumber) => {
   }
 };
 
-console.log('✅ Proforma Invoice integration loaded. Use window.testProformaInvoice() to test.');
-
-
-
-console.log("🔧 form-handlers.js loaded - All form submission handlers ready including FIXED viewOrderDetail function");
+// ✅ UPDATE ORDER SALES PERSON FUNCTION
+window.updateOrderSalesPerson = async function(orderId, salesPerson) {
+  console.log('🔄 Updating sales person for order:', orderId, 'to:', salesPerson);
+  
+  if (!window.hasPermission('orders', 'write')) {
+    alert('You do not have permission to update orders');
+    return;
+  }
+  
+  if (!salesPerson || !salesPerson.trim()) {
+    alert('Please provide a valid sales person email');
+    return;
+  }
+  
+  window.setLoading(true);
+  
+  try {
+    // Call the API to update only the sales_person field
+    const response = await window.apiCall(`/orders/${orderId}/sales-person`, {
+      method: 'PUT',
+      body: JSON.stringify({ sales_person: salesPerson.trim() })
+    });
+    
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    
+    console.log('✅ Sales person updated successfully');
+    
+    // Update local state
+    window.setOrders(prev => prev.map(o => 
+      o.id === orderId ? { ...o, sales_person: salesPerson.trim() } : o
+    ));
+    
+    // Update current order detail if it's open
+    if (window.currentOrderDetail && window.currentOrderDetail.id === orderId) {
+      window.setCurrentOrderDetail(prev => ({
+        ...prev,
+        sales_person: salesPerson.trim()
+      }));
+    }
+    
+    alert('Sales person updated successfully!');
+    
+  } catch (error) {
+    console.error('❌ Error updating sales person:', error);
+    alert(`Failed to update sales person: ${error.message}`);
+  } finally {
+    window.setLoading(false);
+  }
+};
