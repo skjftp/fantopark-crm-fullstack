@@ -56,39 +56,22 @@ router.get('/', authenticateToken, async (req, res) => {
     const leadsByUser = new Map();
     
     // Map orders to users - check multiple fields to find the sales person
-    allOrdersSnapshot.docs.forEach(doc => {
-      const order = doc.data();
-      
-      // Try to find the sales person from various fields
-      let salesPerson = null;
-      
-      // Priority 1: original_assignee field
-      if (order.original_assignee) {
-        salesPerson = order.original_assignee;
-      }
-      // Priority 2: created_by field
-      else if (order.created_by) {
-        salesPerson = order.created_by;
-      }
-      // Priority 3: sales_person field
-      else if (order.sales_person) {
-        salesPerson = order.sales_person;
-      }
-      // Priority 4: Check order history/logs if available
-      else if (order.history && Array.isArray(order.history)) {
-        const firstEntry = order.history[0];
-        if (firstEntry && firstEntry.by) {
-          salesPerson = firstEntry.by;
-        }
-      }
-      
-      if (salesPerson) {
-        if (!ordersByUser.has(salesPerson)) {
-          ordersByUser.set(salesPerson, []);
-        }
-        ordersByUser.get(salesPerson).push(order);
-      }
-    });
+    // Map orders to users - use sales_person field
+allOrdersSnapshot.docs.forEach(doc => {
+  const order = doc.data();
+  
+  // Use the sales_person field
+  const salesPerson = order.sales_person || order.sales_person_email;
+  
+  if (salesPerson) {
+    if (!ordersByUser.has(salesPerson)) {
+      ordersByUser.set(salesPerson, []);
+    }
+    ordersByUser.get(salesPerson).push(order);
+  } else {
+    console.log(`Order ${doc.id} has no sales_person field`);
+  }
+});
     
     // Map leads to users
     allLeadsSnapshot.docs.forEach(doc => {
