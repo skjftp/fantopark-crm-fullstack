@@ -1110,30 +1110,30 @@ window.renderPayablesTab = (payables) => {
                             ),
                             // Actions (with icons)
                             React.createElement('td', { className: 'px-4 py-3 text-center' },
-                                React.createElement('div', { className: 'flex justify-center space-x-2' },
-                                    // Eye icon for view
-                                    React.createElement('button', {
-                                        onClick: () => window.viewPayableDetails(payable),
-                                        className: 'text-blue-600 hover:text-blue-800',
-                                        title: 'View Details'
-                                    }, React.createElement('i', { className: 'fas fa-eye' })),
-                                    
-                                    // Check icon for mark paid (if not already paid)
-                                    (payable.payment_status || payable.status) !== 'paid' && 
-                                    React.createElement('button', {
-                                        onClick: () => window.handleRecordPaymentClick(payable),
-                                        className: 'text-green-600 hover:text-green-800',
-                                        title: 'Record Payment'
-                                    }, React.createElement('i', { className: 'fas fa-check-circle' })),
-                                    
-                                    // Trash icon for delete
-                                    React.createElement('button', {
-                                        onClick: () => window.deletePayable(payable.id),
-                                        className: 'text-red-600 hover:text-red-800',
-                                        title: 'Delete'
-                                    }, React.createElement('i', { className: 'fas fa-trash' }))
-                                )
-                            )
+    React.createElement('div', { className: 'flex justify-center space-x-2' },
+        // Eye emoji for view
+        React.createElement('button', {
+            onClick: () => window.viewPayableDetails(payable),
+            className: 'text-blue-600 hover:text-blue-800 text-lg',
+            title: 'View Details'
+        }, '👁️'),
+        
+        // Check emoji for mark paid (if not already paid)
+        (payable.payment_status || payable.status) !== 'paid' && 
+        React.createElement('button', {
+            onClick: () => window.handleRecordPaymentClick(payable),
+            className: 'text-green-600 hover:text-green-800 text-lg',
+            title: 'Record Payment'
+        }, '✅'),
+        
+        // Trash emoji for delete
+        React.createElement('button', {
+            onClick: () => window.deletePayable(payable.id),
+            className: 'text-red-600 hover:text-red-800 text-lg',
+            title: 'Delete'
+        }, '🗑️')
+    )
+)
                         );
                     }) : 
                     React.createElement('tr', null,
