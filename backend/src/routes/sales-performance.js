@@ -3,7 +3,7 @@ const router = express.Router();
 const { db, collections } = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 
-/ Cache structure for sales performance data
+// Cache structure for sales performance data
 const performanceCache = {
   salesData: null,
   salesDataTimestamp: null,
@@ -22,10 +22,21 @@ function getRetailCacheKey(start_date, end_date) {
   return `${start_date || 'all'}_${end_date || 'all'}`;
 }
 
-// GET sales team performance data - OPTIMIZED VERSION
+// GET sales team performance data - OPTIMIZED VERSION WITH CACHE
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    console.log('📊 Fetching sales performance data...');
+    // Check if we have valid cached data
+    if (isCacheValid(performanceCache.salesDataTimestamp)) {
+      console.log('📊 Returning cached sales performance data');
+      return res.json({
+        success: true,
+        salesTeam: performanceCache.salesData,
+        cached: true,
+        cacheAge: Math.round((Date.now() - performanceCache.salesDataTimestamp) / 1000 / 60) + ' minutes'
+      });
+    }
+
+    console.log('📊 Cache expired or not found, fetching fresh sales performance data...');
     const startTime = Date.now();
     
     // 1. Get all users first
@@ -238,10 +249,15 @@ router.get('/', authenticateToken, async (req, res) => {
     const endTime = Date.now();
     console.log(`Performance API took ${endTime - startTime}ms`);
     
+    // Update cache
+    performanceCache.salesData = salesTeam;
+    performanceCache.salesDataTimestamp = Date.now();
+    
     res.json({
       success: true,
       salesTeam: salesTeam,
-      responseTime: endTime - startTime
+      responseTime: endTime - startTime,
+      cached: false
     });
     
   } catch (error) {
@@ -254,11 +270,27 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// GET retail tracker data - OPTIMIZED
+// GET retail tracker data - OPTIMIZED WITH CACHE
 router.get('/retail-tracker', authenticateToken, async (req, res) => {
   try {
-    const startTime = Date.now();
     const { start_date, end_date } = req.query;
+    
+    // Check cache for this specific date range
+    const cacheKey = getRetailCacheKey(start_date, end_date);
+    const cachedEntry = performanceCache.retailData.get(cacheKey);
+    
+    if (cachedEntry && isCacheValid(cachedEntry.timestamp)) {
+      console.log('📊 Returning cached retail tracker data for range:', cacheKey);
+      return res.json({
+        success: true,
+        retailData: cachedEntry.data,
+        cached: true,
+        cacheAge: Math.round((Date.now() - cachedEntry.timestamp) / 1000 / 60) + ' minutes'
+      });
+    }
+    
+    console.log('📊 Cache expired or not found for retail range:', cacheKey);
+    const startTime = Date.now();
     
     // Get retail team members by department
     const retailTeamSnapshot = await db.collection('crm_users')
@@ -354,10 +386,23 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
     const endTime = Date.now();
     console.log(`Retail tracker API took ${endTime - startTime}ms`);
     
+    // Update cache for this date range
+    performanceCache.retailData.set(cacheKey, {
+      data: retailData,
+      timestamp: Date.now()
+    });
+    
+    // Clean up old cache entries (keep max 10 different date ranges)
+    if (performanceCache.retailData.size > 10) {
+      const oldestKey = performanceCache.retailData.keys().next().value;
+      performanceCache.retailData.delete(oldestKey);
+    }
+    
     res.json({
       success: true,
       retailData: retailData,
-      responseTime: endTime - startTime
+      responseTime: endTime - startTime,
+      cached: false
     });
     
   } catch (error) {
@@ -389,6 +434,10 @@ router.put('/target/:userId', authenticateToken, async (req, res) => {
       // Ignore error if user doesn't have this field
     });
     
+    // Invalidate cache when targets are updated
+    performanceCache.salesData = null;
+    performanceCache.salesDataTimestamp = null;
+    
     res.json({ success: true });
     
   } catch (error) {
@@ -413,6 +462,10 @@ router.post('/add-member', authenticateToken, async (req, res) => {
         addedAt: new Date().toISOString(),
         addedBy: req.user.email
       });
+      
+      // Invalidate sales cache
+      performanceCache.salesData = null;
+      performanceCache.salesDataTimestamp = null;
     } else if (type === 'retail') {
       // Add to retail_tracker_members collection
       await db.collection('retail_tracker_members').doc(userId).set({
@@ -421,6 +474,9 @@ router.post('/add-member', authenticateToken, async (req, res) => {
         addedAt: new Date().toISOString(),
         addedBy: req.user.email
       });
+      
+      // Invalidate retail cache
+      performanceCache.retailData.clear();
     }
     
     res.json({ success: true });
@@ -441,8 +497,15 @@ router.delete('/remove-member/:userId/:type', authenticateToken, async (req, res
     
     if (type === 'sales') {
       await db.collection('sales_performance_members').doc(userId).delete();
+      
+      // Invalidate sales cache
+      performanceCache.salesData = null;
+      performanceCache.salesDataTimestamp = null;
     } else if (type === 'retail') {
       await db.collection('retail_tracker_members').doc(userId).delete();
+      
+      // Invalidate retail cache
+      performanceCache.retailData.clear();
     }
     
     res.json({ success: true });
@@ -453,6 +516,51 @@ router.delete('/remove-member/:userId/:type', authenticateToken, async (req, res
       success: false, 
       error: error.message 
     });
+  }
+});
+
+// Clear cache endpoint (for admin use)
+router.post('/clear-cache', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Only super admins can clear cache' });
+    }
+    
+    performanceCache.salesData = null;
+    performanceCache.salesDataTimestamp = null;
+    performanceCache.retailData.clear();
+    
+    console.log('🧹 Sales performance cache cleared');
+    
+    res.json({ 
+      success: true, 
+      message: 'Cache cleared successfully' 
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get cache status endpoint
+router.get('/cache-status', authenticateToken, async (req, res) => {
+  try {
+    const salesCacheAge = performanceCache.salesDataTimestamp 
+      ? Math.round((Date.now() - performanceCache.salesDataTimestamp) / 1000 / 60)
+      : null;
+    
+    res.json({
+      salesData: {
+        cached: isCacheValid(performanceCache.salesDataTimestamp),
+        age: salesCacheAge ? `${salesCacheAge} minutes` : 'Not cached',
+        expiresIn: salesCacheAge ? `${360 - salesCacheAge} minutes` : 'N/A'
+      },
+      retailData: {
+        entries: performanceCache.retailData.size,
+        ranges: Array.from(performanceCache.retailData.keys())
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
