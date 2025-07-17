@@ -135,69 +135,161 @@ const fetchSalesPerformance = async () => {
   }
 };
 
-  // Add selected user to sales team
-  const addUserToSalesTeam = (user) => {
-    // Check if user already exists
-    if (salesData.some(member => member.email === user.email)) {
-      alert('User already in sales team');
-      return;
+ // Add selected user to sales team
+const addUserToSalesTeam = async (user) => {
+  // Check if user already exists
+  if (salesData.some(member => member.email === user.email)) {
+    alert('User already in sales team');
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('crm_auth_token');
+    
+    // Save to backend first
+    const response = await fetch(`${window.API_CONFIG.API_URL}/sales-performance/add-member`, {
+      method: 'POST',
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        userId: user.id,
+        type: 'sales'
+      })
+    });
+    
+    if (response.ok) {
+      // Add to local state only after successful save
+      const newMember = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        target: 0,
+        totalSales: 0,
+        actualizedSales: 0,
+        totalMargin: 0,
+        actualizedMargin: 0,
+        salesPersonPipeline: 0,
+        retailPipeline: 0,
+        corporatePipeline: 0,
+        overallPipeline: 0
+      };
+
+      setSalesData([...salesData, newMember]);
+      setShowUserModal(false);
+      
+      // Refresh data to get calculated metrics
+      setTimeout(() => fetchSalesPerformance(), 1000);
+    } else {
+      alert('Failed to add team member');
     }
+  } catch (error) {
+    console.error('Error adding sales team member:', error);
+    alert('Error adding team member');
+  }
+};
 
-    const newMember = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      target: 0,
-      totalSales: 0,
-      actualizedSales: 0,
-      totalMargin: 0,
-      actualizedMargin: 0,
-      salesPersonPipeline: 0,
-      retailPipeline: 0,
-      corporatePipeline: 0,
-      overallPipeline: 0
-    };
+// Add selected user to retail team
+const addUserToRetailTeam = async (user) => {
+  // Check if user already exists
+  if (retailData.some(member => member.salesMember === user.name)) {
+    alert('User already in retail tracking');
+    return;
+  }
 
-    setSalesData([...salesData, newMember]);
-    setShowUserModal(false);
-  };
+  try {
+    const token = localStorage.getItem('crm_auth_token');
+    
+    // Save to backend first
+    const response = await fetch(`${window.API_CONFIG.API_URL}/sales-performance/add-member`, {
+      method: 'POST',
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        userId: user.id,
+        type: 'retail'
+      })
+    });
+    
+    if (response.ok) {
+      // Add to local state only after successful save
+      const newMember = {
+        id: user.id,
+        salesMember: user.name,
+        assigned: 0,
+        touchbased: 0,
+        qualified: 0,
+        hotWarm: 0,
+        converted: 0,
+        notTouchbased: 0
+      };
 
-  // Add selected user to retail team
-  const addUserToRetailTeam = (user) => {
-    // Check if user already exists
-    if (retailData.some(member => member.salesMember === user.name)) {
-      alert('User already in retail tracking');
-      return;
+      setRetailData([...retailData, newMember]);
+      setShowUserModal(false);
+      
+      // Refresh data
+      setTimeout(() => fetchRetailData(), 1000);
+    } else {
+      alert('Failed to add retail member');
     }
+  } catch (error) {
+    console.error('Error adding retail member:', error);
+    alert('Error adding retail member');
+  }
+};
 
-    const newMember = {
-      id: user.id,
-      salesMember: user.name,
-      assigned: 0,
-      touchbased: 0,
-      qualified: 0,
-      hotWarm: 0,
-      converted: 0,
-      notTouchbased: 0
-    };
-
-    setRetailData([...retailData, newMember]);
-    setShowUserModal(false);
-  };
-
-  // Remove sales team member
-  const removeSalesTeamMember = (id) => {
-    if (window.confirm('Are you sure you want to remove this team member?')) {
-      setSalesData(salesData.filter(member => member.id !== id));
+// Remove sales team member
+const removeSalesTeamMember = async (id) => {
+  if (window.confirm('Are you sure you want to remove this team member?')) {
+    try {
+      const token = localStorage.getItem('crm_auth_token');
+      
+      // Delete from backend first
+      const response = await fetch(`${window.API_CONFIG.API_URL}/sales-performance/remove-member/${id}/sales`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        // Remove from local state only after successful delete
+        setSalesData(salesData.filter(member => member.id !== id));
+      } else {
+        alert('Failed to remove team member');
+      }
+    } catch (error) {
+      console.error('Error removing team member:', error);
+      alert('Error removing team member');
     }
-  };
+  }
+};
 
-  // Remove retail team member
-  const removeRetailTeamMember = (id) => {
-    if (window.confirm('Are you sure you want to remove this team member from retail tracking?')) {
-      setRetailData(retailData.filter(member => member.id !== id));
+// Remove retail team member
+const removeRetailTeamMember = async (id) => {
+  if (window.confirm('Are you sure you want to remove this team member from retail tracking?')) {
+    try {
+      const token = localStorage.getItem('crm_auth_token');
+      
+      // Delete from backend first
+      const response = await fetch(`${window.API_CONFIG.API_URL}/sales-performance/remove-member/${id}/retail`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        // Remove from local state only after successful delete
+        setRetailData(retailData.filter(member => member.id !== id));
+      } else {
+        alert('Failed to remove retail member');
+      }
+    } catch (error) {
+      console.error('Error removing retail member:', error);
+      alert('Error removing retail member');
     }
-  };
+  }
+};
 
   // Calculate totals
   const totals = salesData.reduce((acc, person) => ({
