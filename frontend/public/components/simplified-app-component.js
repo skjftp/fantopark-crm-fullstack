@@ -3653,4 +3653,138 @@ window.isInventoryExpanded = (inventoryId) => {
   return window.expandedInventoryItems && window.expandedInventoryItems.has(inventoryId);
 };
 
+// ============================================
+// MOBILE MENU HANDLER - Add this at the bottom of simplified-app-component.js
+// ============================================
+
+// Enhanced mobile menu functions
+window.createMobileCloseButton = function() {
+  const sidebar = document.querySelector('.sidebar, .w-64.bg-white, .w-64.bg-gray-800');
+  if (sidebar && !sidebar.querySelector('.sidebar-close-btn')) {
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'sidebar-close-btn';
+    closeBtn.innerHTML = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    `;
+    closeBtn.onclick = window.closeMobileMenu;
+    sidebar.insertBefore(closeBtn, sidebar.firstChild);
+  }
+};
+
+window.openMobileMenu = function() {
+  const sidebar = document.querySelector('.sidebar, .w-64.bg-white, .w-64.bg-gray-800');
+  const overlay = document.querySelector('.mobile-overlay') || window.createMobileOverlay();
+  
+  if (sidebar) {
+    sidebar.classList.add('mobile-open');
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    window.createMobileCloseButton();
+  }
+};
+
+window.closeMobileMenu = function() {
+  const sidebar = document.querySelector('.sidebar, .w-64.bg-white, .w-64.bg-gray-800');
+  const overlay = document.querySelector('.mobile-overlay');
+  
+  if (sidebar) {
+    sidebar.classList.remove('mobile-open');
+    if (overlay) {
+      overlay.classList.remove('show');
+    }
+    document.body.style.overflow = '';
+  }
+};
+
+// Override the existing toggleMobileMenu
+window.toggleMobileMenu = function() {
+  const sidebar = document.querySelector('.sidebar, .w-64.bg-white, .w-64.bg-gray-800');
+  if (sidebar && sidebar.classList.contains('mobile-open')) {
+    window.closeMobileMenu();
+  } else {
+    window.openMobileMenu();
+  }
+};
+
+window.createMobileOverlay = function() {
+  let overlay = document.querySelector('.mobile-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'mobile-overlay';
+    overlay.id = 'mobile-overlay';
+    overlay.onclick = window.closeMobileMenu;
+    document.body.appendChild(overlay);
+  }
+  return overlay;
+};
+
+// Initialize mobile menu enhancements
+window.initMobileMenuEnhancements = function() {
+  // Add sidebar class if not present
+  const sidebar = document.querySelector('.w-64.bg-white, .w-64.bg-gray-800');
+  if (sidebar && !sidebar.classList.contains('sidebar')) {
+    sidebar.classList.add('sidebar');
+  }
+  
+  // Add main-content class if not present
+  const mainContent = document.querySelector('.flex-1.overflow-auto');
+  if (mainContent && !mainContent.classList.contains('main-content')) {
+    mainContent.classList.add('main-content');
+  }
+  
+  // Fix horizontal scroll issues
+  const preventHorizontalScroll = () => {
+    const elements = document.querySelectorAll('*');
+    elements.forEach(el => {
+      if (el.offsetWidth > window.innerWidth) {
+        el.style.maxWidth = '100vw';
+        el.style.overflowX = 'auto';
+      }
+    });
+    
+    // Wrap tables in scrollable containers
+    const tables = document.querySelectorAll('table');
+    tables.forEach(table => {
+      if (!table.parentElement.classList.contains('table-container')) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'table-container overflow-x-auto';
+        table.parentNode.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+      }
+    });
+  };
+  
+  preventHorizontalScroll();
+  window.addEventListener('resize', preventHorizontalScroll);
+  
+  // Close menu on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      window.closeMobileMenu();
+    }
+  });
+};
+
+// Auto-initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', window.initMobileMenuEnhancements);
+} else {
+  window.initMobileMenuEnhancements();
+}
+
+// Re-initialize when React re-renders
+const mobileMenuObserver = new MutationObserver(() => {
+  const sidebar = document.querySelector('.w-64.bg-white, .w-64.bg-gray-800');
+  if (sidebar && !sidebar.querySelector('.sidebar-close-btn')) {
+    window.createMobileCloseButton();
+  }
+});
+
+mobileMenuObserver.observe(document.body, {
+  childList: true,
+  subtree: true
+});
+
 console.log("✅ Inventory expansion helpers loaded");
