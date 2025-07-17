@@ -13,119 +13,161 @@ router.get('/', authenticateToken, async (req, res) => {
       .where('role', 'in', ['sales_person', 'sales_manager', 'sales_head'])
       .get();
     
-    // Get manually added sales members
-    const manualMembersSnapshot = await db.collection('sales_performance_members').get();
-    const manualMemberIds = manualMembersSnapshot.docs.map(doc => doc.data().userId);
+    console.log(`Found ${usersSnapshot.size} users by role`);
+    
+    // Get manually added sales members (handle if collection doesn't exist)
+    let manualMemberIds = [];
+    try {
+      const manualMembersSnapshot = await db.collection('sales_performance_members').get();
+      manualMemberIds = manualMembersSnapshot.docs.map(doc => doc.data().userId);
+      console.log(`Found ${manualMemberIds.length} manually added members`);
+    } catch (err) {
+      console.log('No manual members collection yet');
+    }
     
     // Get user details for manually added members
-    const manualUsersPromises = manualMemberIds.map(id => 
-      db.collection('crm_users').doc(id).get()
-    );
-    const manualUsersDocs = await Promise.all(manualUsersPromises);
+    const manualUsersDocs = [];
+    for (const id of manualMemberIds) {
+      try {
+        const doc = await db.collection('crm_users').doc(id).get();
+        if (doc.exists) {
+          manualUsersDocs.push(doc);
+        }
+      } catch (err) {
+        console.log(`Failed to fetch user ${id}:`, err.message);
+      }
+    }
     
     // Combine all users (avoid duplicates)
     const allUserDocs = [...usersSnapshot.docs];
     manualUsersDocs.forEach(doc => {
-      if (doc.exists && !allUserDocs.find(d => d.id === doc.id)) {
+      if (!allUserDocs.find(d => d.id === doc.id)) {
         allUserDocs.push(doc);
       }
     });
+    
+    console.log(`Processing ${allUserDocs.length} total users`);
     
     const salesTeam = [];
     
     // For each sales person, calculate their metrics
     for (const userDoc of allUserDocs) {
-      const userData = userDoc.data();
-      const userEmail = userData.email;
-      
-      // Get orders where this user was the ORIGINAL assignee (sales person)
-      // Look for original_assignee or created_by field instead of assigned_to
-      const ordersSnapshot = await db.collection(collections.orders)
-        .where('original_assignee', '==', userEmail)
-        .get();
-      
-      // If original_assignee doesn't exist, try created_by
-      const ordersSnapshot2 = await db.collection(collections.orders)
-        .where('created_by', '==', userEmail)
-        .get();
-      
-      // Combine both queries
-      const allOrders = [...ordersSnapshot.docs, ...ordersSnapshot2.docs];
-      const uniqueOrders = Array.from(new Map(allOrders.map(doc => [doc.id, doc])).values());
-      
-      // Calculate metrics
-      let totalSales = 0;
-      let actualizedSales = 0;
-      let totalMargin = 0;
-      let actualizedMargin = 0;
-      
-      const now = new Date();
-      
-      uniqueOrders.forEach(doc => {
-        const order = doc.data();
-        const orderAmount = parseFloat(order.total_amount || 0);
-        const buyingPrice = parseFloat(order.buying_price || 0) * parseFloat(order.quantity || 0);
-        const sellingPrice = parseFloat(order.selling_price || 0) * parseFloat(order.quantity || 0);
-        const margin = sellingPrice - buyingPrice;
+      try {
+        const userData = userDoc.data();
+        const userEmail = userData.email;
         
-        // Add to total sales
-        totalSales += orderAmount;
-        totalMargin += margin;
+        console.log(`Processing user: ${userData.name} (${userEmail})`);
         
-        // Check if event date has passed for actualized sales
-        if (order.event_date) {
-          const eventDate = new Date(order.event_date);
-          if (eventDate < now) {
-            actualizedSales += orderAmount;
-            actualizedMargin += margin;
-          }
-        }
-      });
-      
-      // Get pipeline data (leads assigned to this user)
-      const leadsSnapshot = await db.collection(collections.leads)
-        .where('assigned_to', '==', userEmail)
-        .get();
-      
-      let salesPersonPipeline = 0;
-      let retailPipeline = 0;
-      let corporatePipeline = 0;
-      
-      leadsSnapshot.docs.forEach(doc => {
-        const lead = doc.data();
-        const potentialValue = parseFloat(lead.potential_value || 0);
+        // Initialize counters
+        let totalSales = 0;
+        let actualizedSales = 0;
+        let totalMargin = 0;
+        let actualizedMargin = 0;
         
-        // Add to pipeline based on lead type or status
-        if (lead.lead_type === 'retail' || lead.client_type === 'Retail') {
-          retailPipeline += potentialValue;
-        } else if (lead.lead_type === 'corporate' || lead.client_type === 'Corporate') {
-          corporatePipeline += potentialValue;
+        // Try to get orders - check which fields exist
+        let ordersToProcess = [];
+        
+        // First check if original_assignee field exists
+        const testOrder = await db.collection(collections.orders).limit(1).get();
+        const hasOriginalAssignee = testOrder.docs.length > 0 && testOrder.docs[0].data().original_assignee !== undefined;
+        
+        if (hasOriginalAssignee) {
+          const ordersSnapshot = await db.collection(collections.orders)
+            .where('original_assignee', '==', userEmail)
+            .get();
+          ordersToProcess = ordersSnapshot.docs;
+          console.log(`Found ${ordersToProcess.length} orders by original_assignee`);
         } else {
-          salesPersonPipeline += potentialValue;
+          // Fall back to created_by
+          const ordersSnapshot = await db.collection(collections.orders)
+            .where('created_by', '==', userEmail)
+            .get();
+          ordersToProcess = ordersSnapshot.docs;
+          console.log(`Found ${ordersToProcess.length} orders by created_by`);
         }
-      });
-      
-      const overallPipeline = salesPersonPipeline + retailPipeline + corporatePipeline;
-      
-      // Get target from user data or separate collection
-      const targetDoc = await db.collection('sales_targets').doc(userDoc.id).get();
-      const target = targetDoc.exists() ? targetDoc.data().target : (userData.sales_target || 0);
-      
-      salesTeam.push({
-        id: userDoc.id,
-        name: userData.name,
-        email: userEmail,
-        target: target / 10000000, // Convert to Crores
-        totalSales: totalSales / 10000000,
-        actualizedSales: actualizedSales / 10000000,
-        totalMargin: totalMargin / 10000000,
-        actualizedMargin: actualizedMargin / 10000000,
-        salesPersonPipeline: salesPersonPipeline / 10000000,
-        retailPipeline: retailPipeline / 10000000,
-        corporatePipeline: corporatePipeline / 10000000,
-        overallPipeline: overallPipeline / 10000000
-      });
+        
+        const now = new Date();
+        
+        ordersToProcess.forEach(doc => {
+          const order = doc.data();
+          const orderAmount = parseFloat(order.total_amount || 0);
+          const quantity = parseFloat(order.quantity || 1);
+          const buyingPrice = parseFloat(order.buying_price || 0) * quantity;
+          const sellingPrice = parseFloat(order.selling_price || 0) * quantity;
+          const margin = sellingPrice - buyingPrice;
+          
+          // Add to total sales
+          totalSales += orderAmount;
+          totalMargin += margin;
+          
+          // Check if event date has passed for actualized sales
+          if (order.event_date) {
+            const eventDate = new Date(order.event_date);
+            if (eventDate < now) {
+              actualizedSales += orderAmount;
+              actualizedMargin += margin;
+            }
+          }
+        });
+        
+        // Get pipeline data (leads assigned to this user)
+        const leadsSnapshot = await db.collection(collections.leads)
+          .where('assigned_to', '==', userEmail)
+          .get();
+        
+        let salesPersonPipeline = 0;
+        let retailPipeline = 0;
+        let corporatePipeline = 0;
+        
+        leadsSnapshot.docs.forEach(doc => {
+          const lead = doc.data();
+          const potentialValue = parseFloat(lead.potential_value || 0);
+          
+          // Add to pipeline based on lead type or status
+          if (lead.lead_type === 'retail' || lead.client_type === 'Retail') {
+            retailPipeline += potentialValue;
+          } else if (lead.lead_type === 'corporate' || lead.client_type === 'Corporate') {
+            corporatePipeline += potentialValue;
+          } else {
+            salesPersonPipeline += potentialValue;
+          }
+        });
+        
+        const overallPipeline = salesPersonPipeline + retailPipeline + corporatePipeline;
+        
+        // Get target (handle if collection doesn't exist)
+        let target = userData.sales_target || 0;
+        try {
+          const targetDoc = await db.collection('sales_targets').doc(userDoc.id).get();
+          if (targetDoc.exists) {
+            target = targetDoc.data().target;
+          }
+        } catch (err) {
+          console.log('Sales targets collection not found, using user field');
+        }
+        
+        salesTeam.push({
+          id: userDoc.id,
+          name: userData.name,
+          email: userEmail,
+          target: target / 10000000, // Convert to Crores
+          totalSales: totalSales / 10000000,
+          actualizedSales: actualizedSales / 10000000,
+          totalMargin: totalMargin / 10000000,
+          actualizedMargin: actualizedMargin / 10000000,
+          salesPersonPipeline: salesPersonPipeline / 10000000,
+          retailPipeline: retailPipeline / 10000000,
+          corporatePipeline: corporatePipeline / 10000000,
+          overallPipeline: overallPipeline / 10000000
+        });
+        
+      } catch (userError) {
+        console.error(`Error processing user ${userDoc.id}:`, userError);
+        // Continue with next user
+      }
     }
+    
+    console.log(`Returning ${salesTeam.length} team members`);
     
     res.json({
       success: true,
@@ -134,9 +176,11 @@ router.get('/', authenticateToken, async (req, res) => {
     
   } catch (error) {
     console.error('❌ Sales performance error:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({ 
       success: false, 
-      error: error.message 
+      error: error.message,
+      stack: error.stack
     });
   }
 });
