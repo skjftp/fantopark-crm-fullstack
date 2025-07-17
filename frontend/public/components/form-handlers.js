@@ -842,6 +842,7 @@ window.handlePaymentPostServiceSubmit = async function(e) {
       requires_gst_invoice: true,
       created_date: new Date().toISOString(),
       created_by: window.user.name,
+      sales_person: window.user.email, // Add this line
       
       assigned_to: supplySalesServiceManager,
       assigned_team: 'supply',
@@ -930,6 +931,7 @@ window.handlePaymentPostService = async function(lead) {
       total_amount: lead.potential_value || 0,
       created_date: new Date().toISOString(),
       created_by: window.user.name,
+      sales_person: window.user.email, // Add this line
       
       // 🔧 FIXED: Assign to supply_sales_service_manager instead of empty string
       assigned_to: supplySalesServiceManager,
