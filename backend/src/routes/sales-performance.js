@@ -4,6 +4,7 @@ const { db, collections } = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 
 // GET sales team performance data
+// GET sales team performance data
 router.get('/', authenticateToken, async (req, res) => {
   try {
     console.log('📊 Fetching sales performance data...');
@@ -20,10 +21,20 @@ router.get('/', authenticateToken, async (req, res) => {
       const userData = userDoc.data();
       const userEmail = userData.email;
       
-      // Get orders assigned to this user
+      // Get orders where this user was the ORIGINAL assignee (sales person)
+      // Look for original_assignee or created_by field instead of assigned_to
       const ordersSnapshot = await db.collection(collections.orders)
-        .where('assigned_to', '==', userEmail)
+        .where('original_assignee', '==', userEmail)
         .get();
+      
+      // If original_assignee doesn't exist, try created_by
+      const ordersSnapshot2 = await db.collection(collections.orders)
+        .where('created_by', '==', userEmail)
+        .get();
+      
+      // Combine both queries
+      const allOrders = [...ordersSnapshot.docs, ...ordersSnapshot2.docs];
+      const uniqueOrders = Array.from(new Map(allOrders.map(doc => [doc.id, doc])).values());
       
       // Calculate metrics
       let totalSales = 0;
@@ -33,11 +44,11 @@ router.get('/', authenticateToken, async (req, res) => {
       
       const now = new Date();
       
-      ordersSnapshot.docs.forEach(doc => {
+      uniqueOrders.forEach(doc => {
         const order = doc.data();
         const orderAmount = parseFloat(order.total_amount || 0);
-        const buyingPrice = parseFloat(order.buying_price || 0);
-        const sellingPrice = parseFloat(order.selling_price || 0);
+        const buyingPrice = parseFloat(order.buying_price || 0) * parseFloat(order.quantity || 0);
+        const sellingPrice = parseFloat(order.selling_price || 0) * parseFloat(order.quantity || 0);
         const margin = sellingPrice - buyingPrice;
         
         // Add to total sales
@@ -68,9 +79,9 @@ router.get('/', authenticateToken, async (req, res) => {
         const potentialValue = parseFloat(lead.potential_value || 0);
         
         // Add to pipeline based on lead type or status
-        if (lead.lead_type === 'retail') {
+        if (lead.lead_type === 'retail' || lead.client_type === 'Retail') {
           retailPipeline += potentialValue;
-        } else if (lead.lead_type === 'corporate') {
+        } else if (lead.lead_type === 'corporate' || lead.client_type === 'Corporate') {
           corporatePipeline += potentialValue;
         } else {
           salesPersonPipeline += potentialValue;
@@ -79,8 +90,9 @@ router.get('/', authenticateToken, async (req, res) => {
       
       const overallPipeline = salesPersonPipeline + retailPipeline + corporatePipeline;
       
-      // Get target (you might want to store this in a separate collection)
-      const target = userData.sales_target || 0;
+      // Get target from user data or separate collection
+      const targetDoc = await db.collection('sales_targets').doc(userDoc.id).get();
+      const target = targetDoc.exists() ? targetDoc.data().target : (userData.sales_target || 0);
       
       salesTeam.push({
         id: userDoc.id,
@@ -195,6 +207,62 @@ router.put('/target/:userId', authenticateToken, async (req, res) => {
     
   } catch (error) {
     console.error('❌ Update target error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// ADD sales team member manually
+router.post('/add-member', authenticateToken, async (req, res) => {
+  try {
+    const { userId, type } = req.body;
+    
+    if (type === 'sales') {
+      // Add to sales_performance_members collection
+      await db.collection('sales_performance_members').doc(userId).set({
+        userId: userId,
+        type: 'sales',
+        addedAt: new Date().toISOString(),
+        addedBy: req.user.email
+      });
+    } else if (type === 'retail') {
+      // Add to retail_tracker_members collection
+      await db.collection('retail_tracker_members').doc(userId).set({
+        userId: userId,
+        type: 'retail',
+        addedAt: new Date().toISOString(),
+        addedBy: req.user.email
+      });
+    }
+    
+    res.json({ success: true });
+    
+  } catch (error) {
+    console.error('❌ Add member error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// REMOVE member
+router.delete('/remove-member/:userId/:type', authenticateToken, async (req, res) => {
+  try {
+    const { userId, type } = req.params;
+    
+    if (type === 'sales') {
+      await db.collection('sales_performance_members').doc(userId).delete();
+    } else if (type === 'retail') {
+      await db.collection('retail_tracker_members').doc(userId).delete();
+    }
+    
+    res.json({ success: true });
+    
+  } catch (error) {
+    console.error('❌ Remove member error:', error);
     res.status(500).json({ 
       success: false, 
       error: error.message 
