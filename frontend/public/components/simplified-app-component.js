@@ -3501,7 +3501,7 @@ window.toggleMobileMenu = function() {
     }
 };
 
-// Update your SimplifiedApp component to add mobile header
+// Update your existing addMobileHeader function
 window.addMobileHeader = function() {
     const oldSimplifiedApp = window.SimplifiedApp;
     
@@ -3515,8 +3515,8 @@ window.addMobileHeader = function() {
             // Mobile Header
             React.createElement('div', { className: 'mobile-header lg:hidden' },
                 React.createElement('button', {
-                    onClick: window.toggleMobileMenu,
-                    className: 'p-2 hover:bg-gray-100 rounded'
+                    onClick: window.openMobileMenu, // Changed from toggleMobileMenu to openMobileMenu
+                    className: 'p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded'
                 },
                     React.createElement('svg', {
                         width: '24',
@@ -3537,11 +3537,11 @@ window.addMobileHeader = function() {
                 React.createElement('div', { className: 'w-10' }) // Spacer for balance
             ),
             
-            // Mobile Overlay
+            // Mobile Overlay - now properly handled by our new functions
             React.createElement('div', {
                 id: 'mobile-overlay',
-                className: 'mobile-overlay',
-                onClick: window.toggleMobileMenu
+                className: 'mobile-overlay'
+                // onclick handler removed - it's now handled by createMobileOverlay
             }),
             
             // Original content
