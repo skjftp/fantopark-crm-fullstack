@@ -365,4 +365,61 @@ router.delete('/remove-member/:userId/:type', authenticateToken, async (req, res
   }
 });
 
+// TEMPORARY: Update all orders with sales_person field
+router.post('/update-sales-person-field', authenticateToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    const ordersSnapshot = await db.collection(collections.orders).get();
+    console.log(`Found ${ordersSnapshot.size} orders to process`);
+    
+    let updated = 0;
+    let skipped = 0;
+    
+    const financeTeam = ['jaya@fantopark.com', 'rishabh@fantopark.com'];
+    
+    for (const doc of ordersSnapshot.docs) {
+      const order = doc.data();
+      
+      if (order.sales_person) {
+        skipped++;
+        continue;
+      }
+      
+      let salesPerson = null;
+      
+      if (order.created_by) {
+        salesPerson = order.created_by;
+      } else if (order.assigned_to && !financeTeam.includes(order.assigned_to)) {
+        salesPerson = order.assigned_to;
+      }
+      
+      if (salesPerson) {
+        await db.collection(collections.orders).doc(doc.id).update({
+          sales_person: salesPerson
+        });
+        updated++;
+        console.log(`Updated order ${doc.id} with sales_person: ${salesPerson}`);
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Updated ${updated} orders, skipped ${skipped}`,
+      details: {
+        updated,
+        skipped,
+        total: ordersSnapshot.size
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
