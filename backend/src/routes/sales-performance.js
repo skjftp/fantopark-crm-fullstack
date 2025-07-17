@@ -176,12 +176,14 @@ router.get('/', authenticateToken, async (req, res) => {
       userLeads.forEach(lead => {
         const potentialValue = parseFloat(lead.potential_value || 0);
         
-        if (lead.lead_type === 'retail' || lead.client_type === 'Retail') {
+        // Check business_type for leads (B2B/B2C)
+        if (lead.business_type === 'B2C') {
           retailPipeline += potentialValue;
-        } else if (lead.lead_type === 'corporate' || lead.client_type === 'Corporate') {
+        } else if (lead.business_type === 'B2B') {
           corporatePipeline += potentialValue;
         } else {
-          salesPersonPipeline += potentialValue;
+          // If business_type is not set, default to retail
+          retailPipeline += potentialValue;
         }
       });
       
