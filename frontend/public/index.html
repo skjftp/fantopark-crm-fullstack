@@ -978,6 +978,27 @@ window.optimizeLoginPerformance();
 <!-- CSS Styles -->
 <style>
 
+  * Quick ticker patch - add to head of index.html if needed */
+  div:first-child > div:first-child {
+    overflow: visible !important;
+  }
+  
+  /* Force ticker to behave */
+  .py-1, .py-2 {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+  }
+  
+  /* Fix currency displays */
+  span:contains("₹"),
+  span:contains("$"),
+  span:contains("€"),
+  span:contains("£") {
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+
   /* Birthday Animation Styles */
 .birthday-overlay {
     position: fixed;
