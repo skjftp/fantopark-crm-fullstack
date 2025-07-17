@@ -333,3 +333,112 @@ canvas {
   background-color: #111827 !important;
   border-bottom: 1px solid #374151 !important;
 }
+
+
+/* ============================================
+   DESKTOP TICKER FIX - Specific fix for pyramid/horizontal layout
+   ============================================ */
+
+/* Desktop only - Reset and fix ticker display */
+@media (min-width: 1025px) {
+  /* Main ticker container */
+  .bg-gray-900.text-white.py-2,
+  .bg-red-600.text-white.py-1,
+  div[class*="ticker"] {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    height: 40px !important;
+    padding: 0 1rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    gap: 2rem !important;
+    /* Remove any grid or column layouts */
+    grid-template-columns: none !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  /* Direct children of ticker - force inline */
+  .bg-gray-900.text-white.py-2 > *,
+  .bg-red-600.text-white.py-1 > * {
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-direction: row !important;
+    margin: 0 !important;
+    padding: 0 0.5rem !important;
+    height: auto !important;
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    /* Remove any float or position */
+    float: none !important;
+    position: relative !important;
+  }
+  
+  /* Currency labels and values */
+  .bg-gray-900.text-white.py-2 span,
+  .bg-red-600.text-white.py-1 span {
+    display: inline !important;
+    margin: 0 0.25rem !important;
+    vertical-align: middle !important;
+  }
+  
+  /* Percentage values specific styling */
+  span[class*="text-red"],
+  span[class*="text-green"],
+  span[class*="text-gray"] {
+    font-size: 0.875rem !important;
+    margin-left: 0.25rem !important;
+  }
+  
+  /* Remove any nested flex containers that might cause issues */
+  .bg-gray-900.text-white.py-2 > * > *,
+  .bg-red-600.text-white.py-1 > * > * {
+    display: inline !important;
+    flex: none !important;
+  }
+}
+
+/* Fix for the second row ticker if it exists */
+@media (min-width: 1025px) {
+  /* Info bar (the dark bar with leads info) */
+  .bg-gray-800.text-white.py-2,
+  .bg-gray-700.text-gray-200,
+  div[class*="bg-gray"]:not(.bg-gray-900) {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    padding: 0.5rem 1rem !important;
+    gap: 2rem !important;
+    height: auto !important;
+    min-height: 35px !important;
+  }
+  
+  /* Info bar items */
+  .bg-gray-800.text-white.py-2 > *,
+  .bg-gray-700.text-gray-200 > * {
+    display: inline-flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+    padding: 0 0.5rem !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* Ensure proper z-index stacking */
+@media (min-width: 1025px) {
+  /* First ticker (currencies) */
+  .bg-gray-900.text-white.py-2,
+  .bg-red-600.text-white.py-1 {
+    position: relative !important;
+    z-index: 1000 !important;
+  }
+  
+  /* Second bar (info) */
+  .bg-gray-800.text-white.py-2,
+  .bg-gray-700.text-gray-200 {
+    position: relative !important;
+    z-index: 999 !important;
+  }
+}
