@@ -402,6 +402,7 @@ window.renderPaymentSubmitHandler = () => {
         created_date: new Date().toISOString(),
         created_at: new Date().toISOString(),
         created_by: window.currentLead.assigned_to || window.currentLead.created_by || window.user.name,
+        sales_person: window.user.email, // Add this line
         original_assignee: window.currentLead.assigned_to || window.currentLead.created_by,
         
         // 🔧 FIXED: Assign to finance manager instead of supply team
