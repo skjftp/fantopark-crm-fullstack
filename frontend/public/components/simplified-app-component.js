@@ -3588,6 +3588,12 @@ window.initializeMobileResponsive = function() {
     
     // Add mobile header wrapper
     window.addMobileHeader();
+  window.initMobileMenuEnhancements(); // ADD THIS LINE
+
+// Also ensure it runs after React renders
+setTimeout(() => {
+  window.initMobileMenuEnhancements();
+}, 100);
     
     // Add responsive classes after a short delay
     setTimeout(() => {
