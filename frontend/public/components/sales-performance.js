@@ -14,10 +14,19 @@ function SalesPerformanceTracker() {
   const [allUsers, setAllUsers] = React.useState([]);
   const [showUserModal, setShowUserModal] = React.useState(false);
   const [modalType, setModalType] = React.useState('sales'); // 'sales' or 'retail'
-  const [dateRange, setDateRange] = React.useState({
-    start: new Date().toISOString().split('T')[0],
-    end: new Date().toISOString().split('T')[0]
-  });
+  // Calculate last 7 days date range
+const getDefaultDateRange = () => {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 7); // 7 days ago
+  
+  return {
+    start: startDate.toISOString().split('T')[0],
+    end: endDate.toISOString().split('T')[0]
+  };
+};
+
+const [dateRange, setDateRange] = React.useState(getDefaultDateRange());
 
   // Fetch all users for selection
 // Fetch all users for selection
@@ -301,11 +310,20 @@ const removeRetailTeamMember = async (id) => {
   }), { target: 0, totalSales: 0, actualizedSales: 0, totalMargin: 0, actualizedMargin: 0 });
 
   // Calculate retail metrics
-  const calculateRetailMetrics = (row) => {
-    const qualTouchbased = row.touchbased > 0 ? (row.qualified / row.touchbased * 100).toFixed(0) : 0;
-    const convertedQual = row.qualified > 0 ? (row.converted / row.qualified * 100).toFixed(0) : 0;
-    return { qualTouchbased, convertedQual };
-  };
+  // Calculate retail metrics
+const calculateRetailMetrics = (row) => {
+  // Qual/(Touchbased + Qual)
+  const qualTouchbasedDenominator = row.touchbased + row.qualified;
+  const qualTouchbased = qualTouchbasedDenominator > 0 ? 
+    (row.qualified / qualTouchbasedDenominator * 100).toFixed(0) : 0;
+  
+  // Converted/(Converted + Qualified)
+  const convertedQualDenominator = row.converted + row.qualified;
+  const convertedQual = convertedQualDenominator > 0 ? 
+    (row.converted / convertedQualDenominator * 100).toFixed(0) : 0;
+  
+  return { qualTouchbased, convertedQual };
+};
 
   // User Selection Modal
   // User Selection Modal
