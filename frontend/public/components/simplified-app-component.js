@@ -3894,6 +3894,133 @@ tickerObserver.observe(document.body, {
 });
 
 // ============================================
+// DESKTOP TICKER SPECIFIC FIX - Add after initTickerFix
+// ============================================
+
+window.fixDesktopTicker = function() {
+  // Only run on desktop
+  if (window.innerWidth <= 1024) return;
+  
+  // Find the ticker container
+  const tickerContainers = document.querySelectorAll('.bg-gray-900.text-white.py-2, .bg-red-600.text-white.py-1');
+  
+  tickerContainers.forEach(ticker => {
+    // Get all direct children
+    const tickerItems = Array.from(ticker.children);
+    
+    // Check if items are incorrectly nested or stacked
+    tickerItems.forEach(item => {
+      // If item contains nested divs or complex structure, flatten it
+      if (item.children.length > 0 && item.tagName === 'DIV') {
+        // Extract text content and create clean structure
+        const texts = [];
+        const extractText = (element) => {
+          if (element.nodeType === Node.TEXT_NODE) {
+            const text = element.textContent.trim();
+            if (text) texts.push(text);
+          } else {
+            Array.from(element.childNodes).forEach(child => extractText(child));
+          }
+        };
+        extractText(item);
+        
+        // Rebuild the item with clean structure
+        if (texts.length > 0) {
+          item.innerHTML = texts.join(' ');
+          item.style.display = 'inline-flex';
+          item.style.alignItems = 'center';
+          item.style.gap = '0.25rem';
+        }
+      }
+    });
+    
+    // Force horizontal layout
+    ticker.style.cssText = `
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-around !important;
+      height: 40px !important;
+      padding: 0 1rem !important;
+      overflow: hidden !important;
+      gap: 2rem !important;
+      white-space: nowrap !important;
+    `;
+    
+    // Fix individual currency items
+    const currencyPairs = ticker.textContent.match(/([A-Z]{3}\s*₹?€?\$?£?[0-9.,]+\s*[+-]?[0-9.]+%?)/g);
+    if (currencyPairs && currencyPairs.length > 0) {
+      // Clear and rebuild ticker with proper structure
+      ticker.innerHTML = '';
+      
+      currencyPairs.forEach(pair => {
+        const span = document.createElement('span');
+        span.style.cssText = `
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0 0.5rem;
+          white-space: nowrap;
+        `;
+        
+        // Parse currency pair
+        const match = pair.match(/([A-Z]{3})\s*(₹?€?\$?£?)([0-9.,]+)\s*([+-]?[0-9.]+%?)/);
+        if (match) {
+          const [, code, symbol, value, change] = match;
+          span.innerHTML = `
+            <span style="font-weight: 600">${code}</span>
+            <span style="font-weight: 500">${symbol}${value}</span>
+            <span style="font-size: 0.875rem; color: ${change.startsWith('-') ? '#ef4444' : '#10b981'}">${change}</span>
+          `;
+        } else {
+          span.textContent = pair;
+        }
+        
+        ticker.appendChild(span);
+      });
+    }
+  });
+  
+  // Fix the info bar (second row)
+  const infoBars = document.querySelectorAll('.bg-gray-800.text-white.py-2, .bg-gray-700.text-gray-200');
+  infoBars.forEach(bar => {
+    bar.style.cssText = `
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-around !important;
+      padding: 0.5rem 1rem !important;
+      gap: 2rem !important;
+      height: auto !important;
+      min-height: 35px !important;
+    `;
+  });
+};
+
+// Run the fix
+window.fixDesktopTicker();
+
+// Run on window resize
+let desktopTickerTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(desktopTickerTimeout);
+  desktopTickerTimeout = setTimeout(window.fixDesktopTicker, 100);
+});
+
+// Observer for React updates
+const desktopTickerObserver = new MutationObserver(() => {
+  const ticker = document.querySelector('.bg-gray-900.text-white.py-2, .bg-red-600.text-white.py-1');
+  if (ticker && window.innerWidth > 1024) {
+    window.fixDesktopTicker();
+  }
+});
+
+desktopTickerObserver.observe(document.body, {
+  childList: true,
+  subtree: true
+});
+
+// ============================================
 // INJECT TICKER STYLES - Add at very end of file
 // ============================================
 
