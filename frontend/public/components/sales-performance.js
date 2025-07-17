@@ -11,10 +11,30 @@ function SalesPerformanceTracker() {
   const [salesData, setSalesData] = React.useState([]);
   const [retailData, setRetailData] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
+  const [allUsers, setAllUsers] = React.useState([]);
+  const [showUserModal, setShowUserModal] = React.useState(false);
+  const [modalType, setModalType] = React.useState('sales'); // 'sales' or 'retail'
   const [dateRange, setDateRange] = React.useState({
     start: new Date().toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
   });
+
+  // Fetch all users for selection
+  const fetchAllUsers = async () => {
+    try {
+      const token = localStorage.getItem('crm_auth_token');
+      const response = await fetch(`${window.API_CONFIG.API_URL}/api/users`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const users = await response.json();
+        setAllUsers(users);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
 
   // Fetch sales performance data
   const fetchSalesPerformance = async () => {
@@ -69,6 +89,7 @@ function SalesPerformanceTracker() {
 
   // Fetch data on component mount
   React.useEffect(() => {
+    fetchAllUsers();
     fetchSalesPerformance();
   }, []);
 
@@ -104,13 +125,18 @@ function SalesPerformanceTracker() {
     }
   };
 
-  // Add new sales team member
-  const addSalesTeamMember = (name) => {
-    if (!name || !name.trim()) return;
+  // Add selected user to sales team
+  const addUserToSalesTeam = (user) => {
+    // Check if user already exists
+    if (salesData.some(member => member.email === user.email)) {
+      alert('User already in sales team');
+      return;
+    }
 
     const newMember = {
-      id: `user_${Date.now()}`,
-      name: name.trim(),
+      id: user.id,
+      name: user.name,
+      email: user.email,
       target: 0,
       totalSales: 0,
       actualizedSales: 0,
@@ -123,15 +149,20 @@ function SalesPerformanceTracker() {
     };
 
     setSalesData([...salesData, newMember]);
+    setShowUserModal(false);
   };
 
-  // Add new retail team member
-  const addRetailTeamMember = (name) => {
-    if (!name || !name.trim()) return;
+  // Add selected user to retail team
+  const addUserToRetailTeam = (user) => {
+    // Check if user already exists
+    if (retailData.some(member => member.salesMember === user.name)) {
+      alert('User already in retail tracking');
+      return;
+    }
 
     const newMember = {
-      id: `retail_${Date.now()}`,
-      salesMember: name.trim(),
+      id: user.id,
+      salesMember: user.name,
       assigned: 0,
       touchbased: 0,
       qualified: 0,
@@ -141,6 +172,7 @@ function SalesPerformanceTracker() {
     };
 
     setRetailData([...retailData, newMember]);
+    setShowUserModal(false);
   };
 
   // Remove sales team member
@@ -173,6 +205,57 @@ function SalesPerformanceTracker() {
     return { qualTouchbased, convertedQual };
   };
 
+  // User Selection Modal
+  const renderUserModal = () => {
+    if (!showUserModal) return null;
+
+    return React.createElement('div', {
+      className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
+    },
+      React.createElement('div', {
+        className: 'bg-white rounded-lg p-6 max-w-md w-full max-h-96 overflow-y-auto'
+      },
+        React.createElement('h3', {
+          className: 'text-lg font-semibold mb-4'
+        }, modalType === 'sales' ? 'Select Sales Team Member' : 'Select Retail Team Member'),
+        
+        React.createElement('div', {
+          className: 'space-y-2'
+        },
+          allUsers
+            .filter(user => {
+              // Filter out already added users
+              if (modalType === 'sales') {
+                return !salesData.some(member => member.email === user.email);
+              } else {
+                return !retailData.some(member => member.salesMember === user.name);
+              }
+            })
+            .map(user =>
+              React.createElement('button', {
+                key: user.id,
+                onClick: () => modalType === 'sales' ? addUserToSalesTeam(user) : addUserToRetailTeam(user),
+                className: 'w-full text-left p-3 hover:bg-gray-100 rounded flex justify-between items-center'
+              },
+                React.createElement('div', null,
+                  React.createElement('div', { className: 'font-medium' }, user.name),
+                  React.createElement('div', { className: 'text-sm text-gray-500' }, 
+                    `${user.role} - ${user.department || 'No department'}`
+                  )
+                ),
+                React.createElement('span', { className: 'text-blue-600' }, 'Select')
+              )
+            )
+        ),
+        
+        React.createElement('button', {
+          onClick: () => setShowUserModal(false),
+          className: 'mt-4 w-full py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400'
+        }, 'Cancel')
+      )
+    );
+  };
+
   // Show loading state
   if (loading) {
     return React.createElement('div', { className: 'p-6 bg-gray-50 min-h-screen flex items-center justify-center' },
@@ -181,6 +264,7 @@ function SalesPerformanceTracker() {
   }
 
   return React.createElement('div', { className: 'p-6 bg-gray-50 min-h-screen' },
+    renderUserModal(),
     React.createElement('div', { className: 'max-w-7xl mx-auto space-y-6' },
       // Header
       React.createElement('div', { className: 'text-center mb-8' },
@@ -198,8 +282,8 @@ function SalesPerformanceTracker() {
             ),
             React.createElement('button', {
               onClick: () => {
-                const name = prompt('Enter sales team member name:');
-                if (name) addSalesTeamMember(name);
+                setModalType('sales');
+                setShowUserModal(true);
               },
               className: 'px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2'
             }, 
@@ -258,7 +342,7 @@ function SalesPerformanceTracker() {
                     React.createElement('td', { 
                       colSpan: 11, 
                       className: 'border border-gray-300 p-4 text-center text-gray-500' 
-                    }, 'No sales team members found. Add team members or check if users have sales roles.')
+                    }, 'No sales team members found. Click "Add Team Member" to add users.')
                   ) :
                   salesData.map(person =>
                     React.createElement('tr', { key: person.id, className: 'hover:bg-gray-50' },
@@ -362,8 +446,8 @@ function SalesPerformanceTracker() {
             ),
             React.createElement('button', {
               onClick: () => {
-                const name = prompt('Enter retail team member name:');
-                if (name) addRetailTeamMember(name);
+                setModalType('retail');
+                setShowUserModal(true);
               },
               className: 'px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2'
             }, 
@@ -390,7 +474,7 @@ function SalesPerformanceTracker() {
             })
           ),
           
-          // Retail Table
+          // Retail Table (rest remains the same)
           React.createElement('div', { className: 'overflow-x-auto' },
             React.createElement('table', { className: 'w-full border-collapse' },
               React.createElement('thead', null,
@@ -409,7 +493,7 @@ function SalesPerformanceTracker() {
                     React.createElement('td', { 
                       colSpan: 10, 
                       className: 'border border-gray-300 p-4 text-center text-gray-500' 
-                    }, 'No retail team members found. Add members or check department assignments.')
+                    }, 'No retail team members found. Click "Add Retail Member" to add users.')
                   ) :
                   retailData.map(row => {
                     const metrics = calculateRetailMetrics(row);
