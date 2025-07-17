@@ -4,20 +4,37 @@ const { db, collections } = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 
 // GET sales team performance data
-// GET sales team performance data
 router.get('/', authenticateToken, async (req, res) => {
   try {
     console.log('📊 Fetching sales performance data...');
     
-    // Get all sales team users
+    // Get all sales team users (both by role and manually added)
     const usersSnapshot = await db.collection('crm_users')
       .where('role', 'in', ['sales_person', 'sales_manager', 'sales_head'])
       .get();
     
+    // Get manually added sales members
+    const manualMembersSnapshot = await db.collection('sales_performance_members').get();
+    const manualMemberIds = manualMembersSnapshot.docs.map(doc => doc.data().userId);
+    
+    // Get user details for manually added members
+    const manualUsersPromises = manualMemberIds.map(id => 
+      db.collection('crm_users').doc(id).get()
+    );
+    const manualUsersDocs = await Promise.all(manualUsersPromises);
+    
+    // Combine all users (avoid duplicates)
+    const allUserDocs = [...usersSnapshot.docs];
+    manualUsersDocs.forEach(doc => {
+      if (doc.exists && !allUserDocs.find(d => d.id === doc.id)) {
+        allUserDocs.push(doc);
+      }
+    });
+    
     const salesTeam = [];
     
     // For each sales person, calculate their metrics
-    for (const userDoc of usersSnapshot.docs) {
+    for (const userDoc of allUserDocs) {
       const userData = userDoc.data();
       const userEmail = userData.email;
       
@@ -129,14 +146,32 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
   try {
     const { start_date, end_date } = req.query;
     
-    // Get retail team members
-    const retailTeam = await db.collection('crm_users')
+    // Get retail team members by department
+    const retailTeamSnapshot = await db.collection('crm_users')
       .where('department', '==', 'retail')
       .get();
     
+    // Get manually added retail members
+    const manualRetailSnapshot = await db.collection('retail_tracker_members').get();
+    const manualRetailIds = manualRetailSnapshot.docs.map(doc => doc.data().userId);
+    
+    // Get user details for manually added retail members
+    const manualRetailPromises = manualRetailIds.map(id => 
+      db.collection('crm_users').doc(id).get()
+    );
+    const manualRetailDocs = await Promise.all(manualRetailPromises);
+    
+    // Combine all retail users (avoid duplicates)
+    const allRetailDocs = [...retailTeamSnapshot.docs];
+    manualRetailDocs.forEach(doc => {
+      if (doc.exists && !allRetailDocs.find(d => d.id === doc.id)) {
+        allRetailDocs.push(doc);
+      }
+    });
+    
     const retailData = [];
     
-    for (const userDoc of retailTeam.docs) {
+    for (const userDoc of allRetailDocs) {
       const userData = userDoc.data();
       const userEmail = userData.email;
       
@@ -199,8 +234,18 @@ router.put('/target/:userId', authenticateToken, async (req, res) => {
     const { userId } = req.params;
     const { target } = req.body;
     
+    // Save to both user document and separate targets collection
+    await db.collection('sales_targets').doc(userId).set({
+      target: target * 10000000, // Convert from Crores to actual value
+      updatedAt: new Date().toISOString(),
+      updatedBy: req.user.email
+    });
+    
+    // Also update in user document if it exists
     await db.collection('crm_users').doc(userId).update({
-      sales_target: target * 10000000 // Convert from Crores to actual value
+      sales_target: target * 10000000
+    }).catch(() => {
+      // Ignore error if user doesn't have this field
     });
     
     res.json({ success: true });
