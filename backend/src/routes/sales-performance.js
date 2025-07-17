@@ -3,6 +3,25 @@ const router = express.Router();
 const { db, collections } = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 
+/ Cache structure for sales performance data
+const performanceCache = {
+  salesData: null,
+  salesDataTimestamp: null,
+  retailData: new Map(), // Map to store different date ranges
+  CACHE_DURATION: 6 * 60 * 60 * 1000 // 6 hours in milliseconds
+};
+
+// Helper function to check if cache is valid
+function isCacheValid(timestamp) {
+  if (!timestamp) return false;
+  return (Date.now() - timestamp) < performanceCache.CACHE_DURATION;
+}
+
+// Helper function to generate cache key for retail data
+function getRetailCacheKey(start_date, end_date) {
+  return `${start_date || 'all'}_${end_date || 'all'}`;
+}
+
 // GET sales team performance data - OPTIMIZED VERSION
 router.get('/', authenticateToken, async (req, res) => {
   try {
