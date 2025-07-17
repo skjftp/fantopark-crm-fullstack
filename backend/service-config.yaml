@@ -1,0 +1,56 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  annotations:
+    run.googleapis.com/build-enable-automatic-updates: 'false'
+    run.googleapis.com/build-id: 6b98c8eb-5410-4f6e-8fc0-0e6bf95b9545
+    run.googleapis.com/build-image-uri: us-central1-docker.pkg.dev/enduring-wharf-464005-h7/cloud-run-source-deploy/fantopark-backend
+    run.googleapis.com/build-name: projects/150582227311/locations/us-central1/builds/6b98c8eb-5410-4f6e-8fc0-0e6bf95b9545
+    run.googleapis.com/build-source-location: gs://run-sources-enduring-wharf-464005-h7-us-central1/services/fantopark-backend/1752740539.446955-1d0a8033d5a44b7493684c31f3c5eeaa.zip#1752740539616644
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+    run.googleapis.com/urls: '["https://fantopark-backend-150582227311.us-central1.run.app","https://fantopark-backend-ofkn6rpg3a-uc.a.run.app"]'
+  labels:
+    cloud.googleapis.com/location: us-central1
+  name: fantopark-backend
+  namespace: '150582227311'
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '10'
+        run.googleapis.com/client-name: gcloud
+        run.googleapis.com/client-version: 526.0.1
+        run.googleapis.com/startup-cpu-boost: 'true'
+      labels:
+        client.knative.dev/nonce: giczgokjlv
+        run.googleapis.com/startupProbeType: Default
+    spec:
+      containerConcurrency: 80
+      containers:
+      - env:
+        - name: META_VERIFY_TOKEN
+          value: fantopark-webhook-verify-2024
+        - name: META_APP_SECRET
+          value: 7611662ab8e4e65375347effda257067
+        - name: META_PAGE_ACCESS_TOKEN
+          value: EAAiYOriHXGEBPMWEFV3exRVygEb74SZCderkRtUgMllLMBdLgvPthUeRHtU5kNwLQ7fabYvY0JCzhEvn9SITOv0RAkzN2wYfZC3h9DDr55iODyWA1PlQEBYKkNLqMaYkVVD2laW8tq7mtfaZCkgXHkfZAgl6rxoU5O3jjvMEMzI0dlUvq6AISmyg4zekrNKLZALfsQzMFo7ZCQ9wZDZD
+        image: us-central1-docker.pkg.dev/enduring-wharf-464005-h7/cloud-run-source-deploy/fantopark-backend@sha256:99c7ace6a1bbdb59e59bb636ae991aabfdd52393da6e22553202a8badcefa2f6
+        ports:
+        - containerPort: 8080
+          name: http1
+        resources:
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        startupProbe:
+          failureThreshold: 1
+          periodSeconds: 240
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 240
+      serviceAccountName: 150582227311-compute@developer.gserviceaccount.com
+      timeoutSeconds: 300
+  traffic:
+  - latestRevision: true
+    percent: 100
