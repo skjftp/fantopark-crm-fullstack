@@ -103,6 +103,7 @@ router.post('/', authenticateToken, async (req, res) => {
       ...req.body,
       status: req.body.status || 'pending_approval',
       created_by: req.user.name,
+      sales_person: req.body.sales_person || req.user.email, // Add this line
       created_date: new Date().toISOString()
     };
     
