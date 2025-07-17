@@ -3,7 +3,7 @@ const router = express.Router();
 const { db, collections } = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 
-// GET sales team performance data - OPTIMIZED VERSION
+// GET sales team performance data - FIXED VERSION
 router.get('/', authenticateToken, async (req, res) => {
   try {
     console.log('📊 Fetching sales performance data...');
@@ -43,7 +43,16 @@ router.get('/', authenticateToken, async (req, res) => {
       }
     });
     
-    // 2. Get ALL orders at once (more efficient)
+    // Create name to email mapping for conversion
+    const nameToEmail = new Map();
+    const emailToName = new Map();
+    allUserDocs.forEach(doc => {
+      const userData = doc.data();
+      nameToEmail.set(userData.name, userData.email);
+      emailToName.set(userData.email, userData.name);
+    });
+    
+    // 2. Get ALL orders at once
     const allOrdersSnapshot = await db.collection(collections.orders).get();
     console.log(`Found ${allOrdersSnapshot.size} total orders`);
     
@@ -55,25 +64,33 @@ router.get('/', authenticateToken, async (req, res) => {
     const ordersByUser = new Map();
     const leadsByUser = new Map();
     
-    // Map orders to users - check multiple fields to find the sales person
-    // Map orders to users - use sales_person field
-allOrdersSnapshot.docs.forEach(doc => {
-  const order = doc.data();
-  
-  // Use the sales_person field
-  const salesPerson = order.sales_person || order.sales_person_email;
-  
-  if (salesPerson) {
-    if (!ordersByUser.has(salesPerson)) {
-      ordersByUser.set(salesPerson, []);
-    }
-    ordersByUser.get(salesPerson).push(order);
-  } else {
-    console.log(`Order ${doc.id} has no sales_person field`);
-  }
-});
+    // Map orders to users - handle both name and email in sales_person field
+    allOrdersSnapshot.docs.forEach(doc => {
+      const order = doc.data();
+      
+      // Get sales_person field (could be name or email)
+      const salesPersonField = order.sales_person || order.sales_person_email;
+      
+      if (salesPersonField) {
+        // Convert to email if it's a name
+        let salesPersonEmail = salesPersonField;
+        if (!salesPersonField.includes('@')) {
+          // It's a name, convert to email
+          salesPersonEmail = nameToEmail.get(salesPersonField);
+          if (!salesPersonEmail) {
+            console.log(`Could not find email for sales_person: ${salesPersonField}`);
+            return;
+          }
+        }
+        
+        if (!ordersByUser.has(salesPersonEmail)) {
+          ordersByUser.set(salesPersonEmail, []);
+        }
+        ordersByUser.get(salesPersonEmail).push(order);
+      }
+    });
     
-    // Map leads to users
+    // Map leads to users (these already use emails)
     allLeadsSnapshot.docs.forEach(doc => {
       const lead = doc.data();
       const assignedTo = lead.assigned_to;
@@ -96,7 +113,7 @@ allOrdersSnapshot.docs.forEach(doc => {
       
       // Get user's orders
       const userOrders = ordersByUser.get(userEmail) || [];
-      console.log(`User ${userData.name} has ${userOrders.length} orders`);
+      console.log(`User ${userData.name} (${userEmail}) has ${userOrders.length} orders`);
       
       // Calculate metrics from orders
       let totalSales = 0;
@@ -128,6 +145,7 @@ allOrdersSnapshot.docs.forEach(doc => {
       
       // Get user's leads for pipeline
       const userLeads = leadsByUser.get(userEmail) || [];
+      console.log(`User ${userData.name} has ${userLeads.length} leads`);
       
       let salesPersonPipeline = 0;
       let retailPipeline = 0;
