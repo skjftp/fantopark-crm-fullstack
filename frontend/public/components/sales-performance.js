@@ -20,21 +20,28 @@ function SalesPerformanceTracker() {
   });
 
   // Fetch all users for selection
-  const fetchAllUsers = async () => {
-    try {
-      const token = localStorage.getItem('crm_auth_token');
-      const response = await fetch(`${window.API_CONFIG.API_URL}/api/users`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+ // Fetch all users for selection
+const fetchAllUsers = async () => {
+  try {
+    const token = localStorage.getItem('crm_auth_token');
+    const response = await fetch(`${window.API_CONFIG.API_URL}/api/users/all`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      console.log('Fetched users:', result); // Debug log
       
-      if (response.ok) {
-        const users = await response.json();
-        setAllUsers(users);
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
+      // Handle different response formats
+      const users = Array.isArray(result) ? result : (result.users || result.data || []);
+      setAllUsers(users);
+    } else {
+      console.error('Failed to fetch users:', response.status);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching users:', error);
+  }
+};
 
   // Fetch sales performance data
   const fetchSalesPerformance = async () => {
