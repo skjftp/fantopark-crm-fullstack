@@ -3588,11 +3588,21 @@ window.initializeMobileResponsive = function() {
     
     // Add mobile header wrapper
     window.addMobileHeader();
-  window.initMobileMenuEnhancements(); // ADD THIS LINE
+window.initMobileMenuEnhancements();
+window.initTickerFix(); // Initialize ticker fix
 
-// Also ensure it runs after React renders
+// Also ensure everything runs after React renders
 setTimeout(() => {
   window.initMobileMenuEnhancements();
+  window.initTickerFix();
+  
+  // Force recalculate positions
+  const ticker = document.querySelector('.bg-gray-900.text-white.py-2, .bg-red-600.text-white.py-1');
+  if (ticker) {
+    ticker.style.display = 'none';
+    ticker.offsetHeight; // Force reflow
+    ticker.style.display = 'flex';
+  }
 }, 100);
     
     // Add responsive classes after a short delay
@@ -3792,5 +3802,162 @@ mobileMenuObserver.observe(document.body, {
   childList: true,
   subtree: true
 });
+
+// ============================================
+// TICKER DISPLAY HANDLER - Add after mobile menu handler
+// ============================================
+
+window.initTickerFix = function() {
+  // Find all ticker elements
+  const tickers = document.querySelectorAll('.bg-gray-900.text-white.py-2, .bg-red-600.text-white.py-1, [class*="ticker"]');
+  
+  tickers.forEach(ticker => {
+    // Add ticker-container class if not present
+    if (!ticker.classList.contains('ticker-container')) {
+      ticker.classList.add('ticker-container');
+    }
+    
+    // Ensure proper structure for ticker items
+    const tickerItems = ticker.querySelectorAll('span, div');
+    tickerItems.forEach(item => {
+      // Make sure each item is properly styled
+      if (item.textContent.includes('₹') || item.textContent.includes('$') || item.textContent.includes('€')) {
+        item.style.display = 'inline-flex';
+        item.style.alignItems = 'center';
+        item.style.gap = '0.25rem';
+      }
+    });
+    
+    // On mobile, add touch scroll hint
+    if (window.innerWidth <= 1024) {
+      // Auto-scroll ticker on mobile to show it's scrollable
+      let scrollPos = 0;
+      const scrollHint = setInterval(() => {
+        if (scrollPos < ticker.scrollWidth - ticker.clientWidth) {
+          scrollPos += 2;
+          ticker.scrollLeft = scrollPos;
+        } else {
+          clearInterval(scrollHint);
+          // Scroll back to start after a delay
+          setTimeout(() => {
+            ticker.scrollLeft = 0;
+          }, 1000);
+        }
+      }, 30);
+      
+      // Clear interval if user interacts
+      ticker.addEventListener('touchstart', () => clearInterval(scrollHint));
+      ticker.addEventListener('mousedown', () => clearInterval(scrollHint));
+    }
+  });
+  
+  // Adjust main content padding based on ticker height
+  const adjustContentPadding = () => {
+    const ticker = document.querySelector('.ticker-container, .bg-gray-900.text-white.py-2, .bg-red-600.text-white.py-1');
+    const mobileHeader = document.querySelector('.mobile-header');
+    const mainContent = document.querySelector('.main-content, .flex-1.overflow-auto');
+    
+    if (ticker && mainContent && window.innerWidth <= 1024) {
+      const tickerHeight = ticker.offsetHeight || 40;
+      const headerHeight = mobileHeader ? mobileHeader.offsetHeight : 60;
+      mainContent.style.paddingTop = `${tickerHeight + headerHeight + 10}px`;
+      
+      if (mobileHeader) {
+        mobileHeader.style.top = `${tickerHeight}px`;
+      }
+    }
+  };
+  
+  // Run adjustment on load and resize
+  adjustContentPadding();
+  window.addEventListener('resize', adjustContentPadding);
+};
+
+// Initialize ticker fix
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', window.initTickerFix);
+} else {
+  window.initTickerFix();
+}
+
+// Re-run when React updates
+const tickerObserver = new MutationObserver(() => {
+  const ticker = document.querySelector('.bg-gray-900.text-white.py-2, .bg-red-600.text-white.py-1');
+  if (ticker && !ticker.classList.contains('ticker-container')) {
+    window.initTickerFix();
+  }
+});
+
+tickerObserver.observe(document.body, {
+  childList: true,
+  subtree: true
+});
+
+// ============================================
+// INJECT TICKER STYLES - Add at very end of file
+// ============================================
+
+(function injectTickerStyles() {
+  const tickerStyles = `
+    /* Emergency ticker fix styles */
+    .bg-gray-900.text-white.py-2,
+    .bg-red-600.text-white.py-1,
+    div[class*="bg-gray-900"]:first-child,
+    div[class*="bg-red-600"]:first-child {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      height: auto !important;
+      min-height: 40px !important;
+      max-height: 50px !important;
+      line-height: 1.5 !important;
+      overflow: hidden !important;
+    }
+    
+    /* Fix individual ticker items */
+    .bg-gray-900.text-white.py-2 > *,
+    .bg-red-600.text-white.py-1 > * {
+      display: inline-flex !important;
+      align-items: center !important;
+      margin: 0 0.5rem !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+    }
+    
+    /* Fix percentage displays */
+    span[class*="-0%"],
+    span[class*="+"][class*="%"],
+    span:contains("%") {
+      display: inline-block !important;
+      margin-left: 0.25rem !important;
+      font-size: 0.875rem !important;
+    }
+    
+    /* Mobile specific ticker fix */
+    @media (max-width: 768px) {
+      .bg-gray-900.text-white.py-2,
+      .bg-red-600.text-white.py-1 {
+        padding: 0.5rem !important;
+        font-size: 0.75rem !important;
+      }
+      
+      /* Hide overflow items on very small screens */
+      @media (max-width: 400px) {
+        .bg-gray-900.text-white.py-2 > *:nth-child(n+4),
+        .bg-red-600.text-white.py-1 > *:nth-child(n+4) {
+          display: none !important;
+        }
+      }
+    }
+  `;
+  
+  // Check if styles already exist
+  if (!document.getElementById('ticker-emergency-styles')) {
+    const styleSheet = document.createElement('style');
+    styleSheet.id = 'ticker-emergency-styles';
+    styleSheet.textContent = tickerStyles;
+    document.head.appendChild(styleSheet);
+  }
+})();
 
 console.log("✅ Inventory expansion helpers loaded");
