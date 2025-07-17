@@ -9,10 +9,8 @@ window.renderSalesPerformanceContent = function() {
 // Main component with proper React structure
 function SalesPerformanceTracker() {
   const [salesData, setSalesData] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
-  const [showAddMember, setShowAddMember] = React.useState(false);
-  const [newMemberName, setNewMemberName] = React.useState('');
   const [retailData, setRetailData] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
   const [dateRange, setDateRange] = React.useState({
     start: new Date().toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
@@ -20,8 +18,8 @@ function SalesPerformanceTracker() {
 
   // Initialize with sample data
   React.useEffect(() => {
-    // In production, fetch from API
-    const sampleData = [
+    // Sales performance sample data
+    const sampleSalesData = [
       {
         id: 'user_1',
         name: 'Pratik',
@@ -62,20 +60,32 @@ function SalesPerformanceTracker() {
         overallPipeline: 1.52
       }
     ];
-    setSalesData(sampleData);
+    setSalesData(sampleSalesData);
     
-    // Initialize retail data
-    const retailInitial = sampleData.map(member => ({
-      salesMemberId: member.id,
-      salesMember: member.name,
-      assigned: 0,
-      touchbased: 0,
-      qualified: 0,
-      hotWarm: 0,
-      converted: 0,
-      notTouchbased: 0
-    }));
-    setRetailData(retailInitial);
+    // Retail tracker can have different team members
+    const sampleRetailData = [
+      {
+        id: 'retail_1',
+        salesMember: 'Pratik',
+        assigned: 25,
+        touchbased: 20,
+        qualified: 15,
+        hotWarm: 10,
+        converted: 5,
+        notTouchbased: 5
+      },
+      {
+        id: 'retail_2',
+        salesMember: 'Akshay',
+        assigned: 30,
+        touchbased: 25,
+        qualified: 18,
+        hotWarm: 12,
+        converted: 8,
+        notTouchbased: 5
+      }
+    ];
+    setRetailData(sampleRetailData);
   }, []);
 
   // Handle target update
@@ -87,8 +97,8 @@ function SalesPerformanceTracker() {
     );
   };
 
-  // Add new team member
-  const addTeamMember = (name) => {
+  // Add new sales team member
+  const addSalesTeamMember = (name) => {
     if (!name || !name.trim()) return;
 
     const newMember = {
@@ -106,25 +116,37 @@ function SalesPerformanceTracker() {
     };
 
     setSalesData([...salesData, newMember]);
-    
-    // Add to retail data
-    setRetailData([...retailData, {
-      salesMemberId: newMember.id,
-      salesMember: newMember.name,
+  };
+
+  // Add new retail team member
+  const addRetailTeamMember = (name) => {
+    if (!name || !name.trim()) return;
+
+    const newMember = {
+      id: `retail_${Date.now()}`,
+      salesMember: name.trim(),
       assigned: 0,
       touchbased: 0,
       qualified: 0,
       hotWarm: 0,
       converted: 0,
       notTouchbased: 0
-    }]);
+    };
+
+    setRetailData([...retailData, newMember]);
   };
 
-  // Remove team member
-  const removeTeamMember = (id) => {
+  // Remove sales team member
+  const removeSalesTeamMember = (id) => {
     if (window.confirm('Are you sure you want to remove this team member?')) {
       setSalesData(salesData.filter(member => member.id !== id));
-      setRetailData(retailData.filter(data => data.salesMemberId !== id));
+    }
+  };
+
+  // Remove retail team member
+  const removeRetailTeamMember = (id) => {
+    if (window.confirm('Are you sure you want to remove this team member from retail tracking?')) {
+      setRetailData(retailData.filter(member => member.id !== id));
     }
   };
 
@@ -162,8 +184,8 @@ function SalesPerformanceTracker() {
             ),
             React.createElement('button', {
               onClick: () => {
-                const name = prompt('Enter team member name:');
-                if (name) addTeamMember(name);
+                const name = prompt('Enter sales team member name:');
+                if (name) addSalesTeamMember(name);
               },
               className: 'px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2'
             }, 
@@ -172,7 +194,7 @@ function SalesPerformanceTracker() {
             )
           ),
           
-          // Table
+          // Sales Performance Table
           React.createElement('div', { className: 'overflow-x-auto' },
             React.createElement('table', { className: 'w-full border-collapse' },
               // Table Header
@@ -268,7 +290,7 @@ function SalesPerformanceTracker() {
                         className: 'border border-gray-300 p-2 text-center' 
                       },
                         React.createElement('button', {
-                          onClick: () => removeTeamMember(person.id),
+                          onClick: () => removeSalesTeamMember(person.id),
                           className: 'text-red-600 hover:text-red-800',
                           title: 'Remove team member'
                         }, '🗑️')
@@ -317,11 +339,23 @@ function SalesPerformanceTracker() {
         )
       ),
 
-      // Retail Tracker Section
+      // Retail Tracker Section - Now Independent
       React.createElement('div', { className: 'bg-white rounded-lg shadow' },
         React.createElement('div', { className: 'p-6' },
-          React.createElement('h2', { className: 'text-xl font-semibold mb-4' }, 
-            'Retail Tracker'
+          React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+            React.createElement('h2', { className: 'text-xl font-semibold' }, 
+              'Retail Tracker'
+            ),
+            React.createElement('button', {
+              onClick: () => {
+                const name = prompt('Enter retail team member name:');
+                if (name) addRetailTeamMember(name);
+              },
+              className: 'px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2'
+            }, 
+              React.createElement('span', null, '+'),
+              'Add Retail Member'
+            )
           ),
           
           // Date Range Selector
@@ -347,7 +381,7 @@ function SalesPerformanceTracker() {
             React.createElement('table', { className: 'w-full border-collapse' },
               React.createElement('thead', null,
                 React.createElement('tr', null,
-                  ['Sales Team Member', 'Assigned', 'Touchbased', 'Qualified', 'Hot+Warm', 'Converted', 'Not Touchbased', 'Qual/Touchbased', 'Converted/Qual'].map(header =>
+                  ['Sales Team Member', 'Assigned', 'Touchbased', 'Qualified', 'Hot+Warm', 'Converted', 'Not Touchbased', 'Qual/Touchbased', 'Converted/Qual', 'Actions'].map(header =>
                     React.createElement('th', { 
                       key: header,
                       className: 'border border-gray-300 p-2 bg-gray-100' 
@@ -359,13 +393,13 @@ function SalesPerformanceTracker() {
                 retailData.length === 0 ?
                   React.createElement('tr', null,
                     React.createElement('td', { 
-                      colSpan: 9, 
+                      colSpan: 10, 
                       className: 'border border-gray-300 p-4 text-center text-gray-500' 
-                    }, 'Add team members to see retail tracking data')
+                    }, 'No retail team members added yet. Click "Add Retail Member" to get started.')
                   ) :
                   retailData.map(row => {
                     const metrics = calculateRetailMetrics(row);
-                    return React.createElement('tr', { key: row.salesMemberId },
+                    return React.createElement('tr', { key: row.id },
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 font-medium' 
                       }, row.salesMember),
@@ -392,7 +426,16 @@ function SalesPerformanceTracker() {
                       }, metrics.qualTouchbased + '%'),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
-                      }, metrics.convertedQual + '%')
+                      }, metrics.convertedQual + '%'),
+                      React.createElement('td', { 
+                        className: 'border border-gray-300 p-2 text-center' 
+                      },
+                        React.createElement('button', {
+                          onClick: () => removeRetailTeamMember(row.id),
+                          className: 'text-red-600 hover:text-red-800',
+                          title: 'Remove retail member'
+                        }, '🗑️')
+                      )
                     );
                   })
               )
@@ -407,10 +450,10 @@ function SalesPerformanceTracker() {
           React.createElement('h2', { className: 'text-xl font-semibold mb-4' }, 
             'Performance Summary'
           ),
-          React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4' },
+          React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
             React.createElement('div', { className: 'bg-blue-50 p-4 rounded' },
               React.createElement('h3', { className: 'text-sm text-blue-600 font-medium' }, 
-                'Total Team Members'
+                'Sales Team Members'
               ),
               React.createElement('p', { className: 'text-2xl font-bold text-blue-800' }, 
                 salesData.length
@@ -418,17 +461,25 @@ function SalesPerformanceTracker() {
             ),
             React.createElement('div', { className: 'bg-green-50 p-4 rounded' },
               React.createElement('h3', { className: 'text-sm text-green-600 font-medium' }, 
-                'Achievement Rate'
+                'Retail Team Members'
               ),
               React.createElement('p', { className: 'text-2xl font-bold text-green-800' }, 
-                totals.target > 0 ? ((totals.actualizedSales / totals.target) * 100).toFixed(1) + '%' : '0%'
+                retailData.length
               )
             ),
             React.createElement('div', { className: 'bg-purple-50 p-4 rounded' },
               React.createElement('h3', { className: 'text-sm text-purple-600 font-medium' }, 
-                'Average Margin'
+                'Achievement Rate'
               ),
               React.createElement('p', { className: 'text-2xl font-bold text-purple-800' }, 
+                totals.target > 0 ? ((totals.actualizedSales / totals.target) * 100).toFixed(1) + '%' : '0%'
+              )
+            ),
+            React.createElement('div', { className: 'bg-orange-50 p-4 rounded' },
+              React.createElement('h3', { className: 'text-sm text-orange-600 font-medium' }, 
+                'Average Margin'
+              ),
+              React.createElement('p', { className: 'text-2xl font-bold text-orange-800' }, 
                 totals.actualizedSales > 0 ? ((totals.actualizedMargin / totals.actualizedSales) * 100).toFixed(1) + '%' : '0%'
               )
             )
