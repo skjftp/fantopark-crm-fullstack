@@ -20,11 +20,12 @@ function SalesPerformanceTracker() {
   });
 
   // Fetch all users for selection
- // Fetch all users for selection
+// Fetch all users for selection
 const fetchAllUsers = async () => {
   try {
     const token = localStorage.getItem('crm_auth_token');
-    const response = await fetch(`${window.API_CONFIG.API_URL}/api/users/all`, {
+    // Remove the /api prefix since API_URL already includes it
+    const response = await fetch(`${window.API_CONFIG.API_URL}/users`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
@@ -43,56 +44,57 @@ const fetchAllUsers = async () => {
   }
 };
 
-  // Fetch sales performance data
-  const fetchSalesPerformance = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('crm_auth_token');
-      
-      // Fetch sales team data
-      const salesResponse = await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (salesResponse.ok) {
-        const salesResult = await salesResponse.json();
-        setSalesData(salesResult.salesTeam || []);
-      }
-      
-      // Fetch retail tracker data
-      const retailResponse = await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance/retail-tracker?start_date=${dateRange.start}&end_date=${dateRange.end}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (retailResponse.ok) {
-        const retailResult = await retailResponse.json();
-        setRetailData(retailResult.retailData || []);
-      }
-      
-    } catch (error) {
-      console.error('Error fetching performance data:', error);
-      alert('Error loading performance data');
-    } finally {
-      setLoading(false);
+ // Fetch sales performance data
+const fetchSalesPerformance = async () => {
+  setLoading(true);
+  try {
+    const token = localStorage.getItem('crm_auth_token');
+    
+    // Fetch sales team data - remove /api prefix
+    const salesResponse = await fetch(`${window.API_CONFIG.API_URL}/sales-performance`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (salesResponse.ok) {
+      const salesResult = await salesResponse.json();
+      setSalesData(salesResult.salesTeam || []);
     }
-  };
+    
+    // Fetch retail tracker data - remove /api prefix
+    const retailResponse = await fetch(`${window.API_CONFIG.API_URL}/sales-performance/retail-tracker?start_date=${dateRange.start}&end_date=${dateRange.end}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (retailResponse.ok) {
+      const retailResult = await retailResponse.json();
+      setRetailData(retailResult.retailData || []);
+    }
+    
+  } catch (error) {
+    console.error('Error fetching performance data:', error);
+    alert('Error loading performance data');
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Fetch retail data separately
   const fetchRetailData = async () => {
-    try {
-      const token = localStorage.getItem('crm_auth_token');
-      const retailResponse = await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance/retail-tracker?start_date=${dateRange.start}&end_date=${dateRange.end}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (retailResponse.ok) {
-        const retailResult = await retailResponse.json();
-        setRetailData(retailResult.retailData || []);
-      }
-    } catch (error) {
-      console.error('Error fetching retail data:', error);
+  try {
+    const token = localStorage.getItem('crm_auth_token');
+    // Remove /api prefix
+    const retailResponse = await fetch(`${window.API_CONFIG.API_URL}/sales-performance/retail-tracker?start_date=${dateRange.start}&end_date=${dateRange.end}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (retailResponse.ok) {
+      const retailResult = await retailResponse.json();
+      setRetailData(retailResult.retailData || []);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching retail data:', error);
+  }
+};
 
   // Fetch data on component mount
   React.useEffect(() => {
@@ -109,28 +111,29 @@ const fetchAllUsers = async () => {
 
   // Handle target update
   const handleTargetUpdate = async (id, newTarget) => {
-    // Update local state immediately
-    setSalesData(prevData =>
-      prevData.map(person =>
-        person.id === id ? { ...person, target: parseFloat(newTarget) || 0 } : person
-      )
-    );
-    
-    // Send update to backend
-    try {
-      const token = localStorage.getItem('crm_auth_token');
-      await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance/target/${id}`, {
-        method: 'PUT',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ target: parseFloat(newTarget) || 0 })
-      });
-    } catch (error) {
-      console.error('Error updating target:', error);
-    }
-  };
+  // Update local state immediately
+  setSalesData(prevData =>
+    prevData.map(person =>
+      person.id === id ? { ...person, target: parseFloat(newTarget) || 0 } : person
+    )
+  );
+  
+  // Send update to backend
+  try {
+    const token = localStorage.getItem('crm_auth_token');
+    // Remove /api prefix
+    await fetch(`${window.API_CONFIG.API_URL}/sales-performance/target/${id}`, {
+      method: 'PUT',
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ target: parseFloat(newTarget) || 0 })
+    });
+  } catch (error) {
+    console.error('Error updating target:', error);
+  }
+};
 
   // Add selected user to sales team
   const addUserToSalesTeam = (user) => {
