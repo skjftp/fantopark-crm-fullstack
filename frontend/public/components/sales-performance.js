@@ -17,76 +17,92 @@ function SalesPerformanceTracker() {
   });
 
   // Initialize with sample data
-  React.useEffect(() => {
-    // Sales performance sample data
-    const sampleSalesData = [
-      {
-        id: 'user_1',
-        name: 'Pratik',
-        target: 18.00,
-        totalSales: 2.84,
-        actualizedSales: 2.83,
-        totalMargin: 0.55,
-        actualizedMargin: 0.55,
-        salesPersonPipeline: 0.01,
-        retailPipeline: 3.03,
-        corporatePipeline: 3.05,
-        overallPipeline: 3.05
-      },
-      {
-        id: 'user_2',
-        name: 'Akshay',
-        target: 9.00,
-        totalSales: 3.20,
-        actualizedSales: 3.17,
-        totalMargin: 0.64,
-        actualizedMargin: 0.63,
-        salesPersonPipeline: 0.01,
-        retailPipeline: 0.00,
-        corporatePipeline: 0.01,
-        overallPipeline: 0.01
-      },
-      {
-        id: 'user_3',
-        name: 'Varun',
-        target: 18.00,
-        totalSales: 3.83,
-        actualizedSales: 3.79,
-        totalMargin: 0.68,
-        actualizedMargin: 0.66,
-        salesPersonPipeline: 0.01,
-        retailPipeline: 1.51,
-        corporatePipeline: 1.52,
-        overallPipeline: 1.52
-      }
-    ];
-    setSalesData(sampleSalesData);
+  // Fetch real data from API
+React.useEffect(() => {
+  fetchSalesPerformance();
+}, []);
+
+// Fetch sales performance data
+const fetchSalesPerformance = async () => {
+  setLoading(true);
+  try {
+    const token = localStorage.getItem('crm_auth_token');
     
-    // Retail tracker can have different team members
-    const sampleRetailData = [
-      {
-        id: 'retail_1',
-        salesMember: 'Pratik',
-        assigned: 25,
-        touchbased: 20,
-        qualified: 15,
-        hotWarm: 10,
-        converted: 5,
-        notTouchbased: 5
+    // Fetch sales team data
+    const salesResponse = await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (salesResponse.ok) {
+      const salesResult = await salesResponse.json();
+      setSalesData(salesResult.salesTeam || []);
+    }
+    
+    // Fetch retail tracker data
+    const retailResponse = await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance/retail-tracker?start_date=${dateRange.start}&end_date=${dateRange.end}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (retailResponse.ok) {
+      const retailResult = await retailResponse.json();
+      setRetailData(retailResult.retailData || []);
+    }
+    
+  } catch (error) {
+    console.error('Error fetching performance data:', error);
+    alert('Error loading performance data');
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // Refresh retail data when date range changes
+React.useEffect(() => {
+  if (!loading) {
+    fetchRetailData();
+  }
+}, [dateRange.start, dateRange.end]);
+
+const fetchRetailData = async () => {
+  try {
+    const token = localStorage.getItem('crm_auth_token');
+    const retailResponse = await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance/retail-tracker?start_date=${dateRange.start}&end_date=${dateRange.end}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (retailResponse.ok) {
+      const retailResult = await retailResponse.json();
+      setRetailData(retailResult.retailData || []);
+    }
+  } catch (error) {
+    console.error('Error fetching retail data:', error);
+  }
+};
+
+// Update target via API
+const handleTargetUpdate = async (id, newTarget) => {
+  // Update local state immediately
+  setSalesData(prevData =>
+    prevData.map(person =>
+      person.id === id ? { ...person, target: parseFloat(newTarget) || 0 } : person
+    )
+  );
+  
+  // Send update to backend
+  try {
+    const token = localStorage.getItem('crm_auth_token');
+    await fetch(`${window.API_CONFIG.API_URL}/api/sales-performance/target/${id}`, {
+      method: 'PUT',
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       },
-      {
-        id: 'retail_2',
-        salesMember: 'Akshay',
-        assigned: 30,
-        touchbased: 25,
-        qualified: 18,
-        hotWarm: 12,
-        converted: 8,
-        notTouchbased: 5
-      }
-    ];
-    setRetailData(sampleRetailData);
-  }, []);
+      body: JSON.stringify({ target: parseFloat(newTarget) || 0 })
+    });
+  } catch (error) {
+    console.error('Error updating target:', error);
+  }
+};
 
   // Handle target update
   const handleTargetUpdate = (id, newTarget) => {
