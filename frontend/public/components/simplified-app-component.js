@@ -2990,98 +2990,139 @@ window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() =
   };
 
  
-  const renderSidebar = () => {
-    const menuItems = [
-      { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-      { id: 'leads', label: 'Leads', icon: '👥' },
-      { id: 'inventory', label: 'Inventory', icon: '🎫' },
-      { id: 'orders', label: 'Orders', icon: '📋' },
-      { id: 'delivery', label: 'Delivery', icon: '🚚' },
-      { id: 'finance', label: 'Financials', icon: '💰' },
-      { id: 'stadiums', label: 'Stadiums', icon: '🏟️' },
-      { id: 'sports-calendar', label: 'Sports Calendar', icon: '📅' },
-      { id: 'reminders', label: 'Reminders', icon: '🔔' },
-      { id: 'myactions', label: 'My Actions', icon: '📌' },
-      { id: 'assignment-rules', label: 'Assignment Rules', icon: '⚙️' }
-    ];
-
-    return React.createElement('div', { className: 'w-64 bg-white shadow-lg' },
-      React.createElement('div', { className: 'p-4' },
-React.createElement('div', { className: 'flex items-center space-x-3' },
-  React.createElement('div', { className: 'w-12 h-8 bg-white rounded flex items-center justify-center p-1 shadow-sm border' },
-    React.createElement('img', { 
-      src: 'images/logo.png',
-      alt: 'FanToPark Logo',
-      className: 'w-full h-full object-contain',
-      onError: (e) => {
-        e.target.style.display = 'none';
-        e.target.parentElement.className = 'w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center';
-        e.target.parentElement.innerHTML = '<span class="text-white text-lg">🏆</span>';
-      }
-    })
-  ),
-  React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 'FanToPark CRM')
-),
-        state.user && React.createElement('div', { className: 'mt-4 p-3 bg-blue-50 rounded-lg' },
-          React.createElement('div', { className: 'text-sm font-medium text-blue-900' }, state.user.name),
-          React.createElement('div', { className: 'text-xs text-blue-600' }, window.USER_ROLES[state.user.role]?.label || state.user.role),
-          React.createElement('div', { className: 'text-xs text-blue-500' }, state.user.department)
-        )
-      ),
-      React.createElement('nav', { className: 'mt-8' },
-        menuItems.filter(item => canAccessTab(item.id)).map(item =>
-          React.createElement('button', {
-            key: item.id,
-            onClick: () => { state.setActiveTab(item.id); if(item.id === 'leads') state.setViewMode('leads'); },
-            className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 ' + (state.activeTab === item.id ? 'bg-blue-50 border-r-2 border-blue-600 text-blue-600' : 'text-gray-700')
-          },
-            React.createElement('span', { className: 'mr-3' }, item.icon),
-            item.label
-          )
-        ),
-        window.hasPermission('users', 'read') && React.createElement('button', {
-          onClick: handlers.openUserManagement,
-          className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 text-gray-700'
-        },
-          React.createElement('span', { className: 'mr-3' }, '👤'),
-          'User Management'
-        ),
-        state.user && state.user.role === 'super_admin' && React.createElement('button', {
-          onClick: () => state.setActiveTab('roles'),
-          className: 'w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 text-gray-700'
-        },
-          React.createElement('span', { className: 'mr-3' }, '🛡️'),
-          'Role Management'
-        )
-      ),
-      React.createElement('li', null,
-    React.createElement('a', {
-        href: '#',
-        onClick: (e) => {
-            e.preventDefault();
-            window.setActiveTab('changePassword');
-        },
-        className: `flex items-center px-4 py-2 text-sm font-medium rounded-md ${
-            activeTab === 'changePassword' 
-                ? 'bg-indigo-100 text-indigo-700' 
-                : 'text-gray-700 hover:bg-gray-100'
-        }`
+ const renderSidebar = () => {
+  const menuGroups = [
+    {
+      name: 'Main Operations',
+      items: [
+        { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+        { id: 'leads', label: 'Leads', icon: '👥' },
+        { id: 'inventory', label: 'Inventory', icon: '🎫' },
+        { id: 'orders', label: 'Orders', icon: '📋' },
+        { id: 'delivery', label: 'Delivery', icon: '🚚' }
+      ]
     },
-        React.createElement('span', { className: 'mr-3' }, '🔐'),
-        'Change Password'
-    )
-),                         
-      React.createElement('div', { className: 'mt-auto p-4' },
-        React.createElement('button', {
-          onClick: handlers.handleLogout,
-          className: 'w-full flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 rounded overflow-hidden'
-        },
-          React.createElement('span', { className: 'mr-3' }, '🚪'),
-          'Logout'
+    {
+      name: 'Finance & Analytics',
+      items: [
+        { id: 'finance', label: 'Financials', icon: '💰' },
+        { id: 'sales-performance', label: 'Sales Performance', icon: '📈' }
+      ]
+    },
+    {
+      name: 'Settings & Configuration',
+      items: [
+        { id: 'stadiums', label: 'Stadiums', icon: '🏟️' },
+        { id: 'sports-calendar', label: 'Sports Calendar', icon: '📅' },
+        { id: 'assignment-rules', label: 'Assignment Rules', icon: '⚙️' }
+      ]
+    },
+    {
+      name: 'Personal',
+      items: [
+        { id: 'myactions', label: 'My Actions', icon: '📌' },
+        { id: 'reminders', label: 'Reminders', icon: '🔔' }
+      ]
+    }
+  ];
+
+  return React.createElement('div', { className: 'w-64 bg-white shadow-lg overflow-y-auto' },
+    React.createElement('div', { className: 'p-4' },
+      React.createElement('div', { className: 'flex items-center space-x-3' },
+        React.createElement('div', { className: 'w-12 h-8 bg-white rounded flex items-center justify-center p-1 shadow-sm border' },
+          React.createElement('img', { 
+            src: 'images/logo.png',
+            alt: 'FanToPark Logo',
+            className: 'w-full h-full object-contain',
+            onError: (e) => {
+              e.target.style.display = 'none';
+              e.target.parentElement.className = 'w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center';
+              e.target.parentElement.innerHTML = '<span class="text-white text-lg">🏆</span>';
+            }
+          })
+        ),
+        React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 'FanToPark CRM')
+      ),
+      state.user && React.createElement('div', { className: 'mt-4 p-3 bg-blue-50 rounded-lg' },
+        React.createElement('div', { className: 'text-sm font-medium text-blue-900' }, state.user.name),
+        React.createElement('div', { className: 'text-xs text-blue-600' }, window.USER_ROLES[state.user.role]?.label || state.user.role),
+        React.createElement('div', { className: 'text-xs text-blue-500' }, state.user.department)
+      )
+    ),
+    React.createElement('nav', { className: 'mt-8 pb-4' },
+      // Grouped menu items
+      menuGroups.map(group =>
+        React.createElement('div', { key: group.name, className: 'mb-6' },
+          React.createElement('h3', { 
+            className: 'px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2' 
+          }, group.name),
+          React.createElement('div', { className: 'space-y-1' },
+            group.items.filter(item => canAccessTab(item.id)).map(item =>
+              React.createElement('button', {
+                key: item.id,
+                onClick: () => { 
+                  state.setActiveTab(item.id); 
+                  if(item.id === 'leads') state.setViewMode('leads'); 
+                },
+                className: 'w-full flex items-center px-4 py-2 text-sm rounded-md transition-colors ' + 
+                  (state.activeTab === item.id 
+                    ? 'bg-blue-50 border-r-2 border-blue-600 text-blue-600' 
+                    : 'text-gray-700 hover:bg-gray-50')
+              },
+                React.createElement('span', { className: 'mr-3' }, item.icon),
+                item.label
+              )
+            )
+          )
+        )
+      ),
+      // System section
+      React.createElement('div', { className: 'mt-6 pt-6 border-t border-gray-200' },
+        React.createElement('h3', { 
+          className: 'px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2' 
+        }, 'System'),
+        React.createElement('div', { className: 'space-y-1' },
+          window.hasPermission('users', 'read') && React.createElement('button', {
+            onClick: handlers.openUserManagement,
+            className: 'w-full flex items-center px-4 py-2 text-sm rounded-md transition-colors text-gray-700 hover:bg-gray-50'
+          },
+            React.createElement('span', { className: 'mr-3' }, '👤'),
+            'User Management'
+          ),
+          state.user && state.user.role === 'super_admin' && React.createElement('button', {
+            onClick: () => state.setActiveTab('roles'),
+            className: 'w-full flex items-center px-4 py-2 text-sm rounded-md transition-colors text-gray-700 hover:bg-gray-50'
+          },
+            React.createElement('span', { className: 'mr-3' }, '🛡️'),
+            'Role Management'
+          ),
+          React.createElement('button', {
+            onClick: (e) => {
+              e.preventDefault();
+              window.setActiveTab('changePassword');
+            },
+            className: 'w-full flex items-center px-4 py-2 text-sm rounded-md transition-colors ' +
+              (state.activeTab === 'changePassword' 
+                ? 'bg-indigo-100 text-indigo-700' 
+                : 'text-gray-700 hover:bg-gray-100')
+          },
+            React.createElement('span', { className: 'mr-3' }, '🔐'),
+            'Change Password'
+          )
         )
       )
-    );
-  };
+    ),
+    React.createElement('div', { className: 'mt-auto p-4 border-t border-gray-200' },
+      React.createElement('button', {
+        onClick: handlers.handleLogout,
+        className: 'w-full flex items-center px-4 py-3 text-gray-700 hover:bg-gray-50 rounded'
+      },
+        React.createElement('span', { className: 'mr-3' }, '🚪'),
+        'Logout'
+      )
+    )
+  );
+};
 
   // ✅ ENHANCED Assignment Rules Tab with better error handling
 const AssignmentRulesTab = React.useMemo(() => {
