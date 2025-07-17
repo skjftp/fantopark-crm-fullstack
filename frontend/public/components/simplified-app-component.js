@@ -3489,19 +3489,23 @@ if (!document.getElementById('mobile-responsive-styles')) {
 }
 
 // Simple mobile menu toggle function with close button
+// Add this to your simplified-app-component.js file
+
+// UPDATE your existing toggleMobileMenu function
 window.toggleMobileMenu = function() {
-    const sidebar = document.querySelector('.w-64.bg-white');
+    const sidebar = document.querySelector('.w-64.bg-white, .w-64.bg-gray-800');
     const overlay = document.getElementById('mobile-overlay');
     
     if (sidebar) {
-        const isOpen = sidebar.classList.contains('open');
+        const isOpen = sidebar.classList.contains('mobile-open');
         
         if (!isOpen) {
             // Opening sidebar
-            sidebar.classList.add('open');
+            sidebar.classList.add('mobile-open');
             if (overlay) {
                 overlay.classList.add('show');
             }
+            document.body.style.overflow = 'hidden'; // Prevent body scroll when menu open
             
             // Add close button if it doesn't exist
             if (!sidebar.querySelector('.mobile-close-btn')) {
@@ -3523,23 +3527,126 @@ window.toggleMobileMenu = function() {
                     align-items: center;
                     justify-content: center;
                     z-index: 100;
+                    color: #374151;
                 `;
                 closeBtn.onclick = function() {
-                    sidebar.classList.remove('open');
+                    sidebar.classList.remove('mobile-open');
                     if (overlay) {
                         overlay.classList.remove('show');
                     }
+                    document.body.style.overflow = ''; // Restore body scroll
                 };
                 sidebar.insertBefore(closeBtn, sidebar.firstChild);
             }
         } else {
             // Closing sidebar
-            sidebar.classList.remove('open');
+            sidebar.classList.remove('mobile-open');
             if (overlay) {
                 overlay.classList.remove('show');
             }
+            document.body.style.overflow = ''; // Restore body scroll
         }
     }
+};
+
+// Additional function to ensure horizontal scroll is prevented
+window.preventHorizontalScroll = function() {
+    // This function runs periodically to catch any dynamic content
+    if (window.innerWidth <= 768) {
+        // Find all elements that might be causing horizontal scroll
+        const allElements = document.querySelectorAll('*');
+        
+        allElements.forEach(el => {
+            const rect = el.getBoundingClientRect();
+            if (rect.right > window.innerWidth || rect.left < 0) {
+                console.warn('Element causing horizontal scroll:', el);
+                el.style.maxWidth = '100%';
+                el.style.overflowX = 'hidden';
+            }
+        });
+        
+        // Double-check specific problematic elements
+        const problematicSelectors = [
+            '.overflow-x-auto',
+            'table',
+            '.flex',
+            '.grid',
+            '[class*="w-full"]'
+        ];
+        
+        problematicSelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                if (el.offsetWidth > window.innerWidth) {
+                    el.style.maxWidth = '100vw';
+                    el.style.overflowX = 'auto';
+                }
+            });
+        });
+    }
+};
+
+// Run the horizontal scroll prevention
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', window.preventHorizontalScroll);
+} else {
+    window.preventHorizontalScroll();
+}
+
+// Run it again after a delay to catch dynamic content
+setTimeout(window.preventHorizontalScroll, 500);
+setTimeout(window.preventHorizontalScroll, 1500);
+
+// Also run on window resize
+window.addEventListener('resize', window.preventHorizontalScroll);
+
+// Update your mobile header function to ensure overlay is clickable
+window.addMobileHeader = function() {
+    const oldSimplifiedApp = window.SimplifiedApp;
+    
+    window.SimplifiedApp = function() {
+        const result = oldSimplifiedApp();
+        
+        if (!result || !window.appState.isLoggedIn) return result;
+        
+        // Wrap the existing content and add mobile header
+        return React.createElement('div', null,
+            // Mobile Header
+            React.createElement('div', { className: 'mobile-header lg:hidden' },
+                React.createElement('button', {
+                    onClick: window.toggleMobileMenu,
+                    className: 'p-2 hover:bg-gray-100 rounded'
+                },
+                    React.createElement('svg', {
+                        width: '24',
+                        height: '24',
+                        viewBox: '0 0 24 24',
+                        fill: 'none',
+                        stroke: 'currentColor',
+                        strokeWidth: '2'
+                    },
+                        React.createElement('path', {
+                            d: 'M3 12h18M3 6h18M3 18h18'
+                        })
+                    )
+                ),
+                React.createElement('h1', { className: 'text-lg font-semibold flex-1 text-center' }, 
+                    'FanToPark CRM'
+                ),
+                React.createElement('div', { className: 'w-10' }) // Spacer for balance
+            ),
+            
+            // Mobile Overlay - clickable to close menu
+            React.createElement('div', {
+                id: 'mobile-overlay',
+                className: 'mobile-overlay',
+                onClick: window.toggleMobileMenu
+            }),
+            
+            // Original content
+            result
+        );
+    };
 };
 
 // Update your SimplifiedApp component to add mobile header
@@ -3693,5 +3800,87 @@ window.debugInventoryCategories = (inventoryId) => {
 window.isInventoryExpanded = (inventoryId) => {
   return window.expandedInventoryItems && window.expandedInventoryItems.has(inventoryId);
 };
+
+// Add this function to remove tickers on mobile
+window.hideTickersOnMobile = function() {
+    if (window.innerWidth <= 768) {
+        // Find and hide all ticker-like elements
+        const tickerSelectors = [
+            '.bg-gray-900.text-white.py-2',
+            '.bg-red-600.text-white.py-1',
+            '.bg-gray-800.text-white.py-2',
+            '[class*="ticker"]',
+            // Target elements containing currency symbols
+            'div:has(span:contains("₹"))',
+            'div:has(span:contains("€"))',
+            'div:has(span:contains("$"))',
+            'div:has(span:contains("USD"))',
+            'div:has(span:contains("EUR"))',
+            'div:has(span:contains("GBP"))',
+            'div:has(span:contains("AED"))',
+            'div:has(span:contains("LIVE"))',
+            // Target the leads info bar
+            'div:has(span:contains("Leads Logged Today"))',
+            'div:has(span:contains("Leads Qualified"))',
+            'div:has(span:contains("Potential Value"))'
+        ];
+        
+        tickerSelectors.forEach(selector => {
+            try {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    // Check if this element looks like a ticker
+                    const text = el.textContent || '';
+                    if (text.includes('₹') || text.includes('€') || text.includes('$') || 
+                        text.includes('USD') || text.includes('EUR') || text.includes('GBP') ||
+                        text.includes('LIVE') || text.includes('Leads Logged Today')) {
+                        el.style.display = 'none';
+                    }
+                });
+            } catch (e) {
+                // Some selectors might not be supported in all browsers
+            }
+        });
+        
+        // Also hide the first few divs that might be tickers
+        const firstDivs = document.querySelectorAll('body > div:first-child > div:first-child, body > div:first-child > div:nth-child(2)');
+        firstDivs.forEach(div => {
+            const text = div.textContent || '';
+            if (text.includes('₹') || text.includes('LIVE') || text.includes('Leads Logged Today')) {
+                div.style.display = 'none';
+            }
+        });
+        
+        // Adjust the main content to remove gap
+        const mainContent = document.querySelector('.flex-1.overflow-auto, .main-content');
+        if (mainContent) {
+            mainContent.style.paddingTop = '60px';
+            mainContent.style.marginTop = '0';
+        }
+    }
+};
+
+// Run the function
+window.hideTickersOnMobile();
+
+// Run again after delays to catch dynamic content
+setTimeout(window.hideTickersOnMobile, 100);
+setTimeout(window.hideTickersOnMobile, 500);
+setTimeout(window.hideTickersOnMobile, 1000);
+
+// Run on resize
+window.addEventListener('resize', window.hideTickersOnMobile);
+
+// Run when DOM changes (for React updates)
+const tickerObserver = new MutationObserver(() => {
+    if (window.innerWidth <= 768) {
+        window.hideTickersOnMobile();
+    }
+});
+
+tickerObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+});
 
 console.log("✅ Inventory expansion helpers loaded");
