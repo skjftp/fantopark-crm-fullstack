@@ -3,24 +3,21 @@ const router = express.Router();
 const { db, collections } = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 
-// GET sales team performance data
+// GET sales team performance data - OPTIMIZED VERSION
 router.get('/', authenticateToken, async (req, res) => {
   try {
     console.log('📊 Fetching sales performance data...');
     
-    // Get all sales team users (both by role and manually added)
+    // 1. Get all users first
     const usersSnapshot = await db.collection('crm_users')
       .where('role', 'in', ['sales_person', 'sales_manager', 'sales_head'])
       .get();
     
-    console.log(`Found ${usersSnapshot.size} users by role`);
-    
-    // Get manually added sales members (handle if collection doesn't exist)
+    // Get manually added members
     let manualMemberIds = [];
     try {
       const manualMembersSnapshot = await db.collection('sales_performance_members').get();
       manualMemberIds = manualMembersSnapshot.docs.map(doc => doc.data().userId);
-      console.log(`Found ${manualMemberIds.length} manually added members`);
     } catch (err) {
       console.log('No manual members collection yet');
     }
@@ -34,11 +31,11 @@ router.get('/', authenticateToken, async (req, res) => {
           manualUsersDocs.push(doc);
         }
       } catch (err) {
-        console.log(`Failed to fetch user ${id}:`, err.message);
+        console.log(`Failed to fetch user ${id}`);
       }
     }
     
-    // Combine all users (avoid duplicates)
+    // Combine all users
     const allUserDocs = [...usersSnapshot.docs];
     manualUsersDocs.forEach(doc => {
       if (!allUserDocs.find(d => d.id === doc.id)) {
@@ -46,125 +43,152 @@ router.get('/', authenticateToken, async (req, res) => {
       }
     });
     
-    console.log(`Processing ${allUserDocs.length} total users`);
+    // 2. Get ALL orders at once (more efficient)
+    const allOrdersSnapshot = await db.collection(collections.orders).get();
+    console.log(`Found ${allOrdersSnapshot.size} total orders`);
     
-    const salesTeam = [];
+    // 3. Get ALL leads at once
+    const allLeadsSnapshot = await db.collection(collections.leads).get();
+    console.log(`Found ${allLeadsSnapshot.size} total leads`);
     
-    // For each sales person, calculate their metrics
-    for (const userDoc of allUserDocs) {
-      try {
-        const userData = userDoc.data();
-        const userEmail = userData.email;
-        
-        console.log(`Processing user: ${userData.name} (${userEmail})`);
-        
-        // Initialize counters
-        let totalSales = 0;
-        let actualizedSales = 0;
-        let totalMargin = 0;
-        let actualizedMargin = 0;
-        
-        // Try to get orders - check which fields exist
-        let ordersToProcess = [];
-        
-        // First check if original_assignee field exists
-        const testOrder = await db.collection(collections.orders).limit(1).get();
-        const hasOriginalAssignee = testOrder.docs.length > 0 && testOrder.docs[0].data().original_assignee !== undefined;
-        
-        if (hasOriginalAssignee) {
-          const ordersSnapshot = await db.collection(collections.orders)
-            .where('original_assignee', '==', userEmail)
-            .get();
-          ordersToProcess = ordersSnapshot.docs;
-          console.log(`Found ${ordersToProcess.length} orders by original_assignee`);
-        } else {
-          // Fall back to created_by
-          const ordersSnapshot = await db.collection(collections.orders)
-            .where('created_by', '==', userEmail)
-            .get();
-          ordersToProcess = ordersSnapshot.docs;
-          console.log(`Found ${ordersToProcess.length} orders by created_by`);
-        }
-        
-        const now = new Date();
-        
-        ordersToProcess.forEach(doc => {
-          const order = doc.data();
-          const orderAmount = parseFloat(order.total_amount || 0);
-          const quantity = parseFloat(order.quantity || 1);
-          const buyingPrice = parseFloat(order.buying_price || 0) * quantity;
-          const sellingPrice = parseFloat(order.selling_price || 0) * quantity;
-          const margin = sellingPrice - buyingPrice;
-          
-          // Add to total sales
-          totalSales += orderAmount;
-          totalMargin += margin;
-          
-          // Check if event date has passed for actualized sales
-          if (order.event_date) {
-            const eventDate = new Date(order.event_date);
-            if (eventDate < now) {
-              actualizedSales += orderAmount;
-              actualizedMargin += margin;
-            }
-          }
-        });
-        
-        // Get pipeline data (leads assigned to this user)
-        const leadsSnapshot = await db.collection(collections.leads)
-          .where('assigned_to', '==', userEmail)
-          .get();
-        
-        let salesPersonPipeline = 0;
-        let retailPipeline = 0;
-        let corporatePipeline = 0;
-        
-        leadsSnapshot.docs.forEach(doc => {
-          const lead = doc.data();
-          const potentialValue = parseFloat(lead.potential_value || 0);
-          
-          // Add to pipeline based on lead type or status
-          if (lead.lead_type === 'retail' || lead.client_type === 'Retail') {
-            retailPipeline += potentialValue;
-          } else if (lead.lead_type === 'corporate' || lead.client_type === 'Corporate') {
-            corporatePipeline += potentialValue;
-          } else {
-            salesPersonPipeline += potentialValue;
-          }
-        });
-        
-        const overallPipeline = salesPersonPipeline + retailPipeline + corporatePipeline;
-        
-        // Get target (handle if collection doesn't exist)
-        let target = userData.sales_target || 0;
-        try {
-          const targetDoc = await db.collection('sales_targets').doc(userDoc.id).get();
-          if (targetDoc.exists) {
-            target = targetDoc.data().target;
-          }
-        } catch (err) {
-          console.log('Sales targets collection not found, using user field');
-        }
-        
-        salesTeam.push({
-          id: userDoc.id,
-          name: userData.name,
-          email: userEmail,
-          target: target / 10000000, // Convert to Crores
-          totalSales: totalSales / 10000000,
-          actualizedSales: actualizedSales / 10000000,
-          totalMargin: totalMargin / 10000000,
-          actualizedMargin: actualizedMargin / 10000000,
-          salesPersonPipeline: salesPersonPipeline / 10000000,
-          retailPipeline: retailPipeline / 10000000,
-          corporatePipeline: corporatePipeline / 10000000,
-          overallPipeline: overallPipeline / 10000000
-        });
-        
-      } catch (userError) {
-        console.error(`Error processing user ${userDoc.id}:`, userError);
-        // Continue with next user
+    // 4. Create maps for quick lookup
+    const ordersByUser = new Map();
+    const leadsByUser = new Map();
+    
+    // Map orders to users - check multiple fields to find the sales person
+    allOrdersSnapshot.docs.forEach(doc => {
+      const order = doc.data();
+      
+      // Try to find the sales person from various fields
+      let salesPerson = null;
+      
+      // Priority 1: original_assignee field
+      if (order.original_assignee) {
+        salesPerson = order.original_assignee;
       }
+      // Priority 2: created_by field
+      else if (order.created_by) {
+        salesPerson = order.created_by;
+      }
+      // Priority 3: sales_person field
+      else if (order.sales_person) {
+        salesPerson = order.sales_person;
+      }
+      // Priority 4: Check order history/logs if available
+      else if (order.history && Array.isArray(order.history)) {
+        const firstEntry = order.history[0];
+        if (firstEntry && firstEntry.by) {
+          salesPerson = firstEntry.by;
+        }
+      }
+      
+      if (salesPerson) {
+        if (!ordersByUser.has(salesPerson)) {
+          ordersByUser.set(salesPerson, []);
+        }
+        ordersByUser.get(salesPerson).push(order);
+      }
+    });
+    
+    // Map leads to users
+    allLeadsSnapshot.docs.forEach(doc => {
+      const lead = doc.data();
+      const assignedTo = lead.assigned_to;
+      
+      if (assignedTo) {
+        if (!leadsByUser.has(assignedTo)) {
+          leadsByUser.set(assignedTo, []);
+        }
+        leadsByUser.get(assignedTo).push(lead);
+      }
+    });
+    
+    // 5. Process each user with their data
+    const salesTeam = [];
+    const now = new Date();
+    
+    for (const userDoc of allUserDocs) {
+      const userData = userDoc.data();
+      const userEmail = userData.email;
+      
+      // Get user's orders
+      const userOrders = ordersByUser.get(userEmail) || [];
+      console.log(`User ${userData.name} has ${userOrders.length} orders`);
+      
+      // Calculate metrics from orders
+      let totalSales = 0;
+      let actualizedSales = 0;
+      let totalMargin = 0;
+      let actualizedMargin = 0;
+      
+      userOrders.forEach(order => {
+        const orderAmount = parseFloat(order.total_amount || 0);
+        const quantity = parseFloat(order.quantity || 1);
+        const buyingPrice = parseFloat(order.buying_price || 0);
+        const sellingPrice = parseFloat(order.selling_price || 0);
+        
+        // Calculate margin per unit * quantity
+        const margin = (sellingPrice - buyingPrice) * quantity;
+        
+        totalSales += orderAmount;
+        totalMargin += margin;
+        
+        // Check if event date has passed
+        if (order.event_date) {
+          const eventDate = new Date(order.event_date);
+          if (eventDate < now) {
+            actualizedSales += orderAmount;
+            actualizedMargin += margin;
+          }
+        }
+      });
+      
+      // Get user's leads for pipeline
+      const userLeads = leadsByUser.get(userEmail) || [];
+      
+      let salesPersonPipeline = 0;
+      let retailPipeline = 0;
+      let corporatePipeline = 0;
+      
+      userLeads.forEach(lead => {
+        const potentialValue = parseFloat(lead.potential_value || 0);
+        
+        if (lead.lead_type === 'retail' || lead.client_type === 'Retail') {
+          retailPipeline += potentialValue;
+        } else if (lead.lead_type === 'corporate' || lead.client_type === 'Corporate') {
+          corporatePipeline += potentialValue;
+        } else {
+          salesPersonPipeline += potentialValue;
+        }
+      });
+      
+      const overallPipeline = salesPersonPipeline + retailPipeline + corporatePipeline;
+      
+      // Get target
+      let target = userData.sales_target || 0;
+      try {
+        const targetDoc = await db.collection('sales_targets').doc(userDoc.id).get();
+        if (targetDoc.exists) {
+          target = targetDoc.data().target;
+        }
+      } catch (err) {
+        // Use default
+      }
+      
+      salesTeam.push({
+        id: userDoc.id,
+        name: userData.name,
+        email: userEmail,
+        target: target / 10000000, // Convert to Crores
+        totalSales: totalSales / 10000000,
+        actualizedSales: actualizedSales / 10000000,
+        totalMargin: totalMargin / 10000000,
+        actualizedMargin: actualizedMargin / 10000000,
+        salesPersonPipeline: salesPersonPipeline / 10000000,
+        retailPipeline: retailPipeline / 10000000,
+        corporatePipeline: corporatePipeline / 10000000,
+        overallPipeline: overallPipeline / 10000000
+      });
     }
     
     console.log(`Returning ${salesTeam.length} team members`);
@@ -179,8 +203,7 @@ router.get('/', authenticateToken, async (req, res) => {
     console.error('Stack trace:', error.stack);
     res.status(500).json({ 
       success: false, 
-      error: error.message,
-      stack: error.stack
+      error: error.message
     });
   }
 });
