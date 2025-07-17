@@ -10,6 +10,10 @@ const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || 'your-unique-verify-token-
 const APP_SECRET = process.env.META_APP_SECRET || 'your-app-secret-here';
 const PAGE_ACCESS_TOKEN = process.env.META_PAGE_ACCESS_TOKEN || 'your-page-access-token';
 
+router.get('/test', (req, res) => {
+  res.json({ message: 'Webhook routes are working!' });
+});
+
 // ===============================================
 // WEBHOOK VERIFICATION ENDPOINT (GET)
 // Meta will call this to verify your webhook
