@@ -177,6 +177,73 @@ window.renderOrderDetailModal = () => {
           )
         ),
 
+           ),
+
+        // 🔧 Assignment Information Section
+        React.createElement('div', null,
+          React.createElement('div', { className: 'flex items-center mb-4' },
+            React.createElement('span', { className: 'text-gray-600 text-lg mr-2' }, '🔧'),
+            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900' }, 'Assignment Information')
+          ),
+          React.createElement('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
+            React.createElement('div', null,
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Created By: '),
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.created_by || 'N/A')
+              ),
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Created Date: '),
+                React.createElement('span', { className: 'text-gray-900' }, 
+                  currentOrderDetail.created_date ? 
+                    new Date(currentOrderDetail.created_date).toLocaleDateString() : 'N/A'
+                )
+              ),
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Sales Person: '),
+                React.createElement('span', { className: 'text-gray-900' }, 
+                  currentOrderDetail.sales_person || 'Not Assigned'
+                ),
+                // Show edit button for admin/manager roles
+                (hasPermission('orders', 'write') && (window.user?.role === 'super_admin' || window.user?.role === 'finance_manager' || window.user?.role === 'sales_manager')) &&
+                React.createElement('button', {
+                  className: 'ml-2 text-blue-600 hover:text-blue-800 text-xs',
+                  onClick: () => {
+                    if (window.showSalesPersonEditModal) {
+                      window.showSalesPersonEditModal(currentOrderDetail);
+                    } else {
+                      // Fallback to simple prompt
+                      const salesPerson = prompt('Enter sales person email:', currentOrderDetail.sales_person || '');
+                      if (salesPerson !== null) {
+                        window.updateOrderSalesPerson(currentOrderDetail.id, salesPerson);
+                      }
+                    }
+                  }
+                }, '✏️ Edit')
+              )
+            ),
+            React.createElement('div', null,
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Assigned To: '),
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.assigned_to || 'N/A')
+              ),
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Assigned Team: '),
+                React.createElement('span', { className: 'text-gray-900' }, currentOrderDetail.assigned_team || 'N/A')
+              ),
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Assignment Date: '),
+                React.createElement('span', { className: 'text-gray-900' }, 
+                  currentOrderDetail.assignment_date || currentOrderDetail.assigned_date ? 
+                    new Date(currentOrderDetail.assignment_date || currentOrderDetail.assigned_date).toLocaleDateString() : 'N/A'
+                )
+              )
+            )
+          )
+        ),
+
+            // 🏷️ Uploaded Documents Section - UPDATED WITH DOWNLOAD FUNCTIONALITY
+            React.createElement('div', null,               
+
             // 🏷️ Uploaded Documents Section - UPDATED WITH DOWNLOAD FUNCTIONALITY
             React.createElement('div', null,
               React.createElement('div', { className: 'flex items-center mb-4' },
