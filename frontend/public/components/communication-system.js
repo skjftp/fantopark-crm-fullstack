@@ -450,7 +450,7 @@ window.createCommunicationFollowUpReminder = async function(communication, leadD
       created_by: 'Communication System',
       auto_generated: true,
       communication_id: communication.id,
-      reminder_type: 'communication_followup'
+      reminder_type: 'follow_up'
     };
 
     console.log('Creating reminder with data:', reminderData);
