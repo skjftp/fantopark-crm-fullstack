@@ -68,6 +68,11 @@ const fetchSalesPerformance = async () => {
     if (salesResponse.ok) {
       const salesResult = await salesResponse.json();
       setSalesData(salesResult.salesTeam || []);
+      
+      // Optional: Show cache status
+      if (salesResult.cached && salesResult.cacheAge) {
+        console.log(`📊 Using cached data (${salesResult.cacheAge} old)`);
+      }
     }
     
     // Fetch retail tracker data - remove /api prefix
