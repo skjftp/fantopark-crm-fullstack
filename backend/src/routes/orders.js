@@ -175,6 +175,57 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// PUT update only sales_person field
+router.put('/:id/sales-person', authenticateToken, async (req, res) => {
+  try {
+    // Check permissions - only admin/managers can update sales_person
+    if (!['super_admin', 'finance_manager', 'sales_manager'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only admin and managers can update sales person' });
+    }
+    
+    const { sales_person } = req.body;
+    
+    if (!sales_person || !sales_person.trim()) {
+      return res.status(400).json({ error: 'Sales person email is required' });
+    }
+    
+    // Check if order exists
+    const orderDoc = await db.collection(collections.orders).doc(req.params.id).get();
+    
+    if (!orderDoc.exists) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    const currentOrder = orderDoc.data();
+    
+    // Update only the sales_person field
+    const updateData = {
+      sales_person: sales_person.trim(),
+      updated_date: new Date().toISOString(),
+      updated_by: req.user.email
+    };
+    
+    await db.collection(collections.orders).doc(req.params.id).update(updateData);
+    
+    // Log the change
+    console.log(`Sales person updated for order ${req.params.id}: ${currentOrder.sales_person || 'none'} → ${sales_person} by ${req.user.email}`);
+    
+    res.json({ 
+      data: { 
+        id: req.params.id, 
+        sales_person: sales_person.trim(),
+        previous_sales_person: currentOrder.sales_person || null,
+        updated_by: req.user.email,
+        updated_date: updateData.updated_date
+      } 
+    });
+    
+  } catch (error) {
+    console.error('Error updating sales person:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // DELETE order
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
