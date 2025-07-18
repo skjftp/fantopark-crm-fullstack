@@ -83,6 +83,16 @@ class FacebookConversionsService {
     const crypto = require('crypto');
     const hashedData = {};
 
+    // Map field names to Facebook's required format
+    const fieldMapping = {
+      'email': 'em',
+      'phone': 'ph',
+      'first_name': 'fn',
+      'last_name': 'ln',
+      'city': 'ct',
+      'country': 'country'
+    };
+
     Object.keys(userData).forEach(key => {
       if (userData[key]) {
         // Normalize and hash the data
@@ -91,7 +101,10 @@ class FacebookConversionsService {
           // Remove non-numeric characters from phone
           value = value.replace(/[^0-9]/g, '');
         }
-        hashedData[key] = crypto.createHash('sha256').update(value).digest('hex');
+        
+        // Use Facebook's required field name
+        const fbFieldName = fieldMapping[key] || key;
+        hashedData[fbFieldName] = crypto.createHash('sha256').update(value).digest('hex');
       }
     });
 
