@@ -60,6 +60,7 @@ window.USER_ROLES = {
       finance: { read: true, write: true, delete: true, approve: true },
       delivery: { read: true, write: true, delete: true },
       stadiums: { read: true, write: true, delete: true },
+      sales-performance: { read: true, write: true, delete: true },
       users: { read: false, write: false, delete: false, manage_roles: false }
     }
   },
