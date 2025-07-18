@@ -2,8 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
-const { checkPermission } = require('../middleware/permissions');
+const { authenticateToken, checkPermission } = require('../middleware/auth');  // FIXED: Import from auth.js
 const websiteApiService = require('../services/websiteApiService');
 const leadMappingService = require('../services/leadMappingService');
 const { db, collections } = require('../config/db');
