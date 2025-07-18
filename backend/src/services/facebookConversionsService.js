@@ -1,4 +1,4 @@
-// services/facebookConversionsService.js
+// backend/src/services/facebookConversionsService.js
 const fetch = require('node-fetch');
 
 class FacebookConversionsService {
@@ -17,7 +17,7 @@ class FacebookConversionsService {
           {
             event_name: eventData.event_name, // 'Lead', 'CompleteRegistration', 'Purchase'
             event_time: Math.floor(Date.now() / 1000), // Unix timestamp
-            event_source_url: eventData.source_url || 'https://your-website.com',
+            event_source_url: eventData.source_url || process.env.BASE_URL || 'https://lehrado.com',
             user_data: this.hashUserData({
               email: eventData.email,
               phone: eventData.phone,
@@ -34,17 +34,21 @@ class FacebookConversionsService {
               num_items: eventData.num_people || 1
             },
             // Link back to original ad
-            action_source: 'website',
-            // Include original campaign data if available
-            ...(eventData.campaign_data && {
-              campaign_id: eventData.campaign_data.campaign_id,
-              adset_id: eventData.campaign_data.adset_id,
-              ad_id: eventData.campaign_data.ad_id
-            })
+            action_source: 'website'
+            // Note: campaign_id, adset_id, ad_id are NOT included in event data
+            // Facebook automatically attributes events to campaigns via user matching
           }
         ],
         test_event_code: process.env.NODE_ENV === 'development' ? process.env.FACEBOOK_TEST_EVENT_CODE : undefined
       };
+
+      console.log('🚀 Sending Facebook conversion event:', {
+        pixel_id: this.pixelId,
+        event_name: eventData.event_name,
+        user_email: eventData.email,
+        value: eventData.value,
+        test_mode: !!payload.test_event_code
+      });
 
       const response = await fetch(`${this.baseUrl}?access_token=${this.accessToken}`, {
         method: 'POST',
@@ -63,7 +67,8 @@ class FacebookConversionsService {
       console.log('✅ Conversion event sent to Facebook:', {
         event: eventData.event_name,
         email: eventData.email,
-        status: result
+        events_received: result.events_received || 0,
+        fbtrace_id: result.fbtrace_id
       });
 
       return result;
@@ -99,7 +104,7 @@ class FacebookConversionsService {
     const lastName = lastNameParts.join(' ');
 
     return this.sendConversionEvent({
-      event_name: 'CompleteRegistration', // or custom event 'QualifiedLead'
+      event_name: 'CompleteRegistration', // Facebook standard event
       email: leadData.email,
       phone: leadData.phone,
       first_name: firstName,
@@ -125,7 +130,7 @@ class FacebookConversionsService {
     const lastName = lastNameParts.join(' ');
 
     return this.sendConversionEvent({
-      event_name: 'Purchase', // or custom event 'Conversion'
+      event_name: 'Purchase', // Facebook standard event for conversions
       email: leadData.email,
       phone: leadData.phone,
       first_name: firstName,
