@@ -121,61 +121,79 @@ class LeadMappingService {
     return sourceMap[referralCode] || 'website';
   }
 
-  // Map single website lead to CRM lead format
-  async mapWebsiteLeadToCRM(websiteLead, importedBy) {
-    // Find matching inventory using all mapping methods
-    const inventory = await this.findInventoryForEvent(websiteLead.tours, websiteLead.id);
+// Update mapWebsiteLeadToCRM to ensure event_name is properly set
+async mapWebsiteLeadToCRM(websiteLead, importedBy) {
+  // Find matching inventory using all mapping methods
+  const inventory = await this.findInventoryForEvent(websiteLead.tours, websiteLead.id);
+  
+  console.log(`🔍 Mapping lead ${websiteLead.id}:`, {
+    name: websiteLead.name,
+    tours: websiteLead.tours,
+    inventory_found: !!inventory,
+    inventory_name: inventory?.event_name
+  });
+  
+  const crmLead = {
+    // Basic info
+    name: websiteLead.name || '',
+    email: websiteLead.email || '',
+    phone: websiteLead.phone_number || '',
     
-    const crmLead = {
-      // Basic info
-      name: websiteLead.name || '',
-      email: websiteLead.email || '',
-      phone: websiteLead.phone_number || '',
-      
-      // Source info
-      lead_source: this.mapLeadSource(websiteLead.referral_code),
-      website_lead_id: websiteLead.id, // Store original website lead ID
-      
-      // Event info
-      event_name: websiteLead.tours || '',
-      inventory_id: inventory ? inventory.id : null,
-      match_date: websiteLead.trip_date ? new Date(websiteLead.trip_date).toISOString() : '',
-      
-      // Trip details
-      trip_type: websiteLead.trip_type || 'generic',
-      number_of_persons: websiteLead.persons || 1,
-      budget: websiteLead.price || 0,
-      currency: websiteLead.currency || '₹',
-      
-      // Location
-      city: websiteLead.location || '',
-      
-      // Additional services
-      additional_services: Array.isArray(websiteLead.additional_services) 
-        ? websiteLead.additional_services.join(', ') 
-        : '',
-      
-      // Status
-      status: 'unassigned',
-      stage: 'new',
-      
-      // Metadata
-      created_by: importedBy,
-      created_date: new Date().toISOString(),
-      imported_from: 'website',
-      import_date: new Date().toISOString(),
-      
-      // Notes
-      notes: `Imported from website. Original ID: ${websiteLead.id}`
-    };
+    // Source info
+    lead_source: this.mapLeadSource(websiteLead.referral_code),
+    website_lead_id: websiteLead.id, // Store original website lead ID
+    
+    // Event info - CRITICAL FIX: Ensure event_name is set from tours
+    event_name: websiteLead.tours || '', // This is the critical field
+    lead_for_event: websiteLead.tours || '', // Also set this for compatibility
+    inventory_id: inventory ? inventory.id : null,
+    match_date: websiteLead.trip_date ? new Date(websiteLead.trip_date).toISOString() : '',
+    
+    // If inventory found, also use its event name to ensure consistency
+    ...(inventory && {
+      event_name: inventory.event_name,
+      lead_for_event: inventory.event_name,
+      category_of_ticket: inventory.category_of_ticket || ''
+    }),
+    
+    // Trip details
+    trip_type: websiteLead.trip_type || 'generic',
+    number_of_persons: websiteLead.persons || 1,
+    budget: websiteLead.price || 0,
+    currency: websiteLead.currency || '₹',
+    
+    // Location
+    city: websiteLead.location || '',
+    
+    // Additional services
+    additional_services: Array.isArray(websiteLead.additional_services) 
+      ? websiteLead.additional_services.join(', ') 
+      : '',
+    
+    // Status
+    status: 'unassigned',
+    stage: 'new',
+    
+    // Metadata - ENSURE these fields are set
+    created_by: importedBy,
+    created_date: new Date().toISOString(),
+    imported_from: 'website', // Critical for import history
+    import_date: new Date().toISOString(), // Critical for import history
+    
+    // Notes
+    notes: `Imported from website. Original ID: ${websiteLead.id}`
+  };
 
-    // Add warning if no inventory match found
-    if (!inventory && websiteLead.tours) {
-      crmLead.notes += `\n⚠️ No matching inventory found for tour: ${websiteLead.tours}`;
-    }
-
-    return crmLead;
+  // Add warning if no inventory match found
+  if (!inventory && websiteLead.tours) {
+    crmLead.notes += `\n⚠️ No matching inventory found for tour: ${websiteLead.tours}`;
   }
+
+  // Log the final mapped lead
+  console.log(`✅ Mapped lead ${websiteLead.id} with event_name: "${crmLead.event_name}"`);
+
+  return crmLead;
+}
 
   // Group leads by group_id for multi-lead creation
   groupWebsiteLeads(websiteLeads) {
