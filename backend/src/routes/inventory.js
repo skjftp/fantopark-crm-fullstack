@@ -425,6 +425,11 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
     console.log('=== INVENTORY UPDATE DEBUG ===');
     console.log('Inventory ID:', id);
     console.log('Update data received:', JSON.stringify(req.body, null, 2));
+
+    // Log form_ids specifically if present
+if (req.body.form_ids !== undefined) {
+  console.log('📘 Updating form_ids:', req.body.form_ids);
+}
     
     // Get old data before update
     const oldDoc = await db.collection('crm_inventory').doc(id).get();
@@ -747,9 +752,14 @@ router.put('/:id', authenticateToken, checkPermission('inventory', 'write'), asy
       console.log('No payment-related fields changed, skipping payable sync');
     }
     
-    res.json({ 
-      data: { id, ...updateData },
-      message: updateData.categories ? 'Inventory updated successfully with categories' : 'Inventory updated successfully'
+// Verify form_ids were saved
+const verifyDoc = await db.collection('crm_inventory').doc(id).get();
+const verifyData = verifyDoc.data();
+console.log('✅ After update - form_ids:', verifyData.form_ids);
+
+res.json({ 
+  data: { id, ...updateData },
+  message: updateData.categories ? 'Inventory updated successfully with categories' : 'Inventory updated successfully'
     });
   } catch (error) {
     console.error('Error updating inventory:', error);
