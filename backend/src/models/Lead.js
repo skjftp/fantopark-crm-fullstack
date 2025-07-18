@@ -9,10 +9,21 @@ class Lead {
     this.company = data.company || '';
     this.business_type = data.business_type || 'B2C';
     this.is_premium = data.is_premium || false;
+    
     // Lead Source & Initial Contact
     this.source = data.source || '';
     this.date_of_enquiry = data.date_of_enquiry;
     this.first_touch_base_done_by = data.first_touch_base_done_by || '';
+    
+    // Facebook/Instagram Campaign Fields
+    this.form_name = data.form_name || '';
+    this.form_id = data.form_id || '';
+    this.campaign_name = data.campaign_name || '';
+    this.campaign_id = data.campaign_id || '';
+    this.adset_name = data.adset_name || '';
+    this.adset_id = data.adset_id || '';
+    this.ad_name = data.ad_name || '';
+    this.ad_id = data.ad_id || '';
     
     // Location Information
     this.city_of_residence = data.city_of_residence || '';
@@ -101,27 +112,26 @@ class Lead {
   }
 
   async save() {
-  try {
-    // Filter out undefined values to prevent Firestore errors
-    const cleanData = {};
-    for (const [key, value] of Object.entries(this)) {
-      if (value !== undefined) {
-        cleanData[key] = value;
+    try {
+      // Filter out undefined values to prevent Firestore errors
+      const cleanData = {};
+      for (const [key, value] of Object.entries(this)) {
+        if (value !== undefined) {
+          cleanData[key] = value;
+        }
       }
+      
+      const docRef = await db.collection(collections.leads).add(cleanData);
+      const savedLead = { id: docRef.id, ...cleanData };
+      
+      console.log(`✅ Lead saved successfully: ${docRef.id}`);
+      return savedLead;
+    } catch (error) {
+      console.error('Error saving lead:', error);
+      throw error;
     }
-    
-    const docRef = await db.collection(collections.leads).add(cleanData);
-    const savedLead = { id: docRef.id, ...cleanData };
-    
-    console.log(`✅ Lead saved successfully: ${docRef.id}`);
-    return savedLead;
-  } catch (error) {
-    console.error('Error saving lead:', error);
-    throw error;
   }
-}
 
-	
   static async update(id, data) {
     try {
       // FIXED: Parse numeric values before updating
@@ -265,7 +275,12 @@ class Lead {
           city_of_residence: l.city_of_residence,
           country_of_residence: l.country_of_residence,
           business_type: l.business_type,
-          annual_income_bracket: l.annual_income_bracket
+          annual_income_bracket: l.annual_income_bracket,
+          // Include campaign fields in client history
+          form_name: l.form_name,
+          campaign_name: l.campaign_name,
+          adset_name: l.adset_name,
+          ad_name: l.ad_name
         })),
         events: events,
         first_contact: primaryLead.created_date
