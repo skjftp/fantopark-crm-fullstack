@@ -6,6 +6,11 @@ const AssignmentRule = require('../models/AssignmentRule');
 const { authenticateToken } = require('../middleware/auth');
 const Communication = require('../models/Communication');
 const { Storage } = require('@google-cloud/storage');
+const LeadStatusTriggers = require('../services/leadStatusTriggers');
+
+// Initialize the triggers service
+const statusTriggers = new LeadStatusTriggers();
+
 
 // Import db for bulk operations (you already had this)
 const { db, collections } = require('../config/db');
@@ -261,12 +266,13 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // PUT update lead - ENHANCED WITH AUTO-REMINDERS + COMMUNICATION TRACKING
+// REPLACE your existing router.put('/:id', ...) endpoint with this enhanced version
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const leadId = req.params.id;
     const updates = req.body;
     
-    // Get current lead to compare status changes
+    // Get current lead to compare status changes (EXISTING CODE)
     const currentLead = await Lead.getById(leadId);
     if (!currentLead) {
       return res.status(404).json({ error: 'Lead not found' });
@@ -281,10 +287,23 @@ router.put('/:id', authenticateToken, async (req, res) => {
     
     console.log(`🔄 Updating lead ${leadId}: ${oldStatus} → ${newStatus || 'no status change'}`);
 
-    // UPDATE: Enhanced update with auto-reminder support
+    // UPDATE: Enhanced update with auto-reminder support (EXISTING CODE)
     const updatedLead = await Lead.update(leadId, updates);
     
-    // NEW: Auto-reminder logic for status changes
+    // 🔥 NEW: FACEBOOK CONVERSION TRIGGERS
+    // This runs asynchronously so it doesn't slow down your existing API response
+    if (newStatus && newStatus !== oldStatus) {
+      statusTriggers.handleStatusChange(leadId, oldStatus, newStatus, updates)
+        .then(result => {
+          console.log('✅ Facebook conversion trigger completed:', result);
+        })
+        .catch(error => {
+          console.error('❌ Facebook conversion trigger failed (non-critical):', error);
+          // Error is logged but doesn't affect the main lead update operation
+        });
+    }
+
+    // EXISTING AUTO-REMINDER LOGIC (KEEP AS IS)
     if (newStatus && newStatus !== oldStatus) {
       try {
         console.log(`📱 Creating auto-reminder for status change: ${oldStatus} → ${newStatus}`);
@@ -298,11 +317,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
         
       } catch (reminderError) {
         console.error('⚠️ Auto-reminder creation failed (non-critical):', reminderError.message);
-        // Don't fail the update if reminder creation fails
       }
     }
 
-    // 📞 **NEW: AUTO-LOG SIGNIFICANT CHANGES**
+    // EXISTING AUTO-LOG SIGNIFICANT CHANGES (KEEP AS IS)
     try {
       if (newStatus && newStatus !== oldStatus) {
         await Communication.autoLog(leadId, updatedLead, 'status_change', {
@@ -332,10 +350,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
       }
     } catch (commError) {
       console.error('⚠️ Failed to auto-log change communications (non-critical):', commError);
-      // Don't fail the lead update if communication logging fails
     }
     
-    // Optional client metadata update (only if client_id exists)
+    // EXISTING CLIENT METADATA UPDATE (KEEP AS IS)
     try {
       if (updatedLead.client_id) {
         await Lead.updateClientMetadata(updatedLead.client_id, {
@@ -346,7 +363,11 @@ router.put('/:id', authenticateToken, async (req, res) => {
       console.log('Client metadata update failed (non-critical):', clientError.message);
     }
     
-    res.json({ data: updatedLead });
+    res.json({ 
+      data: updatedLead,
+      // NEW: Include trigger status in response
+      facebook_triggers: newStatus && newStatus !== oldStatus ? 'triggered' : 'not_applicable'
+    });
   } catch (error) {
     console.error('Error updating lead:', error);
     res.status(500).json({ error: error.message });
@@ -1030,6 +1051,157 @@ res.json({
     res.status(500).json({ 
       success: false, 
       error: 'Upload failed: ' + error.message 
+    });
+  }
+});
+
+// 🔥 NEW: Bulk status update with Facebook conversion triggers
+router.put('/bulk/status', authenticateToken, async (req, res) => {
+  try {
+    const { lead_ids, status, notes } = req.body;
+
+    if (!Array.isArray(lead_ids) || lead_ids.length === 0) {
+      return res.status(400).json({ error: 'lead_ids array is required' });
+    }
+
+    const results = [];
+    const statusChanges = [];
+
+    // Process each lead
+    for (const leadId of lead_ids) {
+      try {
+        // Get current lead
+        const currentLead = await Lead.getById(leadId);
+        if (!currentLead) {
+          results.push({ leadId, success: false, error: 'Lead not found' });
+          continue;
+        }
+
+        const oldStatus = currentLead.status;
+
+        // Update lead
+        const updateData = {
+          status,
+          updated_date: new Date().toISOString(),
+          updated_by: req.user.email
+        };
+        if (notes) updateData.notes = notes;
+
+        await Lead.update(leadId, updateData);
+
+        results.push({ leadId, success: true, oldStatus, newStatus: status });
+        
+        // Collect for batch trigger processing
+        statusChanges.push({
+          leadId,
+          oldStatus,
+          newStatus: status,
+          updatedData: updateData
+        });
+
+      } catch (error) {
+        results.push({ leadId, success: false, error: error.message });
+      }
+    }
+
+    // 🔥 BATCH TRIGGER FACEBOOK CONVERSION EVENTS
+    if (statusChanges.length > 0) {
+      statusTriggers.batchProcessStatusChanges(statusChanges)
+        .catch(error => {
+          console.error('Batch trigger execution failed:', error);
+        });
+    }
+
+    res.json({
+      success: true,
+      message: `Processed ${lead_ids.length} leads`,
+      results,
+      triggers_enabled: statusChanges.length > 0
+    });
+
+  } catch (error) {
+    console.error('Error in bulk status update:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 🔥 NEW: Direct conversion tracking endpoint
+router.post('/:id/track-conversion', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { conversion_value, currency = 'INR', notes } = req.body;
+
+    // Get lead data
+    const leadData = await Lead.getById(id);
+    if (!leadData) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+
+    // Update lead with conversion data
+    const updateData = {
+      status: 'converted',
+      conversion_value: conversion_value || 0,
+      currency,
+      converted_at: new Date().toISOString(),
+      updated_by: req.user.email,
+      updated_date: new Date().toISOString()
+    };
+
+    if (notes) updateData.notes = notes;
+
+    await Lead.update(id, updateData);
+
+    // Force trigger the conversion event
+    const triggerResult = await statusTriggers.handleConvertedStatus(
+      { ...leadData, ...updateData }, 
+      updateData
+    );
+
+    res.json({
+      success: true,
+      message: 'Conversion tracked successfully',
+      data: {
+        lead_id: id,
+        conversion_value,
+        currency,
+        facebook_event_sent: !!triggerResult
+      }
+    });
+
+  } catch (error) {
+    console.error('Error tracking conversion:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 🔥 NEW: Test Facebook conversion endpoint (for debugging)
+router.post('/:id/test-facebook-trigger', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { event_type = 'qualified' } = req.body;
+
+    const leadData = await Lead.getById(id);
+    if (!leadData) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+
+    let result;
+    if (event_type === 'qualified') {
+      result = await statusTriggers.handleQualifiedStatus(leadData);
+    } else if (event_type === 'converted') {
+      result = await statusTriggers.handleConvertedStatus(leadData, { conversion_value: 50000 });
+    }
+
+    res.json({
+      success: true,
+      message: `Test ${event_type} trigger executed`,
+      facebook_response: result
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
