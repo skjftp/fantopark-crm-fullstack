@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
-const { db, admin } = require('../config/db');
+const { db } = require('../config/db');
 const fetch = require('node-fetch');
 
 // Meta webhook verification token and app secret - store these securely
@@ -223,7 +223,7 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
       // System fields
       status: 'unassigned',
       date_of_enquiry: new Date().toISOString(),
-      created_date: admin.firestore.FieldValue.serverTimestamp(),
+      created_date: new Date(),
       created_by: 'Instagram Lead Form',
       
       // Meta tracking
@@ -274,7 +274,7 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
         auto_created: true
       },
       created_by: 'System',
-      created_date: admin.firestore.FieldValue.serverTimestamp()
+      created_date: new Date()
     });
 
     // Trigger auto-assignment if configured
@@ -333,7 +333,7 @@ async function triggerAutoAssignment(leadId, leadData) {
       // Update the rule with new index
       await db.collection('crm_assignment_rules').doc(matchingRule.id).update({
         last_assigned_index: nextIndex,
-        last_assigned_date: admin.firestore.FieldValue.serverTimestamp()
+        last_assigned_date: new Date()
       });
     } else if (matchingRule.strategy === 'direct' && matchingRule.assigned_users?.length > 0) {
       assignedTo = matchingRule.assigned_users[0];
@@ -344,7 +344,7 @@ async function triggerAutoAssignment(leadId, leadData) {
       await db.collection('crm_leads').doc(leadId).update({
         assigned_to: assignedTo,
         status: 'assigned',
-        assignment_date: admin.firestore.FieldValue.serverTimestamp(),
+        assignment_date: new Date(),
         auto_assigned: true,
         assignment_rule_id: matchingRule.id
       });
@@ -360,7 +360,7 @@ async function triggerAutoAssignment(leadId, leadData) {
           strategy: matchingRule.strategy
         },
         created_by: 'System',
-        created_date: admin.firestore.FieldValue.serverTimestamp()
+        created_date: new Date()
       });
 
       console.log(`✅ Lead auto-assigned to: ${assignedTo}`);
