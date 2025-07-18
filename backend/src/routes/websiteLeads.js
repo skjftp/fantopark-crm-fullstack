@@ -7,12 +7,17 @@ const websiteApiService = require('../services/websiteApiService');
 const leadMappingService = require('../services/leadMappingService');
 const { db, collections } = require('../config/db');
 
-// Fetch available website leads (preview before import)
+// Update the preview endpoint to better handle saved mappings
 router.get('/preview', authenticateToken, checkPermission('leads', 'create'), async (req, res) => {
   try {
     const { page = 1, pageSize = 50, minLeadId = 794 } = req.query;
+    const EventMapping = require('../models/EventMapping');
     
     console.log(`📋 Fetching website leads for preview (min ID: ${minLeadId})...`);
+    
+    // Get saved event mappings
+    const savedMappings = await EventMapping.getMappingsLookup();
+    console.log(`📚 Loaded ${Object.keys(savedMappings).length} saved event mappings`);
     
     // Fetch leads from website
     const websiteLeads = await websiteApiService.fetchLeads(page, pageSize, parseInt(minLeadId));
@@ -20,18 +25,39 @@ router.get('/preview', authenticateToken, checkPermission('leads', 'create'), as
     // Check which leads are already imported
     const { newLeads, existingLeads } = await leadMappingService.filterNewLeads(websiteLeads);
     
-    // Get inventory mapping preview
+    // Get inventory mapping preview with enhanced logic
     const mappingPreview = [];
     for (const lead of newLeads) {
-      const inventory = await leadMappingService.findInventoryByEventName(lead.tours);
-      mappingPreview.push({
-        websiteLeadId: lead.id,
-        tourName: lead.tours,
-        inventoryFound: !!inventory,
-        inventoryId: inventory?.id,
-        inventoryName: inventory?.event_name
-      });
+      // First check saved mappings
+      const savedMapping = savedMappings[lead.tours];
+      
+      if (savedMapping) {
+        console.log(`✅ Found saved mapping for "${lead.tours}"`);
+        mappingPreview.push({
+          websiteLeadId: lead.id,
+          tourName: lead.tours,
+          inventoryFound: true,
+          inventoryId: savedMapping.inventory_id,
+          inventoryName: savedMapping.inventory_name,
+          isSavedMapping: true
+        });
+      } else {
+        // Try auto-match by name
+        const inventory = await leadMappingService.findInventoryByEventName(lead.tours);
+        mappingPreview.push({
+          websiteLeadId: lead.id,
+          tourName: lead.tours,
+          inventoryFound: !!inventory,
+          inventoryId: inventory?.id,
+          inventoryName: inventory?.event_name,
+          isSavedMapping: false
+        });
+      }
     }
+    
+    // Log mapping summary
+    const mappedCount = mappingPreview.filter(m => m.inventoryFound).length;
+    console.log(`📊 Mapping summary: ${mappedCount}/${newLeads.length} leads have inventory mapped`);
     
     res.json({
       success: true,
@@ -42,12 +68,15 @@ router.get('/preview', authenticateToken, checkPermission('leads', 'create'), as
         alreadyImported: existingLeads.length,
         leads: newLeads,
         mappingPreview,
+        savedMappings,
         summary: {
           bySource: newLeads.reduce((acc, lead) => {
             acc[lead.referral_code] = (acc[lead.referral_code] || 0) + 1;
             return acc;
           }, {}),
-          multiLeadGroups: [...new Set(newLeads.filter(l => l.group_id).map(l => l.group_id))].length
+          multiLeadGroups: [...new Set(newLeads.filter(l => l.group_id).map(l => l.group_id))].length,
+          mappedLeads: mappedCount,
+          unmappedLeads: newLeads.length - mappedCount
         }
       }
     });
