@@ -1,10 +1,11 @@
-// Production Client View Content Function - Enhanced with Search and Filters
-// COMPLETE UPDATED VERSION with all requested features
+// Complete Updated leads.js File with All Fixes
+// Production Client View and Lead View with Enhanced Filters
 
 // Initialize filter states for client view
 window.clientSearchQuery = window.clientSearchQuery || '';
 window.clientStatusFilter = window.clientStatusFilter || 'all';
 window.clientAssignedFilter = window.clientAssignedFilter || 'all';
+window.clientMultiLeadFilter = window.clientMultiLeadFilter || 'all';
 
 // Initialize filter state for lead sales person
 window.leadsSalesPersonFilter = window.leadsSalesPersonFilter || 'all';
@@ -25,22 +26,28 @@ window.setClientAssignedFilter = window.setClientAssignedFilter || ((value) => {
   if (window.renderApp) window.renderApp();
 });
 
+window.setClientMultiLeadFilter = window.setClientMultiLeadFilter || ((value) => {
+  window.clientMultiLeadFilter = value;
+  if (window.renderApp) window.renderApp();
+});
+
 // Setter function for lead sales person filter
 window.setLeadsSalesPersonFilter = window.setLeadsSalesPersonFilter || ((value) => {
   window.leadsSalesPersonFilter = value;
   if (window.renderApp) window.renderApp();
 });
 
+// Production Client View Content Function - Properly Integrated with All Filters
 window.renderClientViewContent = function() {
   console.log("🔍 Rendering Production Client View Content");
 
-  // ✅ PATTERN 1: State Variable Extraction from window globals
+  // State Variable Extraction from window globals
   const {
     clientsLoading = window.clientsLoading || window.appState?.clientsLoading || false,
     clients = window.clients || window.appState?.clients || [],
   } = window.appState || {};
 
-  // ✅ PATTERN 2: Function References with fallbacks
+  // Function References with fallbacks
   const setViewMode = window.setViewMode || (() => {
     console.warn("⚠️ setViewMode not implemented");
   });
@@ -75,6 +82,26 @@ window.renderClientViewContent = function() {
       )
     );
   }
+
+  // Helper function to get unique sales persons from clients
+  const getUniqueSalesPersonsFromClients = () => {
+    const assignedEmails = new Set();
+    
+    // Get all unique assigned_to emails from clients
+    clients.forEach(client => {
+      if (client.assigned_to && client.assigned_to.trim()) {
+        assignedEmails.add(client.assigned_to);
+      }
+    });
+    
+    // Map emails to user objects
+    const salesPersons = Array.from(assignedEmails)
+      .map(email => window.users?.find(user => user.email === email))
+      .filter(user => user && user.status === 'active')
+      .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
+    
+    return salesPersons;
+  };
 
   // Apply filters to clients
   let filteredClients = [...clients];
@@ -111,14 +138,26 @@ window.renderClientViewContent = function() {
     }
   }
 
+  // Multi-Lead Filter
+  if (window.clientMultiLeadFilter === 'multi') {
+    filteredClients = filteredClients.filter(client => 
+      client.total_leads > 1 || (client.leads && client.leads.length > 1)
+    );
+  } else if (window.clientMultiLeadFilter === 'single') {
+    filteredClients = filteredClients.filter(client => 
+      client.total_leads === 1 || (client.leads && client.leads.length === 1) || 
+      (!client.total_leads && (!client.leads || client.leads.length <= 1))
+    );
+  }
+
   return React.createElement('div', { className: 'space-y-6' },
 
-    // NEW: Filters Section for Client View
+    // Filters Section with Multi-Lead Filter
     React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow-md border' },
       React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Filters & Search'),
       
-      React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
-        // Search Box
+      React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-5 gap-4' },
+        // Search Box (spans 2 columns)
         React.createElement('div', { className: 'col-span-2' },
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Search'),
           React.createElement('input', {
@@ -146,7 +185,7 @@ window.renderClientViewContent = function() {
           )
         ),
         
-        // Assigned To Filter
+        // Assigned To Filter (with fixed logic)
         React.createElement('div', null,
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Sales Person'),
           React.createElement('select', {
@@ -156,15 +195,26 @@ window.renderClientViewContent = function() {
           },
             React.createElement('option', { value: 'all' }, 'All Sales Persons'),
             React.createElement('option', { value: 'unassigned' }, 'Unassigned'),
-            ...(window.users || [])
-              .filter(user => ['sales_executive', 'sales_manager', 'admin', 'super_admin'].includes(user.role) && user.status === 'active')
-              .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email))
-              .map(user => 
-                React.createElement('option', { 
-                  key: user.id, 
-                  value: user.email 
-                }, user.name || user.email)
-              )
+            ...getUniqueSalesPersonsFromClients().map(user => 
+              React.createElement('option', { 
+                key: user.id, 
+                value: user.email 
+              }, user.name || user.email)
+            )
+          )
+        ),
+        
+        // Multi-Lead Filter
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Lead Count'),
+          React.createElement('select', {
+            value: window.clientMultiLeadFilter,
+            onChange: (e) => window.setClientMultiLeadFilter(e.target.value),
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+          },
+            React.createElement('option', { value: 'all' }, 'All Clients'),
+            React.createElement('option', { value: 'multi' }, 'Multi-Lead Clients'),
+            React.createElement('option', { value: 'single' }, 'Single Lead Clients')
           )
         )
       ),
@@ -174,12 +224,14 @@ window.renderClientViewContent = function() {
         React.createElement('span', { className: 'text-sm text-gray-600' },
           `Showing ${filteredClients.length} of ${clients.length} clients`
         ),
-        (window.clientSearchQuery || window.clientStatusFilter !== 'all' || window.clientAssignedFilter !== 'all') &&
+        (window.clientSearchQuery || window.clientStatusFilter !== 'all' || 
+         window.clientAssignedFilter !== 'all' || window.clientMultiLeadFilter !== 'all') &&
         React.createElement('button', {
           onClick: () => {
             window.setClientSearchQuery('');
             window.setClientStatusFilter('all');
             window.setClientAssignedFilter('all');
+            window.setClientMultiLeadFilter('all');
           },
           className: 'text-sm text-blue-600 hover:text-blue-800 underline'
         }, 'Clear All Filters')
@@ -200,7 +252,7 @@ window.renderClientViewContent = function() {
       ),
       React.createElement('div', { className: 'bg-purple-50 border border-purple-200 rounded-lg p-4' },
         React.createElement('div', { className: 'text-2xl font-bold text-purple-900' }, 
-          filteredClients.reduce((sum, c) => sum + c.total_leads, 0)
+          filteredClients.reduce((sum, c) => sum + (c.total_leads || 1), 0)
         ),
         React.createElement('div', { className: 'text-sm text-purple-700' }, 'Total Leads')
       ),
@@ -267,7 +319,7 @@ window.renderClientViewContent = function() {
                   React.createElement('div', { className: 'flex items-center' },
                     React.createElement('span', { 
                       className: `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        client.total_leads > 1 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                        (client.total_leads > 1 || (client.leads && client.leads.length > 1)) ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
                       }`
                     }, 
                       client.total_leads || (client.leads ? client.leads.length : 1),
@@ -326,9 +378,29 @@ window.renderClientViewContent = function() {
 
 console.log('✅ Production Client View component loaded successfully with search and filters');
 
-// Leads Content Component with Sales Person Filter
+// Leads Content Component - Enhanced with Sales Person Filter Fix
 window.renderLeadsContent = () => {
-    // ✅ HELPER FUNCTION: Get next status options for a lead
+    // Helper function to get unique sales persons from leads
+    const getUniqueSalesPersons = () => {
+      const assignedEmails = new Set();
+      
+      // Get all unique assigned_to emails from leads
+      (window.appState.leads || []).forEach(lead => {
+        if (lead.assigned_to && lead.assigned_to.trim()) {
+          assignedEmails.add(lead.assigned_to);
+        }
+      });
+      
+      // Map emails to user objects and filter active users
+      const salesPersons = Array.from(assignedEmails)
+        .map(email => window.users?.find(user => user.email === email))
+        .filter(user => user && user.status === 'active')
+        .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
+      
+      return salesPersons;
+    };
+
+    // Helper function: Get next status options for a lead
     const getLeadProgressionOptions = (lead) => {
         const currentStatus = lead.status;
         const statusConfig = window.LEAD_STATUSES[currentStatus];
@@ -344,7 +416,7 @@ window.renderLeadsContent = () => {
         }));
     };
 
-    // ✅ FIXED: Use the sophisticated handleLeadProgression from app-business-logic.js
+    // Use the sophisticated handleLeadProgression from app-business-logic.js
     const handleLeadProgressionClick = (lead) => {
         console.log("🔄 Lead progression clicked for:", lead.name, "Current status:", lead.status);
         
@@ -413,7 +485,7 @@ window.renderLeadsContent = () => {
         // Event filter
         const matchesEvent = window.appState.leadsEventFilter === 'all' || lead.lead_for_event === window.appState.leadsEventFilter;
 
-        // NEW: Sales Person Filter
+        // Sales Person Filter
         let matchesSalesPerson = true;
         if (window.leadsSalesPersonFilter && window.leadsSalesPersonFilter !== 'all') {
             if (window.leadsSalesPersonFilter === 'unassigned') {
@@ -778,7 +850,7 @@ window.renderLeadsContent = () => {
                         )
                     ),
 
-                    // NEW: Sales Person Filter
+                    // Sales Person Filter (FIXED)
                     React.createElement('div', null,
                         React.createElement('label', { 
                             htmlFor: 'sales-person-filter',
@@ -795,18 +867,12 @@ window.renderLeadsContent = () => {
                         },
                             React.createElement('option', { value: 'all' }, 'All Sales Persons'),
                             React.createElement('option', { value: 'unassigned' }, 'Unassigned'),
-                            ...(window.users || [])
-                                .filter(user => {
-                                    const salesRoles = ['sales_executive', 'sales_manager', 'admin', 'super_admin'];
-                                    return salesRoles.includes(user.role) && user.status === 'active';
-                                })
-                                .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email))
-                                .map(user => 
-                                    React.createElement('option', { 
-                                        key: user.id, 
-                                        value: user.email 
-                                    }, user.name || user.email)
-                                )
+                            ...getUniqueSalesPersons().map(user => 
+                                React.createElement('option', { 
+                                    key: user.id, 
+                                    value: user.email 
+                                }, user.name || user.email)
+                            )
                         )
                     ),
 
@@ -1056,4 +1122,4 @@ window.renderLeadsContent = () => {
     );
 };
 
-console.log('✅ Leads component loaded with Client View filters and Sales Person filter');
+console.log('✅ Leads component loaded with all fixes: Client filters, Sales person filter, and Multi-client filter');
