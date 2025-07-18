@@ -1303,7 +1303,8 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
       event_date: '',
       event_type: '',
       sports: '',
-      venue: ''
+      venue: '',
+      form_ids: []
     };
     
     console.log("🔧 Setting editingInventory to:", defaultInventory);
@@ -1344,7 +1345,8 @@ window.openDeliveryForm = handlers.openDeliveryForm || ((delivery) => {
   window.setFormData({
     ...inventory,
     purchase_currency: inventory.purchase_currency || 'INR',
-    purchase_exchange_rate: inventory.purchase_exchange_rate || '1'
+    purchase_exchange_rate: inventory.purchase_exchange_rate || '1',
+    form_ids: inventory.form_ids || []  // ADD THIS LINE
   });
 }
     if (window.setShowInventoryForm) {
