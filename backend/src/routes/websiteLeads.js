@@ -11,12 +11,12 @@ const { db, collections } = require('../config/db');
 // Fetch available website leads (preview before import)
 router.get('/preview', authenticateToken, checkPermission('leads', 'create'), async (req, res) => {
   try {
-    const { fromDate, page = 1, pageSize = 50 } = req.query;
+    const { page = 1, pageSize = 50, minLeadId = 794 } = req.query;
     
-    console.log('📋 Fetching website leads for preview...');
+    console.log(`📋 Fetching website leads for preview (min ID: ${minLeadId})...`);
     
     // Fetch leads from website
-    const websiteLeads = await websiteApiService.fetchLeads(page, pageSize, fromDate);
+    const websiteLeads = await websiteApiService.fetchLeads(page, pageSize, parseInt(minLeadId));
     
     // Check which leads are already imported
     const { newLeads, existingLeads } = await leadMappingService.filterNewLeads(websiteLeads);
@@ -37,6 +37,7 @@ router.get('/preview', authenticateToken, checkPermission('leads', 'create'), as
     res.json({
       success: true,
       data: {
+        minLeadId: parseInt(minLeadId),
         totalLeads: websiteLeads.length,
         newLeads: newLeads.length,
         alreadyImported: existingLeads.length,
@@ -63,21 +64,21 @@ router.get('/preview', authenticateToken, checkPermission('leads', 'create'), as
 // Import website leads
 router.post('/import', authenticateToken, checkPermission('leads', 'create'), async (req, res) => {
   try {
-    const { leadIds, importAll = false, fromDate } = req.body;
+    const { leadIds, importAll = false, minLeadId = 794 } = req.body;
     const importedBy = req.user.name;
     
-    console.log('🚀 Starting website lead import...');
+    console.log(`🚀 Starting website lead import (min ID: ${minLeadId})...`);
     
     let leadsToImport = [];
     
     if (importAll) {
-      // Fetch all new leads
-      const allLeads = await websiteApiService.fetchAllLeads(fromDate);
+      // Fetch all new leads with ID >= minLeadId
+      const allLeads = await websiteApiService.fetchAllLeads(parseInt(minLeadId));
       const { newLeads } = await leadMappingService.filterNewLeads(allLeads);
       leadsToImport = newLeads;
     } else if (leadIds && leadIds.length > 0) {
       // Fetch specific leads
-      const allLeads = await websiteApiService.fetchAllLeads();
+      const allLeads = await websiteApiService.fetchAllLeads(parseInt(minLeadId));
       leadsToImport = allLeads.filter(lead => leadIds.includes(lead.id));
     } else {
       return res.status(400).json({ 
