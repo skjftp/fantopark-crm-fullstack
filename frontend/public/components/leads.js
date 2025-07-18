@@ -394,6 +394,9 @@ window.renderLeadsContent = () => {
                         React.createElement('span', null, '👥'),
                         `Bulk Assign (${unassignedLeads.length})`
                     ),
+                     // ADD THIS NEW BUTTON - Website Import
+    window.hasPermission('leads', 'write') && window.WebsiteLeadsImport && React.createElement(window.WebsiteLeadsImport),
+               
 
                     // EXISTING CSV UPLOAD BUTTON - UNCHANGED
                     React.createElement('button', {
