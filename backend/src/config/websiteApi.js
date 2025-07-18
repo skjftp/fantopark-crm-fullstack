@@ -11,6 +11,11 @@ const websiteApiConfig = {
     username: process.env.WEBSITE_API_USERNAME || '',
     password: process.env.WEBSITE_API_PASSWORD || ''
   },
+  // Lead filtering configuration
+  leadFiltering: {
+    // Minimum lead ID to fetch (to prevent importing old data)
+    defaultMinLeadId: 794
+  },
   // Token management
   tokenStore: {
     token: null,
