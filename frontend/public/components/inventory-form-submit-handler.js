@@ -16,6 +16,10 @@ window.renderInventoryFormSubmitHandler = () => {
       const formData = window.formData || {};
       const categories = formData.categories || [];
       
+      // Debug form_ids
+      console.log('📘 Form data before submit:', formData);
+      console.log('📘 Form IDs being submitted:', formData.form_ids);
+      
       // ✅ CURRENCY SUPPORT - using correct field names
       const currency = formData.purchase_currency || 'INR';
       const exchangeRate = parseFloat(formData.purchase_exchange_rate) || 1;
@@ -117,6 +121,9 @@ window.renderInventoryFormSubmitHandler = () => {
         booking_person: formData.booking_person || '',
         notes: formData.notes || '',
         
+        // Add form_ids
+        form_ids: formData.form_ids || [],
+        
         // Aggregate values (for backward compatibility)
         total_tickets: totals.totalTickets,
         available_tickets: totals.availableTickets,
@@ -164,6 +171,8 @@ window.renderInventoryFormSubmitHandler = () => {
       }
 
       console.log('Submitting inventory data:', inventoryData);
+      console.log('📘 Form IDs in inventory data:', inventoryData.form_ids);
+      
       if (currency !== 'INR') {
         console.log('INR calculations:', {
           totalPurchaseAmount_inr: inventoryData.totalPurchaseAmount_inr,
