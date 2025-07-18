@@ -14,6 +14,9 @@ class Lead {
     this.source = data.source || '';
     this.date_of_enquiry = data.date_of_enquiry;
     this.first_touch_base_done_by = data.first_touch_base_done_by || '';
+
+        // Contact Preferences
+    this.preferred_contact_time = data.preferred_contact_time || '';
     
     // Facebook/Instagram Campaign Fields
     this.form_name = data.form_name || '';
