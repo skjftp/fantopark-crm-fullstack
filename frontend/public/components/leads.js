@@ -1,5 +1,5 @@
-// Complete Updated leads.js File with Working Filters
-// Production Client View and Lead View with React Hooks for Proper State Management
+// Complete Updated leads.js File with Proper React Components
+// Fixed React Hook Error by Converting to Components
 
 // Initialize global filter states (for persistence between view switches)
 window.clientSearchQuery = window.clientSearchQuery || '';
@@ -8,8 +8,8 @@ window.clientAssignedFilter = window.clientAssignedFilter || 'all';
 window.clientMultiLeadFilter = window.clientMultiLeadFilter || 'all';
 window.leadsSalesPersonFilter = window.leadsSalesPersonFilter || 'all';
 
-// Production Client View Content Function with Working Filters
-window.renderClientViewContent = function() {
+// Client View Component
+const ClientViewContent = () => {
   console.log("🔍 Rendering Production Client View Content");
 
   // React hooks for filter states - this ensures proper updates
@@ -357,10 +357,15 @@ window.renderClientViewContent = function() {
   );
 };
 
+// Wrap the component in a function that creates the React element
+window.renderClientViewContent = function() {
+  return React.createElement(ClientViewContent);
+};
+
 console.log('✅ Production Client View component loaded successfully with working filters');
 
-// Leads Content Component - Enhanced with Working Sales Person Filter
-window.renderLeadsContent = () => {
+// Lead View Component
+const LeadsContent = () => {
     // React hook for sales person filter
     const [localLeadsSalesPersonFilter, setLocalLeadsSalesPersonFilter] = React.useState(window.leadsSalesPersonFilter || 'all');
     
@@ -1111,4 +1116,9 @@ window.renderLeadsContent = () => {
     );
 };
 
-console.log('✅ Leads component loaded with working filters using React hooks');
+// Wrap the component in a function that creates the React element
+window.renderLeadsContent = () => {
+  return React.createElement(LeadsContent);
+};
+
+console.log('✅ Leads component loaded with proper React components and working filters');
