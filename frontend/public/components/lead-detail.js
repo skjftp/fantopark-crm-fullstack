@@ -333,10 +333,44 @@ window.renderLeadDetail = () => {
                 React.createElement('span', { className: 'font-medium text-gray-700' }, 'Source: '),
                 React.createElement('span', { className: 'text-gray-900' }, window.appState.currentLead.source || 'Not specified')
               ),
+              
+              // Add Form Name
+              window.appState.currentLead.form_name && React.createElement('div', null,
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 
+                  React.createElement('span', null, '📘 '),
+                  'Form: '
+                ),
+                React.createElement('span', { className: 'text-blue-600' }, window.appState.currentLead.form_name)
+              ),
+              
+              // Add Campaign Name (if exists)
+              window.appState.currentLead.campaign_name && React.createElement('div', null,
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Campaign: '),
+                React.createElement('span', { className: 'text-purple-600' }, window.appState.currentLead.campaign_name)
+              ),
+              
+              // Add Ad Set Name
+              window.appState.currentLead.adset_name && React.createElement('div', null,
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Ad Set: '),
+                React.createElement('span', { className: 'text-green-600' }, window.appState.currentLead.adset_name)
+              ),
+              
+              // Add Ad Name
+              window.appState.currentLead.ad_name && React.createElement('div', null,
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Ad: '),
+                React.createElement('span', { className: 'text-orange-600' }, window.appState.currentLead.ad_name)
+              ),
+              
               window.appState.currentLead.first_touch_base_done_by && React.createElement('div', null,
                 React.createElement('span', { className: 'font-medium text-gray-700' }, 'First Contact By: '),
                 React.createElement('span', { className: 'text-gray-900' }, window.appState.currentLead.first_touch_base_done_by)
               ),
+              
+              React.createElement('div', null,
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Business Type: '),
+                React.createElement('span', { className: 'text-gray-900' }, window.appState.currentLead.business_type || 'B2C')
+              ),
+              
               window.appState.currentLead.date_of_enquiry && React.createElement('div', null,
                 React.createElement('span', { className: 'font-medium text-gray-700' }, 'Enquiry Date: '),
                 React.createElement('span', { className: 'text-gray-900' }, 
