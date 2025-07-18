@@ -1319,7 +1319,8 @@ const updateOrdersPagination = (orders) => {
       purchase_currency: 'INR',
       purchase_exchange_rate: '1',
       amountPaid: '',
-      paymentDueDate: ''
+      paymentDueDate: '',
+      form_ids: []  // ADD THIS LINE
     });
 
     setShowInventoryForm(true);
