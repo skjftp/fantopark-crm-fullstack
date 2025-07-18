@@ -1,4 +1,4 @@
-// frontend/public/components/website-leads-import.js
+// Replace your existing website-leads-import.js with this enhanced version
 
 window.WebsiteLeadsImport = function() {
   const [showModal, setShowModal] = React.useState(false);
@@ -10,7 +10,10 @@ window.WebsiteLeadsImport = function() {
   const [activeTab, setActiveTab] = React.useState('preview'); // preview, history
   const [summary, setSummary] = React.useState(null);
   const [testStatus, setTestStatus] = React.useState(null);
-  const [minLeadId, setMinLeadId] = React.useState(794); // Default minimum lead ID
+  const [minLeadId, setMinLeadId] = React.useState(794);
+  const [manualMappings, setManualMappings] = React.useState({});
+  const [savedMappings, setSavedMappings] = React.useState({});
+  const [hasUnsavedMappings, setHasUnsavedMappings] = React.useState(false);
 
   // Test connection to website API
   const testConnection = async () => {
@@ -45,12 +48,73 @@ window.WebsiteLeadsImport = function() {
         setWebsiteLeads(response.data.leads);
         setMappingPreview(response.data.mappingPreview);
         setSummary(response.data.summary);
+        setSavedMappings(response.data.savedMappings || {});
         setSelectedLeads(new Set(response.data.leads.map(l => l.id)));
+        
+        // Initialize manual mappings with saved mappings
+        const initialMappings = {};
+        response.data.mappingPreview.forEach(mapping => {
+          if (mapping.inventoryFound && mapping.inventoryId) {
+            initialMappings[mapping.websiteLeadId] = mapping.inventoryId;
+          }
+        });
+        setManualMappings(initialMappings);
       } else {
         alert('Failed to fetch website leads: ' + response.error);
       }
     } catch (error) {
       console.error('Error fetching website leads:', error);
+      alert('Error: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Save event mappings
+  const saveEventMappings = async () => {
+    setLoading(true);
+    try {
+      // Collect new mappings to save
+      const mappingsToSave = [];
+      const uniqueEvents = new Map();
+      
+      websiteLeads.forEach(lead => {
+        const inventoryId = manualMappings[lead.id];
+        if (inventoryId && !savedMappings[lead.tours]) {
+          // Only save if not already saved
+          if (!uniqueEvents.has(lead.tours)) {
+            const inventory = window.inventory.find(inv => inv.id === inventoryId);
+            uniqueEvents.set(lead.tours, {
+              website_event_name: lead.tours,
+              crm_inventory_id: inventoryId,
+              crm_inventory_name: inventory?.event_name || ''
+            });
+          }
+        }
+      });
+      
+      if (uniqueEvents.size === 0) {
+        alert('No new mappings to save');
+        return;
+      }
+      
+      const response = await window.apiCall('/website-leads/event-mappings', {
+        method: 'POST',
+        body: JSON.stringify({
+          mappings: Array.from(uniqueEvents.values())
+        })
+      });
+      
+      if (response.success) {
+        alert(`✅ Saved ${uniqueEvents.size} event mapping(s) for future use`);
+        setHasUnsavedMappings(false);
+        // Refresh to get updated saved mappings
+        await fetchWebsiteLeads();
+      } else {
+        alert('Failed to save mappings: ' + response.error);
+      }
+    } catch (error) {
+      console.error('Error saving mappings:', error);
       alert('Error: ' + error.message);
     } finally {
       setLoading(false);
@@ -79,6 +143,23 @@ window.WebsiteLeadsImport = function() {
       return;
     }
 
+    // Check if all selected leads have inventory mapped
+    const unmappedLeads = Array.from(selectedLeads).filter(leadId => {
+      const lead = websiteLeads.find(l => l.id === leadId);
+      return lead && !manualMappings[leadId];
+    });
+
+    if (unmappedLeads.length > 0) {
+      const leadNames = unmappedLeads.slice(0, 3).map(id => {
+        const lead = websiteLeads.find(l => l.id === id);
+        return lead?.tours;
+      }).join(', ');
+      
+      if (!confirm(`${unmappedLeads.length} lead(s) don't have inventory mapped (${leadNames}${unmappedLeads.length > 3 ? '...' : ''}). Continue anyway?`)) {
+        return;
+      }
+    }
+
     const confirmMsg = importAll 
       ? `Import all ${websiteLeads.length} new leads (ID >= ${minLeadId})?` 
       : `Import ${selectedLeads.size} selected leads?`;
@@ -92,7 +173,8 @@ window.WebsiteLeadsImport = function() {
         body: JSON.stringify({
           importAll,
           leadIds: importAll ? null : Array.from(selectedLeads),
-          minLeadId: minLeadId
+          minLeadId: minLeadId,
+          manualMappings: manualMappings
         })
       });
 
@@ -138,6 +220,15 @@ window.WebsiteLeadsImport = function() {
     setSelectedLeads(newSelected);
   };
 
+  // Handle inventory mapping change
+  const handleMappingChange = (leadId, inventoryId) => {
+    setManualMappings(prev => ({
+      ...prev,
+      [leadId]: inventoryId
+    }));
+    setHasUnsavedMappings(true);
+  };
+
   // Open modal and fetch data
   const openImportModal = () => {
     setShowModal(true);
@@ -166,7 +257,7 @@ window.WebsiteLeadsImport = function() {
       className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'
     },
       React.createElement('div', {
-        className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[90vh] flex flex-col'
+        className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-7xl max-h-[90vh] flex flex-col'
       },
         // Header
         React.createElement('div', {
@@ -263,19 +354,19 @@ window.WebsiteLeadsImport = function() {
                 className: 'mb-6 grid grid-cols-1 md:grid-cols-3 gap-4' 
               },
                 React.createElement('div', { 
-                  className: 'p-4 bg-blue-50 dark:bg-blue-900 rounded-lg' 
+                  className: 'p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg' 
                 },
                   React.createElement('h4', { className: 'font-semibold' }, 'Total New Leads'),
                   React.createElement('p', { className: 'text-2xl font-bold' }, websiteLeads.length)
                 ),
                 React.createElement('div', { 
-                  className: 'p-4 bg-green-50 dark:bg-green-900 rounded-lg' 
+                  className: 'p-4 bg-green-50 dark:bg-green-900/20 rounded-lg' 
                 },
                   React.createElement('h4', { className: 'font-semibold' }, 'Multi-Lead Groups'),
                   React.createElement('p', { className: 'text-2xl font-bold' }, summary.multiLeadGroups)
                 ),
                 React.createElement('div', { 
-                  className: 'p-4 bg-purple-50 dark:bg-purple-900 rounded-lg' 
+                  className: 'p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg' 
                 },
                   React.createElement('h4', { className: 'font-semibold' }, 'Sources'),
                   Object.entries(summary.bySource || {}).map(([source, count]) =>
@@ -288,7 +379,7 @@ window.WebsiteLeadsImport = function() {
 
               // Action buttons
               websiteLeads.length > 0 && React.createElement('div', { 
-                className: 'mb-4 flex gap-4' 
+                className: 'mb-4 flex gap-4 flex-wrap' 
               },
                 React.createElement('button', {
                   className: 'px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700',
@@ -300,6 +391,11 @@ window.WebsiteLeadsImport = function() {
                   onClick: () => importLeads(false),
                   disabled: loading || selectedLeads.size === 0
                 }, `Import Selected (${selectedLeads.size})`),
+                hasUnsavedMappings && React.createElement('button', {
+                  className: 'px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700',
+                  onClick: saveEventMappings,
+                  disabled: loading
+                }, '💾 Save Event Mappings'),
                 React.createElement('button', {
                   className: 'px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-md',
                   onClick: fetchWebsiteLeads,
@@ -336,6 +432,7 @@ window.WebsiteLeadsImport = function() {
                       React.createElement('th', { className: 'p-2 text-left' }, 'Phone'),
                       React.createElement('th', { className: 'p-2 text-left' }, 'Tour/Event'),
                       React.createElement('th', { className: 'p-2 text-left' }, 'Inventory Match'),
+                      React.createElement('th', { className: 'p-2 text-left' }, 'Select Inventory'),
                       React.createElement('th', { className: 'p-2 text-left' }, 'Source'),
                       React.createElement('th', { className: 'p-2 text-left' }, 'Group')
                     )
@@ -343,6 +440,9 @@ window.WebsiteLeadsImport = function() {
                   React.createElement('tbody', null,
                     websiteLeads.map(lead => {
                       const mapping = mappingPreview.find(m => m.websiteLeadId === lead.id);
+                      const selectedInventoryId = manualMappings[lead.id];
+                      const isManuallyMapped = selectedInventoryId && selectedInventoryId !== mapping?.inventoryId;
+                      
                       return React.createElement('tr', { 
                         key: lead.id,
                         className: 'border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -359,13 +459,41 @@ window.WebsiteLeadsImport = function() {
                         React.createElement('td', { className: 'p-2 text-sm' }, lead.phone_number),
                         React.createElement('td', { className: 'p-2' }, lead.tours),
                         React.createElement('td', { className: 'p-2' },
-                          mapping?.inventoryFound 
-                            ? React.createElement('span', { 
-                                className: 'text-green-600' 
-                              }, '✅ ' + mapping.inventoryName)
-                            : React.createElement('span', { 
-                                className: 'text-red-600' 
-                              }, '❌ No match')
+                          mapping?.isSavedMapping ? (
+                            React.createElement('span', { 
+                              className: 'text-purple-600 font-medium flex items-center gap-1' 
+                            }, 
+                              React.createElement('span', null, '🔗'),
+                              'Saved: ' + mapping.inventoryName
+                            )
+                          ) : mapping?.inventoryFound ? (
+                            React.createElement('span', { 
+                              className: 'text-green-600' 
+                            }, '✅ ' + mapping.inventoryName)
+                          ) : isManuallyMapped ? (
+                            React.createElement('span', { 
+                              className: 'text-blue-600 font-medium' 
+                            }, '✏️ Manually mapped')
+                          ) : (
+                            React.createElement('span', { 
+                              className: 'text-red-600' 
+                            }, '❌ No match')
+                          )
+                        ),
+                        React.createElement('td', { className: 'p-2' },
+                          React.createElement('select', {
+                            className: 'px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white text-sm w-full',
+                            value: selectedInventoryId || '',
+                            onChange: (e) => handleMappingChange(lead.id, e.target.value)
+                          },
+                            React.createElement('option', { value: '' }, '-- Select --'),
+                            (window.inventory || []).map(inv => 
+                              React.createElement('option', { 
+                                key: inv.id, 
+                                value: inv.id 
+                              }, inv.event_name)
+                            )
+                          )
                         ),
                         React.createElement('td', { className: 'p-2' }, lead.referral_code),
                         React.createElement('td', { className: 'p-2' }, 
@@ -374,6 +502,15 @@ window.WebsiteLeadsImport = function() {
                       );
                     })
                   )
+                )
+              ),
+
+              // Mapping notice
+              hasUnsavedMappings && React.createElement('div', {
+                className: 'mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700'
+              },
+                React.createElement('p', { className: 'text-yellow-800 dark:text-yellow-200' },
+                  '💡 You have unsaved event mappings. Click "Save Event Mappings" to remember these mappings for future imports.'
                 )
               )
             )
@@ -418,4 +555,4 @@ window.WebsiteLeadsImport = function() {
   );
 };
 
-console.log('✅ Website Leads Import component loaded');
+console.log('✅ Enhanced Website Leads Import with Event Mapping loaded');
