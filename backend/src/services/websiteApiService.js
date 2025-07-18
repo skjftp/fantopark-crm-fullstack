@@ -58,7 +58,7 @@ class WebsiteApiService {
   }
 
   // Fetch leads from website
-  async fetchLeads(page = 1, pageSize = 100, fromDate = null) {
+  async fetchLeads(page = 1, pageSize = 100, minLeadId = 794) {
     try {
       await this.ensureAuthenticated();
       
@@ -68,11 +68,6 @@ class WebsiteApiService {
         page: page.toString(),
         page_size: pageSize.toString()
       });
-
-      // Add date filter if provided
-      if (fromDate) {
-        params.append('from_date', fromDate);
-      }
 
       const response = await fetch(
         `${this.baseURL}${websiteApiConfig.endpoints.leads}?${params}`, 
@@ -88,13 +83,18 @@ class WebsiteApiService {
       const data = await response.json();
 
       if (response.ok && data.status === 200) {
-        console.log(`✅ Fetched ${data.data.leadsList.length} leads`);
-        return data.data.leadsList;
+        // Filter leads to only include those with ID >= minLeadId
+        const filteredLeads = (data.data.leadsList || []).filter(lead => 
+          lead.id >= minLeadId
+        );
+        
+        console.log(`✅ Fetched ${data.data.leadsList.length} leads, filtered to ${filteredLeads.length} (ID >= ${minLeadId})`);
+        return filteredLeads;
       } else if (response.status === 401) {
         // Auth error, retry once
         console.log('🔄 Auth token expired, retrying...');
         await this.authenticate();
-        return this.fetchLeads(page, pageSize, fromDate);
+        return this.fetchLeads(page, pageSize, minLeadId);
       } else {
         throw new Error('Failed to fetch leads: ' + (data.message || 'Unknown error'));
       }
@@ -105,14 +105,16 @@ class WebsiteApiService {
   }
 
   // Fetch all leads (with pagination)
-  async fetchAllLeads(fromDate = null) {
+  async fetchAllLeads(minLeadId = 794) {
     try {
       let allLeads = [];
       let page = 1;
       let hasMore = true;
 
+      console.log(`📋 Fetching all leads with ID >= ${minLeadId}`);
+
       while (hasMore) {
-        const leads = await this.fetchLeads(page, 100, fromDate);
+        const leads = await this.fetchLeads(page, 100, minLeadId);
         
         if (leads && leads.length > 0) {
           allLeads = allLeads.concat(leads);
@@ -122,12 +124,18 @@ class WebsiteApiService {
           if (leads.length < 100) {
             hasMore = false;
           }
+          
+          // Also stop if we've fetched a reasonable amount to prevent endless loops
+          if (allLeads.length >= 1000) {
+            console.log('⚠️ Reached 1000 leads limit, stopping pagination');
+            hasMore = false;
+          }
         } else {
           hasMore = false;
         }
       }
 
-      console.log(`✅ Fetched total ${allLeads.length} leads from website`);
+      console.log(`✅ Fetched total ${allLeads.length} leads with ID >= ${minLeadId}`);
       return allLeads;
     } catch (error) {
       console.error('❌ Failed to fetch all website leads:', error);
