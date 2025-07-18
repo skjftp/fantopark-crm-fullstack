@@ -28,17 +28,17 @@ class WebsiteApiService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          username: websiteApiConfig.credentials.username,
+          email: websiteApiConfig.credentials.email,  // FIXED: Changed from username to email
           password: websiteApiConfig.credentials.password
         })
       });
 
       const data = await response.json();
 
-      if (response.ok && data.token) {
-        setToken(data.token);
+      if (response.ok && data.auth_token) {  // FIXED: The response might have auth_token instead of token
+        setToken(data.auth_token || data.token);
         console.log('✅ Authentication successful');
-        return data.token;
+        return data.auth_token || data.token;
       } else {
         throw new Error(data.message || 'Authentication failed');
       }
