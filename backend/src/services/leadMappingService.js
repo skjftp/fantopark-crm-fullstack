@@ -7,6 +7,24 @@ class LeadMappingService {
     // Cache for inventory lookups
     this.inventoryCache = null;
     this.cacheExpiry = null;
+    // Manual mappings for current import session
+    this.manualMappings = {};
+    // Saved mappings cache
+    this.savedMappings = null;
+  }
+
+  // Set manual mappings for current import
+  setManualMappings(mappings) {
+    this.manualMappings = mappings || {};
+  }
+
+  // Load saved event mappings
+  async loadSavedMappings() {
+    if (!this.savedMappings) {
+      const EventMapping = require('../models/EventMapping');
+      this.savedMappings = await EventMapping.getMappingsLookup();
+    }
+    return this.savedMappings;
   }
 
   // Get all inventory items (with caching)
@@ -31,6 +49,12 @@ class LeadMappingService {
     return inventory;
   }
 
+  // Get inventory by ID
+  async getInventoryById(inventoryId) {
+    const inventory = await this.getInventoryItems();
+    return inventory.find(item => item.id === inventoryId);
+  }
+
   // Find matching inventory item by event name
   async findInventoryByEventName(tourName) {
     const inventory = await this.getInventoryItems();
@@ -53,6 +77,36 @@ class LeadMappingService {
     return match;
   }
 
+  // Find inventory for a tour/event name using all mapping methods
+  async findInventoryForEvent(tourName, websiteLeadId) {
+    // 1. Check manual mappings first (from current import session)
+    if (this.manualMappings[websiteLeadId]) {
+      const inventory = await this.getInventoryById(this.manualMappings[websiteLeadId]);
+      if (inventory) {
+        console.log(`✅ Using manual mapping for "${tourName}"`);
+        return inventory;
+      }
+    }
+
+    // 2. Check saved mappings
+    await this.loadSavedMappings();
+    if (this.savedMappings && this.savedMappings[tourName]) {
+      const inventory = await this.getInventoryById(this.savedMappings[tourName].inventory_id);
+      if (inventory) {
+        console.log(`✅ Using saved mapping for "${tourName}"`);
+        return inventory;
+      }
+    }
+
+    // 3. Try auto-match by name
+    const inventory = await this.findInventoryByEventName(tourName);
+    if (inventory) {
+      console.log(`✅ Auto-matched "${tourName}" to inventory`);
+    }
+    
+    return inventory;
+  }
+
   // Map website lead source to CRM lead source
   mapLeadSource(referralCode) {
     const sourceMap = {
@@ -69,8 +123,8 @@ class LeadMappingService {
 
   // Map single website lead to CRM lead format
   async mapWebsiteLeadToCRM(websiteLead, importedBy) {
-    // Find matching inventory
-    const inventory = await this.findInventoryByEventName(websiteLead.tours);
+    // Find matching inventory using all mapping methods
+    const inventory = await this.findInventoryForEvent(websiteLead.tours, websiteLead.id);
     
     const crmLead = {
       // Basic info
