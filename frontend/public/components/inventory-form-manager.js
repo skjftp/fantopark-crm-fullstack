@@ -1,23 +1,7 @@
 // frontend/public/components/inventory-form-manager.js
 
 window.InventoryFormManager = function({ formIds = [], onChange }) {
-  // Convert formIds array to objects with names
-  const initializeIds = () => {
-    return (formIds || []).map(id => {
-      const knownForm = knownForms.find(f => f.id === id);
-      return {
-        id: typeof id === 'object' ? id.id : id,
-        name: typeof id === 'object' ? id.name : (knownForm ? knownForm.name : id)
-      };
-    });
-  };
-  
-  const [ids, setIds] = React.useState(initializeIds());
-  const [showAddForm, setShowAddForm] = React.useState(false);
-  const [newFormId, setNewFormId] = React.useState('');
-  const [newFormName, setNewFormName] = React.useState('');
-  
-  // Known Facebook forms
+  // Known Facebook forms - MOVED TO TOP
   const knownForms = [
     { id: '4186748481542102', name: 'Test 17 Jul 2025' },
     { id: '1361858031771489', name: 'Wimbledon_090625_LV' },
@@ -42,6 +26,22 @@ window.InventoryFormManager = function({ formIds = [], onChange }) {
     { id: '1505479607079951', name: 'IND vs NZ Mid East Travel' },
     { id: '675033785184274', name: 'Monaco GP Travel' }
   ];
+  
+  // Convert formIds array to objects with names - NOW knownForms is available
+  const initializeIds = () => {
+    return (formIds || []).map(id => {
+      const knownForm = knownForms.find(f => f.id === id);
+      return {
+        id: typeof id === 'object' ? id.id : id,
+        name: typeof id === 'object' ? id.name : (knownForm ? knownForm.name : id)
+      };
+    });
+  };
+  
+  const [ids, setIds] = React.useState(initializeIds());
+  const [showAddForm, setShowAddForm] = React.useState(false);
+  const [newFormId, setNewFormId] = React.useState('');
+  const [newFormName, setNewFormName] = React.useState('');
   
   const addFormId = () => {
     if (newFormId) {
