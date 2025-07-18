@@ -47,11 +47,20 @@ class Inventory {
     return { id: docRef.id, ...this };
   }
 
-  static async update(id, data) {
-    const updateData = { ...data, updated_date: new Date().toISOString() };
-    await db.collection(collections.inventory).doc(id).update(updateData);
-    return { id, ...updateData };
+static async update(id, data) {
+  const updateData = { ...data, updated_date: new Date().toISOString() };
+  
+  // Ensure form_ids is preserved
+  if (updateData.form_ids !== undefined) {
+    console.log(`📘 Inventory model updating form_ids for ${id}:`, updateData.form_ids);
   }
+  
+  await db.collection(collections.inventory).doc(id).update(updateData);
+  
+  // Return the updated document
+  const updatedDoc = await db.collection(collections.inventory).doc(id).get();
+  return { id, ...updatedDoc.data() };
+}
 
   static async delete(id) {
     await db.collection(collections.inventory).doc(id).delete();
