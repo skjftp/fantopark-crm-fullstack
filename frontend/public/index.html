@@ -978,6 +978,79 @@ window.optimizeLoginPerformance();
 <!-- CSS Styles -->
 <style>
 
+
+  /* Add this CSS to your main stylesheet or in a style tag in index.html */
+
+/* Fix search bar positioning and z-index issues */
+.lead-client-toggle-container {
+  position: relative;
+  z-index: 10;
+}
+
+/* Ensure proper spacing and no overlap */
+.filters-search-container {
+  position: relative;
+  z-index: 5;
+  margin-top: 1rem;
+  background-color: white;
+}
+
+/* Fix for search input specifically */
+.search-input-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Prevent overlap when switching views */
+.view-transition-fix {
+  min-height: 60px; /* Adjust based on your search bar height */
+  transition: all 0.3s ease;
+}
+
+/* If using React transitions */
+.fade-enter {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.fade-exit {
+  opacity: 1;
+}
+
+.fade-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Ensure proper stacking context */
+#leads-content-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fix any dropdown overlaps */
+.filter-dropdown {
+  position: relative;
+  z-index: 20;
+}
+
+/* Add to your view toggle implementation */
+.lead-management-header {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  z-index: 100;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
   /* Birthday Animation Styles */
 .birthday-overlay {
     position: fixed;
