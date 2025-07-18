@@ -4,6 +4,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const { db } = require('../config/db');
 const fetch = require('node-fetch');
+const { getInventoryByFormId } = require('../utils/inventoryLookup');
 
 // Meta webhook verification token and app secret - store these securely
 const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || 'your-unique-verify-token-here';
@@ -177,15 +178,21 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
     console.log('📋 Extracted field data:', fieldData);
     console.log('🎯 Webhook context data:', webhookData);
     console.log('📝 Lead form info:', {
-      form_id: leadDetails.form_id,
+      form_id: leadDetails.form_id || webhookData.form_id,
       form_name: leadDetails.form?.name,
       campaign_id: leadDetails.campaign_id,
       campaign_name: leadDetails.campaign_name,
-      ad_id: leadDetails.ad_id,
+      ad_id: leadDetails.ad_id || webhookData.ad_id,
       ad_name: leadDetails.ad_name,
-      adset_id: leadDetails.adset_id,
+      adset_id: leadDetails.adset_id || webhookData.adgroup_id,
       adset_name: leadDetails.adset_name
     });
+
+    // Lookup inventory by form ID
+    const inventory = await getInventoryByFormId(db, webhookData.form_id);
+    if (inventory) {
+      console.log('🎫 Linking to inventory:', inventory.event_name, '-', inventory.category_of_ticket);
+    }
 
     // Map Instagram fields to your CRM fields
     const leadRecord = {
@@ -210,13 +217,20 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
       business_type: 'B2C',
       source: 'Instagram',
       
-      // Dynamic form and campaign information
-      form_name: leadDetails.form?.name || webhookData.form_name || 'Instagram Lead Form',
-      form_id: leadDetails.form_id || webhookData.form_id || '',
+      // Event and inventory linkage
+      lead_for_event: inventory?.event_name || '',
+      inventory_id: inventory?.inventory_id || '',
+      category_of_ticket: inventory?.category_of_ticket || '',
+      
+      // Dynamic form and campaign information (for analytics)
+      form_name: inventory ? `${inventory.event_name} - ${inventory.category_of_ticket}` : 'Instagram Lead Form',
+      form_id: webhookData.form_id || '',
+      
+      // Ad campaign data for analytics
       campaign_name: leadDetails.campaign_name || webhookData.campaign_name || '',
       campaign_id: leadDetails.campaign_id || webhookData.campaign_id || '',
       adset_name: leadDetails.adset_name || webhookData.adset_name || '',
-      adset_id: leadDetails.adset_id || webhookData.adset_id || '',
+      adset_id: leadDetails.adset_id || webhookData.adgroup_id || '',
       ad_name: leadDetails.ad_name || webhookData.ad_name || '',
       ad_id: leadDetails.ad_id || webhookData.ad_id || '',
       
@@ -232,7 +246,20 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
       
       // Additional metadata
       notes: fieldData.notes || fieldData.comments || fieldData.message || '',
-      platform: leadDetails.platform || 'instagram'
+      platform: leadDetails.platform || 'instagram',
+      
+      // Analytics fields
+      lead_source_details: {
+        form_id: webhookData.form_id || '',
+        form_name: leadDetails.form?.name || '',
+        campaign_id: leadDetails.campaign_id || webhookData.campaign_id || '',
+        campaign_name: leadDetails.campaign_name || webhookData.campaign_name || '',
+        adset_id: leadDetails.adset_id || webhookData.adgroup_id || '',
+        adset_name: leadDetails.adset_name || webhookData.adset_name || '',
+        ad_id: leadDetails.ad_id || webhookData.ad_id || '',
+        ad_name: leadDetails.ad_name || webhookData.ad_name || '',
+        created_time: webhookData.created_time ? new Date(webhookData.created_time * 1000).toISOString() : new Date().toISOString()
+      }
     };
 
     // Check for duplicate leads by email
@@ -257,20 +284,25 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
       name: leadRecord.name,
       email: leadRecord.email,
       source: leadRecord.source,
-      form_name: leadRecord.form_name,
-      campaign_name: leadRecord.campaign_name
+      event: leadRecord.lead_for_event,
+      inventory: leadRecord.category_of_ticket,
+      campaign: leadRecord.campaign_name,
+      adset: leadRecord.adset_name
     });
 
     // Create activity log
     await db.collection('crm_activity_logs').add({
       type: 'lead_created',
       lead_id: docRef.id,
-      description: `New Instagram lead created: ${leadRecord.name} from form: ${leadRecord.form_name}`,
+      description: `New Instagram lead created: ${leadRecord.name} from campaign: ${leadRecord.campaign_name || 'Unknown'}`,
       metadata: {
         source: 'Instagram',
         form_id: leadRecord.form_id,
         form_name: leadRecord.form_name,
         campaign_name: leadRecord.campaign_name,
+        adset_name: leadRecord.adset_name,
+        event: leadRecord.lead_for_event,
+        inventory: leadRecord.category_of_ticket,
         auto_created: true
       },
       created_by: 'System',
