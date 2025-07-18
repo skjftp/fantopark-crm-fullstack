@@ -136,8 +136,11 @@ async function getLeadDetails(leadgenId, pageId) {
   }
   
   try {
+    // Explicitly request all campaign-related fields
+    const fields = 'id,created_time,field_data,form_id,is_organic,campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name';
+    
     const response = await fetch(
-      `https://graph.facebook.com/v18.0/${leadgenId}?access_token=${PAGE_ACCESS_TOKEN}`,
+      `https://graph.facebook.com/v18.0/${leadgenId}?fields=${fields}&access_token=${PAGE_ACCESS_TOKEN}`,
       { method: 'GET' }
     );
     
@@ -151,7 +154,52 @@ async function getLeadDetails(leadgenId, pageId) {
     console.log('✅ Lead details fetched successfully');
     
     // Debug log to see the full structure
-    console.log('📊 Full lead details:', JSON.stringify(data, null, 2));
+    console.log('📊 Full lead details with campaign data:', JSON.stringify(data, null, 2));
+    
+    // If campaign data is still missing, try to get it from the form
+    if (!data.campaign_id && data.form_id) {
+      console.log('🔍 Campaign data not in lead, fetching form details...');
+      
+      try {
+        const formResponse = await fetch(
+          `https://graph.facebook.com/v18.0/${data.form_id}?fields=name,leads_retrieval_method,questions,page&access_token=${PAGE_ACCESS_TOKEN}`,
+          { method: 'GET' }
+        );
+        
+        if (formResponse.ok) {
+          const formData = await formResponse.json();
+          console.log('📝 Form details:', JSON.stringify(formData, null, 2));
+          
+          // Add form name to the lead data
+          data.form_name = formData.name || data.form_id;
+        }
+      } catch (formError) {
+        console.error('⚠️ Error fetching form details:', formError);
+      }
+    }
+    
+    // If we still don't have campaign data, try another approach
+    if (!data.campaign_id) {
+      console.log('🔍 Attempting to fetch lead with additional context...');
+      
+      try {
+        // Try to get more details about the lead including ad context
+        const contextResponse = await fetch(
+          `https://graph.facebook.com/v18.0/${leadgenId}?fields=id,created_time,field_data,form{id,name},campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,retailer_item_id&access_token=${PAGE_ACCESS_TOKEN}`,
+          { method: 'GET' }
+        );
+        
+        if (contextResponse.ok) {
+          const contextData = await contextResponse.json();
+          console.log('📊 Lead with additional context:', JSON.stringify(contextData, null, 2));
+          
+          // Merge the data
+          Object.assign(data, contextData);
+        }
+      } catch (contextError) {
+        console.error('⚠️ Error fetching lead context:', contextError);
+      }
+    }
     
     return data;
   } catch (error) {
@@ -177,15 +225,15 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
     
     console.log('📋 Extracted field data:', fieldData);
     console.log('🎯 Webhook context data:', webhookData);
-    console.log('📝 Lead form info:', {
-      form_id: leadDetails.form_id || webhookData.form_id,
-      form_name: leadDetails.form?.name,
+    console.log('📊 Lead details campaign info:', {
       campaign_id: leadDetails.campaign_id,
       campaign_name: leadDetails.campaign_name,
-      ad_id: leadDetails.ad_id || webhookData.ad_id,
+      adset_id: leadDetails.adset_id,
+      adset_name: leadDetails.adset_name,
+      ad_id: leadDetails.ad_id,
       ad_name: leadDetails.ad_name,
-      adset_id: leadDetails.adset_id || webhookData.adgroup_id,
-      adset_name: leadDetails.adset_name
+      form_id: leadDetails.form_id,
+      form_name: leadDetails.form_name || leadDetails.form?.name
     });
 
     // Lookup inventory by form ID
@@ -222,11 +270,9 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
       inventory_id: inventory?.inventory_id || '',
       category_of_ticket: inventory?.category_of_ticket || '',
       
-      // Dynamic form and campaign information (for analytics)
-      form_name: inventory ? `${inventory.event_name} - ${inventory.category_of_ticket}` : 'Instagram Lead Form',
-      form_id: webhookData.form_id || '',
-      
-      // Ad campaign data for analytics
+      // Dynamic form and campaign information - UPDATED MAPPING
+      form_name: leadDetails.form_name || leadDetails.form?.name || (inventory ? `${inventory.event_name} - ${inventory.category_of_ticket}` : 'Instagram Lead Form'),
+      form_id: leadDetails.form_id || webhookData.form_id || '',
       campaign_name: leadDetails.campaign_name || webhookData.campaign_name || '',
       campaign_id: leadDetails.campaign_id || webhookData.campaign_id || '',
       adset_name: leadDetails.adset_name || webhookData.adset_name || '',
@@ -250,8 +296,8 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
       
       // Analytics fields
       lead_source_details: {
-        form_id: webhookData.form_id || '',
-        form_name: leadDetails.form?.name || '',
+        form_id: leadDetails.form_id || webhookData.form_id || '',
+        form_name: leadDetails.form_name || leadDetails.form?.name || '',
         campaign_id: leadDetails.campaign_id || webhookData.campaign_id || '',
         campaign_name: leadDetails.campaign_name || webhookData.campaign_name || '',
         adset_id: leadDetails.adset_id || webhookData.adgroup_id || '',
@@ -287,7 +333,9 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
       event: leadRecord.lead_for_event,
       inventory: leadRecord.category_of_ticket,
       campaign: leadRecord.campaign_name,
-      adset: leadRecord.adset_name
+      adset: leadRecord.adset_name,
+      ad: leadRecord.ad_name,
+      form: leadRecord.form_name
     });
 
     // Create activity log
@@ -301,6 +349,7 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
         form_name: leadRecord.form_name,
         campaign_name: leadRecord.campaign_name,
         adset_name: leadRecord.adset_name,
+        ad_name: leadRecord.ad_name,
         event: leadRecord.lead_for_event,
         inventory: leadRecord.category_of_ticket,
         auto_created: true
