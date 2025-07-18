@@ -1256,4 +1256,34 @@ router.delete('/', authenticateToken, async (req, res) => {
   }
 });
 
+
+
+
+// DEBUG ENDPOINT - Remove after testing
+router.get('/debug/forms', authenticateToken, async (req, res) => {
+  try {
+    const inventories = await db.collection('crm_inventory').get();
+    const results = [];
+    
+    inventories.forEach(doc => {
+      const data = doc.data();
+      if (data.form_ids && data.form_ids.length > 0) {
+        results.push({
+          id: doc.id,
+          event_name: data.event_name,
+          form_ids: data.form_ids
+        });
+      }
+    });
+    
+    res.json({
+      total_inventories: inventories.size,
+      inventories_with_forms: results.length,
+      data: results
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
