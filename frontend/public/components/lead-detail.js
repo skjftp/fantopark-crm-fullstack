@@ -278,6 +278,17 @@ window.renderLeadDetail = () => {
               window.appState.currentLead.company && React.createElement('div', null,
                 React.createElement('span', { className: 'font-medium text-gray-700' }, 'Company: '),
                 React.createElement('span', { className: 'text-gray-900' }, window.appState.currentLead.company)
+              ),
+              
+              // Add Preferred Contact Time
+              window.appState.currentLead.preferred_contact_time && React.createElement('div', null,
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 
+                  React.createElement('span', null, '🕐 '),
+                  'Preferred Contact Time: '
+                ),
+                React.createElement('span', { className: 'text-purple-600 font-medium' }, 
+                  window.appState.currentLead.preferred_contact_time
+                )
               )
             )
           ),
