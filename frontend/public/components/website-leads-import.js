@@ -10,6 +10,7 @@ window.WebsiteLeadsImport = function() {
   const [activeTab, setActiveTab] = React.useState('preview'); // preview, history
   const [summary, setSummary] = React.useState(null);
   const [testStatus, setTestStatus] = React.useState(null);
+  const [minLeadId, setMinLeadId] = React.useState(794); // Default minimum lead ID
 
   // Test connection to website API
   const testConnection = async () => {
@@ -34,7 +35,11 @@ window.WebsiteLeadsImport = function() {
   const fetchWebsiteLeads = async () => {
     setLoading(true);
     try {
-      const response = await window.apiCall('/website-leads/preview');
+      const params = new URLSearchParams({
+        minLeadId: minLeadId
+      });
+      
+      const response = await window.apiCall(`/website-leads/preview?${params}`);
       
       if (response.success) {
         setWebsiteLeads(response.data.leads);
@@ -75,7 +80,7 @@ window.WebsiteLeadsImport = function() {
     }
 
     const confirmMsg = importAll 
-      ? `Import all ${websiteLeads.length} new leads?` 
+      ? `Import all ${websiteLeads.length} new leads (ID >= ${minLeadId})?` 
       : `Import ${selectedLeads.size} selected leads?`;
 
     if (!confirm(confirmMsg)) return;
@@ -86,7 +91,8 @@ window.WebsiteLeadsImport = function() {
         method: 'POST',
         body: JSON.stringify({
           importAll,
-          leadIds: importAll ? null : Array.from(selectedLeads)
+          leadIds: importAll ? null : Array.from(selectedLeads),
+          minLeadId: minLeadId
         })
       });
 
@@ -135,7 +141,7 @@ window.WebsiteLeadsImport = function() {
   // Open modal and fetch data
   const openImportModal = () => {
     setShowModal(true);
-    fetchWebsiteLeads();
+    // Don't auto-fetch, let user click Fetch Leads button
   };
 
   React.useEffect(() => {
@@ -202,8 +208,42 @@ window.WebsiteLeadsImport = function() {
           activeTab === 'preview' ? (
             // Preview tab content
             React.createElement('div', null,
+              // Lead ID Filter
+              React.createElement('div', { 
+                className: 'mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700' 
+              },
+                React.createElement('h4', { className: 'font-semibold text-blue-800 dark:text-blue-200 mb-3' }, 
+                  '🔍 Lead Filter Settings'
+                ),
+                React.createElement('div', { className: 'flex gap-4 items-end flex-wrap' },
+                  React.createElement('div', { className: 'flex-1' },
+                    React.createElement('label', { 
+                      className: 'block text-sm font-medium text-blue-700 dark:text-blue-300 mb-1' 
+                    }, 'Minimum Lead ID'),
+                    React.createElement('input', {
+                      type: 'number',
+                      value: minLeadId,
+                      onChange: (e) => setMinLeadId(parseInt(e.target.value) || 794),
+                      className: 'px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white w-full',
+                      min: 1,
+                      placeholder: '794'
+                    })
+                  ),
+                  React.createElement('button', {
+                    className: 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700',
+                    onClick: fetchWebsiteLeads,
+                    disabled: loading
+                  }, '🔍 Fetch Leads')
+                ),
+                React.createElement('p', { 
+                  className: 'text-sm text-blue-700 dark:text-blue-300 mt-2' 
+                }, 
+                  '💡 Only leads with ID >= 794 will be shown to prevent importing old historical data.'
+                )
+              ),
+
               // Connection test
-              !websiteLeads.length && React.createElement('div', { 
+              !websiteLeads.length && !loading && React.createElement('div', { 
                 className: 'mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg' 
               },
                 React.createElement('button', {
