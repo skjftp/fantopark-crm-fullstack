@@ -1,5 +1,35 @@
-// Production Client View Content Function - Properly Integrated
-// REPLACE the existing window.renderClientViewContent function in leads.js with this
+// Production Client View Content Function - Enhanced with Search and Filters
+// COMPLETE UPDATED VERSION with all requested features
+
+// Initialize filter states for client view
+window.clientSearchQuery = window.clientSearchQuery || '';
+window.clientStatusFilter = window.clientStatusFilter || 'all';
+window.clientAssignedFilter = window.clientAssignedFilter || 'all';
+
+// Initialize filter state for lead sales person
+window.leadsSalesPersonFilter = window.leadsSalesPersonFilter || 'all';
+
+// Setter functions for client filters
+window.setClientSearchQuery = window.setClientSearchQuery || ((value) => {
+  window.clientSearchQuery = value;
+  if (window.renderApp) window.renderApp();
+});
+
+window.setClientStatusFilter = window.setClientStatusFilter || ((value) => {
+  window.clientStatusFilter = value;
+  if (window.renderApp) window.renderApp();
+});
+
+window.setClientAssignedFilter = window.setClientAssignedFilter || ((value) => {
+  window.clientAssignedFilter = value;
+  if (window.renderApp) window.renderApp();
+});
+
+// Setter function for lead sales person filter
+window.setLeadsSalesPersonFilter = window.setLeadsSalesPersonFilter || ((value) => {
+  window.leadsSalesPersonFilter = value;
+  if (window.renderApp) window.renderApp();
+});
 
 window.renderClientViewContent = function() {
   console.log("🔍 Rendering Production Client View Content");
@@ -46,29 +76,137 @@ window.renderClientViewContent = function() {
     );
   }
 
+  // Apply filters to clients
+  let filteredClients = [...clients];
+  
+  // Search filter
+  if (window.clientSearchQuery) {
+    const query = window.clientSearchQuery.toLowerCase();
+    filteredClients = filteredClients.filter(client => {
+      const primaryLead = client.leads && client.leads[0] ? client.leads[0] : {
+        name: client.name || 'Unknown',
+        phone: client.phone || client.client_phone || 'No Phone',
+        email: client.email || 'No Email'
+      };
+      
+      return (primaryLead.name && primaryLead.name.toLowerCase().includes(query)) ||
+             (primaryLead.phone && primaryLead.phone.includes(query)) ||
+             (primaryLead.email && primaryLead.email.toLowerCase().includes(query));
+    });
+  }
+  
+  // Status filter
+  if (window.clientStatusFilter !== 'all') {
+    filteredClients = filteredClients.filter(client => 
+      (client.status || 'active') === window.clientStatusFilter
+    );
+  }
+  
+  // Assigned to filter
+  if (window.clientAssignedFilter !== 'all') {
+    if (window.clientAssignedFilter === 'unassigned') {
+      filteredClients = filteredClients.filter(client => !client.assigned_to);
+    } else {
+      filteredClients = filteredClients.filter(client => client.assigned_to === window.clientAssignedFilter);
+    }
+  }
+
   return React.createElement('div', { className: 'space-y-6' },
+
+    // NEW: Filters Section for Client View
+    React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow-md border' },
+      React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Filters & Search'),
+      
+      React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
+        // Search Box
+        React.createElement('div', { className: 'col-span-2' },
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Search'),
+          React.createElement('input', {
+            type: 'text',
+            value: window.clientSearchQuery,
+            onChange: (e) => window.setClientSearchQuery(e.target.value),
+            placeholder: 'Search by name, phone, or email...',
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+          })
+        ),
+        
+        // Status Filter
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Status'),
+          React.createElement('select', {
+            value: window.clientStatusFilter,
+            onChange: (e) => window.setClientStatusFilter(e.target.value),
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+          },
+            React.createElement('option', { value: 'all' }, 'All Statuses'),
+            React.createElement('option', { value: 'active' }, 'Active'),
+            React.createElement('option', { value: 'inactive' }, 'Inactive'),
+            React.createElement('option', { value: 'converted' }, 'Converted'),
+            React.createElement('option', { value: 'dropped' }, 'Dropped')
+          )
+        ),
+        
+        // Assigned To Filter
+        React.createElement('div', null,
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Sales Person'),
+          React.createElement('select', {
+            value: window.clientAssignedFilter,
+            onChange: (e) => window.setClientAssignedFilter(e.target.value),
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+          },
+            React.createElement('option', { value: 'all' }, 'All Sales Persons'),
+            React.createElement('option', { value: 'unassigned' }, 'Unassigned'),
+            ...(window.users || [])
+              .filter(user => ['sales_executive', 'sales_manager', 'admin', 'super_admin'].includes(user.role) && user.status === 'active')
+              .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email))
+              .map(user => 
+                React.createElement('option', { 
+                  key: user.id, 
+                  value: user.email 
+                }, user.name || user.email)
+              )
+          )
+        )
+      ),
+      
+      // Filter Summary
+      React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
+        React.createElement('span', { className: 'text-sm text-gray-600' },
+          `Showing ${filteredClients.length} of ${clients.length} clients`
+        ),
+        (window.clientSearchQuery || window.clientStatusFilter !== 'all' || window.clientAssignedFilter !== 'all') &&
+        React.createElement('button', {
+          onClick: () => {
+            window.setClientSearchQuery('');
+            window.setClientStatusFilter('all');
+            window.setClientAssignedFilter('all');
+          },
+          className: 'text-sm text-blue-600 hover:text-blue-800 underline'
+        }, 'Clear All Filters')
+      )
+    ),
 
     // Client Statistics Summary
     React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
       React.createElement('div', { className: 'bg-blue-50 border border-blue-200 rounded-lg p-4' },
-        React.createElement('div', { className: 'text-2xl font-bold text-blue-900' }, clients.length),
+        React.createElement('div', { className: 'text-2xl font-bold text-blue-900' }, filteredClients.length),
         React.createElement('div', { className: 'text-sm text-blue-700' }, 'Total Clients')
       ),
       React.createElement('div', { className: 'bg-green-50 border border-green-200 rounded-lg p-4' },
         React.createElement('div', { className: 'text-2xl font-bold text-green-900' }, 
-          clients.filter(c => c.total_leads > 1).length
+          filteredClients.filter(c => c.total_leads > 1).length
         ),
         React.createElement('div', { className: 'text-sm text-green-700' }, 'Multi-Lead Clients')
       ),
       React.createElement('div', { className: 'bg-purple-50 border border-purple-200 rounded-lg p-4' },
         React.createElement('div', { className: 'text-2xl font-bold text-purple-900' }, 
-          clients.reduce((sum, c) => sum + c.total_leads, 0)
+          filteredClients.reduce((sum, c) => sum + c.total_leads, 0)
         ),
         React.createElement('div', { className: 'text-sm text-purple-700' }, 'Total Leads')
       ),
       React.createElement('div', { className: 'bg-orange-50 border border-orange-200 rounded-lg p-4' },
         React.createElement('div', { className: 'text-2xl font-bold text-orange-900' }, 
-          '₹' + clients.reduce((sum, c) => sum + (parseFloat(c.total_value) || 0), 0).toLocaleString()
+          '₹' + filteredClients.reduce((sum, c) => sum + (parseFloat(c.total_value) || 0), 0).toLocaleString()
         ),
         React.createElement('div', { className: 'text-sm text-orange-700' }, 'Total Client Value')
       )
@@ -96,12 +234,15 @@ window.renderClientViewContent = function() {
             )
           ),
           React.createElement('tbody', { className: 'bg-white divide-y divide-gray-200' },
-            clients.map(client => {
+            filteredClients.map(client => {
               const primaryLead = client.leads && client.leads[0] ? client.leads[0] : {
                 name: client.name || 'Unknown',
                 phone: client.phone || client.client_phone || 'No Phone',
                 email: client.email || 'No Email'
               };
+              
+              // Get assigned user for display
+              const assignedUser = window.users?.find(u => u.email === client.assigned_to);
               
               return React.createElement('tr', { key: client.client_id || client.phone || Math.random(), className: 'hover:bg-gray-50' },
                 React.createElement('td', { className: 'px-6 py-4' },
@@ -143,7 +284,7 @@ window.renderClientViewContent = function() {
                   )
                 ),
                 React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900' },
-                  client.assigned_to || 'Unassigned'
+                  assignedUser ? assignedUser.name || assignedUser.email : 'Unassigned'
                 ),
                 React.createElement('td', { className: 'px-6 py-4' },
                   React.createElement('span', { 
@@ -169,7 +310,6 @@ window.renderClientViewContent = function() {
                   hasPermission('leads', 'assign') && (client.total_leads > 1 || (client.leads && client.leads.length > 1)) &&
                     React.createElement('button', {
                       onClick: () => {
-                        // Bulk reassign functionality - will implement in next phase
                         alert(`Bulk reassign for ${client.total_leads || client.leads.length} leads coming in next update!`);
                       },
                       className: 'text-green-600 hover:text-green-900 ml-2'
@@ -184,12 +324,9 @@ window.renderClientViewContent = function() {
   );
 };
 
-console.log('✅ Production Client View component loaded successfully with proper integration');
+console.log('✅ Production Client View component loaded successfully with search and filters');
 
-// Leads Content Component - Extracted from index.html
-// Enhanced renderLeadsContent function with Client Toggle - PRESERVES ALL EXISTING FEATURES
-// This includes advanced filtering, sorting, pagination, premium features, and client view
-
+// Leads Content Component with Sales Person Filter
 window.renderLeadsContent = () => {
     // ✅ HELPER FUNCTION: Get next status options for a lead
     const getLeadProgressionOptions = (lead) => {
@@ -211,23 +348,18 @@ window.renderLeadsContent = () => {
     const handleLeadProgressionClick = (lead) => {
         console.log("🔄 Lead progression clicked for:", lead.name, "Current status:", lead.status);
         
-        // ✅ CRITICAL FIX: Use the sophisticated function from app-business-logic.js
-        // This includes the earlyStageStatuses logic and proper modal switching
         if (window.handleLeadProgression && typeof window.handleLeadProgression === 'function') {
             console.log("✅ Using sophisticated handleLeadProgression from app-business-logic.js");
             window.handleLeadProgression(lead);
         } else {
-            // Fallback to simple logic if business logic not loaded
             console.warn("⚠️ Fallback: app-business-logic not loaded, using simple progression");
             
-            // If lead is unassigned, open assign form first
             if (lead.status === 'unassigned' && !lead.assigned_to) {
                 console.log("📝 Opening assign form for unassigned lead");
                 window.openAssignForm(lead);
                 return;
             }
 
-            // Get available progression options
             const progressionOptions = getLeadProgressionOptions(lead);
             
             if (progressionOptions.length === 0) {
@@ -235,7 +367,6 @@ window.renderLeadsContent = () => {
                 return;
             }
             
-            // If only one option, progress directly
             if (progressionOptions.length === 1) {
                 const nextStatus = progressionOptions[0].status;
                 console.log("🚀 Direct progression to:", nextStatus);
@@ -245,7 +376,6 @@ window.renderLeadsContent = () => {
                 return;
             }
             
-            // Multiple options - use choice modal as fallback
             console.log("🎯 Fallback: Opening choice modal with options:", progressionOptions);
             window.setCurrentLeadForChoice(lead);
             window.setChoiceOptions(progressionOptions.map(opt => ({
@@ -257,7 +387,7 @@ window.renderLeadsContent = () => {
         }
     };
 
-    // EXISTING FILTERING LOGIC - UNCHANGED
+    // ENHANCED FILTERING LOGIC - Now includes Sales Person Filter
     const filteredLeads = (window.appState.leads || []).filter(lead => {
         // Search filter
         const matchesSearch = (!window.appState.searchQuery || window.appState.searchQuery === '') || 
@@ -266,27 +396,34 @@ window.renderLeadsContent = () => {
             (lead.company && lead.company?.toLowerCase().includes(window.appState.searchQuery?.toLowerCase())) ||
             (lead.phone && lead.phone.includes(window.appState.searchQuery));
 
-        // Updated status filter - support both old single filter and new multi-select
+        // Status filter
         let matchesStatus = true;
-
         if (window.selectedStatusFilters.length > 0) {
-            // Use new multi-select filter
             matchesStatus = window.selectedStatusFilters.includes(lead.status);
         } else if (window.statusFilter !== 'all') {
-            // Fallback to old single filter for backward compatibility
             matchesStatus = lead.status === window.statusFilter;
         }
 
-        // Source filter (EXISTING)
+        // Source filter
         const matchesSource = window.appState.leadsSourceFilter === 'all' || lead.source === window.appState.leadsSourceFilter;
 
-        // Business type filter (EXISTING)
+        // Business type filter
         const matchesBusinessType = window.appState.leadsBusinessTypeFilter === 'all' || lead.business_type === window.appState.leadsBusinessTypeFilter;
 
-        // Event filter (EXISTING)
+        // Event filter
         const matchesEvent = window.appState.leadsEventFilter === 'all' || lead.lead_for_event === window.appState.leadsEventFilter;
 
-        return matchesSearch && matchesStatus && matchesSource && matchesBusinessType && matchesEvent;
+        // NEW: Sales Person Filter
+        let matchesSalesPerson = true;
+        if (window.leadsSalesPersonFilter && window.leadsSalesPersonFilter !== 'all') {
+            if (window.leadsSalesPersonFilter === 'unassigned') {
+                matchesSalesPerson = !lead.assigned_to;
+            } else {
+                matchesSalesPerson = lead.assigned_to === window.leadsSalesPersonFilter;
+            }
+        }
+
+        return matchesSearch && matchesStatus && matchesSource && matchesBusinessType && matchesEvent && matchesSalesPerson;
     });
 
     // EXISTING SORTING LOGIC - UNCHANGED
@@ -322,19 +459,18 @@ window.renderLeadsContent = () => {
         }
     });
 
-    // EXISTING PAGINATION LOGIC - UNCHANGED
+    // EXISTING PAGINATION LOGIC
     const indexOfLastItem = window.appState.currentLeadsPage * window.appState.itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - window.appState.itemsPerPage;
     const currentLeads = sortedLeads.slice(indexOfFirstItem, indexOfLastItem);
     const totalPages = Math.ceil(sortedLeads.length / window.appState.itemsPerPage);
 
-    // EXISTING UNASSIGNED LEADS LOGIC - UNCHANGED
     const unassignedLeads = sortedLeads.filter(lead => !lead.assigned_to || lead.assigned_to === '' || lead.status === 'unassigned');
 
     return React.createElement('div', { className: 'space-y-6' },
 
-        // NEW: View Mode Toggle Section (only addition to existing structure)
-        React.createElement('div', { className: 'bg-white rounded-lg shadow-sm border p-4' },
+        // View Mode Toggle Section
+        React.createElement('div', { className: 'bg-white rounded-lg shadow-sm border p-4 lead-client-toggle-container' },
             React.createElement('div', { className: 'flex items-center justify-between mb-4' },
                 React.createElement('h2', { className: 'text-2xl font-bold text-gray-900' }, 'Lead & Client Management'),
 
@@ -375,9 +511,9 @@ window.renderLeadsContent = () => {
 
         // Conditional Content Based on View Mode
         window.appState.viewMode === 'leads' ? 
-        // EXISTING LEAD VIEW CONTENT - COMPLETELY UNCHANGED
+        // LEAD VIEW CONTENT WITH SALES PERSON FILTER
         React.createElement('div', { className: 'space-y-6' },
-            // EXISTING HEADER WITH BUTTONS - UNCHANGED
+            // Header with buttons
             React.createElement('div', { className: 'flex justify-between items-center' },
                 React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'Lead Management'),
                 React.createElement('div', { className: 'flex gap-2' },
@@ -386,7 +522,6 @@ window.renderLeadsContent = () => {
                         onClick: () => window.openAddForm('lead')
                     }, '+ Add New Lead'),
 
-                    // EXISTING BULK ASSIGN BUTTON - UNCHANGED
                     window.hasPermission('leads', 'assign') && unassignedLeads.length > 0 && React.createElement('button', {
                         onClick: () => window.setShowBulkAssignModal(true),
                         className: 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2'
@@ -394,11 +529,9 @@ window.renderLeadsContent = () => {
                         React.createElement('span', null, '👥'),
                         `Bulk Assign (${unassignedLeads.length})`
                     ),
-                     // ADD THIS NEW BUTTON - Website Import
-    window.hasPermission('leads', 'write') && window.WebsiteLeadsImport && React.createElement(window.WebsiteLeadsImport),
-               
+                    
+                    window.hasPermission('leads', 'write') && window.WebsiteLeadsImport && React.createElement(window.WebsiteLeadsImport),
 
-                    // EXISTING CSV UPLOAD BUTTON - UNCHANGED
                     React.createElement('button', {
                         onClick: () => {
                             window.setCSVUploadType('leads');
@@ -424,12 +557,12 @@ window.renderLeadsContent = () => {
                 )
             ),
 
-            // EXISTING ENHANCED FILTERS SECTION - COMPLETELY UNCHANGED
-            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border p-4' },
+            // ENHANCED FILTERS SECTION WITH SALES PERSON FILTER
+            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border p-4 filters-search-container' },
                 React.createElement('h2', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4' }, 'Filters & Search'),
-                React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4' },
-                    // EXISTING SEARCH INPUT - UNCHANGED
-                    React.createElement('div', null,
+                React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4' },
+                    // Search Input
+                    React.createElement('div', { className: 'search-input-container' },
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Search'),
                         React.createElement('input', {
                             type: 'text',
@@ -443,7 +576,7 @@ window.renderLeadsContent = () => {
                         })
                     ),
 
-                    // EXISTING MULTI-SELECT STATUS FILTER - COMPLETELY UNCHANGED
+                    // Multi-Select Status Filter
                     React.createElement('div', null,
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Status'),
                         React.createElement('div', { className: 'relative', ref: window.statusDropdownRef },
@@ -467,11 +600,11 @@ window.renderLeadsContent = () => {
                                 )
                             ),
 
-                            // EXISTING STATUS DROPDOWN - COMPLETELY UNCHANGED
+                            // Status Dropdown
                             window.showStatusFilterDropdown && React.createElement('div', {
-                                className: 'absolute z-10 w-80 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-y-auto'
+                                className: 'absolute z-10 w-80 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-y-auto filter-dropdown'
                             },
-                                // EXISTING SELECT/DESELECT ALL CONTROLS - UNCHANGED
+                                // Select/Deselect All Controls
                                 React.createElement('div', { className: 'border-b border-gray-200 p-3 bg-gray-50' },
                                     React.createElement('div', { className: 'flex justify-between' },
                                         React.createElement('button', {
@@ -485,7 +618,7 @@ window.renderLeadsContent = () => {
                                     )
                                 ),
 
-                                // EXISTING STATUS OPTIONS GROUPED - COMPLETELY UNCHANGED
+                                // Status Options Grouped
                                 React.createElement('div', { className: 'py-1' },
                                     // Initial Contact Group
                                     React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Initial Contact'),
@@ -585,13 +718,13 @@ window.renderLeadsContent = () => {
                             )
                         ),
 
-                        // EXISTING FILTER INDICATOR - UNCHANGED
+                        // Filter Indicator
                         window.selectedStatusFilters.length > 0 && React.createElement('div', {
                             className: 'mt-1 text-xs text-blue-600 font-medium'
                         }, `Filtering by ${window.selectedStatusFilters.length} status${window.selectedStatusFilters.length !== 1 ? 'es' : ''}`)
                     ),
 
-                    // EXISTING SOURCE FILTER - COMPLETELY UNCHANGED
+                    // Source Filter
                     React.createElement('div', null,
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Source'),
                         React.createElement('select', {
@@ -609,7 +742,7 @@ window.renderLeadsContent = () => {
                         )
                     ),
 
-                    // EXISTING BUSINESS TYPE FILTER - COMPLETELY UNCHANGED
+                    // Business Type Filter
                     React.createElement('div', null,
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Business Type'),
                         React.createElement('select', {
@@ -627,7 +760,7 @@ window.renderLeadsContent = () => {
                         )
                     ),
 
-                    // EXISTING EVENT FILTER - COMPLETELY UNCHANGED
+                    // Event Filter
                     React.createElement('div', null,
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Event'),
                         React.createElement('select', {
@@ -645,7 +778,39 @@ window.renderLeadsContent = () => {
                         )
                     ),
 
-                    // EXISTING SORT CONTROLS - COMPLETELY UNCHANGED
+                    // NEW: Sales Person Filter
+                    React.createElement('div', null,
+                        React.createElement('label', { 
+                            htmlFor: 'sales-person-filter',
+                            className: 'block text-sm font-medium text-gray-700 mb-2' 
+                        }, 'Sales Person'),
+                        React.createElement('select', {
+                            id: 'sales-person-filter',
+                            value: window.leadsSalesPersonFilter || 'all',
+                            onChange: (e) => {
+                                window.setLeadsSalesPersonFilter(e.target.value);
+                                window.appState.setCurrentLeadsPage(1);
+                            },
+                            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+                        },
+                            React.createElement('option', { value: 'all' }, 'All Sales Persons'),
+                            React.createElement('option', { value: 'unassigned' }, 'Unassigned'),
+                            ...(window.users || [])
+                                .filter(user => {
+                                    const salesRoles = ['sales_executive', 'sales_manager', 'admin', 'super_admin'];
+                                    return salesRoles.includes(user.role) && user.status === 'active';
+                                })
+                                .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email))
+                                .map(user => 
+                                    React.createElement('option', { 
+                                        key: user.id, 
+                                        value: user.email 
+                                    }, user.name || user.email)
+                                )
+                        )
+                    ),
+
+                    // Sort Controls
                     React.createElement('div', null,
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Sort By'),
                         React.createElement('div', { className: 'flex gap-2' },
@@ -674,13 +839,14 @@ window.renderLeadsContent = () => {
                     )
                 ),
 
-                // EXISTING FILTER STATUS SUMMARY - COMPLETELY UNCHANGED
+                // Filter Status Summary
                 React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
                     React.createElement('span', { className: 'text-sm text-gray-600' },
                         `Showing ${sortedLeads.length} of ${(window.appState.leads || []).length} leads`
                     ),
-                    (window.appState.searchQuery !== '' || window.selectedStatusFilters.length > 0 || window.statusFilter !== 'all' || window.appState.leadsSourceFilter !== 'all' || 
-                    window.appState.leadsBusinessTypeFilter !== 'all' || window.appState.leadsEventFilter !== 'all') &&
+                    (window.appState.searchQuery !== '' || window.selectedStatusFilters.length > 0 || window.statusFilter !== 'all' || 
+                     window.appState.leadsSourceFilter !== 'all' || window.appState.leadsBusinessTypeFilter !== 'all' || 
+                     window.appState.leadsEventFilter !== 'all' || window.leadsSalesPersonFilter !== 'all') &&
                     React.createElement('button', {
                         onClick: () => {
                             window.setSearchQuery('');
@@ -689,6 +855,7 @@ window.renderLeadsContent = () => {
                             window.setLeadsSourceFilter('all');
                             window.setLeadsBusinessTypeFilter('all');
                             window.setLeadsEventFilter('all');
+                            window.setLeadsSalesPersonFilter('all');
                             window.appState.setCurrentLeadsPage(1);
                         },
                         className: 'text-sm text-blue-600 hover:text-blue-800 underline'
@@ -696,7 +863,7 @@ window.renderLeadsContent = () => {
                 )
             ),
 
-            // EXISTING WORKFLOW HINT - COMPLETELY UNCHANGED
+            // Workflow Hint
             React.createElement('div', { className: 'bg-blue-50 border border-blue-200 rounded-lg p-4' },
                 React.createElement('div', { className: 'flex items-center text-sm text-blue-800' },
                     React.createElement('span', { className: 'mr-2 text-lg' }, '💡'),
@@ -707,7 +874,7 @@ window.renderLeadsContent = () => {
                 )
             ),
 
-            // EXISTING TABLE - COMPLETELY UNCHANGED
+            // Table
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border' },
                 filteredLeads.length > 0 ? React.createElement('div', { className: 'overflow-x-auto' },
                     React.createElement('table', { className: 'w-full' },
@@ -778,31 +945,30 @@ window.renderLeadsContent = () => {
                                         ) : React.createElement('span', { className: 'text-sm text-gray-400' }, 'Unassigned')
                                     ),
                                     React.createElement('td', { className: 'px-6 py-4' },
-    React.createElement('div', { className: 'flex flex-col gap-1' },
-        React.createElement('span', {
-            className: 'px-2 py-1 text-xs rounded ' + (status.color)
-        }, status.label),
-        
-        // ✅ QUOTE INDICATOR - ADD THIS
-        lead.quote_pdf_url && React.createElement('div', { className: 'flex items-center gap-1' },
-            React.createElement('span', { title: 'Quote uploaded' }, '📄'),
-            React.createElement('a', {
-                href: lead.quote_pdf_url,
-                target: '_blank',
-                className: 'text-blue-600 text-xs hover:underline',
-                onClick: (e) => e.stopPropagation()
-            }, 'Quote'),
-            lead.quote_notes && React.createElement('span', { 
-                title: lead.quote_notes,
-                className: 'text-xs text-gray-500 ml-1'
-            }, '💬')
-        ),
-        
-        lead.status === 'rejected' && lead.rejection_reason && React.createElement('div', {
-            className: 'mt-1 text-xs text-red-600 italic'
-        }, 'Reason: ' + (lead.rejection_reason))
-    )
-),
+                                        React.createElement('div', { className: 'flex flex-col gap-1' },
+                                            React.createElement('span', {
+                                                className: 'px-2 py-1 text-xs rounded ' + (status.color)
+                                            }, status.label),
+                                            
+                                            lead.quote_pdf_url && React.createElement('div', { className: 'flex items-center gap-1' },
+                                                React.createElement('span', { title: 'Quote uploaded' }, '📄'),
+                                                React.createElement('a', {
+                                                    href: lead.quote_pdf_url,
+                                                    target: '_blank',
+                                                    className: 'text-blue-600 text-xs hover:underline',
+                                                    onClick: (e) => e.stopPropagation()
+                                                }, 'Quote'),
+                                                lead.quote_notes && React.createElement('span', { 
+                                                    title: lead.quote_notes,
+                                                    className: 'text-xs text-gray-500 ml-1'
+                                                }, '💬')
+                                            ),
+                                            
+                                            lead.status === 'rejected' && lead.rejection_reason && React.createElement('div', {
+                                                className: 'mt-1 text-xs text-red-600 italic'
+                                            }, 'Reason: ' + (lead.rejection_reason))
+                                        )
+                                    ),
                                     window.hasPermission('finance', 'read') && React.createElement('td', { className: 'px-6 py-4' },
                                         React.createElement('div', { className: 'text-sm font-medium text-gray-900' }, 
                                             '₹' + (lead.potential_value || 0).toLocaleString()
@@ -822,7 +988,6 @@ window.renderLeadsContent = () => {
                                                     className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
                                                     onClick: () => window.openAssignForm(lead)
                                                 }, '👤'),
-                                            // ✅ FIXED: Enhanced progression button with sophisticated logic
                                             window.hasPermission('leads', 'progress') && React.createElement('button', {
                                                 className: `text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50 ${
                                                     progressionOptions.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
@@ -838,19 +1003,16 @@ window.renderLeadsContent = () => {
                                                     : `Choose next stage (${progressionOptions.length} options)`
                                             }, window.loading ? '...' : '→'),
                                             window.hasPermission('leads', 'write') && (() => {
-                                            // Check if this lead has any order (regardless of status)
-                                            const hasOrder = window.orders && window.orders.some(order => 
-                                            order.lead_id === lead.id && 
-                                            order.status !== 'rejected'
-                                            );
-                                            
-                                            // Show payment shortcut if lead is converted OR has an order
-                                            return lead.status === 'converted' || hasOrder;
+                                                const hasOrder = window.orders && window.orders.some(order => 
+                                                    order.lead_id === lead.id && 
+                                                    order.status !== 'rejected'
+                                                );
+                                                return lead.status === 'converted' || hasOrder;
                                             })() &&
                                             React.createElement('button', { 
-                                            className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
-                                            onClick: () => window.openPaymentForm(lead),
-                                            title: 'Collect Payment'
+                                                className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
+                                                onClick: () => window.openPaymentForm(lead),
+                                                title: 'Collect Payment'
                                             }, '💳'),
                                             window.hasPermission('leads', 'delete') && React.createElement('button', { 
                                                 className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
@@ -863,7 +1025,7 @@ window.renderLeadsContent = () => {
                             })
                         )
                     ),
-                    // EXISTING PAGINATION - COMPLETELY UNCHANGED
+                    // Pagination
                     sortedLeads.length > window.appState.itemsPerPage && React.createElement('div', { className: 'flex justify-between items-center px-6 py-3 bg-gray-50 border-t' },
                         React.createElement('div', { className: 'text-sm text-gray-700' },
                             'Showing ' + (indexOfFirstItem + 1) + ' to ' + (Math.min(indexOfLastItem, sortedLeads.length)) + ' of ' + (sortedLeads.length) + ' leads'
@@ -889,9 +1051,9 @@ window.renderLeadsContent = () => {
                 )
             )
         ) :
-        // NEW: Client View Content
+        // Client View Content
         window.renderClientViewContent()
     );
 };
 
-console.log('✅ Leads component loaded with FIXED sophisticated progression handling that uses app-business-logic.js');
+console.log('✅ Leads component loaded with Client View filters and Sales Person filter');
