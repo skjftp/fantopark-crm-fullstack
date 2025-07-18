@@ -3,12 +3,12 @@
 const websiteApiConfig = {
   baseUrl: 'https://api.fantopark.club/ftp',
   endpoints: {
-    login: '/auth/login',
+    login: '/admin/login',  // FIXED: Changed from /auth/login to /admin/login
     leads: '/admin/leads'
   },
   credentials: {
     // Store these in environment variables for security
-    username: process.env.WEBSITE_API_USERNAME || '',
+    email: process.env.WEBSITE_API_USERNAME || '',  // Using email as the field name
     password: process.env.WEBSITE_API_PASSWORD || ''
   },
   // Lead filtering configuration
