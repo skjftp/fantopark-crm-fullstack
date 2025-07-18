@@ -34,7 +34,7 @@ window.WebsiteLeadsImport = function() {
     }
   };
 
-  // Fetch website leads for preview
+  // UPDATED: Fetch website leads for preview with proper saved mapping handling
   const fetchWebsiteLeads = async () => {
     setLoading(true);
     try {
@@ -51,14 +51,27 @@ window.WebsiteLeadsImport = function() {
         setSavedMappings(response.data.savedMappings || {});
         setSelectedLeads(new Set(response.data.leads.map(l => l.id)));
         
-        // Initialize manual mappings with saved mappings
+        // Initialize manual mappings with BOTH saved mappings and auto-matched mappings
         const initialMappings = {};
         response.data.mappingPreview.forEach(mapping => {
           if (mapping.inventoryFound && mapping.inventoryId) {
             initialMappings[mapping.websiteLeadId] = mapping.inventoryId;
           }
         });
+        
+        // ADDED: Also check savedMappings directly for any leads that might not have been auto-matched
+        response.data.leads.forEach(lead => {
+          if (!initialMappings[lead.id] && response.data.savedMappings[lead.tours]) {
+            initialMappings[lead.id] = response.data.savedMappings[lead.tours].inventory_id;
+          }
+        });
+        
         setManualMappings(initialMappings);
+        
+        // Debug logging
+        console.log('Fetched leads:', response.data.leads.length);
+        console.log('Saved mappings:', response.data.savedMappings);
+        console.log('Initial mappings set:', initialMappings);
       } else {
         alert('Failed to fetch website leads: ' + response.error);
       }
@@ -136,7 +149,7 @@ window.WebsiteLeadsImport = function() {
     }
   };
 
-  // Import selected leads
+  // UPDATED: Import selected leads with debug logging
   const importLeads = async (importAll = false) => {
     if (!importAll && selectedLeads.size === 0) {
       alert('Please select at least one lead to import');
@@ -168,6 +181,22 @@ window.WebsiteLeadsImport = function() {
 
     setLoading(true);
     try {
+      // ADDED: Debug logging
+      console.log('Manual mappings being sent:', manualMappings);
+      console.log('Lead IDs being sent:', importAll ? 'ALL' : Array.from(selectedLeads));
+      
+      // Log sample lead data
+      if (!importAll && selectedLeads.size > 0) {
+        const sampleLeadId = Array.from(selectedLeads)[0];
+        const sampleLead = websiteLeads.find(l => l.id === sampleLeadId);
+        console.log('Sample lead being imported:', {
+          id: sampleLead?.id,
+          name: sampleLead?.name,
+          tours: sampleLead?.tours,
+          inventory_mapped: manualMappings[sampleLeadId] || 'NONE'
+        });
+      }
+      
       const response = await window.apiCall('/website-leads/import', {
         method: 'POST',
         body: JSON.stringify({
@@ -240,6 +269,37 @@ window.WebsiteLeadsImport = function() {
       fetchImportHistory();
     }
   }, [showModal, activeTab]);
+
+  // ADDED: Debug functions for testing
+  window.debugWebsiteLeadsImport = {
+    testEventMappings: async () => {
+      const response = await window.apiCall('/website-leads/event-mappings');
+      console.log('Current saved mappings:', response.data);
+      return response.data;
+    },
+    
+    debugLeadImport: async (leadId) => {
+      const lead = websiteLeads.find(l => l.id === leadId);
+      console.log('Website lead:', lead);
+      console.log('Manual mapping:', manualMappings[leadId]);
+      console.log('Event name will be:', lead?.tours || 'NOT SET');
+    },
+    
+    checkImportHistory: async () => {
+      const response = await window.apiCall('/website-leads/import-history');
+      console.log('Import history:', response.data);
+      return response.data;
+    },
+    
+    getCurrentState: () => {
+      console.log('Current state:', {
+        websiteLeads: websiteLeads.length,
+        selectedLeads: Array.from(selectedLeads),
+        manualMappings,
+        savedMappings
+      });
+    }
+  };
 
   // Main component render
   return React.createElement('div', null,
@@ -403,7 +463,7 @@ window.WebsiteLeadsImport = function() {
                 }, '🔄 Refresh')
               ),
 
-              // Leads table
+              // UPDATED: Enhanced leads table with better mapping display
               websiteLeads.length > 0 && React.createElement('div', { 
                 className: 'overflow-x-auto' 
               },
@@ -480,19 +540,35 @@ window.WebsiteLeadsImport = function() {
                             }, '❌ No match')
                           )
                         ),
+                        // UPDATED: Enhanced inventory select with visual feedback
                         React.createElement('td', { className: 'p-2' },
-                          React.createElement('select', {
-                            className: 'px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white text-sm w-full',
-                            value: selectedInventoryId || '',
-                            onChange: (e) => handleMappingChange(lead.id, e.target.value)
-                          },
-                            React.createElement('option', { value: '' }, '-- Select --'),
-                            (window.inventory || []).map(inv => 
-                              React.createElement('option', { 
-                                key: inv.id, 
-                                value: inv.id 
-                              }, inv.event_name)
-                            )
+                          React.createElement('div', { className: 'flex items-center gap-2' },
+                            React.createElement('select', {
+                              value: manualMappings[lead.id] || '',
+                              onChange: (e) => handleMappingChange(lead.id, e.target.value),
+                              className: `px-3 py-1 border rounded-md text-sm ${
+                                manualMappings[lead.id] 
+                                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
+                                  : 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                              }`,
+                              style: { minWidth: '200px' }
+                            },
+                              React.createElement('option', { value: '' }, '-- Select Inventory --'),
+                              ...window.inventory
+                                .filter(inv => inv.event_name)
+                                .sort((a, b) => a.event_name.localeCompare(b.event_name))
+                                .map(inv =>
+                                  React.createElement('option', { 
+                                    key: inv.id, 
+                                    value: inv.id 
+                                  }, inv.event_name)
+                                )
+                            ),
+                            // Show if it's a saved mapping
+                            savedMappings[lead.tours] && manualMappings[lead.id] === savedMappings[lead.tours].inventory_id &&
+                              React.createElement('span', { 
+                                className: 'text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded' 
+                              }, '📌 Saved')
                           )
                         ),
                         React.createElement('td', { className: 'p-2' }, lead.referral_code),
