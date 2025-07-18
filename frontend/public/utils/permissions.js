@@ -32,6 +32,19 @@ const canAccessTab = (tabId) => {
   if (tabId === 'reminders') return hasPermission('leads', 'read');
   // Sports Calendar available to users who can read leads (for now, or adjust as needed)
   if (tabId === 'sports-calendar') return hasPermission('leads', 'read');
+  
+  // Sales Performance - grant access to specific roles
+  if (tabId === 'sales-performance') {
+    const allowedRoles = [
+      'super_admin',
+      'admin',
+      'sales_manager',
+      'supply_sales_service_manager', // Added this role
+      'finance_manager'
+    ];
+    return allowedRoles.includes(user.role);
+  }
+  
   return hasPermission(tabId, 'read');
 };
 
