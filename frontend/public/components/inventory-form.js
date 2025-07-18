@@ -710,6 +710,16 @@ window.renderInventoryForm = () => {
             })
           )
         ),
+
+              // Add Facebook/Instagram Form Links Manager HERE
+      window.InventoryFormManager && React.createElement('div', { className: 'mt-6' },
+        React.createElement(window.InventoryFormManager, {
+          formIds: window.formData.form_ids || [],
+          onChange: (updatedFormIds) => {
+            window.handleFormDataChange('form_ids', updatedFormIds);
+          }
+        })
+      ),                  
         
         // Form Actions
         React.createElement('div', { className: 'flex space-x-4 mt-8 pt-6 border-t border-gray-200 dark:border-gray-600' },
