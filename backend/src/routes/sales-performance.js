@@ -27,7 +27,7 @@ router.get('/', authenticateToken, async (req, res) => {
   try {
     // Check if we have valid cached data
     if (isCacheValid(performanceCache.salesDataTimestamp)) {
-      console.log('📊 Returning cached sales performance data');
+      // console.log('📊 Returning cached sales performance data');
       return res.json({
         success: true,
         salesTeam: performanceCache.salesData,
@@ -280,7 +280,7 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
     const cachedEntry = performanceCache.retailData.get(cacheKey);
     
     if (cachedEntry && isCacheValid(cachedEntry.timestamp)) {
-      console.log('📊 Returning cached retail tracker data for range:', cacheKey);
+      // console.log('📊 Returning cached retail tracker data for range:', cacheKey);
       return res.json({
         success: true,
         retailData: cachedEntry.data,

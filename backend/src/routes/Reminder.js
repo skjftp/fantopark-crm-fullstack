@@ -6,7 +6,7 @@ const { authenticateToken, checkPermission } = require('../middleware/auth');
 // GET all reminders with filters
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    console.log('Fetching reminders with filters:', req.query);
+    // console.log('Fetching reminders with filters:', req.query);
     
     // Users can only see their own reminders unless they're managers
     let filters = { ...req.query };

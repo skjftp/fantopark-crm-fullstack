@@ -20,6 +20,7 @@ class Inventory {
     this.booking_person = data.booking_person;
     this.procurement_type = data.procurement_type;
     this.notes = data.notes || '';
+    this.form_ids = data.form_ids || [];
     this.created_date = data.created_date || new Date().toISOString();
     this.updated_date = new Date().toISOString();
   }

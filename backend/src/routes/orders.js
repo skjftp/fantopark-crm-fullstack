@@ -88,7 +88,7 @@ router.get('/', authenticateToken, async (req, res) => {
       orders.push({ id: doc.id, ...doc.data() });
     });
     
-    console.log(`Returning ${orders.length} orders with event_date filters:`, { from_date, to_date });
+    // console.log(`Returning ${orders.length} orders with event_date filters:`, { from_date, to_date });
     res.json({ data: orders });
   } catch (error) {
     console.error('Error fetching orders:', error);

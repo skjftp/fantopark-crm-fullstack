@@ -224,7 +224,7 @@ class Lead {
       // FIXED: Calculate aggregated data with proper number handling
       const totalValue = leads.reduce((sum, lead) => {
         const value = parseFloat(lead.potential_value) || 0;
-        console.log(`   Adding value: ${value} (from ${lead.potential_value})`);
+        // console.log(`   Adding value: ${value} (from ${lead.potential_value})`);
         return sum + value;
       }, 0);
       
@@ -321,11 +321,11 @@ class Lead {
         // FIXED: Proper number handling for total value calculation
         const totalValue = leads.reduce((sum, lead) => {
           const value = parseFloat(lead.potential_value) || 0;
-          console.log(`   Client ${primaryLead.name}: Adding ${value} (from ${lead.potential_value})`);
+          // console.log(`   Client ${primaryLead.name}: Adding ${value} (from ${lead.potential_value})`);
           return sum + value;
         }, 0);
         
-        console.log(`📊 Client ${primaryLead.name} total value: ${totalValue}`);
+        // console.log(`📊 Client ${primaryLead.name} total value: ${totalValue}`);
         
         const events = [...new Set(leads.map(l => l.lead_for_event).filter(Boolean))];
         const lastActivity = leads.reduce((latest, lead) => {
@@ -349,7 +349,7 @@ class Lead {
         };
       });
 
-      console.log(`✅ Found ${clients.length} clients from ${snapshot.size} leads`);
+      // console.log(`✅ Found ${clients.length} clients from ${snapshot.size} leads`);
       return clients;
       
     } catch (error) {

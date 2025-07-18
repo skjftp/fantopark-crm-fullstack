@@ -36,7 +36,7 @@ router.get('/', authenticateToken, async (req, res) => {
       page = 1
     } = req.query;
 
-    console.log('Fetching communications with filters:', req.query);
+    // console.log('Fetching communications with filters:', req.query);
 
     let communications = [];
 

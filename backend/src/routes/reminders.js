@@ -79,7 +79,7 @@ router.get('/', authenticateToken, async (req, res) => {
       filters.sort_order = 'asc'; // Default sort order
     }
     
-    console.log('Fetching reminders with filters:', filters);
+    // console.log('Fetching reminders with filters:', filters);
     
     const reminders = await Reminder.getAll(filters);
     res.json({ data: reminders });

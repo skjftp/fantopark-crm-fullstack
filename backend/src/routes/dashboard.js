@@ -90,7 +90,7 @@ router.get('/charts', async (req, res) => {
   try {
     const { filter_type, sales_person_id, event_name } = req.query;
     
-    console.log('📊 Dashboard charts API called with filters:', { filter_type, sales_person_id, event_name });
+    // console.log('📊 Dashboard charts API called with filters:', { filter_type, sales_person_id, event_name });
     
     // Build query for Firestore using existing collections config
     let query = db.collection(collections.leads);
