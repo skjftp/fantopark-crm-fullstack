@@ -299,6 +299,11 @@ window.renderInventoryForm = () => {
     }
   }
 
+    // Initialize form_ids if not exists - ADD THIS BLOCK
+  if (!window.formData.form_ids) {
+    window.formData.form_ids = window.editingInventory.form_ids || [];
+  }
+
   // Get currency info - FIXED to use purchase_currency
   const currency = window.formData.purchase_currency || 'INR';
   const exchangeRate = window.formData.purchase_exchange_rate || 1;
