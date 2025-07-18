@@ -84,6 +84,9 @@ const sanitizeInventoryData = (data) => {
     booking_person: data.booking_person || '',
     procurement_type: data.procurement_type || 'pre_inventory',
     notes: data.notes || '',
+
+    
+    form_ids: Array.isArray(data.form_ids) ? data.form_ids : [],
     
     // Payment Information - EXACT FIELD NAMES
     paymentStatus: data.paymentStatus || 'pending',
