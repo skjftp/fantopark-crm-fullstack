@@ -28,19 +28,22 @@ class WebsiteApiService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          email: websiteApiConfig.credentials.email,  // FIXED: Changed from username to email
+          email: websiteApiConfig.credentials.email,
           password: websiteApiConfig.credentials.password
         })
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
+      console.log('Authentication response status:', responseData.status);
 
-      if (response.ok && data.auth_token) {  // FIXED: The response might have auth_token instead of token
-        setToken(data.auth_token || data.token);
-        console.log('✅ Authentication successful');
-        return data.auth_token || data.token;
+      // FIXED: Check for the correct response structure
+      if (response.ok && responseData.status === 200 && responseData.data && responseData.data.auth_token) {
+        const token = responseData.data.auth_token;
+        setToken(token);
+        console.log('✅ Authentication successful, token received');
+        return token;
       } else {
-        throw new Error(data.message || 'Authentication failed');
+        throw new Error(responseData.message || 'Authentication failed');
       }
     } catch (error) {
       console.error('❌ Website API authentication failed:', error.message);
