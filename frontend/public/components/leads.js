@@ -1,45 +1,28 @@
-// Complete Updated leads.js File with All Fixes
-// Production Client View and Lead View with Enhanced Filters
+// Complete Updated leads.js File with Working Filters
+// Production Client View and Lead View with React Hooks for Proper State Management
 
-// Initialize filter states for client view
+// Initialize global filter states (for persistence between view switches)
 window.clientSearchQuery = window.clientSearchQuery || '';
 window.clientStatusFilter = window.clientStatusFilter || 'all';
 window.clientAssignedFilter = window.clientAssignedFilter || 'all';
 window.clientMultiLeadFilter = window.clientMultiLeadFilter || 'all';
-
-// Initialize filter state for lead sales person
 window.leadsSalesPersonFilter = window.leadsSalesPersonFilter || 'all';
 
-// Setter functions for client filters
-window.setClientSearchQuery = window.setClientSearchQuery || ((value) => {
-  window.clientSearchQuery = value;
-  if (window.renderApp) window.renderApp();
-});
-
-window.setClientStatusFilter = window.setClientStatusFilter || ((value) => {
-  window.clientStatusFilter = value;
-  if (window.renderApp) window.renderApp();
-});
-
-window.setClientAssignedFilter = window.setClientAssignedFilter || ((value) => {
-  window.clientAssignedFilter = value;
-  if (window.renderApp) window.renderApp();
-});
-
-window.setClientMultiLeadFilter = window.setClientMultiLeadFilter || ((value) => {
-  window.clientMultiLeadFilter = value;
-  if (window.renderApp) window.renderApp();
-});
-
-// Setter function for lead sales person filter
-window.setLeadsSalesPersonFilter = window.setLeadsSalesPersonFilter || ((value) => {
-  window.leadsSalesPersonFilter = value;
-  if (window.renderApp) window.renderApp();
-});
-
-// Production Client View Content Function - Properly Integrated with All Filters
+// Production Client View Content Function with Working Filters
 window.renderClientViewContent = function() {
   console.log("🔍 Rendering Production Client View Content");
+
+  // React hooks for filter states - this ensures proper updates
+  const [localClientSearchQuery, setLocalClientSearchQuery] = React.useState(window.clientSearchQuery || '');
+  const [localClientStatusFilter, setLocalClientStatusFilter] = React.useState(window.clientStatusFilter || 'all');
+  const [localClientAssignedFilter, setLocalClientAssignedFilter] = React.useState(window.clientAssignedFilter || 'all');
+  const [localClientMultiLeadFilter, setLocalClientMultiLeadFilter] = React.useState(window.clientMultiLeadFilter || 'all');
+
+  // Update global values when local state changes
+  React.useEffect(() => { window.clientSearchQuery = localClientSearchQuery; }, [localClientSearchQuery]);
+  React.useEffect(() => { window.clientStatusFilter = localClientStatusFilter; }, [localClientStatusFilter]);
+  React.useEffect(() => { window.clientAssignedFilter = localClientAssignedFilter; }, [localClientAssignedFilter]);
+  React.useEffect(() => { window.clientMultiLeadFilter = localClientMultiLeadFilter; }, [localClientMultiLeadFilter]);
 
   // State Variable Extraction from window globals
   const {
@@ -87,14 +70,12 @@ window.renderClientViewContent = function() {
   const getUniqueSalesPersonsFromClients = () => {
     const assignedEmails = new Set();
     
-    // Get all unique assigned_to emails from clients
     clients.forEach(client => {
       if (client.assigned_to && client.assigned_to.trim()) {
         assignedEmails.add(client.assigned_to);
       }
     });
     
-    // Map emails to user objects
     const salesPersons = Array.from(assignedEmails)
       .map(email => window.users?.find(user => user.email === email))
       .filter(user => user && user.status === 'active')
@@ -103,12 +84,12 @@ window.renderClientViewContent = function() {
     return salesPersons;
   };
 
-  // Apply filters to clients
+  // Apply filters to clients using local state values
   let filteredClients = [...clients];
   
   // Search filter
-  if (window.clientSearchQuery) {
-    const query = window.clientSearchQuery.toLowerCase();
+  if (localClientSearchQuery) {
+    const query = localClientSearchQuery.toLowerCase();
     filteredClients = filteredClients.filter(client => {
       const primaryLead = client.leads && client.leads[0] ? client.leads[0] : {
         name: client.name || 'Unknown',
@@ -123,27 +104,27 @@ window.renderClientViewContent = function() {
   }
   
   // Status filter
-  if (window.clientStatusFilter !== 'all') {
+  if (localClientStatusFilter !== 'all') {
     filteredClients = filteredClients.filter(client => 
-      (client.status || 'active') === window.clientStatusFilter
+      (client.status || 'active') === localClientStatusFilter
     );
   }
   
   // Assigned to filter
-  if (window.clientAssignedFilter !== 'all') {
-    if (window.clientAssignedFilter === 'unassigned') {
+  if (localClientAssignedFilter !== 'all') {
+    if (localClientAssignedFilter === 'unassigned') {
       filteredClients = filteredClients.filter(client => !client.assigned_to);
     } else {
-      filteredClients = filteredClients.filter(client => client.assigned_to === window.clientAssignedFilter);
+      filteredClients = filteredClients.filter(client => client.assigned_to === localClientAssignedFilter);
     }
   }
 
   // Multi-Lead Filter
-  if (window.clientMultiLeadFilter === 'multi') {
+  if (localClientMultiLeadFilter === 'multi') {
     filteredClients = filteredClients.filter(client => 
       client.total_leads > 1 || (client.leads && client.leads.length > 1)
     );
-  } else if (window.clientMultiLeadFilter === 'single') {
+  } else if (localClientMultiLeadFilter === 'single') {
     filteredClients = filteredClients.filter(client => 
       client.total_leads === 1 || (client.leads && client.leads.length === 1) || 
       (!client.total_leads && (!client.leads || client.leads.length <= 1))
@@ -157,24 +138,24 @@ window.renderClientViewContent = function() {
       React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Filters & Search'),
       
       React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-5 gap-4' },
-        // Search Box (spans 2 columns)
+        // Search Box (working with local state)
         React.createElement('div', { className: 'col-span-2' },
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Search'),
           React.createElement('input', {
             type: 'text',
-            value: window.clientSearchQuery,
-            onChange: (e) => window.setClientSearchQuery(e.target.value),
+            value: localClientSearchQuery,
+            onChange: (e) => setLocalClientSearchQuery(e.target.value),
             placeholder: 'Search by name, phone, or email...',
             className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
           })
         ),
         
-        // Status Filter
+        // Status Filter (working with local state)
         React.createElement('div', null,
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Status'),
           React.createElement('select', {
-            value: window.clientStatusFilter,
-            onChange: (e) => window.setClientStatusFilter(e.target.value),
+            value: localClientStatusFilter,
+            onChange: (e) => setLocalClientStatusFilter(e.target.value),
             className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
           },
             React.createElement('option', { value: 'all' }, 'All Statuses'),
@@ -185,12 +166,12 @@ window.renderClientViewContent = function() {
           )
         ),
         
-        // Assigned To Filter (with fixed logic)
+        // Assigned To Filter (working with local state)
         React.createElement('div', null,
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Sales Person'),
           React.createElement('select', {
-            value: window.clientAssignedFilter,
-            onChange: (e) => window.setClientAssignedFilter(e.target.value),
+            value: localClientAssignedFilter,
+            onChange: (e) => setLocalClientAssignedFilter(e.target.value),
             className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
           },
             React.createElement('option', { value: 'all' }, 'All Sales Persons'),
@@ -204,12 +185,12 @@ window.renderClientViewContent = function() {
           )
         ),
         
-        // Multi-Lead Filter
+        // Multi-Lead Filter (working with local state)
         React.createElement('div', null,
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Lead Count'),
           React.createElement('select', {
-            value: window.clientMultiLeadFilter,
-            onChange: (e) => window.setClientMultiLeadFilter(e.target.value),
+            value: localClientMultiLeadFilter,
+            onChange: (e) => setLocalClientMultiLeadFilter(e.target.value),
             className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
           },
             React.createElement('option', { value: 'all' }, 'All Clients'),
@@ -224,14 +205,14 @@ window.renderClientViewContent = function() {
         React.createElement('span', { className: 'text-sm text-gray-600' },
           `Showing ${filteredClients.length} of ${clients.length} clients`
         ),
-        (window.clientSearchQuery || window.clientStatusFilter !== 'all' || 
-         window.clientAssignedFilter !== 'all' || window.clientMultiLeadFilter !== 'all') &&
+        (localClientSearchQuery || localClientStatusFilter !== 'all' || 
+         localClientAssignedFilter !== 'all' || localClientMultiLeadFilter !== 'all') &&
         React.createElement('button', {
           onClick: () => {
-            window.setClientSearchQuery('');
-            window.setClientStatusFilter('all');
-            window.setClientAssignedFilter('all');
-            window.setClientMultiLeadFilter('all');
+            setLocalClientSearchQuery('');
+            setLocalClientStatusFilter('all');
+            setLocalClientAssignedFilter('all');
+            setLocalClientMultiLeadFilter('all');
           },
           className: 'text-sm text-blue-600 hover:text-blue-800 underline'
         }, 'Clear All Filters')
@@ -376,10 +357,18 @@ window.renderClientViewContent = function() {
   );
 };
 
-console.log('✅ Production Client View component loaded successfully with search and filters');
+console.log('✅ Production Client View component loaded successfully with working filters');
 
-// Leads Content Component - Enhanced with Sales Person Filter Fix
+// Leads Content Component - Enhanced with Working Sales Person Filter
 window.renderLeadsContent = () => {
+    // React hook for sales person filter
+    const [localLeadsSalesPersonFilter, setLocalLeadsSalesPersonFilter] = React.useState(window.leadsSalesPersonFilter || 'all');
+    
+    // Update global value when local state changes
+    React.useEffect(() => {
+      window.leadsSalesPersonFilter = localLeadsSalesPersonFilter;
+    }, [localLeadsSalesPersonFilter]);
+
     // Helper function to get unique sales persons from leads
     const getUniqueSalesPersons = () => {
       const assignedEmails = new Set();
@@ -459,7 +448,7 @@ window.renderLeadsContent = () => {
         }
     };
 
-    // ENHANCED FILTERING LOGIC - Now includes Sales Person Filter
+    // ENHANCED FILTERING LOGIC - Now includes Sales Person Filter with local state
     const filteredLeads = (window.appState.leads || []).filter(lead => {
         // Search filter
         const matchesSearch = (!window.appState.searchQuery || window.appState.searchQuery === '') || 
@@ -485,13 +474,13 @@ window.renderLeadsContent = () => {
         // Event filter
         const matchesEvent = window.appState.leadsEventFilter === 'all' || lead.lead_for_event === window.appState.leadsEventFilter;
 
-        // Sales Person Filter
+        // Sales Person Filter (using local state)
         let matchesSalesPerson = true;
-        if (window.leadsSalesPersonFilter && window.leadsSalesPersonFilter !== 'all') {
-            if (window.leadsSalesPersonFilter === 'unassigned') {
+        if (localLeadsSalesPersonFilter && localLeadsSalesPersonFilter !== 'all') {
+            if (localLeadsSalesPersonFilter === 'unassigned') {
                 matchesSalesPerson = !lead.assigned_to;
             } else {
-                matchesSalesPerson = lead.assigned_to === window.leadsSalesPersonFilter;
+                matchesSalesPerson = lead.assigned_to === localLeadsSalesPersonFilter;
             }
         }
 
@@ -583,7 +572,7 @@ window.renderLeadsContent = () => {
 
         // Conditional Content Based on View Mode
         window.appState.viewMode === 'leads' ? 
-        // LEAD VIEW CONTENT WITH SALES PERSON FILTER
+        // LEAD VIEW CONTENT WITH WORKING SALES PERSON FILTER
         React.createElement('div', { className: 'space-y-6' },
             // Header with buttons
             React.createElement('div', { className: 'flex justify-between items-center' },
@@ -629,7 +618,7 @@ window.renderLeadsContent = () => {
                 )
             ),
 
-            // ENHANCED FILTERS SECTION WITH SALES PERSON FILTER
+            // ENHANCED FILTERS SECTION WITH WORKING SALES PERSON FILTER
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border p-4 filters-search-container' },
                 React.createElement('h2', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4' }, 'Filters & Search'),
                 React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4' },
@@ -850,7 +839,7 @@ window.renderLeadsContent = () => {
                         )
                     ),
 
-                    // Sales Person Filter (FIXED)
+                    // Sales Person Filter (WORKING WITH LOCAL STATE)
                     React.createElement('div', null,
                         React.createElement('label', { 
                             htmlFor: 'sales-person-filter',
@@ -858,9 +847,9 @@ window.renderLeadsContent = () => {
                         }, 'Sales Person'),
                         React.createElement('select', {
                             id: 'sales-person-filter',
-                            value: window.leadsSalesPersonFilter || 'all',
+                            value: localLeadsSalesPersonFilter,
                             onChange: (e) => {
-                                window.setLeadsSalesPersonFilter(e.target.value);
+                                setLocalLeadsSalesPersonFilter(e.target.value);
                                 window.appState.setCurrentLeadsPage(1);
                             },
                             className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
@@ -912,7 +901,7 @@ window.renderLeadsContent = () => {
                     ),
                     (window.appState.searchQuery !== '' || window.selectedStatusFilters.length > 0 || window.statusFilter !== 'all' || 
                      window.appState.leadsSourceFilter !== 'all' || window.appState.leadsBusinessTypeFilter !== 'all' || 
-                     window.appState.leadsEventFilter !== 'all' || window.leadsSalesPersonFilter !== 'all') &&
+                     window.appState.leadsEventFilter !== 'all' || localLeadsSalesPersonFilter !== 'all') &&
                     React.createElement('button', {
                         onClick: () => {
                             window.setSearchQuery('');
@@ -921,7 +910,7 @@ window.renderLeadsContent = () => {
                             window.setLeadsSourceFilter('all');
                             window.setLeadsBusinessTypeFilter('all');
                             window.setLeadsEventFilter('all');
-                            window.setLeadsSalesPersonFilter('all');
+                            setLocalLeadsSalesPersonFilter('all');
                             window.appState.setCurrentLeadsPage(1);
                         },
                         className: 'text-sm text-blue-600 hover:text-blue-800 underline'
@@ -1122,4 +1111,4 @@ window.renderLeadsContent = () => {
     );
 };
 
-console.log('✅ Leads component loaded with all fixes: Client filters, Sales person filter, and Multi-client filter');
+console.log('✅ Leads component loaded with working filters using React hooks');
