@@ -20,7 +20,6 @@ window.renderAssignForm = () => {
   }
 
   // Reset the hidden flag when form is showing
-  window._assignFormLoggedHidden = false;
 
   // ✅ OPTIMIZED: Log only essential info, not every render
   window.log.debug("Rendering assign form for lead:", currentLead.name);
