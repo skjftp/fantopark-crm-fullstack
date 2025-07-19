@@ -5,26 +5,6 @@
 window.renderMainApp = function() {
   const { useState, useEffect, useRef } = React;
   window.authToken = window.authToken || localStorage.getItem('crm_auth_token') || '';
-  // ✅ ALSO UPDATE YOUR apiCall FUNCTION to use the window.authToken consistently
-window.apiCall = window.apiCall || ((endpoint, options = {}) => {
-  console.log("🌐 apiCall:", endpoint, options);
-  const url = (window.API_CONFIG?.API_URL || window.API_URL) + endpoint;
-  
-  // ✅ FIX: Ensure authToken is always current from localStorage
-  const authToken = localStorage.getItem('crm_auth_token') || window.authToken;
-  
-  return fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': authToken ? 'Bearer ' + authToken : '',
-      ...options.headers
-    }
-  }).then(response => response.json());
-});
-
-
-
   window.forceUpdate = () => {
   // This will be called from the fixed orders.js when filters change
   setOrdersFilters({...window.ordersFilters});
