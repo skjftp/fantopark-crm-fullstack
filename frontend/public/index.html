@@ -8,46 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FanToPark CRM Pro</title>
 
-<script>
-// Add this IMMEDIATELY after <body> tag
-(function() {
-  'use strict';
-  
-  // Protect against removeChild errors
-  const originalRemoveChild = Node.prototype.removeChild;
-  const originalInsertBefore = Node.prototype.insertBefore;
-  const originalAppendChild = Node.prototype.appendChild;
-  
-  Node.prototype.removeChild = function(child) {
-    try {
-      if (child && this.contains(child)) {
-        return originalRemoveChild.call(this, child);
-      }
-    } catch (e) {
-      console.warn('RemoveChild error caught:', e);
-    }
-    return child;
-  };
-  
-  Node.prototype.insertBefore = function(newNode, referenceNode) {
-    try {
-      return originalInsertBefore.call(this, newNode, referenceNode);
-    } catch (e) {
-      console.warn('InsertBefore error caught:', e);
-      return newNode;
-    }
-  };
-  
-  Node.prototype.appendChild = function(child) {
-    try {
-      return originalAppendChild.call(this, child);
-    } catch (e) {
-      console.warn('AppendChild error caught:', e);
-      return child;
-    }
-  };
-})();
-</script>
+
 <script src="utils/logger.js"></script>  
 
 <script>
