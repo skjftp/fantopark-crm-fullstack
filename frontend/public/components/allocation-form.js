@@ -34,24 +34,10 @@ window.renderAllocationForm = () => {
     window.log.debug("Would change:", field, "to:", value);
   });
 
-<<<<<<< HEAD
-  // ✅ OPTIMIZED: Only log when form state changes (not every render)
   if (!showAllocationForm || !currentInventory) {
-    // Only log once when state changes
-    if (ENABLE_ALLOCATION_DEBUG && !window._allocationFormLoggedHidden) {
-      window.log.debug("❌ Not showing allocation form:", {
-        showAllocationForm,
-        hasInventory: !!currentInventory
-      });
-      window._allocationFormLoggedHidden = true;
-    }
     return null;
   }
-
-=======
->>>>>>> 952b6d3e5250ff9a1bfbccb005f0098608997206
   // Reset the hidden flag when form is showing
-  window._allocationFormLoggedHidden = false;
 
   // ✅ OPTIMIZED: Only log essential info on form show
   window.log.debug("📦 Allocation form rendering for:", currentInventory?.event_name);

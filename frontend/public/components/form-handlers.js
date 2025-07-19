@@ -415,7 +415,7 @@ window.handleAssignLead = async function(e) {
     alert('Lead assigned successfully!');
     window.closeForm();
   } catch (error) {
-    window.handleError(error, 'failed to assign lead);
+    window.handleError(error, 'failed to assign lead');
   } finally {
     window.setLoading(false);
   }
