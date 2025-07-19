@@ -1,10 +1,8 @@
-const ENABLE_DEBUG_LOGS = false; // Set to false to reduce logs
 window.SimplifiedApp = function() {
   // ===== CORE SETUP & INITIALIZATION =====
   const state = window.renderMainApp();
   const handlers = window.renderAppBusinessLogic();
   
-  const ENABLE_DEBUG_LOGS = false; // Turn off debug logs
 
   // Log available setter
   const availableSetters = Object.keys(state).filter(key => key.startsWith('set') && key.includes('Inventory'));
@@ -3845,9 +3843,20 @@ const tickerObserver = new MutationObserver(() => {
     }
 });
 
-tickerObserver.observe(document.body, {
-    childList: true,
-    subtree: true
-});
+
+// Wait for DOM to be ready
+if (document.body) {
+    tickerObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+} else {
+    document.addEventListener('DOMContentLoaded', () => {
+        tickerObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    });
+}
 
 console.log("✅ Inventory expansion helpers loaded");
