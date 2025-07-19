@@ -64,6 +64,8 @@ if (response.pagination) {
     }
   },
 
+  // Replace the fetchFilterOptions function in your leads-api.js with this:
+
   // Fetch filter options (cached)
   fetchFilterOptions: async function(forceRefresh = false) {
     try {
@@ -72,6 +74,10 @@ if (response.pagination) {
         const cacheAge = Date.now() - this.filterOptionsCacheTime;
         if (cacheAge < this.CACHE_DURATION) {
           window.log.debug('Using cached filter options');
+          // Still set the state even from cache
+          if (window.appState.setLeadsFilterOptions) {
+            window.appState.setLeadsFilterOptions(this.filterOptionsCache);
+          }
           return this.filterOptionsCache;
         }
       }
@@ -87,12 +93,39 @@ if (response.pagination) {
         // Store in app state for other components
         window.appState.leadsFilterOptions = response.data;
         
+        // IMPORTANT: Call the setter if it exists
+        if (window.appState.setLeadsFilterOptions) {
+          window.appState.setLeadsFilterOptions(response.data);
+        } else {
+          // Fallback: directly set on window
+          window.appState.leadsFilterOptions = response.data;
+        }
+        
+        window.log.success('✅ Filter options loaded:', {
+          sources: response.data.sources?.length || 0,
+          businessTypes: response.data.business_types?.length || 0,
+          events: response.data.events?.length || 0,
+          users: response.data.users?.length || 0
+        });
+        
         return response.data;
       }
       
       return null;
     } catch (error) {
       window.log.error('Error fetching filter options:', error);
+      // Set empty options on error
+      const emptyOptions = {
+        sources: [],
+        business_types: [],
+        events: [],
+        users: []
+      };
+      
+      if (window.appState.setLeadsFilterOptions) {
+        window.appState.setLeadsFilterOptions(emptyOptions);
+      }
+      
       return null;
     }
   },
