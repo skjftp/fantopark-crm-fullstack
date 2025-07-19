@@ -3514,6 +3514,23 @@ window.toggleMobileMenu = function() {
     }
 };
 
+// Add resize effect
+React.useEffect(() => {
+    const handleResize = () => {
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile !== isMobileView) {
+            setIsMobileView(isMobile);
+            window.isMobileView = isMobile;
+        }
+    };
+
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+        window.removeEventListener('resize', handleResize);
+    };
+}, [isMobileView]);
+
 // Additional function to ensure horizontal scroll is prevented
 window.preventHorizontalScroll = function() {
     // This function runs periodically to catch any dynamic content
@@ -3766,97 +3783,7 @@ window.isInventoryExpanded = (inventoryId) => {
   return window.expandedInventoryItems && window.expandedInventoryItems.has(inventoryId);
 };
 
-// Add this function to remove tickers on mobile
-window.hideTickersOnMobile = function() {
-    if (window.innerWidth <= 768) {
-        // Find and hide all ticker-like elements
-        const tickerSelectors = [
-            '.bg-gray-900.text-white.py-2',
-            '.bg-red-600.text-white.py-1',
-            '.bg-gray-800.text-white.py-2',
-            '[class*="ticker"]',
-            // Target elements containing currency symbols
-            'div:has(span:contains("₹"))',
-            'div:has(span:contains("€"))',
-            'div:has(span:contains("$"))',
-            'div:has(span:contains("USD"))',
-            'div:has(span:contains("EUR"))',
-            'div:has(span:contains("GBP"))',
-            'div:has(span:contains("AED"))',
-            'div:has(span:contains("LIVE"))',
-            // Target the leads info bar
-            'div:has(span:contains("Leads Logged Today"))',
-            'div:has(span:contains("Leads Qualified"))',
-            'div:has(span:contains("Potential Value"))'
-        ];
-        
-        tickerSelectors.forEach(selector => {
-            try {
-                const elements = document.querySelectorAll(selector);
-                elements.forEach(el => {
-                    // Check if this element looks like a ticker
-                    const text = el.textContent || '';
-                    if (text.includes('₹') || text.includes('€') || text.includes('$') || 
-                        text.includes('USD') || text.includes('EUR') || text.includes('GBP') ||
-                        text.includes('LIVE') || text.includes('Leads Logged Today')) {
-                        el.style.display = 'none';
-                    }
-                });
-            } catch (e) {
-                // Some selectors might not be supported in all browsers
-            }
-        });
-        
-        // Also hide the first few divs that might be tickers
-        const firstDivs = document.querySelectorAll('body > div:first-child > div:first-child, body > div:first-child > div:nth-child(2)');
-        firstDivs.forEach(div => {
-            const text = div.textContent || '';
-            if (text.includes('₹') || text.includes('LIVE') || text.includes('Leads Logged Today')) {
-                div.style.display = 'none';
-            }
-        });
-        
-        // Adjust the main content to remove gap
-        const mainContent = document.querySelector('.flex-1.overflow-auto, .main-content');
-        if (mainContent) {
-            mainContent.style.paddingTop = '60px';
-            mainContent.style.marginTop = '0';
-        }
-    }
-};
-
-// Run the function
-window.hideTickersOnMobile();
-
-// Run again after delays to catch dynamic content
-setTimeout(window.hideTickersOnMobile, 100);
-setTimeout(window.hideTickersOnMobile, 500);
-setTimeout(window.hideTickersOnMobile, 1000);
-
 // Run on resize
 window.addEventListener('resize', window.hideTickersOnMobile);
-
-// Run when DOM changes (for React updates)
-const tickerObserver = new MutationObserver(() => {
-    if (window.innerWidth <= 768) {
-        window.hideTickersOnMobile();
-    }
-});
-
-
-// Wait for DOM to be ready
-if (document.body) {
-    tickerObserver.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-} else {
-    document.addEventListener('DOMContentLoaded', () => {
-        tickerObserver.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-    });
-}
 
 console.log("✅ Inventory expansion helpers loaded");
