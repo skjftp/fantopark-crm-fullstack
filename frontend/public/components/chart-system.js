@@ -130,16 +130,16 @@
       const warmCount = currentFilteredLeads.filter(l => getDisplayTemperature(l) === 'warm').length;
       const coldCount = currentFilteredLeads.filter(l => getDisplayTemperature(l) === 'cold').length;
       
-      // Temperature values
-      const hotValue = currentFilteredLeads
-        .filter(l => getDisplayTemperature(l) === 'hot')
-        .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
-      const warmValue = currentFilteredLeads
-        .filter(l => getDisplayTemperature(l) === 'warm')
-        .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
-      const coldValue = currentFilteredLeads
-        .filter(l => getDisplayTemperature(l) === 'cold')
-        .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+// Temperature values - excluding closed deals
+const hotValue = currentFilteredLeads
+  .filter(l => getDisplayTemperature(l) === 'hot' && !['converted', 'payment_received', 'payment_post_service', 'dropped', 'junk'].includes(l.status))
+  .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+const warmValue = currentFilteredLeads
+  .filter(l => getDisplayTemperature(l) === 'warm' && !['converted', 'payment_received', 'payment_post_service','dropped', 'junk'].includes(l.status))
+  .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
+const coldValue = currentFilteredLeads
+  .filter(l => getDisplayTemperature(l) === 'cold' && !['converted', 'payment_received', 'payment_post_service', 'dropped', 'junk'].includes(l.status))
+  .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0);
       
       // Create charts
       createLeadSplitChart(qualifiedCount, junkCount);
