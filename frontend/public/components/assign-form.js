@@ -1,12 +1,6 @@
 // ===============================================
 // OPTIMIZED ASSIGN FORM COMPONENT - PERFORMANCE ENHANCED
 // ===============================================
-// Assign Form Component for FanToPark CRM
-// Reduced logging and improved performance
-
-// Conditional logging control
-const ENABLE_ASSIGN_DEBUG = false; // Set to false to reduce logs
-const assignLog = ENABLE_ASSIGN_DEBUG ? console.log : () => {};
 
 window.renderAssignForm = () => {
   // ✅ FIXED: Extract all required variables from window globals
@@ -22,7 +16,7 @@ window.renderAssignForm = () => {
   if (!showAssignForm || !currentLead) {
     // Only log once when state changes (not every render)
     if (ENABLE_ASSIGN_DEBUG && !window._assignFormLoggedHidden) {
-      assignLog("🔍 Assign form not showing:", { showAssignForm, currentLead: !!currentLead });
+      window.log.debug("Assign form not showing:", { showAssignForm, currentLead: !!currentLead });
       window._assignFormLoggedHidden = true;
     }
     return null;
@@ -32,8 +26,8 @@ window.renderAssignForm = () => {
   window._assignFormLoggedHidden = false;
 
   // ✅ OPTIMIZED: Log only essential info, not every render
-  assignLog("🎯 Rendering assign form for lead:", currentLead.name);
-  assignLog("🔍 Available users:", users.length);
+  window.log.debug("Rendering assign form for lead:", currentLead.name);
+   window.log.debug("Available users:", users.length);
 
   // ✅ FIXED: Get team members with CORRECT role filtering and status check
   const teamMembers = (formData.assigned_team === 'supply' || formData.assigned_team === 'Supply')
