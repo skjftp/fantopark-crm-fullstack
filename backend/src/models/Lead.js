@@ -27,6 +27,9 @@ class Lead {
     this.adset_id = data.adset_id || '';
     this.ad_name = data.ad_name || '';
     this.ad_id = data.ad_id || '';
+
+        // ADD THIS LINE to preserve the nested lead source details
+    this.lead_source_details = data.lead_source_details || null;
     
     // Location Information
     this.city_of_residence = data.city_of_residence || '';
