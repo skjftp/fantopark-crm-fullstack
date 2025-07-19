@@ -10,7 +10,6 @@ window.leadsSalesPersonFilter = window.leadsSalesPersonFilter || 'all';
 
 // Replace the initialization section in your leads.js with this:
 
-// Initialize paginated mode on load
 const initializePaginatedMode = () => {
   if (!window.leadsInitialized) {
     window.leadsInitialized = true;
@@ -46,8 +45,10 @@ const initializePaginatedMode = () => {
           perPage: 20
         });
         
-        // Don't fetch here - let fetchData handle it
-        window.log.info('✅ Leads module initialized, waiting for fetchData to load paginated data');
+        // Fetch paginated data and filter options
+        window.log.info('📋 Fetching initial paginated data...');
+        window.LeadsAPI.fetchPaginatedLeads({ page: 1 });
+        window.LeadsAPI.fetchFilterOptions();
       } else {
         // Log what's missing
         if (!window.appState) window.log.debug('Waiting for appState...');
@@ -63,14 +64,6 @@ const initializePaginatedMode = () => {
     setTimeout(safeInitialize, 1000);
   }
 };
-
-// Run initialization when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializePaginatedMode);
-} else {
-  // DOM already loaded, initialize after a short delay
-  setTimeout(initializePaginatedMode, 500);
-}
 
 // Run initialization when DOM is ready
 if (document.readyState === 'loading') {
