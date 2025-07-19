@@ -490,77 +490,86 @@ const LeadsContent = () => {
         }
     };
 
-    // ENHANCED FILTERING LOGIC - Now includes Sales Person Filter with local state
-    const filteredLeads = (window.appState.leads || []).filter(lead => {
-        // Search filter
-        const matchesSearch = (!window.appState.searchQuery || window.appState.searchQuery === '') || 
-            lead.name?.toLowerCase().includes(window.appState.searchQuery?.toLowerCase()) ||
-            lead.email?.toLowerCase().includes(window.appState.searchQuery?.toLowerCase()) ||
-            (lead.company && lead.company?.toLowerCase().includes(window.appState.searchQuery?.toLowerCase())) ||
-            (lead.phone && lead.phone.includes(window.appState.searchQuery));
+   // ENHANCED FILTERING LOGIC - Conditional based on pagination mode
+    let filteredLeads, sortedLeads;
 
-        // Status filter
-        let matchesStatus = true;
-        if (window.selectedStatusFilters.length > 0) {
-            matchesStatus = window.selectedStatusFilters.includes(lead.status);
-        } else if (window.statusFilter !== 'all') {
-            matchesStatus = lead.status === window.statusFilter;
-        }
+    if (window.appState.usePaginatedLeads) {
+        // In paginated mode, backend already filtered and sorted
+        filteredLeads = window.appState.leads || [];
+        sortedLeads = filteredLeads; // No need to sort, already sorted by backend
+    } else {
+        // Traditional mode - apply frontend filtering
+        filteredLeads = (window.appState.leads || []).filter(lead => {
+            // Search filter
+            const matchesSearch = (!window.appState.searchQuery || window.appState.searchQuery === '') || 
+                lead.name?.toLowerCase().includes(window.appState.searchQuery?.toLowerCase()) ||
+                lead.email?.toLowerCase().includes(window.appState.searchQuery?.toLowerCase()) ||
+                (lead.company && lead.company?.toLowerCase().includes(window.appState.searchQuery?.toLowerCase())) ||
+                (lead.phone && lead.phone.includes(window.appState.searchQuery));
 
-        // Source filter
-        const matchesSource = window.appState.leadsSourceFilter === 'all' || lead.source === window.appState.leadsSourceFilter;
-
-        // Business type filter
-        const matchesBusinessType = window.appState.leadsBusinessTypeFilter === 'all' || lead.business_type === window.appState.leadsBusinessTypeFilter;
-
-        // Event filter
-        const matchesEvent = window.appState.leadsEventFilter === 'all' || lead.lead_for_event === window.appState.leadsEventFilter;
-
-        // Sales Person Filter (using local state)
-        let matchesSalesPerson = true;
-        if (localLeadsSalesPersonFilter && localLeadsSalesPersonFilter !== 'all') {
-            if (localLeadsSalesPersonFilter === 'unassigned') {
-                matchesSalesPerson = !lead.assigned_to;
-            } else {
-                matchesSalesPerson = lead.assigned_to === localLeadsSalesPersonFilter;
+            // Status filter
+            let matchesStatus = true;
+            if (window.selectedStatusFilters.length > 0) {
+                matchesStatus = window.selectedStatusFilters.includes(lead.status);
+            } else if (window.statusFilter !== 'all') {
+                matchesStatus = lead.status === window.statusFilter;
             }
-        }
 
-        return matchesSearch && matchesStatus && matchesSource && matchesBusinessType && matchesEvent && matchesSalesPerson;
-    });
+            // Source filter
+            const matchesSource = window.appState.leadsSourceFilter === 'all' || lead.source === window.appState.leadsSourceFilter;
 
-    // EXISTING SORTING LOGIC - UNCHANGED
-    const sortedLeads = filteredLeads.sort((a, b) => {
-        let aValue, bValue;
+            // Business type filter
+            const matchesBusinessType = window.appState.leadsBusinessTypeFilter === 'all' || lead.business_type === window.appState.leadsBusinessTypeFilter;
 
-        switch (window.appState.leadsSortField) {
-            case 'date_of_enquiry':
-                aValue = new Date(a.date_of_enquiry || a.created_date);
-                bValue = new Date(b.date_of_enquiry || b.created_date);
-                break;
-            case 'name':
-                aValue = a.name.toLowerCase();
-                bValue = b.name.toLowerCase();
-                break;
-            case 'potential_value':
-                aValue = parseFloat(a.potential_value) || 0;
-                bValue = parseFloat(b.potential_value) || 0;
-                break;
-            case 'company':
-                aValue = (a.company || '').toLowerCase();
-                bValue = (b.company || '').toLowerCase();
-                break;
-            default:
-                aValue = new Date(a.date_of_enquiry || a.created_date);
-                bValue = new Date(b.date_of_enquiry || b.created_date);
-        }
+            // Event filter
+            const matchesEvent = window.appState.leadsEventFilter === 'all' || lead.lead_for_event === window.appState.leadsEventFilter;
 
-        if (window.appState.leadsSortDirection === 'asc') {
-            return aValue > bValue ? 1 : -1;
-        } else {
-            return aValue < bValue ? 1 : -1;
-        }
-    });
+            // Sales Person Filter (using local state)
+            let matchesSalesPerson = true;
+            if (localLeadsSalesPersonFilter && localLeadsSalesPersonFilter !== 'all') {
+                if (localLeadsSalesPersonFilter === 'unassigned') {
+                    matchesSalesPerson = !lead.assigned_to;
+                } else {
+                    matchesSalesPerson = lead.assigned_to === localLeadsSalesPersonFilter;
+                }
+            }
+
+            return matchesSearch && matchesStatus && matchesSource && matchesBusinessType && matchesEvent && matchesSalesPerson;
+        });
+
+        // Traditional mode - apply frontend sorting
+        sortedLeads = filteredLeads.sort((a, b) => {
+            let aValue, bValue;
+
+            switch (window.appState.leadsSortField) {
+                case 'date_of_enquiry':
+                    aValue = new Date(a.date_of_enquiry || a.created_date);
+                    bValue = new Date(b.date_of_enquiry || b.created_date);
+                    break;
+                case 'name':
+                    aValue = a.name.toLowerCase();
+                    bValue = b.name.toLowerCase();
+                    break;
+                case 'potential_value':
+                    aValue = parseFloat(a.potential_value) || 0;
+                    bValue = parseFloat(b.potential_value) || 0;
+                    break;
+                case 'company':
+                    aValue = (a.company || '').toLowerCase();
+                    bValue = (b.company || '').toLowerCase();
+                    break;
+                default:
+                    aValue = new Date(a.date_of_enquiry || a.created_date);
+                    bValue = new Date(b.date_of_enquiry || b.created_date);
+            }
+
+            if (window.appState.leadsSortDirection === 'asc') {
+                return aValue > bValue ? 1 : -1;
+            } else {
+                return aValue < bValue ? 1 : -1;
+            }
+        });
+    }
 
 // PAGINATION LOGIC - UPDATED FOR BACKEND PAGINATION
 let indexOfLastItem, indexOfFirstItem, currentLeads, totalPages;
