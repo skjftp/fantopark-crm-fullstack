@@ -579,6 +579,12 @@ const fetchData = async () => {
     window.log.debug('🔍 authToken:', !!authToken);
     window.log.debug('🔍 isLoggedIn:', state.isLoggedIn);
     window.log.debug('🔍 About to start API calls');
+
+    // ADD THIS DEBUG CODE
+    const paginatedFlagFromStorage = localStorage.getItem('usePaginatedLeads');
+    window.log.info('🔍 Paginated flag from storage:', paginatedFlagFromStorage);
+    window.log.info('🔍 window.appState.usePaginatedLeads:', window.appState.usePaginatedLeads);
+    
     
     // Check if we should use paginated leads (feature flag)
     const shouldUsePaginatedLeads = window.appState.usePaginatedLeads || 
