@@ -8,6 +8,8 @@ window.clientAssignedFilter = window.clientAssignedFilter || 'all';
 window.clientMultiLeadFilter = window.clientMultiLeadFilter || 'all';
 window.leadsSalesPersonFilter = window.leadsSalesPersonFilter || 'all';
 
+// Replace the initialization section in your leads.js with this:
+
 // Initialize paginated mode on load
 const initializePaginatedMode = () => {
   if (!window.leadsInitialized) {
@@ -15,14 +17,42 @@ const initializePaginatedMode = () => {
     
     // Function to safely initialize when everything is ready
     const safeInitialize = () => {
-      if (window.appState && window.LeadsAPI && window.appState.setLeads) {
+      // Check all required dependencies
+      const dependenciesReady = 
+        window.appState && 
+        window.LeadsAPI && 
+        window.appState.setLeads &&
+        window.appState.setLeadsPagination &&
+        typeof window.appState.setLeadsFilterOptions === 'function';
+      
+      if (dependenciesReady) {
         window.log.info('🚀 Initializing leads module - all dependencies ready');
-        window.LeadsAPI.fetchPaginatedLeads();
-        window.LeadsAPI.fetchFilterOptions();
+        
+        // IMPORTANT: Clear any existing leads data to prevent showing all leads
+        window.appState.setLeads([]);
+        
+        // Initialize filter options state
+        window.appState.setLeadsFilterOptions = window.appState.setLeadsFilterOptions || (() => {
+          window.appState.leadsFilterOptions = arguments[0];
+        });
+        
+        // Set initial pagination state
+        window.appState.setLeadsPagination({
+          page: 1,
+          totalPages: 1,
+          total: 0,
+          hasNext: false,
+          hasPrev: false,
+          perPage: 20
+        });
+        
+        // Don't fetch here - let fetchData handle it
+        window.log.info('✅ Leads module initialized, waiting for fetchData to load paginated data');
       } else {
         // Log what's missing
         if (!window.appState) window.log.debug('Waiting for appState...');
         if (!window.LeadsAPI) window.log.debug('Waiting for LeadsAPI...');
+        if (!window.appState?.setLeads) window.log.debug('Waiting for setLeads...');
         
         // Retry after a short delay
         setTimeout(safeInitialize, 500);
@@ -33,6 +63,14 @@ const initializePaginatedMode = () => {
     setTimeout(safeInitialize, 1000);
   }
 };
+
+// Run initialization when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializePaginatedMode);
+} else {
+  // DOM already loaded, initialize after a short delay
+  setTimeout(initializePaginatedMode, 500);
+}
 
 // Run initialization when DOM is ready
 if (document.readyState === 'loading') {
