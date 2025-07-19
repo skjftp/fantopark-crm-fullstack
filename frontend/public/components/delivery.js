@@ -236,19 +236,6 @@ window.renderDeliveryForm = () => {
     })
   } = window.appState || {};
 
-  // ✅ OPTIMIZED: Only log when form state changes (not every render)
-  if (!showDeliveryForm || !currentDelivery) {
-    // Only log once when state changes
-    if (ENABLE_DELIVERY_DEBUG && !window._deliveryFormLoggedHidden) {
-      deliveryLog('❌ Not showing delivery form:', { 
-        showDeliveryForm, 
-        hasDelivery: !!currentDelivery 
-      });
-      window._deliveryFormLoggedHidden = true;
-    }
-    return null;
-  }
-
   // Reset the hidden flag when form is showing
   window._deliveryFormLoggedHidden = false;
 
