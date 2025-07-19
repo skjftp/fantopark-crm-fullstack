@@ -2176,7 +2176,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>   
 
-    <!-- CLEAN API-BASED CHART SYSTEM -->
+<!-- CLEAN API-BASED CHART SYSTEM -->
 <script>
 (function() {
   'use strict';
@@ -2199,24 +2199,23 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    // Fetch chart data from API
-    if (window.fetchChartDataFromAPI) {
-      window.fetchChartDataFromAPI();
-    } else {
-      console.error('❌ fetchChartDataFromAPI not found');
+    // Check if API function exists
+    if (!window.fetchChartDataFromAPI) {
+      console.log('⏳ Waiting for API functions...');
+      setTimeout(window.createDashboardCharts, 500);
+      return;
     }
+    
+    // Fetch chart data from API
+    window.fetchChartDataFromAPI();
   };
   
-  // Simple update function that uses API
-  window.updateChartsWithData = function() {
-    console.log('🔄 Updating charts using API...');
-    window.createDashboardCharts();
-  };
-  
-  // Handle filter changes
+  // Handle filter changes - directly call API
   window.handleChartFilterChange = function() {
     console.log('🎯 Filter changed, refreshing from API...');
-    window.createDashboardCharts();
+    if (window.fetchChartDataFromAPI) {
+      window.fetchChartDataFromAPI();
+    }
   };
   
   // Initialize when dashboard becomes active
@@ -2232,10 +2231,21 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize on page load if dashboard is active
   document.addEventListener('DOMContentLoaded', function() {
-    if (window.activeTab === 'dashboard' || !window.activeTab) {
-      setTimeout(window.createDashboardCharts, 1500);
-    }
+    setTimeout(() => {
+      if (window.activeTab === 'dashboard' || !window.activeTab) {
+        window.createDashboardCharts();
+      }
+    }, 1500);
   });
+  
+  // All chart function aliases point to API-based creation
+  window.initializeOptimizedCharts = window.createDashboardCharts;
+  window.initializeChartsAdvanced = window.createDashboardCharts;
+  window.smartChartInit = window.createDashboardCharts;
+  window.createChartsWithCurrentData = window.createDashboardCharts;
+  window.updateChartsWithData = window.createDashboardCharts;
+  window.initializeChartsWhenReady = window.createDashboardCharts;
+  window.updateOptimizedCharts = window.createDashboardCharts;
   
   console.log('✅ Clean chart system loaded');
 })();
