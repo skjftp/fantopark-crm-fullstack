@@ -2175,6 +2175,71 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 500);
 });
 </script>   
+
+    <!-- CLEAN API-BASED CHART SYSTEM -->
+<script>
+(function() {
+  'use strict';
   
+  console.log('🚀 Loading clean API-based chart system...');
+  
+  // Simple chart creation that always uses API
+  window.createDashboardCharts = function() {
+    console.log('📊 Creating dashboard charts using API...');
+    
+    // Check if we're on dashboard
+    if (window.activeTab !== 'dashboard') {
+      return;
+    }
+    
+    // Check if Chart.js is loaded
+    if (typeof Chart === 'undefined') {
+      console.log('⏳ Waiting for Chart.js...');
+      setTimeout(window.createDashboardCharts, 500);
+      return;
+    }
+    
+    // Fetch chart data from API
+    if (window.fetchChartDataFromAPI) {
+      window.fetchChartDataFromAPI();
+    } else {
+      console.error('❌ fetchChartDataFromAPI not found');
+    }
+  };
+  
+  // Simple update function that uses API
+  window.updateChartsWithData = function() {
+    console.log('🔄 Updating charts using API...');
+    window.createDashboardCharts();
+  };
+  
+  // Handle filter changes
+  window.handleChartFilterChange = function() {
+    console.log('🎯 Filter changed, refreshing from API...');
+    window.createDashboardCharts();
+  };
+  
+  // Initialize when dashboard becomes active
+  const originalSetActiveTab = window.setActiveTab;
+  if (originalSetActiveTab) {
+    window.setActiveTab = function(tab) {
+      originalSetActiveTab(tab);
+      if (tab === 'dashboard') {
+        setTimeout(window.createDashboardCharts, 500);
+      }
+    };
+  }
+  
+  // Initialize on page load if dashboard is active
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.activeTab === 'dashboard' || !window.activeTab) {
+      setTimeout(window.createDashboardCharts, 1500);
+    }
+  });
+  
+  console.log('✅ Clean chart system loaded');
+})();
+</script>
+    
 </body>
 </html>
