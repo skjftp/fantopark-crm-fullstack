@@ -34,6 +34,7 @@ window.renderAllocationForm = () => {
     window.log.debug("Would change:", field, "to:", value);
   });
 
+<<<<<<< HEAD
   // ✅ OPTIMIZED: Only log when form state changes (not every render)
   if (!showAllocationForm || !currentInventory) {
     // Only log once when state changes
@@ -47,6 +48,8 @@ window.renderAllocationForm = () => {
     return null;
   }
 
+=======
+>>>>>>> 952b6d3e5250ff9a1bfbccb005f0098608997206
   // Reset the hidden flag when form is showing
   window._allocationFormLoggedHidden = false;
 
