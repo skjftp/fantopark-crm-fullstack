@@ -50,6 +50,18 @@ const [eventsPerPage, setEventsPerPage] = useState(10);
     due_today: 0,
     pending: 0
   }); 
+  // Add these NEW state variables for leads pagination
+const [leadsPagination, setLeadsPagination] = useState({
+  page: 1,
+  limit: 20,
+  total: 0,
+  totalPages: 0,
+  hasNext: false,
+  hasPrev: false
+});
+
+// Add this state for tracking if we're using paginated mode
+const [usePaginatedLeads, setUsePaginatedLeads] = useState(false);
   const [sportsEvents, setSportsEvents] = useState([]);
   const [showEventForm, setShowEventForm] = useState(false);
   const [showEventDetail, setShowEventDetail] = useState(false);
@@ -432,6 +444,8 @@ window.setIsMobileView = setIsMobileView;
     calendarFilters, setCalendarFilters,
     showImportModal, setShowImportModal,
     paymentData, setPaymentData,
+    leadsPagination, setLeadsPagination,
+usePaginatedLeads, setUsePaginatedLeads,
     invoices, setInvoices,
     deliveries, setDeliveries,
     receivables, setReceivables,
