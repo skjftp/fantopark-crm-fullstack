@@ -9,37 +9,43 @@ window.LeadsAPI = {
   filterOptionsCacheTime: null,
   CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
 
-  // Replace the fetchPaginatedLeads function in your leads-api.js with this:
-
-  // Replace the fetchPaginatedLeads function in your leads-api.js with this:
+  // Store current filter values directly to avoid async state issues
+  currentFilters: {
+    search: '',
+    status: 'all',
+    source: 'all',
+    business_type: 'all',
+    event: 'all',
+    assigned_to: 'all',
+    sort_by: 'date_of_enquiry',
+    sort_order: 'desc'
+  },
 
   // Fetch paginated leads from backend
   fetchPaginatedLeads: async function(params = {}) {
     try {
-      // Get current filter values from the correct sources
-      const currentFilters = {
-        search: window.appState.searchQuery || '',
-        status: window.statusFilter || 'all',
-        source: window.appState.leadsSourceFilter || 'all',
-        business_type: window.appState.leadsBusinessTypeFilter || 'all',
-        event: window.appState.leadsEventFilter || 'all',
-        assigned_to: window.leadsSalesPersonFilter || window.appState.leadsSalesPersonFilter || 'all',
-        sort_by: window.appState.leadsSortField || 'date_of_enquiry',
-        sort_order: window.appState.leadsSortDirection || 'desc'
-      };
+      // If filters are passed in params, update our cache
+      if (params.source !== undefined) this.currentFilters.source = params.source;
+      if (params.business_type !== undefined) this.currentFilters.business_type = params.business_type;
+      if (params.event !== undefined) this.currentFilters.event = params.event;
+      if (params.assigned_to !== undefined) this.currentFilters.assigned_to = params.assigned_to;
+      if (params.status !== undefined) this.currentFilters.status = params.status;
+      if (params.search !== undefined) this.currentFilters.search = params.search;
+      if (params.sort_by !== undefined) this.currentFilters.sort_by = params.sort_by;
+      if (params.sort_order !== undefined) this.currentFilters.sort_order = params.sort_order;
 
-      // Build query parameters, using params to override if provided
+      // Build query parameters using the cached filter values
       const queryParams = new URLSearchParams({
         page: params.page || window.appState.currentLeadsPage || 1,
         limit: params.limit || 20,
-        search: params.search !== undefined ? params.search : currentFilters.search,
-        status: params.status !== undefined ? params.status : currentFilters.status,
-        source: params.source !== undefined ? params.source : currentFilters.source,
-        business_type: params.business_type !== undefined ? params.business_type : currentFilters.business_type,
-        event: params.event !== undefined ? params.event : currentFilters.event,
-        assigned_to: params.assigned_to !== undefined ? params.assigned_to : currentFilters.assigned_to,
-        sort_by: params.sort_by !== undefined ? params.sort_by : currentFilters.sort_by,
-        sort_order: params.sort_order !== undefined ? params.sort_order : currentFilters.sort_order
+        search: this.currentFilters.search,
+        status: this.currentFilters.status,
+        source: this.currentFilters.source,
+        business_type: this.currentFilters.business_type,
+        event: this.currentFilters.event,
+        assigned_to: this.currentFilters.assigned_to,
+        sort_by: this.currentFilters.sort_by,
+        sort_order: this.currentFilters.sort_order
       });
 
       // Handle multi-status filter
@@ -55,13 +61,13 @@ window.LeadsAPI = {
         }
       });
 
-      window.log.info('🔍 Fetching paginated leads with filters:', {
+      window.log.info('🔍 Fetching with filters:', {
         page: queryParams.get('page'),
-        source: queryParams.get('source') || 'all',
-        business_type: queryParams.get('business_type') || 'all',
-        event: queryParams.get('event') || 'all',
-        assigned_to: queryParams.get('assigned_to') || 'all',
-        search: queryParams.get('search') || 'none'
+        source: this.currentFilters.source,
+        business_type: this.currentFilters.business_type,
+        event: this.currentFilters.event,
+        assigned_to: this.currentFilters.assigned_to,
+        search: this.currentFilters.search || 'none'
       });
 
       // Show loading state
@@ -92,7 +98,7 @@ window.LeadsAPI = {
           window.appState.setLeadsPagination(fullPagination);
         }
 
-        window.log.success(`✅ Loaded ${response.data?.length || 0} leads with filters applied`);
+        window.log.success(`✅ Loaded ${response.data?.length || 0} leads`);
       } else {
         throw new Error(response.message || 'Failed to fetch leads');
       }
@@ -122,8 +128,6 @@ window.LeadsAPI = {
       }
     }
   },
-
-  // Replace the fetchFilterOptions function in your leads-api.js with this:
 
   // Fetch filter options (cached)
   fetchFilterOptions: async function(forceRefresh = false) {
@@ -189,13 +193,14 @@ window.LeadsAPI = {
     }
   },
 
-  // Replace the handleFilterChange function in your leads-api.js with this:
-
-  // Handle filter changes with proper state sync
+  // Handle filter changes with immediate value storage
   handleFilterChange: async function(filterType, value) {
     window.log.debug(`🔍 Filter change: ${filterType} = ${value}`);
     
-    // Update the appropriate filter state using appState setters
+    // Update our local filter cache immediately
+    this.currentFilters[filterType] = value;
+    
+    // Also update the React state for UI sync
     switch(filterType) {
       case 'search':
         if (window.appState.setSearchQuery) {
@@ -205,12 +210,14 @@ window.LeadsAPI = {
         // Debounce search input
         clearTimeout(this.searchDebounceTimer);
         this.searchDebounceTimer = setTimeout(() => {
-          this.applyFilters();
+          this.fetchPaginatedLeads({ 
+            page: 1,
+            ...this.currentFilters 
+          });
         }, 300);
         return; // Don't apply filters immediately for search
         
       case 'status':
-        // Status is handled differently with multi-select
         if (window.setStatusFilter) {
           window.setStatusFilter(value);
         }
@@ -235,11 +242,9 @@ window.LeadsAPI = {
         break;
         
       case 'assigned_to':
-        // This needs special handling as it uses different state name
         if (window.appState.setLeadsSalesPersonFilter) {
           window.appState.setLeadsSalesPersonFilter(value);
         }
-        // Also update the global filter that fetchPaginatedLeads reads
         window.leadsSalesPersonFilter = value;
         break;
         
@@ -256,26 +261,30 @@ window.LeadsAPI = {
         break;
     }
 
-    // Log current filter state for debugging
-    window.log.debug('📊 Current filters after change:', {
-      source: window.appState.leadsSourceFilter,
-      business_type: window.appState.leadsBusinessTypeFilter,
-      event: window.appState.leadsEventFilter,
-      assigned_to: window.leadsSalesPersonFilter || window.appState.leadsSalesPersonFilter,
-      status: window.selectedStatusFilters?.length > 0 ? window.selectedStatusFilters : window.statusFilter
-    });
+    // Reset to page 1 when filters change
+    if (window.appState.setCurrentLeadsPage) {
+      window.appState.setCurrentLeadsPage(1);
+    }
 
-    // Apply filters immediately for non-search filters
-    await this.applyFilters();
+    // Apply filters immediately with the new values
+    await this.fetchPaginatedLeads({ 
+      page: 1,
+      ...this.currentFilters 
+    });
   },
 
   // Apply all current filters and fetch data
   applyFilters: async function() {
     // Reset to first page when filters change
-    window.appState.setCurrentLeadsPage(1);
+    if (window.appState.setCurrentLeadsPage) {
+      window.appState.setCurrentLeadsPage(1);
+    }
     
-    // Fetch new data
-    await this.fetchPaginatedLeads();
+    // Fetch with current filter values
+    await this.fetchPaginatedLeads({
+      page: 1,
+      ...this.currentFilters
+    });
   },
 
   // Handle pagination
@@ -295,17 +304,85 @@ window.LeadsAPI = {
 
   // Clear all filters and refresh
   clearAllFilters: async function() {
-    window.setSearchQuery('');
-    window.setStatusFilter('all');
-    window.setSelectedStatusFilters([]);
-    window.setLeadsSourceFilter('all');
-    window.setLeadsBusinessTypeFilter('all');
-    window.setLeadsEventFilter('all');
-    window.setLeadsSalesPersonFilter('all');
+    window.log.info('🧹 Clearing all filters');
     
+    // Reset cache
+    this.currentFilters = {
+      search: '',
+      status: 'all',
+      source: 'all',
+      business_type: 'all',
+      event: 'all',
+      assigned_to: 'all',
+      sort_by: 'date_of_enquiry',
+      sort_order: 'desc'
+    };
+    
+    // Reset all filter states
+    if (window.appState.setSearchQuery) {
+      window.appState.setSearchQuery('');
+    }
+    
+    if (window.setStatusFilter) {
+      window.setStatusFilter('all');
+    }
+    
+    if (window.setSelectedStatusFilters) {
+      window.setSelectedStatusFilters([]);
+    }
+    
+    if (window.appState.setLeadsSourceFilter) {
+      window.appState.setLeadsSourceFilter('all');
+    }
+    
+    if (window.appState.setLeadsBusinessTypeFilter) {
+      window.appState.setLeadsBusinessTypeFilter('all');
+    }
+    
+    if (window.appState.setLeadsEventFilter) {
+      window.appState.setLeadsEventFilter('all');
+    }
+    
+    if (window.appState.setLeadsSalesPersonFilter) {
+      window.appState.setLeadsSalesPersonFilter('all');
+    }
+    
+    window.leadsSalesPersonFilter = 'all';
+    
+    if (window.appState.setLeadsSortField) {
+      window.appState.setLeadsSortField('date_of_enquiry');
+    }
+    
+    if (window.appState.setLeadsSortDirection) {
+      window.appState.setLeadsSortDirection('desc');
+    }
+    
+    if (window.appState.setCurrentLeadsPage) {
+      window.appState.setCurrentLeadsPage(1);
+    }
+    
+    // Apply filters
     await this.applyFilters();
+  },
+
+  // Initialize filters on load
+  initializeFilters: function() {
+    // Sync initial values from state
+    this.currentFilters.search = window.appState?.searchQuery || '';
+    this.currentFilters.status = window.statusFilter || 'all';
+    this.currentFilters.source = window.appState?.leadsSourceFilter || 'all';
+    this.currentFilters.business_type = window.appState?.leadsBusinessTypeFilter || 'all';
+    this.currentFilters.event = window.appState?.leadsEventFilter || 'all';
+    this.currentFilters.assigned_to = window.leadsSalesPersonFilter || window.appState?.leadsSalesPersonFilter || 'all';
+    this.currentFilters.sort_by = window.appState?.leadsSortField || 'date_of_enquiry';
+    this.currentFilters.sort_order = window.appState?.leadsSortDirection || 'desc';
+    
+    window.log.debug('🔧 Initialized filters:', this.currentFilters);
   }
 };
 
+// Initialize filters when module loads
+window.LeadsAPI.initializeFilters();
+
 // Initialize on load
-window.log.info('LeadsAPI module loaded');
+window.log.info('✅ LeadsAPI module loaded with filter cache');
