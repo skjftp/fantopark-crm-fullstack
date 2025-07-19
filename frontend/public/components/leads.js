@@ -8,6 +8,17 @@ window.clientAssignedFilter = window.clientAssignedFilter || 'all';
 window.clientMultiLeadFilter = window.clientMultiLeadFilter || 'all';
 window.leadsSalesPersonFilter = window.leadsSalesPersonFilter || 'all';
 
+// Initialize paginated mode if enabled
+if (window.appState?.usePaginatedLeads && !window.leadsInitialized) {
+  window.leadsInitialized = true;
+  
+  // Fetch initial data on component load
+  setTimeout(() => {
+    window.LeadsAPI.fetchPaginatedLeads();
+    window.LeadsAPI.fetchFilterOptions();
+  }, 100);
+}
+
 // Client View Component
 const ClientViewContent = () => {
   console.log("🔍 Rendering Production Client View Content");
@@ -624,304 +635,395 @@ const LeadsContent = () => {
             ),
 
             // ENHANCED FILTERS SECTION WITH WORKING SALES PERSON FILTER
-            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border p-4 filters-search-container' },
-                React.createElement('h2', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4' }, 'Filters & Search'),
-                React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4' },
-                    // Search Input
-                    React.createElement('div', { className: 'search-input-container' },
-                        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Search'),
-                        React.createElement('input', {
-                            type: 'text',
-                            placeholder: 'Name, email, company...',
-                            value: window.appState.searchQuery,
-                            onChange: (e) => {
-                                window.setSearchQuery(e.target.value);
-                                window.appState.setCurrentLeadsPage(1);
-                            },
-                            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border p-4 filters-search-container' },
+    React.createElement('h2', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4' }, 'Filters & Search'),
+    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4' },
+        // Search Input
+        React.createElement('div', { className: 'search-input-container' },
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Search'),
+            React.createElement('input', {
+                type: 'text',
+                placeholder: 'Name, email, company...',
+                value: window.appState.searchQuery,
+                onChange: (e) => {
+                    if (window.appState.usePaginatedLeads) {
+                        window.LeadsAPI.handleFilterChange('search', e.target.value);
+                    } else {
+                        window.setSearchQuery(e.target.value);
+                        window.appState.setCurrentLeadsPage(1);
+                    }
+                },
+                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            })
+        ),
+
+        // Multi-Select Status Filter
+        React.createElement('div', null,
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Status'),
+            React.createElement('div', { className: 'relative', ref: window.statusDropdownRef },
+                React.createElement('button', {
+                    onClick: () => window.setShowStatusFilterDropdown(!window.showStatusFilterDropdown),
+                    className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white flex items-center justify-between text-left'
+                },
+                    React.createElement('span', { className: 'truncate' }, window.getStatusFilterDisplayText()),
+                    React.createElement('svg', {
+                        className: `w-5 h-5 transition-transform ${window.showStatusFilterDropdown ? 'rotate-180' : ''}`,
+                        fill: 'none',
+                        stroke: 'currentColor',
+                        viewBox: '0 0 24 24'
+                    },
+                        React.createElement('path', {
+                            strokeLinecap: 'round',
+                            strokeLinejoin: 'round',
+                            strokeWidth: 2,
+                            d: 'M19 9l-7 7-7-7'
                         })
-                    ),
-
-                    // Multi-Select Status Filter
-                    React.createElement('div', null,
-                        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Status'),
-                        React.createElement('div', { className: 'relative', ref: window.statusDropdownRef },
-                            React.createElement('button', {
-                                onClick: () => window.setShowStatusFilterDropdown(!window.showStatusFilterDropdown),
-                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white flex items-center justify-between text-left'
-                            },
-                                React.createElement('span', { className: 'truncate' }, window.getStatusFilterDisplayText()),
-                                React.createElement('svg', {
-                                    className: `w-5 h-5 transition-transform ${window.showStatusFilterDropdown ? 'rotate-180' : ''}`,
-                                    fill: 'none',
-                                    stroke: 'currentColor',
-                                    viewBox: '0 0 24 24'
-                                },
-                                    React.createElement('path', {
-                                        strokeLinecap: 'round',
-                                        strokeLinejoin: 'round',
-                                        strokeWidth: 2,
-                                        d: 'M19 9l-7 7-7-7'
-                                    })
-                                )
-                            ),
-
-                            // Status Dropdown
-                            window.showStatusFilterDropdown && React.createElement('div', {
-                                className: 'absolute z-10 w-80 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-y-auto filter-dropdown'
-                            },
-                                // Select/Deselect All Controls
-                                React.createElement('div', { className: 'border-b border-gray-200 p-3 bg-gray-50' },
-                                    React.createElement('div', { className: 'flex justify-between' },
-                                        React.createElement('button', {
-                                            onClick: window.handleSelectAllStatuses,
-                                            className: 'text-sm text-blue-600 hover:text-blue-800 font-medium'
-                                        }, window.selectedStatusFilters.length === Object.keys(window.LEAD_STATUSES).length ? 'Deselect All' : 'Select All'),
-                                        React.createElement('button', {
-                                            onClick: window.handleClearAllStatuses,
-                                            className: 'text-sm text-red-600 hover:text-red-800 font-medium'
-                                        }, 'Clear All')
-                                    )
-                                ),
-
-                                // Status Options Grouped
-                                React.createElement('div', { className: 'py-1' },
-                                    // Initial Contact Group
-                                    React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Initial Contact'),
-                                    ['unassigned', 'assigned', 'contacted', 'attempt_1', 'attempt_2', 'attempt_3'].map(status =>
-                                        window.LEAD_STATUSES[status] && React.createElement('label', {
-                                            key: status,
-                                            className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
-                                        },
-                                            React.createElement('input', {
-                                                type: 'checkbox',
-                                                checked: window.selectedStatusFilters.includes(status),
-                                                onChange: () => window.handleStatusFilterToggle(status),
-                                                className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                                            }),
-                                            React.createElement('span', {
-                                                className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
-                                            }, window.LEAD_STATUSES[status].label)
-                                        )
-                                    ),
-
-                                    // Qualification Group
-                                    React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Qualification'),
-                                    ['qualified', 'junk'].map(status =>
-                                        window.LEAD_STATUSES[status] && React.createElement('label', {
-                                            key: status,
-                                            className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
-                                        },
-                                            React.createElement('input', {
-                                                type: 'checkbox',
-                                                checked: window.selectedStatusFilters.includes(status),
-                                                onChange: () => window.handleStatusFilterToggle(status),
-                                                className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                                            }),
-                                            React.createElement('span', {
-                                                className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
-                                            }, window.LEAD_STATUSES[status].label)
-                                        )
-                                    ),
-
-                                    // Temperature Group
-                                    React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Temperature'),
-                                    ['hot', 'warm', 'cold'].map(status =>
-                                        window.LEAD_STATUSES[status] && React.createElement('label', {
-                                            key: status,
-                                            className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
-                                        },
-                                            React.createElement('input', {
-                                                type: 'checkbox',
-                                                checked: window.selectedStatusFilters.includes(status),
-                                                onChange: () => window.handleStatusFilterToggle(status),
-                                                className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                                            }),
-                                            React.createElement('span', {
-                                                className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
-                                            }, window.LEAD_STATUSES[status].label)
-                                        )
-                                    ),
-
-                                    // Sales Process Group
-                                    React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Sales Process'),
-                                    ['quote_requested', 'converted', 'dropped'].map(status =>
-                                        window.LEAD_STATUSES[status] && React.createElement('label', {
-                                            key: status,
-                                            className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
-                                        },
-                                            React.createElement('input', {
-                                                type: 'checkbox',
-                                                checked: window.selectedStatusFilters.includes(status),
-                                                onChange: () => window.handleStatusFilterToggle(status),
-                                                className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                                            }),
-                                            React.createElement('span', {
-                                                className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
-                                            }, window.LEAD_STATUSES[status].label)
-                                        )
-                                    ),
-
-                                    // Payment Group
-                                    React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Payment'),
-                                    ['payment', 'payment_post_service', 'payment_received'].map(status =>
-                                        window.LEAD_STATUSES[status] && React.createElement('label', {
-                                            key: status,
-                                            className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
-                                        },
-                                            React.createElement('input', {
-                                                type: 'checkbox',
-                                                checked: window.selectedStatusFilters.includes(status),
-                                                onChange: () => window.handleStatusFilterToggle(status),
-                                                className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                                            }),
-                                            React.createElement('span', {
-                                                className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
-                                            }, window.LEAD_STATUSES[status].label)
-                                        )
-                                    )
-                                )
-                            )
-                        ),
-
-                        // Filter Indicator
-                        window.selectedStatusFilters.length > 0 && React.createElement('div', {
-                            className: 'mt-1 text-xs text-blue-600 font-medium'
-                        }, `Filtering by ${window.selectedStatusFilters.length} status${window.selectedStatusFilters.length !== 1 ? 'es' : ''}`)
-                    ),
-
-                    // Source Filter
-                    React.createElement('div', null,
-                        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Source'),
-                        React.createElement('select', {
-                            value: window.appState.leadsSourceFilter,
-                            onChange: (e) => {
-                                window.setLeadsSourceFilter(e.target.value);
-                                window.appState.setCurrentLeadsPage(1);
-                            },
-                            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-                        },
-                            React.createElement('option', { value: 'all' }, 'All Sources'),
-                            ...Array.from(new Set(window.appState.leads.map(lead => lead.source).filter(Boolean))).sort().map(source =>
-                                React.createElement('option', { key: source, value: source }, source)
-                            )
-                        )
-                    ),
-
-                    // Business Type Filter
-                    React.createElement('div', null,
-                        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Business Type'),
-                        React.createElement('select', {
-                            value: window.appState.leadsBusinessTypeFilter,
-                            onChange: (e) => {
-                                window.setLeadsBusinessTypeFilter(e.target.value);
-                                window.appState.setCurrentLeadsPage(1);
-                            },
-                            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-                        },
-                            React.createElement('option', { value: 'all' }, 'All Business Types'),
-                            ...Array.from(new Set(window.appState.leads.map(lead => lead.business_type).filter(Boolean))).sort().map(type =>
-                                React.createElement('option', { key: type, value: type }, type)
-                            )
-                        )
-                    ),
-
-                    // Event Filter
-                    React.createElement('div', null,
-                        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Event'),
-                        React.createElement('select', {
-                            value: window.appState.leadsEventFilter,
-                            onChange: (e) => {
-                                window.setLeadsEventFilter(e.target.value);
-                                window.appState.setCurrentLeadsPage(1);
-                            },
-                            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-                        },
-                            React.createElement('option', { value: 'all' }, 'All Events'),
-                            ...Array.from(new Set(window.appState.leads.map(lead => lead.lead_for_event).filter(Boolean))).sort().map(event =>
-                                React.createElement('option', { key: event, value: event }, event)
-                            )
-                        )
-                    ),
-
-                    // Sales Person Filter (WORKING WITH LOCAL STATE)
-                    React.createElement('div', null,
-                        React.createElement('label', { 
-                            htmlFor: 'sales-person-filter',
-                            className: 'block text-sm font-medium text-gray-700 mb-2' 
-                        }, 'Sales Person'),
-                        React.createElement('select', {
-                            id: 'sales-person-filter',
-                            value: localLeadsSalesPersonFilter,
-                            onChange: (e) => {
-                                setLocalLeadsSalesPersonFilter(e.target.value);
-                                window.appState.setCurrentLeadsPage(1);
-                            },
-                            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-                        },
-                            React.createElement('option', { value: 'all' }, 'All Sales Persons'),
-                            React.createElement('option', { value: 'unassigned' }, 'Unassigned'),
-                            ...getUniqueSalesPersons().map(user => 
-                                React.createElement('option', { 
-                                    key: user.id, 
-                                    value: user.email 
-                                }, user.name || user.email)
-                            )
-                        )
-                    ),
-
-                    // Sort Controls
-                    React.createElement('div', null,
-                        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Sort By'),
-                        React.createElement('div', { className: 'flex gap-2' },
-                            React.createElement('select', {
-                                value: window.appState.leadsSortField,
-                                onChange: (e) => {
-                                    window.setLeadsSortField(e.target.value);
-                                    window.appState.setCurrentLeadsPage(1);
-                                },
-                                className: 'flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-                            },
-                                React.createElement('option', { value: 'date_of_enquiry' }, 'Date'),
-                                React.createElement('option', { value: 'name' }, 'Name'),
-                                React.createElement('option', { value: 'potential_value' }, 'Value'),
-                                React.createElement('option', { value: 'company' }, 'Company')
-                            ),
-                            React.createElement('button', {
-                                onClick: () => {
-                                    window.setLeadsSortDirection(window.appState.leadsSortDirection === 'asc' ? 'desc' : 'asc');
-                                    window.appState.setCurrentLeadsPage(1);
-                                },
-                                className: 'px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500',
-                                title: window.appState.leadsSortDirection === 'asc' ? 'Sort Descending' : 'Sort Ascending'
-                            }, window.appState.leadsSortDirection === 'asc' ? '↑' : '↓')
-                        )
                     )
                 ),
 
-                // Filter Status Summary
-                React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
-                    React.createElement('span', { className: 'text-sm text-gray-600' },
-                        `Showing ${sortedLeads.length} of ${(window.appState.leads || []).length} leads`
+                // Status Dropdown
+                window.showStatusFilterDropdown && React.createElement('div', {
+                    className: 'absolute z-10 w-80 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-y-auto filter-dropdown'
+                },
+                    // Select/Deselect All Controls
+                    React.createElement('div', { className: 'border-b border-gray-200 p-3 bg-gray-50' },
+                        React.createElement('div', { className: 'flex justify-between' },
+                            React.createElement('button', {
+                                onClick: window.handleSelectAllStatuses,
+                                className: 'text-sm text-blue-600 hover:text-blue-800 font-medium'
+                            }, window.selectedStatusFilters.length === Object.keys(window.LEAD_STATUSES).length ? 'Deselect All' : 'Select All'),
+                            React.createElement('button', {
+                                onClick: window.handleClearAllStatuses,
+                                className: 'text-sm text-red-600 hover:text-red-800 font-medium'
+                            }, 'Clear All')
+                        )
                     ),
-                    (window.appState.searchQuery !== '' || window.selectedStatusFilters.length > 0 || window.statusFilter !== 'all' || 
-                     window.appState.leadsSourceFilter !== 'all' || window.appState.leadsBusinessTypeFilter !== 'all' || 
-                     window.appState.leadsEventFilter !== 'all' || localLeadsSalesPersonFilter !== 'all') &&
-                    React.createElement('button', {
-                        onClick: () => {
-                            window.setSearchQuery('');
-                            window.setStatusFilter('all');
-                            window.setSelectedStatusFilters([]);
-                            window.setLeadsSourceFilter('all');
-                            window.setLeadsBusinessTypeFilter('all');
-                            window.setLeadsEventFilter('all');
-                            setLocalLeadsSalesPersonFilter('all');
-                            window.appState.setCurrentLeadsPage(1);
-                        },
-                        className: 'text-sm text-blue-600 hover:text-blue-800 underline'
-                    }, 'Clear All Filters')
+
+                    // Status Options Grouped
+                    React.createElement('div', { className: 'py-1' },
+                        // Initial Contact Group
+                        React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Initial Contact'),
+                        ['unassigned', 'assigned', 'contacted', 'attempt_1', 'attempt_2', 'attempt_3'].map(status =>
+                            window.LEAD_STATUSES[status] && React.createElement('label', {
+                                key: status,
+                                className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
+                            },
+                                React.createElement('input', {
+                                    type: 'checkbox',
+                                    checked: window.selectedStatusFilters.includes(status),
+                                    onChange: () => {
+                                        window.handleStatusFilterToggle(status);
+                                        // Apply filter after toggle if in paginated mode
+                                        if (window.appState.usePaginatedLeads) {
+                                            setTimeout(() => {
+                                                // Use the first selected status or 'all'
+                                                const selectedStatus = window.selectedStatusFilters.length > 0 ? 
+                                                    window.selectedStatusFilters[0] : 'all';
+                                                window.LeadsAPI.handleFilterChange('status', selectedStatus);
+                                            }, 50);
+                                        }
+                                    },
+                                    className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                                }),
+                                React.createElement('span', {
+                                    className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
+                                }, window.LEAD_STATUSES[status].label)
+                            )
+                        ),
+
+                        // Qualification Group
+                        React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Qualification'),
+                        ['qualified', 'junk'].map(status =>
+                            window.LEAD_STATUSES[status] && React.createElement('label', {
+                                key: status,
+                                className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
+                            },
+                                React.createElement('input', {
+                                    type: 'checkbox',
+                                    checked: window.selectedStatusFilters.includes(status),
+                                    onChange: () => {
+                                        window.handleStatusFilterToggle(status);
+                                        if (window.appState.usePaginatedLeads) {
+                                            setTimeout(() => {
+                                                const selectedStatus = window.selectedStatusFilters.length > 0 ? 
+                                                    window.selectedStatusFilters[0] : 'all';
+                                                window.LeadsAPI.handleFilterChange('status', selectedStatus);
+                                            }, 50);
+                                        }
+                                    },
+                                    className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                                }),
+                                React.createElement('span', {
+                                    className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
+                                }, window.LEAD_STATUSES[status].label)
+                            )
+                        ),
+
+                        // Temperature Group
+                        React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Temperature'),
+                        ['hot', 'warm', 'cold'].map(status =>
+                            window.LEAD_STATUSES[status] && React.createElement('label', {
+                                key: status,
+                                className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
+                            },
+                                React.createElement('input', {
+                                    type: 'checkbox',
+                                    checked: window.selectedStatusFilters.includes(status),
+                                    onChange: () => {
+                                        window.handleStatusFilterToggle(status);
+                                        if (window.appState.usePaginatedLeads) {
+                                            setTimeout(() => {
+                                                const selectedStatus = window.selectedStatusFilters.length > 0 ? 
+                                                    window.selectedStatusFilters[0] : 'all';
+                                                window.LeadsAPI.handleFilterChange('status', selectedStatus);
+                                            }, 50);
+                                        }
+                                    },
+                                    className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                                }),
+                                React.createElement('span', {
+                                    className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
+                                }, window.LEAD_STATUSES[status].label)
+                            )
+                        ),
+
+                        // Sales Process Group
+                        React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Sales Process'),
+                        ['quote_requested', 'converted', 'dropped'].map(status =>
+                            window.LEAD_STATUSES[status] && React.createElement('label', {
+                                key: status,
+                                className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
+                            },
+                                React.createElement('input', {
+                                    type: 'checkbox',
+                                    checked: window.selectedStatusFilters.includes(status),
+                                    onChange: () => {
+                                        window.handleStatusFilterToggle(status);
+                                        if (window.appState.usePaginatedLeads) {
+                                            setTimeout(() => {
+                                                const selectedStatus = window.selectedStatusFilters.length > 0 ? 
+                                                    window.selectedStatusFilters[0] : 'all';
+                                                window.LeadsAPI.handleFilterChange('status', selectedStatus);
+                                            }, 50);
+                                        }
+                                    },
+                                    className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                                }),
+                                React.createElement('span', {
+                                    className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
+                                }, window.LEAD_STATUSES[status].label)
+                            )
+                        ),
+
+                        // Payment Group
+                        React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Payment'),
+                        ['payment', 'payment_post_service', 'payment_received'].map(status =>
+                            window.LEAD_STATUSES[status] && React.createElement('label', {
+                                key: status,
+                                className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
+                            },
+                                React.createElement('input', {
+                                    type: 'checkbox',
+                                    checked: window.selectedStatusFilters.includes(status),
+                                    onChange: () => {
+                                        window.handleStatusFilterToggle(status);
+                                        if (window.appState.usePaginatedLeads) {
+                                            setTimeout(() => {
+                                                const selectedStatus = window.selectedStatusFilters.length > 0 ? 
+                                                    window.selectedStatusFilters[0] : 'all';
+                                                window.LeadsAPI.handleFilterChange('status', selectedStatus);
+                                            }, 50);
+                                        }
+                                    },
+                                    className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                                }),
+                                React.createElement('span', {
+                                    className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
+                                }, window.LEAD_STATUSES[status].label)
+                            )
+                        )
+                    )
                 )
             ),
+
+            // Filter Indicator
+            window.selectedStatusFilters.length > 0 && React.createElement('div', {
+                className: 'mt-1 text-xs text-blue-600 font-medium'
+            }, `Filtering by ${window.selectedStatusFilters.length} status${window.selectedStatusFilters.length !== 1 ? 'es' : ''}`)
+        ),
+
+        // Source Filter
+        React.createElement('div', null,
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Source'),
+            React.createElement('select', {
+                value: window.appState.leadsSourceFilter,
+                onChange: (e) => {
+                    if (window.appState.usePaginatedLeads) {
+                        window.LeadsAPI.handleFilterChange('source', e.target.value);
+                    } else {
+                        window.setLeadsSourceFilter(e.target.value);
+                        window.appState.setCurrentLeadsPage(1);
+                    }
+                },
+                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            },
+                React.createElement('option', { value: 'all' }, 'All Sources'),
+                ...(window.appState.usePaginatedLeads && window.appState.leadsFilterOptions?.sources || 
+                    Array.from(new Set(window.appState.leads.map(lead => lead.source).filter(Boolean))).sort()
+                ).map(source =>
+                    React.createElement('option', { key: source, value: source }, source)
+                )
+            )
+        ),
+
+        // Business Type Filter
+        React.createElement('div', null,
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Business Type'),
+            React.createElement('select', {
+                value: window.appState.leadsBusinessTypeFilter,
+                onChange: (e) => {
+                    if (window.appState.usePaginatedLeads) {
+                        window.LeadsAPI.handleFilterChange('business_type', e.target.value);
+                    } else {
+                        window.setLeadsBusinessTypeFilter(e.target.value);
+                        window.appState.setCurrentLeadsPage(1);
+                    }
+                },
+                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            },
+                React.createElement('option', { value: 'all' }, 'All Business Types'),
+                ...(window.appState.usePaginatedLeads && window.appState.leadsFilterOptions?.businessTypes || 
+                    Array.from(new Set(window.appState.leads.map(lead => lead.business_type).filter(Boolean))).sort()
+                ).map(type =>
+                    React.createElement('option', { key: type, value: type }, type)
+                )
+            )
+        ),
+
+        // Event Filter
+        React.createElement('div', null,
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Event'),
+            React.createElement('select', {
+                value: window.appState.leadsEventFilter,
+                onChange: (e) => {
+                    if (window.appState.usePaginatedLeads) {
+                        window.LeadsAPI.handleFilterChange('event', e.target.value);
+                    } else {
+                        window.setLeadsEventFilter(e.target.value);
+                        window.appState.setCurrentLeadsPage(1);
+                    }
+                },
+                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            },
+                React.createElement('option', { value: 'all' }, 'All Events'),
+                ...(window.appState.usePaginatedLeads && window.appState.leadsFilterOptions?.events || 
+                    Array.from(new Set(window.appState.leads.map(lead => lead.lead_for_event).filter(Boolean))).sort()
+                ).map(event =>
+                    React.createElement('option', { key: event, value: event }, event)
+                )
+            )
+        ),
+
+        // Sales Person Filter (WORKING WITH LOCAL STATE)
+        React.createElement('div', null,
+            React.createElement('label', { 
+                htmlFor: 'sales-person-filter',
+                className: 'block text-sm font-medium text-gray-700 mb-2' 
+            }, 'Sales Person'),
+            React.createElement('select', {
+                id: 'sales-person-filter',
+                value: localLeadsSalesPersonFilter,
+                onChange: (e) => {
+                    setLocalLeadsSalesPersonFilter(e.target.value);
+                    if (window.appState.usePaginatedLeads) {
+                        window.LeadsAPI.handleFilterChange('assigned_to', e.target.value);
+                    } else {
+                        window.appState.setCurrentLeadsPage(1);
+                    }
+                },
+                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            },
+                React.createElement('option', { value: 'all' }, 'All Sales Persons'),
+                React.createElement('option', { value: 'unassigned' }, 'Unassigned'),
+                ...(window.appState.usePaginatedLeads && window.appState.leadsFilterOptions?.users || 
+                    getUniqueSalesPersons()
+                ).map(user => 
+                    React.createElement('option', { 
+                        key: user.id || user.email, 
+                        value: user.email 
+                    }, user.name || user.email)
+                )
+            )
+        ),
+
+        // Sort Controls
+        React.createElement('div', null,
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Sort By'),
+            React.createElement('div', { className: 'flex gap-2' },
+                React.createElement('select', {
+                    value: window.appState.leadsSortField,
+                    onChange: (e) => {
+                        if (window.appState.usePaginatedLeads) {
+                            window.LeadsAPI.handleFilterChange('sort_by', e.target.value);
+                        } else {
+                            window.setLeadsSortField(e.target.value);
+                            window.appState.setCurrentLeadsPage(1);
+                        }
+                    },
+                    className: 'flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+                },
+                    React.createElement('option', { value: 'date_of_enquiry' }, 'Date'),
+                    React.createElement('option', { value: 'name' }, 'Name'),
+                    React.createElement('option', { value: 'potential_value' }, 'Value'),
+                    React.createElement('option', { value: 'company' }, 'Company')
+                ),
+                React.createElement('button', {
+                    onClick: () => {
+                        if (window.appState.usePaginatedLeads) {
+                            const newDirection = window.appState.leadsSortDirection === 'asc' ? 'desc' : 'asc';
+                            window.LeadsAPI.handleFilterChange('sort_order', newDirection);
+                        } else {
+                            window.setLeadsSortDirection(window.appState.leadsSortDirection === 'asc' ? 'desc' : 'asc');
+                            window.appState.setCurrentLeadsPage(1);
+                        }
+                    },
+                    className: 'px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500',
+                    title: window.appState.leadsSortDirection === 'asc' ? 'Sort Descending' : 'Sort Ascending'
+                }, window.appState.leadsSortDirection === 'asc' ? '↑' : '↓')
+            )
+        )
+    ),
+
+    // Filter Status Summary
+    React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
+        React.createElement('span', { className: 'text-sm text-gray-600' },
+            window.appState.usePaginatedLeads ?
+                `Showing ${(window.appState.leads || []).length} of ${window.appState.leadsPagination?.total || 0} leads` :
+                `Showing ${sortedLeads.length} of ${(window.appState.leads || []).length} leads`
+        ),
+        (window.appState.searchQuery !== '' || window.selectedStatusFilters.length > 0 || window.statusFilter !== 'all' || 
+         window.appState.leadsSourceFilter !== 'all' || window.appState.leadsBusinessTypeFilter !== 'all' || 
+         window.appState.leadsEventFilter !== 'all' || localLeadsSalesPersonFilter !== 'all') &&
+        React.createElement('button', {
+            onClick: () => {
+                if (window.appState.usePaginatedLeads) {
+                    setLocalLeadsSalesPersonFilter('all');
+                    window.LeadsAPI.clearAllFilters();
+                } else {
+                    window.setSearchQuery('');
+                    window.setStatusFilter('all');
+                    window.setSelectedStatusFilters([]);
+                    window.setLeadsSourceFilter('all');
+                    window.setLeadsBusinessTypeFilter('all');
+                    window.setLeadsEventFilter('all');
+                    setLocalLeadsSalesPersonFilter('all');
+                    window.appState.setCurrentLeadsPage(1);
+                }
+            },
+            className: 'text-sm text-blue-600 hover:text-blue-800 underline'
+        }, 'Clear All Filters')
+    )
+),
 
             // Workflow Hint
             React.createElement('div', { className: 'bg-blue-50 border border-blue-200 rounded-lg p-4' },
