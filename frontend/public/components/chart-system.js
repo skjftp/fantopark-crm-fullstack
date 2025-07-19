@@ -15,8 +15,6 @@
   window.chartSystemLoaded = true;
 
   // Performance and logging controls
-  const ENABLE_CHART_DEBUG = true;
-  const chartLog = ENABLE_CHART_DEBUG ? console.log : () => {};
   const chartError = console.error;
 
   // Global chart state management
@@ -51,27 +49,27 @@
   // ID-TO-EMAIL MAPPING FUNCTION
   // ===============================================
   window.getFilteredLeadsWithMapping = function() {
-    chartLog('🔄 Running filter with ID-to-Email mapping...');
+    window.log.debug('🔄 Running filter with ID-to-Email mapping...');
     
     let filteredLeads = [...(window.leads || [])];
-    chartLog('🔍 Starting with', filteredLeads.length, 'leads');
+    window.log.debug('🔍 Starting with', filteredLeads.length, 'leads');
     
     // Apply dashboard filter
     if (window.dashboardFilter && window.selectedSalesPerson) {
-      chartLog('🔍 Dashboard filter:', window.dashboardFilter);
-      chartLog('🔍 Selected sales person ID:', window.selectedSalesPerson);
+      window.log.debug('🔍 Dashboard filter:', window.dashboardFilter);
+      window.log.debug('🔍 Selected sales person ID:', window.selectedSalesPerson);
       
       if (window.dashboardFilter === 'salesPerson' || window.dashboardFilter === 'salesperson') {
-        chartLog('🔍 Applying sales person filter with ID mapping...');
+        window.log.debug('🔍 Applying sales person filter with ID mapping...');
         
         // Map ID to email using users array
         const selectedUser = (window.users || []).find(user => user.id === window.selectedSalesPerson);
         if (selectedUser) {
           const salesPersonEmail = selectedUser.email;
-          chartLog('🔍 Mapped ID "' + window.selectedSalesPerson + '" to email "' + salesPersonEmail + '"');
+          window.log.debug('🔍 Mapped ID "' + window.selectedSalesPerson + '" to email "' + salesPersonEmail + '"');
           
           filteredLeads = filteredLeads.filter(lead => lead.assigned_to === salesPersonEmail);
-          chartLog('🔍 After sales person filter:', window.leads.length, '→', filteredLeads.length, 'leads');
+          window.log.debug('🔍 After sales person filter:', window.leads.length, '→', filteredLeads.length, 'leads');
         }
       }
     }
@@ -80,7 +78,7 @@
       filteredLeads = filteredLeads.filter(lead => lead.lead_for_event === window.selectedEvent);
     }
     
-    chartLog('🔍 Final filtered count:', filteredLeads.length);
+    window.log.debug('🔍 Final filtered count:', filteredLeads.length);
     return filteredLeads;
   };
 
@@ -102,7 +100,7 @@
   // MAIN CHART CREATION FUNCTION
   // ===============================================
   window.createChartsWithCurrentData = function() {
-    chartLog('📊 Creating charts with current data...');
+    window.log.debug('📊 Creating charts with current data...');
     
     try {
       // Clear any existing charts first
@@ -112,7 +110,7 @@
             Chart.instances[id].destroy();
             delete Chart.instances[id];
           } catch (e) {
-            chartLog('⚠️ Error destroying existing chart:', id);
+            window.log.debug('⚠️ Error destroying existing chart:', id);
           }
         });
       }
@@ -121,7 +119,7 @@
       
       // Get current filtered data
       const currentFilteredLeads = window.getFilteredLeadsWithMapping();
-      chartLog('📊 Creating charts with', currentFilteredLeads.length, 'leads');
+      window.log.debug('📊 Creating charts with', currentFilteredLeads.length, 'leads');
       
       // Calculate data
       const qualifiedCount = currentFilteredLeads.filter(l => (l.status || '').toLowerCase() === 'qualified').length;
@@ -150,7 +148,7 @@
       
       window.chartState.initialized = true;
       window.chartState.initializing = false;
-      chartLog('✅ All charts created successfully');
+      window.log.debug('✅ All charts created successfully');
       
     } catch (error) {
       chartError('❌ Chart creation failed:', error);
@@ -188,7 +186,7 @@
         }
       });
       
-      chartLog('✅ Lead Split chart created:', qualified, 'qualified,', junk, 'junk');
+      window.log.debug('✅ Lead Split chart created:', qualified, 'qualified,', junk, 'junk');
     } catch (error) {
       chartError('❌ Lead Split chart error:', error);
     }
@@ -219,7 +217,7 @@
         }
       });
       
-      chartLog('✅ Temperature Count chart created:', hot, 'hot,', warm, 'warm,', cold, 'cold');
+      window.log.debug('✅ Temperature Count chart created:', hot, 'hot,', warm, 'warm,', cold, 'cold');
     } catch (error) {
       chartError('❌ Temperature Count chart error:', error);
     }
@@ -261,7 +259,7 @@
       const warmFormatted = '₹' + warm.toLocaleString('en-IN');
       const coldFormatted = '₹' + cold.toLocaleString('en-IN');
       
-      chartLog('✅ Temperature Value chart created:', hotFormatted, 'hot,', warmFormatted, 'warm,', coldFormatted, 'cold');
+      window.log.debug('✅ Temperature Value chart created:', hotFormatted, 'hot,', warmFormatted, 'warm,', coldFormatted, 'cold');
     } catch (error) {
       chartError('❌ Temperature Value chart error:', error);
     }
@@ -272,12 +270,12 @@
   // ===============================================
   window.initializeChartsAdvanced = function() {
     if (window.chartState.initializing) {
-      chartLog('⏳ Chart initialization already in progress...');
+      window.log.debug('⏳ Chart initialization already in progress...');
       return;
     }
 
     window.chartState.initializing = true;
-    chartLog('🎯 Initializing charts...');
+    window.log.debug('🎯 Initializing charts...');
     
     // Use the working creation function
     window.createChartsWithCurrentData();
@@ -290,7 +288,7 @@
     // Sales person filter wrapper
     if (window._chartSystemOriginals.setSelectedSalesPerson) {
       window.setSelectedSalesPerson = function(person) {
-        chartLog('👤 Sales person filter changed to:', person);
+        window.log.debug('👤 Sales person filter changed to:', person);
         
         // Call original function
         window._chartSystemOriginals.setSelectedSalesPerson(person);
@@ -307,7 +305,7 @@
     // Dashboard filter wrapper
     if (window._chartSystemOriginals.setDashboardFilter) {
       window.setDashboardFilter = function(filter) {
-        chartLog('🎯 Dashboard filter changed to:', filter);
+        window.log.debug('🎯 Dashboard filter changed to:', filter);
         
         // Call original function
         window._chartSystemOriginals.setDashboardFilter(filter);
@@ -324,7 +322,7 @@
     // Event filter wrapper
     if (window._chartSystemOriginals.setSelectedEvent) {
       window.setSelectedEvent = function(event) {
-        chartLog('🎪 Event filter changed to:', event);
+        window.log.debug('🎪 Event filter changed to:', event);
         
         // Call original function
         window._chartSystemOriginals.setSelectedEvent(event);
@@ -352,7 +350,7 @@
         if (tab === 'dashboard') {
           setTimeout(() => {
             if (!window.chartState?.initialized) {
-              chartLog('🎯 Dashboard activated, attempting chart initialization...');
+              window.log.debug('🎯 Dashboard activated, attempting chart initialization...');
               window.initializeChartsAdvanced();
             }
           }, 500);
@@ -373,7 +371,7 @@
   // INITIALIZE EVERYTHING
   // ===============================================
   function initializeWorkingChartSystem() {
-    chartLog('🎯 Initializing Working Chart System v7.0...');
+    window.log.debug('🎯 Initializing Working Chart System v7.0...');
     
     // Set up safe filter wrappers
     createWorkingFilterWrappers();
@@ -390,7 +388,7 @@
       setTimeout(window.initializeChartsAdvanced, 1000);
     }
     
-    chartLog('✅ Working Chart System v7.0 initialized');
+    window.log.debug('✅ Working Chart System v7.0 initialized');
   }
 
   // ===============================================

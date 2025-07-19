@@ -30,8 +30,6 @@ window.renderAppEffects = function() {
   const {
     fetchData, calculateDashboardStats, extractFiltersData, fetchUserRoles
   } = handlers;
-
-
   // Replace multiple useEffect hooks with this single one
 useEffect(() => {
   if (isLoggedIn && !window._dataInitialized) {
@@ -59,9 +57,6 @@ useEffect(() => {
     console.error('Error managing dark mode:', error);
   }
 }, [darkMode]); // Make sure darkMode is in the dependency array
-
-
-  
   // ✅ ENHANCED: My Actions state synchronization effect
   useEffect(() => {
     console.log('🔄 My Actions state sync effect triggered');
@@ -321,8 +316,6 @@ useEffect(() => {
     }
     };
   }, []);
-  
-
   console.log('✅ All app effects initialized successfully');
 };
 

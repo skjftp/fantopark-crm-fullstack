@@ -55,3 +55,4 @@ temp/
 *.backup
 test-quote.pdf
 .firebase/
+backup_logs_*/

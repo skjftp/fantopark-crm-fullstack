@@ -61,8 +61,5 @@ const roleLabels = {
 'finance_manager': 'Finance Manager',
 'viewer': 'Viewer'
 };
-
-
-
 return roleLabels[roleName] || roleName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };

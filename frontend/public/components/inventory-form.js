@@ -240,8 +240,6 @@ React.createElement('option', { value: 'paid' }, 'Paid')
     )
   );
 };
-
-
 window.renderEnhancedPaymentSection(),
 // Add the exchange impact preview
 window.editingInventory && 

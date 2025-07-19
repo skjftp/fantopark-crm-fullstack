@@ -1492,8 +1492,6 @@ window.assignOrder = function(order) {
     }
   }
 };
-
-
 window.completeOrder = async function(orderId) {
   console.log('✅ Complete clicked for order:', orderId);
   
@@ -1776,8 +1774,6 @@ window.testProformaInvoice = () => {
   
   window.openProformaInvoiceForm(testLead);
 };
-
-
 // Finance Invoice Number Modal
 window.renderFinanceInvoiceModal = () => {
   const { showFinanceInvoiceModal, currentOrderForInvoice, financeInvoiceNumber } = window.appState || {};

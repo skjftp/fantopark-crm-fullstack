@@ -5,8 +5,6 @@
 // Reduced logging and improved performance + allocation display + CATEGORY SELECTION
 
 // Conditional logging control
-const ENABLE_ALLOCATION_DEBUG = false; // Set to false to reduce logs
-const allocLog = ENABLE_ALLOCATION_DEBUG ? console.log : () => {};
 
 window.renderAllocationForm = () => {
   // ✅ PATTERN 1: State Variable Extraction (OPTIMIZED)
@@ -21,7 +19,7 @@ window.renderAllocationForm = () => {
 
   // ✅ PATTERN 2: Function References with Fallbacks
   const closeForm = window.closeForm || (() => {
-    allocLog("closeForm not implemented - using fallback");
+    window.log.debug("closeForm not implemented - using fallback");
     window.setShowAllocationForm && window.setShowAllocationForm(false);
   });
 
@@ -32,15 +30,15 @@ window.renderAllocationForm = () => {
   });
 
   const handleAllocationInputChange = window.handleAllocationInputChange || ((field, value) => {
-    allocLog("handleAllocationInputChange not implemented");
-    allocLog("Would change:", field, "to:", value);
+    window.log.debug("handleAllocationInputChange not implemented");
+    window.log.debug("Would change:", field, "to:", value);
   });
 
   // ✅ OPTIMIZED: Only log when form state changes (not every render)
   if (!showAllocationForm || !currentInventory) {
     // Only log once when state changes
     if (ENABLE_ALLOCATION_DEBUG && !window._allocationFormLoggedHidden) {
-      allocLog("❌ Not showing allocation form:", {
+      window.log.debug("❌ Not showing allocation form:", {
         showAllocationForm,
         hasInventory: !!currentInventory
       });
@@ -53,8 +51,8 @@ window.renderAllocationForm = () => {
   window._allocationFormLoggedHidden = false;
 
   // ✅ OPTIMIZED: Only log essential info on form show
-  allocLog("📦 Allocation form rendering for:", currentInventory?.event_name);
-  allocLog("👥 Available leads:", leads?.length || 0);
+  window.log.debug("📦 Allocation form rendering for:", currentInventory?.event_name);
+  window.log.debug("👥 Available leads:", leads?.length || 0);
 
   // NEW: Check if inventory has categories
   const hasCategories = currentInventory.categories && Array.isArray(currentInventory.categories) && currentInventory.categories.length > 0;
@@ -87,7 +85,7 @@ window.renderAllocationForm = () => {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
     onClick: (e) => {
       if (e.target === e.currentTarget) {
-        allocLog("🔄 Clicked outside, closing allocation form");
+        window.log.debug("🔄 Clicked outside, closing allocation form");
         closeForm();
       }
     }
@@ -311,7 +309,7 @@ let allocationInputTimeout;
 window.handleAllocationInputChange = (field, value) => {
   clearTimeout(allocationInputTimeout);
   allocationInputTimeout = setTimeout(() => {
-    allocLog(`📝 Allocation field changed: ${field} = ${value}`);
+    window.log.debug(`📝 Allocation field changed: ${field} = ${value}`);
     
     if (window.setAllocationData) {
       window.setAllocationData(prev => ({
@@ -325,7 +323,7 @@ window.handleAllocationInputChange = (field, value) => {
       if (window.appState) {
         window.appState.allocationData = window.allocationData;
       }
-      allocLog("⚠️ setAllocationData not available, using fallback");
+      window.log.debug("⚠️ setAllocationData not available, using fallback");
     }
   }, 100); // Throttle input changes
 };
@@ -378,7 +376,7 @@ window.handleAllocation = async (e) => {
   window.setLoading(true);
 
   try {
-    allocLog('🔄 Creating allocation...', window.allocationData);
+    window.log.debug('🔄 Creating allocation...', window.allocationData);
 
     // Find the selected lead
     const selectedLead = window.leads.find(l => l.id === window.allocationData.lead_id);
@@ -533,5 +531,5 @@ window.openAllocationForm = (inventory) => {
   }
 };
 
-allocLog('✅ Optimized Allocation Form with Category Selection loaded');
+window.log.debug('✅ Optimized Allocation Form with Category Selection loaded');
 console.log('🎫 Allocation Form v3.0 - With Category Support');

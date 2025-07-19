@@ -1,7 +1,4 @@
 const ENABLE_DEBUG_LOGS = false; // Set to false to reduce logs
-window.debugLog = ENABLE_DEBUG_LOGS ? console.log : () => {};
-
-
 window.SimplifiedApp = function() {
   // ===== CORE SETUP & INITIALIZATION =====
   const state = window.renderMainApp();
@@ -389,8 +386,6 @@ window.setExpandedInventoryItems = state.setExpandedInventoryItems || ((items) =
       console.log("🔄 Enhanced syncStateToWindow completed for all modals including sports calendar");
     }, 10);
   };
-
-
   // ✅ ADD THIS FUNCTION: User Management Page Component (not modal)
 window.renderUserManagementContent = () => {
   console.log("🔍 renderUserManagementContent called");
@@ -1165,8 +1160,6 @@ window.userFormData = state.userFormData || {};
   window.setSelectedStatusFilters = state.setSelectedStatusFilters;
 
   // ===== FUNCTION EXPOSURES =====
-
-
   // ✅ REMINDERS FUNCTION EXPOSURES - MISSING INTEGRATIONS FIXED
 // Don't override fetchReminders if it already exists from reminder-management.js
 if (!window.fetchReminders) {
@@ -1210,8 +1203,6 @@ window.viewLeadDetails = handlers.openLeadDetail || window.openLeadDetail || ((l
       console.warn("⚠️ updateLeadStatus handler not available");
     }
   });
-  
-
   window.handleChoiceSelection = handlers.handleChoiceSelection || ((choice) => {
     console.log("🎯 handleChoiceSelection called with:", choice);
     console.warn("⚠️ handleChoiceSelection not implemented in handlers");
@@ -2491,10 +2482,6 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
     { name: 'amountPaid', label: 'Amount Paid', type: 'number', required: false },
     { name: 'paymentDueDate', label: 'Payment Due Date', type: 'date', required: false }
   ];
-
-
-
- 
   // ✅ FORM DATA CHANGE HANDLER
   window.handleFormDataChange = (fieldName, value) => {
     console.log(`📝 Form field changed: ${fieldName} = ${value}`);
@@ -2973,8 +2960,6 @@ window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() =
       )
     );
   };
-
- 
  const renderSidebar = () => {
   const menuGroups = [
     {

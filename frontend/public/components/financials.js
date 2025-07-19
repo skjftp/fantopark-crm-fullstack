@@ -294,8 +294,6 @@ window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financi
         )
     );
 };
-
-
 // Hook into tab switching
 if (!window.financialsAutoLoader) {
     window.financialsAutoLoader = true;
@@ -502,8 +500,6 @@ window.createFinancialSalesChart = () => {
         console.error('❌ Failed to create financial sales chart:', error);
     }
 };
-
-
 // Final renderEnhancedFinancialStats - NO async, NO hooks
 window.renderEnhancedFinancialStats = () => {
     // Get metrics synchronously
@@ -711,14 +707,8 @@ window.calculateEnhancedFinancialMetrics = async () => {
         return baseMetrics;
     }
 };
-
-
 // Now call it immediately
 //window.loadFinancialData();
-
-
-
-
 // Enhanced Expiring Inventory Data Processing
 window.getEnhancedExpiringInventory = () => {
     if (!window.inventory) return [];
@@ -829,9 +819,6 @@ window.renderActiveSalesTab = (activeSales) => {
         )
     );
 };
-
-
-
 // Sales Tab Renderer with FIXED Chart Implementation
 window.renderSalesTab = (sales) => {
     console.log('🔍 renderSalesTab called with:', sales);
@@ -1613,8 +1600,6 @@ window.renderExchangeImpactSummary = (financialData) => {
     )
   );
 };
-
-
 // ============================================================================
 // AUTO-LOADING SETUP
 // ============================================================================

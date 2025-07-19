@@ -82,9 +82,6 @@ window.renderContent = () => {
                         'Access Denied: You do not have permission to view sales performance.'
                     )
                 );    
-
-                
-
             case 'assignment-rules':
                 // Return the stable memoized component
                 return window.AssignmentRulesTab;

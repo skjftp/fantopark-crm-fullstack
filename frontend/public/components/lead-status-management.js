@@ -3,8 +3,6 @@
 // Handles lead status updates, progression logic, and choice handling
 
 // ===== FIXED: Enhanced lead status update function with automatic reminder creation =====
-
-
 // ====== UPDATED QUOTE REQUEST ASSIGNMENT LOGIC ======
 // File: lead-status-management.js
 

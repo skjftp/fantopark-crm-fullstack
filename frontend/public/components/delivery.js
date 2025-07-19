@@ -200,9 +200,6 @@ console.log('✅ Delivery component loaded successfully - INTEGRATION PATTERN AP
 // DELIVERY FORM COMPONENT - Optimized Version
 // ============================================================================
 
-const ENABLE_DELIVERY_DEBUG = false; // Set to false to reduce logs
-const deliveryLog = ENABLE_DELIVERY_DEBUG ? console.log : () => {};
-
 // Main Delivery Form Renderer - OPTIMIZED
 window.renderDeliveryForm = () => {
   // ✅ EXTRACT STATE FROM APP STATE (Optimized pattern)
@@ -214,7 +211,7 @@ window.renderDeliveryForm = () => {
     setShowDeliveryForm = window.setShowDeliveryForm || (() => {}),
     setDeliveryFormData = window.setDeliveryFormData || (() => {}),
     closeForm = window.closeForm || (() => {
-      deliveryLog("closeForm not implemented - using fallback");
+      window.log.debug("closeForm not implemented - using fallback");
       setShowDeliveryForm(false);
     }),
     loading = false
@@ -228,7 +225,7 @@ window.renderDeliveryForm = () => {
       alert("Delivery form submission will be implemented in next update!");
     }),
     handleDeliveryInputChange = window.handleDeliveryInputChange || ((field, value) => {
-      deliveryLog(`📝 Delivery field changed: ${field} = ${value}`);
+      window.log.debug(`📝 Delivery field changed: ${field} = ${value}`);
       setDeliveryFormData(prev => ({
         ...prev,
         [field]: value
@@ -240,7 +237,7 @@ window.renderDeliveryForm = () => {
   if (!showDeliveryForm || !currentDelivery) {
     // Only log once when state changes
     if (ENABLE_DELIVERY_DEBUG && !window._deliveryFormLoggedHidden) {
-      deliveryLog('❌ Not showing delivery form:', { 
+      window.log.debug('❌ Not showing delivery form:', { 
         showDeliveryForm, 
         hasDelivery: !!currentDelivery 
       });
@@ -253,14 +250,14 @@ window.renderDeliveryForm = () => {
   window._deliveryFormLoggedHidden = false;
 
   // ✅ OPTIMIZED: Only log essential info on form show
-  deliveryLog('📦 Delivery form rendering for order:', currentDelivery?.order_id);
-  deliveryLog('📋 Current form data:', deliveryFormData);
+  window.log.debug('📦 Delivery form rendering for order:', currentDelivery?.order_id);
+  window.log.debug('📋 Current form data:', deliveryFormData);
 
   return React.createElement('div', {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
     onClick: (e) => {
       if (e.target === e.currentTarget) {
-        deliveryLog("🔄 Clicked outside, closing delivery form");
+        window.log.debug("🔄 Clicked outside, closing delivery form");
         closeForm();
       }
     }
@@ -441,7 +438,7 @@ let deliveryInputTimeout;
 window.handleDeliveryInputChange = (field, value) => {
   clearTimeout(deliveryInputTimeout);
   deliveryInputTimeout = setTimeout(() => {
-    deliveryLog(`📝 Delivery field changed: ${field} = ${value}`);
+    window.log.debug(`📝 Delivery field changed: ${field} = ${value}`);
     
     if (window.setDeliveryFormData) {
       window.setDeliveryFormData(prev => ({
@@ -455,7 +452,7 @@ window.handleDeliveryInputChange = (field, value) => {
       if (window.appState) {
         window.appState.deliveryFormData = window.deliveryFormData;
       }
-      deliveryLog("⚠️ setDeliveryFormData not available, using fallback");
+      window.log.debug("⚠️ setDeliveryFormData not available, using fallback");
     }
   }, 100); // Throttle input changes
 };
@@ -489,7 +486,7 @@ window.handleDeliverySubmit = async (e) => {
   window.setLoading(true);
 
   try {
-    deliveryLog('🔄 Creating delivery schedule...', window.deliveryFormData);
+    window.log.debug('🔄 Creating delivery schedule...', window.deliveryFormData);
 
     const deliveryRequest = {
       order_id: window.currentDelivery.order_id,
@@ -534,5 +531,5 @@ window.handleDeliverySubmit = async (e) => {
   }
 };
 
-deliveryLog('✅ Optimized Delivery Form component loaded');
+window.log.debug('✅ Optimized Delivery Form component loaded');
 console.log('🚚 Delivery Form v2.0 - Performance Optimized');

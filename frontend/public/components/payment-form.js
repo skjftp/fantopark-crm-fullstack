@@ -987,8 +987,6 @@ window.renderEnhancedPaymentForm = () => {
 window.renderPaymentForm = () => {
   return renderEnhancedPaymentForm();
 };
-
-
 // Support functions needed for the Proforma Invoice Form
 // These handle invoice items, tax calculations, and rendering sections
 

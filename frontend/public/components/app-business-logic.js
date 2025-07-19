@@ -46,8 +46,6 @@ window.renderAppBusinessLogic = function() {
     choiceOptions, setChoiceOptions, userFormData, setUserFormData, showUserForm, setShowUserForm,
     showStatusProgressModal, setShowStatusProgressModal, statusProgressOptions, setStatusProgressOptions
   } = state;
-
-
   // ✅ NEW: togglePremiumStatus function - FOLLOWING INTEGRATION PATTERN
   const togglePremiumStatus = async (leadId, isPremium) => {
     try {
@@ -113,8 +111,6 @@ if (choice.value === 'payment_post_service') {
   setLoading(false);
   return;
 }
-
-
       // For regular status updates
       await window.updateLeadStatus(currentLeadForChoice.id, choice.value);
       setShowChoiceModal(false);
@@ -702,8 +698,6 @@ const updateOrdersPagination = (orders) => {
     console.log('📈 Auto-updated orders pagination:', { totalItems, totalPages, currentPage });
   }
 };
-
-
   const assignOrderToService = async (orderId, assignee) => {
     setLoading(true);
     try {
@@ -819,7 +813,7 @@ const updateOrdersPagination = (orders) => {
 
   // Authentication handlers
   const handleLogin = async (e) => {
-  window.debugLog('LOGIN_START', { email: state.email, timestamp: Date.now() });
+  window.window.log.debug('LOGIN_START', { email: state.email, timestamp: Date.now() });
   e.preventDefault();
   setLoading(true);
 

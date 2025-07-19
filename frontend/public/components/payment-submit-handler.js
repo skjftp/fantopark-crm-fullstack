@@ -137,8 +137,6 @@ window.renderPaymentSubmitHandler = () => {
     assigned_team: 'finance',
     assignment_date: new Date().toISOString(),
     assignment_notes: 'Auto-assigned to finance team after payment collection',
-    
-
             // If this was a payment_post_service order, keep references
     ...(existingOrder.order_type === 'payment_post_service' && {
       proforma_invoice_number: existingOrder.invoice_number || existingOrder.order_number,
@@ -154,8 +152,6 @@ window.renderPaymentSubmitHandler = () => {
             transaction_id: window.paymentData.transaction_id,
             payment_date: window.paymentData.payment_date,
             payment_proof: window.paymentData.payment_proof,
-   
-
             // Amount fields
             amount: window.paymentData.advance_amount,
             total_amount: existingOrder.total_amount || existingOrder.final_amount,
