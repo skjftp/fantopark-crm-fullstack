@@ -583,7 +583,8 @@ if (choice.value === 'payment_post_service') {
 
   // Add this to your existing app-business-logic.js file
 
-// Enhanced fetchData with automatic pagination update
+// Replace the fetchData function's lead fetching logic with this:
+
 const fetchData = async () => {
   const authToken = localStorage.getItem('crm_auth_token') || window.authToken;
   
@@ -591,25 +592,20 @@ const fetchData = async () => {
   
   try {
     window.log.debug('🔍 fetchData starting');
-    window.log.debug('🔍 authToken:', !!authToken);
-    window.log.debug('🔍 isLoggedIn:', state.isLoggedIn);
-    window.log.debug('🔍 About to start API calls');
-
-    // ADD THIS DEBUG CODE
-    const paginatedFlagFromStorage = localStorage.getItem('usePaginatedLeads');
-    window.log.info('🔍 Paginated flag from storage:', paginatedFlagFromStorage);
-    window.log.info('🔍 window.appState.usePaginatedLeads:', window.appState.usePaginatedLeads);
     
-    
-    // Check if we should use paginated leads (feature flag)
-    const shouldUsePaginatedLeads = window.appState.usePaginatedLeads || 
-                                   localStorage.getItem('usePaginatedLeads') === 'true';
+    // Force check paginated mode
+    const shouldUsePaginatedLeads = localStorage.getItem('usePaginatedLeads') === 'true';
+    window.log.info('🔍 Paginated mode check:', { 
+      localStorage: shouldUsePaginatedLeads,
+      appState: window.appState.usePaginatedLeads 
+    });
 
     if (shouldUsePaginatedLeads) {
       // Use new paginated API
       window.log.info('🚀 Using paginated leads API');
       
-      // Fetch other data first (without leads)
+      // IMPORTANT: Don't fetch leads here at all - let the leads component handle it
+      // Just fetch other data
       const [inventoryData, ordersData, invoicesData, deliveriesData, clientsData] = await Promise.all([
         window.apiCall('/inventory').catch(() => ({ data: [] })),
         window.apiCall('/orders').catch(() => ({ data: [] })),
@@ -618,34 +614,27 @@ const fetchData = async () => {
         window.apiCall('/clients').catch(() => ({ data: [] }))
       ]);
       
-      window.log.debug('🔍 Non-leads API calls completed, about to set state');
-      
-      // Set other data first
-      setInventory(inventoryData.data || []);
-      window.log.debug('🔍 setInventory completed');
-      
-      // Enhanced setOrders with automatic pagination
-      const ordersToSet = ordersData.data || [];
-      setOrders(ordersToSet);
-      window.log.debug('🔍 setOrders completed');
-      
-      // Auto-update orders pagination after orders are set
-      setTimeout(() => {
-        updateOrdersPagination(ordersToSet);
-      }, 100);
-      
       // Set other data
+      setInventory(inventoryData.data || []);
+      setOrders(ordersData.data || []);
       setInvoices(invoicesData.data || []);
       setDeliveries(deliveriesData.data || []);
       setClients(clientsData.data || []);
       
-      // Now fetch paginated leads separately
-      window.log.debug('🔍 Fetching paginated leads...');
-      await window.LeadsAPI.fetchPaginatedLeads();
+      // Initialize empty leads with proper pagination
+      if (!window.appState.leads || window.appState.leads.length === 0) {
+        setLeads([]);
+        setLeadsPagination({
+          page: 1,
+          totalPages: 0,
+          total: 0,
+          hasNext: false,
+          hasPrev: false,
+          perPage: 20
+        });
+      }
       
-      // Fetch filter options for dropdowns
-      window.log.debug('🔍 Fetching filter options...');
-      await window.LeadsAPI.fetchFilterOptions();
+      window.log.success('✅ Data loaded (paginated mode) - leads will load separately');
       
     } else {
       // Use existing approach (fetch all at once)
@@ -660,30 +649,19 @@ const fetchData = async () => {
         window.apiCall('/clients').catch(() => ({ data: [] }))
       ]);
       
-      window.log.debug('🔍 API calls completed, about to set state');
-      
-      // Set leads and inventory
+      // Set all data including leads
       setLeads(leadsData.data || []);
-      window.log.debug('🔍 setLeads completed');
-      
       setInventory(inventoryData.data || []);
-      window.log.debug('🔍 setInventory completed');
-      
-      // Enhanced setOrders with automatic pagination
-      const ordersToSet = ordersData.data || [];
-      setOrders(ordersToSet);
-      window.log.debug('🔍 setOrders completed');
-      
-      // Auto-update orders pagination after orders are set
-      setTimeout(() => {
-        updateOrdersPagination(ordersToSet);
-      }, 100);
-      
-      // Set other data
+      setOrders(ordersData.data || []);
       setInvoices(invoicesData.data || []);
       setDeliveries(deliveriesData.data || []);
       setClients(clientsData.data || []);
     }
+    
+    // Update orders pagination
+    setTimeout(() => {
+      updateOrdersPagination(orders);
+    }, 100);
     
   } catch (error) {
     window.log.error('Error fetching data:', error);
