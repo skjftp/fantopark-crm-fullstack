@@ -437,4 +437,50 @@ window.getUserDisplayName = function(userId, usersList = null) {
   return fullName || user.name || user.email || userId;
 };
 
+// Centralized error handler
+window.handleError = function(error, context = '', options = {}) {
+  const {
+    showUser = true,
+    severity = 'error',
+    fallbackMessage = 'An unexpected error occurred'
+  } = options;
+  
+  // Log error with context
+  window.log[severity](`Error in ${context}:`, {
+    message: error.message,
+    stack: error.stack,
+    context: context,
+    timestamp: new Date().toISOString()
+  });
+  
+  // Extract user-friendly message
+  const userMessage = error.response?.data?.message || 
+                     error.response?.data?.error ||
+                     error.message || 
+                     fallbackMessage;
+  
+  // Show to user if needed
+  if (showUser) {
+    // Use your notification system if available
+    if (window.showNotification) {
+      window.showNotification(userMessage, severity);
+    } else if (window.showError) {
+      window.showError(userMessage);
+    } else {
+      // Fallback to alert for errors
+      if (severity === 'error') {
+        alert(`Error: ${userMessage}`);
+      }
+    }
+  }
+  
+  // Return structured error info for further handling
+  return {
+    error,
+    userMessage,
+    context,
+    handled: true
+  };
+};
+
 window.log.success('Helper functions loaded');
