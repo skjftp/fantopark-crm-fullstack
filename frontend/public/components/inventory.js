@@ -269,15 +269,15 @@ window.renderInventoryContent = () => {
             )
         ),
 
-        // ENHANCED FILTERS SECTION WITH SEARCH
+        // ENHANCED FILTERS SECTION WITH SEARCH AND SORT IN SAME ROW
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border p-4 mb-4' },
             // First row - Search bar (full width)
             React.createElement('div', { className: 'mb-4' },
                 window.renderInventorySearchInput()
             ),
             
-            // Second row - Other filters
-            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4' },
+            // Second row - Filters AND Sort in same row
+            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4' },
              
                 // Due Date Filter
                 React.createElement('div', { className: 'flex-1' },
@@ -332,34 +332,34 @@ window.renderInventoryContent = () => {
                             React.createElement('option', { key: eventType, value: eventType }, eventType)
                         )
                     )
-                )
-            ),
+                ),
 
-            // Sort controls
-            React.createElement('div', { className: 'mt-4 flex flex-wrap gap-4 items-center' },
-                React.createElement('div', { className: 'flex items-center gap-2' },
-                    React.createElement('label', { className: 'text-sm font-medium text-gray-700 dark:text-gray-300' }, 'Sort by:'),
-                    React.createElement('select', {
-                        value: window.inventorySortField,
-                        onChange: (e) => {
-                            window.setInventorySortField(e.target.value);
-                            window.setCurrentInventoryPage(1);
+                // Sort By Dropdown - NOW IN SAME ROW
+                React.createElement('div', { className: 'flex-1' },
+                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' }, 'Sort by'),
+                    React.createElement('div', { className: 'flex gap-2' },
+                        React.createElement('select', {
+                            value: window.inventorySortField,
+                            onChange: (e) => {
+                                window.setInventorySortField(e.target.value);
+                                window.setCurrentInventoryPage(1);
+                            },
+                            className: 'flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500'
                         },
-                        className: 'px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500'
-                    },
-                        React.createElement('option', { value: 'event_date' }, 'Event Date'),
-                        React.createElement('option', { value: 'event_name' }, 'Event Name'),
-                        React.createElement('option', { value: 'event_type' }, 'Event Type'),
-                        React.createElement('option', { value: 'available_tickets' }, 'Available Tickets')
-                    ),
-                    React.createElement('button', {
-                        onClick: () => {
-                            window.setInventorySortDirection(window.inventorySortDirection === 'asc' ? 'desc' : 'asc');
-                            window.setCurrentInventoryPage(1);
-                        },
-                        className: 'px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:ring-2 focus:ring-blue-500',
-                        title: window.inventorySortDirection === 'asc' ? 'Sort Descending' : 'Sort Ascending'
-                    }, window.inventorySortDirection === 'asc' ? '↑' : '↓')
+                            React.createElement('option', { value: 'event_date' }, 'Event Date'),
+                            React.createElement('option', { value: 'event_name' }, 'Event Name'),
+                            React.createElement('option', { value: 'event_type' }, 'Event Type'),
+                            React.createElement('option', { value: 'available_tickets' }, 'Available Tickets')
+                        ),
+                        React.createElement('button', {
+                            onClick: () => {
+                                window.setInventorySortDirection(window.inventorySortDirection === 'asc' ? 'desc' : 'asc');
+                                window.setCurrentInventoryPage(1);
+                            },
+                            className: 'px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:ring-2 focus:ring-blue-500',
+                            title: window.inventorySortDirection === 'asc' ? 'Sort Descending' : 'Sort Ascending'
+                        }, window.inventorySortDirection === 'asc' ? '↑' : '↓')
+                    )
                 )
             ),
 
