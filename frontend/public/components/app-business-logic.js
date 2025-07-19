@@ -10,6 +10,11 @@ window.enablePaginatedLeads = function(enable = true) {
   window.location.reload();
 };
 
+// In traditional mode, store all leads for filter generation
+if (!shouldUsePaginatedLeads) {
+  window.appState.allLeads = leadsData.data || [];
+}
+
 window.renderAppBusinessLogic = function() {
   
   // Access app state
