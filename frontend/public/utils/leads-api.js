@@ -40,29 +40,13 @@ window.LeadsAPI = {
         // Update leads state
         window.appState.setLeads(response.data || []);
 
-        // Update pagination info
-        // Update pagination info
+// Update pagination info
 if (response.pagination) {
   window.appState.totalLeads = response.pagination.total;
   window.appState.totalLeadsPages = response.pagination.totalPages;
   
-  // Use the setState function to properly update pagination
-  if (window.appState.setLeadsPagination) {
-    window.appState.setLeadsPagination({
-      ...response.pagination,
-      currentPage: response.pagination.page,
-      hasNext: response.pagination.hasNext,
-      hasPrev: response.pagination.hasPrev
-    });
-  } else {
-    // Fallback if setState not available
-    window.appState.leadsPagination = {
-      ...response.pagination,
-      currentPage: response.pagination.page,
-      hasNext: response.pagination.hasNext,
-      hasPrev: response.pagination.hasPrev
-    };
-  }
+  // Use setState to update pagination
+  window.appState.setLeadsPagination(response.pagination);
 }
 
         window.log.success(`Loaded ${response.data.length} leads (page ${response.pagination.page} of ${response.pagination.totalPages})`);
