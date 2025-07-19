@@ -14,7 +14,7 @@ const websiteApiConfig = {
   // Lead filtering configuration
   leadFiltering: {
     // Minimum lead ID to fetch (to prevent importing old data)
-    defaultMinLeadId: 794
+    defaultMinLeadId: 798
   },
   // Token management
   tokenStore: {
