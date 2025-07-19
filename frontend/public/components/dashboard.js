@@ -416,11 +416,29 @@ window.fetchChartDataFromAPI = async function() {
         
     } catch (error) {
         console.error('❌ Error fetching chart data:', error);
-        // Fallback to client-side calculation if API fails
-        console.log('⚠️ Falling back to client-side calculation');
-        if (window.updateChartsWithData) {
-            window.updateChartsWithData();
-        }
+        
+        // Show empty charts instead of falling back
+        const emptyData = {
+            charts: {
+                leadSplit: {
+                    labels: ['Qualified', 'Junk'],
+                    data: [0, 0],
+                    colors: ['#10B981', '#EF4444']
+                },
+                temperatureCount: {
+                    labels: ['Hot', 'Warm', 'Cold'],
+                    data: [0, 0, 0],
+                    colors: ['#EF4444', '#F59E0B', '#3B82F6']
+                },
+                temperatureValue: {
+                    labels: ['Hot Value', 'Warm Value', 'Cold Value'],
+                    data: [0, 0, 0],
+                    colors: ['#EF4444', '#F59E0B', '#3B82F6']
+                }
+            }
+        };
+        
+        updateChartsFromAPIData(emptyData);
         return null;
     }
 };
@@ -665,16 +683,12 @@ window.initializeDashboardCharts = function() {
             return;
         }
         
-        // Create empty charts first (for better UX)
-        createEmptyCharts();
-        
-        // Then fetch data from API and populate charts
+        // Directly fetch data from API and create charts
         window.fetchChartDataFromAPI().then(data => {
             if (data) {
                 console.log('✅ Charts initialized with API data');
             } else {
-                console.log('⚠️ Using client-side data for charts');
-                // Fallback is already handled in fetchChartDataFromAPI
+                console.log('⚠️ No data received from API');
             }
         });
         
