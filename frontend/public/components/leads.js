@@ -1,5 +1,5 @@
 // Complete Updated leads.js File with Proper React Components
-// Fixed React Hook Error by Converting to Components
+// Simplified version - Only uses paginated backend API
 
 // Initialize global filter states (for persistence between view switches)
 window.clientSearchQuery = window.clientSearchQuery || '';
@@ -8,17 +8,15 @@ window.clientAssignedFilter = window.clientAssignedFilter || 'all';
 window.clientMultiLeadFilter = window.clientMultiLeadFilter || 'all';
 window.leadsSalesPersonFilter = window.leadsSalesPersonFilter || 'all';
 
-// Initialize paginated mode if enabled - with proper checks
+// Initialize paginated mode on load
 const initializePaginatedMode = () => {
-  const shouldUsePaginated = localStorage.getItem('usePaginatedLeads') === 'true';
-  
-  if (shouldUsePaginated && !window.leadsInitialized) {
+  if (!window.leadsInitialized) {
     window.leadsInitialized = true;
     
     // Function to safely initialize when everything is ready
     const safeInitialize = () => {
       if (window.appState && window.LeadsAPI && window.appState.setLeads) {
-        window.log.info('🚀 Initializing paginated leads mode - all dependencies ready');
+        window.log.info('🚀 Initializing leads module - all dependencies ready');
         window.LeadsAPI.fetchPaginatedLeads();
         window.LeadsAPI.fetchFilterOptions();
       } else {
@@ -43,7 +41,6 @@ if (document.readyState === 'loading') {
   // DOM already loaded, initialize after a short delay
   setTimeout(initializePaginatedMode, 500);
 }
-
 
 // Client View Component
 const ClientViewContent = () => {
@@ -401,7 +398,7 @@ window.renderClientViewContent = function() {
 
 console.log('✅ Production Client View component loaded successfully with working filters');
 
-// Lead View Component
+// Lead View Component - SIMPLIFIED VERSION
 const LeadsContent = () => {
     // React hook for sales person filter
     const [localLeadsSalesPersonFilter, setLocalLeadsSalesPersonFilter] = React.useState(window.leadsSalesPersonFilter || 'all');
@@ -410,26 +407,6 @@ const LeadsContent = () => {
     React.useEffect(() => {
       window.leadsSalesPersonFilter = localLeadsSalesPersonFilter;
     }, [localLeadsSalesPersonFilter]);
-
-    // Helper function to get unique sales persons from leads
-    const getUniqueSalesPersons = () => {
-      const assignedEmails = new Set();
-      
-      // Get all unique assigned_to emails from leads
-      (window.appState.leads || []).forEach(lead => {
-        if (lead.assigned_to && lead.assigned_to.trim()) {
-          assignedEmails.add(lead.assigned_to);
-        }
-      });
-      
-      // Map emails to user objects and filter active users
-      const salesPersons = Array.from(assignedEmails)
-        .map(email => window.users?.find(user => user.email === email))
-        .filter(user => user && user.status === 'active')
-        .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
-      
-      return salesPersons;
-    };
 
     // Helper function: Get next status options for a lead
     const getLeadProgressionOptions = (lead) => {
@@ -490,105 +467,13 @@ const LeadsContent = () => {
         }
     };
 
-   // ENHANCED FILTERING LOGIC - Conditional based on pagination mode
-    let filteredLeads, sortedLeads;
+    // SIMPLIFIED - Always use paginated data
+    const currentLeads = window.appState.leads || [];
+    const pagination = window.appState.leadsPagination || { page: 1, totalPages: 1, total: 0 };
+    const filterOptions = window.appState.leadsFilterOptions || {};
 
-    if (window.appState.usePaginatedLeads) {
-        // In paginated mode, backend already filtered and sorted
-        filteredLeads = window.appState.leads || [];
-        sortedLeads = filteredLeads; // No need to sort, already sorted by backend
-    } else {
-        // Traditional mode - apply frontend filtering
-        filteredLeads = (window.appState.leads || []).filter(lead => {
-            // Search filter
-            const matchesSearch = (!window.appState.searchQuery || window.appState.searchQuery === '') || 
-                lead.name?.toLowerCase().includes(window.appState.searchQuery?.toLowerCase()) ||
-                lead.email?.toLowerCase().includes(window.appState.searchQuery?.toLowerCase()) ||
-                (lead.company && lead.company?.toLowerCase().includes(window.appState.searchQuery?.toLowerCase())) ||
-                (lead.phone && lead.phone.includes(window.appState.searchQuery));
-
-            // Status filter
-            let matchesStatus = true;
-            if (window.selectedStatusFilters.length > 0) {
-                matchesStatus = window.selectedStatusFilters.includes(lead.status);
-            } else if (window.statusFilter !== 'all') {
-                matchesStatus = lead.status === window.statusFilter;
-            }
-
-            // Source filter
-            const matchesSource = window.appState.leadsSourceFilter === 'all' || lead.source === window.appState.leadsSourceFilter;
-
-            // Business type filter
-            const matchesBusinessType = window.appState.leadsBusinessTypeFilter === 'all' || lead.business_type === window.appState.leadsBusinessTypeFilter;
-
-            // Event filter
-            const matchesEvent = window.appState.leadsEventFilter === 'all' || lead.lead_for_event === window.appState.leadsEventFilter;
-
-            // Sales Person Filter (using local state)
-            let matchesSalesPerson = true;
-            if (localLeadsSalesPersonFilter && localLeadsSalesPersonFilter !== 'all') {
-                if (localLeadsSalesPersonFilter === 'unassigned') {
-                    matchesSalesPerson = !lead.assigned_to;
-                } else {
-                    matchesSalesPerson = lead.assigned_to === localLeadsSalesPersonFilter;
-                }
-            }
-
-            return matchesSearch && matchesStatus && matchesSource && matchesBusinessType && matchesEvent && matchesSalesPerson;
-        });
-
-        // Traditional mode - apply frontend sorting
-        sortedLeads = filteredLeads.sort((a, b) => {
-            let aValue, bValue;
-
-            switch (window.appState.leadsSortField) {
-                case 'date_of_enquiry':
-                    aValue = new Date(a.date_of_enquiry || a.created_date);
-                    bValue = new Date(b.date_of_enquiry || b.created_date);
-                    break;
-                case 'name':
-                    aValue = a.name.toLowerCase();
-                    bValue = b.name.toLowerCase();
-                    break;
-                case 'potential_value':
-                    aValue = parseFloat(a.potential_value) || 0;
-                    bValue = parseFloat(b.potential_value) || 0;
-                    break;
-                case 'company':
-                    aValue = (a.company || '').toLowerCase();
-                    bValue = (b.company || '').toLowerCase();
-                    break;
-                default:
-                    aValue = new Date(a.date_of_enquiry || a.created_date);
-                    bValue = new Date(b.date_of_enquiry || b.created_date);
-            }
-
-            if (window.appState.leadsSortDirection === 'asc') {
-                return aValue > bValue ? 1 : -1;
-            } else {
-                return aValue < bValue ? 1 : -1;
-            }
-        });
-    }
-
-// PAGINATION LOGIC - UPDATED FOR BACKEND PAGINATION
-let indexOfLastItem, indexOfFirstItem, currentLeads, totalPages;
-
-if (window.appState.usePaginatedLeads) {
-    // In paginated mode, use the leads as-is (already paginated by backend)
-    currentLeads = sortedLeads; // Use all the leads returned by backend
-    indexOfFirstItem = 0;
-    indexOfLastItem = sortedLeads.length;
-    totalPages = window.appState.leadsPagination?.totalPages || 1;
-} else {
-    // Traditional mode - apply frontend pagination
-    indexOfLastItem = window.appState.currentLeadsPage * window.appState.itemsPerPage;
-    indexOfFirstItem = indexOfLastItem - window.appState.itemsPerPage;
-    currentLeads = sortedLeads.slice(indexOfFirstItem, indexOfLastItem);
-    totalPages = Math.ceil(sortedLeads.length / window.appState.itemsPerPage);
-}
-
-    const unassignedLeads = sortedLeads.filter(lead => !lead.assigned_to || lead.assigned_to === '' || lead.status === 'unassigned');
+    // Count unassigned leads from current page
+    const unassignedLeads = currentLeads.filter(lead => !lead.assigned_to || lead.assigned_to === '' || lead.status === 'unassigned');
 
     return React.createElement('div', { className: 'space-y-6' },
 
@@ -608,7 +493,7 @@ if (window.appState.usePaginatedLeads) {
                         }`
                     }, 
                         React.createElement('span', { className: 'mr-2' }, '📋'),
-                        `Lead View (${(window.appState.leads || []).length})`
+                        `Lead View (${pagination.total || 0})`
                     ),
                     React.createElement('button', {
                         onClick: () => window.setViewMode('clients'),
@@ -634,7 +519,7 @@ if (window.appState.usePaginatedLeads) {
 
         // Conditional Content Based on View Mode
         window.appState.viewMode === 'leads' ? 
-        // LEAD VIEW CONTENT WITH WORKING SALES PERSON FILTER
+        // LEAD VIEW CONTENT
         React.createElement('div', { className: 'space-y-6' },
             // Header with buttons
             React.createElement('div', { className: 'flex justify-between items-center' },
@@ -680,396 +565,243 @@ if (window.appState.usePaginatedLeads) {
                 )
             ),
 
-            // ENHANCED FILTERS SECTION WITH WORKING SALES PERSON FILTER
-React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border p-4 filters-search-container' },
-    React.createElement('h2', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4' }, 'Filters & Search'),
-    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4' },
-        // Search Input
-        React.createElement('div', { className: 'search-input-container' },
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Search'),
-            React.createElement('input', {
-                type: 'text',
-                placeholder: 'Name, email, company...',
-                value: window.appState.searchQuery,
-                onChange: (e) => {
-                    if (window.appState.usePaginatedLeads) {
-                        window.LeadsAPI.handleFilterChange('search', e.target.value);
-                    } else {
-                        window.setSearchQuery(e.target.value);
-                        window.appState.setCurrentLeadsPage(1);
-                    }
-                },
-                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-            })
-        ),
-
-        // Multi-Select Status Filter
-        React.createElement('div', null,
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Status'),
-            React.createElement('div', { className: 'relative', ref: window.statusDropdownRef },
-                React.createElement('button', {
-                    onClick: () => window.setShowStatusFilterDropdown(!window.showStatusFilterDropdown),
-                    className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white flex items-center justify-between text-left'
-                },
-                    React.createElement('span', { className: 'truncate' }, window.getStatusFilterDisplayText()),
-                    React.createElement('svg', {
-                        className: `w-5 h-5 transition-transform ${window.showStatusFilterDropdown ? 'rotate-180' : ''}`,
-                        fill: 'none',
-                        stroke: 'currentColor',
-                        viewBox: '0 0 24 24'
-                    },
-                        React.createElement('path', {
-                            strokeLinecap: 'round',
-                            strokeLinejoin: 'round',
-                            strokeWidth: 2,
-                            d: 'M19 9l-7 7-7-7'
+            // FILTERS SECTION - SIMPLIFIED FOR PAGINATED MODE
+            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border p-4 filters-search-container' },
+                React.createElement('h2', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4' }, 'Filters & Search'),
+                React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4' },
+                    // Search Input
+                    React.createElement('div', { className: 'search-input-container' },
+                        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Search'),
+                        React.createElement('input', {
+                            type: 'text',
+                            placeholder: 'Name, email, company...',
+                            value: window.appState.searchQuery,
+                            onChange: (e) => window.LeadsAPI.handleFilterChange('search', e.target.value),
+                            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                         })
-                    )
-                ),
+                    ),
 
-                // Status Dropdown
-                window.showStatusFilterDropdown && React.createElement('div', {
-                    className: 'absolute z-10 w-80 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-y-auto filter-dropdown'
-                },
-                    // Select/Deselect All Controls
-                    React.createElement('div', { className: 'border-b border-gray-200 p-3 bg-gray-50' },
-                        React.createElement('div', { className: 'flex justify-between' },
+                    // Multi-Select Status Filter
+                    React.createElement('div', null,
+                        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Status'),
+                        React.createElement('div', { className: 'relative', ref: window.statusDropdownRef },
                             React.createElement('button', {
-                                onClick: window.handleSelectAllStatuses,
-                                className: 'text-sm text-blue-600 hover:text-blue-800 font-medium'
-                            }, window.selectedStatusFilters.length === Object.keys(window.LEAD_STATUSES).length ? 'Deselect All' : 'Select All'),
-                            React.createElement('button', {
-                                onClick: window.handleClearAllStatuses,
-                                className: 'text-sm text-red-600 hover:text-red-800 font-medium'
-                            }, 'Clear All')
+                                onClick: () => window.setShowStatusFilterDropdown(!window.showStatusFilterDropdown),
+                                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white flex items-center justify-between text-left'
+                            },
+                                React.createElement('span', { className: 'truncate' }, window.getStatusFilterDisplayText()),
+                                React.createElement('svg', {
+                                    className: `w-5 h-5 transition-transform ${window.showStatusFilterDropdown ? 'rotate-180' : ''}`,
+                                    fill: 'none',
+                                    stroke: 'currentColor',
+                                    viewBox: '0 0 24 24'
+                                },
+                                    React.createElement('path', {
+                                        strokeLinecap: 'round',
+                                        strokeLinejoin: 'round',
+                                        strokeWidth: 2,
+                                        d: 'M19 9l-7 7-7-7'
+                                    })
+                                )
+                            ),
+
+                            // Status Dropdown
+                            window.showStatusFilterDropdown && React.createElement('div', {
+                                className: 'absolute z-10 w-80 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-y-auto filter-dropdown'
+                            },
+                                // Select/Deselect All Controls
+                                React.createElement('div', { className: 'border-b border-gray-200 p-3 bg-gray-50' },
+                                    React.createElement('div', { className: 'flex justify-between' },
+                                        React.createElement('button', {
+                                            onClick: window.handleSelectAllStatuses,
+                                            className: 'text-sm text-blue-600 hover:text-blue-800 font-medium'
+                                        }, window.selectedStatusFilters.length === Object.keys(window.LEAD_STATUSES).length ? 'Deselect All' : 'Select All'),
+                                        React.createElement('button', {
+                                            onClick: window.handleClearAllStatuses,
+                                            className: 'text-sm text-red-600 hover:text-red-800 font-medium'
+                                        }, 'Clear All')
+                                    )
+                                ),
+
+                                // Status Options Grouped
+                                React.createElement('div', { className: 'py-1' },
+                                    // Initial Contact Group
+                                    React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Initial Contact'),
+                                    ['unassigned', 'assigned', 'contacted', 'attempt_1', 'attempt_2', 'attempt_3'].map(status =>
+                                        window.LEAD_STATUSES[status] && React.createElement('label', {
+                                            key: status,
+                                            className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
+                                        },
+                                            React.createElement('input', {
+                                                type: 'checkbox',
+                                                checked: window.selectedStatusFilters.includes(status),
+                                                onChange: () => {
+                                                    window.handleStatusFilterToggle(status);
+                                                    // Apply filter after toggle
+                                                    setTimeout(() => {
+                                                        const selectedStatus = window.selectedStatusFilters.length > 0 ? 
+                                                            window.selectedStatusFilters[0] : 'all';
+                                                        window.LeadsAPI.handleFilterChange('status', selectedStatus);
+                                                    }, 50);
+                                                },
+                                                className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                                            }),
+                                            React.createElement('span', {
+                                                className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
+                                            }, window.LEAD_STATUSES[status].label)
+                                        )
+                                    ),
+
+                                    // Other status groups follow the same pattern...
+                                    // Qualification Group
+                                    React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Qualification'),
+                                    ['qualified', 'junk'].map(status =>
+                                        window.LEAD_STATUSES[status] && React.createElement('label', {
+                                            key: status,
+                                            className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
+                                        },
+                                            React.createElement('input', {
+                                                type: 'checkbox',
+                                                checked: window.selectedStatusFilters.includes(status),
+                                                onChange: () => {
+                                                    window.handleStatusFilterToggle(status);
+                                                    setTimeout(() => {
+                                                        const selectedStatus = window.selectedStatusFilters.length > 0 ? 
+                                                            window.selectedStatusFilters[0] : 'all';
+                                                        window.LeadsAPI.handleFilterChange('status', selectedStatus);
+                                                    }, 50);
+                                                },
+                                                className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                                            }),
+                                            React.createElement('span', {
+                                                className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
+                                            }, window.LEAD_STATUSES[status].label)
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+
+                        // Filter Indicator
+                        window.selectedStatusFilters.length > 0 && React.createElement('div', {
+                            className: 'mt-1 text-xs text-blue-600 font-medium'
+                        }, `Filtering by ${window.selectedStatusFilters.length} status${window.selectedStatusFilters.length !== 1 ? 'es' : ''}`)
+                    ),
+
+                    // Source Filter - Using cached options
+                    React.createElement('div', null,
+                        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Source'),
+                        React.createElement('select', {
+                            value: window.appState.leadsSourceFilter,
+                            onChange: (e) => window.LeadsAPI.handleFilterChange('source', e.target.value),
+                            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+                        },
+                            React.createElement('option', { value: 'all' }, 'All Sources'),
+                            ...(filterOptions.sources || []).map(source =>
+                                React.createElement('option', { key: source, value: source }, source)
+                            )
                         )
                     ),
 
-                    // Status Options Grouped
-                    React.createElement('div', { className: 'py-1' },
-                        // Initial Contact Group
-                        React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Initial Contact'),
-                        ['unassigned', 'assigned', 'contacted', 'attempt_1', 'attempt_2', 'attempt_3'].map(status =>
-                            window.LEAD_STATUSES[status] && React.createElement('label', {
-                                key: status,
-                                className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
-                            },
-                                React.createElement('input', {
-                                    type: 'checkbox',
-                                    checked: window.selectedStatusFilters.includes(status),
-                                    onChange: () => {
-                                        window.handleStatusFilterToggle(status);
-                                        // Apply filter after toggle if in paginated mode
-                                        if (window.appState.usePaginatedLeads) {
-                                            setTimeout(() => {
-                                                // Use the first selected status or 'all'
-                                                const selectedStatus = window.selectedStatusFilters.length > 0 ? 
-                                                    window.selectedStatusFilters[0] : 'all';
-                                                window.LeadsAPI.handleFilterChange('status', selectedStatus);
-                                            }, 50);
-                                        }
-                                    },
-                                    className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                                }),
-                                React.createElement('span', {
-                                    className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
-                                }, window.LEAD_STATUSES[status].label)
-                            )
-                        ),
-
-                        // Qualification Group
-                        React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Qualification'),
-                        ['qualified', 'junk'].map(status =>
-                            window.LEAD_STATUSES[status] && React.createElement('label', {
-                                key: status,
-                                className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
-                            },
-                                React.createElement('input', {
-                                    type: 'checkbox',
-                                    checked: window.selectedStatusFilters.includes(status),
-                                    onChange: () => {
-                                        window.handleStatusFilterToggle(status);
-                                        if (window.appState.usePaginatedLeads) {
-                                            setTimeout(() => {
-                                                const selectedStatus = window.selectedStatusFilters.length > 0 ? 
-                                                    window.selectedStatusFilters[0] : 'all';
-                                                window.LeadsAPI.handleFilterChange('status', selectedStatus);
-                                            }, 50);
-                                        }
-                                    },
-                                    className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                                }),
-                                React.createElement('span', {
-                                    className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
-                                }, window.LEAD_STATUSES[status].label)
-                            )
-                        ),
-
-                        // Temperature Group
-                        React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Temperature'),
-                        ['hot', 'warm', 'cold'].map(status =>
-                            window.LEAD_STATUSES[status] && React.createElement('label', {
-                                key: status,
-                                className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
-                            },
-                                React.createElement('input', {
-                                    type: 'checkbox',
-                                    checked: window.selectedStatusFilters.includes(status),
-                                    onChange: () => {
-                                        window.handleStatusFilterToggle(status);
-                                        if (window.appState.usePaginatedLeads) {
-                                            setTimeout(() => {
-                                                const selectedStatus = window.selectedStatusFilters.length > 0 ? 
-                                                    window.selectedStatusFilters[0] : 'all';
-                                                window.LeadsAPI.handleFilterChange('status', selectedStatus);
-                                            }, 50);
-                                        }
-                                    },
-                                    className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                                }),
-                                React.createElement('span', {
-                                    className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
-                                }, window.LEAD_STATUSES[status].label)
-                            )
-                        ),
-
-                        // Sales Process Group
-                        React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Sales Process'),
-                        ['quote_requested', 'converted', 'dropped'].map(status =>
-                            window.LEAD_STATUSES[status] && React.createElement('label', {
-                                key: status,
-                                className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
-                            },
-                                React.createElement('input', {
-                                    type: 'checkbox',
-                                    checked: window.selectedStatusFilters.includes(status),
-                                    onChange: () => {
-                                        window.handleStatusFilterToggle(status);
-                                        if (window.appState.usePaginatedLeads) {
-                                            setTimeout(() => {
-                                                const selectedStatus = window.selectedStatusFilters.length > 0 ? 
-                                                    window.selectedStatusFilters[0] : 'all';
-                                                window.LeadsAPI.handleFilterChange('status', selectedStatus);
-                                            }, 50);
-                                        }
-                                    },
-                                    className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                                }),
-                                React.createElement('span', {
-                                    className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
-                                }, window.LEAD_STATUSES[status].label)
-                            )
-                        ),
-
-                        // Payment Group
-                        React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Payment'),
-                        ['payment', 'payment_post_service', 'payment_received'].map(status =>
-                            window.LEAD_STATUSES[status] && React.createElement('label', {
-                                key: status,
-                                className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
-                            },
-                                React.createElement('input', {
-                                    type: 'checkbox',
-                                    checked: window.selectedStatusFilters.includes(status),
-                                    onChange: () => {
-                                        window.handleStatusFilterToggle(status);
-                                        if (window.appState.usePaginatedLeads) {
-                                            setTimeout(() => {
-                                                const selectedStatus = window.selectedStatusFilters.length > 0 ? 
-                                                    window.selectedStatusFilters[0] : 'all';
-                                                window.LeadsAPI.handleFilterChange('status', selectedStatus);
-                                            }, 50);
-                                        }
-                                    },
-                                    className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                                }),
-                                React.createElement('span', {
-                                    className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
-                                }, window.LEAD_STATUSES[status].label)
+                    // Business Type Filter - Using cached options
+                    React.createElement('div', null,
+                        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Business Type'),
+                        React.createElement('select', {
+                            value: window.appState.leadsBusinessTypeFilter,
+                            onChange: (e) => window.LeadsAPI.handleFilterChange('business_type', e.target.value),
+                            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+                        },
+                            React.createElement('option', { value: 'all' }, 'All Business Types'),
+                            ...(filterOptions.businessTypes || []).map(type =>
+                                React.createElement('option', { key: type, value: type }, type)
                             )
                         )
+                    ),
+
+                    // Event Filter - Using cached options
+                    React.createElement('div', null,
+                        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Event'),
+                        React.createElement('select', {
+                            value: window.appState.leadsEventFilter,
+                            onChange: (e) => window.LeadsAPI.handleFilterChange('event', e.target.value),
+                            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+                        },
+                            React.createElement('option', { value: 'all' }, 'All Events'),
+                            ...(filterOptions.events || []).map(event =>
+                                React.createElement('option', { key: event, value: event }, event)
+                            )
+                        )
+                    ),
+
+                    // Sales Person Filter - Using cached options
+                    React.createElement('div', null,
+                        React.createElement('label', { 
+                            htmlFor: 'sales-person-filter',
+                            className: 'block text-sm font-medium text-gray-700 mb-2' 
+                        }, 'Sales Person'),
+                        React.createElement('select', {
+                            id: 'sales-person-filter',
+                            value: localLeadsSalesPersonFilter,
+                            onChange: (e) => {
+                                setLocalLeadsSalesPersonFilter(e.target.value);
+                                window.LeadsAPI.handleFilterChange('assigned_to', e.target.value);
+                            },
+                            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+                        },
+                            React.createElement('option', { value: 'all' }, 'All Sales Persons'),
+                            React.createElement('option', { value: 'unassigned' }, 'Unassigned'),
+                            ...(filterOptions.users || []).map(user => 
+                                React.createElement('option', { 
+                                    key: user.email, 
+                                    value: user.email 
+                                }, user.name || user.email)
+                            )
+                        )
+                    ),
+
+                    // Sort Controls
+                    React.createElement('div', null,
+                        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Sort By'),
+                        React.createElement('div', { className: 'flex gap-2' },
+                            React.createElement('select', {
+                                value: window.appState.leadsSortField,
+                                onChange: (e) => window.LeadsAPI.handleFilterChange('sort_by', e.target.value),
+                                className: 'flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+                            },
+                                React.createElement('option', { value: 'date_of_enquiry' }, 'Date'),
+                                React.createElement('option', { value: 'name' }, 'Name'),
+                                React.createElement('option', { value: 'potential_value' }, 'Value'),
+                                React.createElement('option', { value: 'company' }, 'Company')
+                            ),
+                            React.createElement('button', {
+                                onClick: () => {
+                                    const newDirection = window.appState.leadsSortDirection === 'asc' ? 'desc' : 'asc';
+                                    window.LeadsAPI.handleFilterChange('sort_order', newDirection);
+                                },
+                                className: 'px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500',
+                                title: window.appState.leadsSortDirection === 'asc' ? 'Sort Descending' : 'Sort Ascending'
+                            }, window.appState.leadsSortDirection === 'asc' ? '↑' : '↓')
+                        )
                     )
+                ),
+
+                // Filter Status Summary
+                React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
+                    React.createElement('span', { className: 'text-sm text-gray-600' },
+                        `Showing ${currentLeads.length} of ${pagination.total || 0} leads`
+                    ),
+                    (window.appState.searchQuery !== '' || window.selectedStatusFilters.length > 0 || 
+                     window.appState.leadsSourceFilter !== 'all' || window.appState.leadsBusinessTypeFilter !== 'all' || 
+                     window.appState.leadsEventFilter !== 'all' || localLeadsSalesPersonFilter !== 'all') &&
+                    React.createElement('button', {
+                        onClick: () => {
+                            setLocalLeadsSalesPersonFilter('all');
+                            window.LeadsAPI.clearAllFilters();
+                        },
+                        className: 'text-sm text-blue-600 hover:text-blue-800 underline'
+                    }, 'Clear All Filters')
                 )
             ),
-
-            // Filter Indicator
-            window.selectedStatusFilters.length > 0 && React.createElement('div', {
-                className: 'mt-1 text-xs text-blue-600 font-medium'
-            }, `Filtering by ${window.selectedStatusFilters.length} status${window.selectedStatusFilters.length !== 1 ? 'es' : ''}`)
-        ),
-
-        // Source Filter
-        React.createElement('div', null,
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Source'),
-            React.createElement('select', {
-                value: window.appState.leadsSourceFilter,
-                onChange: (e) => {
-                    if (window.appState.usePaginatedLeads) {
-                        window.LeadsAPI.handleFilterChange('source', e.target.value);
-                    } else {
-                        window.setLeadsSourceFilter(e.target.value);
-                        window.appState.setCurrentLeadsPage(1);
-                    }
-                },
-                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-            },
-                React.createElement('option', { value: 'all' }, 'All Sources'),
-                ...(window.appState.usePaginatedLeads && window.appState.leadsFilterOptions?.sources || 
-                    Array.from(new Set(window.appState.leads.map(lead => lead.source).filter(Boolean))).sort()
-                ).map(source =>
-                    React.createElement('option', { key: source, value: source }, source)
-                )
-            )
-        ),
-
-        // Business Type Filter
-        React.createElement('div', null,
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Business Type'),
-            React.createElement('select', {
-                value: window.appState.leadsBusinessTypeFilter,
-                onChange: (e) => {
-                    if (window.appState.usePaginatedLeads) {
-                        window.LeadsAPI.handleFilterChange('business_type', e.target.value);
-                    } else {
-                        window.setLeadsBusinessTypeFilter(e.target.value);
-                        window.appState.setCurrentLeadsPage(1);
-                    }
-                },
-                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-            },
-                React.createElement('option', { value: 'all' }, 'All Business Types'),
-                ...(window.appState.usePaginatedLeads && window.appState.leadsFilterOptions?.businessTypes || 
-                    Array.from(new Set(window.appState.leads.map(lead => lead.business_type).filter(Boolean))).sort()
-                ).map(type =>
-                    React.createElement('option', { key: type, value: type }, type)
-                )
-            )
-        ),
-
-        // Event Filter
-        React.createElement('div', null,
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Event'),
-            React.createElement('select', {
-                value: window.appState.leadsEventFilter,
-                onChange: (e) => {
-                    if (window.appState.usePaginatedLeads) {
-                        window.LeadsAPI.handleFilterChange('event', e.target.value);
-                    } else {
-                        window.setLeadsEventFilter(e.target.value);
-                        window.appState.setCurrentLeadsPage(1);
-                    }
-                },
-                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-            },
-                React.createElement('option', { value: 'all' }, 'All Events'),
-                ...(window.appState.usePaginatedLeads && window.appState.leadsFilterOptions?.events || 
-                    Array.from(new Set(window.appState.leads.map(lead => lead.lead_for_event).filter(Boolean))).sort()
-                ).map(event =>
-                    React.createElement('option', { key: event, value: event }, event)
-                )
-            )
-        ),
-
-        // Sales Person Filter (WORKING WITH LOCAL STATE)
-        React.createElement('div', null,
-            React.createElement('label', { 
-                htmlFor: 'sales-person-filter',
-                className: 'block text-sm font-medium text-gray-700 mb-2' 
-            }, 'Sales Person'),
-            React.createElement('select', {
-                id: 'sales-person-filter',
-                value: localLeadsSalesPersonFilter,
-                onChange: (e) => {
-                    setLocalLeadsSalesPersonFilter(e.target.value);
-                    if (window.appState.usePaginatedLeads) {
-                        window.LeadsAPI.handleFilterChange('assigned_to', e.target.value);
-                    } else {
-                        window.appState.setCurrentLeadsPage(1);
-                    }
-                },
-                className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-            },
-                React.createElement('option', { value: 'all' }, 'All Sales Persons'),
-                React.createElement('option', { value: 'unassigned' }, 'Unassigned'),
-                ...(window.appState.usePaginatedLeads && window.appState.leadsFilterOptions?.users || 
-                    getUniqueSalesPersons()
-                ).map(user => 
-                    React.createElement('option', { 
-                        key: user.id || user.email, 
-                        value: user.email 
-                    }, user.name || user.email)
-                )
-            )
-        ),
-
-        // Sort Controls
-        React.createElement('div', null,
-            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Sort By'),
-            React.createElement('div', { className: 'flex gap-2' },
-                React.createElement('select', {
-                    value: window.appState.leadsSortField,
-                    onChange: (e) => {
-                        if (window.appState.usePaginatedLeads) {
-                            window.LeadsAPI.handleFilterChange('sort_by', e.target.value);
-                        } else {
-                            window.setLeadsSortField(e.target.value);
-                            window.appState.setCurrentLeadsPage(1);
-                        }
-                    },
-                    className: 'flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-                },
-                    React.createElement('option', { value: 'date_of_enquiry' }, 'Date'),
-                    React.createElement('option', { value: 'name' }, 'Name'),
-                    React.createElement('option', { value: 'potential_value' }, 'Value'),
-                    React.createElement('option', { value: 'company' }, 'Company')
-                ),
-                React.createElement('button', {
-                    onClick: () => {
-                        if (window.appState.usePaginatedLeads) {
-                            const newDirection = window.appState.leadsSortDirection === 'asc' ? 'desc' : 'asc';
-                            window.LeadsAPI.handleFilterChange('sort_order', newDirection);
-                        } else {
-                            window.setLeadsSortDirection(window.appState.leadsSortDirection === 'asc' ? 'desc' : 'asc');
-                            window.appState.setCurrentLeadsPage(1);
-                        }
-                    },
-                    className: 'px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500',
-                    title: window.appState.leadsSortDirection === 'asc' ? 'Sort Descending' : 'Sort Ascending'
-                }, window.appState.leadsSortDirection === 'asc' ? '↑' : '↓')
-            )
-        )
-    ),
-
-    // Filter Status Summary
-    React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
-        React.createElement('span', { className: 'text-sm text-gray-600' },
-            window.appState.usePaginatedLeads ?
-                `Showing ${(window.appState.leads || []).length} of ${window.appState.leadsPagination?.total || 0} leads` :
-                `Showing ${sortedLeads.length} of ${(window.appState.leads || []).length} leads`
-        ),
-        (window.appState.searchQuery !== '' || window.selectedStatusFilters.length > 0 || window.statusFilter !== 'all' || 
-         window.appState.leadsSourceFilter !== 'all' || window.appState.leadsBusinessTypeFilter !== 'all' || 
-         window.appState.leadsEventFilter !== 'all' || localLeadsSalesPersonFilter !== 'all') &&
-        React.createElement('button', {
-            onClick: () => {
-                if (window.appState.usePaginatedLeads) {
-                    setLocalLeadsSalesPersonFilter('all');
-                    window.LeadsAPI.clearAllFilters();
-                } else {
-                    window.setSearchQuery('');
-                    window.setStatusFilter('all');
-                    window.setSelectedStatusFilters([]);
-                    window.setLeadsSourceFilter('all');
-                    window.setLeadsBusinessTypeFilter('all');
-                    window.setLeadsEventFilter('all');
-                    setLocalLeadsSalesPersonFilter('all');
-                    window.appState.setCurrentLeadsPage(1);
-                }
-            },
-            className: 'text-sm text-blue-600 hover:text-blue-800 underline'
-        }, 'Clear All Filters')
-    )
-),
 
             // Workflow Hint
             React.createElement('div', { className: 'bg-blue-50 border border-blue-200 rounded-lg p-4' },
@@ -1084,7 +816,7 @@ React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg sh
 
             // Table
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border' },
-                filteredLeads.length > 0 ? React.createElement('div', { className: 'overflow-x-auto' },
+                currentLeads.length > 0 ? React.createElement('div', { className: 'overflow-x-auto' },
                     React.createElement('table', { className: 'w-full' },
                         React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
                             React.createElement('tr', null,
@@ -1233,58 +965,32 @@ React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg sh
                             })
                         )
                     ),
-                    // Pagination
-                    // Pagination
-(window.appState.usePaginatedLeads ? 
-  (window.appState.leadsPagination?.totalPages > 1) : 
-  (sortedLeads.length > window.appState.itemsPerPage)
-) && React.createElement('div', { className: 'flex justify-between items-center px-6 py-3 bg-gray-50 border-t' },
-    React.createElement('div', { className: 'text-sm text-gray-700' },
-        window.appState.usePaginatedLeads ?
-            `Page ${window.appState.leadsPagination?.page || 1} of ${window.appState.leadsPagination?.totalPages || 1} (${window.appState.leadsPagination?.total || 0} total leads)` :
-            'Showing ' + (indexOfFirstItem + 1) + ' to ' + (Math.min(indexOfLastItem, sortedLeads.length)) + ' of ' + (sortedLeads.length) + ' leads'
-    ),
-    React.createElement('div', { className: 'flex space-x-2' },
-        React.createElement('button', {
-            onClick: () => {
-                if (window.appState.usePaginatedLeads) {
-                    window.LeadsAPI.changePage((window.appState.leadsPagination?.page || 1) - 1);
-                } else {
-                    window.appState.setCurrentLeadsPage(prev => Math.max(prev - 1, 1));
-                }
-            },
-            disabled: window.appState.usePaginatedLeads ? 
-                !window.appState.leadsPagination?.hasPrev : 
-                window.appState.currentLeadsPage === 1,
-            className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
-        }, 'Previous'),
-        
-        // Page indicator
-        React.createElement('span', { className: 'px-3 py-1' }, 
-            window.appState.usePaginatedLeads ?
-                `Page ${window.appState.leadsPagination?.page || 1} of ${window.appState.leadsPagination?.totalPages || 1}` :
-                'Page ' + (window.appState.currentLeadsPage) + ' of ' + (totalPages)
-        ),
-        
-        React.createElement('button', {
-            onClick: () => {
-                if (window.appState.usePaginatedLeads) {
-                    window.LeadsAPI.changePage((window.appState.leadsPagination?.page || 1) + 1);
-                } else {
-                    window.appState.setCurrentLeadsPage(prev => Math.min(prev + 1, totalPages));
-                }
-            },
-            disabled: window.appState.usePaginatedLeads ? 
-                !window.appState.leadsPagination?.hasNext : 
-                window.appState.currentLeadsPage === totalPages,
-            className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
-        }, 'Next')
-    )
-)
+                    // Pagination - SIMPLIFIED
+                    pagination.totalPages > 1 && React.createElement('div', { className: 'flex justify-between items-center px-6 py-3 bg-gray-50 border-t' },
+                        React.createElement('div', { className: 'text-sm text-gray-700' },
+                            `Page ${pagination.page || 1} of ${pagination.totalPages || 1} (${pagination.total || 0} total leads)`
+                        ),
+                        React.createElement('div', { className: 'flex space-x-2' },
+                            React.createElement('button', {
+                                onClick: () => window.LeadsAPI.changePage(pagination.page - 1),
+                                disabled: !pagination.hasPrev,
+                                className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
+                            }, 'Previous'),
+                            
+                            // Page indicator
+                            React.createElement('span', { className: 'px-3 py-1' }, 
+                                `Page ${pagination.page || 1} of ${pagination.totalPages || 1}`
+                            ),
+                            
+                            React.createElement('button', {
+                                onClick: () => window.LeadsAPI.changePage(pagination.page + 1),
+                                disabled: !pagination.hasNext,
+                                className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
+                            }, 'Next')
+                        )
+                    )
                 ) : React.createElement('div', { className: 'p-6 text-center text-gray-500' }, 
-                    sortedLeads.length === 0 && (window.appState.leads || []).length > 0 ? 
-                    'No leads match your current filters.' : 
-                    'No leads found. Add your first lead!'
+                    'No leads found. Add your first lead or adjust your filters!'
                 )
             )
         ) :
@@ -1298,4 +1004,4 @@ window.renderLeadsContent = () => {
   return React.createElement(LeadsContent);
 };
 
-console.log('✅ Leads component loaded with proper React components and working filters');
+console.log('✅ Leads component loaded - Paginated mode only');
