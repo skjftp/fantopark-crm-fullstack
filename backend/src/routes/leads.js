@@ -1215,7 +1215,7 @@ router.get('/:id/inclusions', authenticateToken, async (req, res) => {
     const { id } = req.params;
     
     // Check if user has permission to view this lead
-    const leadDoc = await db.collection('leads').doc(id).get();
+    const leadDoc = await db.collection('crm_leads').doc(id).get();
     if (!leadDoc.exists) {
       return res.status(404).json({ error: 'Lead not found' });
     }
@@ -1262,7 +1262,7 @@ router.put('/:id/inclusions', authenticateToken, async (req, res) => {
     const inclusionsData = req.body;
     
     // Check if user has permission to update this lead
-    const leadDoc = await db.collection('leads').doc(id).get();
+    const leadDoc = await db.collection('crm_leads').doc(id).get();
     if (!leadDoc.exists) {
       return res.status(404).json({ error: 'Lead not found' });
     }
