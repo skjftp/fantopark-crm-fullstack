@@ -146,6 +146,7 @@ const [myActionsPagination, setMyActionsPagination] = useState({
   const [showClientDetectionResults, setShowClientDetectionResults] = useState(false);
   const [calendarFilters, setCalendarFilters] = React.useState({});
   const [showImportModal, setShowImportModal] = React.useState(false);
+  const [isMobileView, setIsMobileView] = React.useState(window.innerWidth <= 768);
   // Mobile menu state
 const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [paymentData, setPaymentData] = useState({
@@ -347,6 +348,8 @@ const [ordersSorting, setOrdersSorting] = useState({
 const [ordersShowFilters, setOrdersShowFilters] = useState(false);
 
   // Make state available globally for other components
+  window.isMobileView = isMobileView;
+window.setIsMobileView = setIsMobileView;
   window.appState = {
     isLoggedIn, setIsLoggedIn,
     testMode, setTestMode,
