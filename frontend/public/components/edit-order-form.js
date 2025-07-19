@@ -1,4 +1,4 @@
-// ✅ COMPLETE FIX: Replace your entire renderEditOrderForm function in edit-order-form.js
+// ✅ FIXED: Edit Order Form - Removed force re-render patterns
 
 window.renderEditOrderForm = () => {
   // ✅ Check if form should be shown
@@ -24,7 +24,7 @@ window.renderEditOrderForm = () => {
     window.fetchUsers();
   }
 
-  // ✅ FIXED: Proper state update handler that triggers re-render
+  // ✅ FIXED: Proper state update handler without force re-render
   const handleInputChange = (field, value) => {
     console.log(`🔄 Updating ${field} to:`, value);
     
@@ -39,11 +39,14 @@ window.renderEditOrderForm = () => {
     
     console.log(`✅ Updated ${field}:`, window.editOrderState[field]);
     
-    // Force React re-render by updating a timestamp
-    if (window.setLoading) {
-      // Toggle loading briefly to force re-render
-      window.setLoading(true);
-      setTimeout(() => window.setLoading(false), 1);
+    // ✅ FIXED: Trigger re-render using proper React mechanism
+    if (window.renderApp) {
+      // Use the main app render function instead of setLoading hack
+      window.renderApp();
+    } else if (window.setShowEditOrderForm) {
+      // Alternative: toggle the form state to trigger re-render
+      const currentState = window.showEditOrderForm;
+      window.setShowEditOrderForm(currentState);
     }
   };
 
@@ -119,51 +122,48 @@ window.renderEditOrderForm = () => {
           })
         ),
 
-        // Current Status - READ ONLY
+        // Event Name - READ ONLY
         React.createElement('div', { className: 'mb-4' },
-          React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Current Status'),
+          React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Event'),
           React.createElement('input', {
             type: 'text',
-            value: currentOrderForEdit?.status || '',
+            value: currentOrderForEdit?.event_name || '',
             readOnly: true,
             className: 'w-full px-3 py-2 border rounded-md bg-gray-50'
           })
         ),
 
-        // Change Status - EDITABLE
-        React.createElement('div', { className: 'mb-6' },
-          React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Change Status'),
+        // Status - EDITABLE
+        React.createElement('div', { className: 'mb-4' },
+          React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Status'),
           React.createElement('select', {
             value: currentStatus,
             onChange: (e) => handleInputChange('status', e.target.value),
             className: 'w-full px-3 py-2 border rounded-md'
           },
-            React.createElement('option', { value: 'pending_approval' }, 'Pending Approval'),
+            React.createElement('option', { value: 'pending' }, 'Pending'),
             React.createElement('option', { value: 'approved' }, 'Approved'),
-            React.createElement('option', { value: 'service_assigned' }, 'Service Assigned'),
-            React.createElement('option', { value: 'completed' }, 'Completed'),
-            React.createElement('option', { value: 'rejected' }, 'Rejected')
+            React.createElement('option', { value: 'confirmed' }, 'Confirmed'),
+            React.createElement('option', { value: 'rejected' }, 'Rejected'),
+            React.createElement('option', { value: 'delivered' }, 'Delivered'),
+            React.createElement('option', { value: 'cancelled' }, 'Cancelled')
           )
         ),
 
-        // Assignment Options Section
-        React.createElement('div', { className: 'mb-6' },
-          React.createElement('h3', { className: 'text-lg font-medium mb-4' }, 'Assignment Options'),
-          
-          React.createElement('div', { className: 'mb-4' },
-            React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Assign to User'),
-            React.createElement('select', {
-              value: currentAssignedTo,
-              onChange: (e) => handleInputChange('assigned_to', e.target.value),
-              className: 'w-full px-3 py-2 border rounded-md'
-            },
-              React.createElement('option', { value: '' }, 'Select Assignee'),
-              users.filter(u => u.status === 'active').map(user =>
-                React.createElement('option', { 
-                  key: user.id || user.email, 
-                  value: user.email 
-                }, user.name)
-              )
+        // Assigned To - EDITABLE  
+        React.createElement('div', { className: 'mb-4' },
+          React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Assigned To'),
+          React.createElement('select', {
+            value: currentAssignedTo,
+            onChange: (e) => handleInputChange('assigned_to', e.target.value),
+            className: 'w-full px-3 py-2 border rounded-md'
+          },
+            React.createElement('option', { value: '' }, 'Select Assignee'),
+            users.filter(u => u.status === 'active').map(user =>
+              React.createElement('option', { 
+                key: user.id || user.email, 
+                value: user.email 
+              }, user.name)
             )
           )
         ),
