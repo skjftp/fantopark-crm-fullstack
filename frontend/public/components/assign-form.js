@@ -1,6 +1,8 @@
 // ===============================================
 // OPTIMIZED ASSIGN FORM COMPONENT - PERFORMANCE ENHANCED
 // ===============================================
+// Assign Form Component for FanToPark CRM
+// Cleaned version with unified logging
 
 window.renderAssignForm = () => {
   // ✅ FIXED: Extract all required variables from window globals
@@ -12,13 +14,17 @@ window.renderAssignForm = () => {
     loading = window.loading || window.appState?.loading || false
   } = window.appState || {};
 
+  // ✅ CRITICAL: Check for required data BEFORE using it
+  if (!showAssignForm || !currentLead) {
+    return null;
+  }
 
   // Reset the hidden flag when form is showing
   window._assignFormLoggedHidden = false;
 
   // ✅ OPTIMIZED: Log only essential info, not every render
   window.log.debug("Rendering assign form for lead:", currentLead.name);
-   window.log.debug("Available users:", users.length);
+  window.log.debug("Available users:", users.length);
 
   // ✅ FIXED: Get team members with CORRECT role filtering and status check
   const teamMembers = (formData.assigned_team === 'supply' || formData.assigned_team === 'Supply')
@@ -31,23 +37,25 @@ window.renderAssignForm = () => {
         u.status === 'active'
       );
 
-  assignLog("👥 Team members for", formData.assigned_team || 'sales', "team:", teamMembers.length);
+  window.log.debug("Team members for", formData.assigned_team || 'sales', "team:", teamMembers.length);
   
-  // ✅ DEBUG: Log available users and their roles for troubleshooting
-  if (ENABLE_ASSIGN_DEBUG) {
-    assignLog("📊 All users breakdown:");
-    users.forEach(user => {
-      assignLog(`  - ${user.name} (${user.email}): ${user.role} [${user.status}]`);
-    });
-    assignLog("🎯 Filtered team members:");
-    teamMembers.forEach(user => {
-      assignLog(`  - ${user.name} (${user.email}): ${user.role}`);
-    });
-  }
+  // ✅ DEBUG: Log available users and their roles for troubleshooting (only in debug mode)
+  window.log.debug("All users breakdown:", users.map(user => ({
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    status: user.status
+  })));
+  
+  window.log.debug("Filtered team members:", teamMembers.map(user => ({
+    name: user.name,
+    email: user.email,
+    role: user.role
+  })));
 
   // ✅ FIXED: Extract required functions from window
   const handleInputChange = window.handleFormDataChange || window.handleInputChange || ((field, value) => {
-    assignLog("📝 Input changed:", field, "=", value);
+    window.log.debug("Input changed:", field, "=", value);
     if (window.setFormData) {
       window.setFormData(prev => ({
         ...prev,
@@ -57,13 +65,13 @@ window.renderAssignForm = () => {
   });
 
   const handleAssignLead = window.handleAssignLead || ((e) => {
-    assignLog("🚀 Assign lead form submitted");
+    window.log.debug("Assign lead form submitted");
     e.preventDefault();
     console.warn("⚠️ handleAssignLead function not implemented");
   });
 
   const closeForm = window.closeForm || (() => {
-    assignLog("🔄 Closing assign form");
+    window.log.debug("Closing assign form");
     if (window.setShowAssignForm) {
       window.setShowAssignForm(false);
     }
@@ -79,7 +87,7 @@ window.renderAssignForm = () => {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
     onClick: (e) => {
       if (e.target === e.currentTarget) {
-        assignLog("🔄 Clicked outside, closing form");
+        window.log.debug("Clicked outside, closing form");
         closeForm();
       }
     }
@@ -176,7 +184,7 @@ window.handleAssignLead = async function(e) {
   e.preventDefault();
 
   // Only log essential debug info
-  assignLog('🔍 Assignment starting:', {
+  window.log.debug('Assignment starting:', {
     leadId: window.currentLead?.id,
     assignedTo: window.formData?.assigned_to,
     team: window.formData?.assigned_team
@@ -225,3 +233,6 @@ window.handleAssignLead = async function(e) {
     window.setLoading(false);
   }
 };
+
+// Log component loaded (only once)
+window.log.success('Assign Form Component loaded');
