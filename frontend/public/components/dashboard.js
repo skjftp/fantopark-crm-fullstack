@@ -1114,192 +1114,263 @@ window.dashboardResponsiveOverride = () => {
     window.renderDashboard = window.renderResponsiveDashboard || originalRenderDashboard;
 };
 // Direct Dashboard Chart Fix - Bypasses existing issues
+// Aggressive Dashboard Chart Fix - Forces charts to load
 // Add this to the END of your dashboard.js file
 
 (function() {
   'use strict';
   
-  console.log('📊 Loading direct dashboard chart fix...');
+  console.log('📊 Loading aggressive dashboard chart fix...');
   
-  // Store the original function
+  // Global state
+  window._dashboardChartMonitor = {
+    isMonitoring: false,
+    lastCheck: 0,
+    retryCount: 0
+  };
+  
+  // Direct chart creation function
+  window.forceCreateDashboardCharts = function(apiData) {
+    console.log('📊 Force creating dashboard charts...');
+    
+    // If no apiData provided, use the last stored data
+    if (!apiData && window.apiChartData) {
+      apiData = window.apiChartData;
+    }
+    
+    if (!apiData || !apiData.charts) {
+      console.error('No chart data available');
+      return false;
+    }
+    
+    const { leadSplit, temperatureCount, temperatureValue } = apiData.charts;
+    
+    // Destroy all existing charts first
+    ['leadSplitChart', 'tempCountChart', 'tempValueChart'].forEach(id => {
+      const canvas = document.getElementById(id);
+      if (canvas) {
+        const chart = Chart.getChart(canvas);
+        if (chart) {
+          chart.destroy();
+        }
+      }
+    });
+    
+    let chartsCreated = 0;
+    
+    // Create Lead Split Chart
+    try {
+      const canvas1 = document.getElementById('leadSplitChart');
+      if (canvas1 && leadSplit) {
+        new Chart(canvas1.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: leadSplit.labels.map((label, i) => `${label} (${leadSplit.data[i]})`),
+            datasets: [{
+              data: leadSplit.data,
+              backgroundColor: leadSplit.colors || ['#10B981', '#EF4444'],
+              borderWidth: 2,
+              borderColor: '#fff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' }
+            }
+          }
+        });
+        chartsCreated++;
+        console.log('✅ Created leadSplitChart');
+      }
+    } catch (e) {
+      console.error('Error creating leadSplitChart:', e);
+    }
+    
+    // Create Temperature Count Chart
+    try {
+      const canvas2 = document.getElementById('tempCountChart');
+      if (canvas2 && temperatureCount) {
+        new Chart(canvas2.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: temperatureCount.labels.map((label, i) => `${label} (${temperatureCount.data[i]})`),
+            datasets: [{
+              data: temperatureCount.data,
+              backgroundColor: temperatureCount.colors || ['#EF4444', '#F59E0B', '#3B82F6'],
+              borderWidth: 2,
+              borderColor: '#fff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' }
+            }
+          }
+        });
+        chartsCreated++;
+        console.log('✅ Created tempCountChart');
+      }
+    } catch (e) {
+      console.error('Error creating tempCountChart:', e);
+    }
+    
+    // Create Temperature Value Chart
+    try {
+      const canvas3 = document.getElementById('tempValueChart');
+      if (canvas3 && temperatureValue) {
+        new Chart(canvas3.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: temperatureValue.labels.map((label, i) => {
+              const value = temperatureValue.data[i];
+              return `${label} (₹${value.toLocaleString('en-IN')})`;
+            }),
+            datasets: [{
+              data: temperatureValue.data,
+              backgroundColor: temperatureValue.colors || ['#EF4444', '#F59E0B', '#3B82F6'],
+              borderWidth: 2,
+              borderColor: '#fff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const value = context.parsed || 0;
+                    return `₹${value.toLocaleString('en-IN')}`;
+                  }
+                }
+              }
+            }
+          }
+        });
+        chartsCreated++;
+        console.log('✅ Created tempValueChart');
+      }
+    } catch (e) {
+      console.error('Error creating tempValueChart:', e);
+    }
+    
+    console.log(`📊 Created ${chartsCreated} charts`);
+    return chartsCreated > 0;
+  };
+  
+  // Monitor function that checks and creates charts
+  window.monitorDashboardCharts = function() {
+    if (window.activeTab !== 'dashboard') {
+      window._dashboardChartMonitor.isMonitoring = false;
+      return;
+    }
+    
+    // Check if charts exist
+    const chartsExist = ['leadSplitChart', 'tempCountChart', 'tempValueChart'].every(id => {
+      const canvas = document.getElementById(id);
+      return canvas && Chart.getChart(canvas);
+    });
+    
+    if (!chartsExist) {
+      console.log('📊 Charts missing, attempting to create...');
+      
+      // First try to fetch new data
+      if (window.fetchChartDataFromAPI) {
+        window.fetchChartDataFromAPI();
+      }
+      
+      // Also try to create with existing data after a delay
+      setTimeout(() => {
+        const stillNoCharts = ['leadSplitChart', 'tempCountChart', 'tempValueChart'].some(id => {
+          const canvas = document.getElementById(id);
+          return canvas && !Chart.getChart(canvas);
+        });
+        
+        if (stillNoCharts && window.apiChartData) {
+          console.log('📊 Still no charts, forcing creation with stored data...');
+          window.forceCreateDashboardCharts(window.apiChartData);
+        }
+      }, 1000);
+    }
+  };
+  
+  // Override updateChartsFromAPIData
   const originalUpdateChartsFromAPIData = window.updateChartsFromAPIData;
-  
-  // Replace with a working version
   window.updateChartsFromAPIData = function(apiData) {
-    console.log('📊 Direct chart update started...');
+    console.log('📊 updateChartsFromAPIData called with data:', !!apiData);
     
     if (!apiData || !apiData.charts) {
       console.error('Invalid API data');
       return;
     }
     
-    if (window.activeTab !== 'dashboard') {
-      console.log('Not on dashboard, skipping');
-      return;
-    }
+    // Store the data globally
+    window.apiChartData = apiData;
     
-    const { leadSplit, temperatureCount, temperatureValue } = apiData.charts;
-    
-    // Helper function to safely create a chart
-    const createChart = (canvasId, chartData) => {
-      try {
-        const canvas = document.getElementById(canvasId);
-        if (!canvas) {
-          console.error(`Canvas ${canvasId} not found`);
-          return;
-        }
+    // Use our force create function
+    window.forceCreateDashboardCharts(apiData);
+  };
+  
+  // Start monitoring when tab changes to dashboard
+  let previousTab = window.activeTab;
+  setInterval(() => {
+    if (window.activeTab !== previousTab) {
+      previousTab = window.activeTab;
+      
+      if (window.activeTab === 'dashboard') {
+        console.log('📊 Dashboard tab activated, starting monitor...');
+        window._dashboardChartMonitor.isMonitoring = true;
+        window._dashboardChartMonitor.retryCount = 0;
         
-        // Destroy existing chart if any
-        const existingChart = Chart.getChart(canvas);
-        if (existingChart) {
-          existingChart.destroy();
-        }
-        
-        // Get context
-        const ctx = canvas.getContext('2d');
-        
-        // Create the chart
-        new Chart(ctx, chartData);
-        console.log(`✅ Created ${canvasId}`);
-        
-      } catch (error) {
-        console.error(`Error creating ${canvasId}:`, error);
+        // Immediate check
+        setTimeout(window.monitorDashboardCharts, 100);
+        // Additional checks
+        setTimeout(window.monitorDashboardCharts, 500);
+        setTimeout(window.monitorDashboardCharts, 1000);
+        setTimeout(window.monitorDashboardCharts, 2000);
       }
-    };
-    
-    // Create Lead Split Chart
-    if (leadSplit) {
-      createChart('leadSplitChart', {
-        type: 'doughnut',
-        data: {
-          labels: leadSplit.labels.map((label, i) => `${label} (${leadSplit.data[i]})`),
-          datasets: [{
-            data: leadSplit.data,
-            backgroundColor: leadSplit.colors || ['#10B981', '#EF4444'],
-            borderWidth: 2,
-            borderColor: '#fff'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                padding: 10,
-                usePointStyle: true,
-                font: { size: 11 }
-              }
-            }
-          }
-        }
-      });
     }
-    
-    // Create Temperature Count Chart
-    if (temperatureCount) {
-      createChart('tempCountChart', {
-        type: 'doughnut',
-        data: {
-          labels: temperatureCount.labels.map((label, i) => `${label} (${temperatureCount.data[i]})`),
-          datasets: [{
-            data: temperatureCount.data,
-            backgroundColor: temperatureCount.colors || ['#EF4444', '#F59E0B', '#3B82F6'],
-            borderWidth: 2,
-            borderColor: '#fff'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                padding: 10,
-                usePointStyle: true,
-                font: { size: 11 }
-              }
-            }
-          }
-        }
-      });
-    }
-    
-    // Create Temperature Value Chart
-    if (temperatureValue) {
-      createChart('tempValueChart', {
-        type: 'doughnut',
-        data: {
-          labels: temperatureValue.labels.map((label, i) => {
-            const value = temperatureValue.data[i];
-            return `${label} (₹${value.toLocaleString('en-IN')})`;
-          }),
-          datasets: [{
-            data: temperatureValue.data,
-            backgroundColor: temperatureValue.colors || ['#EF4444', '#F59E0B', '#3B82F6'],
-            borderWidth: 2,
-            borderColor: '#fff'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                padding: 10,
-                usePointStyle: true,
-                font: { size: 11 }
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const value = context.parsed || 0;
-                  return `₹${value.toLocaleString('en-IN')}`;
-                }
-              }
-            }
-          }
-        }
-      });
-    }
-    
-    console.log('📊 All charts updated');
-  };
+  }, 100);
   
-  // Force a refresh when switching to dashboard
-  const originalSetActiveTab = window.setActiveTab;
-  window.setActiveTab = function(tab) {
-    const previousTab = window.activeTab;
-    
-    if (originalSetActiveTab) {
-      originalSetActiveTab(tab);
+  // Also monitor periodically when on dashboard
+  setInterval(() => {
+    if (window.activeTab === 'dashboard' && window._dashboardChartMonitor.isMonitoring) {
+      const now = Date.now();
+      if (now - window._dashboardChartMonitor.lastCheck > 5000) { // Check every 5 seconds
+        window._dashboardChartMonitor.lastCheck = now;
+        window.monitorDashboardCharts();
+      }
     }
-    
-    if (tab === 'dashboard' && previousTab !== 'dashboard') {
-      console.log('📊 Switched to dashboard, refreshing charts in 500ms...');
-      setTimeout(() => {
-        if (window.fetchChartDataFromAPI) {
-          window.fetchChartDataFromAPI();
-        }
-      }, 500);
-    }
-  };
+  }, 1000);
   
-  // If we're already on dashboard, refresh charts
+  // If already on dashboard, start monitoring
   if (window.activeTab === 'dashboard') {
-    console.log('📊 Already on dashboard, refreshing charts...');
-    setTimeout(() => {
-      if (window.fetchChartDataFromAPI) {
-        window.fetchChartDataFromAPI();
-      }
-    }, 500);
+    console.log('📊 Already on dashboard, starting monitor...');
+    window._dashboardChartMonitor.isMonitoring = true;
+    setTimeout(window.monitorDashboardCharts, 500);
   }
   
-  console.log('✅ Direct dashboard chart fix loaded');
+  // Manual commands
+  window.fixDashboardCharts = function() {
+    console.log('📊 Manual fix triggered...');
+    if (window.fetchChartDataFromAPI) {
+      window.fetchChartDataFromAPI();
+    } else if (window.apiChartData) {
+      window.forceCreateDashboardCharts(window.apiChartData);
+    } else {
+      console.error('No chart data available');
+    }
+  };
+  
+  console.log('✅ Aggressive dashboard chart fix loaded');
+  console.log('💡 Commands available:');
+  console.log('  - window.fixDashboardCharts() - Manually fix charts');
+  console.log('  - window.forceCreateDashboardCharts() - Force create with stored data');
+  console.log('  - window.monitorDashboardCharts() - Run monitor check');
 })();
 console.log('✅ API-based dashboard system with tab switching fix loaded');
