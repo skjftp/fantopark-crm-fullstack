@@ -280,22 +280,6 @@ window.handleFinancialChartResize = () => {
     }
 };
 
-// Integration with existing chart system
-if (window.chartState) {
-    // Hook into existing chart system if available
-    const originalInitCharts = window.initializeChartsAdvanced;
-    
-    window.initializeChartsAdvanced = function() {
-        // Call original function if it exists
-        if (originalInitCharts) {
-            originalInitCharts();
-        }
-        
-        // Initialize financial charts
-        window.initializeFinancialCharts();
-    };
-}
-
 // FIXED: Safe variable declaration with unique name
 if (!window.financialChartSystemInitialized) {
   window.financialChartSystemInitialized = true;
@@ -343,11 +327,6 @@ window.addEventListener('resize', () => {
     }, 250);
 });
 
-// Auto-initialize on load
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(window.initializeFinancialCharts, 1000);
-    console.log('✅ Financial Chart Enhancements loaded successfully');
-});
 
 // Manual chart creation function (for debugging)
 window.createFinancialSalesChart = window.createEnhancedFinancialSalesChart;
