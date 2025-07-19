@@ -163,7 +163,7 @@ app.use('/api/assignment-rules', require('./routes/assignmentRules'));
 app.use('/api/events', require('./routes/events'));
 app.use('/api/sales-performance', require('./routes/sales-performance'));
 app.use('/api/website-leads', require('./routes/websiteLeads'));
-app.use('/api/leads', leadRoutes);
+
 
 // ✅ JOURNEY ROUTES - NOW AFTER CORS SETUP!
 const journeyRoutes = require('./routes/journeys');
