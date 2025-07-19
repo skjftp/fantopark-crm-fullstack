@@ -109,7 +109,7 @@ window.renderDashboardContent = () => {
                 )
             ),
 
-            // Pipeline Value Card - UPDATED WITH DATA ATTRIBUTE
+// Pipeline Value Card - UPDATED WITH DATA ATTRIBUTE
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
                 React.createElement('div', { className: 'flex items-center' },
                     React.createElement('div', { className: 'p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg' },
@@ -120,9 +120,10 @@ window.renderDashboardContent = () => {
                             className: 'text-lg font-semibold text-gray-900 dark:text-white',
                             'data-stat': 'pipeline-value' // ✅ ADDED FOR API INTEGRATION
                         },
-                            '₹' + (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
+                            '₹' + ((window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
+                                .filter(lead => !['converted', 'payment_received', 'dropped', 'junk'].includes(lead.status))
                                 .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0)
-                                .toLocaleString('en-IN')
+                                .toLocaleString('en-IN'))
                         ),
                         React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Total Pipeline Value')
                     )
