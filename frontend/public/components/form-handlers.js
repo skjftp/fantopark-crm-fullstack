@@ -108,8 +108,7 @@ window.assignOrderToSupplyTeam = async function(orderId) {
     console.log('🎉 Assignment + delivery creation completed');
     
   } catch (error) {
-    console.error('❌ Error in assignment:', error);
-    alert(`Assignment failed: ${error.message}`);
+    window.handleError(error, 'saving lead');
   } finally {
     window.setLoading(false);
   }
@@ -264,8 +263,7 @@ window.handleFormSubmit = async function(e) {
     // ✅ Close form after successful submission
     window.closeForm();
   } catch (error) {
-    console.error('Form submission error:', error);
-    alert('Operation failed: ' + error.message);
+    window.handleError(error, 'Operation Failed');
   } finally {
     window.setLoading(false);
   }
@@ -307,8 +305,7 @@ window.handleEditOrderSubmit = async function(e) {
     window.setShowEditOrderForm(false);
     alert('Order updated successfully!');
   } catch (error) {
-    console.error('Error updating order:', error);
-    alert('Failed to update order');
+    window.handleError(error, 'error updating order');
   } finally {
     window.setLoading(false);
   }
@@ -371,8 +368,7 @@ window.handleAllocation = async function(e) {
     alert('Inventory allocated successfully!');
 
   } catch (error) {
-    console.error('Allocation error:', error);
-    alert('Error: ' + error.message);
+    window.handleError(error, 'allocation error');
   } finally {
     window.setLoading(false);
   }
@@ -419,8 +415,7 @@ window.handleAssignLead = async function(e) {
     alert('Lead assigned successfully!');
     window.closeForm();
   } catch (error) {
-    console.error('Assignment error:', error);
-    alert('Failed to assign lead: ' + error.message);
+    window.handleError(error, 'failed to assign lead);
   } finally {
     window.setLoading(false);
   }
@@ -484,7 +479,7 @@ window.generateProformaInvoice = async function(order) {
       return proformaInvoice;
     }
   } catch (error) {
-    console.error('Failed to generate proforma invoice:', error);
+    window.handleError(error, 'failed to generate proforma invoice');
     throw error;
   }
 };
@@ -526,7 +521,7 @@ window.handleDeliverySubmit = async function(e) {
     alert('Delivery scheduled successfully!');
     window.closeForm();
   } catch (error) {
-    alert('Failed to schedule delivery. Please try again.');
+   window.handleError(error, 'failed to schedule delivery');
   } finally {
     window.setLoading(false);
   }
@@ -564,8 +559,7 @@ window.handleUserSubmit = async function(e) {
       payment_status: 'paid'
     });
   } catch (error) {
-    console.error('Error saving user:', error);
-    alert(error.message || 'Failed to save user');
+    window.handleError(error, 'failed to save user');
   } finally {
     window.setLoading(false);
   }
@@ -710,8 +704,7 @@ try {
     console.log(`✅ Order ${orderId} ${actionText} successfully`);
 
   } catch (error) {
-    console.error(`❌ Error ${action}ing order:`, error);
-    alert(`Failed to ${action} order: ${error.message}`);
+    window.handleError(error, ` Error ${action}ing order:`);
   } finally {
     window.setLoading(false);
   }
@@ -746,7 +739,7 @@ window.handleBulkAssignSubmit = async function() {
           successCount++;
         }
       } catch (error) {
-        console.error(`Error assigning lead ${leadId}:`, error);
+        window.handleError(error, `Error assigning lead ${leadId}:`);
         errorCount++;
       }
     }
@@ -758,8 +751,7 @@ window.handleBulkAssignSubmit = async function() {
     window.setBulkAssignSelections({});
     window.setShowBulkAssignModal(false);
   } catch (error) {
-    console.error('Bulk assignment error:', error);
-    alert('Bulk assignment failed: ' + error.message);
+    window.handleError(error, 'bulk assignment error');
   } finally {
     window.setBulkAssignLoading(false);
   }
@@ -895,8 +887,7 @@ window.handlePaymentPostServiceSubmit = async function(e) {
     }
   } catch (error) {
     window.setLoading(false);
-    alert('Failed to process payment post service. Please try again.');
-    console.error('Payment post service error:', error);
+    window.handleError(error, 'failed to process payment service');
   } finally {
     window.setLoading(false);
   }
@@ -963,8 +954,7 @@ window.handlePaymentPostService = async function(lead) {
       window.closeForm();
     }
   } catch (error) {
-    alert('Failed to process payment post service. Please try again.');
-    console.error('Payment post service error:', error);
+    window.handleError(error, 'failed to process payment post service');
   } finally {
     window.setLoading(false);
   }
@@ -1178,8 +1168,7 @@ window.handlePaymentSubmit = async function(e) {
     window.closeForm();
 
   } catch (error) {
-    console.error('Payment processing error:', error);
-    alert('Failed to process payment: ' + error.message);
+    window.handleError(error, 'payment processing error');
   } finally {
     window.setLoading(false);
   }
@@ -1581,8 +1570,7 @@ window.completeOrder = async function(orderId) {
     }
 
   } catch (error) {
-    console.error(`❌ Error completing order ${orderId}:`, error);
-    alert(`Failed to complete order: ${error.message}`);
+    window.handleError(error, 'error completing order');
   } finally {
     window.setLoading(false);
   }
@@ -1685,8 +1673,7 @@ window.assignOrderToUser = async function(orderId, assigneeEmail, notes = '') {
     }
 
   } catch (error) {
-    console.error(`❌ Error assigning order ${orderId}:`, error);
-    alert(`Failed to assign order: ${error.message}`);
+    window.handleError(error, 'error assigning order');
   } finally {
     window.setLoading(false);
   }
@@ -1744,8 +1731,7 @@ window.convertProformaToTaxInvoice = async (proformaOrderId) => {
     window.viewInvoice({ ...order, ...updateData });
     
   } catch (error) {
-    console.error('Error converting proforma invoice:', error);
-    alert('Failed to convert proforma invoice');
+    window.handleError(error, 'failed to convert proforma invoice');
   }
 };
 
@@ -1894,8 +1880,7 @@ window.saveFinanceInvoiceNumber = async (order, financeInvoiceNumber) => {
     window.openInvoicePreviewDirectly(updatedOrder);
     
   } catch (error) {
-    console.error('Error saving finance invoice number:', error);
-    alert('Failed to save finance invoice number: ' + error.message);
+    window.handleError(error, 'failed to save finance invoice number');
   } finally {
     window.setLoading(false);
   }
@@ -1946,8 +1931,7 @@ window.updateOrderSalesPerson = async function(orderId, salesPerson) {
     alert('Sales person updated successfully!');
     
   } catch (error) {
-    console.error('❌ Error updating sales person:', error);
-    alert(`Failed to update sales person: ${error.message}`);
+    window.handleError(error, 'error updating sales person');
   } finally {
     window.setLoading(false);
   }
