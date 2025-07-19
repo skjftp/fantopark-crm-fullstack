@@ -562,11 +562,22 @@ const LeadsContent = () => {
         }
     });
 
-    // EXISTING PAGINATION LOGIC
-    const indexOfLastItem = window.appState.currentLeadsPage * window.appState.itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - window.appState.itemsPerPage;
-    const currentLeads = sortedLeads.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(sortedLeads.length / window.appState.itemsPerPage);
+// PAGINATION LOGIC - UPDATED FOR BACKEND PAGINATION
+let indexOfLastItem, indexOfFirstItem, currentLeads, totalPages;
+
+if (window.appState.usePaginatedLeads) {
+    // In paginated mode, use the leads as-is (already paginated by backend)
+    currentLeads = sortedLeads; // Use all the leads returned by backend
+    indexOfFirstItem = 0;
+    indexOfLastItem = sortedLeads.length;
+    totalPages = window.appState.leadsPagination?.totalPages || 1;
+} else {
+    // Traditional mode - apply frontend pagination
+    indexOfLastItem = window.appState.currentLeadsPage * window.appState.itemsPerPage;
+    indexOfFirstItem = indexOfLastItem - window.appState.itemsPerPage;
+    currentLeads = sortedLeads.slice(indexOfFirstItem, indexOfLastItem);
+    totalPages = Math.ceil(sortedLeads.length / window.appState.itemsPerPage);
+}
 
     const unassignedLeads = sortedLeads.filter(lead => !lead.assigned_to || lead.assigned_to === '' || lead.status === 'unassigned');
 
