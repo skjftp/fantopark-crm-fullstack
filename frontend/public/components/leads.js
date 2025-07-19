@@ -558,8 +558,7 @@ const LoadingOverlay = () => {
     // Count unassigned leads from current page
     const unassignedLeads = currentLeads.filter(lead => !lead.assigned_to || lead.assigned_to === '' || lead.status === 'unassigned');
 
-    return React.createElement('div', { className: 'space-y-6' },
-                               return React.createElement('div', { className: 'space-y-6' },
+return React.createElement('div', { className: 'space-y-6' },
     spinnerStyles,  // Add this line
 
         // View Mode Toggle Section
