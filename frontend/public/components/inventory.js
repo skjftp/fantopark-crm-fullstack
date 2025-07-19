@@ -278,34 +278,7 @@ window.renderInventoryContent = () => {
             
             // Second row - Other filters
             React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4' },
-                // Test mode toggle (if super admin)
-                window.currentUser?.role === 'super_admin' && React.createElement('div', { className: 'flex-1' },
-                    React.createElement('div', {
-                        style: {
-                            display: window.currentUser?.role === 'super_admin' ? 'block' : 'none',
-                            backgroundColor: window.testMode ? '#fef2f2' : '#fef3c7',
-                            border: window.testMode ? '2px solid #dc2626' : '2px solid #f59e0b',
-                            borderRadius: '8px',
-                            padding: '8px',
-                            marginBottom: '8px'
-                        }
-                    },
-                        React.createElement('button', {
-                            onClick: () => window.toggleTestMode(),
-                            style: {
-                                width: '100%',
-                                padding: '8px 16px',
-                                borderRadius: '4px',
-                                backgroundColor: window.testMode ? '#dc2626' : '#10b981',
-                                color: 'white',
-                                cursor: 'pointer',
-                                fontWeight: 'bold',
-                                fontSize: '14px'
-                            }
-                        }, window.testMode ? 'TURN OFF TEST MODE' : 'TURN ON TEST MODE')
-                    )
-                ),
-
+             
                 // Due Date Filter
                 React.createElement('div', { className: 'flex-1' },
                     React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' }, 'Filter by Due Date'),
