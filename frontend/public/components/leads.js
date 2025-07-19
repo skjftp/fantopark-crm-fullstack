@@ -1188,24 +1188,53 @@ React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg sh
                         )
                     ),
                     // Pagination
-                    sortedLeads.length > window.appState.itemsPerPage && React.createElement('div', { className: 'flex justify-between items-center px-6 py-3 bg-gray-50 border-t' },
-                        React.createElement('div', { className: 'text-sm text-gray-700' },
-                            'Showing ' + (indexOfFirstItem + 1) + ' to ' + (Math.min(indexOfLastItem, sortedLeads.length)) + ' of ' + (sortedLeads.length) + ' leads'
-                        ),
-                        React.createElement('div', { className: 'flex space-x-2' },
-                            React.createElement('button', {
-                                onClick: () => window.appState.setCurrentLeadsPage(prev => Math.max(prev - 1, 1)),
-                                disabled: window.appState.currentLeadsPage === 1,
-                                className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
-                            }, 'Previous'),
-                            React.createElement('span', { className: 'px-3 py-1' }, 'Page ' + (window.appState.currentLeadsPage) + ' of ' + (totalPages)),
-                            React.createElement('button', {
-                                onClick: () => window.appState.setCurrentLeadsPage(prev => Math.min(prev + 1, totalPages)),
-                                disabled: window.appState.currentLeadsPage === totalPages,
-                                className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
-                            }, 'Next')
-                        )
-                    )
+                    // Pagination
+(window.appState.usePaginatedLeads ? 
+  (window.appState.leadsPagination?.totalPages > 1) : 
+  (sortedLeads.length > window.appState.itemsPerPage)
+) && React.createElement('div', { className: 'flex justify-between items-center px-6 py-3 bg-gray-50 border-t' },
+    React.createElement('div', { className: 'text-sm text-gray-700' },
+        window.appState.usePaginatedLeads ?
+            `Page ${window.appState.leadsPagination?.page || 1} of ${window.appState.leadsPagination?.totalPages || 1} (${window.appState.leadsPagination?.total || 0} total leads)` :
+            'Showing ' + (indexOfFirstItem + 1) + ' to ' + (Math.min(indexOfLastItem, sortedLeads.length)) + ' of ' + (sortedLeads.length) + ' leads'
+    ),
+    React.createElement('div', { className: 'flex space-x-2' },
+        React.createElement('button', {
+            onClick: () => {
+                if (window.appState.usePaginatedLeads) {
+                    window.LeadsAPI.changePage((window.appState.leadsPagination?.page || 1) - 1);
+                } else {
+                    window.appState.setCurrentLeadsPage(prev => Math.max(prev - 1, 1));
+                }
+            },
+            disabled: window.appState.usePaginatedLeads ? 
+                !window.appState.leadsPagination?.hasPrev : 
+                window.appState.currentLeadsPage === 1,
+            className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
+        }, 'Previous'),
+        
+        // Page indicator
+        React.createElement('span', { className: 'px-3 py-1' }, 
+            window.appState.usePaginatedLeads ?
+                `Page ${window.appState.leadsPagination?.page || 1} of ${window.appState.leadsPagination?.totalPages || 1}` :
+                'Page ' + (window.appState.currentLeadsPage) + ' of ' + (totalPages)
+        ),
+        
+        React.createElement('button', {
+            onClick: () => {
+                if (window.appState.usePaginatedLeads) {
+                    window.LeadsAPI.changePage((window.appState.leadsPagination?.page || 1) + 1);
+                } else {
+                    window.appState.setCurrentLeadsPage(prev => Math.min(prev + 1, totalPages));
+                }
+            },
+            disabled: window.appState.usePaginatedLeads ? 
+                !window.appState.leadsPagination?.hasNext : 
+                window.appState.currentLeadsPage === totalPages,
+            className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
+        }, 'Next')
+    )
+)
                 ) : React.createElement('div', { className: 'p-6 text-center text-gray-500' }, 
                     sortedLeads.length === 0 && (window.appState.leads || []).length > 0 ? 
                     'No leads match your current filters.' : 
