@@ -60,6 +60,13 @@ const [leadsPagination, setLeadsPagination] = useState({
   hasPrev: false
 });
 
+const [leadsFilterOptions, setLeadsFilterOptions] = useState({
+  sources: [],
+  businessTypes: [],
+  events: [],
+  users: [],
+  statuses: []
+});  
 // Add this state for tracking if we're using paginated mode
 const [usePaginatedLeads, setUsePaginatedLeads] = useState(
   localStorage.getItem('usePaginatedLeads') === 'true'
@@ -406,6 +413,7 @@ window.setIsMobileView = setIsMobileView;
     leadsBusinessTypeFilter, setLeadsBusinessTypeFilter,
     leadsEventFilter, setLeadsEventFilter,
     leadsSortField, setLeadsSortField,
+    leadsFilterOptions, setLeadsFilterOptions,
     leadsSortDirection, setLeadsSortDirection,
     showBulkAssignModal, setShowBulkAssignModal,
     bulkAssignSelections, setBulkAssignSelections,
