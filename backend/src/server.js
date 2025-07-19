@@ -10,6 +10,7 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+const leadRoutes = require('./routes/leads');
 
 // ✅ FIXED: Updated allowedOrigins to include Cloud Workstations
 const allowedOrigins = [
@@ -162,6 +163,7 @@ app.use('/api/assignment-rules', require('./routes/assignmentRules'));
 app.use('/api/events', require('./routes/events'));
 app.use('/api/sales-performance', require('./routes/sales-performance'));
 app.use('/api/website-leads', require('./routes/websiteLeads'));
+app.use('/api/leads', leadRoutes);
 
 // ✅ JOURNEY ROUTES - NOW AFTER CORS SETUP!
 const journeyRoutes = require('./routes/journeys');
