@@ -1113,201 +1113,90 @@ window.dashboardResponsiveOverride = () => {
     const originalRenderDashboard = window.renderDashboard;
     window.renderDashboard = window.renderResponsiveDashboard || originalRenderDashboard;
 };
-
-// Dashboard Chart Fix - Works with React lifecycle and content router
-// Add this at the end of your dashboard.js file
+// Minimal Dashboard Chart Fix - Alternative Approach
+// Try this if the comprehensive fix doesn't work
 
 (function() {
   'use strict';
   
-  console.log('📊 Loading React lifecycle chart fix...');
+  console.log('📊 Loading minimal dashboard chart fix...');
   
-  // Store the original renderDashboardContent
-  const originalRenderDashboardContent = window.renderDashboardContent;
+  // Simple flag to track dashboard visibility
+  let dashboardVisible = false;
   
-  // Create a wrapper component that properly handles mounting
-  window.renderDashboardContent = function() {
-    // Use React hooks for lifecycle management
-    const { useEffect, useRef } = React;
+  // Override the existing createDashboardCharts if it exists
+  const ensureChartsCreated = () => {
+    if (window.activeTab !== 'dashboard') return;
     
-    // Create a wrapper component
-    const DashboardWrapper = () => {
-      const isMounted = useRef(false);
-      const chartInitTimeout = useRef(null);
-      
-      // Component mount effect
-      useEffect(() => {
-        console.log('📊 Dashboard component mounted');
-        isMounted.current = true;
-        
-        // Clear any existing timeout
-        if (chartInitTimeout.current) {
-          clearTimeout(chartInitTimeout.current);
-        }
-        
-        // Initialize charts after component is fully mounted
-        chartInitTimeout.current = setTimeout(() => {
-          if (isMounted.current) {
-            console.log('📊 Initializing charts after mount...');
-            
-            // Check if Chart.js is available
-            if (typeof Chart !== 'undefined' && window.fetchChartDataFromAPI) {
-              // Clear any existing chart instances
-              ['leadSplitChart', 'tempCountChart', 'tempValueChart'].forEach(id => {
-                const canvas = document.getElementById(id);
-                if (canvas) {
-                  const existingChart = Chart.getChart(canvas);
-                  if (existingChart) {
-                    existingChart.destroy();
-                  }
-                }
-              });
-              
-              // Fetch and create charts
-              window.fetchChartDataFromAPI().then(() => {
-                console.log('✅ Charts initialized successfully');
-              }).catch(error => {
-                console.error('❌ Error initializing charts:', error);
-                // Retry once after a delay
-                setTimeout(() => {
-                  if (isMounted.current) {
-                    window.fetchChartDataFromAPI();
-                  }
-                }, 1000);
-              });
-            } else {
-              console.log('⏳ Chart.js not ready, retrying...');
-              // Retry after a delay
-              chartInitTimeout.current = setTimeout(() => {
-                if (isMounted.current && window.fetchChartDataFromAPI) {
-                  window.fetchChartDataFromAPI();
-                }
-              }, 500);
-            }
-          }
-        }, 200); // Small delay to ensure DOM is ready
-        
-        // Also fetch dashboard stats
-        if (window.fetchDashboardStats) {
-          window.fetchDashboardStats();
-        }
-        
-        // Cleanup function
-        return () => {
-          console.log('📊 Dashboard component unmounting');
-          isMounted.current = false;
-          
-          // Clear timeout
-          if (chartInitTimeout.current) {
-            clearTimeout(chartInitTimeout.current);
-          }
-          
-          // Destroy charts on unmount
-          ['leadSplitChart', 'tempCountChart', 'tempValueChart'].forEach(id => {
-            const canvas = document.getElementById(id);
-            if (canvas) {
-              const existingChart = Chart.getChart(canvas);
-              if (existingChart) {
-                existingChart.destroy();
-              }
-            }
-          });
-        };
-      }, []); // Empty dependency array - only run on mount/unmount
-      
-      // Render the original dashboard content
-      return originalRenderDashboardContent();
-    };
+    // Check if all canvas elements exist and are visible
+    const canvasIds = ['leadSplitChart', 'tempCountChart', 'tempValueChart'];
+    const allCanvasesVisible = canvasIds.every(id => {
+      const canvas = document.getElementById(id);
+      return canvas && canvas.offsetWidth > 0 && canvas.offsetHeight > 0;
+    });
     
-    // Return the wrapper component
-    return React.createElement(DashboardWrapper);
-  };
-  
-  // Also override the chart update function to check if dashboard is active
-  const originalUpdateChartsFromAPIData = window.updateChartsFromAPIData;
-  window.updateChartsFromAPIData = function(apiData) {
-    console.log('📊 updateChartsFromAPIData called, checking conditions...');
-    
-    // Check if we're actually on the dashboard tab
-    if (window.activeTab !== 'dashboard') {
-      console.log('Not on dashboard tab, skipping chart update');
-      return;
+    if (allCanvasesVisible && window.fetchChartDataFromAPI) {
+      console.log('📊 All canvases visible, creating charts...');
+      window.fetchChartDataFromAPI();
     }
-    
-    // Add a small delay to ensure DOM is ready
-    setTimeout(() => {
-      // Check if chart containers exist
-      const containers = ['leadSplitChart', 'tempCountChart', 'tempValueChart'];
-      const allContainersExist = containers.every(id => {
-        const element = document.getElementById(id);
-        return element && element.offsetParent !== null;
-      });
-      
-      if (!allContainersExist) {
-        console.log('Chart containers not ready or not visible');
-        return;
-      }
-      
-      // Call the original function
-      if (originalUpdateChartsFromAPIData) {
-        originalUpdateChartsFromAPIData(apiData);
-      }
-    }, 50);
   };
   
-  // Add visibility observer for better tab detection
-  if (typeof IntersectionObserver !== 'undefined') {
-    let dashboardObserver = null;
-    
-    // Create observer when dashboard is active
-    const originalSetActiveTab = window.setActiveTab;
-    window.setActiveTab = function(tab) {
-      // Call all existing setActiveTab implementations
-      if (originalSetActiveTab) {
-        originalSetActiveTab(tab);
-      }
+  // Monitor DOM changes
+  const observer = new MutationObserver((mutations) => {
+    // Check if dashboard just became visible
+    if (window.activeTab === 'dashboard' && !dashboardVisible) {
+      dashboardVisible = true;
+      console.log('📊 Dashboard became visible, scheduling chart creation...');
       
-      // Special handling for dashboard
-      if (tab === 'dashboard') {
-        console.log('📊 Dashboard tab activated, setting up observer...');
-        
-        // Set up intersection observer after a delay
-        setTimeout(() => {
-          const dashboardElement = document.querySelector('[data-active-tab="dashboard"]') ||
-                                 document.querySelector('.dashboard-content') ||
-                                 document.getElementById('dashboard');
-          
-          if (dashboardElement && !dashboardObserver) {
-            dashboardObserver = new IntersectionObserver((entries) => {
-              entries.forEach(entry => {
-                if (entry.isIntersecting && window.activeTab === 'dashboard') {
-                  console.log('📊 Dashboard became visible via observer');
-                  // Disconnect observer after first trigger
-                  dashboardObserver.disconnect();
-                  dashboardObserver = null;
-                  
-                  // Trigger chart refresh
-                  if (window.fetchChartDataFromAPI) {
-                    setTimeout(() => {
-                      window.fetchChartDataFromAPI();
-                    }, 100);
-                  }
-                }
-              });
-            }, { threshold: 0.1 });
-            
-            dashboardObserver.observe(dashboardElement);
-          }
-        }, 300);
-      } else if (dashboardObserver) {
-        // Clean up observer when leaving dashboard
-        dashboardObserver.disconnect();
-        dashboardObserver = null;
-      }
-    };
-  }
+      // Try multiple times to ensure charts load
+      setTimeout(ensureChartsCreated, 100);
+      setTimeout(ensureChartsCreated, 300);
+      setTimeout(ensureChartsCreated, 600);
+      setTimeout(ensureChartsCreated, 1000);
+    } else if (window.activeTab !== 'dashboard' && dashboardVisible) {
+      dashboardVisible = false;
+    }
+  });
   
-  console.log('✅ React lifecycle chart fix loaded');
+  // Start observing
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['style', 'class']
+  });
+  
+  // Also monitor activeTab changes
+  let lastTab = window.activeTab;
+  setInterval(() => {
+    if (window.activeTab !== lastTab) {
+      lastTab = window.activeTab;
+      if (window.activeTab === 'dashboard') {
+        dashboardVisible = false; // Reset flag to trigger creation
+      }
+    }
+  }, 100);
+  
+  // Override the problematic updateChartsFromAPIData to add delays
+  const originalUpdate = window.updateChartsFromAPIData;
+  window.updateChartsFromAPIData = function(apiData) {
+    if (!apiData || !apiData.charts) return;
+    
+    // Multiple attempts with increasing delays
+    const attempts = [0, 100, 300, 600];
+    
+    attempts.forEach(delay => {
+      setTimeout(() => {
+        if (window.activeTab === 'dashboard' && originalUpdate) {
+          const canvas = document.getElementById('leadSplitChart');
+          if (canvas && canvas.offsetWidth > 0) {
+            originalUpdate(apiData);
+          }
+        }
+      }, delay);
+    });
+  };
+  
+  console.log('✅ Minimal dashboard chart fix loaded');
 })();
-
 console.log('✅ API-based dashboard system with tab switching fix loaded');
