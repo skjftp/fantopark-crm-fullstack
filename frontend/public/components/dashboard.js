@@ -228,9 +228,13 @@ window.renderDashboardContent = () => {
                     }
                 },
                     React.createElement('option', { value: '' }, 'Select Event'),
-                    [...new Set((window.appState?.leads || window.leads || []).map(lead => lead.lead_for_event).filter(Boolean))].map(event =>
+                    // Use all events from filter options if available, otherwise extract from leads
+                    (window.appState?.leadsFilterOptions?.events || 
+                     [...new Set((window.appState?.leads || window.leads || []).map(lead => lead.lead_for_event).filter(Boolean))]
+                    ).map(event =>
                         React.createElement('option', { key: event, value: event }, event)
                     )
+                )
                 )
             )
         ),
@@ -798,6 +802,45 @@ window.initializeDashboardCharts = function() {
         window.fetchDashboardStats();
         
     }, 100);
+};
+
+// Fetch all filter options for dashboard dropdowns
+window.fetchDashboardFilterOptions = async function() {
+    console.log('🔍 Fetching filter options for dashboard dropdowns...');
+    
+    try {
+        if (window.LeadsAPI && window.LeadsAPI.fetchFilterOptions) {
+            const filterOptions = await window.LeadsAPI.fetchFilterOptions();
+            
+            if (filterOptions) {
+                console.log('✅ Filter options received:', {
+                    events: filterOptions.events?.length || 0,
+                    users: filterOptions.users?.length || 0
+                });
+                
+                // Store in appState
+                if (window.appState) {
+                    window.appState.leadsFilterOptions = filterOptions;
+                    
+                    // Trigger re-render to update dropdowns
+                    if (window.renderDashboard) {
+                        window.renderDashboard();
+                    }
+                }
+                
+                return filterOptions;
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error fetching filter options:', error);
+    }
+    
+    // Also ensure we have all users loaded
+    if (!window.users || window.users.length === 0) {
+        if (window.fetchUsers) {
+            await window.fetchUsers();
+        }
+    }
 };
 
 // Create empty charts (skip loading state to avoid grey charts)
@@ -1535,6 +1578,11 @@ window.renderRecentActivity = function() {
         
         // Add a small delay to ensure DOM is ready
         setTimeout(async () => {
+          // Fetch filter options for dropdowns
+          if (window.fetchDashboardFilterOptions) {
+            await window.fetchDashboardFilterOptions();
+          }
+          
           // Fetch dashboard stats
           if (window.fetchDashboardStats) {
             await window.fetchDashboardStats();
@@ -1563,6 +1611,7 @@ window.renderRecentActivity = function() {
       setTimeout(async () => {
         // Fetch all dashboard data
         try {
+          await window.fetchDashboardFilterOptions();
           await window.fetchDashboardStats();
           await window.fetchChartDataFromAPI();
           await window.extractFiltersData();
