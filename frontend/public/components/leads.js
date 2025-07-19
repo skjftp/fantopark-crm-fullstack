@@ -8,35 +8,41 @@ window.clientAssignedFilter = window.clientAssignedFilter || 'all';
 window.clientMultiLeadFilter = window.clientMultiLeadFilter || 'all';
 window.leadsSalesPersonFilter = window.leadsSalesPersonFilter || 'all';
 
-// Initialize on component load
-window.addEventListener('DOMContentLoaded', () => {
-  if (localStorage.getItem('usePaginatedLeads') === 'true' && window.LeadsAPI) {
-    window.log.info('🚀 Initializing paginated leads on page load');
-    setTimeout(() => {
-      window.LeadsAPI.fetchPaginatedLeads();
-      window.LeadsAPI.fetchFilterOptions();
-    }, 1000); // Wait for app state to be ready
+// Initialize paginated mode if enabled - with proper checks
+const initializePaginatedMode = () => {
+  const shouldUsePaginated = localStorage.getItem('usePaginatedLeads') === 'true';
+  
+  if (shouldUsePaginated && !window.leadsInitialized) {
+    window.leadsInitialized = true;
+    
+    // Function to safely initialize when everything is ready
+    const safeInitialize = () => {
+      if (window.appState && window.LeadsAPI && window.appState.setLeads) {
+        window.log.info('🚀 Initializing paginated leads mode - all dependencies ready');
+        window.LeadsAPI.fetchPaginatedLeads();
+        window.LeadsAPI.fetchFilterOptions();
+      } else {
+        // Log what's missing
+        if (!window.appState) window.log.debug('Waiting for appState...');
+        if (!window.LeadsAPI) window.log.debug('Waiting for LeadsAPI...');
+        
+        // Retry after a short delay
+        setTimeout(safeInitialize, 500);
+      }
+    };
+    
+    // Start initialization process
+    setTimeout(safeInitialize, 1000);
   }
-});
+};
 
-// Initialize paginated mode if enabled
-const shouldUsePaginated = localStorage.getItem('usePaginatedLeads') === 'true';
-if (shouldUsePaginated && !window.leadsInitialized) {
-  window.leadsInitialized = true;
-  
-  window.log.info('🚀 Initializing paginated leads mode');
-  
-  // Wait a bit longer for app state to be fully ready
-  setTimeout(() => {
-    if (window.LeadsAPI) {
-      window.LeadsAPI.fetchPaginatedLeads();
-      window.LeadsAPI.fetchFilterOptions();
-    } else {
-      window.log.error('LeadsAPI not loaded yet');
-    }
-  }, 1500); // Increased timeout to ensure everything is loaded
+// Run initialization when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializePaginatedMode);
+} else {
+  // DOM already loaded, initialize after a short delay
+  setTimeout(initializePaginatedMode, 500);
 }
-
 
 
 // Client View Component
