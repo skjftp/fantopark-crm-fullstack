@@ -226,6 +226,11 @@ window.initializeDailySummary = function() {
 // Main render function
 window.renderDailySummaryTicker = () => {
   const state = window.dailySummaryState;
+
+    // Don't render on mobile
+  if (window.isMobileView) {
+    return null;
+  }
   
   // Initialize on first render
   if (!state.initialized) {
