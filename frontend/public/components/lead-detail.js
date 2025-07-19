@@ -510,12 +510,11 @@ window.renderProgressLeadContent = function(lead, status) {
   );
 };
 
-// ===== MAIN RENDER FUNCTION WITH TABS =====
 window.renderLeadDetail = () => {
   if (!window.appState.showLeadDetail || !window.appState.currentLead) return null;
 
-  // Create a proper React component
-  const LeadDetailComponent = () => {
+  // Create a proper React component to use hooks
+  const LeadDetailModal = () => {
     const lead = window.appState.currentLead;
     const status = window.LEAD_STATUSES[lead.status] || { 
       label: lead.status, 
@@ -524,139 +523,140 @@ window.renderLeadDetail = () => {
     };
     const nextActions = status.next || [];
     
-    // State for active tab - now inside a React component
+    // State for active tab - now properly inside a React component
     const [activeTab, setActiveTab] = React.useState('details');
 
     return React.createElement('div', { 
-    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]',
-    onClick: (e) => e.target === e.currentTarget && window.closeForm()
-  },
-    React.createElement('div', { 
-      className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col'
+      className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]',
+      onClick: (e) => e.target === e.currentTarget && window.closeForm()
     },
-      // Header
       React.createElement('div', { 
-        className: 'sticky top-0 bg-white dark:bg-gray-800 border-b px-6 py-4 flex justify-between items-center z-10'
+        className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col'
       },
-        React.createElement('div', null,
-          React.createElement('h2', { 
-            className: 'text-2xl font-bold text-gray-900 dark:text-white' 
-          }, lead.name),
-          React.createElement('div', { className: 'flex items-center mt-2 space-x-4' },
-            React.createElement('span', {
-              className: 'px-3 py-1 text-sm rounded-full ' + status.color
-            }, status.label),
-            lead.assigned_to && React.createElement('span', { 
-              className: 'text-sm text-blue-600 dark:text-blue-400' 
+        // Header
+        React.createElement('div', { 
+          className: 'sticky top-0 bg-white dark:bg-gray-800 border-b px-6 py-4 flex justify-between items-center z-10'
+        },
+          React.createElement('div', null,
+            React.createElement('h2', { 
+              className: 'text-2xl font-bold text-gray-900 dark:text-white' 
+            }, lead.name),
+            React.createElement('div', { className: 'flex items-center mt-2 space-x-4' },
+              React.createElement('span', {
+                className: 'px-3 py-1 text-sm rounded-full ' + status.color
+              }, status.label),
+              lead.assigned_to && React.createElement('span', { 
+                className: 'text-sm text-blue-600 dark:text-blue-400' 
+              }, 
+                'Assigned to: ' + window.getUserDisplayName(lead.assigned_to, window.appState.users)
+              ),
+              // Show auto-assignment info if available
+              lead.auto_assigned && React.createElement('span', { 
+                className: 'text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded' 
+              }, '🤖 Auto-assigned')
+            )
+          ),
+          React.createElement('button', {
+            onClick: window.closeForm,
+            className: 'text-gray-400 hover:text-gray-600 text-2xl'
+          }, '✕')
+        ),
+        
+        // Tab Navigation
+        React.createElement('div', { 
+          className: 'border-b bg-gray-50 dark:bg-gray-900 px-6'
+        },
+          React.createElement('nav', { className: 'flex space-x-8' },
+            // Details Tab
+            React.createElement('button', {
+              onClick: () => setActiveTab('details'),
+              className: `py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'details'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400'
+              }`
+            }, '📋 Details'),
+            
+            // Progress Lead Tab
+            nextActions.length > 0 && React.createElement('button', {
+              onClick: () => setActiveTab('progress'),
+              className: `py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'progress'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400'
+              }`
+            }, '➡️ Progress Lead'),
+            
+            // Inclusions Tab (NEW)
+            React.createElement('button', {
+              onClick: () => setActiveTab('inclusions'),
+              className: `py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'inclusions'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400'
+              }`
             }, 
-              'Assigned to: ' + window.getUserDisplayName(lead.assigned_to, window.appState.users)
+              '✈️ Inclusions',
+              // Show notification badge if in quote_requested status
+              lead.status === 'quote_requested' && 
+              React.createElement('span', { 
+                className: 'ml-2 bg-red-500 text-white px-2 py-0.5 rounded-full text-xs'
+              }, 'Action Required')
             ),
-            // Show auto-assignment info if available
-            lead.auto_assigned && React.createElement('span', { 
-              className: 'text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded' 
-            }, '🤖 Auto-assigned')
+            
+            // Communication Tab
+            React.createElement('button', {
+              onClick: () => setActiveTab('communication'),
+              className: `py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'communication'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400'
+              }`
+            }, '💬 Communication')
           )
         ),
-        React.createElement('button', {
-          onClick: window.closeForm,
-          className: 'text-gray-400 hover:text-gray-600 text-2xl'
-        }, '✕')
-      ),
-      
-      // Tab Navigation
-      React.createElement('div', { 
-        className: 'border-b bg-gray-50 dark:bg-gray-900 px-6'
-      },
-        React.createElement('nav', { className: 'flex space-x-8' },
-          // Details Tab
-          React.createElement('button', {
-            onClick: () => setActiveTab('details'),
-            className: `py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'details'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400'
-            }`
-          }, '📋 Details'),
-          
-          // Progress Lead Tab
-          nextActions.length > 0 && React.createElement('button', {
-            onClick: () => setActiveTab('progress'),
-            className: `py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'progress'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400'
-            }`
-          }, '➡️ Progress Lead'),
-          
-          // Inclusions Tab (NEW)
-          React.createElement('button', {
-            onClick: () => setActiveTab('inclusions'),
-            className: `py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'inclusions'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400'
-            }`
-          }, 
-            '✈️ Inclusions',
-            // Show notification badge if in quote_requested status
-            lead.status === 'quote_requested' && 
-            React.createElement('span', { 
-              className: 'ml-2 bg-red-500 text-white px-2 py-0.5 rounded-full text-xs'
-            }, 'Action Required')
+        
+        // Tab Content
+        React.createElement('div', { 
+          className: 'flex-1 overflow-y-auto'
+        },
+          // Details Tab Content
+          activeTab === 'details' && React.createElement('div', { className: 'p-6' },
+            window.renderLeadDetailsContent(lead, status)
           ),
           
-          // Communication Tab
-          React.createElement('button', {
-            onClick: () => setActiveTab('communication'),
-            className: `py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'communication'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400'
-            }`
-          }, '💬 Communication')
-        )
-      ),
-      
-      // Tab Content
-      React.createElement('div', { 
-        className: 'flex-1 overflow-y-auto'
-      },
-        // Details Tab Content
-        activeTab === 'details' && React.createElement('div', { className: 'p-6' },
-          window.renderLeadDetailsContent(lead, status)
-        ),
-        
-        // Progress Lead Tab Content
-        activeTab === 'progress' && React.createElement('div', { className: 'p-6' },
-          window.renderProgressLeadContent(lead, status)
-        ),
-        
-        // Inclusions Tab Content (NEW)
-        activeTab === 'inclusions' && (
-          window.renderLeadInclusions ? 
-          window.renderLeadInclusions(lead) :
-          React.createElement('div', { className: 'p-6 text-center text-gray-500' },
-            'Inclusions component not loaded. Please include lead-inclusions.js'
-          )
-        ),
-        
-        // Communication Tab Content
-        activeTab === 'communication' && React.createElement('div', { className: 'p-6' },
-          window.CommunicationTimeline ?
-          React.createElement(window.CommunicationTimeline, {
-            leadId: lead.id,
-            leadName: lead.name
-          }) :
-          React.createElement('div', { className: 'text-center text-gray-500' },
-            'Communication timeline not available'
+          // Progress Lead Tab Content
+          activeTab === 'progress' && React.createElement('div', { className: 'p-6' },
+            window.renderProgressLeadContent(lead, status)
+          ),
+          
+          // Inclusions Tab Content (NEW)
+          activeTab === 'inclusions' && (
+            window.renderLeadInclusions ? 
+            window.renderLeadInclusions(lead) :
+            React.createElement('div', { className: 'p-6 text-center text-gray-500' },
+              'Inclusions component not loaded. Please include lead-inclusions.js'
+            )
+          ),
+          
+          // Communication Tab Content
+          activeTab === 'communication' && React.createElement('div', { className: 'p-6' },
+            window.CommunicationTimeline ?
+            React.createElement(window.CommunicationTimeline, {
+              leadId: lead.id,
+              leadName: lead.name
+            }) :
+            React.createElement('div', { className: 'text-center text-gray-500' },
+              'Communication timeline not available'
+            )
           )
         )
       )
     );
   };
-  
-  // Return the React component
-  return React.createElement(LeadDetailComponent);
+
+  // Return the component instance
+  return React.createElement(LeadDetailModal);
 };
 
 console.log('✅ Lead Detail component with Inclusions Tab loaded successfully');
