@@ -270,6 +270,11 @@ window.initializeCurrencyTicker = function() {
 // Main render function
 window.renderCurrencyTicker = () => {
   const state = window.currencyTickerState;
+
+    // Don't render on mobile
+  if (window.isMobileView) {
+    return null;
+  }
   
   // Initialize on first render
   if (!state.initialized) {
