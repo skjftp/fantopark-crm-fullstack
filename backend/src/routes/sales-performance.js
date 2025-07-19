@@ -105,7 +105,7 @@ router.get('/', authenticateToken, async (req, res) => {
     let allLeadsSnapshot;
     try {
       allLeadsSnapshot = await db.collection(collections.leads)
-        .where('status', 'in', ['hot', 'warm', 'cold', 'qualified', 'attempt_1', 'attempt_2', 'attempt_3'])
+        .where('status', 'in', ['hot', 'warm', 'cold', 'qualified', 'attempt_1', 'attempt_2', 'attempt_3', 'quote_requested', 'quote_received'])
         .get();
       console.log(`Found ${allLeadsSnapshot.size} active leads`);
     } catch (err) {
