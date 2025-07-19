@@ -36,19 +36,6 @@ window.renderAllocationForm = () => {
     allocLog("Would change:", field, "to:", value);
   });
 
-  // ✅ OPTIMIZED: Only log when form state changes (not every render)
-  if (!showAllocationForm || !currentInventory) {
-    // Only log once when state changes
-    if (ENABLE_ALLOCATION_DEBUG && !window._allocationFormLoggedHidden) {
-      allocLog("❌ Not showing allocation form:", {
-        showAllocationForm,
-        hasInventory: !!currentInventory
-      });
-      window._allocationFormLoggedHidden = true;
-    }
-    return null;
-  }
-
   // Reset the hidden flag when form is showing
   window._allocationFormLoggedHidden = false;
 
