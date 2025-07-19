@@ -7,7 +7,7 @@ window.renderAppBusinessLogic = function() {
   // Access app state
   const state = window.appState;
   if (!state) {
-    console.error('App state not available');
+    window.log.error('App state not available');
     return {};
   }
 
@@ -66,10 +66,10 @@ window.renderAppBusinessLogic = function() {
         setCurrentLead(prev => ({ ...prev, is_premium: isPremium }));
       }
       
-      console.log(`✅ Lead ${leadId} premium status updated to ${isPremium}`);
+      window.log.info(`✅ Lead ${leadId} premium status updated to ${isPremium}`);
       
     } catch (error) {
-      console.error('Error updating premium status:', error);
+      window.log.error('Error updating premium status:', error);
       alert('Failed to update premium status: ' + error.message);
     } finally {
       setLoading(false);
@@ -116,7 +116,7 @@ if (choice.value === 'payment_post_service') {
       setShowChoiceModal(false);
       setLoading(false);
     } catch (error) {
-      console.error('Error handling choice selection:', error);
+      window.log.error('Error handling choice selection:', error);
       setLoading(false);
       alert('Failed to update lead status: ' + error.message);
     }
@@ -150,7 +150,7 @@ if (choice.value === 'payment_post_service') {
   const handleLeadProgression = (lead) => {
     // FIXED: Handle unassigned leads first - open assignment form instead of progressing
     if (lead.status === 'unassigned' && !lead.assigned_to) {
-      console.log('📝 Opening assignment form for unassigned lead:', lead.name);
+      window.log.debug('📝 Opening assignment form for unassigned lead:', lead.name);
       openAssignForm(lead);
       return;
     }
@@ -179,7 +179,7 @@ if (choice.value === 'payment_post_service') {
     const earlyStageStatuses = ['unassigned', 'assigned', 'attempt_1', 'attempt_2', 'attempt_3'];
     const useChoiceModal = earlyStageStatuses.includes(currentStatus);
 
-    console.log('🎯 Modal decision:', {
+    window.log.debug('🎯 Modal decision:', {
       currentStatus,
       isEarlyStage: useChoiceModal,
       nextOptions,
@@ -263,7 +263,7 @@ if (choice.value === 'payment_post_service') {
       // ✅ CRITICAL FIX: ADD THE MISSING MODAL SWITCHING LOGIC
       else if (useChoiceModal) {
         // Early stages: Show Choice Modal with button list (beautiful icons ✏️📞⏰)
-        console.log('✨ Using Choice Modal for early stage:', currentStatus);
+        window.log.debug('✨ Using Choice Modal for early stage:', currentStatus);
         setCurrentLeadForChoice(lead);
         setChoiceOptions(nextOptions.map(status => ({
           value: status,
@@ -273,7 +273,7 @@ if (choice.value === 'payment_post_service') {
         setShowChoiceModal(true);
       } else {
         // Later stages: Show Status Progress Modal with dropdown system  
-        console.log('📋 Using Status Progress Modal for later stage:', currentStatus);
+        window.log.debug('📋 Using Status Progress Modal for later stage:', currentStatus);
         setCurrentLead(lead);
         setShowStatusProgressModal(true);
         setStatusProgressOptions(nextOptions.map(status => ({
@@ -292,7 +292,7 @@ if (choice.value === 'payment_post_service') {
 
   // ✅ MISSING FUNCTION: editLead 
   const editLead = (lead) => {
-    console.log("📝 editLead called with:", lead);
+    window.log.debug("📝 editLead called with:", lead);
     openEditForm(lead);
   };
 
@@ -324,7 +324,7 @@ if (choice.value === 'payment_post_service') {
 
       alert('Lead deleted successfully!');
     } catch (error) {
-      console.error('Error deleting lead:', error);
+      window.log.error('Error deleting lead:', error);
       alert('Failed to delete lead: ' + error.message);
     } finally {
       setLoading(false);
@@ -333,7 +333,7 @@ if (choice.value === 'payment_post_service') {
 
   // ✅ MISSING FUNCTION: assignLead
   const assignLead = (lead) => {
-    console.log("👤 assignLead called with:", lead);
+    window.log.debug("👤 assignLead called with:", lead);
     openAssignForm(lead);
   };
 
@@ -350,16 +350,16 @@ if (choice.value === 'payment_post_service') {
       // ✅ NEW: Backup to localStorage for persistence
       if (response.data && response.data.length > 0) {
         localStorage.setItem('crm_users_backup', JSON.stringify(response.data));
-        console.log(`💾 Backed up ${response.data.length} users to localStorage`);
+        window.log.info(`💾 Backed up ${response.data.length} users to localStorage`);
       }
       
       // Also call React setters if they exist
       if (setUsers) setUsers(response.data || []);
       if (setAllUsers) setAllUsers(response.data || []);
       
-      console.log(`Fetched ${response.data?.length || 0} users to all locations`);
+      window.log.debug(`Fetched ${response.data?.length || 0} users to all locations`);
     } catch (error) {
-      console.error('Failed to fetch users:', error);
+      window.log.error('Failed to fetch users:', error);
       
       // ✅ NEW: Try to restore from backup on error
       try {
@@ -370,10 +370,10 @@ if (choice.value === 'payment_post_service') {
           window.allUsers = users;
           if (!window.appState) window.appState = {};
           window.appState.users = users;
-          console.log("🔄 Restored", users.length, "users from localStorage backup");
+          window.log.info("🔄 Restored", users.length, "users from localStorage backup");
         }
       } catch (restoreError) {
-        console.error("Failed to restore users from backup:", restoreError);
+        window.log.error("Failed to restore users from backup:", restoreError);
       }
     }
   };
@@ -383,9 +383,9 @@ if (choice.value === 'payment_post_service') {
     try {
       const response = await window.apiCall('/leads');
       setLeads(response.data || []);
-      console.log(`Fetched ${response.data?.length || 0} leads`);
+      window.log.debug(`Fetched ${response.data?.length || 0} leads`);
     } catch (error) {
-      console.error('Failed to fetch leads:', error);
+      window.log.error('Failed to fetch leads:', error);
     }
   };
 
@@ -414,9 +414,9 @@ if (choice.value === 'payment_post_service') {
     try {
       const response = await window.apiCall('/clients');
       setClients(response.data || []);
-      console.log(`Fetched ${response.data?.length || 0} clients`);
+      window.log.debug(`Fetched ${response.data?.length || 0} clients`);
     } catch (error) {
-      console.error('Failed to fetch clients:', error);
+      window.log.error('Failed to fetch clients:', error);
       alert('Failed to load clients: ' + error.message);
     } finally {
       setClientsLoading(false);
@@ -437,7 +437,7 @@ if (choice.value === 'payment_post_service') {
       setDynamicRoles(roleMap);
       setRolesLoaded(true);
     } catch (error) {
-      console.error('Failed to fetch roles:', error);
+      window.log.error('Failed to fetch roles:', error);
       setDynamicRoles(window.USER_ROLES);
       setRolesLoaded(true);
     }
@@ -485,7 +485,7 @@ if (choice.value === 'payment_post_service') {
         setShowClientSuggestion(false);
       }
     } catch (error) {
-      console.error('Error checking phone:', error);
+      window.log.error('Error checking phone:', error);
       setClientSuggestion(null);
       setShowClientSuggestion(false);
     } finally {
@@ -567,10 +567,10 @@ const fetchData = async () => {
   if (!state.isLoggedIn || !authToken) return;
   
   try {
-    console.log('🔍 fetchData starting');
-    console.log('🔍 authToken:', !!authToken);
-    console.log('🔍 isLoggedIn:', state.isLoggedIn);
-    console.log('🔍 About to start API calls');
+    window.log.debug('🔍 fetchData starting');
+    window.log.debug('🔍 authToken:', !!authToken);
+    window.log.debug('🔍 isLoggedIn:', state.isLoggedIn);
+    window.log.debug('🔍 About to start API calls');
     
     const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData, clientsData] = await Promise.all([
       window.apiCall('/leads').catch(() => ({ data: [] })),
@@ -581,19 +581,19 @@ const fetchData = async () => {
       window.apiCall('/clients').catch(() => ({ data: [] }))
     ]);
     
-    console.log('🔍 API calls completed, about to set state');
+    window.log.debug('🔍 API calls completed, about to set state');
     
     // Set leads and inventory
     setLeads(leadsData.data || []);
-    console.log('🔍 setLeads completed');
+    window.log.debug('🔍 setLeads completed');
     
     setInventory(inventoryData.data || []);
-    console.log('🔍 setInventory completed');
+    window.log.debug('🔍 setInventory completed');
     
     // Enhanced setOrders with automatic pagination
     const ordersToSet = ordersData.data || [];
     setOrders(ordersToSet);
-    console.log('🔍 setOrders completed');
+    window.log.debug('🔍 setOrders completed');
     
     // Auto-update orders pagination after orders are set
     setTimeout(() => {
@@ -606,7 +606,7 @@ const fetchData = async () => {
     setClients(clientsData.data || []);
     
   } catch (error) {
-    console.error('Error fetching data:', error);
+    window.log.error('Error fetching data:', error);
   }
 };
 
@@ -695,7 +695,7 @@ const updateOrdersPagination = (orders) => {
   
   if (window.appState?.setOrdersPagination) {
     window.appState.setOrdersPagination(newPagination);
-    console.log('📈 Auto-updated orders pagination:', { totalItems, totalPages, currentPage });
+    window.log.debug('📈 Auto-updated orders pagination:', { totalItems, totalPages, currentPage });
   }
 };
   const assignOrderToService = async (orderId, assignee) => {
@@ -762,13 +762,13 @@ const updateOrdersPagination = (orders) => {
             ));
           }
         } catch (error) {
-          console.error('Failed to save delivery to backend:', error);
+          window.log.error('Failed to save delivery to backend:', error);
         }
       }
 
       alert('Order assigned to ' + (assignee) + ' successfully!');
     } catch (error) {
-      console.error('Error assigning order:', error);
+      window.log.error('Error assigning order:', error);
       alert('Failed to assign order');
     } finally {
       setLoading(false);
@@ -813,7 +813,7 @@ const updateOrdersPagination = (orders) => {
 
   // Authentication handlers
   const handleLogin = async (e) => {
-  window.window.log.debug('LOGIN_START', { email: state.email, timestamp: Date.now() });
+  window.log.debug('LOGIN_START', { email: state.email, timestamp: Date.now() });
   e.preventDefault();
   setLoading(true);
 
@@ -837,7 +837,7 @@ const updateOrdersPagination = (orders) => {
       setPassword('');
     }
   } catch (error) {
-    console.error("Login failed:", error.message || "Invalid credentials");
+    window.log.error("Login failed:", error.message || "Invalid credentials");
   } finally {
     setLoading(false);
   }
@@ -856,7 +856,7 @@ const updateOrdersPagination = (orders) => {
     // ✅ FIX: Clear window.authToken instead of undefined authToken variable
     window.authToken = null;
   } catch (e) {
-    console.log('Failed to clear auth state:', e);
+    window.log.debug('Failed to clear auth state:', e);
   }
 };
 
@@ -895,7 +895,7 @@ const updateOrdersPagination = (orders) => {
           processedLead.date_of_enquiry = date.toISOString().split('T')[0];
         }
       } catch (error) {
-        console.warn('Could not parse date:', processedLead.date_of_enquiry);
+        window.log.warn('Could not parse date:', processedLead.date_of_enquiry);
         const now = new Date();
         processedLead.date_of_enquiry = now.toISOString().split('T')[0];
       }
@@ -928,7 +928,7 @@ const updateOrdersPagination = (orders) => {
 
     if (existingOrder) {
       // ✅ PRE-LOAD from existing order
-      console.log('💰 Pre-loading payment form from existing order:', existingOrder.id);
+      window.log.debug('💰 Pre-loading payment form from existing order:', existingOrder.id);
       
       initialPaymentData = {
         // Payment details
@@ -982,7 +982,7 @@ const updateOrdersPagination = (orders) => {
       
     } else {
       // ✅ NEW order - use original logic
-      console.log('💰 Creating new payment form for lead:', lead.id);
+      window.log.debug('💰 Creating new payment form for lead:', lead.id);
       
       initialPaymentData = {
         payment_method: '',
@@ -1036,7 +1036,7 @@ const updateOrdersPagination = (orders) => {
   };
 
   const handleMarkPaymentFromReceivable = async (receivable) => {
-    console.log('Mark Payment clicked for receivable:', receivable);
+    window.log.debug('Mark Payment clicked for receivable:', receivable);
 
     const leadId = receivable.lead_id || receivable.leadId || receivable.lead;
 
@@ -1062,7 +1062,7 @@ const updateOrdersPagination = (orders) => {
       }
 
       alert('Cannot find associated lead for this receivable.');
-      console.error('Receivable structure:', receivable);
+      window.log.error('Receivable structure:', receivable);
       return;
     }
 
@@ -1070,7 +1070,7 @@ const updateOrdersPagination = (orders) => {
 
     if (!lead) {
       try {
-        console.log('Fetching lead from API:', leadId);
+        window.log.debug('Fetching lead from API:', leadId);
         const response = await window.apiCall('/leads/' + leadId);
         const leadData = response.data || response;
 
@@ -1085,7 +1085,7 @@ const updateOrdersPagination = (orders) => {
           receivable_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || 0
         }));
       } catch (error) {
-        console.error('Error fetching lead:', error);
+        window.log.error('Error fetching lead:', error);
         alert('Could not find associated lead: ' + error.message);
       }
     } else {
@@ -1126,14 +1126,14 @@ const updateOrdersPagination = (orders) => {
 
   // Function to open allocation management with data fetching
   const openAllocationManagement = async (inventoryItem) => {
-    console.log("👁️ openAllocationManagement called with:", inventoryItem?.event_name);
+    window.log.debug("👁️ openAllocationManagement called with:", inventoryItem?.event_name);
     
     try {
       setLoading(true);
       setAllocationManagementInventory(inventoryItem);
 
       // Fetch allocations for this inventory
-      console.log("🔄 Fetching allocations for inventory:", inventoryItem.id);
+      window.log.debug("🔄 Fetching allocations for inventory:", inventoryItem.id);
       const response = await window.apiCall(`/inventory/${inventoryItem.id}/allocations`);
 
       if (response.error) {
@@ -1142,12 +1142,12 @@ const updateOrdersPagination = (orders) => {
 
       // Set the fetched allocations
       const allocations = response.data?.allocations || [];
-      console.log("✅ Fetched allocations:", allocations.length);
+      window.log.info("✅ Fetched allocations:", allocations.length);
       setCurrentAllocations(allocations);
       setShowAllocationManagement(true);
 
     } catch (error) {
-      console.error('❌ Error fetching allocations:', error);
+      window.log.error('❌ Error fetching allocations:', error);
       alert('Error fetching allocations: ' + error.message);
       
       // Still show modal but with empty allocations
@@ -1191,7 +1191,7 @@ const updateOrdersPagination = (orders) => {
       alert(`Successfully unallocated ${ticketsToReturn} tickets`);
 
     } catch (error) {
-      console.error('Error unallocating tickets:', error);
+      window.log.error('Error unallocating tickets:', error);
       alert('Error unallocating tickets: ' + error.message);
     } finally {
       setLoading(false);
@@ -1212,7 +1212,7 @@ const updateOrdersPagination = (orders) => {
     try {
       setLoading(true);
 
-      console.log('Updating inventory with data:', inventoryData);
+      window.log.debug('Updating inventory with data:', inventoryData);
 
       const totalAmount = parseFloat(inventoryData.totalPurchaseAmount || 0);
       const amountPaid = parseFloat(inventoryData.amountPaid || 0);
@@ -1255,7 +1255,7 @@ const updateOrdersPagination = (orders) => {
       setEditingInventory(null);
 
     } catch (error) {
-      console.error('Error updating inventory:', error);
+      window.log.error('Error updating inventory:', error);
       alert('Failed to update inventory: ' + error.message);
     } finally {
       setLoading(false);
@@ -1273,7 +1273,7 @@ const updateOrdersPagination = (orders) => {
   };
 
   const openAddInventoryForm = () => {
-    console.log('openAddInventoryForm called');
+    window.log.debug('openAddInventoryForm called');
 
     if (stadiums.length === 0) {
       window.fetchStadiums();
@@ -1318,7 +1318,7 @@ const updateOrdersPagination = (orders) => {
     });
 
     setShowInventoryForm(true);
-    console.log('Inventory form should now be visible with empty form data');
+    window.log.debug('Inventory form should now be visible with empty form data');
   };
 
   const handleCopyInventory = async (item) => {
@@ -1339,7 +1339,7 @@ const updateOrdersPagination = (orders) => {
         notes: (item.notes || '') + (item.notes ? '\n\n' : '') + 'Copied from original inventory on ' + new Date().toLocaleDateString()
       };
 
-      console.log('Creating copy of inventory:', copiedData);
+      window.log.debug('Creating copy of inventory:', copiedData);
 
       const response = await window.apiCall('/inventory', {
         method: 'POST',
@@ -1350,14 +1350,14 @@ const updateOrdersPagination = (orders) => {
         throw new Error(response.error);
       }
 
-      console.log('Copy created successfully:', response.data);
+      window.log.info('Copy created successfully:', response.data);
 
       setInventory(prev => [...prev, response.data]);
 
       alert(`✅ Inventory copied successfully!\n\nNew event: "${copiedData.event_name}"\nTotal tickets: ${copiedData.total_tickets}\nAvailable tickets: ${copiedData.available_tickets}`);
 
     } catch (error) {
-      console.error('Error copying inventory:', error);
+      window.log.error('Error copying inventory:', error);
       alert('❌ Failed to copy inventory: ' + error.message);
     } finally {
       setLoading(false);
@@ -1425,7 +1425,7 @@ const updateOrdersPagination = (orders) => {
   };
 
   const sendEmailNotification = (notification) => {
-    console.log('Email Notification:', {
+    window.log.debug('Email Notification:', {
       to: notification.recipient,
       subject: notification.subject,
       body: notification.body,
@@ -1461,7 +1461,7 @@ const updateOrdersPagination = (orders) => {
 
       alert('Delivery deleted successfully!');
     } catch (error) {
-      console.error('Failed to delete delivery:', error);
+      window.log.error('Failed to delete delivery:', error);
       alert('Failed to delete delivery. Please try again.');
     } finally {
       setLoading(false);
@@ -1469,7 +1469,7 @@ const updateOrdersPagination = (orders) => {
   };
 
   window.deleteDelivery = deleteDelivery;
-  console.log('🔍 deleteDelivery available:', typeof window.deleteDelivery === 'function');
+  window.log.debug('🔍 deleteDelivery available:', typeof window.deleteDelivery === 'function');
 
   const closeForm = () => {
     setShowAddForm(false);
@@ -1511,7 +1511,7 @@ const updateOrdersPagination = (orders) => {
   };
 
   const handleFormDataChange = (field, value) => {
-    console.log('Form field changed:', field, '=', value);
+    window.log.debug('Form field changed:', field, '=', value);
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -1532,7 +1532,7 @@ const updateOrdersPagination = (orders) => {
 
   // ✅ ADD: openInvoicePreview function
   const openInvoicePreview = (invoice) => {
-    console.log('📄 Opening invoice preview for:', invoice);
+    window.log.debug('📄 Opening invoice preview for:', invoice);
     setCurrentInvoice(invoice);
     setShowInvoicePreview(true);
   };
@@ -1578,10 +1578,10 @@ const updateOrdersPagination = (orders) => {
       try {
         const response = await window.apiCall('/stadiums');
         setStadiums(response.data || []);
-        console.log('✅ Loaded', response.data?.length || 0, 'stadiums');
+        window.log.info('✅ Loaded', response.data?.length || 0, 'stadiums');
         return response.data || [];
       } catch (error) {
-        console.error('❌ Error fetching stadiums:', error);
+        window.log.error('❌ Error fetching stadiums:', error);
         setStadiums([]);
         return [];
       }
@@ -1596,8 +1596,8 @@ const updateOrdersPagination = (orders) => {
     openStadiumForm,
     closeStadiumForm,
     handleStadiumInputChange,
-      fetchData,
-  updateOrdersPagination,
+    fetchData,
+    updateOrdersPagination,
     assignOrderToService,
     openOrderDetail,
     calculateDashboardStats,
@@ -1634,5 +1634,3 @@ const updateOrdersPagination = (orders) => {
     handleDeliveryInputChange
   };
 };
-
-console.log('✅ App Business Logic Handlers loaded successfully with FIXED MODAL SWITCHING WORKFLOW + ALL MISSING FORM HANDLER REFERENCES ADDED');
