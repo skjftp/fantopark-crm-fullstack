@@ -1207,11 +1207,10 @@ router.post('/:id/test-facebook-trigger', authenticateToken, async (req, res) =>
 });
 
 
-// Lead Inclusions API Endpoints
-// Add this to your backend/src/routes/leads.js file
+// Replace these routes in your leads.js file (around line 1214)
 
 // GET /leads/:id/inclusions - Get inclusions for a lead
-router.get('/:id/inclusions', authenticate, async (req, res) => {
+router.get('/:id/inclusions', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -1257,7 +1256,7 @@ router.get('/:id/inclusions', authenticate, async (req, res) => {
 });
 
 // PUT /leads/:id/inclusions - Update inclusions for a lead
-router.put('/:id/inclusions', authenticate, async (req, res) => {
+router.put('/:id/inclusions', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const inclusionsData = req.body;
@@ -1308,7 +1307,7 @@ router.put('/:id/inclusions', authenticate, async (req, res) => {
 });
 
 // Additional endpoint to get inclusions for multiple leads (for supply team dashboard)
-router.post('/inclusions/bulk', authenticate, async (req, res) => {
+router.post('/inclusions/bulk', authenticateToken, async (req, res) => {
   try {
     const { leadIds } = req.body;
     
@@ -1340,94 +1339,8 @@ router.post('/inclusions/bulk', authenticate, async (req, res) => {
   }
 });
 
-// ===================================
-// Database Schema for Firestore
-// ===================================
-
-/*
-Collection: lead_inclusions
-Document ID: {leadId}
-Structure:
-{
-  leadId: string,
-  flights: [
-    {
-      id: number,
-      from: string,
-      to: string,
-      departureDate: string,
-      returnDate: string,
-      class: string,
-      airlines: string,
-      passengers: number,
-      notes: string,
-      addedDate: string,
-      addedBy: string
-    }
-  ],
-  hotels: [
-    {
-      id: number,
-      hotelName: string,
-      location: string,
-      checkIn: string,
-      checkOut: string,
-      roomType: string,
-      occupancy: string,
-      numberOfRooms: number,
-      mealPlan: string,
-      notes: string,
-      addedDate: string,
-      addedBy: string
-    }
-  ],
-  transfers: [
-    {
-      id: number,
-      type: string,
-      from: string,
-      to: string,
-      date: string,
-      vehicleType: string,
-      passengers: number,
-      notes: string,
-      addedDate: string,
-      addedBy: string
-    }
-  ],
-  sightseeing: [
-    {
-      id: number,
-      destination: string,
-      activities: string,
-      date: string,
-      duration: string,
-      guide: string,
-      notes: string,
-      addedDate: string,
-      addedBy: string
-    }
-  ],
-  other: [
-    {
-      id: number,
-      title: string,
-      description: string,
-      date: string,
-      cost: string,
-      notes: string,
-      addedDate: string,
-      addedBy: string
-    }
-  ],
-  notes: string,
-  lastUpdated: string,
-  updatedBy: string
-}
-*/
-
 // Export endpoint for generating inclusions summary (for quotes)
-router.get('/:id/inclusions/summary', authenticate, async (req, res) => {
+router.get('/:id/inclusions/summary', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { format = 'text' } = req.query;
@@ -1455,55 +1368,5 @@ router.get('/:id/inclusions/summary', authenticate, async (req, res) => {
     res.status(500).json({ error: 'Failed to generate summary' });
   }
 });
-
-// Helper functions for summary generation
-function generateTextSummary(inclusions) {
-  let summary = 'TRAVEL INCLUSIONS SUMMARY\n\n';
-  
-  // Flights
-  if (inclusions.flights?.length > 0) {
-    summary += 'FLIGHTS:\n';
-    inclusions.flights.forEach((flight, i) => {
-      summary += `${i + 1}. ${flight.from} to ${flight.to}\n`;
-      summary += `   ${flight.departureDate} - ${flight.returnDate}\n`;
-      summary += `   Class: ${flight.class}, Passengers: ${flight.passengers}\n`;
-      if (flight.airlines) summary += `   Airlines: ${flight.airlines}\n`;
-      if (flight.notes) summary += `   Notes: ${flight.notes}\n`;
-      summary += '\n';
-    });
-  }
-  
-  // Hotels
-  if (inclusions.hotels?.length > 0) {
-    summary += 'HOTELS:\n';
-    inclusions.hotels.forEach((hotel, i) => {
-      summary += `${i + 1}. ${hotel.hotelName} - ${hotel.location}\n`;
-      summary += `   ${hotel.checkIn} to ${hotel.checkOut}\n`;
-      summary += `   ${hotel.roomType}, ${hotel.occupancy}, ${hotel.numberOfRooms} room(s)\n`;
-      summary += `   Meal Plan: ${hotel.mealPlan}\n`;
-      if (hotel.notes) summary += `   Notes: ${hotel.notes}\n`;
-      summary += '\n';
-    });
-  }
-  
-  // Continue for other sections...
-  
-  if (inclusions.notes) {
-    summary += `\nGENERAL NOTES:\n${inclusions.notes}\n`;
-  }
-  
-  return summary;
-}
-
-function generateHTMLSummary(inclusions) {
-  // Generate formatted HTML summary
-  let html = '<div style="font-family: Arial, sans-serif;">';
-  html += '<h2>Travel Inclusions Summary</h2>';
-  
-  // Add sections similar to text summary but with HTML formatting
-  
-  html += '</div>';
-  return html;
-}
 
 module.exports = router;
