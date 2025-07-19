@@ -1,6 +1,12 @@
 // Complete Updated leads.js File with Proper React Components
 // Simplified version - Only uses paginated backend API
 
+const spinnerStyles = React.createElement('style', {}, `
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+`);
+
 // Initialize global filter states (for persistence between view switches)
 window.clientSearchQuery = window.clientSearchQuery || '';
 window.clientStatusFilter = window.clientStatusFilter || 'all';
@@ -433,6 +439,52 @@ console.log('✅ Production Client View component loaded successfully with worki
 const LeadsContent = () => {
     // React hook for sales person filter
     const [localLeadsSalesPersonFilter, setLocalLeadsSalesPersonFilter] = React.useState(window.leadsSalesPersonFilter || 'all');
+  // Loader component
+const LoadingOverlay = () => {
+    return React.createElement('div', {
+        style: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '0.5rem',
+            zIndex: 10
+        }
+    },
+        React.createElement('div', {
+            style: {
+                textAlign: 'center'
+            }
+        },
+            // Spinner
+            React.createElement('div', {
+                style: {
+                    width: '40px',
+                    height: '40px',
+                    margin: '0 auto',
+                    border: '3px solid #e5e7eb',
+                    borderTopColor: '#3b82f6',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                }
+            }),
+            // Text
+            React.createElement('p', {
+                style: {
+                    marginTop: '1rem',
+                    color: '#4b5563',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                }
+            }, 'Loading...')
+        )
+    );
+};
     
     // Update global value when local state changes
     React.useEffect(() => {
@@ -507,6 +559,8 @@ const LeadsContent = () => {
     const unassignedLeads = currentLeads.filter(lead => !lead.assigned_to || lead.assigned_to === '' || lead.status === 'unassigned');
 
     return React.createElement('div', { className: 'space-y-6' },
+                               return React.createElement('div', { className: 'space-y-6' },
+    spinnerStyles,  // Add this line
 
         // View Mode Toggle Section
         React.createElement('div', { className: 'bg-white rounded-lg shadow-sm border p-4 lead-client-toggle-container' },
@@ -859,7 +913,12 @@ const LeadsContent = () => {
             ),
 
             // Table
-            React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border' },
+            React.createElement('div', { 
+    className: 'bg-white dark:bg-gray-800 rounded-lg shadow border', 
+    style: { position: 'relative', minHeight: '400px' } 
+},
+    // Add loader here
+    window.appState.loading && React.createElement(LoadingOverlay),
                 currentLeads.length > 0 ? React.createElement('div', { className: 'overflow-x-auto' },
                     React.createElement('table', { className: 'w-full' },
                         React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
