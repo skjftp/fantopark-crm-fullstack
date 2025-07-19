@@ -194,7 +194,6 @@ router.get('/charts', async (req, res) => {
 // HELPER FUNCTIONS
 // ===============================================
 
-// Chart metrics calculation function
 function calculateChartMetrics(leads) {
   // Initialize counters
   let qualifiedCount = 0;
@@ -213,7 +212,7 @@ function calculateChartMetrics(leads) {
   // Single pass through leads for all calculations
   leads.forEach(lead => {
     const status = (lead.status || '').toLowerCase();
-    const temperature = getLeadTemperature(lead);
+    const temperature = lead.temperature ? lead.temperature.toLowerCase() : null;
     const potentialValue = parseFloat(lead.potential_value) || 0;
     
     // Lead Split calculations
@@ -223,17 +222,18 @@ function calculateChartMetrics(leads) {
       junkCount++;
     }
     
-    // Temperature Count calculations
+    // Temperature Count calculations - only count if temperature exists
     if (temperature === 'hot') {
       hotCount++;
       hotValue += potentialValue;
     } else if (temperature === 'warm') {
       warmCount++;
       warmValue += potentialValue;
-    } else {
+    } else if (temperature === 'cold') {
       coldCount++;
       coldValue += potentialValue;
     }
+    // Note: leads without temperature field are not counted in temperature charts
     
     totalPipelineValue += potentialValue;
   });
@@ -266,20 +266,16 @@ function calculateChartMetrics(leads) {
   };
 }
 
-// Helper function to determine lead temperature
 function getLeadTemperature(lead) {
+  // Only use the temperature field if it exists
+  // Do NOT fallback to status-based logic
   if (lead.temperature) {
     return lead.temperature.toLowerCase();
   }
   
-  if (lead.status) {
-    const status = lead.status.toLowerCase();
-    if (status === 'qualified' || status === 'hot') return 'hot';
-    if (status === 'warm') return 'warm';
-    return 'cold';
-  }
-  
-  return 'cold';
+  // If no temperature field, this lead is not temperature-categorized
+  // Return null or a default - but do NOT derive from status
+  return null; // This lead won't be counted in temperature charts
 }
 
 module.exports = router;
