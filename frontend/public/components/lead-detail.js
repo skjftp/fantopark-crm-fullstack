@@ -514,18 +514,20 @@ window.renderProgressLeadContent = function(lead, status) {
 window.renderLeadDetail = () => {
   if (!window.appState.showLeadDetail || !window.appState.currentLead) return null;
 
-  const lead = window.appState.currentLead;
-  const status = window.LEAD_STATUSES[lead.status] || { 
-    label: lead.status, 
-    color: 'bg-gray-100 text-gray-800', 
-    next: [] 
-  };
-  const nextActions = status.next || [];
-  
-  // State for active tab
-  const [activeTab, setActiveTab] = React.useState('details');
+  // Create a proper React component
+  const LeadDetailComponent = () => {
+    const lead = window.appState.currentLead;
+    const status = window.LEAD_STATUSES[lead.status] || { 
+      label: lead.status, 
+      color: 'bg-gray-100 text-gray-800', 
+      next: [] 
+    };
+    const nextActions = status.next || [];
+    
+    // State for active tab - now inside a React component
+    const [activeTab, setActiveTab] = React.useState('details');
 
-  return React.createElement('div', { 
+    return React.createElement('div', { 
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]',
     onClick: (e) => e.target === e.currentTarget && window.closeForm()
   },
@@ -650,8 +652,11 @@ window.renderLeadDetail = () => {
           )
         )
       )
-    )
-  );
+    );
+  };
+  
+  // Return the React component
+  return React.createElement(LeadDetailComponent);
 };
 
 console.log('✅ Lead Detail component with Inclusions Tab loaded successfully');
