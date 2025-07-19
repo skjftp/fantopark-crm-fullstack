@@ -719,12 +719,17 @@ const LeadsContent = () => {
                         }, `Filtering by ${window.selectedStatusFilters.length} status${window.selectedStatusFilters.length !== 1 ? 'es' : ''}`)
                     ),
 
+                    // Find the filter dropdowns section in your leads.js and replace with this:
+
                     // Source Filter - Using cached options
                     React.createElement('div', null,
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Source'),
                         React.createElement('select', {
-                            value: window.appState.leadsSourceFilter,
-                            onChange: (e) => window.LeadsAPI.handleFilterChange('source', e.target.value),
+                            value: window.appState.leadsSourceFilter || 'all',
+                            onChange: (e) => {
+                                window.log.debug('Source filter changed to:', e.target.value);
+                                window.LeadsAPI.handleFilterChange('source', e.target.value);
+                            },
                             className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                         },
                             React.createElement('option', { value: 'all' }, 'All Sources'),
@@ -733,28 +738,34 @@ const LeadsContent = () => {
                             )
                         )
                     ),
-
+                    
                     // Business Type Filter - Using cached options
                     React.createElement('div', null,
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Business Type'),
                         React.createElement('select', {
-                            value: window.appState.leadsBusinessTypeFilter,
-                            onChange: (e) => window.LeadsAPI.handleFilterChange('business_type', e.target.value),
+                            value: window.appState.leadsBusinessTypeFilter || 'all',
+                            onChange: (e) => {
+                                window.log.debug('Business type filter changed to:', e.target.value);
+                                window.LeadsAPI.handleFilterChange('business_type', e.target.value);
+                            },
                             className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                         },
                             React.createElement('option', { value: 'all' }, 'All Business Types'),
-                            ...(filterOptions.businessTypes || []).map(type =>
+                            ...(filterOptions.businessTypes || filterOptions.business_types || []).map(type =>
                                 React.createElement('option', { key: type, value: type }, type)
                             )
                         )
                     ),
-
+                    
                     // Event Filter - Using cached options
                     React.createElement('div', null,
                         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Event'),
                         React.createElement('select', {
-                            value: window.appState.leadsEventFilter,
-                            onChange: (e) => window.LeadsAPI.handleFilterChange('event', e.target.value),
+                            value: window.appState.leadsEventFilter || 'all',
+                            onChange: (e) => {
+                                window.log.debug('Event filter changed to:', e.target.value);
+                                window.LeadsAPI.handleFilterChange('event', e.target.value);
+                            },
                             className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                         },
                             React.createElement('option', { value: 'all' }, 'All Events'),
@@ -763,8 +774,8 @@ const LeadsContent = () => {
                             )
                         )
                     ),
-
-                    // Sales Person Filter - Using cached options
+                    
+                    // Sales Person Filter - Fixed to use proper state sync
                     React.createElement('div', null,
                         React.createElement('label', { 
                             htmlFor: 'sales-person-filter',
@@ -772,10 +783,13 @@ const LeadsContent = () => {
                         }, 'Sales Person'),
                         React.createElement('select', {
                             id: 'sales-person-filter',
-                            value: localLeadsSalesPersonFilter,
+                            value: window.leadsSalesPersonFilter || localLeadsSalesPersonFilter || 'all',
                             onChange: (e) => {
-                                setLocalLeadsSalesPersonFilter(e.target.value);
-                                window.LeadsAPI.handleFilterChange('assigned_to', e.target.value);
+                                const value = e.target.value;
+                                window.log.debug('Sales person filter changed to:', value);
+                                setLocalLeadsSalesPersonFilter(value);
+                                window.leadsSalesPersonFilter = value; // Set global value
+                                window.LeadsAPI.handleFilterChange('assigned_to', value);
                             },
                             className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                         },
