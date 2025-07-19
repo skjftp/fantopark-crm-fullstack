@@ -1206,4 +1206,304 @@ router.post('/:id/test-facebook-trigger', authenticateToken, async (req, res) =>
   }
 });
 
+
+// Lead Inclusions API Endpoints
+// Add this to your backend/src/routes/leads.js file
+
+// GET /leads/:id/inclusions - Get inclusions for a lead
+router.get('/:id/inclusions', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if user has permission to view this lead
+    const leadDoc = await db.collection('leads').doc(id).get();
+    if (!leadDoc.exists) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+    
+    const lead = leadDoc.data();
+    
+    // Check permissions
+    if (!hasPermission(req.user, 'leads', 'read') && 
+        lead.assigned_to !== req.user.email) {
+      return res.status(403).json({ error: 'Permission denied' });
+    }
+    
+    // Get inclusions data
+    const inclusionsDoc = await db.collection('lead_inclusions').doc(id).get();
+    
+    if (!inclusionsDoc.exists) {
+      // Return empty structure if no inclusions exist
+      return res.json({
+        data: {
+          flights: [],
+          hotels: [],
+          transfers: [],
+          sightseeing: [],
+          other: [],
+          notes: '',
+          lastUpdated: null,
+          updatedBy: null
+        }
+      });
+    }
+    
+    res.json({ data: inclusionsDoc.data() });
+    
+  } catch (error) {
+    console.error('Error fetching lead inclusions:', error);
+    res.status(500).json({ error: 'Failed to fetch inclusions' });
+  }
+});
+
+// PUT /leads/:id/inclusions - Update inclusions for a lead
+router.put('/:id/inclusions', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const inclusionsData = req.body;
+    
+    // Check if user has permission to update this lead
+    const leadDoc = await db.collection('leads').doc(id).get();
+    if (!leadDoc.exists) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+    
+    const lead = leadDoc.data();
+    
+    // Check permissions
+    if (!hasPermission(req.user, 'leads', 'write') && 
+        lead.assigned_to !== req.user.email) {
+      return res.status(403).json({ error: 'Permission denied' });
+    }
+    
+    // Add metadata
+    const dataToSave = {
+      ...inclusionsData,
+      lastUpdated: new Date().toISOString(),
+      updatedBy: req.user.email,
+      leadId: id
+    };
+    
+    // Save to database
+    await db.collection('lead_inclusions').doc(id).set(dataToSave, { merge: true });
+    
+    // Log activity
+    await createActivity(
+      'lead_inclusions_updated',
+      req.user,
+      { leadId: id, leadName: lead.name },
+      `Updated travel inclusions for lead: ${lead.name}`
+    );
+    
+    res.json({ 
+      success: true, 
+      data: dataToSave,
+      message: 'Inclusions updated successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error updating lead inclusions:', error);
+    res.status(500).json({ error: 'Failed to update inclusions' });
+  }
+});
+
+// Additional endpoint to get inclusions for multiple leads (for supply team dashboard)
+router.post('/inclusions/bulk', authenticate, async (req, res) => {
+  try {
+    const { leadIds } = req.body;
+    
+    if (!Array.isArray(leadIds) || leadIds.length === 0) {
+      return res.status(400).json({ error: 'Invalid lead IDs' });
+    }
+    
+    // Check if user is in supply team
+    if (!hasPermission(req.user, 'quotes', 'read')) {
+      return res.status(403).json({ error: 'Permission denied' });
+    }
+    
+    // Fetch inclusions for all leads
+    const inclusionsPromises = leadIds.map(async (leadId) => {
+      const doc = await db.collection('lead_inclusions').doc(leadId).get();
+      return {
+        leadId,
+        data: doc.exists ? doc.data() : null
+      };
+    });
+    
+    const results = await Promise.all(inclusionsPromises);
+    
+    res.json({ data: results });
+    
+  } catch (error) {
+    console.error('Error fetching bulk inclusions:', error);
+    res.status(500).json({ error: 'Failed to fetch inclusions' });
+  }
+});
+
+// ===================================
+// Database Schema for Firestore
+// ===================================
+
+/*
+Collection: lead_inclusions
+Document ID: {leadId}
+Structure:
+{
+  leadId: string,
+  flights: [
+    {
+      id: number,
+      from: string,
+      to: string,
+      departureDate: string,
+      returnDate: string,
+      class: string,
+      airlines: string,
+      passengers: number,
+      notes: string,
+      addedDate: string,
+      addedBy: string
+    }
+  ],
+  hotels: [
+    {
+      id: number,
+      hotelName: string,
+      location: string,
+      checkIn: string,
+      checkOut: string,
+      roomType: string,
+      occupancy: string,
+      numberOfRooms: number,
+      mealPlan: string,
+      notes: string,
+      addedDate: string,
+      addedBy: string
+    }
+  ],
+  transfers: [
+    {
+      id: number,
+      type: string,
+      from: string,
+      to: string,
+      date: string,
+      vehicleType: string,
+      passengers: number,
+      notes: string,
+      addedDate: string,
+      addedBy: string
+    }
+  ],
+  sightseeing: [
+    {
+      id: number,
+      destination: string,
+      activities: string,
+      date: string,
+      duration: string,
+      guide: string,
+      notes: string,
+      addedDate: string,
+      addedBy: string
+    }
+  ],
+  other: [
+    {
+      id: number,
+      title: string,
+      description: string,
+      date: string,
+      cost: string,
+      notes: string,
+      addedDate: string,
+      addedBy: string
+    }
+  ],
+  notes: string,
+  lastUpdated: string,
+  updatedBy: string
+}
+*/
+
+// Export endpoint for generating inclusions summary (for quotes)
+router.get('/:id/inclusions/summary', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { format = 'text' } = req.query;
+    
+    // Get inclusions
+    const inclusionsDoc = await db.collection('lead_inclusions').doc(id).get();
+    if (!inclusionsDoc.exists) {
+      return res.json({ data: { summary: 'No inclusions added yet.' } });
+    }
+    
+    const inclusions = inclusionsDoc.data();
+    let summary = '';
+    
+    // Generate summary based on format
+    if (format === 'html') {
+      summary = generateHTMLSummary(inclusions);
+    } else {
+      summary = generateTextSummary(inclusions);
+    }
+    
+    res.json({ data: { summary, inclusions } });
+    
+  } catch (error) {
+    console.error('Error generating inclusions summary:', error);
+    res.status(500).json({ error: 'Failed to generate summary' });
+  }
+});
+
+// Helper functions for summary generation
+function generateTextSummary(inclusions) {
+  let summary = 'TRAVEL INCLUSIONS SUMMARY\n\n';
+  
+  // Flights
+  if (inclusions.flights?.length > 0) {
+    summary += 'FLIGHTS:\n';
+    inclusions.flights.forEach((flight, i) => {
+      summary += `${i + 1}. ${flight.from} to ${flight.to}\n`;
+      summary += `   ${flight.departureDate} - ${flight.returnDate}\n`;
+      summary += `   Class: ${flight.class}, Passengers: ${flight.passengers}\n`;
+      if (flight.airlines) summary += `   Airlines: ${flight.airlines}\n`;
+      if (flight.notes) summary += `   Notes: ${flight.notes}\n`;
+      summary += '\n';
+    });
+  }
+  
+  // Hotels
+  if (inclusions.hotels?.length > 0) {
+    summary += 'HOTELS:\n';
+    inclusions.hotels.forEach((hotel, i) => {
+      summary += `${i + 1}. ${hotel.hotelName} - ${hotel.location}\n`;
+      summary += `   ${hotel.checkIn} to ${hotel.checkOut}\n`;
+      summary += `   ${hotel.roomType}, ${hotel.occupancy}, ${hotel.numberOfRooms} room(s)\n`;
+      summary += `   Meal Plan: ${hotel.mealPlan}\n`;
+      if (hotel.notes) summary += `   Notes: ${hotel.notes}\n`;
+      summary += '\n';
+    });
+  }
+  
+  // Continue for other sections...
+  
+  if (inclusions.notes) {
+    summary += `\nGENERAL NOTES:\n${inclusions.notes}\n`;
+  }
+  
+  return summary;
+}
+
+function generateHTMLSummary(inclusions) {
+  // Generate formatted HTML summary
+  let html = '<div style="font-family: Arial, sans-serif;">';
+  html += '<h2>Travel Inclusions Summary</h2>';
+  
+  // Add sections similar to text summary but with HTML formatting
+  
+  html += '</div>';
+  return html;
+}
+
 module.exports = router;
