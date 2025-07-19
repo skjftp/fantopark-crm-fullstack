@@ -134,6 +134,7 @@ const [myActionsPagination, setMyActionsPagination] = useState({
   const [bulkAssignLoading, setBulkAssignLoading] = useState(false);
   const [selectedStatusFilters, setSelectedStatusFilters] = useState([]);
   const [showStatusFilterDropdown, setShowStatusFilterDropdown] = useState(false);
+  const [leadsSalesPersonFilter, setLeadsSalesPersonFilter] = useState('all');
   const statusDropdownRef = React.useRef(null);
   const [stadiums, setStadiums] = useState([]);
   const [showStadiumForm, setShowStadiumForm] = useState(false);
@@ -369,6 +370,9 @@ const [ordersSorting, setOrdersSorting] = useState({
 const [ordersShowFilters, setOrdersShowFilters] = useState(false);
 
   // Make state available globally for other components
+
+  window.leadsSalesPersonFilter = leadsSalesPersonFilter;
+window.setLeadsSalesPersonFilter = setLeadsSalesPersonFilter;
   window.isMobileView = isMobileView;
 window.setIsMobileView = setIsMobileView;
   window.appState = {
@@ -506,6 +510,7 @@ showJourneyGenerator, setShowJourneyGenerator,
     roleFormData, setRoleFormData,
     editingUser, setEditingUser,
     showCSVUploadModal, setShowCSVUploadModal,
+    leadsSalesPersonFilter, setLeadsSalesPersonFilter,
     availableRoles, setAvailableRoles,
     csvUploadType, setCSVUploadType,
     currentForm, setCurrentForm,
