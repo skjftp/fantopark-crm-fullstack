@@ -1118,259 +1118,58 @@ window.dashboardResponsiveOverride = () => {
 // Add this to the END of your dashboard.js file
 
 (function() {
-  'use strict';
+  console.log('📊 Loading simple polling fix...');
   
-  console.log('📊 Loading aggressive dashboard chart fix...');
+  let lastTabState = null;
   
-  // Global state
-  window._dashboardChartMonitor = {
-    isMonitoring: false,
-    lastCheck: 0,
-    retryCount: 0
-  };
-  
-  // Direct chart creation function
-  window.forceCreateDashboardCharts = function(apiData) {
-    console.log('📊 Force creating dashboard charts...');
-    
-    // If no apiData provided, use the last stored data
-    if (!apiData && window.apiChartData) {
-      apiData = window.apiChartData;
+  // Check every 500ms
+  setInterval(() => {
+    // Only proceed if on dashboard
+    if (window.activeTab !== 'dashboard') {
+      lastTabState = 'not-dashboard';
+      return;
     }
     
-    if (!apiData || !apiData.charts) {
-      console.error('No chart data available');
-      return false;
-    }
-    
-    const { leadSplit, temperatureCount, temperatureValue } = apiData.charts;
-    
-    // Destroy all existing charts first
-    ['leadSplitChart', 'tempCountChart', 'tempValueChart'].forEach(id => {
-      const canvas = document.getElementById(id);
-      if (canvas) {
-        const chart = Chart.getChart(canvas);
-        if (chart) {
-          chart.destroy();
-        }
-      }
-    });
-    
-    let chartsCreated = 0;
-    
-    // Create Lead Split Chart
-    try {
-      const canvas1 = document.getElementById('leadSplitChart');
-      if (canvas1 && leadSplit) {
-        new Chart(canvas1.getContext('2d'), {
-          type: 'doughnut',
-          data: {
-            labels: leadSplit.labels.map((label, i) => `${label} (${leadSplit.data[i]})`),
-            datasets: [{
-              data: leadSplit.data,
-              backgroundColor: leadSplit.colors || ['#10B981', '#EF4444'],
-              borderWidth: 2,
-              borderColor: '#fff'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'bottom' }
-            }
-          }
+    // Detect tab change to dashboard
+    if (lastTabState !== 'dashboard') {
+      console.log('📊 Entered dashboard tab');
+      lastTabState = 'dashboard';
+      
+      // Wait for DOM to settle then create charts
+      setTimeout(() => {
+        // Check if charts already exist
+        const hasCharts = ['leadSplitChart', 'tempCountChart', 'tempValueChart'].every(id => {
+          const canvas = document.getElementById(id);
+          return canvas && Chart.getChart(canvas);
         });
-        chartsCreated++;
-        console.log('✅ Created leadSplitChart');
-      }
-    } catch (e) {
-      console.error('Error creating leadSplitChart:', e);
-    }
-    
-    // Create Temperature Count Chart
-    try {
-      const canvas2 = document.getElementById('tempCountChart');
-      if (canvas2 && temperatureCount) {
-        new Chart(canvas2.getContext('2d'), {
-          type: 'doughnut',
-          data: {
-            labels: temperatureCount.labels.map((label, i) => `${label} (${temperatureCount.data[i]})`),
-            datasets: [{
-              data: temperatureCount.data,
-              backgroundColor: temperatureCount.colors || ['#EF4444', '#F59E0B', '#3B82F6'],
-              borderWidth: 2,
-              borderColor: '#fff'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'bottom' }
-            }
+        
+        if (!hasCharts) {
+          console.log('📊 No charts found, fetching data...');
+          
+          // Call the API function
+          if (window.fetchChartDataFromAPI) {
+            window.fetchChartDataFromAPI();
           }
-        });
-        chartsCreated++;
-        console.log('✅ Created tempCountChart');
-      }
-    } catch (e) {
-      console.error('Error creating tempCountChart:', e);
-    }
-    
-    // Create Temperature Value Chart
-    try {
-      const canvas3 = document.getElementById('tempValueChart');
-      if (canvas3 && temperatureValue) {
-        new Chart(canvas3.getContext('2d'), {
-          type: 'doughnut',
-          data: {
-            labels: temperatureValue.labels.map((label, i) => {
-              const value = temperatureValue.data[i];
-              return `${label} (₹${value.toLocaleString('en-IN')})`;
-            }),
-            datasets: [{
-              data: temperatureValue.data,
-              backgroundColor: temperatureValue.colors || ['#EF4444', '#F59E0B', '#3B82F6'],
-              borderWidth: 2,
-              borderColor: '#fff'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'bottom' },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    const value = context.parsed || 0;
-                    return `₹${value.toLocaleString('en-IN')}`;
-                  }
-                }
+          
+          // Backup: try again after 1 second
+          setTimeout(() => {
+            const stillNoCharts = ['leadSplitChart', 'tempCountChart', 'tempValueChart'].some(id => {
+              const canvas = document.getElementById(id);
+              return canvas && !Chart.getChart(canvas);
+            });
+            
+            if (stillNoCharts) {
+              console.log('📊 Still no charts, trying once more...');
+              if (window.fetchChartDataFromAPI) {
+                window.fetchChartDataFromAPI();
               }
             }
-          }
-        });
-        chartsCreated++;
-        console.log('✅ Created tempValueChart');
-      }
-    } catch (e) {
-      console.error('Error creating tempValueChart:', e);
-    }
-    
-    console.log(`📊 Created ${chartsCreated} charts`);
-    return chartsCreated > 0;
-  };
-  
-  // Monitor function that checks and creates charts
-  window.monitorDashboardCharts = function() {
-    if (window.activeTab !== 'dashboard') {
-      window._dashboardChartMonitor.isMonitoring = false;
-      return;
-    }
-    
-    // Check if charts exist
-    const chartsExist = ['leadSplitChart', 'tempCountChart', 'tempValueChart'].every(id => {
-      const canvas = document.getElementById(id);
-      return canvas && Chart.getChart(canvas);
-    });
-    
-    if (!chartsExist) {
-      console.log('📊 Charts missing, attempting to create...');
-      
-      // First try to fetch new data
-      if (window.fetchChartDataFromAPI) {
-        window.fetchChartDataFromAPI();
-      }
-      
-      // Also try to create with existing data after a delay
-      setTimeout(() => {
-        const stillNoCharts = ['leadSplitChart', 'tempCountChart', 'tempValueChart'].some(id => {
-          const canvas = document.getElementById(id);
-          return canvas && !Chart.getChart(canvas);
-        });
-        
-        if (stillNoCharts && window.apiChartData) {
-          console.log('📊 Still no charts, forcing creation with stored data...');
-          window.forceCreateDashboardCharts(window.apiChartData);
+          }, 1000);
         }
-      }, 1000);
+      }, 300);
     }
-  };
+  }, 500);
   
-  // Override updateChartsFromAPIData
-  const originalUpdateChartsFromAPIData = window.updateChartsFromAPIData;
-  window.updateChartsFromAPIData = function(apiData) {
-    console.log('📊 updateChartsFromAPIData called with data:', !!apiData);
-    
-    if (!apiData || !apiData.charts) {
-      console.error('Invalid API data');
-      return;
-    }
-    
-    // Store the data globally
-    window.apiChartData = apiData;
-    
-    // Use our force create function
-    window.forceCreateDashboardCharts(apiData);
-  };
-  
-  // Start monitoring when tab changes to dashboard
-  let previousTab = window.activeTab;
-  setInterval(() => {
-    if (window.activeTab !== previousTab) {
-      previousTab = window.activeTab;
-      
-      if (window.activeTab === 'dashboard') {
-        console.log('📊 Dashboard tab activated, starting monitor...');
-        window._dashboardChartMonitor.isMonitoring = true;
-        window._dashboardChartMonitor.retryCount = 0;
-        
-        // Immediate check
-        setTimeout(window.monitorDashboardCharts, 100);
-        // Additional checks
-        setTimeout(window.monitorDashboardCharts, 500);
-        setTimeout(window.monitorDashboardCharts, 1000);
-        setTimeout(window.monitorDashboardCharts, 2000);
-      }
-    }
-  }, 100);
-  
-  // Also monitor periodically when on dashboard
-  setInterval(() => {
-    if (window.activeTab === 'dashboard' && window._dashboardChartMonitor.isMonitoring) {
-      const now = Date.now();
-      if (now - window._dashboardChartMonitor.lastCheck > 5000) { // Check every 5 seconds
-        window._dashboardChartMonitor.lastCheck = now;
-        window.monitorDashboardCharts();
-      }
-    }
-  }, 1000);
-  
-  // If already on dashboard, start monitoring
-  if (window.activeTab === 'dashboard') {
-    console.log('📊 Already on dashboard, starting monitor...');
-    window._dashboardChartMonitor.isMonitoring = true;
-    setTimeout(window.monitorDashboardCharts, 500);
-  }
-  
-  // Manual commands
-  window.fixDashboardCharts = function() {
-    console.log('📊 Manual fix triggered...');
-    if (window.fetchChartDataFromAPI) {
-      window.fetchChartDataFromAPI();
-    } else if (window.apiChartData) {
-      window.forceCreateDashboardCharts(window.apiChartData);
-    } else {
-      console.error('No chart data available');
-    }
-  };
-  
-  console.log('✅ Aggressive dashboard chart fix loaded');
-  console.log('💡 Commands available:');
-  console.log('  - window.fixDashboardCharts() - Manually fix charts');
-  console.log('  - window.forceCreateDashboardCharts() - Force create with stored data');
-  console.log('  - window.monitorDashboardCharts() - Run monitor check');
+  console.log('✅ Simple polling fix loaded');
 })();
 console.log('✅ API-based dashboard system with tab switching fix loaded');
