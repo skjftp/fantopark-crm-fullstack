@@ -12,15 +12,6 @@ window.renderAssignForm = () => {
     loading = window.loading || window.appState?.loading || false
   } = window.appState || {};
 
-  // ✅ OPTIMIZED: Only log when form is actually showing
-  if (!showAssignForm || !currentLead) {
-    // Only log once when state changes (not every render)
-    if (ENABLE_ASSIGN_DEBUG && !window._assignFormLoggedHidden) {
-      window.log.debug("Assign form not showing:", { showAssignForm, currentLead: !!currentLead });
-      window._assignFormLoggedHidden = true;
-    }
-    return null;
-  }
 
   // Reset the hidden flag when form is showing
   window._assignFormLoggedHidden = false;
