@@ -2085,11 +2085,7 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
 
   // ===== UTILITY FUNCTIONS =====
 
-  window.getUserDisplayName = handlers.getUserDisplayName || ((userId, usersList) => {
-    if (!userId) return 'Unassigned';
-    const user = (usersList || state.users || []).find(u => u.email === userId || u.id === userId);
-    return user ? user.name : userId;
-  });
+  window.getUserDisplayName = handlers.getUserDisplayName || window.getUserDisplayName;
 
   window.formatDate = (dateString) => {
     if (!dateString) return 'N/A';
