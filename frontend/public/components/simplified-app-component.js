@@ -8,10 +8,7 @@ window.SimplifiedApp = function() {
   const handlers = window.renderAppBusinessLogic();
   
   const ENABLE_DEBUG_LOGS = false; // Turn off debug logs
-if (ENABLE_DEBUG_LOGS && !window._stateSettersLogged) {
-  console.log("🔍 State setters available:", Object.keys(state).filter(k => k.startsWith('set')));
-  window._stateSettersLogged = true;
-}
+
   // Log available setter
   const availableSetters = Object.keys(state).filter(key => key.startsWith('set') && key.includes('Inventory'));
   
