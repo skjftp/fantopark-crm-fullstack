@@ -109,7 +109,7 @@ window.renderDashboardContent = () => {
                 )
             ),
 
-// Pipeline Value Card - UPDATED WITH DATA ATTRIBUTE
+            // Pipeline Value Card - UPDATED WITH DATA ATTRIBUTE
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
                 React.createElement('div', { className: 'flex items-center' },
                     React.createElement('div', { className: 'p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg' },
@@ -362,25 +362,426 @@ window.calculateDashboardMetrics = function() {
 };
 
 // ===============================================
-// CHART INTEGRATION HOOKS - FOR OPTIMIZED SYSTEM
+// API-BASED CHART DATA FETCHING
 // ===============================================
 
-// Initialize charts when dashboard loads
+window.fetchChartDataFromAPI = async function() {
+    console.log('🚀 Fetching chart data from API...');
+    
+    try {
+        // Build query parameters based on current filters
+        const params = new URLSearchParams();
+        
+        if (window.dashboardFilter === 'salesPerson' && window.selectedSalesPerson) {
+            params.append('filter_type', 'salesPerson');
+            params.append('sales_person_id', window.selectedSalesPerson);
+        } else if (window.dashboardFilter === 'event' && window.selectedEvent) {
+            params.append('filter_type', 'event');
+            params.append('event_name', window.selectedEvent);
+        }
+        
+        // Fetch from API
+        const response = await fetch(`${window.API_CONFIG.API_URL}/dashboard/charts?${params}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('crm_auth_token'),
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch chart data');
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            console.log('✅ Chart data received:', result.data);
+            
+            // Store the data globally for chart updates
+            window.apiChartData = result.data;
+            
+            // Update the charts with API data
+            updateChartsFromAPIData(result.data);
+            
+            // Update summary stats if needed
+            if (result.data.summary) {
+                updateDashboardSummary(result.data.summary);
+            }
+            
+            return result.data;
+        } else {
+            throw new Error(result.error || 'Invalid response format');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error fetching chart data:', error);
+        // Fallback to client-side calculation if API fails
+        console.log('⚠️ Falling back to client-side calculation');
+        if (window.updateChartsWithData) {
+            window.updateChartsWithData();
+        }
+        return null;
+    }
+};
+
+// Update charts with API data
+window.updateChartsFromAPIData = function(apiData) {
+    console.log('📊 Updating charts with API data...');
+    
+    if (!apiData || !apiData.charts) {
+        console.error('Invalid API data format');
+        return;
+    }
+    
+    const { leadSplit, temperatureCount, temperatureValue } = apiData.charts;
+    
+    // Update Lead Split Chart
+    const canvas1 = document.getElementById('leadSplitChart');
+    if (canvas1 && leadSplit) {
+        const chart1 = Chart.getChart(canvas1);
+        if (chart1) {
+            chart1.data.labels = leadSplit.labels.map((label, i) => 
+                `${label} (${leadSplit.data[i]})`
+            );
+            chart1.data.datasets[0].data = leadSplit.data;
+            chart1.data.datasets[0].backgroundColor = leadSplit.colors;
+            chart1.update('active');
+            console.log('✅ Updated Lead Split Chart');
+        }
+    }
+    
+    // Update Temperature Count Chart
+    const canvas2 = document.getElementById('tempCountChart');
+    if (canvas2 && temperatureCount) {
+        const chart2 = Chart.getChart(canvas2);
+        if (chart2) {
+            chart2.data.labels = temperatureCount.labels.map((label, i) => 
+                `${label} (${temperatureCount.data[i]})`
+            );
+            chart2.data.datasets[0].data = temperatureCount.data;
+            chart2.data.datasets[0].backgroundColor = temperatureCount.colors;
+            chart2.update('active');
+            console.log('✅ Updated Temperature Count Chart');
+        }
+    }
+    
+    // Update Temperature Value Chart
+    const canvas3 = document.getElementById('tempValueChart');
+    if (canvas3 && temperatureValue) {
+        const chart3 = Chart.getChart(canvas3);
+        if (chart3) {
+            chart3.data.labels = temperatureValue.labels;
+            chart3.data.datasets[0].data = temperatureValue.data;
+            chart3.data.datasets[0].backgroundColor = temperatureValue.colors;
+            
+            // Update tooltip to show formatted values
+            if (chart3.options.plugins && chart3.options.plugins.tooltip) {
+                chart3.options.plugins.tooltip.callbacks = {
+                    label: function(context) {
+                        const value = context.raw || 0;
+                        return context.label + ': ₹' + value.toLocaleString('en-IN');
+                    }
+                };
+            }
+            
+            chart3.update('active');
+            console.log('✅ Updated Temperature Value Chart');
+        }
+    }
+    
+    console.log('✅ All charts updated with API data');
+};
+
+// Update dashboard summary with API data
+window.updateDashboardSummary = function(summary) {
+    if (!summary) return;
+    
+    console.log('📊 Updating dashboard summary:', summary);
+    
+    // Update stat cards with API data
+    const statElements = {
+        'total-leads': summary.totalLeads,
+        'hot-leads': summary.hotLeads,
+        'qualified-leads': summary.qualifiedLeads,
+        'pipeline-value': summary.totalPipelineValue
+    };
+    
+    Object.keys(statElements).forEach(stat => {
+        const element = document.querySelector(`[data-stat="${stat}"]`);
+        if (element && statElements[stat] !== undefined) {
+            if (stat === 'pipeline-value') {
+                element.textContent = '₹' + statElements[stat].toLocaleString('en-IN');
+            } else {
+                element.textContent = statElements[stat];
+            }
+        }
+    });
+    
+    // Store summary data globally if needed
+    window.dashboardSummary = summary;
+};
+
+// ===============================================
+// DASHBOARD STATS API INTEGRATION
+// ===============================================
+
+// Fetch dashboard stats from API
+window.fetchDashboardStats = async function() {
+    console.log('📊 Fetching dashboard stats from API...');
+    
+    try {
+        const response = await fetch(`${window.API_CONFIG.API_URL}/dashboard/stats`, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('crm_auth_token'),
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch dashboard stats');
+        }
+        
+        const result = await response.json();
+        
+        if (result.data) {
+            console.log('✅ Dashboard stats received:', result.data);
+            
+            // Update the global dashboardStats
+            window.dashboardStats = {
+                totalLeads: result.data.totalLeads || 0,
+                activeDeals: result.data.activeDeals || 0,
+                totalInventory: result.data.totalInventory || 0,
+                totalInventoryValue: result.data.totalInventoryValue || 0,
+                pendingOrders: result.data.pendingOrders || 0,
+                totalReceivables: result.data.totalReceivables || 0,
+                thisMonthRevenue: result.data.thisMonthRevenue || 0,
+                totalRevenue: result.data.totalRevenue || 0
+            };
+            
+            // Trigger a re-render of the dashboard
+            if (window.renderDashboard) {
+                window.renderDashboard();
+            }
+            
+            return window.dashboardStats;
+        }
+        
+    } catch (error) {
+        console.error('❌ Error fetching dashboard stats:', error);
+        // Calculate stats locally as fallback
+        console.log('⚠️ Falling back to local stats calculation');
+        calculateLocalDashboardStats();
+    }
+};
+
+// Calculate stats locally (fallback)
+window.calculateLocalDashboardStats = function() {
+    // This is a fallback method that calculates stats from local data
+    const leads = window.leads || [];
+    const filtered = window.getFilteredLeads();
+    
+    window.dashboardStats = {
+        totalLeads: filtered.length,
+        activeDeals: filtered.filter(l => ['qualified', 'hot', 'warm'].includes(l.status)).length,
+        totalInventory: 0, // Would need inventory data
+        totalInventoryValue: 0, // Would need inventory data
+        pendingOrders: 0, // Would need order data
+        totalReceivables: 0, // Would need receivables data
+        thisMonthRevenue: 0, // Would need payment data
+        totalRevenue: 0 // Would need payment data
+    };
+};
+
+// ===============================================
+// CHART INITIALIZATION - API VERSION
+// ===============================================
+
+// Initialize charts when dashboard loads - API VERSION
 window.initializeDashboardCharts = function() {
-    console.log('🚀 Dashboard: Initializing optimized charts...');
+    console.log('🚀 Dashboard: Initializing charts with API data...');
+    
+    // Check if Chart.js is loaded
+    if (typeof Chart === 'undefined') {
+        console.warn('⏳ Chart.js not loaded yet, retrying...');
+        setTimeout(window.initializeDashboardCharts, 500);
+        return;
+    }
     
     // Wait for DOM to be ready
     setTimeout(() => {
-        if (window.initializeOptimizedCharts) {
-            window.initializeOptimizedCharts();
-        } else {
-            console.warn('⚠️ Optimized chart system not loaded, falling back to legacy');
-            if (window.smartChartInit) {
-                window.smartChartInit();
-            }
+        // First, ensure chart containers exist
+        const containers = ['leadSplitChart', 'tempCountChart', 'tempValueChart'];
+        const allContainersExist = containers.every(id => document.getElementById(id));
+        
+        if (!allContainersExist) {
+            console.warn('⏳ Chart containers not ready, retrying...');
+            setTimeout(window.initializeDashboardCharts, 500);
+            return;
         }
-    }, 500);
+        
+        // Create empty charts first (for better UX)
+        createEmptyCharts();
+        
+        // Then fetch data from API and populate charts
+        window.fetchChartDataFromAPI().then(data => {
+            if (data) {
+                console.log('✅ Charts initialized with API data');
+            } else {
+                console.log('⚠️ Using client-side data for charts');
+                // Fallback is already handled in fetchChartDataFromAPI
+            }
+        });
+        
+        // Also fetch dashboard stats
+        window.fetchDashboardStats();
+        
+    }, 100);
 };
+
+// Create empty charts with loading state
+window.createEmptyCharts = function() {
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'bottom' },
+            tooltip: { enabled: true }
+        },
+        animation: {
+            duration: 500
+        }
+    };
+    
+    // Lead Split Chart
+    const canvas1 = document.getElementById('leadSplitChart');
+    if (canvas1 && !Chart.getChart(canvas1)) {
+        new Chart(canvas1, {
+            type: 'doughnut',
+            data: {
+                labels: ['Loading...'],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: ['#e5e7eb'],
+                    borderWidth: 0
+                }]
+            },
+            options: chartOptions
+        });
+    }
+    
+    // Temperature Count Chart
+    const canvas2 = document.getElementById('tempCountChart');
+    if (canvas2 && !Chart.getChart(canvas2)) {
+        new Chart(canvas2, {
+            type: 'doughnut',
+            data: {
+                labels: ['Loading...'],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: ['#e5e7eb'],
+                    borderWidth: 0
+                }]
+            },
+            options: chartOptions
+        });
+    }
+    
+    // Temperature Value Chart
+    const canvas3 = document.getElementById('tempValueChart');
+    if (canvas3 && !Chart.getChart(canvas3)) {
+        new Chart(canvas3, {
+            type: 'doughnut',
+            data: {
+                labels: ['Loading...'],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: ['#e5e7eb'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                ...chartOptions,
+                plugins: {
+                    ...chartOptions.plugins,
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Loading...';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+};
+
+// Handle chart filter changes
+window.handleChartFilterChange = function() {
+    console.log('🔄 Filter changed, refreshing charts...');
+    
+    // Fetch new chart data from API
+    window.fetchChartDataFromAPI();
+    
+    // Also update dashboard stats if needed
+    if (window.renderDashboard) {
+        window.renderDashboard();
+    }
+};
+
+// Override the existing chart update function to use API
+window.updateChartsWithData = window.fetchChartDataFromAPI;
+
+// ===============================================
+// AUTO-REFRESH ON FILTER CHANGES
+// ===============================================
+
+// Auto-refresh charts when filters change
+const originalSetDashboardFilter = window.setDashboardFilter;
+if (originalSetDashboardFilter) {
+    window.setDashboardFilter = function(filter) {
+        const result = originalSetDashboardFilter(filter);
+        // Fetch new data when filter changes
+        setTimeout(() => {
+            window.fetchChartDataFromAPI();
+        }, 100);
+        return result;
+    };
+}
+
+const originalSetSelectedSalesPerson = window.setSelectedSalesPerson;
+if (originalSetSelectedSalesPerson) {
+    window.setSelectedSalesPerson = function(personId) {
+        const result = originalSetSelectedSalesPerson(personId);
+        // Fetch new data when selection changes
+        if (window.dashboardFilter === 'salesPerson') {
+            setTimeout(() => {
+                window.fetchChartDataFromAPI();
+            }, 100);
+        }
+        return result;
+    };
+}
+
+const originalSetSelectedEvent = window.setSelectedEvent;
+if (originalSetSelectedEvent) {
+    window.setSelectedEvent = function(event) {
+        const result = originalSetSelectedEvent(event);
+        // Fetch new data when selection changes
+        if (window.dashboardFilter === 'event') {
+            setTimeout(() => {
+                window.fetchChartDataFromAPI();
+            }, 100);
+        }
+        return result;
+    };
+}
+
+// ===============================================
+// AUTO-INITIALIZE ON TAB CHANGE
+// ===============================================
 
 // Auto-initialize when dashboard becomes active
 const originalSetActiveTab = window.setActiveTab;
@@ -404,8 +805,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Mobile Responsive Dashboard Updates
-// Add to your dashboard.js
+// ===============================================
+// MOBILE RESPONSIVE DASHBOARD
+// ===============================================
 
 window.renderResponsiveDashboard = () => {
     const { 
@@ -605,196 +1007,4 @@ window.dashboardResponsiveOverride = () => {
     window.renderDashboard = window.renderResponsiveDashboard || originalRenderDashboard;
 };
 
-// ===============================================
-// API-BASED CHART DATA FETCHING
-// ===============================================
-
-window.fetchChartDataFromAPI = async function() {
-    console.log('🚀 Fetching chart data from API...');
-    
-    try {
-        // Build query parameters based on current filters
-        const params = new URLSearchParams();
-        
-        if (window.dashboardFilter === 'salesPerson' && window.selectedSalesPerson) {
-            params.append('filter_type', 'salesPerson');
-            params.append('sales_person_id', window.selectedSalesPerson);
-        } else if (window.dashboardFilter === 'event' && window.selectedEvent) {
-            params.append('filter_type', 'event');
-            params.append('event_name', window.selectedEvent);
-        }
-        
-        // Fetch from API
-        const response = await fetch(`${window.API_CONFIG.API_URL}/dashboard/charts?${params}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('crm_auth_token'),
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch chart data');
-        }
-        
-        const result = await response.json();
-        
-        if (result.success && result.data) {
-            console.log('✅ Chart data received:', result.data);
-            
-            // Store the data globally for chart updates
-            window.apiChartData = result.data;
-            
-            // Update the charts with API data
-            updateChartsFromAPIData(result.data);
-            
-            // Update summary stats if needed
-            if (result.data.summary) {
-                updateDashboardSummary(result.data.summary);
-            }
-            
-            return result.data;
-        } else {
-            throw new Error(result.error || 'Invalid response format');
-        }
-        
-    } catch (error) {
-        console.error('❌ Error fetching chart data:', error);
-        // Fallback to client-side calculation if API fails
-        console.log('⚠️ Falling back to client-side calculation');
-        if (window.updateChartsWithData) {
-            window.updateChartsWithData();
-        }
-        return null;
-    }
-};
-
-// Update charts with API data
-window.updateChartsFromAPIData = function(apiData) {
-    console.log('📊 Updating charts with API data...');
-    
-    if (!apiData || !apiData.charts) {
-        console.error('Invalid API data format');
-        return;
-    }
-    
-    const { leadSplit, temperatureCount, temperatureValue } = apiData.charts;
-    
-    // Update Lead Split Chart
-    const canvas1 = document.getElementById('leadSplitChart');
-    if (canvas1 && leadSplit) {
-        const chart1 = Chart.getChart(canvas1);
-        if (chart1) {
-            chart1.data.labels = leadSplit.labels.map((label, i) => 
-                `${label} (${leadSplit.data[i]})`
-            );
-            chart1.data.datasets[0].data = leadSplit.data;
-            chart1.data.datasets[0].backgroundColor = leadSplit.colors;
-            chart1.update('active');
-            console.log('✅ Updated Lead Split Chart');
-        }
-    }
-    
-    // Update Temperature Count Chart
-    const canvas2 = document.getElementById('tempCountChart');
-    if (canvas2 && temperatureCount) {
-        const chart2 = Chart.getChart(canvas2);
-        if (chart2) {
-            chart2.data.labels = temperatureCount.labels.map((label, i) => 
-                `${label} (${temperatureCount.data[i]})`
-            );
-            chart2.data.datasets[0].data = temperatureCount.data;
-            chart2.data.datasets[0].backgroundColor = temperatureCount.colors;
-            chart2.update('active');
-            console.log('✅ Updated Temperature Count Chart');
-        }
-    }
-    
-    // Update Temperature Value Chart
-    const canvas3 = document.getElementById('tempValueChart');
-    if (canvas3 && temperatureValue) {
-        const chart3 = Chart.getChart(canvas3);
-        if (chart3) {
-            chart3.data.labels = temperatureValue.labels;
-            chart3.data.datasets[0].data = temperatureValue.data;
-            chart3.data.datasets[0].backgroundColor = temperatureValue.colors;
-            
-            // Update tooltip to show formatted values
-            if (chart3.options.plugins && chart3.options.plugins.tooltip) {
-                chart3.options.plugins.tooltip.callbacks = {
-                    label: function(context) {
-                        const value = context.raw || 0;
-                        return context.label + ': ₹' + value.toLocaleString('en-IN');
-                    }
-                };
-            }
-            
-            chart3.update('active');
-            console.log('✅ Updated Temperature Value Chart');
-        }
-    }
-    
-    console.log('✅ All charts updated with API data');
-};
-
-// Update dashboard summary with API data
-window.updateDashboardSummary = function(summary) {
-    if (!summary) return;
-    
-    console.log('📊 Updating dashboard summary:', summary);
-    
-    // You can use this data to update any summary stats on your dashboard
-    // For example, update total pipeline value display
-    const pipelineElement = document.querySelector('[data-stat="pipeline-value"]');
-    if (pipelineElement && summary.totalPipelineValue !== undefined) {
-        pipelineElement.textContent = '₹' + summary.totalPipelineValue.toLocaleString('en-IN');
-    }
-    
-    // Store summary data globally if needed
-    window.dashboardSummary = summary;
-};
-
-// Override the existing chart update function to use API
-window.updateChartsWithData = window.fetchChartDataFromAPI;
-
-// Auto-refresh charts when filters change
-const originalSetDashboardFilter = window.setDashboardFilter;
-if (originalSetDashboardFilter) {
-    window.setDashboardFilter = function(filter) {
-        const result = originalSetDashboardFilter(filter);
-        // Fetch new data when filter changes
-        setTimeout(() => {
-            window.fetchChartDataFromAPI();
-        }, 100);
-        return result;
-    };
-}
-
-const originalSetSelectedSalesPerson = window.setSelectedSalesPerson;
-if (originalSetSelectedSalesPerson) {
-    window.setSelectedSalesPerson = function(personId) {
-        const result = originalSetSelectedSalesPerson(personId);
-        // Fetch new data when selection changes
-        if (window.dashboardFilter === 'salesPerson') {
-            setTimeout(() => {
-                window.fetchChartDataFromAPI();
-            }, 100);
-        }
-        return result;
-    };
-}
-
-const originalSetSelectedEvent = window.setSelectedEvent;
-if (originalSetSelectedEvent) {
-    window.setSelectedEvent = function(event) {
-        const result = originalSetSelectedEvent(event);
-        // Fetch new data when selection changes
-        if (window.dashboardFilter === 'event') {
-            setTimeout(() => {
-                window.fetchChartDataFromAPI();
-            }, 100);
-        }
-        return result;
-    };
-}
-
+console.log('✅ API-based dashboard system loaded');
