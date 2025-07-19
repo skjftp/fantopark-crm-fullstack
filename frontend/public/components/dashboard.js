@@ -1357,4 +1357,140 @@ window.dashboardResponsiveOverride = () => {
   
   console.log('✅ Optimized dashboard chart fix loaded (single render)');
 })();
+
+// Add this fix to your dashboard.js or in a separate file that loads after dashboard.js
+
+(function() {
+  'use strict';
+  
+  console.log('📊 Dashboard API Fix: Ensuring dashboard uses API for stats and charts');
+  
+  // Override the calculateDashboardStats to always use API
+  window.calculateDashboardStats = async function() {
+    console.log('📊 Dashboard: Fetching stats from API (not calculating locally)');
+    
+    try {
+      // Fetch stats from API
+      await window.fetchDashboardStats();
+      
+      // Extract filters for chart data
+      await window.extractFiltersData();
+      
+      // Trigger a re-render if needed
+      if (window.renderDashboard) {
+        window.renderDashboard();
+      }
+    } catch (error) {
+      console.error('❌ Error in calculateDashboardStats:', error);
+    }
+  };
+  
+  // Override extractFiltersData to work with API
+  window.extractFiltersData = async function() {
+    console.log('📊 Extracting filter data for dashboard');
+    
+    try {
+      // Fetch filter options from the leads API if available
+      if (window.LeadsAPI && window.LeadsAPI.fetchFilterOptions) {
+        const filterOptions = await window.LeadsAPI.fetchFilterOptions();
+        
+        if (filterOptions) {
+          // Set events
+          const events = filterOptions.events || [];
+          if (window.appState.setEvents) {
+            window.appState.setEvents(events);
+          }
+          
+          // Set sales people
+          const salesUsers = (filterOptions.users || []).filter(u => 
+            u.role === 'sales_executive' || u.role === 'sales_manager'
+          );
+          if (window.appState.setSalesPeople) {
+            window.appState.setSalesPeople(salesUsers);
+          }
+        }
+      } else {
+        // Fallback to using whatever data is available
+        const users = window.appState.users || window.users || [];
+        const salesUsers = users.filter(u => 
+          u.role === 'sales_executive' || u.role === 'sales_manager'
+        );
+        if (window.appState.setSalesPeople) {
+          window.appState.setSalesPeople(salesUsers);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error extracting filter data:', error);
+    }
+  };
+  
+  // Ensure dashboard initializes with API data when switching to dashboard tab
+  const originalSetActiveTab = window.setActiveTab;
+  if (originalSetActiveTab) {
+    window.setActiveTab = function(tab) {
+      originalSetActiveTab(tab);
+      
+      if (tab === 'dashboard') {
+        console.log('📊 Switched to dashboard tab, fetching API data...');
+        
+        // Add a small delay to ensure DOM is ready
+        setTimeout(async () => {
+          // Fetch dashboard stats
+          if (window.fetchDashboardStats) {
+            await window.fetchDashboardStats();
+          }
+          
+          // Fetch chart data
+          if (window.fetchChartDataFromAPI) {
+            await window.fetchChartDataFromAPI();
+          }
+          
+          // Extract filter data
+          if (window.extractFiltersData) {
+            await window.extractFiltersData();
+          }
+        }, 300);
+      }
+    };
+  }
+  
+  // Initialize dashboard with API data on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    // Only initialize if we're on the dashboard tab
+    if (window.appState && window.appState.activeTab === 'dashboard') {
+      console.log('📊 Dashboard active on load, initializing with API data...');
+      
+      setTimeout(async () => {
+        // Fetch all dashboard data
+        try {
+          await window.fetchDashboardStats();
+          await window.fetchChartDataFromAPI();
+          await window.extractFiltersData();
+        } catch (error) {
+          console.error('❌ Error initializing dashboard:', error);
+        }
+      }, 1000);
+    }
+  });
+  
+  // Override any local calculation methods to use API
+  window.getFilteredLeads = function() {
+    console.log('⚠️ getFilteredLeads called - this should use API data, not local filtering');
+    // Return empty array to prevent local calculations
+    return [];
+  };
+  
+  // Ensure updateCharts always uses API
+  window.updateCharts = async function(filteredLeads) {
+    console.log('📊 updateCharts called - redirecting to API fetch');
+    
+    // Ignore the passed filteredLeads and use API instead
+    if (window.fetchChartDataFromAPI) {
+      await window.fetchChartDataFromAPI();
+    }
+  };
+  
+  console.log('✅ Dashboard API fix loaded - dashboard will now use API for all data');
+})();
+
 console.log('✅ API-based dashboard system with tab switching fix loaded');
