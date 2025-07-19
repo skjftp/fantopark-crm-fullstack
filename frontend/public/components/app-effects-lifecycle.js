@@ -268,26 +268,6 @@ useEffect(() => {
       dynamicRoles, rolesLoaded, setActiveTab, setUser, setCurrentUser, 
       setIsLoggedIn, setUsers, setDynamicRoles, setRolesLoaded]);
 
-  // ✅ ENHANCED: Chart initialization with better timing
-  useEffect(() => {
-    console.log('Chart initialization useEffect triggered', {
-      activeTab, 
-      leadsCount: leads?.length || 0, 
-      chartExists: !!window.createCharts
-    });
-    
-    if (activeTab === 'dashboard') {
-      console.log('🎯 Initializing charts...');
-      if (window.createCharts) {
-        // Add delay to ensure DOM is ready
-        setTimeout(() => {
-          window.createCharts();
-        }, 300);
-      }
-    } else {
-      console.log('⏭️ Not on dashboard tab, skipping chart init');
-    }
-  }, [activeTab, leads]);
 
   // ✅ ENHANCED: My Actions initialization effect
   useEffect(() => {
