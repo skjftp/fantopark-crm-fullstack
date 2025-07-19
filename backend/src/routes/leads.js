@@ -1438,4 +1438,153 @@ router.get('/paginated', authenticateToken, async (req, res) => {
 // END OF NEW PAGINATED ENDPOINT
 // ============================================
 
+// ============================================
+// NEW PAGINATED ENDPOINT - ADD THIS SECTION
+// ============================================
+
+// GET paginated leads with filtering and sorting
+router.get('/paginated', authenticateToken, async (req, res) => {
+  try {
+    const {
+      // Pagination params
+      page = '1',
+      limit = '20',
+      
+      // Filter params
+      search = '',
+      status = 'all',
+      source = 'all',
+      business_type = 'all',
+      event = 'all',
+      assigned_to = 'all',
+      
+      // Sort params
+      sort_by = 'date_of_enquiry',
+      sort_order = 'desc'
+    } = req.query;
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+
+    console.log(`📄 Fetching paginated leads - Page: ${pageNum}, Limit: ${limitNum}`);
+
+    // Fetch all leads first (we'll optimize this later with proper indexes)
+    const snapshot = await db.collection(collections.leads).get();
+    let allLeads = [];
+
+    snapshot.forEach(doc => {
+      const lead = { id: doc.id, ...doc.data() };
+      allLeads.push(lead);
+    });
+
+    // Apply filters
+    let filteredLeads = allLeads;
+
+    // Status filter
+    if (status !== 'all') {
+      filteredLeads = filteredLeads.filter(lead => lead.status === status);
+    }
+
+    // Source filter
+    if (source !== 'all') {
+      filteredLeads = filteredLeads.filter(lead => lead.source === source);
+    }
+
+    // Business type filter
+    if (business_type !== 'all') {
+      filteredLeads = filteredLeads.filter(lead => lead.business_type === business_type);
+    }
+
+    // Event filter
+    if (event !== 'all') {
+      filteredLeads = filteredLeads.filter(lead => lead.lead_for_event === event);
+    }
+
+    // Assigned to filter
+    if (assigned_to !== 'all') {
+      if (assigned_to === 'unassigned') {
+        filteredLeads = filteredLeads.filter(lead => !lead.assigned_to);
+      } else {
+        filteredLeads = filteredLeads.filter(lead => lead.assigned_to === assigned_to);
+      }
+    }
+
+    // Search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredLeads = filteredLeads.filter(lead => 
+        (lead.name && lead.name.toLowerCase().includes(searchLower)) ||
+        (lead.email && lead.email.toLowerCase().includes(searchLower)) ||
+        (lead.phone && lead.phone.includes(search)) ||
+        (lead.company && lead.company.toLowerCase().includes(searchLower))
+      );
+    }
+
+    // Sort the results
+    filteredLeads.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sort_by) {
+        case 'date_of_enquiry':
+          aValue = new Date(a.date_of_enquiry || a.created_date || 0);
+          bValue = new Date(b.date_of_enquiry || b.created_date || 0);
+          break;
+        case 'name':
+          aValue = (a.name || '').toLowerCase();
+          bValue = (b.name || '').toLowerCase();
+          break;
+        case 'potential_value':
+          aValue = parseFloat(a.potential_value) || 0;
+          bValue = parseFloat(b.potential_value) || 0;
+          break;
+        case 'company':
+          aValue = (a.company || '').toLowerCase();
+          bValue = (b.company || '').toLowerCase();
+          break;
+        default:
+          aValue = new Date(a.date_of_enquiry || a.created_date || 0);
+          bValue = new Date(b.date_of_enquiry || b.created_date || 0);
+      }
+      
+      if (sort_order === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    // Calculate pagination
+    const totalCount = filteredLeads.length;
+    const totalPages = Math.ceil(totalCount / limitNum);
+    const offset = (pageNum - 1) * limitNum;
+    const paginatedLeads = filteredLeads.slice(offset, offset + limitNum);
+
+    console.log(`✅ Returning ${paginatedLeads.length} of ${totalCount} total leads`);
+
+    res.json({
+      success: true,
+      data: paginatedLeads,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: totalCount,
+        totalPages: totalPages,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching paginated leads:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+// ============================================
+// END OF NEW PAGINATED ENDPOINT
+// ============================================
+
 module.exports = router;
