@@ -7,6 +7,7 @@ const { authenticateToken, checkPermission } = require('../middleware/auth');
 const Communication = require('../models/Communication');
 const { Storage } = require('@google-cloud/storage');
 const LeadStatusTriggers = require('../services/leadStatusTriggers');
+const multer = require('multer');
 
 // Initialize the triggers service
 const statusTriggers = new LeadStatusTriggers();
@@ -19,6 +20,21 @@ const storage = new Storage({
   projectId: 'enduring-wharf-464005-h7',
 });
 const bucket = storage.bucket('fantopark-quotes-bucket');
+
+// Configure multer for memory storage
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'), false);
+    }
+  }
+});
 
 // FIXED: Helper function to get user name by email (for suggestions)
 async function getUserName(email) {
@@ -239,254 +255,232 @@ async function updateRuleLastAssignment(ruleId, currentIndex) {
   }
 }
 
-// ===== ALL YOUR EXISTING ROUTES (UNCHANGED) =====
+// ============================================
+// SPECIFIC ROUTES (NO PARAMETERS) - MUST BE FIRST
+// ============================================
 
-// GET all leads - SAME AS YOUR ORIGINAL
-router.get('/', authenticateToken, async (req, res) => {
+// GET paginated leads with filtering and sorting
+router.get('/paginated', authenticateToken, async (req, res) => {
   try {
-    const leads = await Lead.getAll(req.query);
-    res.json({ data: leads });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// GET single lead - SAME AS YOUR ORIGINAL
-router.get('/:id', authenticateToken, async (req, res) => {
-  try {
-    const lead = await Lead.getById(req.params.id);
-    if (!lead) {
-      return res.status(404).json({ error: 'Lead not found' });
-    }
-    res.json({ data: lead });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// PUT update lead - ENHANCED WITH AUTO-REMINDERS + COMMUNICATION TRACKING
-// REPLACE your existing router.put('/:id', ...) endpoint with this enhanced version
-router.put('/:id', authenticateToken, async (req, res) => {
-  try {
-    const leadId = req.params.id;
-    const updates = req.body;
-    
-    // Get current lead to compare status changes (EXISTING CODE)
-    const currentLead = await Lead.getById(leadId);
-    if (!currentLead) {
-      return res.status(404).json({ error: 'Lead not found' });
-    }
-
-    const oldStatus = currentLead.status;
-    const newStatus = updates.status;
-    const oldAssignment = currentLead.assigned_to;
-    const newAssignment = updates.assigned_to;
-    const oldTemperature = currentLead.temperature;
-    const newTemperature = updates.temperature;
-    
-    console.log(`🔄 Updating lead ${leadId}: ${oldStatus} → ${newStatus || 'no status change'}`);
-
-    // UPDATE: Enhanced update with auto-reminder support (EXISTING CODE)
-    const updatedLead = await Lead.update(leadId, updates);
-    
-    // 🔥 NEW: FACEBOOK CONVERSION TRIGGERS
-    // This runs asynchronously so it doesn't slow down your existing API response
-    if (newStatus && newStatus !== oldStatus) {
-      statusTriggers.handleStatusChange(leadId, oldStatus, newStatus, updates)
-        .then(result => {
-          console.log('✅ Facebook conversion trigger completed:', result);
-        })
-        .catch(error => {
-          console.error('❌ Facebook conversion trigger failed (non-critical):', error);
-          // Error is logged but doesn't affect the main lead update operation
-        });
-    }
-
-    // EXISTING AUTO-REMINDER LOGIC (KEEP AS IS)
-    if (newStatus && newStatus !== oldStatus) {
-      try {
-        console.log(`📱 Creating auto-reminder for status change: ${oldStatus} → ${newStatus}`);
-        const Reminder = require('../models/Reminder');
-        
-        // Cancel old pending reminders for this lead
-        await Lead.cancelOldReminders(leadId, newStatus);
-        
-        // Create new reminder for new status
-        await Lead.createAutoReminder(leadId, updatedLead);
-        
-      } catch (reminderError) {
-        console.error('⚠️ Auto-reminder creation failed (non-critical):', reminderError.message);
-      }
-    }
-
-    // EXISTING AUTO-LOG SIGNIFICANT CHANGES (KEEP AS IS)
-    try {
-      if (newStatus && newStatus !== oldStatus) {
-        await Communication.autoLog(leadId, updatedLead, 'status_change', {
-          oldStatus: oldStatus,
-          newStatus: newStatus,
-          message: `Status changed from ${oldStatus} to ${newStatus}`
-        });
-        console.log('📝 Auto-logged status change communication');
-      }
+    const {
+      // Pagination params
+      page = '1',
+      limit = '20',
       
-      if (newAssignment && newAssignment !== oldAssignment) {
-        await Communication.autoLog(leadId, updatedLead, 'assignment_change', {
-          oldAssignment: oldAssignment,
-          newAssignment: newAssignment,
-          message: `Lead reassigned from ${oldAssignment || 'unassigned'} to ${newAssignment}`
-        });
-        console.log('📝 Auto-logged assignment change communication');
-      }
+      // Filter params
+      search = '',
+      status = 'all',
+      source = 'all',
+      business_type = 'all',
+      event = 'all',
+      assigned_to = 'all',
       
-      if (newTemperature && newTemperature !== oldTemperature) {
-        await Communication.autoLog(leadId, updatedLead, 'temperature_change', {
-          oldTemperature: oldTemperature,
-          newTemperature: newTemperature,
-          message: `Temperature changed from ${oldTemperature} to ${newTemperature}`
-        });
-        console.log('📝 Auto-logged temperature change communication');
-      }
-    } catch (commError) {
-      console.error('⚠️ Failed to auto-log change communications (non-critical):', commError);
-    }
-    
-    // EXISTING CLIENT METADATA UPDATE (KEEP AS IS)
-    try {
-      if (updatedLead.client_id) {
-        await Lead.updateClientMetadata(updatedLead.client_id, {
-          client_last_activity: new Date().toISOString()
-        });
-      }
-    } catch (clientError) {
-      console.log('Client metadata update failed (non-critical):', clientError.message);
-    }
-    
-    res.json({ 
-      data: updatedLead,
-      // NEW: Include trigger status in response
-      facebook_triggers: newStatus && newStatus !== oldStatus ? 'triggered' : 'not_applicable'
-    });
-  } catch (error) {
-    console.error('Error updating lead:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+      // Sort params
+      sort_by = 'date_of_enquiry',
+      sort_order = 'desc'
+    } = req.query;
 
-// DELETE lead - SAME AS YOUR ORIGINAL
-router.delete('/:id', authenticateToken, async (req, res) => {
-  try {
-    const leadId = req.params.id;
-    
-    // NEW: Cancel any pending reminders for this lead before deletion
-    try {
-      await Lead.cancelOldReminders(leadId, 'deleted');
-      console.log(`✅ Cancelled reminders for deleted lead: ${leadId}`);
-    } catch (reminderError) {
-      console.error('⚠️ Failed to cancel reminders for deleted lead:', reminderError.message);
-    }
-    
-    await Lead.delete(leadId);
-    res.json({ data: { message: 'Lead deleted successfully' } });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
 
-// DELETE all leads - YOUR EXISTING BULK DELETE (UNCHANGED)
-router.delete('/', authenticateToken, async (req, res) => {
-  try {
-    console.log('DELETE /leads - Bulk delete request');
-    console.log('Headers:', req.headers);
-    console.log('User:', req.user);
-    
-    // Check if user is super_admin
-    if (!req.user || req.user.role !== 'super_admin') {
-      console.log('Access denied - not super_admin');
-      return res.status(403).json({ error: 'Only super admins can perform bulk delete' });
-    }
-    
-    // Check headers (case-insensitive)
-    const deleteAll = req.headers['x-delete-all'] || req.headers['X-Delete-All'];
-    const testMode = req.headers['x-test-mode'] || req.headers['X-Test-Mode'];
-    
-    if (deleteAll !== 'true' || testMode !== 'true') {
-      console.log('Missing required headers');
-      return res.status(403).json({ error: 'Bulk delete requires test mode headers' });
-    }
-    
-    console.log('Authorized - proceeding with bulk delete');
-    
-    // Get all leads
+    console.log(`📄 Fetching paginated leads - Page: ${pageNum}, Limit: ${limitNum}`);
+
+    // Fetch all leads first (we'll optimize this later with proper indexes)
     const snapshot = await db.collection(collections.leads).get();
-    
-    if (snapshot.empty) {
-      console.log('No leads to delete');
-      return res.json({ message: 'No leads to delete', count: 0 });
-    }
-    
-    // NEW: Also delete all reminders and communications when bulk deleting leads
-    try {
-      const reminderSnapshot = await db.collection('crm_reminders').get();
-      if (!reminderSnapshot.empty) {
-        const reminderBatch = db.batch();
-        reminderSnapshot.docs.forEach((doc) => {
-          reminderBatch.delete(doc.ref);
-        });
-        await reminderBatch.commit();
-        console.log(`Deleted ${reminderSnapshot.size} reminders`);
-      }
-    } catch (reminderError) {
-      console.error('Failed to delete reminders during bulk delete:', reminderError.message);
+    let allLeads = [];
+
+    snapshot.forEach(doc => {
+      const lead = { id: doc.id, ...doc.data() };
+      allLeads.push(lead);
+    });
+
+    // Apply filters
+    let filteredLeads = allLeads;
+
+    // Status filter
+    if (status !== 'all') {
+      filteredLeads = filteredLeads.filter(lead => lead.status === status);
     }
 
-    try {
-      const commSnapshot = await db.collection('crm_communications').get();
-      if (!commSnapshot.empty) {
-        const commBatch = db.batch();
-        commSnapshot.docs.forEach((doc) => {
-          commBatch.delete(doc.ref);
-        });
-        await commBatch.commit();
-        console.log(`Deleted ${commSnapshot.size} communications`);
+    // Source filter
+    if (source !== 'all') {
+      filteredLeads = filteredLeads.filter(lead => lead.source === source);
+    }
+
+    // Business type filter
+    if (business_type !== 'all') {
+      filteredLeads = filteredLeads.filter(lead => lead.business_type === business_type);
+    }
+
+    // Event filter
+    if (event !== 'all') {
+      filteredLeads = filteredLeads.filter(lead => lead.lead_for_event === event);
+    }
+
+    // Assigned to filter
+    if (assigned_to !== 'all') {
+      if (assigned_to === 'unassigned') {
+        filteredLeads = filteredLeads.filter(lead => !lead.assigned_to);
+      } else {
+        filteredLeads = filteredLeads.filter(lead => lead.assigned_to === assigned_to);
       }
-    } catch (commError) {
-      console.error('Failed to delete communications during bulk delete:', commError.message);
     }
-    
-    // Delete in batches of 500 (Firestore limit)
-    const batchSize = 500;
-    let deleted = 0;
-    
-    while (deleted < snapshot.size) {
-      const batch = db.batch();
-      const currentBatch = snapshot.docs.slice(deleted, deleted + batchSize);
-      
-      currentBatch.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
-      
-      await batch.commit();
-      deleted += currentBatch.length;
-      console.log(`Deleted batch: ${currentBatch.length} docs (total: ${deleted})`);
+
+    // Search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredLeads = filteredLeads.filter(lead => 
+        (lead.name && lead.name.toLowerCase().includes(searchLower)) ||
+        (lead.email && lead.email.toLowerCase().includes(searchLower)) ||
+        (lead.phone && lead.phone.includes(search)) ||
+        (lead.company && lead.company.toLowerCase().includes(searchLower))
+      );
     }
-    
-    console.log(`Successfully deleted ${deleted} leads`);
-    res.json({ 
-      message: `Successfully deleted ${deleted} leads`,
-      count: deleted 
+
+    // Sort the results
+    filteredLeads.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sort_by) {
+        case 'date_of_enquiry':
+          aValue = new Date(a.date_of_enquiry || a.created_date || 0);
+          bValue = new Date(b.date_of_enquiry || b.created_date || 0);
+          break;
+        case 'name':
+          aValue = (a.name || '').toLowerCase();
+          bValue = (b.name || '').toLowerCase();
+          break;
+        case 'potential_value':
+          aValue = parseFloat(a.potential_value) || 0;
+          bValue = parseFloat(b.potential_value) || 0;
+          break;
+        case 'company':
+          aValue = (a.company || '').toLowerCase();
+          bValue = (b.company || '').toLowerCase();
+          break;
+        default:
+          aValue = new Date(a.date_of_enquiry || a.created_date || 0);
+          bValue = new Date(b.date_of_enquiry || b.created_date || 0);
+      }
+      
+      if (sort_order === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
     });
-    
+
+    // Calculate pagination
+    const totalCount = filteredLeads.length;
+    const totalPages = Math.ceil(totalCount / limitNum);
+    const offset = (pageNum - 1) * limitNum;
+    const paginatedLeads = filteredLeads.slice(offset, offset + limitNum);
+
+    console.log(`✅ Returning ${paginatedLeads.length} of ${totalCount} total leads`);
+
+    res.json({
+      success: true,
+      data: paginatedLeads,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: totalCount,
+        totalPages: totalPages,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1
+      }
+    });
+
   } catch (error) {
-    console.error('Bulk delete leads error:', error);
+    console.error('Error fetching paginated leads:', error);
     res.status(500).json({ 
-      error: 'Failed to delete leads', 
-      details: error.message 
+      success: false,
+      error: error.message 
     });
   }
 });
 
-// ===== FIXED: NEW ROUTES FOR CLIENT MANAGEMENT =====
+// GET filter options for leads (sources, events, users, etc.)
+router.get('/filter-options', authenticateToken, async (req, res) => {
+  try {
+    console.log('📋 Fetching filter options for leads');
+
+    // Fetch all unique values in parallel for better performance
+    const [
+      leadsSnapshot,
+      usersSnapshot
+    ] = await Promise.all([
+      db.collection(collections.leads).get(),
+      db.collection(collections.users).select('name', 'email').get()
+    ]);
+
+    // Extract unique values from leads
+    const sources = new Set();
+    const businessTypes = new Set();
+    const events = new Set();
+    const statuses = new Set();
+    
+    leadsSnapshot.forEach(doc => {
+      const lead = doc.data();
+      if (lead.source) sources.add(lead.source);
+      if (lead.business_type) businessTypes.add(lead.business_type);
+      if (lead.lead_for_event) events.add(lead.lead_for_event);
+      if (lead.status) statuses.add(lead.status);
+    });
+
+    // Get users for assigned_to filter
+    const users = usersSnapshot.docs.map(doc => ({
+      email: doc.data().email,
+      name: doc.data().name || doc.data().email
+    }));
+
+    const filterOptions = {
+      sources: Array.from(sources).sort(),
+      businessTypes: Array.from(businessTypes).sort(),
+      events: Array.from(events).sort(),
+      statuses: Array.from(statuses).sort(),
+      users: users.sort((a, b) => (a.name || '').localeCompare(b.name || '')),
+      // Include standard status options that might not be in data yet
+      standardStatuses: [
+        'unassigned',
+        'assigned', 
+        'contacted',
+        'qualified',
+        'unqualified',
+        'junk',
+        'converted',
+        'interested',
+        'not_interested',
+        'warm',
+        'hot',
+        'cold',
+        'on_hold',
+        'dropped',
+        'invoiced',
+        'payment_received'
+      ]
+    };
+
+    console.log('✅ Filter options retrieved successfully');
+    console.log(`📊 Found: ${filterOptions.sources.length} sources, ${filterOptions.events.length} events, ${filterOptions.users.length} users`);
+
+    res.json({
+      success: true,
+      data: filterOptions
+    });
+
+  } catch (error) {
+    console.error('Error fetching filter options:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+// ============================================
+// ROUTES WITH SPECIFIC PATHS
+// ============================================
 
 // FIXED: Check if phone number exists (for frontend suggestions)
 router.get('/check-phone/:phone', authenticateToken, async (req, res) => {
@@ -534,6 +528,74 @@ router.get('/check-phone/:phone', authenticateToken, async (req, res) => {
     }
   } catch (error) {
     console.error('❌ Route: Error checking phone:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Alternative direct file serving endpoint
+router.get('/files/quotes/:leadId/:filename', authenticateToken, async (req, res) => {
+  try {
+    const { leadId, filename } = req.params;
+    
+    console.log(`📄 Direct file serve request: ${leadId}/${filename}`);
+    
+    // Verify the lead exists
+    const leadDoc = await db.collection('crm_leads').doc(leadId).get();
+    if (!leadDoc.exists) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+    
+    // Verify the filename matches what's stored in the lead
+    const leadData = leadDoc.data();
+    if (leadData.quote_pdf_filename !== filename) {
+      return res.status(403).json({ error: 'File access denied' });
+    }
+    
+    // Construct file path
+    const filePath = `quotes/${leadId}/${filename}`;
+    const file = bucket.file(filePath);
+    
+    // Check if file exists
+    const [exists] = await file.exists();
+    if (!exists) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    // Set headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    // Stream the file
+    const stream = file.createReadStream();
+    stream.pipe(res);
+    
+    stream.on('error', (error) => {
+      console.error('❌ File stream error:', error);
+      if (!res.headersSent) {
+        res.status(500).send('Error downloading file');
+      }
+    });
+    
+    console.log(`✅ File streaming started: ${filename}`);
+    
+  } catch (error) {
+    console.error('❌ File serving error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+});
+
+// ============================================
+// GENERAL ROUTES (NO DYNAMIC PARAMETERS)
+// ============================================
+
+// GET all leads - SAME AS YOUR ORIGINAL
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const leads = await Lead.getAll(req.query);
+    res.json({ data: leads });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
@@ -686,7 +748,313 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// ===== NEW ROUTES FOR REMINDER MANAGEMENT =====
+// DELETE all leads - YOUR EXISTING BULK DELETE (UNCHANGED)
+router.delete('/', authenticateToken, async (req, res) => {
+  try {
+    console.log('DELETE /leads - Bulk delete request');
+    console.log('Headers:', req.headers);
+    console.log('User:', req.user);
+    
+    // Check if user is super_admin
+    if (!req.user || req.user.role !== 'super_admin') {
+      console.log('Access denied - not super_admin');
+      return res.status(403).json({ error: 'Only super admins can perform bulk delete' });
+    }
+    
+    // Check headers (case-insensitive)
+    const deleteAll = req.headers['x-delete-all'] || req.headers['X-Delete-All'];
+    const testMode = req.headers['x-test-mode'] || req.headers['X-Test-Mode'];
+    
+    if (deleteAll !== 'true' || testMode !== 'true') {
+      console.log('Missing required headers');
+      return res.status(403).json({ error: 'Bulk delete requires test mode headers' });
+    }
+    
+    console.log('Authorized - proceeding with bulk delete');
+    
+    // Get all leads
+    const snapshot = await db.collection(collections.leads).get();
+    
+    if (snapshot.empty) {
+      console.log('No leads to delete');
+      return res.json({ message: 'No leads to delete', count: 0 });
+    }
+    
+    // NEW: Also delete all reminders and communications when bulk deleting leads
+    try {
+      const reminderSnapshot = await db.collection('crm_reminders').get();
+      if (!reminderSnapshot.empty) {
+        const reminderBatch = db.batch();
+        reminderSnapshot.docs.forEach((doc) => {
+          reminderBatch.delete(doc.ref);
+        });
+        await reminderBatch.commit();
+        console.log(`Deleted ${reminderSnapshot.size} reminders`);
+      }
+    } catch (reminderError) {
+      console.error('Failed to delete reminders during bulk delete:', reminderError.message);
+    }
+
+    try {
+      const commSnapshot = await db.collection('crm_communications').get();
+      if (!commSnapshot.empty) {
+        const commBatch = db.batch();
+        commSnapshot.docs.forEach((doc) => {
+          commBatch.delete(doc.ref);
+        });
+        await commBatch.commit();
+        console.log(`Deleted ${commSnapshot.size} communications`);
+      }
+    } catch (commError) {
+      console.error('Failed to delete communications during bulk delete:', commError.message);
+    }
+    
+    // Delete in batches of 500 (Firestore limit)
+    const batchSize = 500;
+    let deleted = 0;
+    
+    while (deleted < snapshot.size) {
+      const batch = db.batch();
+      const currentBatch = snapshot.docs.slice(deleted, deleted + batchSize);
+      
+      currentBatch.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      
+      await batch.commit();
+      deleted += currentBatch.length;
+      console.log(`Deleted batch: ${currentBatch.length} docs (total: ${deleted})`);
+    }
+    
+    console.log(`Successfully deleted ${deleted} leads`);
+    res.json({ 
+      message: `Successfully deleted ${deleted} leads`,
+      count: deleted 
+    });
+    
+  } catch (error) {
+    console.error('Bulk delete leads error:', error);
+    res.status(500).json({ 
+      error: 'Failed to delete leads', 
+      details: error.message 
+    });
+  }
+});
+
+// 🔥 NEW: Bulk status update with Facebook conversion triggers
+router.put('/bulk/status', authenticateToken, async (req, res) => {
+  try {
+    const { lead_ids, status, notes } = req.body;
+
+    if (!Array.isArray(lead_ids) || lead_ids.length === 0) {
+      return res.status(400).json({ error: 'lead_ids array is required' });
+    }
+
+    const results = [];
+    const statusChanges = [];
+
+    // Process each lead
+    for (const leadId of lead_ids) {
+      try {
+        // Get current lead
+        const currentLead = await Lead.getById(leadId);
+        if (!currentLead) {
+          results.push({ leadId, success: false, error: 'Lead not found' });
+          continue;
+        }
+
+        const oldStatus = currentLead.status;
+
+        // Update lead
+        const updateData = {
+          status,
+          updated_date: new Date().toISOString(),
+          updated_by: req.user.email
+        };
+        if (notes) updateData.notes = notes;
+
+        await Lead.update(leadId, updateData);
+
+        results.push({ leadId, success: true, oldStatus, newStatus: status });
+        
+        // Collect for batch trigger processing
+        statusChanges.push({
+          leadId,
+          oldStatus,
+          newStatus: status,
+          updatedData: updateData
+        });
+
+      } catch (error) {
+        results.push({ leadId, success: false, error: error.message });
+      }
+    }
+
+    // 🔥 BATCH TRIGGER FACEBOOK CONVERSION EVENTS
+    if (statusChanges.length > 0) {
+      statusTriggers.batchProcessStatusChanges(statusChanges)
+        .catch(error => {
+          console.error('Batch trigger execution failed:', error);
+        });
+    }
+
+    res.json({
+      success: true,
+      message: `Processed ${lead_ids.length} leads`,
+      results,
+      triggers_enabled: statusChanges.length > 0
+    });
+
+  } catch (error) {
+    console.error('Error in bulk status update:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// DYNAMIC ROUTES (WITH :id) - MUST BE LAST
+// ============================================
+
+// GET single lead - SAME AS YOUR ORIGINAL
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const lead = await Lead.getById(req.params.id);
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+    res.json({ data: lead });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT update lead - ENHANCED WITH AUTO-REMINDERS + COMMUNICATION TRACKING
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const leadId = req.params.id;
+    const updates = req.body;
+    
+    // Get current lead to compare status changes (EXISTING CODE)
+    const currentLead = await Lead.getById(leadId);
+    if (!currentLead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+
+    const oldStatus = currentLead.status;
+    const newStatus = updates.status;
+    const oldAssignment = currentLead.assigned_to;
+    const newAssignment = updates.assigned_to;
+    const oldTemperature = currentLead.temperature;
+    const newTemperature = updates.temperature;
+    
+    console.log(`🔄 Updating lead ${leadId}: ${oldStatus} → ${newStatus || 'no status change'}`);
+
+    // UPDATE: Enhanced update with auto-reminder support (EXISTING CODE)
+    const updatedLead = await Lead.update(leadId, updates);
+    
+    // 🔥 NEW: FACEBOOK CONVERSION TRIGGERS
+    // This runs asynchronously so it doesn't slow down your existing API response
+    if (newStatus && newStatus !== oldStatus) {
+      statusTriggers.handleStatusChange(leadId, oldStatus, newStatus, updates)
+        .then(result => {
+          console.log('✅ Facebook conversion trigger completed:', result);
+        })
+        .catch(error => {
+          console.error('❌ Facebook conversion trigger failed (non-critical):', error);
+          // Error is logged but doesn't affect the main lead update operation
+        });
+    }
+
+    // EXISTING AUTO-REMINDER LOGIC (KEEP AS IS)
+    if (newStatus && newStatus !== oldStatus) {
+      try {
+        console.log(`📱 Creating auto-reminder for status change: ${oldStatus} → ${newStatus}`);
+        const Reminder = require('../models/Reminder');
+        
+        // Cancel old pending reminders for this lead
+        await Lead.cancelOldReminders(leadId, newStatus);
+        
+        // Create new reminder for new status
+        await Lead.createAutoReminder(leadId, updatedLead);
+        
+      } catch (reminderError) {
+        console.error('⚠️ Auto-reminder creation failed (non-critical):', reminderError.message);
+      }
+    }
+
+    // EXISTING AUTO-LOG SIGNIFICANT CHANGES (KEEP AS IS)
+    try {
+      if (newStatus && newStatus !== oldStatus) {
+        await Communication.autoLog(leadId, updatedLead, 'status_change', {
+          oldStatus: oldStatus,
+          newStatus: newStatus,
+          message: `Status changed from ${oldStatus} to ${newStatus}`
+        });
+        console.log('📝 Auto-logged status change communication');
+      }
+      
+      if (newAssignment && newAssignment !== oldAssignment) {
+        await Communication.autoLog(leadId, updatedLead, 'assignment_change', {
+          oldAssignment: oldAssignment,
+          newAssignment: newAssignment,
+          message: `Lead reassigned from ${oldAssignment || 'unassigned'} to ${newAssignment}`
+        });
+        console.log('📝 Auto-logged assignment change communication');
+      }
+      
+      if (newTemperature && newTemperature !== oldTemperature) {
+        await Communication.autoLog(leadId, updatedLead, 'temperature_change', {
+          oldTemperature: oldTemperature,
+          newTemperature: newTemperature,
+          message: `Temperature changed from ${oldTemperature} to ${newTemperature}`
+        });
+        console.log('📝 Auto-logged temperature change communication');
+      }
+    } catch (commError) {
+      console.error('⚠️ Failed to auto-log change communications (non-critical):', commError);
+    }
+    
+    // EXISTING CLIENT METADATA UPDATE (KEEP AS IS)
+    try {
+      if (updatedLead.client_id) {
+        await Lead.updateClientMetadata(updatedLead.client_id, {
+          client_last_activity: new Date().toISOString()
+        });
+      }
+    } catch (clientError) {
+      console.log('Client metadata update failed (non-critical):', clientError.message);
+    }
+    
+    res.json({ 
+      data: updatedLead,
+      // NEW: Include trigger status in response
+      facebook_triggers: newStatus && newStatus !== oldStatus ? 'triggered' : 'not_applicable'
+    });
+  } catch (error) {
+    console.error('Error updating lead:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE lead - SAME AS YOUR ORIGINAL
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const leadId = req.params.id;
+    
+    // NEW: Cancel any pending reminders for this lead before deletion
+    try {
+      await Lead.cancelOldReminders(leadId, 'deleted');
+      console.log(`✅ Cancelled reminders for deleted lead: ${leadId}`);
+    } catch (reminderError) {
+      console.error('⚠️ Failed to cancel reminders for deleted lead:', reminderError.message);
+    }
+    
+    await Lead.delete(leadId);
+    res.json({ data: { message: 'Lead deleted successfully' } });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // NEW: Get reminders for a specific lead
 router.get('/:id/reminders', authenticateToken, async (req, res) => {
@@ -798,8 +1166,6 @@ router.post('/:id/communications', authenticateToken, async (req, res) => {
   }
 });
 
-// ===== NEW QUOTE PDF DOWNLOAD ENDPOINTS =====
-
 // Quote download endpoint
 router.get('/:id/quote/download', authenticateToken, async (req, res) => {
   try {
@@ -865,80 +1231,6 @@ router.get('/:id/quote/download', authenticateToken, async (req, res) => {
       success: false, 
       error: 'Internal server error: ' + error.message 
     });
-  }
-});
-
-// Alternative direct file serving endpoint
-router.get('/files/quotes/:leadId/:filename', authenticateToken, async (req, res) => {
-  try {
-    const { leadId, filename } = req.params;
-    
-    console.log(`📄 Direct file serve request: ${leadId}/${filename}`);
-    
-    // Verify the lead exists
-    const leadDoc = await db.collection('crm_leads').doc(leadId).get();
-    if (!leadDoc.exists) {
-      return res.status(404).json({ error: 'Lead not found' });
-    }
-    
-    // Verify the filename matches what's stored in the lead
-    const leadData = leadDoc.data();
-    if (leadData.quote_pdf_filename !== filename) {
-      return res.status(403).json({ error: 'File access denied' });
-    }
-    
-    // Construct file path
-    const filePath = `quotes/${leadId}/${filename}`;
-    const file = bucket.file(filePath);
-    
-    // Check if file exists
-    const [exists] = await file.exists();
-    if (!exists) {
-      return res.status(404).json({ error: 'File not found' });
-    }
-    
-    // Set headers for PDF download
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    
-    // Stream the file
-    const stream = file.createReadStream();
-    stream.pipe(res);
-    
-    stream.on('error', (error) => {
-      console.error('❌ File stream error:', error);
-      if (!res.headersSent) {
-        res.status(500).send('Error downloading file');
-      }
-    });
-    
-    console.log(`✅ File streaming started: ${filename}`);
-    
-  } catch (error) {
-    console.error('❌ File serving error:', error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  }
-});
-
-// ===== ADD THIS TO YOUR backend/src/routes/leads.js =====
-// Add this endpoint before the module.exports = router; line
-
-const multer = require('multer');
-
-// Configure multer for memory storage
-const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf') {
-      cb(null, true);
-    } else {
-      cb(new Error('Only PDF files are allowed'), false);
-    }
   }
 });
 
@@ -1053,76 +1345,6 @@ router.post('/:id/quote/upload', authenticateToken, upload.single('quote_pdf'), 
   }
 });
 
-// 🔥 NEW: Bulk status update with Facebook conversion triggers
-router.put('/bulk/status', authenticateToken, async (req, res) => {
-  try {
-    const { lead_ids, status, notes } = req.body;
-
-    if (!Array.isArray(lead_ids) || lead_ids.length === 0) {
-      return res.status(400).json({ error: 'lead_ids array is required' });
-    }
-
-    const results = [];
-    const statusChanges = [];
-
-    // Process each lead
-    for (const leadId of lead_ids) {
-      try {
-        // Get current lead
-        const currentLead = await Lead.getById(leadId);
-        if (!currentLead) {
-          results.push({ leadId, success: false, error: 'Lead not found' });
-          continue;
-        }
-
-        const oldStatus = currentLead.status;
-
-        // Update lead
-        const updateData = {
-          status,
-          updated_date: new Date().toISOString(),
-          updated_by: req.user.email
-        };
-        if (notes) updateData.notes = notes;
-
-        await Lead.update(leadId, updateData);
-
-        results.push({ leadId, success: true, oldStatus, newStatus: status });
-        
-        // Collect for batch trigger processing
-        statusChanges.push({
-          leadId,
-          oldStatus,
-          newStatus: status,
-          updatedData: updateData
-        });
-
-      } catch (error) {
-        results.push({ leadId, success: false, error: error.message });
-      }
-    }
-
-    // 🔥 BATCH TRIGGER FACEBOOK CONVERSION EVENTS
-    if (statusChanges.length > 0) {
-      statusTriggers.batchProcessStatusChanges(statusChanges)
-        .catch(error => {
-          console.error('Batch trigger execution failed:', error);
-        });
-    }
-
-    res.json({
-      success: true,
-      message: `Processed ${lead_ids.length} leads`,
-      results,
-      triggers_enabled: statusChanges.length > 0
-    });
-
-  } catch (error) {
-    console.error('Error in bulk status update:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // 🔥 NEW: Direct conversion tracking endpoint
 router.post('/:id/track-conversion', authenticateToken, async (req, res) => {
   try {
@@ -1203,8 +1425,6 @@ router.post('/:id/test-facebook-trigger', authenticateToken, async (req, res) =>
     });
   }
 });
-
-// ===== LEAD INCLUSIONS ENDPOINTS =====
 
 // GET inclusions for a specific lead
 router.get('/:id/inclusions', authenticateToken, async (req, res) => {
@@ -1288,303 +1508,5 @@ router.put('/:id/inclusions', authenticateToken, async (req, res) => {
     });
   }
 });
-
-// ============================================
-// NEW PAGINATED ENDPOINT - ADD THIS SECTION
-// ============================================
-
-// GET paginated leads with filtering and sorting
-router.get('/paginated', authenticateToken, async (req, res) => {
-  try {
-    const {
-      // Pagination params
-      page = '1',
-      limit = '20',
-      
-      // Filter params
-      search = '',
-      status = 'all',
-      source = 'all',
-      business_type = 'all',
-      event = 'all',
-      assigned_to = 'all',
-      
-      // Sort params
-      sort_by = 'date_of_enquiry',
-      sort_order = 'desc'
-    } = req.query;
-
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
-
-    console.log(`📄 Fetching paginated leads - Page: ${pageNum}, Limit: ${limitNum}`);
-
-    // Fetch all leads first (we'll optimize this later with proper indexes)
-    const snapshot = await db.collection(collections.leads).get();
-    let allLeads = [];
-
-    snapshot.forEach(doc => {
-      const lead = { id: doc.id, ...doc.data() };
-      allLeads.push(lead);
-    });
-
-    // Apply filters
-    let filteredLeads = allLeads;
-
-    // Status filter
-    if (status !== 'all') {
-      filteredLeads = filteredLeads.filter(lead => lead.status === status);
-    }
-
-    // Source filter
-    if (source !== 'all') {
-      filteredLeads = filteredLeads.filter(lead => lead.source === source);
-    }
-
-    // Business type filter
-    if (business_type !== 'all') {
-      filteredLeads = filteredLeads.filter(lead => lead.business_type === business_type);
-    }
-
-    // Event filter
-    if (event !== 'all') {
-      filteredLeads = filteredLeads.filter(lead => lead.lead_for_event === event);
-    }
-
-    // Assigned to filter
-    if (assigned_to !== 'all') {
-      if (assigned_to === 'unassigned') {
-        filteredLeads = filteredLeads.filter(lead => !lead.assigned_to);
-      } else {
-        filteredLeads = filteredLeads.filter(lead => lead.assigned_to === assigned_to);
-      }
-    }
-
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filteredLeads = filteredLeads.filter(lead => 
-        (lead.name && lead.name.toLowerCase().includes(searchLower)) ||
-        (lead.email && lead.email.toLowerCase().includes(searchLower)) ||
-        (lead.phone && lead.phone.includes(search)) ||
-        (lead.company && lead.company.toLowerCase().includes(searchLower))
-      );
-    }
-
-    // Sort the results
-    filteredLeads.sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sort_by) {
-        case 'date_of_enquiry':
-          aValue = new Date(a.date_of_enquiry || a.created_date || 0);
-          bValue = new Date(b.date_of_enquiry || b.created_date || 0);
-          break;
-        case 'name':
-          aValue = (a.name || '').toLowerCase();
-          bValue = (b.name || '').toLowerCase();
-          break;
-        case 'potential_value':
-          aValue = parseFloat(a.potential_value) || 0;
-          bValue = parseFloat(b.potential_value) || 0;
-          break;
-        case 'company':
-          aValue = (a.company || '').toLowerCase();
-          bValue = (b.company || '').toLowerCase();
-          break;
-        default:
-          aValue = new Date(a.date_of_enquiry || a.created_date || 0);
-          bValue = new Date(b.date_of_enquiry || b.created_date || 0);
-      }
-      
-      if (sort_order === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-
-    // Calculate pagination
-    const totalCount = filteredLeads.length;
-    const totalPages = Math.ceil(totalCount / limitNum);
-    const offset = (pageNum - 1) * limitNum;
-    const paginatedLeads = filteredLeads.slice(offset, offset + limitNum);
-
-    console.log(`✅ Returning ${paginatedLeads.length} of ${totalCount} total leads`);
-
-    res.json({
-      success: true,
-      data: paginatedLeads,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total: totalCount,
-        totalPages: totalPages,
-        hasNext: pageNum < totalPages,
-        hasPrev: pageNum > 1
-      }
-    });
-
-  } catch (error) {
-    console.error('Error fetching paginated leads:', error);
-    res.status(500).json({ 
-      success: false,
-      error: error.message 
-    });
-  }
-});
-
-// ============================================
-// END OF NEW PAGINATED ENDPOINT
-// ============================================
-
-// ============================================
-// NEW PAGINATED ENDPOINT - ADD THIS SECTION
-// ============================================
-
-// GET paginated leads with filtering and sorting
-router.get('/paginated', authenticateToken, async (req, res) => {
-  try {
-    const {
-      // Pagination params
-      page = '1',
-      limit = '20',
-      
-      // Filter params
-      search = '',
-      status = 'all',
-      source = 'all',
-      business_type = 'all',
-      event = 'all',
-      assigned_to = 'all',
-      
-      // Sort params
-      sort_by = 'date_of_enquiry',
-      sort_order = 'desc'
-    } = req.query;
-
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
-
-    console.log(`📄 Fetching paginated leads - Page: ${pageNum}, Limit: ${limitNum}`);
-
-    // Fetch all leads first (we'll optimize this later with proper indexes)
-    const snapshot = await db.collection(collections.leads).get();
-    let allLeads = [];
-
-    snapshot.forEach(doc => {
-      const lead = { id: doc.id, ...doc.data() };
-      allLeads.push(lead);
-    });
-
-    // Apply filters
-    let filteredLeads = allLeads;
-
-    // Status filter
-    if (status !== 'all') {
-      filteredLeads = filteredLeads.filter(lead => lead.status === status);
-    }
-
-    // Source filter
-    if (source !== 'all') {
-      filteredLeads = filteredLeads.filter(lead => lead.source === source);
-    }
-
-    // Business type filter
-    if (business_type !== 'all') {
-      filteredLeads = filteredLeads.filter(lead => lead.business_type === business_type);
-    }
-
-    // Event filter
-    if (event !== 'all') {
-      filteredLeads = filteredLeads.filter(lead => lead.lead_for_event === event);
-    }
-
-    // Assigned to filter
-    if (assigned_to !== 'all') {
-      if (assigned_to === 'unassigned') {
-        filteredLeads = filteredLeads.filter(lead => !lead.assigned_to);
-      } else {
-        filteredLeads = filteredLeads.filter(lead => lead.assigned_to === assigned_to);
-      }
-    }
-
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filteredLeads = filteredLeads.filter(lead => 
-        (lead.name && lead.name.toLowerCase().includes(searchLower)) ||
-        (lead.email && lead.email.toLowerCase().includes(searchLower)) ||
-        (lead.phone && lead.phone.includes(search)) ||
-        (lead.company && lead.company.toLowerCase().includes(searchLower))
-      );
-    }
-
-    // Sort the results
-    filteredLeads.sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sort_by) {
-        case 'date_of_enquiry':
-          aValue = new Date(a.date_of_enquiry || a.created_date || 0);
-          bValue = new Date(b.date_of_enquiry || b.created_date || 0);
-          break;
-        case 'name':
-          aValue = (a.name || '').toLowerCase();
-          bValue = (b.name || '').toLowerCase();
-          break;
-        case 'potential_value':
-          aValue = parseFloat(a.potential_value) || 0;
-          bValue = parseFloat(b.potential_value) || 0;
-          break;
-        case 'company':
-          aValue = (a.company || '').toLowerCase();
-          bValue = (b.company || '').toLowerCase();
-          break;
-        default:
-          aValue = new Date(a.date_of_enquiry || a.created_date || 0);
-          bValue = new Date(b.date_of_enquiry || b.created_date || 0);
-      }
-      
-      if (sort_order === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-
-    // Calculate pagination
-    const totalCount = filteredLeads.length;
-    const totalPages = Math.ceil(totalCount / limitNum);
-    const offset = (pageNum - 1) * limitNum;
-    const paginatedLeads = filteredLeads.slice(offset, offset + limitNum);
-
-    console.log(`✅ Returning ${paginatedLeads.length} of ${totalCount} total leads`);
-
-    res.json({
-      success: true,
-      data: paginatedLeads,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total: totalCount,
-        totalPages: totalPages,
-        hasNext: pageNum < totalPages,
-        hasPrev: pageNum > 1
-      }
-    });
-
-  } catch (error) {
-    console.error('Error fetching paginated leads:', error);
-    res.status(500).json({ 
-      success: false,
-      error: error.message 
-    });
-  }
-});
-
-// ============================================
-// END OF NEW PAGINATED ENDPOINT
-// ============================================
 
 module.exports = router;
