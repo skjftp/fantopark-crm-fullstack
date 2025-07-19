@@ -2336,19 +2336,6 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
     alert("Unallocate functionality will be implemented in next update!");
   });
 
-  window.apiCall = window.apiCall || ((endpoint, options) => {
-    console.log("🌐 apiCall:", endpoint, options);
-    const url = (window.API_CONFIG?.API_URL || window.API_URL) + endpoint;
-    return fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': window.authToken ? 'Bearer ' + window.authToken : '',
-        ...options.headers
-      }
-    }).then(response => response.json());
-  });
-
   // ===== PERMISSION SYSTEM =====
 
   window.hasPermission = function(module, action) {
