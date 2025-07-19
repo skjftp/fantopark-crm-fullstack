@@ -419,3 +419,22 @@ window.openAllocationManagement = async (inventory) => {
     }
   }
 };
+
+// Consolidated user display name function
+window.getUserDisplayName = function(userId, usersList = null) {
+  if (!userId) return 'Unassigned';
+  
+  // Try multiple sources for users list
+  const users = usersList || window.users || window.appState?.users || [];
+  
+  // Find user by email or ID
+  const user = users.find(u => u.email === userId || u.id === userId);
+  
+  if (!user) return userId; // Return the ID if user not found
+  
+  // Build display name
+  const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+  return fullName || user.name || user.email || userId;
+};
+
+window.log.success('Helper functions loaded');
