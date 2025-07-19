@@ -9,6 +9,8 @@ window.LeadsAPI = {
   filterOptionsCacheTime: null,
   CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
 
+  // Replace the fetchPaginatedLeads function in your leads-api.js with this:
+
   // Fetch paginated leads from backend
   fetchPaginatedLeads: async function(params = {}) {
     try {
@@ -26,6 +28,12 @@ window.LeadsAPI = {
         sort_order: params.sort_order || window.appState.leadsSortDirection || 'desc'
       });
 
+      // Handle multi-status filter
+      if (window.selectedStatusFilters && window.selectedStatusFilters.length > 0) {
+        queryParams.delete('status');
+        queryParams.append('status', window.selectedStatusFilters.join(','));
+      }
+
       window.log.info('Fetching paginated leads with params:', queryParams.toString());
 
       // Show loading state
@@ -40,22 +48,57 @@ window.LeadsAPI = {
         // Update leads state
         window.appState.setLeads(response.data || []);
 
-// Update pagination info
-if (response.pagination) {
-  window.appState.totalLeads = response.pagination.total;
-  window.appState.totalLeadsPages = response.pagination.totalPages;
-  
-  // Use setState to update pagination
-  window.appState.setLeadsPagination(response.pagination);
-}
+        // Update pagination info - handle both response formats
+        const paginationData = response.pagination || {
+          page: parseInt(queryParams.get('page')) || 1,
+          limit: parseInt(queryParams.get('limit')) || 20,
+          total: response.total || 0,
+          totalPages: response.totalPages || Math.ceil((response.total || 0) / 20)
+        };
 
-        window.log.success(`Loaded ${response.data.length} leads (page ${response.pagination.page} of ${response.pagination.totalPages})`);
+        // Ensure all pagination fields are set
+        const fullPagination = {
+          page: paginationData.page || 1,
+          totalPages: paginationData.totalPages || 1,
+          total: paginationData.total || 0,
+          hasNext: paginationData.page < paginationData.totalPages,
+          hasPrev: paginationData.page > 1,
+          perPage: paginationData.limit || 20,
+          limit: paginationData.limit || 20
+        };
+
+        // Update pagination state
+        window.appState.totalLeads = fullPagination.total;
+        window.appState.totalLeadsPages = fullPagination.totalPages;
+        
+        // Use setState to update pagination
+        if (window.appState.setLeadsPagination) {
+          window.appState.setLeadsPagination(fullPagination);
+        }
+
+        window.log.success(`✅ Loaded ${response.data?.length || 0} leads (page ${fullPagination.page} of ${fullPagination.totalPages}, total: ${fullPagination.total})`);
+      } else {
+        throw new Error(response.message || 'Failed to fetch leads');
       }
 
       return response;
 
     } catch (error) {
       window.handleError(error, 'fetching leads');
+      
+      // Set empty state on error
+      window.appState.setLeads([]);
+      if (window.appState.setLeadsPagination) {
+        window.appState.setLeadsPagination({
+          page: 1,
+          totalPages: 1,
+          total: 0,
+          hasNext: false,
+          hasPrev: false,
+          perPage: 20
+        });
+      }
+      
       return { success: false, data: [], pagination: {} };
     } finally {
       if (window.appState.setLoading) {
