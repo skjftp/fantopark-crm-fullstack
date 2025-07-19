@@ -15,7 +15,7 @@ window.LeadsAPI = {
       // Build query parameters
       const queryParams = new URLSearchParams({
         page: params.page || window.appState.currentLeadsPage || 1,
-        limit: params.limit || window.appState.itemsPerPage || 20,
+        limit: params.limit || 20,
         search: params.search !== undefined ? params.search : (window.appState.searchQuery || ''),
         status: params.status || window.statusFilter || 'all',
         source: params.source || window.appState.leadsSourceFilter || 'all',
