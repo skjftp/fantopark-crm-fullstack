@@ -3,14 +3,13 @@ const express = require('express');
 const router = express.Router();
 const Lead = require('../models/Lead');
 const AssignmentRule = require('../models/AssignmentRule');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, checkPermission } = require('../middleware/auth');
 const Communication = require('../models/Communication');
 const { Storage } = require('@google-cloud/storage');
 const LeadStatusTriggers = require('../services/leadStatusTriggers');
 
 // Initialize the triggers service
 const statusTriggers = new LeadStatusTriggers();
-
 
 // Import db for bulk operations (you already had this)
 const { db, collections } = require('../config/db');
@@ -972,57 +971,56 @@ router.post('/:id/quote/upload', authenticateToken, upload.single('quote_pdf'), 
       assigned_team: null
     };
     
-  
-let uniqueFilename, filePath;
+    let uniqueFilename, filePath;
 
-if (file) {
-  try {
-    // Create unique filename ONCE
-    const timestamp = Date.now();
-    uniqueFilename = `quote_${timestamp}_${file.originalname}`;
-    filePath = `quotes/${id}/${uniqueFilename}`;
-    
-    console.log(`📄 Uploading to GCS with exact filename: ${uniqueFilename}`);
-    console.log(`📄 Full path: ${filePath}`);
+    if (file) {
+      try {
+        // Create unique filename ONCE
+        const timestamp = Date.now();
+        uniqueFilename = `quote_${timestamp}_${file.originalname}`;
+        filePath = `quotes/${id}/${uniqueFilename}`;
         
-    // Upload to Google Cloud Storage with the EXACT filename
-    const gcsFile = bucket.file(filePath);
-    const stream = gcsFile.createWriteStream({
-      metadata: {
-        contentType: file.mimetype,
-      },
-    });
-    
-    await new Promise((resolve, reject) => {
-      stream.on('error', (error) => {
-        console.error('❌ GCS stream error:', error);
-        reject(error);
-      });
-      stream.on('finish', () => {
-        console.log(`✅ GCS upload completed for: ${uniqueFilename}`);
-        resolve();
-      });
-      stream.end(file.buffer);
-    });
-    
-    // Add file info to update data
-    updateData.quote_pdf_filename = uniqueFilename;
-    updateData.quote_file_size = file.size;
-    updateData.quote_file_path = filePath;
+        console.log(`📄 Uploading to GCS with exact filename: ${uniqueFilename}`);
+        console.log(`📄 Full path: ${filePath}`);
+            
+        // Upload to Google Cloud Storage with the EXACT filename
+        const gcsFile = bucket.file(filePath);
+        const stream = gcsFile.createWriteStream({
+          metadata: {
+            contentType: file.mimetype,
+          },
+        });
+        
+        await new Promise((resolve, reject) => {
+          stream.on('error', (error) => {
+            console.error('❌ GCS stream error:', error);
+            reject(error);
+          });
+          stream.on('finish', () => {
+            console.log(`✅ GCS upload completed for: ${uniqueFilename}`);
+            resolve();
+          });
+          stream.end(file.buffer);
+        });
+        
+        // Add file info to update data
+        updateData.quote_pdf_filename = uniqueFilename;
+        updateData.quote_file_size = file.size;
+        updateData.quote_file_path = filePath;
 
-    console.log(`🔍 DEBUG: About to update database with filename: ${uniqueFilename}`);
-console.log(`🔍 DEBUG: updateData.quote_pdf_filename = ${updateData.quote_pdf_filename}`);
-    
-    console.log(`✅ File uploaded to GCS with filename: ${uniqueFilename}`);
+        console.log(`🔍 DEBUG: About to update database with filename: ${uniqueFilename}`);
+        console.log(`🔍 DEBUG: updateData.quote_pdf_filename = ${updateData.quote_pdf_filename}`);
         
-  } catch (uploadError) {
-    console.error('❌ GCS upload error:', uploadError);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'File upload failed: ' + uploadError.message 
-    });
-  }
-}
+        console.log(`✅ File uploaded to GCS with filename: ${uniqueFilename}`);
+            
+      } catch (uploadError) {
+        console.error('❌ GCS upload error:', uploadError);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'File upload failed: ' + uploadError.message 
+        });
+      }
+    }
     
     // Update the lead in Firestore
     await db.collection('crm_leads').doc(id).update(updateData);
@@ -1033,18 +1031,18 @@ console.log(`🔍 DEBUG: updateData.quote_pdf_filename = ${updateData.quote_pdf_
     
     console.log(`✅ Quote upload completed for lead: ${id}`);
     
-res.json({
-  success: true,
-  data: updatedLead,
-  message: file ? 'Quote uploaded successfully' : 'Quote processed successfully (no file)',
-  // Add file information for frontend
-  ...(file && {
-    filePath: `quotes/${id}/${uniqueFilename}`,
-    fileName: uniqueFilename,
-    originalName: file.originalname,
-    fileSize: file.size
-  })
-});
+    res.json({
+      success: true,
+      data: updatedLead,
+      message: file ? 'Quote uploaded successfully' : 'Quote processed successfully (no file)',
+      // Add file information for frontend
+      ...(file && {
+        filePath: `quotes/${id}/${uniqueFilename}`,
+        fileName: uniqueFilename,
+        originalName: file.originalname,
+        fileSize: file.size
+      })
+    });
     
   } catch (error) {
     console.error('❌ Quote upload error:', error);
@@ -1206,168 +1204,89 @@ router.post('/:id/test-facebook-trigger', authenticateToken, async (req, res) =>
   }
 });
 
+// ===== LEAD INCLUSIONS ENDPOINTS =====
 
-// Replace these routes in your leads.js file (around line 1214)
-
-// GET /leads/:id/inclusions - Get inclusions for a lead
+// GET inclusions for a specific lead
 router.get('/:id/inclusions', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Check if user has permission to view this lead
+    // Get the lead document
     const leadDoc = await db.collection('crm_leads').doc(id).get();
+    
     if (!leadDoc.exists) {
       return res.status(404).json({ error: 'Lead not found' });
     }
     
-    const lead = leadDoc.data();
+    const leadData = leadDoc.data();
     
-    // Check permissions
-    if (!hasPermission(req.user, 'leads', 'read') && 
-        lead.assigned_to !== req.user.email) {
-      return res.status(403).json({ error: 'Permission denied' });
-    }
+    // Return inclusions data or default structure
+    const inclusions = leadData.inclusions || {
+      flights: [],
+      hotels: [],
+      transfers: [],
+      sightseeing: [],
+      other: [],
+      notes: '',
+      lastUpdated: null,
+      updatedBy: null
+    };
     
-    // Get inclusions data
-    const inclusionsDoc = await db.collection('lead_inclusions').doc(id).get();
-    
-    if (!inclusionsDoc.exists) {
-      // Return empty structure if no inclusions exist
-      return res.json({
-        data: {
-          flights: [],
-          hotels: [],
-          transfers: [],
-          sightseeing: [],
-          other: [],
-          notes: '',
-          lastUpdated: null,
-          updatedBy: null
-        }
-      });
-    }
-    
-    res.json({ data: inclusionsDoc.data() });
+    res.json({ 
+      success: true,
+      data: inclusions 
+    });
     
   } catch (error) {
-    console.error('Error fetching lead inclusions:', error);
-    res.status(500).json({ error: 'Failed to fetch inclusions' });
+    console.error('Error fetching inclusions:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch inclusions' 
+    });
   }
 });
 
-// PUT /leads/:id/inclusions - Update inclusions for a lead
+// PUT (update) inclusions for a specific lead
 router.put('/:id/inclusions', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const inclusionsData = req.body;
     
-    // Check if user has permission to update this lead
-    const leadDoc = await db.collection('crm_leads').doc(id).get();
+    // Verify lead exists
+    const leadRef = db.collection('crm_leads').doc(id);
+    const leadDoc = await leadRef.get();
+    
     if (!leadDoc.exists) {
       return res.status(404).json({ error: 'Lead not found' });
     }
     
-    const lead = leadDoc.data();
-    
-    // Check permissions
-    if (!hasPermission(req.user, 'leads', 'write') && 
-        lead.assigned_to !== req.user.email) {
-      return res.status(403).json({ error: 'Permission denied' });
-    }
-    
     // Add metadata
-    const dataToSave = {
+    const updatedInclusions = {
       ...inclusionsData,
       lastUpdated: new Date().toISOString(),
-      updatedBy: req.user.email,
-      leadId: id
+      updatedBy: req.user.email
     };
     
-    // Save to database
-    await db.collection('lead_inclusions').doc(id).set(dataToSave, { merge: true });
-    
-    // Log activity
-    await createActivity(
-      'lead_inclusions_updated',
-      req.user,
-      { leadId: id, leadName: lead.name },
-      `Updated travel inclusions for lead: ${lead.name}`
-    );
+    // Update the lead document with inclusions
+    await leadRef.update({
+      inclusions: updatedInclusions,
+      updated_date: new Date().toISOString(),
+      updated_by: req.user.email
+    });
     
     res.json({ 
-      success: true, 
-      data: dataToSave,
-      message: 'Inclusions updated successfully'
+      success: true,
+      message: 'Inclusions updated successfully',
+      data: updatedInclusions
     });
     
   } catch (error) {
-    console.error('Error updating lead inclusions:', error);
-    res.status(500).json({ error: 'Failed to update inclusions' });
-  }
-});
-
-// Additional endpoint to get inclusions for multiple leads (for supply team dashboard)
-router.post('/inclusions/bulk', authenticateToken, async (req, res) => {
-  try {
-    const { leadIds } = req.body;
-    
-    if (!Array.isArray(leadIds) || leadIds.length === 0) {
-      return res.status(400).json({ error: 'Invalid lead IDs' });
-    }
-    
-    // Check if user is in supply team
-    if (!hasPermission(req.user, 'quotes', 'read')) {
-      return res.status(403).json({ error: 'Permission denied' });
-    }
-    
-    // Fetch inclusions for all leads
-    const inclusionsPromises = leadIds.map(async (leadId) => {
-      const doc = await db.collection('lead_inclusions').doc(leadId).get();
-      return {
-        leadId,
-        data: doc.exists ? doc.data() : null
-      };
+    console.error('Error updating inclusions:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to update inclusions' 
     });
-    
-    const results = await Promise.all(inclusionsPromises);
-    
-    res.json({ data: results });
-    
-  } catch (error) {
-    console.error('Error fetching bulk inclusions:', error);
-    res.status(500).json({ error: 'Failed to fetch inclusions' });
   }
 });
-
-// Export endpoint for generating inclusions summary (for quotes)
-router.get('/:id/inclusions/summary', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { format = 'text' } = req.query;
-    
-    // Get inclusions
-    const inclusionsDoc = await db.collection('lead_inclusions').doc(id).get();
-    if (!inclusionsDoc.exists) {
-      return res.json({ data: { summary: 'No inclusions added yet.' } });
-    }
-    
-    const inclusions = inclusionsDoc.data();
-    let summary = '';
-    
-    // Generate summary based on format
-    if (format === 'html') {
-      summary = generateHTMLSummary(inclusions);
-    } else {
-      summary = generateTextSummary(inclusions);
-    }
-    
-    res.json({ data: { summary, inclusions } });
-    
-  } catch (error) {
-    console.error('Error generating inclusions summary:', error);
-    res.status(500).json({ error: 'Failed to generate summary' });
-  }
-});
-
 
 module.exports = router;
