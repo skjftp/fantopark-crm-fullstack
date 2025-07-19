@@ -85,14 +85,14 @@ router.get('/stats', authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ NEW: Dashboard charts endpoint for optimized chart rendering
+// Enhanced Dashboard charts endpoint for optimized chart rendering
 router.get('/charts', async (req, res) => {
   try {
     const { filter_type, sales_person_id, event_name } = req.query;
     
-    // console.log('📊 Dashboard charts API called with filters:', { filter_type, sales_person_id, event_name });
+    console.log('📊 Dashboard charts API called with filters:', { filter_type, sales_person_id, event_name });
     
-    // Build query for Firestore using existing collections config
+    // Build query for Firestore
     let query = db.collection(collections.leads);
     
     // Apply filters based on frontend selection
@@ -120,24 +120,64 @@ router.get('/charts', async (req, res) => {
     const leads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     const chartData = calculateChartMetrics(leads);
     
-    // Return structured response
+    // Return structured response with all chart data
     res.json({
       success: true,
       data: {
+        // Metadata
         totalLeads: leads.length,
         filters: { filter_type, sales_person_id, event_name },
+        
+        // All chart data in one response
         charts: {
-          leadSplit: chartData.leadSplit,
-          temperatureCount: chartData.temperatureCount,
-          temperatureValue: chartData.temperatureValue
+          // Lead Split Chart Data
+          leadSplit: {
+            labels: ['Qualified', 'Junk'],
+            data: [chartData.leadSplit.qualified, chartData.leadSplit.junk],
+            colors: ['#10B981', '#EF4444'],
+            counts: {
+              qualified: chartData.leadSplit.qualified,
+              junk: chartData.leadSplit.junk
+            }
+          },
+          
+          // Temperature Count Chart Data
+          temperatureCount: {
+            labels: ['Hot', 'Warm', 'Cold'],
+            data: [chartData.temperatureCount.hot, chartData.temperatureCount.warm, chartData.temperatureCount.cold],
+            colors: ['#EF4444', '#F59E0B', '#3B82F6'],
+            counts: {
+              hot: chartData.temperatureCount.hot,
+              warm: chartData.temperatureCount.warm,
+              cold: chartData.temperatureCount.cold
+            }
+          },
+          
+          // Temperature Value Chart Data
+          temperatureValue: {
+            labels: ['Hot Value', 'Warm Value', 'Cold Value'],
+            data: [chartData.temperatureValue.hot, chartData.temperatureValue.warm, chartData.temperatureValue.cold],
+            colors: ['#EF4444', '#F59E0B', '#3B82F6'],
+            values: {
+              hot: chartData.temperatureValue.hot,
+              warm: chartData.temperatureValue.warm,
+              cold: chartData.temperatureValue.cold,
+              total: chartData.totalPipelineValue
+            }
+          }
         },
+        
+        // Summary statistics
         summary: {
           totalPipelineValue: chartData.totalPipelineValue,
           qualifiedLeads: chartData.leadSplit.qualified,
-          hotLeads: chartData.temperatureCount.hot
-        }
-      },
-      generatedAt: new Date().toISOString()
+          hotLeads: chartData.temperatureCount.hot,
+          averageDealSize: leads.length > 0 ? Math.round(chartData.totalPipelineValue / leads.length) : 0
+        },
+        
+        // Cache timestamp
+        generatedAt: new Date().toISOString()
+      }
     });
     
   } catch (error) {
