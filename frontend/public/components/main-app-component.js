@@ -61,7 +61,9 @@ const [leadsPagination, setLeadsPagination] = useState({
 });
 
 // Add this state for tracking if we're using paginated mode
-const [usePaginatedLeads, setUsePaginatedLeads] = useState(false);
+const [usePaginatedLeads, setUsePaginatedLeads] = useState(
+  localStorage.getItem('usePaginatedLeads') === 'true'
+);
   const [sportsEvents, setSportsEvents] = useState([]);
   const [showEventForm, setShowEventForm] = useState(false);
   const [showEventDetail, setShowEventDetail] = useState(false);
