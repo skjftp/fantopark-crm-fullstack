@@ -8,16 +8,36 @@ window.clientAssignedFilter = window.clientAssignedFilter || 'all';
 window.clientMultiLeadFilter = window.clientMultiLeadFilter || 'all';
 window.leadsSalesPersonFilter = window.leadsSalesPersonFilter || 'all';
 
+// Initialize on component load
+window.addEventListener('DOMContentLoaded', () => {
+  if (localStorage.getItem('usePaginatedLeads') === 'true' && window.LeadsAPI) {
+    window.log.info('🚀 Initializing paginated leads on page load');
+    setTimeout(() => {
+      window.LeadsAPI.fetchPaginatedLeads();
+      window.LeadsAPI.fetchFilterOptions();
+    }, 1000); // Wait for app state to be ready
+  }
+});
+
 // Initialize paginated mode if enabled
-if (window.appState?.usePaginatedLeads && !window.leadsInitialized) {
+const shouldUsePaginated = localStorage.getItem('usePaginatedLeads') === 'true';
+if (shouldUsePaginated && !window.leadsInitialized) {
   window.leadsInitialized = true;
   
-  // Fetch initial data on component load
+  window.log.info('🚀 Initializing paginated leads mode');
+  
+  // Wait a bit longer for app state to be fully ready
   setTimeout(() => {
-    window.LeadsAPI.fetchPaginatedLeads();
-    window.LeadsAPI.fetchFilterOptions();
-  }, 100);
+    if (window.LeadsAPI) {
+      window.LeadsAPI.fetchPaginatedLeads();
+      window.LeadsAPI.fetchFilterOptions();
+    } else {
+      window.log.error('LeadsAPI not loaded yet');
+    }
+  }, 1500); // Increased timeout to ensure everything is loaded
 }
+
+
 
 // Client View Component
 const ClientViewContent = () => {
