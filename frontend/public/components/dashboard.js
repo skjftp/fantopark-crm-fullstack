@@ -2,6 +2,7 @@
 // COMPLETE OPTIMIZED DASHBOARD COMPONENT
 // Integrated with Backend API Chart Optimization
 // Fixed: Chart visibility on tab switching
+// Fixed: Recent Activity with API pagination
 // ===============================================
 
 // Global flag to prevent duplicate chart updates
@@ -43,7 +44,7 @@ window.renderDashboardContent = () => {
                             className: 'text-lg font-semibold text-gray-900 dark:text-white',
                             'data-stat': 'total-leads' // ✅ ADDED FOR API INTEGRATION
                         },
-                            (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || []).length
+                            window.getFilteredLeads().length
                         ),
                         React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Total Leads')
                     )
@@ -79,7 +80,7 @@ window.renderDashboardContent = () => {
                             className: 'text-lg font-semibold text-gray-900 dark:text-white',
                             'data-stat': 'hot-leads' // ✅ ADDED FOR API INTEGRATION
                         },
-                            (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
+                            window.getFilteredLeads()
                                 .filter(l => (l.temperature || l.status || '').toLowerCase() === 'hot').length
                         ),
                         React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Hot Leads')
@@ -110,7 +111,7 @@ window.renderDashboardContent = () => {
                             className: 'text-lg font-semibold text-gray-900 dark:text-white',
                             'data-stat': 'qualified-leads' // ✅ ADDED FOR API INTEGRATION
                         },
-                            (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
+                            window.getFilteredLeads()
                                 .filter(l => (l.status || '').toLowerCase() === 'qualified').length
                         ),
                         React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Qualified Leads')
@@ -129,7 +130,7 @@ window.renderDashboardContent = () => {
                             className: 'text-lg font-semibold text-gray-900 dark:text-white',
                             'data-stat': 'pipeline-value' // ✅ ADDED FOR API INTEGRATION
                         },
-                            '₹' + ((window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
+                            '₹' + (window.getFilteredLeads()
                                 .filter(lead => !['converted', 'payment_received', 'dropped', 'junk'].includes(lead.status))
                                 .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0)
                                 .toLocaleString('en-IN'))
@@ -227,7 +228,7 @@ window.renderDashboardContent = () => {
                     }
                 },
                     React.createElement('option', { value: '' }, 'Select Event'),
-                    [...new Set((window.leads || []).map(lead => lead.lead_for_event).filter(Boolean))].map(event =>
+                    [...new Set((window.appState?.leads || window.leads || []).map(lead => lead.lead_for_event).filter(Boolean))].map(event =>
                         React.createElement('option', { key: event, value: event }, event)
                     )
                 )
@@ -286,10 +287,14 @@ window.renderDashboardContent = () => {
                 )
             ),
             React.createElement('div', { className: 'p-6' },
-                (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || []).length > 0 ?
+                window.getFilteredLeads().length > 0 ?
                 React.createElement('div', { className: 'space-y-4' },
-                    (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
-                        .sort((a, b) => new Date(b.created_date || b.created_at) - new Date(a.created_date || a.created_at))
+                    window.getFilteredLeads()
+                        .sort((a, b) => {
+                            const dateA = new Date(b.updated_date || b.created_date || 0);
+                            const dateB = new Date(a.updated_date || a.created_date || 0);
+                            return dateA - dateB;
+                        })
                         .slice(0, 5)
                         .map(lead =>
                             React.createElement('div', { 
@@ -329,7 +334,16 @@ window.renderDashboardContent = () => {
 // ===============================================
 
 window.getFilteredLeads = function() {
-    let filteredLeads = [...(window.leads || [])];
+    // Use the actual leads data from appState or window.leads
+    let allLeads = window.appState?.leads || window.leads || [];
+    
+    // If no filter is selected, return all leads
+    if (!window.dashboardFilter || window.dashboardFilter === 'overall') {
+        return allLeads;
+    }
+    
+    // Apply filters based on dashboard selection
+    let filteredLeads = [...allLeads];
     
     try {
         if (window.dashboardFilter === 'salesPerson' && window.selectedSalesPerson) {
@@ -729,7 +743,7 @@ window.fetchDashboardStats = async function() {
 // Calculate stats locally (fallback)
 window.calculateLocalDashboardStats = function() {
     // This is a fallback method that calculates stats from local data
-    const leads = window.leads || [];
+    const leads = window.appState?.leads || window.leads || [];
     const filtered = window.getFilteredLeads();
     
     window.dashboardStats = {
@@ -1113,12 +1127,119 @@ window.dashboardResponsiveOverride = () => {
     const originalRenderDashboard = window.renderDashboard;
     window.renderDashboard = window.renderResponsiveDashboard || originalRenderDashboard;
 };
-// Direct Dashboard Chart Fix - Bypasses existing issues
-// Aggressive Dashboard Chart Fix - Forces charts to load
-// Add this to the END of your dashboard.js file
 
-// Optimized Dashboard Chart Fix - Renders only once
-// Replace your current fix with this cleaner version
+// ===============================================
+// RECENT ACTIVITY RENDER FUNCTION
+// ===============================================
+
+window.renderRecentActivity = function() {
+    const leads = window.getFilteredLeads();
+    
+    // Format relative time
+    const formatRelativeTime = (dateString) => {
+        if (!dateString) return 'No date';
+        
+        try {
+            let date;
+            
+            // Handle different date formats
+            if (typeof dateString === 'object' && dateString._seconds) {
+                // Firestore timestamp
+                date = new Date(dateString._seconds * 1000);
+            } else if (typeof dateString === 'string' || typeof dateString === 'number') {
+                date = new Date(dateString);
+            } else {
+                return 'Invalid date';
+            }
+            
+            // Check if date is valid
+            if (isNaN(date.getTime())) {
+                return 'Invalid date';
+            }
+            
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMinutes = Math.floor(diffMs / (1000 * 60));
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            
+            if (diffMinutes < 1) return 'Just now';
+            if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+            
+            // For older dates, show the actual date
+            return date.toLocaleDateString();
+            
+        } catch (error) {
+            console.error('Error formatting date:', error);
+            return 'Invalid date';
+        }
+    };
+    
+    // Get recent leads sorted by last activity
+    const recentLeads = leads
+        .filter(lead => lead && (lead.updated_date || lead.created_date))
+        .sort((a, b) => {
+            const dateA = new Date(a.updated_date || a.created_date || 0);
+            const dateB = new Date(b.updated_date || b.created_date || 0);
+            return dateB - dateA;
+        })
+        .slice(0, 10);
+    
+    if (recentLeads.length === 0) {
+        return React.createElement('div', { className: 'p-6 text-center text-gray-500' },
+            'No recent activity to display'
+        );
+    }
+    
+    return React.createElement('div', { className: 'overflow-x-auto' },
+        React.createElement('table', { className: 'min-w-full divide-y divide-gray-200' },
+            React.createElement('thead', { className: 'bg-gray-50' },
+                React.createElement('tr', null,
+                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Name'),
+                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Company'),
+                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
+                    React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Last Activity')
+                )
+            ),
+            React.createElement('tbody', { className: 'bg-white divide-y divide-gray-200' },
+                recentLeads.map(lead =>
+                    React.createElement('tr', { 
+                        key: lead.id, 
+                        className: 'hover:bg-gray-50 cursor-pointer',
+                        onClick: () => window.openLeadDetail && window.openLeadDetail(lead)
+                    },
+                        React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900' },
+                            lead.name || 'Unknown'
+                        ),
+                        React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-500' },
+                            lead.company || '-'
+                        ),
+                        React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                            React.createElement('span', {
+                                className: `px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                    lead.status === 'qualified' ? 'bg-green-100 text-green-800' :
+                                    lead.status === 'hot' ? 'bg-red-100 text-red-800' :
+                                    lead.status === 'warm' ? 'bg-yellow-100 text-yellow-800' :
+                                    lead.status === 'cold' ? 'bg-blue-100 text-blue-800' :
+                                    'bg-gray-100 text-gray-800'
+                                }`
+                            }, lead.status || 'unknown')
+                        ),
+                        React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-500' },
+                            formatRelativeTime(lead.updated_date || lead.created_date)
+                        )
+                    )
+                )
+            )
+        )
+    );
+};
+
+// ===============================================
+// OPTIMIZED DASHBOARD CHART FIX - SINGLE RENDER
+// ===============================================
 
 (function() {
   'use strict';
@@ -1285,29 +1406,6 @@ window.dashboardResponsiveOverride = () => {
     }
   };
   
-  // Override updateChartsFromAPIData to use our optimized version
-  window.updateChartsFromAPIData = function(apiData) {
-    console.log('📊 updateChartsFromAPIData called');
-    
-    if (!apiData || !apiData.charts) {
-      console.error('Invalid API data');
-      return;
-    }
-    
-    // Store the data
-    window.apiChartData = apiData;
-    
-    // Cancel any pending render
-    if (window._dashboardChartState.renderTimeout) {
-      clearTimeout(window._dashboardChartState.renderTimeout);
-    }
-    
-    // Debounce the render by 100ms to prevent multiple calls
-    window._dashboardChartState.renderTimeout = setTimeout(() => {
-      window.createDashboardChartsOnce(apiData);
-    }, 100);
-  };
-  
   // Simple tab change detection
   let previousTab = window.activeTab;
   let tabCheckInterval = setInterval(() => {
@@ -1358,7 +1456,9 @@ window.dashboardResponsiveOverride = () => {
   console.log('✅ Optimized dashboard chart fix loaded (single render)');
 })();
 
-// Add this fix to your dashboard.js or in a separate file that loads after dashboard.js
+// ===============================================
+// DASHBOARD API FIX
+// ===============================================
 
 (function() {
   'use strict';
@@ -1472,13 +1572,6 @@ window.dashboardResponsiveOverride = () => {
       }, 1000);
     }
   });
-  
-  // Override any local calculation methods to use API
-  window.getFilteredLeads = function() {
-    console.log('⚠️ getFilteredLeads called - this should use API data, not local filtering');
-    // Return empty array to prevent local calculations
-    return [];
-  };
   
   // Ensure updateCharts always uses API
   window.updateCharts = async function(filteredLeads) {
