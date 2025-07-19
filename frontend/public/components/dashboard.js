@@ -436,61 +436,105 @@ window.updateChartsFromAPIData = function(apiData) {
     
     const { leadSplit, temperatureCount, temperatureValue } = apiData.charts;
     
-    // Update Lead Split Chart
+    // Destroy existing charts first
+    ['leadSplitChart', 'tempCountChart', 'tempValueChart'].forEach(id => {
+        const canvas = document.getElementById(id);
+        if (canvas) {
+            const existingChart = Chart.getChart(canvas);
+            if (existingChart) {
+                existingChart.destroy();
+            }
+        }
+    });
+    
+    // Create new Lead Split Chart
     const canvas1 = document.getElementById('leadSplitChart');
     if (canvas1 && leadSplit) {
-        const chart1 = Chart.getChart(canvas1);
-        if (chart1) {
-            chart1.data.labels = leadSplit.labels.map((label, i) => 
-                `${label} (${leadSplit.data[i]})`
-            );
-            chart1.data.datasets[0].data = leadSplit.data;
-            chart1.data.datasets[0].backgroundColor = leadSplit.colors;
-            chart1.update('active');
-            console.log('✅ Updated Lead Split Chart');
-        }
+        new Chart(canvas1, {
+            type: 'doughnut',
+            data: {
+                labels: leadSplit.labels.map((label, i) => 
+                    `${label} (${leadSplit.data[i]})`
+                ),
+                datasets: [{
+                    data: leadSplit.data,
+                    backgroundColor: leadSplit.colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+        console.log('✅ Created Lead Split Chart');
     }
     
-    // Update Temperature Count Chart
+    // Create new Temperature Count Chart
     const canvas2 = document.getElementById('tempCountChart');
     if (canvas2 && temperatureCount) {
-        const chart2 = Chart.getChart(canvas2);
-        if (chart2) {
-            chart2.data.labels = temperatureCount.labels.map((label, i) => 
-                `${label} (${temperatureCount.data[i]})`
-            );
-            chart2.data.datasets[0].data = temperatureCount.data;
-            chart2.data.datasets[0].backgroundColor = temperatureCount.colors;
-            chart2.update('active');
-            console.log('✅ Updated Temperature Count Chart');
-        }
+        new Chart(canvas2, {
+            type: 'doughnut',
+            data: {
+                labels: temperatureCount.labels.map((label, i) => 
+                    `${label} (${temperatureCount.data[i]})`
+                ),
+                datasets: [{
+                    data: temperatureCount.data,
+                    backgroundColor: temperatureCount.colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+        console.log('✅ Created Temperature Count Chart');
     }
     
-    // Update Temperature Value Chart
+    // Create new Temperature Value Chart
     const canvas3 = document.getElementById('tempValueChart');
     if (canvas3 && temperatureValue) {
-        const chart3 = Chart.getChart(canvas3);
-        if (chart3) {
-            chart3.data.labels = temperatureValue.labels;
-            chart3.data.datasets[0].data = temperatureValue.data;
-            chart3.data.datasets[0].backgroundColor = temperatureValue.colors;
-            
-            // Update tooltip to show formatted values
-            if (chart3.options.plugins && chart3.options.plugins.tooltip) {
-                chart3.options.plugins.tooltip.callbacks = {
-                    label: function(context) {
-                        const value = context.raw || 0;
-                        return context.label + ': ₹' + value.toLocaleString('en-IN');
+        new Chart(canvas3, {
+            type: 'doughnut',
+            data: {
+                labels: temperatureValue.labels,
+                datasets: [{
+                    data: temperatureValue.data,
+                    backgroundColor: temperatureValue.colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw || 0;
+                                return context.label + ': ₹' + value.toLocaleString('en-IN');
+                            }
+                        }
                     }
-                };
+                }
             }
-            
-            chart3.update('active');
-            console.log('✅ Updated Temperature Value Chart');
-        }
+        });
+        console.log('✅ Created Temperature Value Chart');
     }
     
-    console.log('✅ All charts updated with API data');
+    console.log('✅ All charts created with API data');
 };
 
 // Update dashboard summary with API data
@@ -640,82 +684,10 @@ window.initializeDashboardCharts = function() {
     }, 100);
 };
 
-// Create empty charts with loading state
+// Create empty charts (skip loading state to avoid grey charts)
 window.createEmptyCharts = function() {
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'bottom' },
-            tooltip: { enabled: true }
-        },
-        animation: {
-            duration: 500
-        }
-    };
-    
-    // Lead Split Chart
-    const canvas1 = document.getElementById('leadSplitChart');
-    if (canvas1 && !Chart.getChart(canvas1)) {
-        new Chart(canvas1, {
-            type: 'doughnut',
-            data: {
-                labels: ['Loading...'],
-                datasets: [{
-                    data: [1],
-                    backgroundColor: ['#e5e7eb'],
-                    borderWidth: 0
-                }]
-            },
-            options: chartOptions
-        });
-    }
-    
-    // Temperature Count Chart
-    const canvas2 = document.getElementById('tempCountChart');
-    if (canvas2 && !Chart.getChart(canvas2)) {
-        new Chart(canvas2, {
-            type: 'doughnut',
-            data: {
-                labels: ['Loading...'],
-                datasets: [{
-                    data: [1],
-                    backgroundColor: ['#e5e7eb'],
-                    borderWidth: 0
-                }]
-            },
-            options: chartOptions
-        });
-    }
-    
-    // Temperature Value Chart
-    const canvas3 = document.getElementById('tempValueChart');
-    if (canvas3 && !Chart.getChart(canvas3)) {
-        new Chart(canvas3, {
-            type: 'doughnut',
-            data: {
-                labels: ['Loading...'],
-                datasets: [{
-                    data: [1],
-                    backgroundColor: ['#e5e7eb'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                ...chartOptions,
-                plugins: {
-                    ...chartOptions.plugins,
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return 'Loading...';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
+    // Don't create empty charts - let the API data create them directly
+    console.log('📊 Waiting for API data to create charts...');
 };
 
 // Handle chart filter changes
