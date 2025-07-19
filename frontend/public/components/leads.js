@@ -823,10 +823,9 @@ const LeadsContent = () => {
                     )
                 ),
 
-                // Filter Status Summary
                 React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
                     React.createElement('span', { className: 'text-sm text-gray-600' },
-                        `Showing ${currentLeads.length} of ${pagination.total || 0} leads`
+                        `Showing ${currentLeads.length} of ${pagination.total || currentLeads.length} leads`
                     ),
                     (window.appState.searchQuery !== '' || window.selectedStatusFilters.length > 0 || 
                      window.appState.leadsSourceFilter !== 'all' || window.appState.leadsBusinessTypeFilter !== 'all' || 
@@ -1004,29 +1003,68 @@ const LeadsContent = () => {
                         )
                     ),
                     // Pagination - SIMPLIFIED
-                    pagination.totalPages > 1 && React.createElement('div', { className: 'flex justify-between items-center px-6 py-3 bg-gray-50 border-t' },
-                        React.createElement('div', { className: 'text-sm text-gray-700' },
-                            `Page ${pagination.page || 1} of ${pagination.totalPages || 1} (${pagination.total || 0} total leads)`
-                        ),
-                        React.createElement('div', { className: 'flex space-x-2' },
-                            React.createElement('button', {
-                                onClick: () => window.LeadsAPI.changePage(pagination.page - 1),
-                                disabled: !pagination.hasPrev,
-                                className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
-                            }, 'Previous'),
+                    React.createElement('div', { className: 'flex justify-between items-center px-6 py-3 bg-gray-50 border-t' },
+    React.createElement('div', { className: 'text-sm text-gray-700' },
+        `Page ${pagination.page || 1} of ${pagination.totalPages || 1} (${pagination.total || currentLeads.length} total leads)`
+    ),
+                    React.createElement('div', { className: 'flex space-x-2' },
+                        React.createElement('button', {
+                            onClick: () => window.LeadsAPI.changePage((pagination.page || 1) - 1),
+                            disabled: !(pagination.hasPrev || (pagination.page > 1)),
+                            className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+                        }, 'Previous'),
+                        
+                        // Page numbers
+                        (() => {
+                            const currentPage = pagination.page || 1;
+                            const totalPages = pagination.totalPages || 1;
+                            const pages = [];
                             
-                            // Page indicator
-                            React.createElement('span', { className: 'px-3 py-1' }, 
-                                `Page ${pagination.page || 1} of ${pagination.totalPages || 1}`
-                            ),
+                            // Always show first page
+                            pages.push(React.createElement('button', {
+                                key: 1,
+                                onClick: () => window.LeadsAPI.changePage(1),
+                                className: `px-3 py-1 border rounded ${currentPage === 1 ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`
+                            }, '1'));
                             
-                            React.createElement('button', {
-                                onClick: () => window.LeadsAPI.changePage(pagination.page + 1),
-                                disabled: !pagination.hasNext,
-                                className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50'
-                            }, 'Next')
-                        )
+                            // Show dots if needed
+                            if (currentPage > 3) {
+                                pages.push(React.createElement('span', { key: 'dots1', className: 'px-2' }, '...'));
+                            }
+                            
+                            // Show current page and neighbors
+                            for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+                                pages.push(React.createElement('button', {
+                                    key: i,
+                                    onClick: () => window.LeadsAPI.changePage(i),
+                                    className: `px-3 py-1 border rounded ${currentPage === i ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`
+                                }, i.toString()));
+                            }
+                            
+                            // Show dots if needed
+                            if (currentPage < totalPages - 2) {
+                                pages.push(React.createElement('span', { key: 'dots2', className: 'px-2' }, '...'));
+                            }
+                            
+                            // Always show last page if more than 1 page
+                            if (totalPages > 1) {
+                                pages.push(React.createElement('button', {
+                                    key: totalPages,
+                                    onClick: () => window.LeadsAPI.changePage(totalPages),
+                                    className: `px-3 py-1 border rounded ${currentPage === totalPages ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`
+                                }, totalPages.toString()));
+                            }
+                            
+                            return pages;
+                        })(),
+                        
+                        React.createElement('button', {
+                            onClick: () => window.LeadsAPI.changePage((pagination.page || 1) + 1),
+                            disabled: !(pagination.hasNext || (pagination.page < pagination.totalPages)),
+                            className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+                        }, 'Next')
                     )
+                )
                 ) : React.createElement('div', { className: 'p-6 text-center text-gray-500' }, 
                     'No leads found. Add your first lead or adjust your filters!'
                 )
