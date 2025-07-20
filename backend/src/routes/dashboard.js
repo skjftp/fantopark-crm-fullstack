@@ -284,4 +284,41 @@ function getLeadTemperature(lead) {
   return null; // This lead won't be counted in temperature charts
 }
 
+// GET recent activity
+router.get('/recent-activity', authenticateToken, async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    
+    // Get all leads
+    const leadsSnapshot = await db.collection(collections.leads).get();
+    const leads = [];
+    
+    leadsSnapshot.forEach(doc => {
+      leads.push({ id: doc.id, ...doc.data() });
+    });
+    
+    // Sort by most recent activity (updated_date or created_date)
+    const sortedLeads = leads
+      .sort((a, b) => {
+        const dateA = new Date(a.updated_date || a.created_date || 0);
+        const dateB = new Date(b.updated_date || b.created_date || 0);
+        return dateB - dateA;
+      })
+      .slice(0, limit);
+    
+    res.json({
+      success: true,
+      data: sortedLeads
+    });
+    
+  } catch (error) {
+    console.error('❌ Recent activity API error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch recent activity',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;
