@@ -2,21 +2,23 @@
 const axios = require('axios');
 const NodeCache = require('node-cache');
 
-// Cache with 15 minute TTL to respect rate limits
-const marketRateCache = new NodeCache({ stdTTL: 900 });
+// Cache with configurable TTL to respect rate limits
+const marketRateCache = new NodeCache({ 
+  stdTTL: parseInt(process.env.MARKET_RATE_CACHE_TTL || '900') 
+});
 
 // Partner configurations
 const PARTNER_CONFIGS = {
   xs2event: {
     name: 'XS2Event',
-    baseUrl: 'https://api.xs2event.com/v1',
-    authType: 'basic',
+    baseUrl: process.env.XS2EVENT_API_URL || 'https://api.xs2event.com/v1',
+    authType: 'apikey',
     credentials: {
-      username: 'akshay@fantopark.com',
-      password: 'FanToPark@2026'
+      // Use environment variable or update here with actual API key
+      apiKey: process.env.XS2EVENT_API_KEY || 'YOUR_XS2EVENT_API_KEY_HERE'
     },
     rateLimit: {
-      maxRequests: 100,
+      maxRequests: parseInt(process.env.XS2EVENT_RATE_LIMIT || '100'),
       windowMs: 3600000 // 1 hour
     }
   }
@@ -69,6 +71,11 @@ class MarketRateService {
   async fetchFromXS2Event(eventName, alternativeName = null) {
     const config = PARTNER_CONFIGS.xs2event;
     
+    // Validate API key
+    if (!config.credentials.apiKey || config.credentials.apiKey === 'YOUR_XS2EVENT_API_KEY_HERE') {
+      throw new Error('XS2Event API key not configured. Please set XS2EVENT_API_KEY environment variable or update marketRateService.js');
+    }
+    
     // Check rate limit
     if (!this.canMakeRequest('xs2event')) {
       throw new Error('Rate limit exceeded for XS2Event. Please try again later.');
@@ -86,28 +93,32 @@ class MarketRateService {
       // Record the request
       this.recordRequest('xs2event');
 
-      // Create auth header
-      const auth = Buffer.from(
-        `${config.credentials.username}:${config.credentials.password}`
-      ).toString('base64');
+      // API Key authentication header
+      const headers = {
+        'x-api-key': config.credentials.apiKey,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      };
 
-      // Search for the event
+      // Search for events by name
       const searchName = alternativeName || eventName;
-      const searchResponse = await axios.get(
-        `${config.baseUrl}/events/search`,
+      const today = new Date().toISOString().split('T')[0];
+      
+      // First, search for events
+      const eventsResponse = await axios.get(
+        `${config.baseUrl}/events`,
         {
           params: {
-            q: searchName,
-            limit: 10
+            event_name: searchName, // Direct name search parameter
+            date_start: `ge:${today}`, // Events starting today or later
+            page_size: 10,
+            sorting: 'date_start:asc' // Sort by start date
           },
-          headers: {
-            'Authorization': `Basic ${auth}`,
-            'Accept': 'application/json'
-          }
+          headers
         }
       );
 
-      if (!searchResponse.data || searchResponse.data.length === 0) {
+      if (!eventsResponse.data || !eventsResponse.data.events || eventsResponse.data.events.length === 0) {
         return {
           partner: 'xs2event',
           eventName: searchName,
@@ -117,42 +128,68 @@ class MarketRateService {
         };
       }
 
-      // Get the first matching event
-      const event = searchResponse.data[0];
+      // Get the first matching event from the events array
+      const event = eventsResponse.data.events[0];
       
-      // Fetch ticket details for the event
+      // Fetch tickets for this event
       const ticketsResponse = await axios.get(
-        `${config.baseUrl}/events/${event.id}/tickets`,
+        `${config.baseUrl}/tickets`,
         {
-          headers: {
-            'Authorization': `Basic ${auth}`,
-            'Accept': 'application/json'
-          }
+          params: {
+            event_id: event.event_id,
+            ticket_status: 'available',
+            stock: 'gt:0' // Only tickets with stock > 0
+          },
+          headers
         }
       );
+
+      // Group tickets by category as recommended in docs
+      const ticketGroups = {};
+      ticketsResponse.data.forEach(ticket => {
+        const groupKey = `${ticket.category_id}_${ticket.sub_category}`;
+        if (!ticketGroups[groupKey]) {
+          ticketGroups[groupKey] = {
+            category: ticket.category_name || ticket.category_id,
+            subCategory: ticket.sub_category,
+            tickets: []
+          };
+        }
+        ticketGroups[groupKey].tickets.push(ticket);
+      });
 
       const result = {
         partner: 'xs2event',
         eventName: searchName,
         found: true,
         eventDetails: {
-          id: event.id,
-          name: event.name,
-          date: event.date,
-          venue: event.venue,
-          city: event.city
+          id: event.event_id,
+          name: event.event_name,
+          date: event.date_start,
+          venue: event.venue_name,
+          city: event.city,
+          sport: event.sport_type
         },
-        tickets: ticketsResponse.data.map(ticket => ({
-          category: ticket.category,
-          section: ticket.section,
-          row: ticket.row,
-          quantity: ticket.quantity_available,
-          price: ticket.price,
-          currency: ticket.currency,
-          sellerType: ticket.seller_type,
-          deliveryMethod: ticket.delivery_method,
-          listingId: ticket.listing_id
+        ticketGroups: Object.values(ticketGroups).map(group => ({
+          category: group.category,
+          subCategory: group.subCategory,
+          lowestPrice: Math.min(...group.tickets.map(t => t.price)),
+          highestPrice: Math.max(...group.tickets.map(t => t.price)),
+          totalQuantity: group.tickets.reduce((sum, t) => sum + (t.stock || 0), 0),
+          tickets: group.tickets.map(ticket => ({
+            ticketId: ticket.ticket_id,
+            price: ticket.price,
+            currency: ticket.currency || 'USD',
+            quantity: ticket.stock,
+            section: ticket.section,
+            row: ticket.row,
+            seat: ticket.seat,
+            deliveryType: ticket.delivery_type,
+            ticketType: ticket.ticket_type,
+            validity: ticket.ticket_validity
+          }))
         })),
+        rawTicketCount: ticketsResponse.data.length,
         searchedAt: new Date().toISOString()
       };
 
@@ -165,6 +202,7 @@ class MarketRateService {
       console.error('Error fetching from XS2Event:', error.message);
       
       if (error.response) {
+        console.error('Response data:', error.response.data);
         throw new Error(`XS2Event API error: ${error.response.status} - ${error.response.statusText}`);
       }
       
