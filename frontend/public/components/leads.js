@@ -303,10 +303,10 @@ const ClientViewContent = () => {
       ),
       
       // Filter Summary
-      React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
-        React.createElement('span', { className: 'text-sm text-gray-600' },
-          `Showing ${filteredClients.length} of ${clientsPagination.total || clients.length} clients (Page ${clientsPage} of ${clientsPagination.totalPages || 1})`
-        ),
+React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
+  React.createElement('span', { className: 'text-sm text-gray-600' },
+    `Showing ${clients.length} of ${clientsPagination.total || 0} clients (Page ${clientsPagination.page || 1} of ${clientsPagination.totalPages || 1})`
+  ),
         (localClientSearchQuery || localClientStatusFilter !== 'all' || 
          localClientAssignedFilter !== 'all' || localClientMultiLeadFilter !== 'all') &&
         React.createElement('button', {
@@ -322,11 +322,13 @@ const ClientViewContent = () => {
     ),
 
     // Client Statistics Summary
-    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
-      React.createElement('div', { className: 'bg-blue-50 border border-blue-200 rounded-lg p-4' },
-        React.createElement('div', { className: 'text-2xl font-bold text-blue-900' }, clientsPagination.total || filteredClients.length),
-        React.createElement('div', { className: 'text-sm text-blue-700' }, 'Total Clients')
-      ),
+React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
+  React.createElement('div', { className: 'bg-blue-50 border border-blue-200 rounded-lg p-4' },
+    React.createElement('div', { className: 'text-2xl font-bold text-blue-900' }, 
+      clientsPagination.total || 0  // ← Use pagination total, not filtered length
+    ),
+    React.createElement('div', { className: 'text-sm text-blue-700' }, 'Total Clients')
+  ),
       React.createElement('div', { className: 'bg-green-50 border border-green-200 rounded-lg p-4' },
         React.createElement('div', { className: 'text-2xl font-bold text-green-900' }, 
           filteredClients.filter(c => c.total_leads > 1).length
