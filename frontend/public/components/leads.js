@@ -242,6 +242,19 @@ React.useEffect(() => {
 }, [clientsPage]); // Only watch clientsPage
 
 
+React.useEffect(() => {
+    const handlePaginationUpdate = (event) => {
+        console.log('📨 Received pagination update event:', event.detail);
+        setClientsPagination({ ...event.detail });
+    };
+    
+    window.addEventListener('clientsPaginationUpdated', handlePaginationUpdate);
+    
+    return () => {
+        window.removeEventListener('clientsPaginationUpdated', handlePaginationUpdate);
+    };
+}, []);
+    
   // Function References with fallbacks
   const setViewMode = window.setViewMode || (() => {
     console.warn("⚠️ setViewMode not implemented");
