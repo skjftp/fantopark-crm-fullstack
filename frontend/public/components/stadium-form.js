@@ -1,4 +1,6 @@
-// Updated Stadium Form Component with Categorized Notes
+// Stadium Form Component for FanToPark CRM
+// Simplified version without tabs to avoid React hooks error
+
 window.renderStadiumForm = () => {
   if (!window.showStadiumForm) return null;
 
@@ -14,13 +16,11 @@ window.renderStadiumForm = () => {
     special: { label: 'Special Considerations', icon: '♿', placeholder: 'e.g., Wheelchair access via Gate 3, Sensory room available' }
   };
 
-  const [activeTab, setActiveTab] = React.useState('basic');
-
   return React.createElement('div', {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'
   },
     React.createElement('div', {
-      className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col'
+      className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto'
     },
       // Header
       React.createElement('div', { className: 'bg-blue-600 text-white p-4 flex justify-between items-center' },
@@ -33,36 +33,16 @@ window.renderStadiumForm = () => {
         }, '×')
       ),
 
-      // Tab Navigation
-      React.createElement('div', { className: 'bg-gray-100 dark:bg-gray-700 border-b' },
-        React.createElement('div', { className: 'flex space-x-1 p-2' },
-          React.createElement('button', {
-            onClick: () => setActiveTab('basic'),
-            className: `px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'basic' 
-                ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow' 
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`
-          }, '📋 Basic Information'),
-          React.createElement('button', {
-            onClick: () => setActiveTab('notes'),
-            className: `px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeTab === 'notes' 
-                ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow' 
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`
-          }, '📝 Detailed Notes')
-        )
-      ),
-
-      // Form Content
+      // Form
       React.createElement('form', { 
         onSubmit: window.handleStadiumFormSubmit,
-        className: 'flex-1 overflow-y-auto p-6'
+        className: 'p-6 space-y-6'
       },
-        // Basic Information Tab
-        activeTab === 'basic' && React.createElement('div', { className: 'space-y-6' },
-          // Basic Fields Grid
+        // Basic Information Section
+        React.createElement('div', null,
+          React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4' }, 
+            '📋 Basic Information'
+          ),
           React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
             // Stadium Name
             React.createElement('div', null,
@@ -227,32 +207,37 @@ window.renderStadiumForm = () => {
           )
         ),
 
-        // Detailed Notes Tab
-        activeTab === 'notes' && React.createElement('div', { className: 'space-y-4' },
+        // Detailed Notes Section
+        React.createElement('div', null,
+          React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4' }, 
+            '📝 Detailed Stadium Notes'
+          ),
           React.createElement('div', { className: 'bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-4' },
             React.createElement('p', { className: 'text-sm text-blue-800 dark:text-blue-300' },
               '💡 Add detailed notes about different aspects of the stadium to help sales teams provide better information to clients.'
             )
           ),
 
-          Object.entries(noteCategories).map(([key, category]) => 
-            React.createElement('div', { 
-              key: key,
-              className: 'bg-gray-50 dark:bg-gray-700 p-4 rounded-lg'
-            },
-              React.createElement('label', { 
-                className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' 
+          React.createElement('div', { className: 'space-y-4' },
+            Object.entries(noteCategories).map(([key, category]) => 
+              React.createElement('div', { 
+                key: key,
+                className: 'bg-gray-50 dark:bg-gray-700 p-4 rounded-lg'
               },
-                React.createElement('span', { className: 'text-lg mr-2' }, category.icon),
-                category.label
-              ),
-              React.createElement('textarea', {
-                value: window.stadiumFormData[`notes_${key}`] || '',
-                onChange: (e) => window.handleStadiumInputChange(`notes_${key}`, e.target.value),
-                className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-                rows: 3,
-                placeholder: category.placeholder
-              })
+                React.createElement('label', { 
+                  className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' 
+                },
+                  React.createElement('span', { className: 'text-lg mr-2' }, category.icon),
+                  category.label
+                ),
+                React.createElement('textarea', {
+                  value: window.stadiumFormData[`notes_${key}`] || '',
+                  onChange: (e) => window.handleStadiumInputChange(`notes_${key}`, e.target.value),
+                  className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+                  rows: 3,
+                  placeholder: category.placeholder
+                })
+              )
             )
           )
         ),
@@ -276,3 +261,5 @@ window.renderStadiumForm = () => {
     )
   );
 };
+
+console.log('✅ Stadium Form component loaded successfully');
