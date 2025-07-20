@@ -1,6 +1,16 @@
 // frontend/public/components/market-rate-tab.js
 
 // Market Rate Tab Component for Inventory Detail
+
+// Partner configurations for display
+window.PARTNER_CONFIGS = {
+  xs2event: {
+    name: 'XS2Event',
+    icon: '🎫'
+  }
+  // Add more partners here as needed
+};
+
 window.MarketRateTab = function({ inventory }) {
   const [marketData, setMarketData] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
@@ -9,6 +19,12 @@ window.MarketRateTab = function({ inventory }) {
   const [alternativeName, setAlternativeName] = React.useState('');
   const [showAlternativeSearch, setShowAlternativeSearch] = React.useState(false);
   const [rateLimit, setRateLimit] = React.useState(null);
+
+  // Ensure formatIndianNumber exists
+  window.formatIndianNumber = window.formatIndianNumber || window.formatNumber || ((num) => {
+    if (num === null || num === undefined) return '0';
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  });
 
   // Fetch market rates
   const fetchMarketRates = React.useCallback(async (eventName, altName = null) => {
@@ -106,19 +122,19 @@ window.MarketRateTab = function({ inventory }) {
           className: 'text-lg font-semibold text-gray-900 dark:text-white' 
         }, '💹 Available Market Rates'),
         
-        rateLimit && React.createElement('div', { 
+        rateLimit ? React.createElement('div', { 
           className: 'text-sm text-gray-500 dark:text-gray-400' 
         },
           `API Limit: ${rateLimit.used}/${rateLimit.limit} requests`,
-          rateLimit.remaining < 10 && React.createElement('span', { 
+          rateLimit.remaining < 10 ? React.createElement('span', { 
             className: 'text-orange-500 ml-2' 
-          }, '⚠️ Low quota')
-        )
+          }, '⚠️ Low quota') : null
+        ) : null
       )
     ),
 
     // Alternative search form
-    showAlternativeSearch && React.createElement('div', { 
+    showAlternativeSearch ? React.createElement('div', { 
       className: 'mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg' 
     },
       React.createElement('p', { 
@@ -141,26 +157,26 @@ window.MarketRateTab = function({ inventory }) {
           className: 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
         }, 'Search')
       )
-    ),
+    ) : null,
 
     // Loading state
-    loading && React.createElement('div', { 
+    loading ? React.createElement('div', { 
       className: 'flex items-center justify-center py-8' 
     },
       React.createElement('div', { className: 'animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600' })
-    ),
+    ) : null,
 
     // Error state
-    error && React.createElement('div', { 
+    error ? React.createElement('div', { 
       className: 'p-4 bg-red-50 dark:bg-red-900/20 rounded-lg mb-4' 
     },
       React.createElement('p', { className: 'text-red-600 dark:text-red-400' }, 
         '❌ ', error
       )
-    ),
+    ) : null,
 
     // Results
-    !loading && !error && marketData.map((partnerData, index) => {
+    !loading && !error && marketData.length > 0 ? marketData.map((partnerData, index) => {
       const stats = partnerData.found ? calculatePriceStats(partnerData.tickets) : null;
 
       return React.createElement('div', { 
@@ -173,17 +189,17 @@ window.MarketRateTab = function({ inventory }) {
         },
           React.createElement('div', { className: 'flex justify-between items-center' },
             React.createElement('h4', { className: 'font-medium text-gray-900 dark:text-white' }, 
-              '🏪 ', PARTNER_CONFIGS[partnerData.partner]?.name || partnerData.partner
+              '🏪 ', window.PARTNER_CONFIGS[partnerData.partner]?.name || partnerData.partner
             ),
             
-            partnerData.found && stats && React.createElement('div', { 
+            partnerData.found && stats ? React.createElement('div', { 
               className: 'text-sm text-gray-600 dark:text-gray-400' 
             },
               `${stats.count} tickets • `,
               React.createElement('span', { className: 'font-medium' }, 
                 `₹${window.formatIndianNumber(Math.floor(stats.min))} - ₹${window.formatIndianNumber(Math.floor(stats.max))}`
               )
-            )
+            ) : null
           )
         ),
 
@@ -203,7 +219,7 @@ window.MarketRateTab = function({ inventory }) {
           
           // Ticket groups
           React.createElement('div', { className: 'space-y-4' },
-            partnerData.ticketGroups && partnerData.ticketGroups.map((group, gIdx) => 
+            partnerData.ticketGroups && partnerData.ticketGroups.length > 0 ? partnerData.ticketGroups.map((group, gIdx) => 
               React.createElement('div', { 
                 key: gIdx,
                 className: 'border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden'
@@ -216,9 +232,9 @@ window.MarketRateTab = function({ inventory }) {
                     React.createElement('span', { className: 'font-medium text-gray-900 dark:text-white' }, 
                       group.category
                     ),
-                    group.subCategory && React.createElement('span', { 
+                    group.subCategory ? React.createElement('span', { 
                       className: 'text-sm text-gray-500 dark:text-gray-400 ml-2' 
-                    }, `(${group.subCategory})`)
+                    }, `(${group.subCategory})`) : null
                   ),
                   React.createElement('div', { className: 'text-sm' },
                     React.createElement('span', { className: 'text-gray-600 dark:text-gray-400' }, 
@@ -276,44 +292,35 @@ window.MarketRateTab = function({ inventory }) {
                         )
                       ),
                       
-                      group.tickets.length > 5 && React.createElement('tr', null,
+                      group.tickets.length > 5 ? React.createElement('tr', null,
                         React.createElement('td', { 
                           colSpan: 7,
                           className: 'px-3 py-2 text-center text-sm text-gray-500 dark:text-gray-400' 
                         }, `... and ${group.tickets.length - 5} more tickets in this category`)
-                      )
+                      ) : null
                     )
                   )
                 )
               )
-            ),
+            ) : null,
             
             // Summary
-            partnerData.rawTicketCount && React.createElement('div', { 
+            partnerData.rawTicketCount ? React.createElement('div', { 
               className: 'mt-4 text-sm text-gray-600 dark:text-gray-400 text-center' 
-            }, `Total ${partnerData.rawTicketCount} individual tickets from multiple suppliers`)
+            }, `Total ${partnerData.rawTicketCount} individual tickets from multiple suppliers`) : null
           )
         )
       );
-    }),
+    }) : null,
 
     // Refresh button
-    !loading && React.createElement('div', { className: 'mt-4 flex justify-end' },
+    !loading ? React.createElement('div', { className: 'mt-4 flex justify-end' },
       React.createElement('button', {
         onClick: () => fetchMarketRates(searchName, alternativeName),
         className: 'px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600'
       }, '🔄 Refresh Rates')
-    )
+    ) : null
   );
-};
-
-// Partner configurations for display
-const PARTNER_CONFIGS = {
-  xs2event: {
-    name: 'XS2Event',
-    icon: '🎫'
-  }
-  // Add more partners here as needed
 };
 
 console.log('✅ Market Rate Tab component loaded');
