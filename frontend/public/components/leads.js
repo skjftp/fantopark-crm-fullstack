@@ -16,22 +16,24 @@ window.leadsSalesPersonFilter = window.leadsSalesPersonFilter || 'all';
 
 // Replace the initialization section in your leads.js with this:
 
+// Initialize paginated mode only
 const initializePaginatedMode = () => {
   if (!window.leadsInitialized) {
     window.leadsInitialized = true;
     
     // Function to safely initialize when everything is ready
     const safeInitialize = () => {
-      // Check all required dependencies
+      // Check all required dependencies INCLUDING login status
       const dependenciesReady = 
         window.appState && 
         window.LeadsAPI && 
         window.appState.setLeads &&
         window.appState.setLeadsPagination &&
-        typeof window.appState.setLeadsFilterOptions === 'function';
+        typeof window.appState.setLeadsFilterOptions === 'function' &&
+        (window.isLoggedIn || window.appState?.isLoggedIn); // ADD THIS CHECK
       
       if (dependenciesReady) {
-        window.log.info('🚀 Initializing leads module - all dependencies ready');
+        window.log.info('🚀 Initializing leads module - all dependencies ready and user logged in');
         
         // IMPORTANT: Clear any existing leads data to prevent showing all leads
         window.appState.setLeads([]);
@@ -51,7 +53,7 @@ const initializePaginatedMode = () => {
           perPage: 20
         });
         
-        // Fetch paginated data and filter options
+        // Fetch paginated data and filter options ONLY if logged in
         window.log.info('📋 Fetching initial paginated data...');
         window.LeadsAPI.fetchPaginatedLeads({ page: 1 });
         window.LeadsAPI.fetchFilterOptions();
@@ -60,6 +62,7 @@ const initializePaginatedMode = () => {
         if (!window.appState) window.log.debug('Waiting for appState...');
         if (!window.LeadsAPI) window.log.debug('Waiting for LeadsAPI...');
         if (!window.appState?.setLeads) window.log.debug('Waiting for setLeads...');
+        if (!window.isLoggedIn && !window.appState?.isLoggedIn) window.log.debug('Waiting for user login...');
         
         // Retry after a short delay
         setTimeout(safeInitialize, 500);
@@ -71,13 +74,16 @@ const initializePaginatedMode = () => {
   }
 };
 
-// Run initialization when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializePaginatedMode);
-} else {
-  // DOM already loaded, initialize after a short delay
-  setTimeout(initializePaginatedMode, 500);
-}
+// Don't run initialization on DOM ready - let it be triggered after login
+// Comment out or remove these lines:
+// if (document.readyState === 'loading') {
+//   document.addEventListener('DOMContentLoaded', initializePaginatedMode);
+// } else {
+//   setTimeout(initializePaginatedMode, 500);
+// }
+
+// Instead, expose the initialization function to be called after login
+window.initializeLeadsModule = initializePaginatedMode;
 
 // Client View Component
 const ClientViewContent = () => {
