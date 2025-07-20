@@ -203,103 +203,105 @@ window.renderStadiumsContent = () => {
                             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Location'),
                             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Sport'),
                             React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Capacity'),
-                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions'),
-                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Notes')                
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Notes'),
+                            React.createElement('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Actions')
                         )
                     ),
                     React.createElement('tbody', { className: 'bg-white dark:bg-gray-700 divide-y divide-gray-200' },
-    sortedStadiums.map(stadium => {
-        if (!stadium || !stadium.id) return null; // Skip invalid stadium objects
-        
-        return React.createElement('tr', { key: stadium.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-600' },
-            React.createElement('td', { className: 'px-6 py-4' },
-                React.createElement('div', null,
-                    React.createElement('div', { className: 'text-sm font-medium text-gray-900 dark:text-white' }, stadium.name || 'Unnamed Stadium'),
-                    stadium.nickname && React.createElement('div', { className: 'text-xs text-gray-500 dark:text-gray-400' }, `"${stadium.nickname}"`),
-                    stadium.opened_year && React.createElement('div', { className: 'text-xs text-gray-400' }, `Est. ${stadium.opened_year}`)
-                )
-            ),
-            React.createElement('td', { className: 'px-6 py-4' },
-                React.createElement('div', { className: 'text-sm text-gray-900 dark:text-white' }, 
-                    `${stadium.city || 'Unknown'}${stadium.state ? ', ' + stadium.state : ''}`
-                ),
-                React.createElement('div', { className: 'text-xs text-gray-500 dark:text-gray-400' }, stadium.country || 'Unknown')
-            ),
-            React.createElement('td', { className: 'px-6 py-4' },
-                React.createElement('span', {
-                    className: `px-2 py-1 text-xs rounded-full ${
-                        stadium.sport_type === 'Cricket' ? 'bg-green-100 text-green-800' :
-                        stadium.sport_type === 'Football' ? 'bg-blue-100 text-blue-800' :
-                        stadium.sport_type === 'Multi-Sport' ? 'bg-purple-100 text-purple-800' :
-                        'bg-gray-100 text-gray-800'
-                    }`
-                }, stadium.sport_type || 'Unknown')
-            ),
-            React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' },
-                stadium.capacity ? stadium.capacity.toLocaleString() : 'N/A'
-            ),
-            // NEW NOTES COLUMN
-            React.createElement('td', { className: 'px-6 py-4' },
-                React.createElement('button', {
-                    onClick: () => {
-                        console.log('📝 Opening notes for stadium:', stadium.name);
-                        window.openStadiumNotesModal(stadium);
-                    },
-                    className: 'relative group',
-                    title: 'View Stadium Notes'
-                },
-                    React.createElement('div', { className: 'relative' },
-                        React.createElement('span', { 
-                            className: 'text-2xl hover:scale-110 transition-transform cursor-pointer' 
-                        }, '📋'),
-                        // Show indicator if notes exist
-                        (stadium.categorized_notes && Object.values(stadium.categorized_notes).some(note => note && note.trim())) &&
-                        React.createElement('span', { 
-                            className: 'absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full' 
-                        })
+                        sortedStadiums.map(stadium => {
+                            if (!stadium || !stadium.id) return null; // Skip invalid stadium objects
+                            
+                            return React.createElement('tr', { key: stadium.id, className: 'hover:bg-gray-50 dark:hover:bg-gray-600' },
+                                React.createElement('td', { className: 'px-6 py-4' },
+                                    React.createElement('div', null,
+                                        React.createElement('div', { className: 'text-sm font-medium text-gray-900 dark:text-white' }, stadium.name || 'Unnamed Stadium'),
+                                        stadium.nickname && React.createElement('div', { className: 'text-xs text-gray-500 dark:text-gray-400' }, `"${stadium.nickname}"`),
+                                        stadium.opened_year && React.createElement('div', { className: 'text-xs text-gray-400' }, `Est. ${stadium.opened_year}`)
+                                    )
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4' },
+                                    React.createElement('div', { className: 'text-sm text-gray-900 dark:text-white' }, 
+                                        `${stadium.city || 'Unknown'}${stadium.state ? ', ' + stadium.state : ''}`
+                                    ),
+                                    React.createElement('div', { className: 'text-xs text-gray-500 dark:text-gray-400' }, stadium.country || 'Unknown')
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4' },
+                                    React.createElement('span', {
+                                        className: `px-2 py-1 text-xs rounded-full ${
+                                            stadium.sport_type === 'Cricket' ? 'bg-green-100 text-green-800' :
+                                            stadium.sport_type === 'Football' ? 'bg-blue-100 text-blue-800' :
+                                            stadium.sport_type === 'Multi-Sport' ? 'bg-purple-100 text-purple-800' :
+                                            'bg-gray-100 text-gray-800'
+                                        }`
+                                    }, stadium.sport_type || 'Unknown')
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4 text-sm text-gray-900 dark:text-white' },
+                                    stadium.capacity ? stadium.capacity.toLocaleString() : 'N/A'
+                                ),
+                                // NOTES COLUMN - NOW BEFORE ACTIONS
+                                React.createElement('td', { className: 'px-6 py-4' },
+                                    React.createElement('button', {
+                                        onClick: () => {
+                                            console.log('📝 Opening notes for stadium:', stadium.name);
+                                            window.openStadiumNotesModal(stadium);
+                                        },
+                                        className: 'relative group',
+                                        title: 'View Stadium Notes'
+                                    },
+                                        React.createElement('div', { className: 'relative' },
+                                            React.createElement('span', { 
+                                                className: 'text-2xl hover:scale-110 transition-transform cursor-pointer' 
+                                            }, '📋'),
+                                            // Show indicator if notes exist
+                                            (stadium.categorized_notes && Object.values(stadium.categorized_notes).some(note => note && note.trim())) &&
+                                            React.createElement('span', { 
+                                                className: 'absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full' 
+                                            })
+                                        )
+                                    )
+                                ),
+                                // ACTIONS COLUMN - NOW AFTER NOTES
+                                React.createElement('td', { className: 'px-6 py-4' },
+                                    React.createElement('div', { className: 'flex gap-2' },
+                                        hasPermission('stadiums', 'write') && React.createElement('button', {
+                                            onClick: () => {
+                                                console.log('🔍 Edit stadium clicked:', stadium.id);
+                                                openStadiumForm(stadium);
+                                            },
+                                            className: 'text-blue-600 hover:text-blue-900 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50'
+                                        }, '✏️'),
+                                        hasPermission('stadiums', 'delete') && React.createElement('button', {
+                                            onClick: () => {
+                                                console.log('🔍 Delete stadium clicked:', stadium.id);
+                                                handleDeleteStadium(stadium.id, stadium.name);
+                                            },
+                                            className: 'text-red-600 hover:text-red-900 text-sm px-2 py-1 rounded border border-red-200 hover:bg-red-50'
+                                        }, '🗑️'),
+                                        stadium.website && React.createElement('a', {
+                                            href: stadium.website,
+                                            target: '_blank',
+                                            className: 'text-green-600 hover:text-green-900 text-sm px-2 py-1 rounded border border-green-200 hover:bg-green-50'
+                                        }, '🌐')
+                                    )
+                                )
+                            );
+                        }).filter(Boolean) // Remove null entries
                     )
                 )
-            ),
-            React.createElement('td', { className: 'px-6 py-4' },
-                React.createElement('div', { className: 'flex gap-2' },
-                    hasPermission('stadiums', 'write') && React.createElement('button', {
-                        onClick: () => {
-                            console.log('🔍 Edit stadium clicked:', stadium.id);
-                            openStadiumForm(stadium);
-                        },
-                        className: 'text-blue-600 hover:text-blue-900 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50'
-                    }, '✏️'),
-                    hasPermission('stadiums', 'delete') && React.createElement('button', {
-                        onClick: () => {
-                            console.log('🔍 Delete stadium clicked:', stadium.id);
-                            handleDeleteStadium(stadium.id, stadium.name);
-                        },
-                        className: 'text-red-600 hover:text-red-900 text-sm px-2 py-1 rounded border border-red-200 hover:bg-red-50'
-                    }, '🗑️'),
-                    stadium.website && React.createElement('a', {
-                        href: stadium.website,
-                        target: '_blank',
-                        className: 'text-green-600 hover:text-green-900 text-sm px-2 py-1 rounded border border-green-200 hover:bg-green-50'
-                    }, '🌐')
-                )
+            ) : React.createElement('div', { className: 'p-8 text-center text-gray-500' },
+                React.createElement('p', { className: 'text-lg mb-4' }, 'No stadiums found'),
+                React.createElement('button', {
+                    onClick: () => {
+                        console.log('🔍 Populate stadiums from empty state clicked');
+                        populateDefaultStadiums();
+                    },
+                    className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
+                }, 'Add Popular Stadiums to Get Started')
             )
-        );
-    }).filter(Boolean) // Remove null entries
-)
-),
-// After the table closing tags, add the modal render
-window.renderStadiumNotesModal && window.renderStadiumNotesModal()
-) : React.createElement('div', { className: 'p-8 text-center text-gray-500' },
-    React.createElement('p', { className: 'text-lg mb-4' }, 'No stadiums found'),
-    React.createElement('button', {
-        onClick: () => {
-            console.log('🔍 Populate stadiums from empty state clicked');
-            populateDefaultStadiums();
-        },
-        className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
-    }, 'Add Popular Stadiums to Get Started')
-)
-);
+        ),
+        // Add the Stadium Notes Modal at the end
+        window.renderStadiumNotesModal && window.renderStadiumNotesModal()
+    );
 };
 
 console.log('✅ Stadiums component loaded successfully with enhanced integration pattern');
