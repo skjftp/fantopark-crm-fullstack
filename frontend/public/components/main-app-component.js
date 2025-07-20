@@ -169,6 +169,8 @@ const [myActionsPagination, setMyActionsPagination] = useState({
   const [calendarFilters, setCalendarFilters] = React.useState({});
   const [showImportModal, setShowImportModal] = React.useState(false);
   const [isMobileView, setIsMobileView] = React.useState(window.innerWidth <= 768);
+  const [selectedStadiumForNotes, setSelectedStadiumForNotes] = React.useState(null);
+const [showStadiumNotesModal, setShowStadiumNotesModal] = React.useState(false);
   // Mobile menu state
 const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [paymentData, setPaymentData] = useState({
@@ -370,6 +372,8 @@ const [ordersSorting, setOrdersSorting] = useState({
 const [ordersShowFilters, setOrdersShowFilters] = useState(false);
 
   // Make state available globally for other components
+  window.setSelectedStadiumForNotes = setSelectedStadiumForNotes;
+window.setShowStadiumNotesModal = setShowStadiumNotesModal;
 
   window.leadsSalesPersonFilter = leadsSalesPersonFilter;
 window.setLeadsSalesPersonFilter = setLeadsSalesPersonFilter;
@@ -511,6 +515,8 @@ showJourneyGenerator, setShowJourneyGenerator,
     editingUser, setEditingUser,
     showCSVUploadModal, setShowCSVUploadModal,
     leadsSalesPersonFilter, setLeadsSalesPersonFilter,
+    selectedStadiumForNotes, setSelectedStadiumForNotes,
+showStadiumNotesModal, setShowStadiumNotesModal,
     availableRoles, setAvailableRoles,
     csvUploadType, setCSVUploadType,
     currentForm, setCurrentForm,
@@ -549,6 +555,29 @@ eventsPerPage,
     financialPagination, setFinancialPagination,
     isMobileMenuOpen, setIsMobileMenuOpen,
   };
+
+  // Stadium Notes Modal Helper Functions
+window.openStadiumNotesModal = (stadium) => {
+  window.appState.selectedStadiumForNotes = stadium;
+  window.appState.showStadiumNotesModal = true;
+  if (window.setSelectedStadiumForNotes) {
+    window.setSelectedStadiumForNotes(stadium);
+  }
+  if (window.setShowStadiumNotesModal) {
+    window.setShowStadiumNotesModal(true);
+  }
+};
+
+window.closeStadiumNotesModal = () => {
+  window.appState.selectedStadiumForNotes = null;
+  window.appState.showStadiumNotesModal = false;
+  if (window.setSelectedStadiumForNotes) {
+    window.setSelectedStadiumForNotes(null);
+  }
+  if (window.setShowStadiumNotesModal) {
+    window.setShowStadiumNotesModal(false);
+  }
+};
 
   window.inventorySearchQuery = inventorySearchQuery;
 window.setInventorySearchQuery = setInventorySearchQuery;
