@@ -18,9 +18,9 @@ window._dashboardChartInstances = {
 
 window.renderDashboardContent = () => {
     return React.createElement('div', { className: 'space-y-6' },
-        // Dashboard Stats Cards - OPTIMIZED WITH DATA ATTRIBUTES
+        // Dashboard Stats Cards - API DRIVEN
         React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-6 mb-6' },
-            // Total Leads Card - UPDATED WITH DATA ATTRIBUTE
+            // Total Leads Card
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
                 React.createElement('div', { className: 'flex items-center' },
                     React.createElement('div', { className: 'p-2 bg-blue-100 dark:bg-blue-900 rounded-lg' },
@@ -41,16 +41,16 @@ window.renderDashboardContent = () => {
                     React.createElement('div', { className: 'ml-4' },
                         React.createElement('h3', { 
                             className: 'text-lg font-semibold text-gray-900 dark:text-white',
-                            'data-stat': 'total-leads' // ✅ ADDED FOR API INTEGRATION
+                            'data-stat': 'total-leads'
                         },
-                            (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || []).length
+                            '0' // Initial value, updated by API
                         ),
                         React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Total Leads')
                     )
                 )
             ),
 
-            // Hot Leads Card - UPDATED WITH DATA ATTRIBUTE
+            // Hot Leads Card
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
                 React.createElement('div', { className: 'flex items-center' },
                     React.createElement('div', { className: 'p-2 bg-red-100 dark:bg-red-900 rounded-lg' },
@@ -77,17 +77,16 @@ window.renderDashboardContent = () => {
                     React.createElement('div', { className: 'ml-4' },
                         React.createElement('h3', { 
                             className: 'text-lg font-semibold text-gray-900 dark:text-white',
-                            'data-stat': 'hot-leads' // ✅ ADDED FOR API INTEGRATION
+                            'data-stat': 'hot-leads'
                         },
-                            (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
-                                .filter(l => (l.temperature || l.status || '').toLowerCase() === 'hot').length
+                            '0' // Initial value, updated by API
                         ),
                         React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Hot Leads')
                     )
                 )
             ),
 
-            // Qualified Leads Card - UPDATED WITH DATA ATTRIBUTE
+            // Qualified Leads Card
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
                 React.createElement('div', { className: 'flex items-center' },
                     React.createElement('div', { className: 'p-2 bg-green-100 dark:bg-green-900 rounded-lg' },
@@ -108,17 +107,16 @@ window.renderDashboardContent = () => {
                     React.createElement('div', { className: 'ml-4' },
                         React.createElement('h3', { 
                             className: 'text-lg font-semibold text-gray-900 dark:text-white',
-                            'data-stat': 'qualified-leads' // ✅ ADDED FOR API INTEGRATION
+                            'data-stat': 'qualified-leads'
                         },
-                            (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
-                                .filter(l => (l.status || '').toLowerCase() === 'qualified').length
+                            '0' // Initial value, updated by API
                         ),
                         React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Qualified Leads')
                     )
                 )
             ),
 
-            // Pipeline Value Card - UPDATED WITH DATA ATTRIBUTE
+            // Pipeline Value Card
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
                 React.createElement('div', { className: 'flex items-center' },
                     React.createElement('div', { className: 'p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg' },
@@ -127,12 +125,9 @@ window.renderDashboardContent = () => {
                     React.createElement('div', { className: 'ml-4' },
                         React.createElement('h3', { 
                             className: 'text-lg font-semibold text-gray-900 dark:text-white',
-                            'data-stat': 'pipeline-value' // ✅ ADDED FOR API INTEGRATION
+                            'data-stat': 'pipeline-value'
                         },
-                            '₹' + ((window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
-                                .filter(lead => !['converted', 'payment_received', 'dropped', 'junk'].includes(lead.status))
-                                .reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0)
-                                .toLocaleString('en-IN'))
+                            '₹0' // Initial value, updated by API
                         ),
                         React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Total Pipeline Value')
                     )
@@ -140,12 +135,12 @@ window.renderDashboardContent = () => {
             )
         ),
 
-        // Filters for pie charts - OPTIMIZED WITH CHART REFRESH
+        // Filters for pie charts
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6' },
             React.createElement('div', { className: 'flex items-center space-x-4 flex-wrap gap-2' },
                 React.createElement('label', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'View by:'),
                 
-                // Main Filter Dropdown - UPDATED WITH CHART REFRESH
+                // Main Filter Dropdown
                 React.createElement('select', {
                     className: 'px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                     value: window.dashboardFilter || 'overall',
@@ -164,14 +159,9 @@ window.renderDashboardContent = () => {
                             // Silent fail
                         }
                         
-                        // ✅ TRIGGER OPTIMIZED CHART REFRESH
-                        if (window.handleChartFilterChange) {
-                            window.handleChartFilterChange();
-                        }
-                        
-                        if (window.setLoading) {
-                            window.setLoading(true);
-                            setTimeout(() => window.setLoading(false), 100);
+                        // Trigger chart refresh
+                        if (window.fetchChartDataFromAPI) {
+                            window.fetchChartDataFromAPI();
                         }
                     }
                 },
@@ -180,7 +170,7 @@ window.renderDashboardContent = () => {
                     React.createElement('option', { value: 'event' }, 'By Event')
                 ),
 
-                // Sales Person Filter - UPDATED WITH CHART REFRESH
+                // Sales Person Filter
                 (window.dashboardFilter === 'salesPerson') && React.createElement('select', {
                     className: 'px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                     value: window.selectedSalesPerson || '',
@@ -194,9 +184,9 @@ window.renderDashboardContent = () => {
                             // Silent fail
                         }
                         
-                        // ✅ TRIGGER OPTIMIZED CHART REFRESH
-                        if (window.handleChartFilterChange) {
-                            window.handleChartFilterChange();
+                        // Trigger chart refresh
+                        if (window.fetchChartDataFromAPI) {
+                            window.fetchChartDataFromAPI();
                         }
                     }
                 },
@@ -206,8 +196,7 @@ window.renderDashboardContent = () => {
                     )
                 ),
 
-                // Event Filter - UPDATED WITH CHART REFRESH  
-                // THIS IS THE ONLY CHANGE - USE FILTER OPTIONS IF AVAILABLE
+                // Event Filter
                 (window.dashboardFilter === 'event') && React.createElement('select', {
                     className: 'px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
                     value: window.selectedEvent || '',
@@ -221,14 +210,13 @@ window.renderDashboardContent = () => {
                             // Silent fail
                         }
                         
-                        // ✅ TRIGGER OPTIMIZED CHART REFRESH
-                        if (window.handleChartFilterChange) {
-                            window.handleChartFilterChange();
+                        // Trigger chart refresh
+                        if (window.fetchChartDataFromAPI) {
+                            window.fetchChartDataFromAPI();
                         }
                     }
                 },
                     React.createElement('option', { value: '' }, 'Select Event'),
-                    // Use filter options events if available, otherwise extract from leads
                     (window.appState?.leadsFilterOptions?.events || 
                      [...new Set((window.leads || []).map(lead => lead.lead_for_event).filter(Boolean))]
                     ).map(event =>
@@ -238,7 +226,7 @@ window.renderDashboardContent = () => {
             )
         ),
 
-        // Pie Charts Section - OPTIMIZED FOR BACKEND API
+        // Pie Charts Section
         React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-3 gap-6' },
             // Lead Split Chart
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
@@ -280,9 +268,8 @@ window.renderDashboardContent = () => {
             )
         ),
 
-        // Enhanced Recent Activity Section
+        // Recent Activity Section
         window.renderEnhancedRecentActivity ? window.renderEnhancedRecentActivity() :
-        // Fallback to basic Recent Activity if enhanced component not loaded
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border' },
             React.createElement('div', { className: 'p-6 border-b border-gray-200 dark:border-gray-700' },
                 React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
@@ -290,88 +277,12 @@ window.renderDashboardContent = () => {
                 )
             ),
             React.createElement('div', { className: 'p-6' },
-                (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || []).length > 0 ?
-                React.createElement('div', { className: 'space-y-4' },
-                    (window.getFilteredLeads ? window.getFilteredLeads() : window.leads || [])
-                        .sort((a, b) => new Date(b.created_date || b.created_at) - new Date(a.created_date || a.created_at))
-                        .slice(0, 5)
-                        .map(lead =>
-                            React.createElement('div', { 
-                                key: lead.id, 
-                                className: 'flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg' 
-                            },
-                                React.createElement('div', { className: 'flex-1' },
-                                    React.createElement('p', { className: 'font-medium text-gray-900 dark:text-white' }, 
-                                        lead.name || 'Unknown'
-                                    ),
-                                    React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 
-                                        `${lead.status || 'No status'} • ${lead.phone || 'No phone'}`
-                                    )
-                                ),
-                                React.createElement('span', { 
-                                    className: `px-2 py-1 text-xs font-medium rounded-full ${
-                                        (lead.status || '').toLowerCase() === 'qualified' ? 'bg-green-100 text-green-800' :
-                                        (lead.status || '').toLowerCase() === 'hot' ? 'bg-red-100 text-red-800' :
-                                        'bg-yellow-100 text-yellow-800'
-                                    }`
-                                }, 
-                                    lead.status || 'Unknown'
-                                )
-                            )
-                        )
-                ) :
                 React.createElement('p', { className: 'text-gray-500 dark:text-gray-400 text-center' },
-                    'No recent activity to show'
+                    'Loading recent activity...'
                 )
             )
         )
     );
-};
-
-// ===============================================
-// DASHBOARD HELPER FUNCTIONS - OPTIMIZED
-// ===============================================
-
-window.getFilteredLeads = function() {
-    let filteredLeads = [...(window.leads || [])];
-    
-    try {
-        if (window.dashboardFilter === 'salesPerson' && window.selectedSalesPerson) {
-            // Use the same ID to email mapping as the backend
-            const selectedUser = (window.users || []).find(user => user.id === window.selectedSalesPerson);
-            if (selectedUser) {
-                const salesPersonEmail = selectedUser.email;
-                filteredLeads = filteredLeads.filter(lead => lead.assigned_to === salesPersonEmail);
-            }
-        } else if (window.dashboardFilter === 'event' && window.selectedEvent) {
-            filteredLeads = filteredLeads.filter(lead => 
-                lead.lead_for_event === window.selectedEvent
-            );
-        }
-    } catch (error) {
-        console.warn('Filter error:', error);
-    }
-    
-    return filteredLeads;
-};
-
-window.calculateDashboardMetrics = function() {
-    const leads = window.getFilteredLeads();
-    
-    const getTemperature = (lead) => {
-        let temp = lead.temperature || lead.status || '';
-        return temp.toLowerCase();
-    };
-    
-    return {
-        total: leads.length,
-        hot: leads.filter(l => getTemperature(l) === 'hot').length,
-        warm: leads.filter(l => getTemperature(l) === 'warm').length,
-        cold: leads.filter(l => getTemperature(l) === 'cold').length,
-        qualified: leads.filter(l => (l.status || '').toLowerCase() === 'qualified').length,
-        junk: leads.filter(l => (l.status || '').toLowerCase() === 'junk').length,
-        totalValue: leads.reduce((sum, lead) => sum + (parseFloat(lead.potential_value) || 0), 0)
-    };
 };
 
 // ===============================================
@@ -417,7 +328,7 @@ window.fetchChartDataFromAPI = async function() {
             // Update the charts with API data
             updateChartsFromAPIData(result.data);
             
-            // Update summary stats if needed
+            // ALWAYS update summary stats from API
             if (result.data.summary) {
                 updateDashboardSummary(result.data.summary);
             }
@@ -448,19 +359,27 @@ window.fetchChartDataFromAPI = async function() {
                     data: [0, 0, 0],
                     colors: ['#EF4444', '#F59E0B', '#3B82F6']
                 }
+            },
+            summary: {
+                totalLeads: 0,
+                hotLeads: 0,
+                qualifiedLeads: 0,
+                totalPipelineValue: 0
             }
         };
         
         updateChartsFromAPIData(emptyData);
+        updateDashboardSummary(emptyData.summary);
         return null;
     }
 };
 
 // ===============================================
-// FIXED: Update charts with API data - PREVENTS BLANK CHARTS ON TAB SWITCH
+// UPDATE CHARTS WITH API DATA
 // ===============================================
+
 window.updateChartsFromAPIData = function(apiData) {
-    console.log('📊 Updating charts with API data (fixed version)...');
+    console.log('📊 Updating charts with API data...');
     
     // Prevent duplicate updates
     if (window._chartUpdateInProgress) {
@@ -493,32 +412,15 @@ window.updateChartsFromAPIData = function(apiData) {
             return null;
         }
         
-        // Check if canvas is visible
-        if (canvas.offsetParent === null) {
-            console.warn(`Canvas ${canvasId} is not visible, waiting...`);
-            return null;
-        }
-        
-        // Destroy existing chart from both sources
+        // Destroy existing chart
         const existingChart = Chart.getChart(canvas);
         if (existingChart) {
             existingChart.destroy();
         }
         
-        // Also check our stored instances
-        const instanceKey = canvasId.replace('Chart', '');
-        if (window._dashboardChartInstances[instanceKey]) {
-            window._dashboardChartInstances[instanceKey].destroy();
-            window._dashboardChartInstances[instanceKey] = null;
-        }
-        
         // Clear canvas
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Set canvas dimensions
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
         
         // Create new chart
         try {
@@ -534,9 +436,6 @@ window.updateChartsFromAPIData = function(apiData) {
                     }
                 }
             });
-            
-            // Store reference
-            window._dashboardChartInstances[instanceKey] = newChart;
             
             return newChart;
         } catch (error) {
@@ -644,10 +543,13 @@ window.updateChartsFromAPIData = function(apiData) {
             window._chartUpdateInProgress = false;
         }
         
-    }, 100); // Small delay for DOM readiness
+    }, 100);
 };
 
-// Update dashboard summary with API data
+// ===============================================
+// UPDATE DASHBOARD SUMMARY WITH API DATA
+// ===============================================
+
 window.updateDashboardSummary = function(summary) {
     if (!summary) return;
     
@@ -662,159 +564,26 @@ window.updateDashboardSummary = function(summary) {
     };
     
     Object.keys(statElements).forEach(stat => {
-        const element = document.querySelector(`[data-stat="${stat}"]`);
-        if (element && statElements[stat] !== undefined) {
-            if (stat === 'pipeline-value') {
-                element.textContent = '₹' + statElements[stat].toLocaleString('en-IN');
-            } else {
-                element.textContent = statElements[stat];
+        const elements = document.querySelectorAll(`[data-stat="${stat}"]`);
+        elements.forEach(element => {
+            if (element && statElements[stat] !== undefined) {
+                if (stat === 'pipeline-value') {
+                    element.textContent = '₹' + statElements[stat].toLocaleString('en-IN');
+                } else {
+                    element.textContent = statElements[stat].toString();
+                }
             }
-        }
+        });
     });
     
-    // Store summary data globally if needed
+    // Store summary data globally
     window.dashboardSummary = summary;
 };
 
 // ===============================================
-// DASHBOARD STATS API INTEGRATION
+// TAB SWITCHING OBSERVER
 // ===============================================
 
-// Fetch dashboard stats from API
-window.fetchDashboardStats = async function() {
-    console.log('📊 Fetching dashboard stats from API...');
-    
-    try {
-        const response = await fetch(`${window.API_CONFIG.API_URL}/dashboard/stats`, {
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('crm_auth_token'),
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch dashboard stats');
-        }
-        
-        const result = await response.json();
-        
-        if (result.data) {
-            console.log('✅ Dashboard stats received:', result.data);
-            
-            // Update the global dashboardStats
-            window.dashboardStats = {
-                totalLeads: result.data.totalLeads || 0,
-                activeDeals: result.data.activeDeals || 0,
-                totalInventory: result.data.totalInventory || 0,
-                totalInventoryValue: result.data.totalInventoryValue || 0,
-                pendingOrders: result.data.pendingOrders || 0,
-                totalReceivables: result.data.totalReceivables || 0,
-                thisMonthRevenue: result.data.thisMonthRevenue || 0,
-                totalRevenue: result.data.totalRevenue || 0
-            };
-            
-            // Trigger a re-render of the dashboard
-            if (window.renderDashboard) {
-                window.renderDashboard();
-            }
-            
-            return window.dashboardStats;
-        }
-        
-    } catch (error) {
-        console.error('❌ Error fetching dashboard stats:', error);
-        // Calculate stats locally as fallback
-        console.log('⚠️ Falling back to local stats calculation');
-        calculateLocalDashboardStats();
-    }
-};
-
-// Calculate stats locally (fallback)
-window.calculateLocalDashboardStats = function() {
-    // This is a fallback method that calculates stats from local data
-    const leads = window.leads || [];
-    const filtered = window.getFilteredLeads();
-    
-    window.dashboardStats = {
-        totalLeads: filtered.length,
-        activeDeals: filtered.filter(l => ['qualified', 'hot', 'warm'].includes(l.status)).length,
-        totalInventory: 0, // Would need inventory data
-        totalInventoryValue: 0, // Would need inventory data
-        pendingOrders: 0, // Would need order data
-        totalReceivables: 0, // Would need receivables data
-        thisMonthRevenue: 0, // Would need payment data
-        totalRevenue: 0 // Would need payment data
-    };
-};
-
-// ===============================================
-// CHART INITIALIZATION - API VERSION
-// ===============================================
-
-// Initialize charts when dashboard loads - API VERSION
-window.initializeDashboardCharts = function() {
-    console.log('🚀 Dashboard: Initializing charts with API data...');
-    
-    // Check if Chart.js is loaded
-    if (typeof Chart === 'undefined') {
-        console.warn('⏳ Chart.js not loaded yet, retrying...');
-        setTimeout(window.initializeDashboardCharts, 500);
-        return;
-    }
-    
-    // Wait for DOM to be ready
-    setTimeout(() => {
-        // First, ensure chart containers exist
-        const containers = ['leadSplitChart', 'tempCountChart', 'tempValueChart'];
-        const allContainersExist = containers.every(id => document.getElementById(id));
-        
-        if (!allContainersExist) {
-            console.warn('⏳ Chart containers not ready, retrying...');
-            setTimeout(window.initializeDashboardCharts, 500);
-            return;
-        }
-        
-        // Directly fetch data from API and create charts
-        window.fetchChartDataFromAPI().then(data => {
-            if (data) {
-                console.log('✅ Charts initialized with API data');
-            } else {
-                console.log('⚠️ No data received from API');
-            }
-        });
-        
-        // Also fetch dashboard stats
-        window.fetchDashboardStats();
-        
-    }, 100);
-};
-
-// Create empty charts (skip loading state to avoid grey charts)
-window.createEmptyCharts = function() {
-    // Don't create empty charts - let the API data create them directly
-    console.log('📊 Waiting for API data to create charts...');
-};
-
-// Handle chart filter changes
-window.handleChartFilterChange = function() {
-    console.log('🔄 Filter changed, refreshing charts...');
-    
-    // Fetch new chart data from API
-    window.fetchChartDataFromAPI();
-    
-    // Also update dashboard stats if needed
-    if (window.renderDashboard) {
-        window.renderDashboard();
-    }
-};
-
-// Override the existing chart update function to use API
-window.updateChartsWithData = window.fetchChartDataFromAPI;
-
-// ===============================================
-// FIXED: TAB SWITCHING OBSERVER
-// ===============================================
 (function() {
     'use strict';
     
@@ -822,9 +591,6 @@ window.updateChartsWithData = window.fetchChartDataFromAPI;
     
     // Store the original setActiveTab function
     const originalSetActiveTab = window.setActiveTab;
-    
-    // Flag to track dashboard visibility
-    window._dashboardWasVisible = false;
     
     // Override setActiveTab to handle chart recreation
     window.setActiveTab = function(tab) {
@@ -840,16 +606,15 @@ window.updateChartsWithData = window.fetchChartDataFromAPI;
             console.log('📊 Switching to dashboard tab, scheduling chart refresh...');
             
             // Clear any existing chart instances
-            Object.values(window._dashboardChartInstances).forEach(chart => {
-                if (chart) {
-                    chart.destroy();
+            ['leadSplitChart', 'tempCountChart', 'tempValueChart'].forEach(id => {
+                const canvas = document.getElementById(id);
+                if (canvas) {
+                    const chart = Chart.getChart(canvas);
+                    if (chart) {
+                        chart.destroy();
+                    }
                 }
             });
-            window._dashboardChartInstances = {
-                leadSplit: null,
-                tempCount: null,
-                tempValue: null
-            };
             
             // Schedule chart recreation after tab animation
             setTimeout(() => {
@@ -862,651 +627,60 @@ window.updateChartsWithData = window.fetchChartDataFromAPI;
                         console.error('❌ Error recreating charts:', error);
                     });
                 }
-            }, 300); // Adjust based on your tab animation duration
-        }
-        
-        // If switching AWAY from dashboard
-        if (previousTab === 'dashboard' && tab !== 'dashboard') {
-            console.log('📊 Leaving dashboard tab');
-            window._dashboardWasVisible = true;
+            }, 300);
         }
     };
-    
-    // Also add mutation observer as backup
-    document.addEventListener('DOMContentLoaded', () => {
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'attributes' && 
-                    (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
-                    
-                    const target = mutation.target;
-                    if ((target.getAttribute('data-tab') === 'dashboard' || 
-                         target.classList.contains('dashboard-content')) &&
-                        window.activeTab === 'dashboard' &&
-                        window._dashboardWasVisible) {
-                        
-                        // Dashboard became visible again
-                        window._dashboardWasVisible = false;
-                        console.log('📊 Dashboard visibility changed, refreshing charts...');
-                        
-                        setTimeout(() => {
-                            if (window.fetchChartDataFromAPI) {
-                                window.fetchChartDataFromAPI();
-                            }
-                        }, 200);
-                    }
-                }
-            });
-        });
-        
-        // Start observing
-        const mainContent = document.querySelector('.flex-1.overflow-auto') || 
-                           document.querySelector('main') || 
-                           document.body;
-        
-        if (mainContent) {
-            observer.observe(mainContent, {
-                attributes: true,
-                attributeFilter: ['style', 'class'],
-                subtree: true
-            });
-        }
-    });
     
     console.log('✅ Tab switching fix initialized');
 })();
 
 // ===============================================
-// MOBILE RESPONSIVE DASHBOARD
+// DASHBOARD API INTEGRATION
 // ===============================================
 
-window.renderResponsiveDashboard = () => {
-    const { 
-        dashboardStats, 
-        dashboardFilter, 
-        selectedSalesPerson, 
-        selectedEvent,
-        events,
-        salesPeople,
-        leads 
-    } = window.appState;
-    
-    return React.createElement('div', { className: 'space-y-4 md:space-y-6' },
-        // Dashboard Header - Stack on mobile
-        React.createElement('div', { className: 'flex flex-col md:flex-row md:items-center md:justify-between gap-4' },
-            React.createElement('h2', { className: 'text-xl md:text-2xl font-bold' }, 'Dashboard Overview'),
-            
-            // Filters - Stack vertically on mobile
-            React.createElement('div', { className: 'flex flex-col sm:flex-row gap-2' },
-                // Filter Type Selector
-                React.createElement('select', {
-                    value: dashboardFilter,
-                    onChange: (e) => window.handleDashboardFilterChange(e.target.value),
-                    className: 'px-3 py-2 border rounded-md text-sm w-full sm:w-auto'
-                },
-                    React.createElement('option', { value: 'overall' }, 'Overall'),
-                    React.createElement('option', { value: 'salesPerson' }, 'By Sales Person'),
-                    React.createElement('option', { value: 'event' }, 'By Event')
-                ),
-                
-                // Conditional filters
-                dashboardFilter === 'salesPerson' && React.createElement('select', {
-                    value: selectedSalesPerson,
-                    onChange: (e) => window.setSelectedSalesPerson(e.target.value),
-                    className: 'px-3 py-2 border rounded-md text-sm w-full sm:w-auto'
-                },
-                    React.createElement('option', { value: '' }, 'Select Sales Person'),
-                    salesPeople.map(person => 
-                        React.createElement('option', { key: person.id, value: person.id }, person.name)
-                    )
-                ),
-                
-                dashboardFilter === 'event' && React.createElement('select', {
-                    value: selectedEvent,
-                    onChange: (e) => window.setSelectedEvent(e.target.value),
-                    className: 'px-3 py-2 border rounded-md text-sm w-full sm:w-auto'
-                },
-                    React.createElement('option', { value: '' }, 'Select Event'),
-                    events.map(event => 
-                        React.createElement('option', { key: event, value: event }, event)
-                    )
-                )
-            )
-        ),
-        
-        // Stats Cards - Responsive Grid
-        React.createElement('div', { 
-            className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4'
-        },
-            // Total Leads Card
-            React.createElement('div', { 
-                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
-            },
-                React.createElement('div', { className: 'flex items-center justify-between' },
-                    React.createElement('div', null,
-                        React.createElement('p', { className: 'text-sm text-gray-500' }, 'Total Leads'),
-                        React.createElement('p', { className: 'text-xl md:text-2xl font-bold' }, 
-                            dashboardStats.totalLeads || 0
-                        )
-                    ),
-                    React.createElement('span', { className: 'text-2xl md:text-3xl' }, '👥')
-                )
-            ),
-            
-            // Active Deals Card
-            React.createElement('div', { 
-                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
-            },
-                React.createElement('div', { className: 'flex items-center justify-between' },
-                    React.createElement('div', null,
-                        React.createElement('p', { className: 'text-sm text-gray-500' }, 'Active Deals'),
-                        React.createElement('p', { className: 'text-xl md:text-2xl font-bold' }, 
-                            dashboardStats.activeDeals || 0
-                        )
-                    ),
-                    React.createElement('span', { className: 'text-2xl md:text-3xl' }, '💼')
-                )
-            ),
-            
-            // Revenue Card
-            React.createElement('div', { 
-                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
-            },
-                React.createElement('div', { className: 'flex items-center justify-between' },
-                    React.createElement('div', null,
-                        React.createElement('p', { className: 'text-sm text-gray-500' }, 'This Month Revenue'),
-                        React.createElement('p', { className: 'text-xl md:text-2xl font-bold' }, 
-                            `₹${(dashboardStats.thisMonthRevenue || 0).toLocaleString('en-IN')}`
-                        )
-                    ),
-                    React.createElement('span', { className: 'text-2xl md:text-3xl' }, '💰')
-                )
-            ),
-            
-            // Pending Deliveries Card
-            React.createElement('div', { 
-                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
-            },
-                React.createElement('div', { className: 'flex items-center justify-between' },
-                    React.createElement('div', null,
-                        React.createElement('p', { className: 'text-sm text-gray-500' }, 'Pending Deliveries'),
-                        React.createElement('p', { className: 'text-xl md:text-2xl font-bold' }, 
-                            dashboardStats.pendingDeliveries || 0
-                        )
-                    ),
-                    React.createElement('span', { className: 'text-2xl md:text-3xl' }, '🚚')
-                )
-            ),
-            
-            // Inventory Value Card
-            React.createElement('div', { 
-                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
-            },
-                React.createElement('div', { className: 'flex items-center justify-between' },
-                    React.createElement('div', null,
-                        React.createElement('p', { className: 'text-sm text-gray-500' }, 'Inventory Value'),
-                        React.createElement('p', { className: 'text-xl md:text-2xl font-bold' }, 
-                            `₹${(dashboardStats.inventoryValue || 0).toLocaleString('en-IN')}`
-                        )
-                    ),
-                    React.createElement('span', { className: 'text-2xl md:text-3xl' }, '📦')
-                )
-            )
-        ),
-        
-        // Charts Section - Stack on mobile
-        React.createElement('div', { 
-            className: 'grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6'
-        },
-            // Lead Split Chart
-            React.createElement('div', { 
-                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
-            },
-                React.createElement('h3', { className: 'text-base md:text-lg font-semibold mb-4' }, 'Lead Split'),
-                React.createElement('div', { className: 'h-48 md:h-64' },
-                    React.createElement('canvas', { 
-                        id: 'leadSplitChart',
-                        className: 'max-w-full'
-                    })
-                )
-            ),
-            
-            // Temperature Count Chart
-            React.createElement('div', { 
-                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
-            },
-                React.createElement('h3', { className: 'text-base md:text-lg font-semibold mb-4' }, 'Lead Temperature Count'),
-                React.createElement('div', { className: 'h-48 md:h-64' },
-                    React.createElement('canvas', { 
-                        id: 'tempCountChart',
-                        className: 'max-w-full'
-                    })
-                )
-            ),
-            
-            // Temperature Value Chart
-            React.createElement('div', { 
-                className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6'
-            },
-                React.createElement('h3', { className: 'text-base md:text-lg font-semibold mb-4' }, 'Lead Temperature Value'),
-                React.createElement('div', { className: 'h-48 md:h-64' },
-                    React.createElement('canvas', { 
-                        id: 'tempValueChart',
-                        className: 'max-w-full'
-                    })
-                )
-            )
-        ),
-        
-        // Recent Activity - Mobile optimized table
-        React.createElement('div', { 
-            className: 'bg-white dark:bg-gray-800 rounded-lg shadow'
-        },
-            React.createElement('div', { className: 'p-4 md:p-6 border-b' },
-                React.createElement('h3', { className: 'text-base md:text-lg font-semibold' }, 'Recent Activity')
-            ),
-            React.createElement('div', { className: 'overflow-x-auto' },
-                window.renderRecentActivity && window.renderRecentActivity()
-            )
-        )
-    );
-};
-
-// Override dashboard renderer
-window.dashboardResponsiveOverride = () => {
-    const originalRenderDashboard = window.renderDashboard;
-    window.renderDashboard = window.renderResponsiveDashboard || originalRenderDashboard;
-};
-// Direct Dashboard Chart Fix - Bypasses existing issues
-// Aggressive Dashboard Chart Fix - Forces charts to load
-// Add this to the END of your dashboard.js file
-
-// Optimized Dashboard Chart Fix - Renders only once
-// Replace your current fix with this cleaner version
-
 (function() {
-  'use strict';
-  
-  console.log('📊 Loading optimized dashboard chart fix...');
-  
-  // State tracking to prevent multiple renders
-  window._dashboardChartState = {
-    rendered: false,
-    rendering: false,
-    lastRenderTime: 0,
-    renderTimeout: null
-  };
-  
-  // Debounced chart creation to prevent multiple renders
-  window.createDashboardChartsOnce = function(apiData) {
-    // Prevent concurrent renders
-    if (window._dashboardChartState.rendering) {
-      console.log('📊 Chart render already in progress, skipping...');
-      return;
-    }
+    'use strict';
     
-    // Prevent re-rendering within 5 seconds
-    const now = Date.now();
-    if (window._dashboardChartState.lastRenderTime && 
-        (now - window._dashboardChartState.lastRenderTime) < 5000) {
-      console.log('📊 Charts recently rendered, skipping...');
-      return;
-    }
+    console.log('📊 Dashboard API Integration: Loading...');
     
-    // Check if charts already exist
-    const chartsExist = ['leadSplitChart', 'tempCountChart', 'tempValueChart'].every(id => {
-      const canvas = document.getElementById(id);
-      return canvas && Chart.getChart(canvas);
-    });
-    
-    if (chartsExist) {
-      console.log('📊 Charts already exist, skipping render...');
-      window._dashboardChartState.rendered = true;
-      return;
-    }
-    
-    // Use stored data if no apiData provided
-    if (!apiData && window.apiChartData) {
-      apiData = window.apiChartData;
-    }
-    
-    if (!apiData || !apiData.charts) {
-      console.log('📊 No chart data available');
-      return;
-    }
-    
-    console.log('📊 Creating dashboard charts (single render)...');
-    window._dashboardChartState.rendering = true;
-    
-    const { leadSplit, temperatureCount, temperatureValue } = apiData.charts;
-    
-    // Destroy any existing charts first
-    ['leadSplitChart', 'tempCountChart', 'tempValueChart'].forEach(id => {
-      const canvas = document.getElementById(id);
-      if (canvas) {
-        const chart = Chart.getChart(canvas);
-        if (chart) {
-          chart.destroy();
-        }
-      }
-    });
-    
-    try {
-      // Create Lead Split Chart
-      const canvas1 = document.getElementById('leadSplitChart');
-      if (canvas1 && leadSplit) {
-        new Chart(canvas1, {
-          type: 'doughnut',
-          data: {
-            labels: leadSplit.labels.map((label, i) => `${label} (${leadSplit.data[i]})`),
-            datasets: [{
-              data: leadSplit.data,
-              backgroundColor: leadSplit.colors || ['#10B981', '#EF4444'],
-              borderWidth: 2,
-              borderColor: '#fff'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 500 },
-            plugins: {
-              legend: { position: 'bottom' }
+    // Ensure dashboard initializes with API data when switching to dashboard tab
+    const originalSetActiveTab = window.setActiveTab;
+    if (originalSetActiveTab) {
+        window.setActiveTab = function(tab) {
+            originalSetActiveTab(tab);
+            
+            if (tab === 'dashboard' && window.isLoggedIn) {
+                console.log('📊 Switched to dashboard tab, fetching API data...');
+                
+                // Add a small delay to ensure DOM is ready
+                setTimeout(async () => {
+                    // Fetch chart data (which includes summary stats)
+                    if (window.fetchChartDataFromAPI) {
+                        await window.fetchChartDataFromAPI();
+                    }
+                }, 300);
             }
-          }
-        });
-      }
-      
-      // Create Temperature Count Chart
-      const canvas2 = document.getElementById('tempCountChart');
-      if (canvas2 && temperatureCount) {
-        new Chart(canvas2, {
-          type: 'doughnut',
-          data: {
-            labels: temperatureCount.labels.map((label, i) => `${label} (${temperatureCount.data[i]})`),
-            datasets: [{
-              data: temperatureCount.data,
-              backgroundColor: temperatureCount.colors || ['#EF4444', '#F59E0B', '#3B82F6'],
-              borderWidth: 2,
-              borderColor: '#fff'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 500 },
-            plugins: {
-              legend: { position: 'bottom' }
-            }
-          }
-        });
-      }
-      
-      // Create Temperature Value Chart
-      const canvas3 = document.getElementById('tempValueChart');
-      if (canvas3 && temperatureValue) {
-        new Chart(canvas3, {
-          type: 'doughnut',
-          data: {
-            labels: temperatureValue.labels.map((label, i) => {
-              const value = temperatureValue.data[i];
-              return `${label} (₹${value.toLocaleString('en-IN')})`;
-            }),
-            datasets: [{
-              data: temperatureValue.data,
-              backgroundColor: temperatureValue.colors || ['#EF4444', '#F59E0B', '#3B82F6'],
-              borderWidth: 2,
-              borderColor: '#fff'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 500 },
-            plugins: {
-              legend: { position: 'bottom' },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    const value = context.parsed || 0;
-                    return `₹${value.toLocaleString('en-IN')}`;
-                  }
+        };
+    }
+    
+    // Initialize dashboard with API data on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if user is logged in AND on dashboard tab
+        if (window.appState && window.appState.activeTab === 'dashboard' && window.isLoggedIn) {
+            console.log('📊 Dashboard active on load, initializing with API data...');
+            
+            setTimeout(async () => {
+                try {
+                    // Fetch chart data (which includes summary stats)
+                    await window.fetchChartDataFromAPI();
+                } catch (error) {
+                    console.error('❌ Error initializing dashboard:', error);
                 }
-              }
-            }
-          }
-        });
-      }
-      
-      console.log('✅ Dashboard charts created successfully');
-      window._dashboardChartState.rendered = true;
-      window._dashboardChartState.lastRenderTime = Date.now();
-      
-    } catch (error) {
-      console.error('❌ Error creating charts:', error);
-    } finally {
-      window._dashboardChartState.rendering = false;
-    }
-  };
-  
-  // Simple tab change detection
-  let previousTab = window.activeTab;
-  let tabCheckInterval = setInterval(() => {
-    if (window.activeTab !== previousTab) {
-      const wasNotDashboard = previousTab !== 'dashboard';
-      previousTab = window.activeTab;
-      
-      if (window.activeTab === 'dashboard' && wasNotDashboard) {
-        console.log('📊 Switched to dashboard tab');
-        
-        // Reset render state when entering dashboard
-        window._dashboardChartState.rendered = false;
-        
-        // Single delayed call to fetch data
-        setTimeout(() => {
-          if (window.activeTab === 'dashboard' && window.fetchChartDataFromAPI) {
-            console.log('📊 Fetching chart data...');
-            window.fetchChartDataFromAPI();
-          }
-        }, 300);
-      }
-    }
-  }, 100);
-  
-  // Manual refresh function (resets the render state)
-  window.refreshDashboardCharts = function() {
-    console.log('📊 Manual refresh requested');
-    window._dashboardChartState.rendered = false;
-    window._dashboardChartState.lastRenderTime = 0;
+            }, 1000);
+        }
+    });
     
-    if (window.fetchChartDataFromAPI) {
-      window.fetchChartDataFromAPI();
-    } else if (window.apiChartData) {
-      window.createDashboardChartsOnce(window.apiChartData);
-    }
-  };
-  
-  // Clean up function
-  window.cleanupDashboardChartFix = function() {
-    if (tabCheckInterval) {
-      clearInterval(tabCheckInterval);
-    }
-    if (window._dashboardChartState.renderTimeout) {
-      clearTimeout(window._dashboardChartState.renderTimeout);
-    }
-  };
-  
-  console.log('✅ Optimized dashboard chart fix loaded (single render)');
+    console.log('✅ Dashboard API Integration loaded');
 })();
 
-// Add this fix to your dashboard.js or in a separate file that loads after dashboard.js
-
-(function() {
-  'use strict';
-  
-  console.log('📊 Dashboard API Fix: Ensuring dashboard uses API for stats and charts');
-  
- // Override the calculateDashboardStats to always use API
-window.calculateDashboardStats = async function() {
-    console.log('📊 Dashboard: Fetching stats from API (not calculating locally)');
-    
-    // Check if user is logged in
-    if (!window.isLoggedIn && !window.appState?.isLoggedIn) {
-      console.log('⏸️ Not logged in, skipping dashboard stats');
-      return;
-    }
-    
-    try {
-      // Fetch stats from API
-      await window.fetchDashboardStats();
-      
-      // Trigger a re-render if needed
-      if (window.renderDashboard) {
-        window.renderDashboard();
-      }
-    } catch (error) {
-      console.error('❌ Error in calculateDashboardStats:', error);
-    }
-  };
-  
-  // Override extractFiltersData to work with API
-window.extractFiltersData = async function() {
-    console.log('📊 Extracting filter data for dashboard');
-    
-    // Check if user is logged in
-    if (!window.isLoggedIn && !window.appState?.isLoggedIn) {
-      console.log('⏸️ Not logged in, skipping filter data extraction');
-      return;
-    }
-    
-    try {
-      // Fetch filter options from the leads API if available
-      if (window.LeadsAPI && window.LeadsAPI.fetchFilterOptions) {
-        const filterOptions = await window.LeadsAPI.fetchFilterOptions();
-        
-        if (filterOptions) {
-          // Set events
-          const events = filterOptions.events || [];
-          if (window.appState.setEvents) {
-            window.appState.setEvents(events);
-          }
-          
-          // Set sales people
-          const salesUsers = (filterOptions.users || []).filter(u => 
-            u.role === 'sales_executive' || u.role === 'sales_manager'
-          );
-          if (window.appState.setSalesPeople) {
-            window.appState.setSalesPeople(salesUsers);
-          }
-        }
-      } else {
-        // Fallback to using whatever data is available
-        const users = window.appState.users || window.users || [];
-        const salesUsers = users.filter(u => 
-          u.role === 'sales_executive' || u.role === 'sales_manager'
-        );
-        if (window.appState.setSalesPeople) {
-          window.appState.setSalesPeople(salesUsers);
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error extracting filter data:', error);
-    }
-  };
-  
-  // Ensure dashboard initializes with API data when switching to dashboard tab
-  const originalSetActiveTab = window.setActiveTab;
-  if (originalSetActiveTab) {
-    window.setActiveTab = function(tab) {
-      originalSetActiveTab(tab);
-      
-      if (tab === 'dashboard') {
-        console.log('📊 Switched to dashboard tab, fetching API data...');
-        
-        // Add a small delay to ensure DOM is ready
-        setTimeout(async () => {
-          // Fetch filter options for event dropdown
-          if (window.LeadsAPI && window.LeadsAPI.fetchFilterOptions) {
-            await window.LeadsAPI.fetchFilterOptions();
-          }
-          
-          // Fetch dashboard stats
-          if (window.fetchDashboardStats) {
-            await window.fetchDashboardStats();
-          }
-          
-          // Fetch chart data
-          if (window.fetchChartDataFromAPI) {
-            await window.fetchChartDataFromAPI();
-          }
-          
-          // Extract filter data
-          if (window.extractFiltersData) {
-            await window.extractFiltersData();
-          }
-        }, 300);
-      }
-    };
-  }
-  
- // Initialize dashboard with API data on page load
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if user is logged in AND on dashboard tab
-    if (window.appState && window.appState.activeTab === 'dashboard' && window.isLoggedIn) {
-      console.log('📊 Dashboard active on load, initializing with API data...');
-      
-      setTimeout(async () => {
-        // Fetch all dashboard data
-        try {
-          // Fetch filter options for event dropdown
-          if (window.LeadsAPI && window.LeadsAPI.fetchFilterOptions) {
-            await window.LeadsAPI.fetchFilterOptions();
-          }
-          await window.fetchDashboardStats();
-          await window.fetchChartDataFromAPI();
-          await window.extractFiltersData();
-        } catch (error) {
-          console.error('❌ Error initializing dashboard:', error);
-        }
-      }, 1000);
-    }
-  });
-  
-  // Override any local calculation methods to use API
-  window.getFilteredLeads = function() {
-    let filteredLeads = [...(window.leads || [])];
-    
-    try {
-        if (window.dashboardFilter === 'salesPerson' && window.selectedSalesPerson) {
-            // Use the same ID to email mapping as the backend
-            const selectedUser = (window.users || []).find(user => user.id === window.selectedSalesPerson);
-            if (selectedUser) {
-                const salesPersonEmail = selectedUser.email;
-                filteredLeads = filteredLeads.filter(lead => lead.assigned_to === salesPersonEmail);
-            }
-        } else if (window.dashboardFilter === 'event' && window.selectedEvent) {
-            filteredLeads = filteredLeads.filter(lead => 
-                lead.lead_for_event === window.selectedEvent
-            );
-        }
-    } catch (error) {
-        console.warn('Filter error:', error);
-    }
-    
-    return filteredLeads;
-  };
-  
-  // Ensure updateCharts always uses API
-  window.updateCharts = async function(filteredLeads) {
-    console.log('📊 updateCharts called - redirecting to API fetch');
-    
-    // Ignore the passed filteredLeads and use API instead
-    if (window.fetchChartDataFromAPI) {
-      await window.fetchChartDataFromAPI();
-    }
-  };
-  
-  console.log('✅ Dashboard API fix loaded - dashboard will now use API for all data');
-})();
-
-console.log('✅ API-based dashboard system with tab switching fix loaded');
+console.log('✅ Dashboard component loaded - API driven version');
