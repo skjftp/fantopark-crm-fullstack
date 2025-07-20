@@ -423,23 +423,45 @@ const fetchLeads = async () => {
   };
 
   const fetchClients = async () => {
-  setClientsLoading(true);
-  try {
-    // Use the paginated API
-    if (window.ClientsAPI) {
-      await window.ClientsAPI.fetchPaginatedClients({ page: 1 });
-    } else {
-      // Fallback to old method
-      const response = await window.apiCall('/clients?page=1&limit=20');
-      setClients(response.data || []);
+    setClientsLoading(true);
+    try {
+        // Always reset to page 1 when fetching clients
+        if (window.ClientsAPI) {
+            // Reset pagination state first
+            if (window.appState?.setClientsPagination) {
+                window.appState.setClientsPagination({
+                    page: 1,
+                    totalPages: 1,
+                    total: 0,
+                    hasNext: false,
+                    hasPrev: false,
+                    perPage: 20
+                });
+            }
+            
+            // Reset current page
+            window.ClientsAPI.currentPage = 1;
+            
+            // Fetch first page
+            const response = await window.ClientsAPI.fetchPaginatedClients({ page: 1 });
+            
+            // Log the response for debugging
+            console.log('📊 fetchClients response:', {
+                success: response.success,
+                dataLength: response.data?.length,
+                pagination: response.pagination
+            });
+        } else {
+            // Fallback
+            const response = await window.apiCall('/clients?page=1&limit=20');
+            setClients(response.data || []);
+        }
+    } catch (error) {
+        window.log.error('Failed to fetch clients:', error);
+        setClients([]);
+    } finally {
+        setClientsLoading(false);
     }
-    window.log.debug(`Clients loaded via pagination`);
-  } catch (error) {
-    window.log.error('Failed to fetch clients:', error);
-    alert('Failed to load clients: ' + error.message);
-  } finally {
-    setClientsLoading(false);
-  }
 };
 
   const fetchUserRoles = async () => {
