@@ -3,6 +3,16 @@ window.ClientsAPI = {
   currentPage: 1,
   perPage: 20,
   
+  // Store pagination data directly
+  paginationData: {
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    hasNext: false,
+    hasPrev: false,
+    perPage: 20
+  },
+  
   // Fetch paginated clients from backend
   fetchPaginatedClients: async function(params = {}) {
     try {
@@ -37,9 +47,18 @@ window.ClientsAPI = {
           perPage: paginationData.limit || limit
         };
         
+        // Store pagination data locally
+        this.paginationData = fullPagination;
+        
+        // Try to update React state if available
         if (window.appState.setClientsPagination) {
           window.appState.setClientsPagination(fullPagination);
         }
+        
+        // Also store in appState for access
+        if (!window.appState) window.appState = {};
+        window.appState.clientsPagination = fullPagination;
+        window.appState.totalClients = fullPagination.total;
         
         window.log.success(`✅ Loaded ${response.data?.length || 0} clients (page ${page} of ${fullPagination.totalPages})`);
         
@@ -56,19 +75,32 @@ window.ClientsAPI = {
         window.appState.setClients([]);
       }
       
+      const emptyPagination = {
+        page: 1,
+        totalPages: 1,
+        total: 0,
+        hasNext: false,
+        hasPrev: false,
+        perPage: 20
+      };
+      
+      this.paginationData = emptyPagination;
+      
       if (window.appState.setClientsPagination) {
-        window.appState.setClientsPagination({
-          page: 1,
-          totalPages: 1,
-          total: 0,
-          hasNext: false,
-          hasPrev: false,
-          perPage: 20
-        });
+        window.appState.setClientsPagination(emptyPagination);
       }
+      
+      if (!window.appState) window.appState = {};
+      window.appState.clientsPagination = emptyPagination;
+      window.appState.totalClients = 0;
       
       return { success: false, data: [], error: error.message };
     }
+  },
+  
+  // Get current pagination data
+  getPaginationData: function() {
+    return this.paginationData;
   },
   
   // Change page
