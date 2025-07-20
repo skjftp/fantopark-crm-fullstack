@@ -1346,16 +1346,19 @@ window.dashboardResponsiveOverride = () => {
   
   console.log('📊 Dashboard API Fix: Ensuring dashboard uses API for stats and charts');
   
-  // Override the calculateDashboardStats to always use API
-  window.calculateDashboardStats = async function() {
+ // Override the calculateDashboardStats to always use API
+window.calculateDashboardStats = async function() {
     console.log('📊 Dashboard: Fetching stats from API (not calculating locally)');
+    
+    // Check if user is logged in
+    if (!window.isLoggedIn && !window.appState?.isLoggedIn) {
+      console.log('⏸️ Not logged in, skipping dashboard stats');
+      return;
+    }
     
     try {
       // Fetch stats from API
       await window.fetchDashboardStats();
-      
-      // Extract filters for chart data
-      await window.extractFiltersData();
       
       // Trigger a re-render if needed
       if (window.renderDashboard) {
@@ -1367,8 +1370,14 @@ window.dashboardResponsiveOverride = () => {
   };
   
   // Override extractFiltersData to work with API
-  window.extractFiltersData = async function() {
+window.extractFiltersData = async function() {
     console.log('📊 Extracting filter data for dashboard');
+    
+    // Check if user is logged in
+    if (!window.isLoggedIn && !window.appState?.isLoggedIn) {
+      console.log('⏸️ Not logged in, skipping filter data extraction');
+      return;
+    }
     
     try {
       // Fetch filter options from the leads API if available
@@ -1440,10 +1449,10 @@ window.dashboardResponsiveOverride = () => {
     };
   }
   
-  // Initialize dashboard with API data on page load
-  document.addEventListener('DOMContentLoaded', function() {
-    // Only initialize if we're on the dashboard tab
-    if (window.appState && window.appState.activeTab === 'dashboard') {
+ // Initialize dashboard with API data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if user is logged in AND on dashboard tab
+    if (window.appState && window.appState.activeTab === 'dashboard' && window.isLoggedIn) {
       console.log('📊 Dashboard active on load, initializing with API data...');
       
       setTimeout(async () => {
