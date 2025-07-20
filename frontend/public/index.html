@@ -372,6 +372,7 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 <script src="components/allocation-management.js"></script>
 <script defer src="components/help-guide.js"></script>  
 <script defer src="components/stadium-form.js"></script>
+<script defer src="components/stadium-notes-modal.js"></script>  
 <script src="components/currency-ticker.js"></script> 
 <script defer src="components/payment-post-service-form.js"></script>
 <script defer src="components/edit-order-form.js"></script>
@@ -408,6 +409,29 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 <!-- Add these after your other component scripts -->
 <script src="components/responsive-layout.js"></script>
 
+<script>
+// Stadium form fields configuration
+window.stadiumFormFields = [
+  { name: 'name', label: 'Stadium Name', type: 'text', required: true, placeholder: 'e.g., Wankhede Stadium' },
+  { name: 'city', label: 'City', type: 'text', required: true, placeholder: 'e.g., Mumbai' },
+  { name: 'state', label: 'State/Province', type: 'text', required: false, placeholder: 'e.g., Maharashtra' },
+  { name: 'country', label: 'Country', type: 'select', required: true, options: [
+    'India', 'United States', 'United Kingdom', 'Australia', 'Canada', 'South Africa',
+    'New Zealand', 'West Indies', 'Sri Lanka', 'Bangladesh', 'Pakistan', 'Afghanistan',
+    'Spain', 'Germany', 'France', 'Italy', 'Brazil', 'Argentina', 'Japan', 'China', 'Other'
+  ]},
+  { name: 'sport_type', label: 'Primary Sport', type: 'select', required: true, options: [
+    'Cricket', 'Football', 'Basketball', 'Tennis', 'Hockey', 'Baseball', 
+    'Rugby', 'Athletics', 'Formula 1', 'Multi-Sport', 'Other'
+  ]},
+  { name: 'capacity', label: 'Seating Capacity', type: 'number', required: false, placeholder: 'e.g., 33000' },
+  { name: 'opened_year', label: 'Year Opened', type: 'number', required: false, placeholder: 'e.g., 1974' },
+  { name: 'nickname', label: 'Nickname', type: 'text', required: false, placeholder: 'e.g., The Home of Cricket' },
+  { name: 'website', label: 'Website', type: 'url', required: false, placeholder: 'https://example.com' },
+  { name: 'image_url', label: 'Stadium Image URL', type: 'url', required: false, placeholder: 'https://example.com/stadium.jpg' }
+];
+</script>
+  
 <script>
 // COMPREHENSIVE API CALL CONSOLIDATION
 (function() {
@@ -597,6 +621,31 @@ window.optimizeLoginPerformance();
 <!-- CSS Styles -->
 <style>
 
+  /* Stadium Notes Modal Styles */
+.stadium-notes-indicator {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Color classes for note categories */
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-purple-50 { background-color: #f5f3ff; }
+.bg-green-50 { background-color: #f0fdf4; }
+.bg-yellow-50 { background-color: #fefce8; }
+.bg-indigo-50 { background-color: #eef2ff; }
+.bg-red-50 { background-color: #fef2f2; }
+.bg-teal-50 { background-color: #f0fdfa; }
+.bg-pink-50 { background-color: #fdf2f8; }
+
+/* Dark mode colors */
+.dark .bg-blue-900\/20 { background-color: rgba(30, 58, 138, 0.2); }
+.dark .bg-purple-900\/20 { background-color: rgba(88, 28, 135, 0.2); }
+.dark .bg-green-900\/20 { background-color: rgba(20, 83, 45, 0.2); }
 
   /* Add this CSS to your main stylesheet or in a style tag in index.html */
 
