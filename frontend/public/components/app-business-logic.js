@@ -873,18 +873,26 @@ const updateOrdersPagination = (orders) => {
     });
 
     if (response.token && response.user) {
-      // ✅ FIX: Set authToken properly in localStorage and window object
-      localStorage.setItem('crm_auth_token', response.token);
-      window.authToken = response.token; // Also set on window object for consistency
-      localStorage.setItem('crm_user', JSON.stringify(response.user));
-      setUser(response.user);
-      setCurrentUser(response.user);
-      setIsLoggedIn(true);
-      await fetchUserRoles();
-      setUsers([]);
-      setEmail('');
-      setPassword('');
-    }
+  // ✅ FIX: Set authToken properly in localStorage and window object
+  localStorage.setItem('crm_auth_token', response.token);
+  window.authToken = response.token; // Also set on window object for consistency
+  localStorage.setItem('crm_user', JSON.stringify(response.user));
+  setUser(response.user);
+  setCurrentUser(response.user);
+  setIsLoggedIn(true);
+  
+  // Initialize leads module after login
+  if (window.initializeLeadsModule) {
+    setTimeout(() => {
+      window.initializeLeadsModule();
+    }, 500);
+  }
+  
+  await fetchUserRoles();
+  setUsers([]);
+  setEmail('');
+  setPassword('');
+}
   } catch (error) {
     window.log.error("Login failed:", error.message || "Invalid credentials");
   } finally {
