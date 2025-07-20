@@ -217,9 +217,9 @@ window.WebsiteLeadsImport = function() {
         );
 
         // Refresh main leads list
-        if (window.fetchLeads) {
-          await window.fetchLeads();
-        }
+        if (window.LeadsAPI) {
+    await window.LeadsAPI.refresh();
+}
 
         // Refresh preview
         fetchWebsiteLeads();
