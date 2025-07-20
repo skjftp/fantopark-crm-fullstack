@@ -3,6 +3,19 @@
 // Includes Market Rate Tab for external marketplace pricing
 // Maintains window globals pattern for CDN-based React compatibility
 
+// Ensure formatting functions exist
+window.formatNumber = window.formatNumber || ((num) => {
+  if (num === null || num === undefined) return '0';
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+});
+
+window.formatCurrency = window.formatCurrency || ((amount) => {
+  if (amount === null || amount === undefined) return '₹0';
+  return '₹' + window.formatNumber(amount);
+});
+
+window.formatIndianNumber = window.formatIndianNumber || window.formatNumber;
+
 window.renderInventoryDetail = () => {
   if (!window.showInventoryDetail || !window.currentInventoryDetail) return null;
 
@@ -47,9 +60,9 @@ window.renderInventoryDetail = () => {
             React.createElement('span', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 
               `${window.formatNumber(totalAvailable)}/${window.formatNumber(totalTickets)} tickets available`
             ),
-            daysUntilEvent >= 0 && React.createElement('span', { 
+            daysUntilEvent >= 0 ? React.createElement('span', { 
               className: `text-sm px-2 py-1 rounded ${daysUntilEvent <= 7 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`
-            }, `${daysUntilEvent} days until event`)
+            }, `${daysUntilEvent} days until event`) : null
           )
         ),
         React.createElement('div', { className: 'flex gap-2' },
@@ -95,7 +108,7 @@ window.renderInventoryDetail = () => {
           // Action Buttons Row
           React.createElement('div', { className: 'flex gap-2 mb-6' },
             // Edit Inventory Button
-            window.hasPermission('inventory', 'write') && React.createElement('button', {
+            window.hasPermission && window.hasPermission('inventory', 'write') ? React.createElement('button', {
               onClick: () => {
                 window.closeInventoryDetail();
                 window.editInventory(item);
@@ -104,7 +117,7 @@ window.renderInventoryDetail = () => {
             }, 
               React.createElement('span', null, '✏️'),
               'Edit Inventory'
-            ),
+            ) : null,
             // Copy Inventory Button
             React.createElement('button', {
               onClick: () => window.handleCopyInventory(item),
@@ -180,9 +193,9 @@ window.renderInventoryDetail = () => {
                         React.createElement('h4', { className: 'font-semibold text-gray-900 dark:text-white text-lg' }, 
                           category.name || 'Category ' + (index + 1)
                         ),
-                        category.section && React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 
+                        category.section ? React.createElement('p', { className: 'text-sm text-gray-600 dark:text-gray-400' }, 
                           'Section: ' + category.section
-                        )
+                        ) : null
                       ),
                       React.createElement('div', { className: 'text-right' },
                         React.createElement('span', { 
@@ -257,14 +270,14 @@ window.renderInventoryDetail = () => {
                     ),
                     
                     // Inclusions if available
-                    category.inclusions && React.createElement('div', { className: 'mt-3 pt-3 border-t border-gray-200 dark:border-gray-600' },
+                    category.inclusions ? React.createElement('div', { className: 'mt-3 pt-3 border-t border-gray-200 dark:border-gray-600' },
                       React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300 text-sm' }, 
                         'Inclusions: '
                       ),
                       React.createElement('span', { className: 'text-sm text-gray-900 dark:text-white' }, 
                         category.inclusions
                       )
-                    )
+                    ) : null
                   );
                 })
               ) :
@@ -391,22 +404,22 @@ window.renderInventoryDetail = () => {
                   })
                 )
               ),
-              item.created_by && React.createElement('div', null,
+              item.created_by ? React.createElement('div', null,
                 React.createElement('span', { className: 'font-medium text-gray-700 dark:text-gray-300' }, 'Created By: '),
                 React.createElement('span', { className: 'text-gray-900 dark:text-white' }, item.created_by)
-              )
+              ) : null
             )
           ),
 
           // Notes Section (Full Width)
-          item.notes && React.createElement('div', { className: 'bg-gray-50 dark:bg-gray-700 rounded-lg p-4' },
+          item.notes ? React.createElement('div', { className: 'bg-gray-50 dark:bg-gray-700 rounded-lg p-4' },
             React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-3' }, '📝 Notes'),
             React.createElement('p', { className: 'text-gray-900 dark:text-white whitespace-pre-wrap' }, item.notes)
-          )
+          ) : null
         ),
 
         // Market Rates Tab
-        activeTab === 'market-rates' && (
+        activeTab === 'market-rates' ? (
           window.MarketRateTab ? 
             React.createElement(window.MarketRateTab, { inventory: item }) :
             React.createElement('div', { className: 'p-6 text-center' },
@@ -414,7 +427,7 @@ window.renderInventoryDetail = () => {
                 'Market Rate feature is not loaded. Please ensure market-rate-tab.js is included.'
               )
             )
-        )
+        ) : null
       )
     )
   );
