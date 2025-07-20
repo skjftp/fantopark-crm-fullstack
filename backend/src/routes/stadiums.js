@@ -1,7 +1,7 @@
 // Complete Stadium Routes - Updated with categorized notes and image support
 const express = require('express');
 const router = express.Router();
-const { db } = require('../config/firebase');
+const { db } = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 
 // Collection name for stadiums
