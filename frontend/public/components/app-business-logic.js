@@ -598,7 +598,15 @@ const fetchData = async () => {
         setInvoices(invoicesData.data || []);
         setDeliveries(deliveriesData.data || []);
         setClients(clientsData.data || []);
-        
+
+    // ✅ ADD THIS: Initialize dashboard if it's the active tab
+    if (window.activeTab === 'dashboard' && window.fetchChartDataFromAPI) {
+        console.log('📊 Dashboard active, fetching chart data...');
+        setTimeout(() => {
+            window.fetchChartDataFromAPI();
+        }, 500);
+    }
+      
         // ✅ ADD THIS: Initialize leads module after other data is loaded
         if (window.initializeLeadsModule && !window.leadsInitialized) {
             window.log.info('🚀 Initializing leads module from fetchData');
