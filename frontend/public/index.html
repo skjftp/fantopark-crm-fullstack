@@ -420,13 +420,17 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
   const originalFetchData = window.renderAppBusinessLogic()?.fetchData;
   const originalFetchMyActions = window.fetchMyActions;
   
-  window.consolidatedDataFetch = async function() {
-    if (!window.isLoggedIn) return;
+// Consolidated data fetching function
+window.consolidatedDataFetch = async function() {
+    if (!window.isLoggedIn) {
+        console.log('❌ Not logged in, skipping data fetch');
+        return;
+    }
     
-    console.log('🚀 Consolidated fetch (leads excluded in paginated mode)');
+    console.log('🚀 Starting consolidated data fetch (leads excluded)...');
     
     try {
-        // Always exclude leads from consolidated fetch
+        // Don't fetch leads - they're handled by pagination
         const [inventoryData, ordersData, invoicesData, deliveriesData, clientsData, usersData, stadiumsData] = await Promise.all([
             window.apiCall('/inventory').catch(() => ({ data: [] })),
             window.apiCall('/orders').catch(() => ({ data: [] })),
@@ -446,11 +450,13 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
         if (window.appState?.setUsers) window.appState.setUsers(usersData.data || []);
         if (window.appState?.setStadiums) window.appState.setStadiums(stadiumsData.data || []);
         
-        // DO NOT set window.leads or call setLeads
-        console.log('✅ Data loaded (leads excluded - handled by pagination)');
+        // Remove these lines:
+        // window.leads = leadsData.data || [];
+        // if (window.appState?.setLeads) window.appState.setLeads(leadsData.data || []);
         
+        console.log('✅ Consolidated data fetch completed (leads excluded)');
     } catch (error) {
-        console.error('❌ Consolidated fetch failed:', error);
+        console.error('❌ Consolidated data fetch failed:', error);
     }
 };
 
