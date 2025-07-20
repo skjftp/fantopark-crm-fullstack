@@ -1,7 +1,8 @@
 // ===============================================
 // COMPLETE OPTIMIZED DASHBOARD COMPONENT
-// Integrated with Backend API Chart Optimization
+// Fully API Driven - No Local Data Dependencies
 // Fixed: Chart visibility on tab switching
+// Fixed: Double rendering prevention
 // ===============================================
 
 // Global flag to prevent duplicate chart updates
@@ -268,21 +269,96 @@ window.renderDashboardContent = () => {
             )
         ),
 
-        // Recent Activity Section
-        window.renderEnhancedRecentActivity ? window.renderEnhancedRecentActivity() :
+        // Recent Activity Section - Independent API Driven
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border' },
             React.createElement('div', { className: 'p-6 border-b border-gray-200 dark:border-gray-700' },
                 React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
                     'Recent Activity'
                 )
             ),
-            React.createElement('div', { className: 'p-6' },
+            React.createElement('div', { 
+                id: 'recent-activity-container',
+                className: 'p-6'
+            },
                 React.createElement('p', { className: 'text-gray-500 dark:text-gray-400 text-center' },
                     'Loading recent activity...'
                 )
             )
         )
     );
+};
+
+// ===============================================
+// FETCH RECENT ACTIVITY FROM API
+// ===============================================
+
+window.fetchRecentActivity = async function() {
+    console.log('📋 Fetching recent activity from API...');
+    
+    try {
+        const response = await fetch(`${window.API_CONFIG.API_URL}/dashboard/recent-activity?limit=10`, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('crm_auth_token'),
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch recent activity');
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            console.log('✅ Recent activity received:', result.data.length, 'leads');
+            
+            // Update recent activity section
+            updateRecentActivity(result.data);
+            
+            return result.data;
+        }
+        
+    } catch (error) {
+        console.error('❌ Error fetching recent activity:', error);
+        updateRecentActivity([]); // Show empty state
+        return [];
+    }
+};
+
+// ===============================================
+// UPDATE RECENT ACTIVITY SECTION
+// ===============================================
+
+window.updateRecentActivity = function(leads) {
+    const container = document.getElementById('recent-activity-container');
+    if (!container) return;
+    
+    if (!leads || leads.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center">No recent activity to show</p>';
+        return;
+    }
+    
+    // Create activity items
+    const activityHTML = leads.map(lead => `
+        <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg mb-2">
+            <div class="flex-1">
+                <p class="font-medium text-gray-900 dark:text-white">${lead.name || 'Unknown'}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    ${lead.status || 'No status'} • ${lead.phone || 'No phone'}
+                </p>
+            </div>
+            <span class="px-2 py-1 text-xs font-medium rounded-full ${
+                (lead.status || '').toLowerCase() === 'qualified' ? 'bg-green-100 text-green-800' :
+                (lead.status || '').toLowerCase() === 'hot' ? 'bg-red-100 text-red-800' :
+                'bg-yellow-100 text-yellow-800'
+            }">
+                ${lead.status || 'Unknown'}
+            </span>
+        </div>
+    `).join('');
+    
+    container.innerHTML = activityHTML;
 };
 
 // ===============================================
@@ -581,61 +657,7 @@ window.updateDashboardSummary = function(summary) {
 };
 
 // ===============================================
-// TAB SWITCHING OBSERVER
-// ===============================================
-
-(function() {
-    'use strict';
-    
-    console.log('📊 Initializing tab switching fix for dashboard charts...');
-    
-    // Store the original setActiveTab function
-    const originalSetActiveTab = window.setActiveTab;
-    
-    // Override setActiveTab to handle chart recreation
-    window.setActiveTab = function(tab) {
-        const previousTab = window.activeTab;
-        
-        // Call original function
-        if (originalSetActiveTab) {
-            originalSetActiveTab(tab);
-        }
-        
-        // If switching TO dashboard from another tab
-        if (tab === 'dashboard' && previousTab !== 'dashboard') {
-            console.log('📊 Switching to dashboard tab, scheduling chart refresh...');
-            
-            // Clear any existing chart instances
-            ['leadSplitChart', 'tempCountChart', 'tempValueChart'].forEach(id => {
-                const canvas = document.getElementById(id);
-                if (canvas) {
-                    const chart = Chart.getChart(canvas);
-                    if (chart) {
-                        chart.destroy();
-                    }
-                }
-            });
-            
-            // Schedule chart recreation after tab animation
-            setTimeout(() => {
-                // Double-check we're still on dashboard
-                if (window.activeTab === 'dashboard' && window.fetchChartDataFromAPI) {
-                    console.log('📊 Recreating dashboard charts...');
-                    window.fetchChartDataFromAPI().then(() => {
-                        console.log('✅ Dashboard charts recreated successfully');
-                    }).catch(error => {
-                        console.error('❌ Error recreating charts:', error);
-                    });
-                }
-            }, 300);
-        }
-    };
-    
-    console.log('✅ Tab switching fix initialized');
-})();
-
-// ===============================================
-// DASHBOARD API INTEGRATION
+// DASHBOARD API INTEGRATION - FIXED
 // ===============================================
 
 (function() {
@@ -643,39 +665,81 @@ window.updateDashboardSummary = function(summary) {
     
     console.log('📊 Dashboard API Integration: Loading...');
     
-    // Ensure dashboard initializes with API data when switching to dashboard tab
+    // Store data fetch promises to prevent duplicate calls
+    let chartDataPromise = null;
+    let recentActivityPromise = null;
+    
+    // Function to initialize dashboard data
+    window.initializeDashboard = async function() {
+        if (!window.isLoggedIn && !window.appState?.isLoggedIn) {
+            console.log('⏸️ Not logged in, skipping dashboard initialization');
+            return;
+        }
+        
+        console.log('📊 Initializing dashboard...');
+        
+        // Fetch chart data only once
+        if (!chartDataPromise) {
+            chartDataPromise = window.fetchChartDataFromAPI();
+        }
+        
+        // Fetch recent activity only once
+        if (!recentActivityPromise) {
+            recentActivityPromise = window.fetchRecentActivity();
+        }
+        
+        // Wait for both to complete
+        try {
+            await Promise.all([chartDataPromise, recentActivityPromise]);
+            console.log('✅ Dashboard fully initialized');
+        } catch (error) {
+            console.error('❌ Error initializing dashboard:', error);
+        }
+    };
+    
+    // Tab switching logic
     const originalSetActiveTab = window.setActiveTab;
     if (originalSetActiveTab) {
         window.setActiveTab = function(tab) {
+            const previousTab = window.activeTab;
+            
+            // Call original function
             originalSetActiveTab(tab);
             
-            if (tab === 'dashboard' && window.isLoggedIn) {
-                console.log('📊 Switched to dashboard tab, fetching API data...');
+            // If switching TO dashboard from another tab
+            if (tab === 'dashboard' && previousTab !== 'dashboard' && window.isLoggedIn) {
+                console.log('📊 Switching to dashboard tab, scheduling refresh...');
                 
-                // Add a small delay to ensure DOM is ready
-                setTimeout(async () => {
-                    // Fetch chart data (which includes summary stats)
-                    if (window.fetchChartDataFromAPI) {
-                        await window.fetchChartDataFromAPI();
+                // Reset promises when switching to dashboard
+                chartDataPromise = null;
+                recentActivityPromise = null;
+                
+                // Clear any existing chart instances
+                ['leadSplitChart', 'tempCountChart', 'tempValueChart'].forEach(id => {
+                    const canvas = document.getElementById(id);
+                    if (canvas) {
+                        const chart = Chart.getChart(canvas);
+                        if (chart) {
+                            chart.destroy();
+                        }
+                    }
+                });
+                
+                // Initialize dashboard after tab animation
+                setTimeout(() => {
+                    if (window.activeTab === 'dashboard') {
+                        window.initializeDashboard();
                     }
                 }, 300);
             }
         };
     }
     
-    // Initialize dashboard with API data on page load
+    // Initialize dashboard on page load
     document.addEventListener('DOMContentLoaded', function() {
-        // Check if user is logged in AND on dashboard tab
         if (window.appState && window.appState.activeTab === 'dashboard' && window.isLoggedIn) {
-            console.log('📊 Dashboard active on load, initializing with API data...');
-            
-            setTimeout(async () => {
-                try {
-                    // Fetch chart data (which includes summary stats)
-                    await window.fetchChartDataFromAPI();
-                } catch (error) {
-                    console.error('❌ Error initializing dashboard:', error);
-                }
+            setTimeout(() => {
+                window.initializeDashboard();
             }, 1000);
         }
     });
@@ -683,4 +747,4 @@ window.updateDashboardSummary = function(summary) {
     console.log('✅ Dashboard API Integration loaded');
 })();
 
-console.log('✅ Dashboard component loaded - API driven version');
+console.log('✅ Dashboard component loaded - Fully API driven with independent sections');
