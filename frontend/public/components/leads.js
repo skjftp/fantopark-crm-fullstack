@@ -1,3 +1,4 @@
+
 // Complete Updated leads.js File with Proper React Components
 // Simplified version - Only uses paginated backend API
 
@@ -858,7 +859,13 @@ return React.createElement('div', { className: 'space-y-6' },
                         }`
                     }, 
                         React.createElement('span', { className: 'mr-2' }, '👥'),
-                        clientsPagination.total || window.ClientsAPI?.paginationData?.total || 0
+                        `Client View (${
+    clientsPagination.total || 
+    window.ClientsAPI?.paginationData?.total || 
+    window.appState?.clientsPagination?.total || 
+    window.appState?.totalClients || 
+    0
+})`
                     )
                 )
             ),
