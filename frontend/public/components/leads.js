@@ -100,27 +100,33 @@ const ClientViewContent = () => {
   React.useEffect(() => { window.clientAssignedFilter = localClientAssignedFilter; }, [localClientAssignedFilter]);
   React.useEffect(() => { window.clientMultiLeadFilter = localClientMultiLeadFilter; }, [localClientMultiLeadFilter]);
 
-// Pagination state - initialize from ClientsAPI if available
+/ Pagination state
 const [clientsPage, setClientsPage] = React.useState(1);
-const [clientsPagination, setClientsPagination] = React.useState(
-  window.ClientsAPI?.getPaginationData?.() || {
+const [clientsPagination, setClientsPagination] = React.useState({
     page: 1,
     totalPages: 1,
     total: 0,
     hasNext: false,
     hasPrev: false,
     perPage: 20
-  }
-);
+});
 
-  // Make pagination setter available globally
+// Make pagination setter available globally
 React.useEffect(() => {
     if (!window.appState) window.appState = {};
     window.appState.setClientsPagination = setClientsPagination;
     console.log('✅ ClientsPagination setter registered');
 }, []);
 
-// Store total clients count globally for the toggle button
+// Sync pagination state with API data
+React.useEffect(() => {
+    // Update pagination when data changes
+    if (window.appState?.clientsPagination && window.appState.clientsPagination.total > 0) {
+        setClientsPagination(window.appState.clientsPagination);
+    }
+}, [window.appState?.clientsPagination?.total]); // Watch for total changes
+
+// Store total clients count globally
 React.useEffect(() => {
     if (clientsPagination.total > 0) {
         window.appState.totalClients = clientsPagination.total;
