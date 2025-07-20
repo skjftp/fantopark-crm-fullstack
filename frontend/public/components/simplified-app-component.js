@@ -1709,67 +1709,74 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
   };
 
   window.handleStadiumFormSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  try {
+    window.setLoading(true);
     
-    try {
-      window.setLoading(true);
+    console.log('🏟️ Stadium form submission started');
+    console.log('Editing stadium:', window.editingStadium);
+    console.log('Form data:', window.stadiumFormData);
+    
+    // Prepare the data - include all fields including categorized notes
+    const submitData = {
+      ...window.stadiumFormData
+    };
+    
+    if (!window.editingStadium || !window.editingStadium.id) {
+      // CREATE NEW STADIUM
+      console.log('Creating new stadium...');
       
-      console.log('🏟️ Stadium form submission started');
-      console.log('Editing stadium:', window.editingStadium);
-      console.log('Form data:', window.stadiumFormData);
+      submitData.created_by = window.user?.name || 'Unknown User';
+      submitData.created_date = new Date().toISOString();
       
-      if (!window.editingStadium || !window.editingStadium.id) {
-        // CREATE NEW STADIUM
-        console.log('Creating new stadium...');
-        
-        const response = await window.apiCall('/stadiums', {
-          method: 'POST',
-          body: JSON.stringify({
-            ...window.stadiumFormData,
-            created_by: window.user?.name || 'Unknown User',
-            created_date: new Date().toISOString()
-          })
-        });
-        
-        if (response.error) {
-          throw new Error(response.error);
-        }
-        
-        // Add to local state
-        window.setStadiums(prev => [...prev, response.data || response]);
-        alert('✅ Stadium created successfully!');
-        
-      } else {
-        // UPDATE EXISTING STADIUM
-        console.log('Updating existing stadium...');
-        
-        const response = await window.apiCall(`/stadiums/${window.editingStadium.id}`, {
-          method: 'PUT',
-          body: JSON.stringify(window.stadiumFormData)
-        });
-        
-        if (response.error) {
-          throw new Error(response.error);
-        }
-        
-        // Update local state
-        window.setStadiums(prev => prev.map(stadium => 
-          stadium.id === window.editingStadium.id ? { ...stadium, ...window.stadiumFormData } : stadium
-        ));
-        
-        alert('✅ Stadium updated successfully!');
+      const response = await window.apiCall('/stadiums', {
+        method: 'POST',
+        body: JSON.stringify(submitData)
+      });
+      
+      if (response.error) {
+        throw new Error(response.error);
       }
       
-      // Close the form
-      window.closeStadiumForm();
+      // Add to local state
+      window.setStadiums(prev => [...prev, response.data || response]);
+      alert('✅ Stadium created successfully!');
       
-    } catch (error) {
-      console.error('❌ Error with stadium submission:', error);
-      alert('❌ Error saving stadium: ' + error.message);
-    } finally {
-      window.setLoading(false);
+    } else {
+      // UPDATE EXISTING STADIUM
+      console.log('Updating existing stadium...');
+      
+      const response = await window.apiCall(`/stadiums/${window.editingStadium.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(submitData)
+      });
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      // Update local state
+      window.setStadiums(prev => prev.map(stadium => 
+        stadium.id === window.editingStadium.id ? response.data : stadium
+      ));
+      
+      alert('✅ Stadium updated successfully!');
     }
-  };
+    
+    // Close the form
+    window.closeStadiumForm();
+    
+    // Refresh the stadiums list
+    await window.fetchStadiums();
+    
+  } catch (error) {
+    console.error('❌ Error saving stadium:', error);
+    alert(`Error: ${error.message}`);
+  } finally {
+    window.setLoading(false);
+  }
+};
 
   // ✅ STADIUM CRUD FUNCTIONS
   window.handleDeleteStadium = async (stadiumId, stadiumName) => {
