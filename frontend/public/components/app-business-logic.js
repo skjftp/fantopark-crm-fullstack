@@ -423,18 +423,24 @@ const fetchLeads = async () => {
   };
 
   const fetchClients = async () => {
-    setClientsLoading(true);
-    try {
-      const response = await window.apiCall('/clients');
+  setClientsLoading(true);
+  try {
+    // Use the paginated API
+    if (window.ClientsAPI) {
+      await window.ClientsAPI.fetchPaginatedClients({ page: 1 });
+    } else {
+      // Fallback to old method
+      const response = await window.apiCall('/clients?page=1&limit=20');
       setClients(response.data || []);
-      window.log.debug(`Fetched ${response.data?.length || 0} clients`);
-    } catch (error) {
-      window.log.error('Failed to fetch clients:', error);
-      alert('Failed to load clients: ' + error.message);
-    } finally {
-      setClientsLoading(false);
     }
-  };
+    window.log.debug(`Clients loaded via pagination`);
+  } catch (error) {
+    window.log.error('Failed to fetch clients:', error);
+    alert('Failed to load clients: ' + error.message);
+  } finally {
+    setClientsLoading(false);
+  }
+};
 
   const fetchUserRoles = async () => {
     try {
