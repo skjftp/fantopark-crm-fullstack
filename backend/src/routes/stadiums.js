@@ -1,10 +1,24 @@
+// Complete Stadium Routes - Updated with categorized notes and image support
 const express = require('express');
 const router = express.Router();
-const { db } = require('../config/db');
+const { db } = require('../config/firebase');
 const { authenticateToken } = require('../middleware/auth');
 
 // Collection name for stadiums
 const STADIUMS_COLLECTION = 'crm_stadiums';
+
+// Define note categories
+const NOTE_CATEGORIES = {
+  tickets: 'Ticket Information',
+  hospitality: 'Hospitality & Premium Areas',
+  access: 'Access & Transportation',
+  sun_weather: 'Sun & Weather Exposure',
+  facilities: 'Stadium Facilities',
+  restrictions: 'Security & Restrictions',
+  nearby: 'Nearby Amenities',
+  technical: 'Technical & AV Details',
+  special: 'Special Considerations'
+};
 
 // GET all stadiums
 router.get('/', authenticateToken, async (req, res) => {
@@ -82,6 +96,14 @@ router.post('/', authenticateToken, async (req, res) => {
       });
     }
 
+    // Process categorized notes
+    const categorizedNotes = {};
+    Object.keys(NOTE_CATEGORIES).forEach(category => {
+      if (req.body[`notes_${category}`]) {
+        categorizedNotes[category] = req.body[`notes_${category}`].trim();
+      }
+    });
+
     const stadiumData = {
       name: name.trim(),
       city: city.trim(),
@@ -92,7 +114,9 @@ router.post('/', authenticateToken, async (req, res) => {
       opened_year: req.body.opened_year ? parseInt(req.body.opened_year) : null,
       nickname: req.body.nickname?.trim() || '',
       website: req.body.website?.trim() || '',
-      notes: req.body.notes?.trim() || '',
+      image_url: req.body.image_url?.trim() || '',
+      notes: req.body.notes?.trim() || '', // Keep legacy notes field
+      categorized_notes: categorizedNotes, // New categorized notes
       created_by: req.user?.name || req.body.created_by || 'System',
       created_date: new Date().toISOString(),
       updated_date: new Date().toISOString(),
@@ -127,6 +151,20 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Stadium not found' });
     }
 
+    // Process categorized notes - preserve existing ones not being updated
+    const existingData = stadiumDoc.data();
+    const categorizedNotes = existingData.categorized_notes || {};
+    
+    Object.keys(NOTE_CATEGORIES).forEach(category => {
+      if (req.body[`notes_${category}`] !== undefined) {
+        if (req.body[`notes_${category}`]) {
+          categorizedNotes[category] = req.body[`notes_${category}`].trim();
+        } else {
+          delete categorizedNotes[category];
+        }
+      }
+    });
+
     const updateData = {
       name: req.body.name?.trim(),
       city: req.body.city?.trim(),
@@ -137,7 +175,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
       opened_year: req.body.opened_year ? parseInt(req.body.opened_year) : null,
       nickname: req.body.nickname?.trim() || '',
       website: req.body.website?.trim() || '',
+      image_url: req.body.image_url?.trim() || '',
       notes: req.body.notes?.trim() || '',
+      categorized_notes: categorizedNotes,
       updated_by: req.user?.name || 'System',
       updated_date: new Date().toISOString()
     };
@@ -263,6 +303,14 @@ router.post('/bulk', authenticateToken, async (req, res) => {
           continue;
         }
 
+        // Process categorized notes if provided
+        const categorizedNotes = {};
+        Object.keys(NOTE_CATEGORIES).forEach(category => {
+          if (stadiumData[`notes_${category}`]) {
+            categorizedNotes[category] = stadiumData[`notes_${category}`].trim();
+          }
+        });
+
         const processedData = {
           name: stadiumData.name.trim(),
           city: stadiumData.city.trim(),
@@ -273,7 +321,9 @@ router.post('/bulk', authenticateToken, async (req, res) => {
           opened_year: stadiumData.opened_year ? parseInt(stadiumData.opened_year) : null,
           nickname: stadiumData.nickname?.trim() || '',
           website: stadiumData.website?.trim() || '',
+          image_url: stadiumData.image_url?.trim() || '',
           notes: stadiumData.notes?.trim() || '',
+          categorized_notes: categorizedNotes,
           created_by: req.user?.name || 'Bulk Import',
           created_date: new Date().toISOString(),
           updated_date: new Date().toISOString(),
@@ -302,6 +352,14 @@ router.post('/bulk', authenticateToken, async (req, res) => {
     console.error('❌ Error in bulk import:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// GET note categories configuration
+router.get('/config/note-categories', authenticateToken, async (req, res) => {
+  res.json({ 
+    categories: NOTE_CATEGORIES,
+    message: 'Note categories for stadium information'
+  });
 });
 
 module.exports = router;
