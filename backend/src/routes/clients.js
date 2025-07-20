@@ -3,17 +3,33 @@ const router = express.Router();
 const Lead = require('../models/Lead');
 const { authenticateToken, checkPermission } = require('../middleware/auth');
 
-// GET all clients (grouped leads)
+// GET all clients with pagination
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    console.log('Fetching all clients...');
-    const clients = await Lead.getAllClients();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
     
-    // Sort clients by last activity (most recent first)
-    clients.sort((a, b) => new Date(b.last_activity) - new Date(a.last_activity));
+    console.log(`Fetching clients - Page: ${page}, Limit: ${limit}`);
     
-    console.log(`Found ${clients.length} clients`);
-    res.json({ data: clients });
+    // Get all clients first (for total count)
+    const allClients = await Lead.getAllClients();
+    
+    // Apply pagination
+    const paginatedClients = allClients.slice(skip, skip + limit);
+    
+    res.json({ 
+      success: true,
+      data: paginatedClients,
+      pagination: {
+        page,
+        limit,
+        total: allClients.length,
+        totalPages: Math.ceil(allClients.length / limit),
+        hasNext: skip + limit < allClients.length,
+        hasPrev: page > 1
+      }
+    });
   } catch (error) {
     console.error('Error fetching clients:', error);
     res.status(500).json({ error: error.message });
