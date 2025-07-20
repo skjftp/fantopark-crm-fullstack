@@ -583,37 +583,32 @@ const fetchData = async () => {
     try {
         window.log.debug('🔍 fetchData starting');
         
-        // Always use paginated mode for leads
-        const shouldUsePaginatedLeads = localStorage.getItem('usePaginatedLeads') === 'true';
+        // Fetch other data
+        const [inventoryData, ordersData, invoicesData, deliveriesData, clientsData] = await Promise.all([
+            window.apiCall('/inventory').catch(() => ({ data: [] })),
+            window.apiCall('/orders').catch(() => ({ data: [] })),
+            window.apiCall('/invoices').catch(() => ({ data: [] })),
+            window.apiCall('/deliveries').catch(() => ({ data: [] })),
+            window.apiCall('/clients').catch(() => ({ data: [] }))
+        ]);
         
-        if (shouldUsePaginatedLeads) {
-            window.log.info('🚀 Using paginated leads API');
-            
-            // Don't fetch leads here - let the leads component handle it
-            const [inventoryData, ordersData, invoicesData, deliveriesData, clientsData] = await Promise.all([
-                window.apiCall('/inventory').catch(() => ({ data: [] })),
-                window.apiCall('/orders').catch(() => ({ data: [] })),
-                window.apiCall('/invoices').catch(() => ({ data: [] })),
-                window.apiCall('/deliveries').catch(() => ({ data: [] })),
-                window.apiCall('/clients').catch(() => ({ data: [] }))
-            ]);
-            
-            // Set other data
-            setInventory(inventoryData.data || []);
-            setOrders(ordersData.data || []);
-            setInvoices(invoicesData.data || []);
-            setDeliveries(deliveriesData.data || []);
-            setClients(clientsData.data || []);
-            
-            // Don't set leads here
-            window.log.success('✅ Data loaded (paginated mode) - leads handled separately');
-            
-        } else {
-            // Remove the old non-paginated code or redirect to paginated
-            window.log.info('Redirecting to paginated mode');
-            localStorage.setItem('usePaginatedLeads', 'true');
-            window.location.reload();
+        // Set other data
+        setInventory(inventoryData.data || []);
+        setOrders(ordersData.data || []);
+        setInvoices(invoicesData.data || []);
+        setDeliveries(deliveriesData.data || []);
+        setClients(clientsData.data || []);
+        
+        // ✅ ADD THIS: Initialize leads module after other data is loaded
+        if (window.initializeLeadsModule && !window.leadsInitialized) {
+            window.log.info('🚀 Initializing leads module from fetchData');
+            setTimeout(() => {
+                window.initializeLeadsModule();
+            }, 500);
         }
+        
+        window.log.success('✅ Data loaded - leads will initialize separately');
+        
     } catch (error) {
         window.log.error('Error fetching data:', error);
     }
