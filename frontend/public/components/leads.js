@@ -111,6 +111,18 @@ const [clientsPagination, setClientsPagination] = React.useState({
     perPage: 20
 });
 
+// ADDED: Debug effect to see pagination state
+React.useEffect(() => {
+    console.log('📊 Current pagination state:', {
+        page: clientsPage,
+        totalPages: clientsPagination.totalPages,
+        total: clientsPagination.total,
+        hasNext: clientsPagination.hasNext,
+        perPage: clientsPagination.perPage,
+        clientsLength: clients.length
+    });
+}, [clientsPagination, clientsPage, clients.length]);
+
 // Make pagination setter available globally
 React.useEffect(() => {
     if (!window.appState) window.appState = {};
@@ -118,13 +130,14 @@ React.useEffect(() => {
     console.log('✅ ClientsPagination setter registered');
 }, []);
 
-// Sync pagination state with API data
+// FIXED: Sync pagination state with API data - watch entire object
 React.useEffect(() => {
     // Update pagination when data changes
-    if (window.appState?.clientsPagination && window.appState.clientsPagination.total > 0) {
+    if (window.appState?.clientsPagination) {
+        console.log('📥 Syncing pagination from appState:', window.appState.clientsPagination);
         setClientsPagination(window.appState.clientsPagination);
     }
-}, [window.appState?.clientsPagination?.total]); // Watch for total changes
+}, [window.appState?.clientsPagination]); // FIXED: Watch entire object instead of just total
 
 // Store total clients count globally
 React.useEffect(() => {
@@ -133,23 +146,33 @@ React.useEffect(() => {
     }
 }, [clientsPagination.total]);
 
-// Initial mount effect (this one you already have)
-React.useEffect(() => {
-    if (window.ClientsAPI && window.appState?.isLoggedIn && clientsPage === 1) {
-        console.log('📋 Initial client fetch on component mount');
-        window.ClientsAPI.fetchPaginatedClients({ page: 1 }).then(() => {
-            console.log('✅ Initial clients loaded, pagination:', window.appState?.clientsPagination);
-        });
-    }
-}, []); // Empty dependency array for mount only
-
-// ADD THIS MISSING useEffect - Fetch paginated clients on page change
+// Initial mount effect
 React.useEffect(() => {
     if (window.ClientsAPI && window.appState?.isLoggedIn) {
-        console.log('📋 Fetching clients for page:', clientsPage);
+        console.log('📋 Component mounted, fetching initial clients...');
+        
+        // Reset to page 1 and fetch
+        setClientsPage(1);
+        window.ClientsAPI.currentPage = 1;
+        
+        window.ClientsAPI.fetchPaginatedClients({ page: 1 }).then(() => {
+            console.log('✅ Initial clients loaded');
+            
+            // Force check the pagination data
+            if (window.appState?.clientsPagination) {
+                console.log('📊 Initial pagination:', window.appState.clientsPagination);
+            }
+        });
+    }
+}, []); // Only on mount
+
+// Fetch paginated clients on page change
+React.useEffect(() => {
+    if (window.ClientsAPI && window.appState?.isLoggedIn && clientsPage > 0) {
+        console.log('📋 Page changed to:', clientsPage);
         window.ClientsAPI.fetchPaginatedClients({ page: clientsPage });
     }
-}, [clientsPage]); // This triggers whenever clientsPage changes
+}, [clientsPage]);
 
 
   // State Variable Extraction from window globals
@@ -328,11 +351,11 @@ React.useEffect(() => {
         )
       ),
       
-      // Filter Summary
-React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
-  React.createElement('span', { className: 'text-sm text-gray-600' },
-    `Showing ${clients.length} of ${clientsPagination.total || 0} clients (Page ${clientsPagination.page || 1} of ${clientsPagination.totalPages || 1})`
-  ),
+      // Filter Summary - FIXED: Show correct counts
+      React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
+        React.createElement('span', { className: 'text-sm text-gray-600' },
+          `Showing ${clients.length} of ${clientsPagination.total || 0} clients (Page ${clientsPage} of ${clientsPagination.totalPages || 1})`
+        ),
         (localClientSearchQuery || localClientStatusFilter !== 'all' || 
          localClientAssignedFilter !== 'all' || localClientMultiLeadFilter !== 'all') &&
         React.createElement('button', {
@@ -348,13 +371,13 @@ React.createElement('div', { className: 'mt-4 flex justify-between items-center'
     ),
 
     // Client Statistics Summary
-React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
-  React.createElement('div', { className: 'bg-blue-50 border border-blue-200 rounded-lg p-4' },
-    React.createElement('div', { className: 'text-2xl font-bold text-blue-900' }, 
-      clientsPagination.total || window.appState?.clientsPagination?.total || 0
-    ),
-    React.createElement('div', { className: 'text-sm text-blue-700' }, 'Total Clients')
-  ),
+    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
+      React.createElement('div', { className: 'bg-blue-50 border border-blue-200 rounded-lg p-4' },
+        React.createElement('div', { className: 'text-2xl font-bold text-blue-900' }, 
+          clientsPagination.total || window.appState?.clientsPagination?.total || 0
+        ),
+        React.createElement('div', { className: 'text-sm text-blue-700' }, 'Total Clients')
+      ),
       React.createElement('div', { className: 'bg-green-50 border border-green-200 rounded-lg p-4' },
         React.createElement('div', { className: 'text-2xl font-bold text-green-900' }, 
           filteredClients.filter(c => c.total_leads > 1).length
@@ -485,22 +508,25 @@ React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' 
       )
     ),
 
-    // Pagination Controls
+    // Pagination Controls - FIXED: Improved visibility and display
     React.createElement('div', { className: 'bg-white rounded-lg shadow-sm border p-4' },
       React.createElement('div', { className: 'flex items-center justify-between' },
-        // Left side - showing info
+        // Left side - showing info - FIXED: Show correct range
         React.createElement('div', { className: 'text-sm text-gray-600' },
-          `Showing ${((clientsPage - 1) * clientsPagination.perPage) + 1}-${Math.min(clientsPage * clientsPagination.perPage, clientsPagination.total)} of ${clientsPagination.total} clients (Page ${clientsPage} of ${clientsPagination.totalPages})`
+          clientsPagination.total > 0 ? 
+            `Showing ${Math.min(clients.length, clientsPagination.perPage)} of ${clientsPagination.total} clients (Page ${clientsPage} of ${clientsPagination.totalPages})` :
+            'No clients to display'
         ),
         
-        // Right side - pagination controls
-        clientsPagination.totalPages > 1 && React.createElement('div', { className: 'flex items-center gap-2' },
+        // Right side - pagination controls - FIXED: Show when total > perPage OR totalPages > 1
+        (clientsPagination.total > clientsPagination.perPage || clientsPagination.totalPages > 1) && 
+        React.createElement('div', { className: 'flex items-center gap-2' },
           // Previous button
           React.createElement('button', {
             onClick: () => {
-              if (window.ClientsAPI && clientsPage > 1) {
-                setClientsPage(prev => Math.max(1, prev - 1));
-              }
+              const newPage = Math.max(1, clientsPage - 1);
+              console.log('⬅️ Previous clicked, going to page:', newPage);
+              setClientsPage(newPage);
             },
             disabled: clientsPage <= 1,
             className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
@@ -508,9 +534,11 @@ React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' 
           
           // Page numbers
           (() => {
-            const totalPages = clientsPagination.totalPages || 1;
+            const totalPages = clientsPagination.totalPages || Math.ceil(clientsPagination.total / clientsPagination.perPage) || 1;
             const currentPage = clientsPage;
             const pages = [];
+            
+            console.log('📄 Generating page numbers:', { totalPages, currentPage });
             
             // Generate page numbers with proper logic
             const generatePageNumbers = () => {
@@ -546,7 +574,9 @@ React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' 
                 }
                 
                 // Always show last page
-                pageNumbers.push(totalPages);
+                if (totalPages > 1) {
+                  pageNumbers.push(totalPages);
+                }
               }
               
               return pageNumbers;
@@ -564,7 +594,10 @@ React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' 
               
               return React.createElement('button', {
                 key: pageNum,
-                onClick: () => setClientsPage(pageNum),
+                onClick: () => {
+                  console.log('📄 Page', pageNum, 'clicked');
+                  setClientsPage(pageNum);
+                },
                 className: `px-3 py-1 border rounded ${
                   currentPage === pageNum ? 
                   'bg-blue-500 text-white' : 
@@ -577,11 +610,12 @@ React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' 
           // Next button
           React.createElement('button', {
             onClick: () => {
-              if (window.ClientsAPI && clientsPage < clientsPagination.totalPages) {
-                setClientsPage(prev => Math.min(clientsPagination.totalPages, prev + 1));
-              }
+              const totalPages = clientsPagination.totalPages || Math.ceil(clientsPagination.total / clientsPagination.perPage) || 1;
+              const newPage = Math.min(totalPages, clientsPage + 1);
+              console.log('➡️ Next clicked, going to page:', newPage);
+              setClientsPage(newPage);
             },
-            disabled: clientsPage >= clientsPagination.totalPages,
+            disabled: !clientsPagination.hasNext && clientsPage >= clientsPagination.totalPages,
             className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
           }, 'Next')
         )
