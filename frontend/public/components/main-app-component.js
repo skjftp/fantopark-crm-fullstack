@@ -171,6 +171,7 @@ const [myActionsPagination, setMyActionsPagination] = useState({
   const [isMobileView, setIsMobileView] = React.useState(window.innerWidth <= 768);
   const [selectedStadiumForNotes, setSelectedStadiumForNotes] = React.useState(null);
 const [showStadiumNotesModal, setShowStadiumNotesModal] = React.useState(false);
+  const [showStadiumImageLightbox, setShowStadiumImageLightbox] = React.useState(false);
   // Mobile menu state
 const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [paymentData, setPaymentData] = useState({
@@ -372,6 +373,7 @@ const [ordersSorting, setOrdersSorting] = useState({
 const [ordersShowFilters, setOrdersShowFilters] = useState(false);
 
   // Make state available globally for other components
+  window.setShowStadiumImageLightbox = setShowStadiumImageLightbox;
   window.setSelectedStadiumForNotes = setSelectedStadiumForNotes;
 window.setShowStadiumNotesModal = setShowStadiumNotesModal;
 
@@ -501,6 +503,7 @@ usePaginatedLeads, setUsePaginatedLeads,
     showUserManagement, setShowUserManagement,
     showUserForm, setShowUserForm,
     expandedInventoryItems, setExpandedInventoryItems,
+    showStadiumImageLightbox, setShowStadiumImageLightbox,
     roles, setRoles,
     showRoleForm, setShowRoleForm,
     rolesInitialized, setRolesInitialized,
