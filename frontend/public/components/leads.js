@@ -136,15 +136,32 @@ React.useEffect(() => {
     console.log('✅ ClientsPagination setter registered');
 }, []);
 
-// FIXED: Sync pagination state with API data - watch entire object
 React.useEffect(() => {
-    // Update pagination when data changes
-    if (window.appState?.clientsPagination) {
-        console.log('📥 Syncing pagination from appState:', window.appState.clientsPagination);
-        setClientsPagination(window.appState.clientsPagination);
-    }
-}, [window.appState?.clientsPagination]); // FIXED: Watch entire object instead of just total
+    // Create a function to check and sync pagination
+    const syncPagination = () => {
+        if (window.appState?.clientsPagination) {
+            const appPagination = window.appState.clientsPagination;
+            // Only update if values actually changed
+            setClientsPagination(prev => {
+                if (prev.total !== appPagination.total || 
+                    prev.totalPages !== appPagination.totalPages ||
+                    prev.page !== appPagination.page) {
+                    console.log('📥 Syncing pagination from appState:', appPagination);
+                    return { ...appPagination };
+                }
+                return prev;
+            });
+        }
+    };
 
+    // Set up an interval to check for updates
+    const interval = setInterval(syncPagination, 100);
+    
+    // Also sync immediately
+    syncPagination();
+    
+    return () => clearInterval(interval);
+}, []); // Empty dependency array
 // Store total clients count globally
 React.useEffect(() => {
     if (clientsPagination.total > 0) {
@@ -154,31 +171,75 @@ React.useEffect(() => {
 
 // Initial mount effect
 React.useEffect(() => {
-    if (window.ClientsAPI && window.appState?.isLoggedIn) {
-        console.log('📋 Component mounted, fetching initial clients...');
+    let mounted = true;
+    let initialFetchDone = false;
+    
+    const initializeClients = async () => {
+        if (!window.ClientsAPI || !window.appState?.isLoggedIn || initialFetchDone) {
+            return;
+        }
         
-        // Reset to page 1 and fetch
+        console.log('📋 Component mounted, fetching initial clients...');
+        initialFetchDone = true;
+        
+        // Reset to page 1
         setClientsPage(1);
         window.ClientsAPI.currentPage = 1;
         
-        window.ClientsAPI.fetchPaginatedClients({ page: 1 }).then(() => {
-            console.log('✅ Initial clients loaded');
+        try {
+            const response = await window.ClientsAPI.fetchPaginatedClients({ page: 1 });
             
-            // Force check the pagination data
-            if (window.appState?.clientsPagination) {
-                console.log('📊 Initial pagination:', window.appState.clientsPagination);
+            if (mounted && response.success) {
+                console.log('✅ Initial clients loaded');
+                
+                // Force update pagination state
+                if (window.appState?.clientsPagination) {
+                    const pagination = window.appState.clientsPagination;
+                    console.log('📊 Setting initial pagination:', pagination);
+                    setClientsPagination({
+                        page: pagination.page || 1,
+                        totalPages: pagination.totalPages || 1,
+                        total: pagination.total || 0,
+                        hasNext: pagination.hasNext || false,
+                        hasPrev: pagination.hasPrev || false,
+                        perPage: pagination.perPage || 20
+                    });
+                }
             }
-        });
-    }
+        } catch (error) {
+            console.error('Failed to load initial clients:', error);
+        }
+    };
+    
+    // Delay slightly to ensure all state setters are registered
+    setTimeout(initializeClients, 100);
+    
+    return () => {
+        mounted = false;
+    };
 }, []); // Only on mount
 
-// Fetch paginated clients on page change
 React.useEffect(() => {
-    if (window.ClientsAPI && window.appState?.isLoggedIn && clientsPage > 0) {
-        console.log('📋 Page changed to:', clientsPage);
-        window.ClientsAPI.fetchPaginatedClients({ page: clientsPage });
+    if (!window.ClientsAPI || !window.appState?.isLoggedIn || clientsPage === 0) {
+        return;
     }
-}, [clientsPage]);
+    
+    // Skip if this is the initial render
+    const isInitialRender = clientsPage === 1 && clientsPagination.total === 0;
+    if (isInitialRender) {
+        console.log('⏩ Skipping initial render fetch');
+        return;
+    }
+    
+    console.log('📋 Page changed to:', clientsPage);
+    
+    // Use debouncing to prevent rapid calls
+    const timeoutId = setTimeout(() => {
+        window.ClientsAPI.fetchPaginatedClients({ page: clientsPage });
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
+}, [clientsPage]); // Only watch clientsPage
 
 
   // Function References with fallbacks
