@@ -16,46 +16,24 @@ window.formatCurrency = window.formatCurrency || ((amount) => {
 
 window.formatIndianNumber = window.formatIndianNumber || window.formatNumber;
 
-// Initialize tab state
-if (!window.inventoryDetailTab) {
-  window.inventoryDetailTab = 'details';
-}
-
-// Override setCurrentInventoryDetail to reset tab when changing inventory
-const originalSetCurrentInventoryDetail = window.setCurrentInventoryDetail;
-if (originalSetCurrentInventoryDetail && !window._inventoryDetailOverridden) {
-  window.setCurrentInventoryDetail = (inventory) => {
-    if (inventory && (!window.currentInventoryDetail || window.currentInventoryDetail.id !== inventory.id)) {
-      window.inventoryDetailTab = 'details'; // Reset tab for new inventory
-    }
-    originalSetCurrentInventoryDetail(inventory);
-  };
-  window._inventoryDetailOverridden = true;
-}
-
-window.renderInventoryDetail = () => {
-  if (!window.showInventoryDetail || !window.currentInventoryDetail) return null;
-
+// Create a wrapper component that properly handles state
+window.InventoryDetailComponent = function() {
+  const [activeTab, setActiveTab] = React.useState('details');
+  const [lastItemId, setLastItemId] = React.useState(null);
+  
   const item = window.currentInventoryDetail;
+  
+  // Reset tab when item changes
+  React.useEffect(() => {
+    if (item && item.id !== lastItemId) {
+      setActiveTab('details');
+      setLastItemId(item.id);
+    }
+  }, [item, lastItemId]);
+  
+  if (!window.showInventoryDetail || !item) return null;
+
   const daysUntilEvent = Math.ceil((new Date(item.event_date) - new Date()) / (1000 * 60 * 60 * 24));
-  
-  // Check if this is a different inventory item than last time
-  if (window.lastInventoryDetailId !== item.id) {
-    window.inventoryDetailTab = 'details'; // Reset to details tab for new items
-    window.lastInventoryDetailId = item.id;
-  }
-  
-  // Tab state management using window globals
-  if (!window.inventoryDetailTab) {
-    window.inventoryDetailTab = 'details';
-  }
-  
-  const activeTab = window.inventoryDetailTab;
-  const setActiveTab = (tab) => {
-    window.inventoryDetailTab = tab;
-    // Force re-render
-    if (window.renderApp) window.renderApp();
-  };
   
   // Calculate total available and total tickets across all categories
   const totalAvailable = item.categories?.reduce((sum, cat) => sum + (cat.available_tickets || 0), 0) || item.available_tickets || 0;
@@ -136,7 +114,7 @@ window.renderInventoryDetail = () => {
         className: 'flex-1 overflow-y-auto bg-white dark:bg-gray-800'
       },
         // Details Tab (Original Content)
-        activeTab === 'details' && React.createElement('div', { className: 'p-6' },
+        activeTab === 'details' ? React.createElement('div', { className: 'p-6' },
           // Action Buttons Row
           React.createElement('div', { className: 'flex gap-2 mb-6' },
             // Edit Inventory Button
@@ -448,7 +426,7 @@ window.renderInventoryDetail = () => {
             React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-3' }, '📝 Notes'),
             React.createElement('p', { className: 'text-gray-900 dark:text-white whitespace-pre-wrap' }, item.notes)
           ) : null
-        ),
+        ) : null,
 
         // Market Rates Tab
         activeTab === 'market-rates' ? (
@@ -465,11 +443,15 @@ window.renderInventoryDetail = () => {
   );
 };
 
+// Main render function that returns the component
+window.renderInventoryDetail = () => {
+  return React.createElement(window.InventoryDetailComponent);
+};
+
 // Helper function to close the inventory detail modal
 window.closeInventoryDetail = () => {
   window.setShowInventoryDetail(false);
   window.setCurrentInventoryDetail(null);
-  window.inventoryDetailTab = 'details'; // Reset tab to details
 };
 
 console.log('✅ Enhanced Inventory Detail with Market Rate Tab loaded successfully');
