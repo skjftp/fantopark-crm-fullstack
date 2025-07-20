@@ -1661,6 +1661,17 @@ root.render(React.createElement(window.SimplifiedApp));
 </script>
 
   <script>
+// Ensure leads initialize after login
+let leadsInitCheckInterval = setInterval(() => {
+    if (window.isLoggedIn && window.appState && window.LeadsAPI && !window.leadsInitialized) {
+        console.log('🚀 Auto-initializing leads module');
+        window.initializeLeadsModule();
+        clearInterval(leadsInitCheckInterval);
+    }
+}, 1000);
+</script>
+
+  <script>
 // Ensure financial data fetch function exists
 window.fetchFinancialData = window.fetchFinancialData || function() {
     console.log('📊 Fetching financial data...');
