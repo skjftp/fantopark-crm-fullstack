@@ -1090,72 +1090,97 @@ const updateOrdersPagination = (orders) => {
     setShowPaymentForm(true);
   };
 
-  const handleMarkPaymentFromReceivable = async (receivable) => {
-    window.log.debug('Mark Payment clicked for receivable:', receivable);
+const handleMarkPaymentFromReceivable = async (receivable) => {
+  window.log.debug('Mark Payment clicked for receivable:', receivable);
 
-    const leadId = receivable.lead_id || receivable.leadId || receivable.lead;
+  // Extract lead ID from various possible fields
+  const leadId = receivable.lead_id || receivable.leadId || receivable.lead;
 
-    if (!leadId) {
-      if (receivable.order_id) {
-        const order = orders.find(o => o.id === receivable.order_id);
-        if (order && order.lead_id) {
-          const lead = leads.find(l => l.id === order.lead_id);
-          if (lead) {
-            setCurrentLead(lead);
-            openPaymentForm(lead);
-            setPaymentData(prev => ({
-              ...prev,
-              payment_post_service: true,
-              advance_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || '',
-              from_receivable: true,
-              receivable_id: receivable.id,
-              receivable_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || 0
-            }));
-            return;
-          }
-        }
-      }
-
-      alert('Cannot find associated lead for this receivable.');
-      window.log.error('Receivable structure:', receivable);
+  // First attempt: Try to get lead ID from the receivable directly
+  if (!leadId && receivable.order_id) {
+    // If no direct lead ID, try to get it from the associated order
+    const order = orders.find(o => o.id === receivable.order_id);
+    if (order && order.lead_id) {
+      // Found lead ID from order, now fetch the lead
+      await fetchAndProcessLead(order.lead_id, receivable);
       return;
     }
+  }
 
-    const lead = leads.find(l => l.id === leadId);
+  if (!leadId) {
+    window.log.error('No lead ID found in receivable:', receivable);
+    alert('Cannot find associated lead for this receivable. Please ensure the receivable has a valid lead reference.');
+    return;
+  }
 
-    if (!lead) {
-      try {
-        window.log.debug('Fetching lead from API:', leadId);
-        const response = await window.apiCall('/leads/' + leadId);
-        const leadData = response.data || response;
+  // Always fetch from API instead of checking local state first
+  // This ensures we get the most up-to-date lead data
+  await fetchAndProcessLead(leadId, receivable);
+};
 
-        setCurrentLead(leadData);
-        openPaymentForm(leadData);
-        setPaymentData(prev => ({
-          ...prev,
-          payment_post_service: true,
-          advance_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || '',
-          from_receivable: true,
-          receivable_id: receivable.id,
-          receivable_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || 0
-        }));
-      } catch (error) {
-        window.log.error('Error fetching lead:', error);
-        alert('Could not find associated lead: ' + error.message);
-      }
-    } else {
-      setCurrentLead(lead);
-      openPaymentForm(lead);
-      setPaymentData(prev => ({
-        ...prev,
-        payment_post_service: true,
-        advance_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || '',
-        from_receivable: true,
-        receivable_id: receivable.id,
-        receivable_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || 0
-      }));
+// Helper function to fetch lead from API and process payment
+const fetchAndProcessLead = async (leadId, receivable) => {
+  try {
+    window.log.debug('Fetching lead from API:', leadId);
+    window.setLoading(true);
+    
+    const response = await window.apiCall(`/leads/${leadId}`);
+    
+    if (response.error) {
+      throw new Error(response.error);
     }
-  };
+    
+    const leadData = response.data || response;
+    
+    if (!leadData || !leadData.id) {
+      throw new Error('Invalid lead data received from API');
+    }
+    
+    // Update local state with the fetched lead
+    setCurrentLead(leadData);
+    
+    // Optionally, add this lead to the local leads array if it's not there
+    // This helps with subsequent operations without needing to fetch again
+    setLeads(prevLeads => {
+      const exists = prevLeads.some(l => l.id === leadData.id);
+      if (!exists) {
+        return [...prevLeads, leadData];
+      }
+      return prevLeads;
+    });
+    
+    // Open payment form with the fetched lead
+    openPaymentForm(leadData);
+    
+    // Set payment data with receivable information
+    setPaymentData(prev => ({
+      ...prev,
+      payment_post_service: true,
+      advance_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || '',
+      from_receivable: true,
+      receivable_id: receivable.id,
+      receivable_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || 0
+    }));
+    
+    window.log.debug('Successfully opened payment form for lead:', leadData.name || leadData.company_name);
+    
+  } catch (error) {
+    window.log.error('Error fetching lead:', error);
+    
+    // Provide more specific error messages
+    if (error.message.includes('404')) {
+      alert(`Lead not found. The lead associated with this receivable may have been deleted. Lead ID: ${leadId}`);
+    } else if (error.message.includes('network')) {
+      alert('Network error. Please check your connection and try again.');
+    } else {
+      alert(`Could not load lead information: ${error.message}`);
+    }
+  } finally {
+    window.setLoading(false);
+  }
+};
+
+
 
   const openLeadDetail = (lead) => {
     setCurrentLead(lead);
