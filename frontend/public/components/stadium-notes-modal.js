@@ -1,10 +1,26 @@
 // Stadium Notes Modal Component for FanToPark CRM
 // Displays detailed notes and stadium images in a modal window
 
+// Enhanced Modal with Categorized Notes
 window.renderStadiumNotesModal = () => {
   const { selectedStadiumForNotes, showStadiumNotesModal } = window.appState || {};
   
   if (!showStadiumNotesModal || !selectedStadiumForNotes) return null;
+
+  const noteCategories = {
+    tickets: { label: 'Ticket Information', icon: '🎫', color: 'blue' },
+    hospitality: { label: 'Hospitality & Premium Areas', icon: '🥂', color: 'purple' },
+    access: { label: 'Access & Transportation', icon: '🚗', color: 'green' },
+    sun_weather: { label: 'Sun & Weather Exposure', icon: '☀️', color: 'yellow' },
+    facilities: { label: 'Stadium Facilities', icon: '🏢', color: 'indigo' },
+    restrictions: { label: 'Security & Restrictions', icon: '🔒', color: 'red' },
+    nearby: { label: 'Nearby Amenities', icon: '🏨', color: 'teal' },
+    technical: { label: 'Technical & AV Details', icon: '📺', color: 'gray' },
+    special: { label: 'Special Considerations', icon: '♿', color: 'pink' }
+  };
+
+  const categorizedNotes = selectedStadiumForNotes.categorized_notes || {};
+  const hasAnyNotes = Object.values(categorizedNotes).some(note => note && note.trim());
 
   return React.createElement('div', {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4',
@@ -15,112 +31,158 @@ window.renderStadiumNotesModal = () => {
     }
   },
     React.createElement('div', {
-      className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col'
+      className: 'bg-white dark:bg-gray-800 rounded-lg w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col'
     },
-      // Header
+      // Header with Stadium Info
       React.createElement('div', { 
-        className: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex justify-between items-center' 
+        className: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6' 
       },
-        React.createElement('div', null,
-          React.createElement('h2', { className: 'text-2xl font-bold' }, selectedStadiumForNotes.name),
-          React.createElement('p', { className: 'text-blue-100 mt-1' }, 
-            `${selectedStadiumForNotes.city}, ${selectedStadiumForNotes.state || selectedStadiumForNotes.country}`
-          )
-        ),
-        React.createElement('button', {
-          onClick: window.closeStadiumNotesModal,
-          className: 'text-white hover:text-gray-200 text-3xl leading-none'
-        }, '×')
+        React.createElement('div', { className: 'flex justify-between items-start' },
+          React.createElement('div', null,
+            React.createElement('h2', { className: 'text-2xl font-bold' }, selectedStadiumForNotes.name),
+            React.createElement('p', { className: 'text-blue-100 mt-1' }, 
+              `${selectedStadiumForNotes.city}, ${selectedStadiumForNotes.state || selectedStadiumForNotes.country}`
+            ),
+            React.createElement('div', { className: 'flex gap-4 mt-3 text-sm' },
+              selectedStadiumForNotes.sport_type && React.createElement('span', { 
+                className: 'bg-blue-500 px-3 py-1 rounded-full' 
+              }, selectedStadiumForNotes.sport_type),
+              selectedStadiumForNotes.capacity && React.createElement('span', { 
+                className: 'bg-blue-500 px-3 py-1 rounded-full' 
+              }, `Capacity: ${selectedStadiumForNotes.capacity.toLocaleString()}`),
+              selectedStadiumForNotes.opened_year && React.createElement('span', { 
+                className: 'bg-blue-500 px-3 py-1 rounded-full' 
+              }, `Est. ${selectedStadiumForNotes.opened_year}`)
+            )
+          ),
+          React.createElement('button', {
+            onClick: window.closeStadiumNotesModal,
+            className: 'text-white hover:text-gray-200 text-3xl leading-none'
+          }, '×')
+        )
       ),
 
       // Content Area
       React.createElement('div', { 
-        className: 'flex-1 overflow-y-auto p-6' 
+        className: 'flex-1 overflow-y-auto' 
       },
-        // Stadium Image Section
+        // Stadium Image
         selectedStadiumForNotes.image_url && React.createElement('div', { 
-          className: 'mb-6' 
+          className: 'relative h-64 bg-gray-100' 
         },
           React.createElement('img', {
             src: selectedStadiumForNotes.image_url,
             alt: `${selectedStadiumForNotes.name} stadium view`,
-            className: 'w-full h-auto max-h-96 object-cover rounded-lg shadow-lg',
+            className: 'w-full h-full object-cover',
             onError: (e) => {
               e.target.style.display = 'none';
             }
           })
         ),
 
-        // Stadium Details Grid
-        React.createElement('div', { 
-          className: 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-6' 
-        },
-          React.createElement('div', { 
-            className: 'bg-gray-50 dark:bg-gray-700 p-4 rounded-lg' 
-          },
-            React.createElement('h4', { 
-              className: 'text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1' 
-            }, 'Sport Type'),
-            React.createElement('p', { 
-              className: 'text-gray-900 dark:text-white font-medium' 
-            }, selectedStadiumForNotes.sport_type || 'Not specified')
-          ),
-          React.createElement('div', { 
-            className: 'bg-gray-50 dark:bg-gray-700 p-4 rounded-lg' 
-          },
-            React.createElement('h4', { 
-              className: 'text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1' 
-            }, 'Capacity'),
-            React.createElement('p', { 
-              className: 'text-gray-900 dark:text-white font-medium' 
-            }, selectedStadiumForNotes.capacity ? selectedStadiumForNotes.capacity.toLocaleString() : 'Not specified')
-          ),
-          selectedStadiumForNotes.opened_year && React.createElement('div', { 
-            className: 'bg-gray-50 dark:bg-gray-700 p-4 rounded-lg' 
-          },
-            React.createElement('h4', { 
-              className: 'text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1' 
-            }, 'Opened Year'),
-            React.createElement('p', { 
-              className: 'text-gray-900 dark:text-white font-medium' 
-            }, selectedStadiumForNotes.opened_year)
-          ),
-          selectedStadiumForNotes.nickname && React.createElement('div', { 
-            className: 'bg-gray-50 dark:bg-gray-700 p-4 rounded-lg' 
-          },
-            React.createElement('h4', { 
-              className: 'text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1' 
-            }, 'Nickname'),
-            React.createElement('p', { 
-              className: 'text-gray-900 dark:text-white font-medium' 
-            }, selectedStadiumForNotes.nickname)
-          )
-        ),
+        // Categorized Notes Grid
+        React.createElement('div', { className: 'p-6' },
+          hasAnyNotes ? 
+            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+              Object.entries(noteCategories).map(([key, category]) => {
+                const noteContent = categorizedNotes[key];
+                if (!noteContent || !noteContent.trim()) return null;
 
-        // Notes Section
-        React.createElement('div', { 
-          className: 'bg-blue-50 dark:bg-gray-700 p-6 rounded-lg' 
-        },
-          React.createElement('h3', { 
-            className: 'text-lg font-semibold text-gray-900 dark:text-white mb-3' 
-          }, '📝 Stadium Notes & Experience Details'),
-          React.createElement('div', { 
-            className: 'text-gray-700 dark:text-gray-300 whitespace-pre-wrap' 
-          }, 
-            selectedStadiumForNotes.notes || 
-            React.createElement('p', { 
-              className: 'italic text-gray-500' 
-            }, 'No notes available for this stadium. Click the edit button to add notes about the stadium experience, including details about specific stands, sun exposure, facilities, or any other relevant information for sales teams.')
+                return React.createElement('div', { 
+                  key: key,
+                  className: `bg-${category.color}-50 dark:bg-gray-700 p-4 rounded-lg border border-${category.color}-200 dark:border-gray-600`
+                },
+                  React.createElement('h4', { 
+                    className: `text-lg font-semibold text-${category.color}-800 dark:text-${category.color}-300 mb-2 flex items-center gap-2` 
+                  },
+                    React.createElement('span', { className: 'text-xl' }, category.icon),
+                    category.label
+                  ),
+                  React.createElement('div', { 
+                    className: 'text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm' 
+                  }, noteContent)
+                );
+              }).filter(Boolean)
+            ) :
+            React.createElement('div', { 
+              className: 'bg-gray-50 dark:bg-gray-700 p-8 rounded-lg text-center' 
+            },
+              React.createElement('p', { 
+                className: 'text-gray-500 dark:text-gray-400 mb-4' 
+              }, 'No detailed notes have been added for this stadium yet.'),
+              React.createElement('p', { 
+                className: 'text-sm text-gray-400' 
+              }, 'Click "Edit Stadium Information" to add notes about tickets, hospitality, access, and more.')
+            ),
+
+          // Legacy Notes Section (if exists)
+          selectedStadiumForNotes.notes && React.createElement('div', { 
+            className: 'mt-6 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg' 
+          },
+            React.createElement('h4', { 
+              className: 'text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2' 
+            }, '📝 General Notes'),
+            React.createElement('div', { 
+              className: 'text-gray-700 dark:text-gray-300 whitespace-pre-wrap' 
+            }, selectedStadiumForNotes.notes)
           )
         )
       ),
 
       // Footer with Actions
       React.createElement('div', { 
-        className: 'bg-gray-50 dark:bg-gray-700 px-6 py-4 flex justify-end gap-3' 
+        className: 'bg-gray-50 dark:bg-gray-700 px-6 py-4 flex justify-between items-center' 
       },
-        window.hasPermission && window.hasPermission('stadiums', 'write') && 
-        React.createElement('button', {
-          onClick: () => {
-            window.closeStadiumNotesModal();
-            window.openStadiumForm(selectedStadiumForNotes);
+        React.createElement('div', { className: 'flex gap-2 text-sm' },
+          selectedStadiumForNotes.website && React.createElement('a', {
+            href: selectedStadiumForNotes.website,
+            target: '_blank',
+            className: 'text-blue-600 hover:text-blue-800 dark:text-blue-400'
+          }, '🌐 Visit Website'),
+          selectedStadiumForNotes.nickname && React.createElement('span', { 
+            className: 'text-gray-500 dark:text-gray-400 italic' 
+          }, `"${selectedStadiumForNotes.nickname}"`)
+        ),
+        React.createElement('div', { className: 'flex gap-3' },
+          window.hasPermission && window.hasPermission('stadiums', 'write') && 
+          React.createElement('button', {
+            onClick: () => {
+              window.closeStadiumNotesModal();
+              window.openStadiumForm(selectedStadiumForNotes);
+            },
+            className: 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
+          }, 'Edit Stadium Information'),
+          React.createElement('button', {
+            onClick: window.closeStadiumNotesModal,
+            className: 'px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700'
+          }, 'Close')
+        )
+      )
+    )
+  );
+};
+
+// Helper functions for stadium notes modal
+window.openStadiumNotesModal = (stadium) => {
+  window.appState.selectedStadiumForNotes = stadium;
+  window.appState.showStadiumNotesModal = true;
+  if (window.setSelectedStadiumForNotes) {
+    window.setSelectedStadiumForNotes(stadium);
+  }
+  if (window.setShowStadiumNotesModal) {
+    window.setShowStadiumNotesModal(true);
+  }
+};
+
+window.closeStadiumNotesModal = () => {
+  window.appState.selectedStadiumForNotes = null;
+  window.appState.showStadiumNotesModal = false;
+  if (window.setSelectedStadiumForNotes) {
+    window.setSelectedStadiumForNotes(null);
+  }
+  if (window.setShowStadiumNotesModal) {
+    window.setShowStadiumNotesModal(false);
+  }
+};
+
+console.log('✅ Stadium Notes Modal component loaded');
