@@ -420,40 +420,24 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
   const originalFetchData = window.renderAppBusinessLogic()?.fetchData;
   const originalFetchMyActions = window.fetchMyActions;
   
-  // Consolidated data fetching function
   window.consolidatedDataFetch = async function() {
-    // Prevent multiple simultaneous fetches
-    if (isDataFetching) {
-      console.log('📋 Data fetch already in progress, returning existing promise');
-      return dataFetchPromise;
-    }
+    if (!window.isLoggedIn) return;
     
-    if (!window.isLoggedIn) {
-      console.log('❌ Not logged in, skipping data fetch');
-      return;
-    }
+    console.log('🚀 Consolidated fetch (leads excluded in paginated mode)');
     
-    isDataFetching = true;
-    console.log('🚀 Starting consolidated data fetch...');
-    
-    dataFetchPromise = (async () => {
-      try {
-        // Fetch all core data once
-        const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData, clientsData, usersData, stadiumsData] = await Promise.all([
-          window.apiCall('/leads').catch(() => ({ data: [] })),
-          window.apiCall('/inventory').catch(() => ({ data: [] })),
-          window.apiCall('/orders').catch(() => ({ data: [] })),
-          window.apiCall('/invoices').catch(() => ({ data: [] })),
-          window.apiCall('/deliveries').catch(() => ({ data: [] })),
-          window.apiCall('/clients').catch(() => ({ data: [] })),
-          window.apiCall('/users').catch(() => ({ data: [] })),
-          window.apiCall('/stadiums').catch(() => ({ data: [] }))
+    try {
+        // Always exclude leads from consolidated fetch
+        const [inventoryData, ordersData, invoicesData, deliveriesData, clientsData, usersData, stadiumsData] = await Promise.all([
+            window.apiCall('/inventory').catch(() => ({ data: [] })),
+            window.apiCall('/orders').catch(() => ({ data: [] })),
+            window.apiCall('/invoices').catch(() => ({ data: [] })),
+            window.apiCall('/deliveries').catch(() => ({ data: [] })),
+            window.apiCall('/clients').catch(() => ({ data: [] })),
+            window.apiCall('/users').catch(() => ({ data: [] })),
+            window.apiCall('/stadiums').catch(() => ({ data: [] }))
         ]);
         
-        console.log('✅ All API calls completed, updating state...');
-        
-        // Update all state at once
-        if (window.appState?.setLeads) window.appState.setLeads(leadsData.data || []);
+        // Update all state EXCEPT leads
         if (window.appState?.setInventory) window.appState.setInventory(inventoryData.data || []);
         if (window.appState?.setOrders) window.appState.setOrders(ordersData.data || []);
         if (window.appState?.setInvoices) window.appState.setInvoices(invoicesData.data || []);
@@ -462,25 +446,14 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
         if (window.appState?.setUsers) window.appState.setUsers(usersData.data || []);
         if (window.appState?.setStadiums) window.appState.setStadiums(stadiumsData.data || []);
         
-        // Update window globals
-        window.leads = leadsData.data || [];
-        window.inventory = inventoryData.data || [];
-        window.orders = ordersData.data || [];
-        window.users = usersData.data || [];
-        window.allUsers = usersData.data || [];
+        // DO NOT set window.leads or call setLeads
+        console.log('✅ Data loaded (leads excluded - handled by pagination)');
         
-        console.log('✅ Consolidated data fetch completed successfully');
-        
-      } catch (error) {
-        console.error('❌ Consolidated data fetch failed:', error);
-      } finally {
-        isDataFetching = false;
-        dataFetchPromise = null;
-      }
-    })();
-    
-    return dataFetchPromise;
-  };
+    } catch (error) {
+        console.error('❌ Consolidated fetch failed:', error);
+    }
+};
+
 
 window.initializeDarkMode = function() {
   const savedDarkMode = localStorage.getItem('crm_dark_mode') === 'true';
