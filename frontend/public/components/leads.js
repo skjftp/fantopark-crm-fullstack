@@ -111,17 +111,20 @@ const ClientViewContent = () => {
     perPage: 20
   });
 
-  // Make pagination state available globally
+  // Make pagination setter available globally
   React.useEffect(() => {
+    if (!window.appState) window.appState = {};
     window.appState.setClientsPagination = setClientsPagination;
+    console.log('✅ ClientsPagination setter registered');
   }, []);
 
-  // Add useEffect to fetch paginated clients
+  // Fetch paginated clients on page change
   React.useEffect(() => {
-    if (window.ClientsAPI) {
+    if (window.ClientsAPI && window.appState?.isLoggedIn) {
+      console.log('📋 Fetching clients for page:', clientsPage);
       window.ClientsAPI.fetchPaginatedClients({ page: clientsPage });
     }
-  }, [clientsPage]);  
+  }, [clientsPage]); 
 
   // State Variable Extraction from window globals
   const {
