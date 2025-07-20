@@ -843,6 +843,13 @@ const updateOrdersPagination = (orders) => {
   setUser(response.user);
   setCurrentUser(response.user);
   setIsLoggedIn(true);
+
+  setTimeout(() => {
+    if (window.activeTab === 'dashboard' && window.fetchChartDataFromAPI) {
+        console.log('📊 Loading dashboard after login...');
+        window.fetchChartDataFromAPI();
+    }
+}, 1000);    
   
   // Initialize leads module after login
   if (window.initializeLeadsModule) {
