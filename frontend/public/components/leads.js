@@ -111,7 +111,13 @@ const [clientsPagination, setClientsPagination] = React.useState({
     perPage: 20
 });
 
-// ADDED: Debug effect to see pagination state
+// State Variable Extraction from window globals - MOVED UP
+const {
+    clientsLoading = window.clientsLoading || window.appState?.clientsLoading || false,
+    clients = window.clients || window.appState?.clients || [],
+} = window.appState || {};
+
+// ADDED: Debug effect to see pagination state - NOW AFTER clients is defined
 React.useEffect(() => {
     console.log('📊 Current pagination state:', {
         page: clientsPage,
@@ -174,12 +180,6 @@ React.useEffect(() => {
     }
 }, [clientsPage]);
 
-
-  // State Variable Extraction from window globals
-  const {
-    clientsLoading = window.clientsLoading || window.appState?.clientsLoading || false,
-    clients = window.clients || window.appState?.clients || [],
-  } = window.appState || {};
 
   // Function References with fallbacks
   const setViewMode = window.setViewMode || (() => {
