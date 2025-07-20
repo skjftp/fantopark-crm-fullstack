@@ -50,7 +50,19 @@ window.MarketRateTab = function({ inventory }) {
 
     } catch (err) {
       console.error('Error fetching market rates:', err);
-      setError(err.message);
+      
+      // Handle specific error types
+      if (err.message?.includes('API key not configured')) {
+        setError('API key not configured. Please contact your administrator to set up XS2Event integration.');
+      } else if (err.message?.includes('Rate limit exceeded')) {
+        setError('Rate limit exceeded. Please try again later.');
+      } else if (err.response?.status === 401) {
+        setError('Authentication failed. Please check your XS2Event API key.');
+      } else if (err.response?.status === 403) {
+        setError('Access denied. Your API key may not have the required permissions.');
+      } else {
+        setError(err.message || 'Failed to fetch market rates. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -189,60 +201,97 @@ window.MarketRateTab = function({ inventory }) {
               'No tickets found for this event'
             ) :
           
-          // Tickets table
-          React.createElement('div', { className: 'overflow-x-auto' },
-            React.createElement('table', { className: 'min-w-full divide-y divide-gray-200 dark:divide-gray-700' },
-              React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-800' },
-                React.createElement('tr', null,
-                  ['Category', 'Section', 'Row', 'Qty', 'Price', 'Seller', 'Delivery'].map(header =>
-                    React.createElement('th', { 
-                      key: header,
-                      className: 'px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider' 
-                    }, header)
-                  )
-                )
-              ),
-              
-              React.createElement('tbody', { 
-                className: 'bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700' 
+          // Ticket groups
+          React.createElement('div', { className: 'space-y-4' },
+            partnerData.ticketGroups && partnerData.ticketGroups.map((group, gIdx) => 
+              React.createElement('div', { 
+                key: gIdx,
+                className: 'border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden'
               },
-                partnerData.tickets.slice(0, 10).map((ticket, idx) =>
-                  React.createElement('tr', { 
-                    key: idx,
-                    className: 'hover:bg-gray-50 dark:hover:bg-gray-800' 
-                  },
-                    React.createElement('td', { className: 'px-3 py-2 text-sm text-gray-900 dark:text-white' }, 
-                      ticket.category
+                // Group header
+                React.createElement('div', { 
+                  className: 'bg-gray-100 dark:bg-gray-800 px-4 py-2 flex justify-between items-center'
+                },
+                  React.createElement('div', null,
+                    React.createElement('span', { className: 'font-medium text-gray-900 dark:text-white' }, 
+                      group.category
                     ),
-                    React.createElement('td', { className: 'px-3 py-2 text-sm text-gray-900 dark:text-white' }, 
-                      ticket.section || '-'
+                    group.subCategory && React.createElement('span', { 
+                      className: 'text-sm text-gray-500 dark:text-gray-400 ml-2' 
+                    }, `(${group.subCategory})`)
+                  ),
+                  React.createElement('div', { className: 'text-sm' },
+                    React.createElement('span', { className: 'text-gray-600 dark:text-gray-400' }, 
+                      `${group.totalQuantity} tickets • `
                     ),
-                    React.createElement('td', { className: 'px-3 py-2 text-sm text-gray-900 dark:text-white' }, 
-                      ticket.row || '-'
-                    ),
-                    React.createElement('td', { className: 'px-3 py-2 text-sm text-gray-900 dark:text-white' }, 
-                      ticket.quantity
-                    ),
-                    React.createElement('td', { className: 'px-3 py-2 text-sm font-medium text-gray-900 dark:text-white' }, 
-                      `₹${window.formatIndianNumber(ticket.price)}`
-                    ),
-                    React.createElement('td', { className: 'px-3 py-2 text-sm text-gray-500 dark:text-gray-400' }, 
-                      ticket.sellerType
-                    ),
-                    React.createElement('td', { className: 'px-3 py-2 text-sm text-gray-500 dark:text-gray-400' }, 
-                      ticket.deliveryMethod
+                    React.createElement('span', { className: 'font-medium text-gray-900 dark:text-white' }, 
+                      `₹${window.formatIndianNumber(Math.floor(group.lowestPrice))} - ₹${window.formatIndianNumber(Math.floor(group.highestPrice))}`
                     )
                   )
                 ),
                 
-                partnerData.tickets.length > 10 && React.createElement('tr', null,
-                  React.createElement('td', { 
-                    colSpan: 7,
-                    className: 'px-3 py-2 text-center text-sm text-gray-500 dark:text-gray-400' 
-                  }, `... and ${partnerData.tickets.length - 10} more tickets`)
+                // Tickets table
+                React.createElement('div', { className: 'overflow-x-auto' },
+                  React.createElement('table', { className: 'min-w-full divide-y divide-gray-200 dark:divide-gray-700' },
+                    React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
+                      React.createElement('tr', null,
+                        ['Section', 'Row', 'Seat', 'Qty', 'Price', 'Type', 'Delivery'].map(header =>
+                          React.createElement('th', { 
+                            key: header,
+                            className: 'px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider' 
+                          }, header)
+                        )
+                      )
+                    ),
+                    
+                    React.createElement('tbody', { 
+                      className: 'bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700' 
+                    },
+                      group.tickets.slice(0, 5).map((ticket, idx) =>
+                        React.createElement('tr', { 
+                          key: idx,
+                          className: 'hover:bg-gray-50 dark:hover:bg-gray-800' 
+                        },
+                          React.createElement('td', { className: 'px-3 py-2 text-sm text-gray-900 dark:text-white' }, 
+                            ticket.section || '-'
+                          ),
+                          React.createElement('td', { className: 'px-3 py-2 text-sm text-gray-900 dark:text-white' }, 
+                            ticket.row || '-'
+                          ),
+                          React.createElement('td', { className: 'px-3 py-2 text-sm text-gray-900 dark:text-white' }, 
+                            ticket.seat || '-'
+                          ),
+                          React.createElement('td', { className: 'px-3 py-2 text-sm text-gray-900 dark:text-white' }, 
+                            ticket.quantity
+                          ),
+                          React.createElement('td', { className: 'px-3 py-2 text-sm font-medium text-gray-900 dark:text-white' }, 
+                            `₹${window.formatIndianNumber(ticket.price)}`
+                          ),
+                          React.createElement('td', { className: 'px-3 py-2 text-sm text-gray-500 dark:text-gray-400' }, 
+                            ticket.ticketType || '-'
+                          ),
+                          React.createElement('td', { className: 'px-3 py-2 text-sm text-gray-500 dark:text-gray-400' }, 
+                            ticket.deliveryType || '-'
+                          )
+                        )
+                      ),
+                      
+                      group.tickets.length > 5 && React.createElement('tr', null,
+                        React.createElement('td', { 
+                          colSpan: 7,
+                          className: 'px-3 py-2 text-center text-sm text-gray-500 dark:text-gray-400' 
+                        }, `... and ${group.tickets.length - 5} more tickets in this category`)
+                      )
+                    )
+                  )
                 )
               )
-            )
+            ),
+            
+            // Summary
+            partnerData.rawTicketCount && React.createElement('div', { 
+              className: 'mt-4 text-sm text-gray-600 dark:text-gray-400 text-center' 
+            }, `Total ${partnerData.rawTicketCount} individual tickets from multiple suppliers`)
           )
         )
       );
