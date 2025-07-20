@@ -1904,10 +1904,10 @@ document.addEventListener('DOMContentLoaded', function() {
     };
   }
   
-  // Initialize on page load if dashboard is active
-  document.addEventListener('DOMContentLoaded', function() {
+// Initialize on page load if dashboard is active AND user is logged in
+document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
-      if (window.activeTab === 'dashboard' || !window.activeTab) {
+      if ((window.activeTab === 'dashboard' || !window.activeTab) && window.isLoggedIn) {
         window.createDashboardCharts();
       }
     }, 1500);
