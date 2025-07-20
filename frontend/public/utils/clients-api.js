@@ -49,6 +49,18 @@ window.ClientsAPI = {
         
         // Store pagination data locally
         this.paginationData = fullPagination;
+
+        setTimeout(() => {
+    if (window.appState?.setClientsPagination) {
+        console.log('🔄 Forcing pagination state update:', fullPagination);
+        window.appState.setClientsPagination({ ...fullPagination });
+        
+        // Also trigger a custom event for additional sync
+        window.dispatchEvent(new CustomEvent('clientsPaginationUpdated', { 
+            detail: fullPagination 
+        }));
+    }
+}, 50);
         
         // Try to update React state if available
         if (window.appState.setClientsPagination) {
