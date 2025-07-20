@@ -133,6 +133,7 @@ React.useEffect(() => {
     }
 }, [clientsPagination.total]);
 
+// Initial mount effect (this one you already have)
 React.useEffect(() => {
     if (window.ClientsAPI && window.appState?.isLoggedIn && clientsPage === 1) {
         console.log('📋 Initial client fetch on component mount');
@@ -141,6 +142,14 @@ React.useEffect(() => {
         });
     }
 }, []); // Empty dependency array for mount only
+
+// ADD THIS MISSING useEffect - Fetch paginated clients on page change
+React.useEffect(() => {
+    if (window.ClientsAPI && window.appState?.isLoggedIn) {
+        console.log('📋 Fetching clients for page:', clientsPage);
+        window.ClientsAPI.fetchPaginatedClients({ page: clientsPage });
+    }
+}, [clientsPage]); // This triggers whenever clientsPage changes
 
 
   // State Variable Extraction from window globals
