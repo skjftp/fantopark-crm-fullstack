@@ -112,19 +112,26 @@ const ClientViewContent = () => {
   });
 
   // Make pagination setter available globally
-  React.useEffect(() => {
+React.useEffect(() => {
     if (!window.appState) window.appState = {};
     window.appState.setClientsPagination = setClientsPagination;
     console.log('✅ ClientsPagination setter registered');
-  }, []);
+}, []);
 
-  // Fetch paginated clients on page change
-  React.useEffect(() => {
-    if (window.ClientsAPI && window.appState?.isLoggedIn) {
-      console.log('📋 Fetching clients for page:', clientsPage);
-      window.ClientsAPI.fetchPaginatedClients({ page: clientsPage });
+// Store total clients count globally for the toggle button
+React.useEffect(() => {
+    if (clientsPagination.total > 0) {
+        window.appState.totalClients = clientsPagination.total;
     }
-  }, [clientsPage]); 
+}, [clientsPagination.total]);
+
+// Fetch paginated clients on page change
+React.useEffect(() => {
+    if (window.ClientsAPI && window.appState?.isLoggedIn) {
+        console.log('📋 Fetching clients for page:', clientsPage);
+        window.ClientsAPI.fetchPaginatedClients({ page: clientsPage });
+    }
+}, [clientsPage]);
 
   // State Variable Extraction from window globals
   const {
@@ -710,7 +717,7 @@ return React.createElement('div', { className: 'space-y-6' },
                         }`
                     }, 
                         React.createElement('span', { className: 'mr-2' }, '👥'),
-                        `Client View (${(window.clients || []).length})`
+                        `Client View (${window.appState?.clientsPagination?.total || window.appState?.totalClients || 0})`
                     )
                 )
             ),
