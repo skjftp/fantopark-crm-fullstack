@@ -17,37 +17,23 @@ window.formatCurrency = window.formatCurrency || ((amount) => {
 window.formatIndianNumber = window.formatIndianNumber || window.formatNumber;
 
 // Create a wrapper component that properly handles state
-window.InventoryDetailWrapper = function() {
+window.InventoryDetailComponent = function() {
   const [activeTab, setActiveTab] = React.useState('details');
+  const [lastItemId, setLastItemId] = React.useState(null);
+  
   const item = window.currentInventoryDetail;
+  
+  // Reset tab when item changes
+  React.useEffect(() => {
+    if (item && item.id !== lastItemId) {
+      setActiveTab('details');
+      setLastItemId(item.id);
+    }
+  }, [item, lastItemId]);
   
   if (!window.showInventoryDetail || !item) return null;
 
   const daysUntilEvent = Math.ceil((new Date(item.event_date) - new Date()) / (1000 * 60 * 60 * 24));
-  
-  // Calculate total available and total tickets across all categories
-  const totalAvailable = item.categories?.reduce((sum, cat) => sum + (cat.available_tickets || 0), 0) || item.available_tickets || 0;
-  const totalTickets = item.categories?.reduce((sum, cat) => sum + (cat.total_tickets || 0), 0) || item.total_tickets || 0;
-  
-  // Calculate total revenue potential across all categories
-  const totalRevenuePotential = item.categories?.reduce((sum, cat) => 
-    sum + ((cat.total_tickets || 0) * (cat.selling_price || 0)), 0
-  ) || (item.total_tickets * item.selling_price) || 0;
-
-  // Status based on availability
-  const getAvailabilityStatus = () => {
-    if (totalAvailable <= 0) return { label: 'Sold Out', color: 'bg-red-100 text-red-800' };
-
-// Main render function that uses the wrapper component
-window.renderInventoryDetail = () => {
-  return React.createElement(window.InventoryDetailWrapper);
-};
-    if (totalAvailable === totalTickets) return { label: 'Available', color: 'bg-green-100 text-green-800' };
-    if (totalAvailable > 5) return { label: 'Limited', color: 'bg-yellow-100 text-yellow-800' };
-    return { label: 'Nearly Sold', color: 'bg-orange-100 text-orange-800' };
-  };
-
-  const availabilityStatus = getAvailabilityStatus();
   
   // Calculate total available and total tickets across all categories
   const totalAvailable = item.categories?.reduce((sum, cat) => sum + (cat.available_tickets || 0), 0) || item.available_tickets || 0;
@@ -128,7 +114,7 @@ window.renderInventoryDetail = () => {
         className: 'flex-1 overflow-y-auto bg-white dark:bg-gray-800'
       },
         // Details Tab (Original Content)
-        activeTab === 'details' && React.createElement('div', { className: 'p-6' },
+        activeTab === 'details' ? React.createElement('div', { className: 'p-6' },
           // Action Buttons Row
           React.createElement('div', { className: 'flex gap-2 mb-6' },
             // Edit Inventory Button
@@ -440,7 +426,7 @@ window.renderInventoryDetail = () => {
             React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white mb-3' }, '📝 Notes'),
             React.createElement('p', { className: 'text-gray-900 dark:text-white whitespace-pre-wrap' }, item.notes)
           ) : null
-        ),
+        ) : null,
 
         // Market Rates Tab
         activeTab === 'market-rates' ? (
@@ -457,11 +443,15 @@ window.renderInventoryDetail = () => {
   );
 };
 
+// Main render function that returns the component
+window.renderInventoryDetail = () => {
+  return React.createElement(window.InventoryDetailComponent);
+};
+
 // Helper function to close the inventory detail modal
 window.closeInventoryDetail = () => {
   window.setShowInventoryDetail(false);
   window.setCurrentInventoryDetail(null);
-  window.inventoryDetailTab = 'details'; // Reset tab to details
 };
 
 console.log('✅ Enhanced Inventory Detail with Market Rate Tab loaded successfully');
