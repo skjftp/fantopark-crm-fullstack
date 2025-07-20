@@ -209,6 +209,10 @@ function calculateChartMetrics(leads) {
   let coldValue = 0;
   
   let totalPipelineValue = 0;
+
+  // Statuses that should be excluded from pipeline value
+const excludedStatuses = ['converted', 'junk', 'payment_received', 'payment_post_service', 'dropped'];
+
   
   // Single pass through leads for all calculations
   leads.forEach(lead => {
@@ -235,8 +239,9 @@ function calculateChartMetrics(leads) {
       coldValue += potentialValue;
     }
     // Note: leads without temperature field are not counted in temperature charts
-    
-    totalPipelineValue += potentialValue;
+        if (!excludedStatuses.includes(status)) {
+        totalPipelineValue += potentialValue;
+    }
   });
   
   return {
