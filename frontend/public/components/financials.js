@@ -1100,7 +1100,7 @@ window.renderPayablesTab = (payables) => {
     React.createElement('div', { className: 'flex justify-center space-x-2' },
         // Eye emoji for view
         React.createElement('button', {
-            onClick: () => window.showPaymentHistoryModal(payable);
+            onClick: () => window.showPaymentHistoryModal(payable),
             className: 'text-blue-600 hover:text-blue-800 text-lg',
             title: 'View Details'
         }, '👁️'),
