@@ -133,13 +133,15 @@ React.useEffect(() => {
     }
 }, [clientsPagination.total]);
 
-// Fetch paginated clients on page change
 React.useEffect(() => {
-    if (window.ClientsAPI && window.appState?.isLoggedIn) {
-        console.log('📋 Fetching clients for page:', clientsPage);
-        window.ClientsAPI.fetchPaginatedClients({ page: clientsPage });
+    if (window.ClientsAPI && window.appState?.isLoggedIn && clientsPage === 1) {
+        console.log('📋 Initial client fetch on component mount');
+        window.ClientsAPI.fetchPaginatedClients({ page: 1 }).then(() => {
+            console.log('✅ Initial clients loaded, pagination:', window.appState?.clientsPagination);
+        });
     }
-}, [clientsPage]);
+}, []); // Empty dependency array for mount only
+
 
   // State Variable Extraction from window globals
   const {
@@ -479,19 +481,19 @@ React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' 
       React.createElement('div', { className: 'flex items-center justify-between' },
         // Left side - showing info
         React.createElement('div', { className: 'text-sm text-gray-600' },
-          `Showing ${Math.min(clientsPage * clientsPagination.perPage, clientsPagination.total)} of ${clientsPagination.total} clients`
+          `Showing ${((clientsPage - 1) * clientsPagination.perPage) + 1}-${Math.min(clientsPage * clientsPagination.perPage, clientsPagination.total)} of ${clientsPagination.total} clients (Page ${clientsPage} of ${clientsPagination.totalPages})`
         ),
         
         // Right side - pagination controls
-        React.createElement('div', { className: 'flex items-center gap-2' },
+        clientsPagination.totalPages > 1 && React.createElement('div', { className: 'flex items-center gap-2' },
           // Previous button
           React.createElement('button', {
             onClick: () => {
-              if (window.ClientsAPI) {
+              if (window.ClientsAPI && clientsPage > 1) {
                 setClientsPage(prev => Math.max(1, prev - 1));
               }
             },
-            disabled: !clientsPagination.hasPrev,
+            disabled: clientsPage <= 1,
             className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
           }, 'Previous'),
           
@@ -501,62 +503,76 @@ React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' 
             const currentPage = clientsPage;
             const pages = [];
             
-            // Show first page
-            if (totalPages > 0) {
-              pages.push(React.createElement('button', {
-                key: 1,
-                onClick: () => setClientsPage(1),
-                className: `px-3 py-1 border rounded ${
-                  currentPage === 1 ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'
-                }`
-              }, '1'));
-            }
-            
-            // Show ellipsis if needed
-            if (currentPage > 3) {
-              pages.push(React.createElement('span', { key: 'ellipsis1', className: 'px-2' }, '...'));
-            }
-            
-            // Show current page and neighbors
-            for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-              if (i !== 1 && i !== totalPages) {
-                pages.push(React.createElement('button', {
-                  key: i,
-                  onClick: () => setClientsPage(i),
-                  className: `px-3 py-1 border rounded ${
-                    currentPage === i ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'
-                  }`
-                }, i.toString()));
+            // Generate page numbers with proper logic
+            const generatePageNumbers = () => {
+              const pageNumbers = [];
+              const maxVisible = 7; // Maximum number of page buttons to show
+              
+              if (totalPages <= maxVisible) {
+                // Show all pages if total is small
+                for (let i = 1; i <= totalPages; i++) {
+                  pageNumbers.push(i);
+                }
+              } else {
+                // Always show first page
+                pageNumbers.push(1);
+                
+                // Calculate range around current page
+                let startPage = Math.max(2, currentPage - 2);
+                let endPage = Math.min(totalPages - 1, currentPage + 2);
+                
+                // Add ellipsis if needed before range
+                if (startPage > 2) {
+                  pageNumbers.push('...');
+                }
+                
+                // Add pages in range
+                for (let i = startPage; i <= endPage; i++) {
+                  pageNumbers.push(i);
+                }
+                
+                // Add ellipsis if needed after range
+                if (endPage < totalPages - 1) {
+                  pageNumbers.push('...');
+                }
+                
+                // Always show last page
+                pageNumbers.push(totalPages);
               }
-            }
+              
+              return pageNumbers;
+            };
             
-            // Show ellipsis if needed
-            if (currentPage < totalPages - 2) {
-              pages.push(React.createElement('span', { key: 'ellipsis2', className: 'px-2' }, '...'));
-            }
+            const pageNumbers = generatePageNumbers();
             
-            // Show last page
-            if (totalPages > 1) {
-              pages.push(React.createElement('button', {
-                key: totalPages,
-                onClick: () => setClientsPage(totalPages),
+            return pageNumbers.map((pageNum, index) => {
+              if (pageNum === '...') {
+                return React.createElement('span', { 
+                  key: `ellipsis-${index}`, 
+                  className: 'px-2 text-gray-400' 
+                }, '...');
+              }
+              
+              return React.createElement('button', {
+                key: pageNum,
+                onClick: () => setClientsPage(pageNum),
                 className: `px-3 py-1 border rounded ${
-                  currentPage === totalPages ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'
+                  currentPage === pageNum ? 
+                  'bg-blue-500 text-white' : 
+                  'hover:bg-gray-100'
                 }`
-              }, totalPages.toString()));
-            }
-            
-            return pages;
+              }, pageNum.toString());
+            });
           })(),
           
           // Next button
           React.createElement('button', {
             onClick: () => {
-              if (window.ClientsAPI) {
-                setClientsPage(prev => Math.min(clientsPagination.totalPages || 1, prev + 1));
+              if (window.ClientsAPI && clientsPage < clientsPagination.totalPages) {
+                setClientsPage(prev => Math.min(clientsPagination.totalPages, prev + 1));
               }
             },
-            disabled: !clientsPagination.hasNext,
+            disabled: clientsPage >= clientsPagination.totalPages,
             className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
           }, 'Next')
         )
