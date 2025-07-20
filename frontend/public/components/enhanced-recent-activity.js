@@ -3,7 +3,8 @@
 // File: components/enhanced-recent-activity.js
 // ===============================================
 
-window.renderEnhancedRecentActivity = function() {
+// Create the React component
+const EnhancedRecentActivityComponent = () => {
   console.log('🔄 Rendering Enhanced Recent Activity (API Version)...');
   
   // State management
@@ -196,8 +197,11 @@ window.renderEnhancedRecentActivity = function() {
       // Loading state
       isLoading ? 
         React.createElement('div', { className: 'text-center py-12' },
-          React.createElement('div', { className: 'animate-spin text-3xl mb-4' }, '⌛'),
-          React.createElement('p', { className: 'text-gray-500' }, 'Loading recent activity...')
+          React.createElement('div', { className: 'animate-pulse' },
+            React.createElement('div', { className: 'h-4 bg-gray-200 rounded w-3/4 mx-auto mb-4' }),
+            React.createElement('div', { className: 'h-4 bg-gray-200 rounded w-1/2 mx-auto' })
+          ),
+          React.createElement('p', { className: 'text-gray-500 mt-4' }, 'Loading recent activity...')
         ) :
       
       // Error state
@@ -339,6 +343,11 @@ window.renderEnhancedRecentActivity = function() {
         )
     )
   );
+};
+
+// Create the wrapper function that returns the React component
+window.renderEnhancedRecentActivity = function() {
+  return React.createElement(EnhancedRecentActivityComponent);
 };
 
 console.log('✅ Enhanced Recent Activity Component (API Version) loaded successfully');
