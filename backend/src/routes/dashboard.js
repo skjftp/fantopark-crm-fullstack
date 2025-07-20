@@ -169,6 +169,7 @@ router.get('/charts', async (req, res) => {
         
         // Summary statistics
         summary: {
+          totalLeads: leads.length,
           totalPipelineValue: chartData.totalPipelineValue,
           qualifiedLeads: chartData.leadSplit.qualified,
           hotLeads: chartData.temperatureCount.hot,
