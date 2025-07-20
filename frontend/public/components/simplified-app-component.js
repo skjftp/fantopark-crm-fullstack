@@ -2015,9 +2015,11 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
             window.setShowClientDetectionResults(true);
           }
           
-          if (window.fetchLeads && typeof window.fetchLeads === 'function') {
-            window.fetchLeads();
-          }
+         if (window.LeadsAPI && window.LeadsAPI.refresh) {
+    window.LeadsAPI.refresh();
+} else if (window.fetchLeads && typeof window.fetchLeads === 'function') {
+    window.fetchLeads();
+}
           
           alert(`✅ Upload completed!\n✅ Successfully imported: ${result.successCount} leads\n${result.clientDetectionCount ? `🔍 Existing clients found: ${result.clientDetectionCount}\n` : ''}${result.autoAssignmentCount ? `🎯 Auto-assignments: ${result.autoAssignmentCount}` : ''}`);
           
