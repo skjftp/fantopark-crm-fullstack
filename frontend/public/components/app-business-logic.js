@@ -11,27 +11,18 @@ window.enablePaginatedLeads = function(enable = true) {
 };
 
 
-window.renderAppBusinessLogic = function() {
-
-  // Force enable paginated mode immediately
-  if (localStorage.getItem('usePaginatedLeads') !== 'true') {
-    localStorage.setItem('usePaginatedLeads', 'true');
-    window.log.info('🚀 Auto-enabled paginated leads mode');
-  }
-  
-  // Clear any pre-loaded leads data on component mount
-  React.useEffect(() => {
-    if (window.appState && window.appState.leads && window.appState.leads.length > 50) {
-      window.log.warn('⚠️ Detected pre-loaded leads data, clearing...');
-      window.appState.setLeads([]);
-    }
-  }, []);
-  
+window.renderAppBusinessLogic = function() {  
   // Access app state
   const state = window.appState;
   if (!state) {
     window.log.error('App state not available');
     return {};
+  }
+
+    // Force enable paginated mode immediately
+  if (localStorage.getItem('usePaginatedLeads') !== 'true') {
+    localStorage.setItem('usePaginatedLeads', 'true');
+    window.log.info('🚀 Auto-enabled paginated leads mode');
   }
 
   const {
