@@ -1896,12 +1896,28 @@ document.addEventListener('DOMContentLoaded', function() {
   
 // Initialize on page load if dashboard is active AND user is logged in
 document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-      if ((window.activeTab === 'dashboard' || !window.activeTab) && window.isLoggedIn) {
-        window.createDashboardCharts();
-      }
-    }, 1500);
-  });
+    // Watch for login and dashboard
+    let dashboardCheckInterval = setInterval(() => {
+        if (window.isLoggedIn && window.appState) {
+            // Clear the interval
+            clearInterval(dashboardCheckInterval);
+            
+            // If on dashboard or no tab selected (default is dashboard)
+            if (!window.activeTab || window.activeTab === 'dashboard') {
+                console.log('📊 User logged in, initializing dashboard...');
+                
+                // Wait a bit for data to load
+                setTimeout(() => {
+                    if (window.fetchChartDataFromAPI) {
+                        window.fetchChartDataFromAPI();
+                    } else if (window.createDashboardCharts) {
+                        window.createDashboardCharts();
+                    }
+                }, 1000);
+            }
+        }
+    }, 500);
+});
   
   // All chart function aliases point to API-based creation
   window.initializeOptimizedCharts = window.createDashboardCharts;
