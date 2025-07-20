@@ -100,16 +100,18 @@ const ClientViewContent = () => {
   React.useEffect(() => { window.clientAssignedFilter = localClientAssignedFilter; }, [localClientAssignedFilter]);
   React.useEffect(() => { window.clientMultiLeadFilter = localClientMultiLeadFilter; }, [localClientMultiLeadFilter]);
 
-  // Pagination state
-  const [clientsPage, setClientsPage] = React.useState(1);
-  const [clientsPagination, setClientsPagination] = React.useState({
+// Pagination state - initialize from ClientsAPI if available
+const [clientsPage, setClientsPage] = React.useState(1);
+const [clientsPagination, setClientsPagination] = React.useState(
+  window.ClientsAPI?.getPaginationData?.() || {
     page: 1,
     totalPages: 1,
     total: 0,
     hasNext: false,
     hasPrev: false,
     perPage: 20
-  });
+  }
+);
 
   // Make pagination setter available globally
 React.useEffect(() => {
@@ -332,7 +334,7 @@ React.createElement('div', { className: 'mt-4 flex justify-between items-center'
 React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
   React.createElement('div', { className: 'bg-blue-50 border border-blue-200 rounded-lg p-4' },
     React.createElement('div', { className: 'text-2xl font-bold text-blue-900' }, 
-      clientsPagination.total || 0  // ← Use pagination total, not filtered length
+      clientsPagination.total || window.appState?.clientsPagination?.total || 0
     ),
     React.createElement('div', { className: 'text-sm text-blue-700' }, 'Total Clients')
   ),
