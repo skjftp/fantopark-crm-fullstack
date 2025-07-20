@@ -392,16 +392,15 @@ if (choice.value === 'payment_post_service') {
     }
   };
 
-  // ✅ MISSING FUNCTION: fetchLeads
-  const fetchLeads = async () => {
+  // ✅ UPDATED: fetchLeads to use paginated API
+const fetchLeads = async () => {
     try {
-      const response = await window.apiCall('/leads');
-      setLeads(response.data || []);
-      window.log.debug(`Fetched ${response.data?.length || 0} leads`);
+        // Always use paginated API
+        return window.LeadsAPI.fetchPaginatedLeads({ page: 1 });
     } catch (error) {
-      window.log.error('Failed to fetch leads:', error);
+        window.log.error('Failed to fetch leads:', error);
     }
-  };
+};
 
   // [ALL THE WORKING FUNCTIONS FROM YOUR ORIGINAL FILE - UNCHANGED]
   const openEditOrderForm = (order) => {
@@ -577,86 +576,47 @@ if (choice.value === 'payment_post_service') {
 // Replace the fetchData function's lead fetching logic with this:
 
 const fetchData = async () => {
-  const authToken = localStorage.getItem('crm_auth_token') || window.authToken;
-  
-  if (!state.isLoggedIn || !authToken) return;
-  
-  try {
-    window.log.debug('🔍 fetchData starting');
+    const authToken = localStorage.getItem('crm_auth_token') || window.authToken;
     
-    // Force check paginated mode
-    const shouldUsePaginatedLeads = localStorage.getItem('usePaginatedLeads') === 'true';
-    window.log.info('🔍 Paginated mode check:', { 
-      localStorage: shouldUsePaginatedLeads,
-      appState: window.appState.usePaginatedLeads 
-    });
-
-    if (shouldUsePaginatedLeads) {
-      // Use new paginated API
-      window.log.info('🚀 Using paginated leads API');
-      
-      // IMPORTANT: Don't fetch leads here at all - let the leads component handle it
-      // Just fetch other data
-      const [inventoryData, ordersData, invoicesData, deliveriesData, clientsData] = await Promise.all([
-        window.apiCall('/inventory').catch(() => ({ data: [] })),
-        window.apiCall('/orders').catch(() => ({ data: [] })),
-        window.apiCall('/invoices').catch(() => ({ data: [] })),
-        window.apiCall('/deliveries').catch(() => ({ data: [] })),
-        window.apiCall('/clients').catch(() => ({ data: [] }))
-      ]);
-      
-      // Set other data
-      setInventory(inventoryData.data || []);
-      setOrders(ordersData.data || []);
-      setInvoices(invoicesData.data || []);
-      setDeliveries(deliveriesData.data || []);
-      setClients(clientsData.data || []);
-      
-      // Initialize empty leads with proper pagination
-      if (!window.appState.leads || window.appState.leads.length === 0) {
-        setLeads([]);
-        setLeadsPagination({
-          page: 1,
-          totalPages: 0,
-          total: 0,
-          hasNext: false,
-          hasPrev: false,
-          perPage: 20
-        });
-      }
-      
-      window.log.success('✅ Data loaded (paginated mode) - leads will load separately');
-      
-    } else {
-      // Use existing approach (fetch all at once)
-      window.log.info('📋 Using traditional leads API');
-      
-      const [leadsData, inventoryData, ordersData, invoicesData, deliveriesData, clientsData] = await Promise.all([
-        window.apiCall('/leads').catch(() => ({ data: [] })),
-        window.apiCall('/inventory').catch(() => ({ data: [] })),
-        window.apiCall('/orders').catch(() => ({ data: [] })),
-        window.apiCall('/invoices').catch(() => ({ data: [] })),
-        window.apiCall('/deliveries').catch(() => ({ data: [] })),
-        window.apiCall('/clients').catch(() => ({ data: [] }))
-      ]);
-      
-      // Set all data including leads
-      setLeads(leadsData.data || []);
-      setInventory(inventoryData.data || []);
-      setOrders(ordersData.data || []);
-      setInvoices(invoicesData.data || []);
-      setDeliveries(deliveriesData.data || []);
-      setClients(clientsData.data || []);
+    if (!state.isLoggedIn || !authToken) return;
+    
+    try {
+        window.log.debug('🔍 fetchData starting');
+        
+        // Always use paginated mode for leads
+        const shouldUsePaginatedLeads = localStorage.getItem('usePaginatedLeads') === 'true';
+        
+        if (shouldUsePaginatedLeads) {
+            window.log.info('🚀 Using paginated leads API');
+            
+            // Don't fetch leads here - let the leads component handle it
+            const [inventoryData, ordersData, invoicesData, deliveriesData, clientsData] = await Promise.all([
+                window.apiCall('/inventory').catch(() => ({ data: [] })),
+                window.apiCall('/orders').catch(() => ({ data: [] })),
+                window.apiCall('/invoices').catch(() => ({ data: [] })),
+                window.apiCall('/deliveries').catch(() => ({ data: [] })),
+                window.apiCall('/clients').catch(() => ({ data: [] }))
+            ]);
+            
+            // Set other data
+            setInventory(inventoryData.data || []);
+            setOrders(ordersData.data || []);
+            setInvoices(invoicesData.data || []);
+            setDeliveries(deliveriesData.data || []);
+            setClients(clientsData.data || []);
+            
+            // Don't set leads here
+            window.log.success('✅ Data loaded (paginated mode) - leads handled separately');
+            
+        } else {
+            // Remove the old non-paginated code or redirect to paginated
+            window.log.info('Redirecting to paginated mode');
+            localStorage.setItem('usePaginatedLeads', 'true');
+            window.location.reload();
+        }
+    } catch (error) {
+        window.log.error('Error fetching data:', error);
     }
-    
-    // Update orders pagination
-    setTimeout(() => {
-      updateOrdersPagination(orders);
-    }, 100);
-    
-  } catch (error) {
-    window.log.error('Error fetching data:', error);
-  }
 };
 
 // Function to automatically update orders pagination
