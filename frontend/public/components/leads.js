@@ -100,7 +100,7 @@ const ClientViewContent = () => {
   React.useEffect(() => { window.clientAssignedFilter = localClientAssignedFilter; }, [localClientAssignedFilter]);
   React.useEffect(() => { window.clientMultiLeadFilter = localClientMultiLeadFilter; }, [localClientMultiLeadFilter]);
 
-/ Pagination state
+// Pagination state
 const [clientsPage, setClientsPage] = React.useState(1);
 const [clientsPagination, setClientsPagination] = React.useState({
     page: 1,
