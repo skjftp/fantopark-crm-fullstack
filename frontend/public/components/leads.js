@@ -85,7 +85,6 @@ const initializePaginatedMode = () => {
 // Instead, expose the initialization function to be called after login
 window.initializeLeadsModule = initializePaginatedMode;
 
-// Client View Component
 const ClientViewContent = () => {
   console.log("🔍 Rendering Production Client View Content");
 
@@ -100,6 +99,29 @@ const ClientViewContent = () => {
   React.useEffect(() => { window.clientStatusFilter = localClientStatusFilter; }, [localClientStatusFilter]);
   React.useEffect(() => { window.clientAssignedFilter = localClientAssignedFilter; }, [localClientAssignedFilter]);
   React.useEffect(() => { window.clientMultiLeadFilter = localClientMultiLeadFilter; }, [localClientMultiLeadFilter]);
+
+  // Pagination state
+  const [clientsPage, setClientsPage] = React.useState(1);
+  const [clientsPagination, setClientsPagination] = React.useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    hasNext: false,
+    hasPrev: false,
+    perPage: 20
+  });
+
+  // Make pagination state available globally
+  React.useEffect(() => {
+    window.appState.setClientsPagination = setClientsPagination;
+  }, []);
+
+  // Add useEffect to fetch paginated clients
+  React.useEffect(() => {
+    if (window.ClientsAPI) {
+      window.ClientsAPI.fetchPaginatedClients({ page: clientsPage });
+    }
+  }, [clientsPage]);  
 
   // State Variable Extraction from window globals
   const {
@@ -130,7 +152,7 @@ const ClientViewContent = () => {
     );
   }
 
-  if (clients.length === 0) {
+  if (clients.length === 0 && clientsPage === 1) {
     return React.createElement('div', { className: 'bg-white rounded-lg shadow-sm border p-8 text-center' },
       React.createElement('div', { className: 'text-gray-500 text-lg mb-2' }, 'No clients found'),
       React.createElement('p', { className: 'text-gray-400' }, 'Clients will appear here when you have leads with phone numbers'),
@@ -280,7 +302,7 @@ const ClientViewContent = () => {
       // Filter Summary
       React.createElement('div', { className: 'mt-4 flex justify-between items-center' },
         React.createElement('span', { className: 'text-sm text-gray-600' },
-          `Showing ${filteredClients.length} of ${clients.length} clients`
+          `Showing ${filteredClients.length} of ${clientsPagination.total || clients.length} clients (Page ${clientsPage} of ${clientsPagination.totalPages || 1})`
         ),
         (localClientSearchQuery || localClientStatusFilter !== 'all' || 
          localClientAssignedFilter !== 'all' || localClientMultiLeadFilter !== 'all') &&
@@ -299,26 +321,26 @@ const ClientViewContent = () => {
     // Client Statistics Summary
     React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-4' },
       React.createElement('div', { className: 'bg-blue-50 border border-blue-200 rounded-lg p-4' },
-        React.createElement('div', { className: 'text-2xl font-bold text-blue-900' }, filteredClients.length),
+        React.createElement('div', { className: 'text-2xl font-bold text-blue-900' }, clientsPagination.total || filteredClients.length),
         React.createElement('div', { className: 'text-sm text-blue-700' }, 'Total Clients')
       ),
       React.createElement('div', { className: 'bg-green-50 border border-green-200 rounded-lg p-4' },
         React.createElement('div', { className: 'text-2xl font-bold text-green-900' }, 
           filteredClients.filter(c => c.total_leads > 1).length
         ),
-        React.createElement('div', { className: 'text-sm text-green-700' }, 'Multi-Lead Clients')
+        React.createElement('div', { className: 'text-sm text-green-700' }, 'Multi-Lead Clients (This Page)')
       ),
       React.createElement('div', { className: 'bg-purple-50 border border-purple-200 rounded-lg p-4' },
         React.createElement('div', { className: 'text-2xl font-bold text-purple-900' }, 
           filteredClients.reduce((sum, c) => sum + (c.total_leads || 1), 0)
         ),
-        React.createElement('div', { className: 'text-sm text-purple-700' }, 'Total Leads')
+        React.createElement('div', { className: 'text-sm text-purple-700' }, 'Total Leads (This Page)')
       ),
       React.createElement('div', { className: 'bg-orange-50 border border-orange-200 rounded-lg p-4' },
         React.createElement('div', { className: 'text-2xl font-bold text-orange-900' }, 
           '₹' + filteredClients.reduce((sum, c) => sum + (parseFloat(c.total_value) || 0), 0).toLocaleString()
         ),
-        React.createElement('div', { className: 'text-sm text-orange-700' }, 'Total Client Value')
+        React.createElement('div', { className: 'text-sm text-orange-700' }, 'Total Value (This Page)')
       )
     ),
 
@@ -428,6 +450,95 @@ const ClientViewContent = () => {
               );
             })
           )
+        )
+      )
+    ),
+
+    // Pagination Controls
+    React.createElement('div', { className: 'bg-white rounded-lg shadow-sm border p-4' },
+      React.createElement('div', { className: 'flex items-center justify-between' },
+        // Left side - showing info
+        React.createElement('div', { className: 'text-sm text-gray-600' },
+          `Showing ${Math.min(clientsPage * clientsPagination.perPage, clientsPagination.total)} of ${clientsPagination.total} clients`
+        ),
+        
+        // Right side - pagination controls
+        React.createElement('div', { className: 'flex items-center gap-2' },
+          // Previous button
+          React.createElement('button', {
+            onClick: () => {
+              if (window.ClientsAPI) {
+                setClientsPage(prev => Math.max(1, prev - 1));
+              }
+            },
+            disabled: !clientsPagination.hasPrev,
+            className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+          }, 'Previous'),
+          
+          // Page numbers
+          (() => {
+            const totalPages = clientsPagination.totalPages || 1;
+            const currentPage = clientsPage;
+            const pages = [];
+            
+            // Show first page
+            if (totalPages > 0) {
+              pages.push(React.createElement('button', {
+                key: 1,
+                onClick: () => setClientsPage(1),
+                className: `px-3 py-1 border rounded ${
+                  currentPage === 1 ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'
+                }`
+              }, '1'));
+            }
+            
+            // Show ellipsis if needed
+            if (currentPage > 3) {
+              pages.push(React.createElement('span', { key: 'ellipsis1', className: 'px-2' }, '...'));
+            }
+            
+            // Show current page and neighbors
+            for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+              if (i !== 1 && i !== totalPages) {
+                pages.push(React.createElement('button', {
+                  key: i,
+                  onClick: () => setClientsPage(i),
+                  className: `px-3 py-1 border rounded ${
+                    currentPage === i ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'
+                  }`
+                }, i.toString()));
+              }
+            }
+            
+            // Show ellipsis if needed
+            if (currentPage < totalPages - 2) {
+              pages.push(React.createElement('span', { key: 'ellipsis2', className: 'px-2' }, '...'));
+            }
+            
+            // Show last page
+            if (totalPages > 1) {
+              pages.push(React.createElement('button', {
+                key: totalPages,
+                onClick: () => setClientsPage(totalPages),
+                className: `px-3 py-1 border rounded ${
+                  currentPage === totalPages ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'
+                }`
+              }, totalPages.toString()));
+            }
+            
+            return pages;
+          })(),
+          
+          // Next button
+          React.createElement('button', {
+            onClick: () => {
+              if (window.ClientsAPI) {
+                setClientsPage(prev => Math.min(clientsPagination.totalPages || 1, prev + 1));
+              }
+            },
+            disabled: !clientsPagination.hasNext,
+            className: 'px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+          }, 'Next')
         )
       )
     )
