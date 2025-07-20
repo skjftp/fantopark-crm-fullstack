@@ -1,25 +1,55 @@
 // ===============================================
-// ENHANCED RECENT ACTIVITY COMPONENT
+// ENHANCED RECENT ACTIVITY COMPONENT - API VERSION
 // File: components/enhanced-recent-activity.js
 // ===============================================
 
 window.renderEnhancedRecentActivity = function() {
-  console.log('🔄 Rendering Enhanced Recent Activity...');
+  console.log('🔄 Rendering Enhanced Recent Activity (API Version)...');
   
-  // Get recent leads (last 10, sorted by most recent activity)
-  const getRecentLeads = () => {
-    const allLeads = window.getFilteredLeads ? window.getFilteredLeads() : (window.leads || []);
-    
-    return allLeads
-      .sort((a, b) => {
-        const dateA = new Date(a.updated_date || a.created_date || 0);
-        const dateB = new Date(b.updated_date || b.created_date || 0);
-        return dateB - dateA; // Most recent first
-      })
-      .slice(0, 10); // Show last 10 activities
-  };
+  // State management
+  const [recentLeads, setRecentLeads] = React.useState([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
 
-  const recentLeads = getRecentLeads();
+  // Fetch recent activity from API
+  const fetchRecentActivity = React.useCallback(async () => {
+    console.log('📡 Fetching recent activity from API...');
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`${window.API_CONFIG.API_URL}/dashboard/recent-activity?limit=10`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + localStorage.getItem('crm_auth_token'),
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch recent activity');
+      }
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        console.log('✅ Recent activity data received:', result.data.length, 'leads');
+        setRecentLeads(result.data);
+      } else {
+        throw new Error(result.error || 'Failed to load recent activity');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching recent activity:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Fetch data on component mount
+  React.useEffect(() => {
+    fetchRecentActivity();
+  }, [fetchRecentActivity]);
 
   // Helper function to get status color and icon
   const getStatusDisplay = (status) => {
@@ -131,6 +161,7 @@ window.renderEnhancedRecentActivity = function() {
     }
   };
 
+  // Render component
   return React.createElement('div', { 
     className: 'bg-white dark:bg-gray-800 rounded-lg shadow border'
   },
@@ -142,16 +173,19 @@ window.renderEnhancedRecentActivity = function() {
         React.createElement('h3', { 
           className: 'text-lg font-semibold text-gray-900 dark:text-white'
         }, 'Recent Activity'),
-        React.createElement('span', {
+        !isLoading && React.createElement('span', {
           className: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'
         }, `${recentLeads.length} leads`)
       ),
       React.createElement('div', { className: 'flex items-center space-x-2' },
         React.createElement('button', {
-          onClick: () => window.fetchLeads && window.fetchLeads(),
-          className: 'inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+          onClick: fetchRecentActivity,
+          disabled: isLoading,
+          className: 'inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
         },
-          React.createElement('span', { className: 'mr-1' }, '🔄'),
+          React.createElement('span', { 
+            className: isLoading ? 'mr-1 animate-spin' : 'mr-1' 
+          }, '🔄'),
           'Refresh'
         )
       )
@@ -159,133 +193,132 @@ window.renderEnhancedRecentActivity = function() {
 
     // Recent Activity List
     React.createElement('div', { className: 'p-6' },
+      // Loading state
+      isLoading ? 
+        React.createElement('div', { className: 'text-center py-12' },
+          React.createElement('div', { className: 'animate-spin text-3xl mb-4' }, '⌛'),
+          React.createElement('p', { className: 'text-gray-500' }, 'Loading recent activity...')
+        ) :
+      
+      // Error state
+      error ?
+        React.createElement('div', { className: 'text-center py-12' },
+          React.createElement('div', { className: 'text-4xl mb-4' }, '⚠️'),
+          React.createElement('h3', { className: 'text-lg font-medium text-gray-900 mb-2' }, 'Error Loading Activity'),
+          React.createElement('p', { className: 'text-gray-500 mb-4' }, error),
+          React.createElement('button', {
+            onClick: fetchRecentActivity,
+            className: 'inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+          },
+            React.createElement('span', { className: 'mr-2' }, '🔄'),
+            'Try Again'
+          )
+        ) :
+      
+      // Data state
       recentLeads.length > 0 ?
         React.createElement('div', { className: 'space-y-4' },
           recentLeads.map((lead, index) => {
             const statusDisplay = getStatusDisplay(lead.status);
             const tempDisplay = getTemperatureDisplay(lead);
-            const lastActivity = getRelativeTime(lead.updated_date || lead.created_date);
+            const timeAgo = getRelativeTime(lead.updated_date || lead.created_date);
             
             return React.createElement('div', {
-              key: lead.id,
-              className: 'group relative bg-gradient-to-r from-gray-50 to-white hover:from-blue-50 hover:to-white border border-gray-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md cursor-pointer',
-              onClick: () => handleViewDetails(lead)
+              key: lead.id || index,
+              className: 'border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors'
             },
-              // Main content row
-              React.createElement('div', { className: 'flex items-center justify-between' },
-                // Left side - Lead info
-                React.createElement('div', { className: 'flex items-center space-x-4 flex-1' },
-                  // Avatar or icon
-                  React.createElement('div', {
-                    className: 'flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm'
-                  }, (lead.name || 'Unknown').charAt(0).toUpperCase()),
-                  
-                  // Lead details
-                  React.createElement('div', { className: 'flex-1 min-w-0' },
-                    React.createElement('div', { className: 'flex items-center space-x-2' },
-                      React.createElement('h4', {
-                        className: 'text-sm font-semibold text-gray-900 truncate group-hover:text-blue-600'
-                      }, lead.name || 'Unknown Lead'),
-                      React.createElement('span', {
-                        className: `inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusDisplay.color}`
-                      }, statusDisplay.icon, ' ', statusDisplay.label)
+              // Lead info row
+              React.createElement('div', { className: 'flex items-start justify-between mb-3' },
+                React.createElement('div', { className: 'flex-1' },
+                  React.createElement('div', { className: 'flex items-center space-x-2 mb-1' },
+                    React.createElement('h4', { 
+                      className: 'font-medium text-gray-900 dark:text-white cursor-pointer hover:text-blue-600',
+                      onClick: () => handleViewDetails(lead)
+                    }, lead.name || 'Unknown Lead'),
+                    
+                    // Status badge
+                    React.createElement('span', {
+                      className: `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusDisplay.color}`
+                    },
+                      React.createElement('span', { className: 'mr-1' }, statusDisplay.icon),
+                      statusDisplay.label
                     ),
                     
-                    React.createElement('div', { className: 'mt-1 flex items-center space-x-4 text-xs text-gray-500' },
-                      // Company
-                      lead.company && React.createElement('span', {
-                        className: 'flex items-center'
-                      }, 
-                        React.createElement('span', { className: 'mr-1' }, '🏢'),
-                        lead.company
-                      ),
-                      
-                      // Phone
-                      lead.phone && React.createElement('span', {
-                        className: 'flex items-center'
-                      },
-                        React.createElement('span', { className: 'mr-1' }, '📞'),
-                        lead.phone
-                      ),
-                      
-                      // Email
-                      lead.email && React.createElement('span', {
-                        className: 'flex items-center truncate'
-                      },
-                        React.createElement('span', { className: 'mr-1' }, '📧'),
-                        lead.email
-                      )
+                    // Temperature indicator
+                    React.createElement('span', {
+                      className: `${tempDisplay.color} text-sm`
+                    },
+                      React.createElement('span', null, tempDisplay.icon),
+                      React.createElement('span', { className: 'ml-1' }, tempDisplay.label)
+                    )
+                  ),
+                  
+                  // Contact info
+                  React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' },
+                    lead.phone && React.createElement('span', { className: 'mr-3' }, 
+                      '📱 ', lead.phone
+                    ),
+                    lead.email && React.createElement('span', null, 
+                      '✉️ ', lead.email
                     )
                   )
                 ),
-
-                // Center - Temperature & Value
-                React.createElement('div', { className: 'flex items-center space-x-6 text-sm' },
-                  // Temperature
-                  React.createElement('div', { className: 'text-center' },
-                    React.createElement('div', { className: `text-lg ${tempDisplay.color}` }, tempDisplay.icon),
-                    React.createElement('div', { className: 'text-xs text-gray-500' }, tempDisplay.label)
+                
+                // Time indicator
+                React.createElement('div', { 
+                  className: 'text-xs text-gray-500 dark:text-gray-400'
+                }, timeAgo)
+              ),
+              
+              // Additional info row
+              React.createElement('div', { className: 'flex items-center justify-between text-sm' },
+                React.createElement('div', { className: 'flex items-center space-x-4 text-gray-600 dark:text-gray-400' },
+                  lead.lead_for_event && React.createElement('span', null,
+                    '🎯 ', lead.lead_for_event
                   ),
-                  
-                  // Value
-                  React.createElement('div', { className: 'text-center' },
-                    React.createElement('div', { className: 'font-semibold text-green-600' }, 
-                      lead.potential_value ? `₹${(parseFloat(lead.potential_value) || 0).toLocaleString()}` : '₹0'
-                    ),
-                    React.createElement('div', { className: 'text-xs text-gray-500' }, 'Value')
+                  lead.source && React.createElement('span', null,
+                    '📍 ', lead.source
                   ),
-                  
-                  // Last activity
-                  React.createElement('div', { className: 'text-center' },
-                    React.createElement('div', { className: 'text-xs font-medium text-gray-700' }, lastActivity),
-                    React.createElement('div', { className: 'text-xs text-gray-500' }, 'Last activity')
+                  lead.potential_value && React.createElement('span', null,
+                    '💰 ₹', parseFloat(lead.potential_value).toLocaleString()
                   )
                 ),
-
-                // Right side - Quick actions
-                React.createElement('div', { 
-                  className: 'flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity',
-                  onClick: (e) => e.stopPropagation() // Prevent triggering the main click
-                },
-                  // Call button
-                  lead.phone && React.createElement('button', {
+                
+                // Quick actions
+                React.createElement('div', { className: 'flex items-center space-x-1' },
+                  React.createElement('button', {
                     onClick: () => handleQuickCall(lead),
-                    className: 'p-2 text-green-600 hover:bg-green-50 rounded-full transition-colors',
+                    className: 'p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
                     title: 'Quick Call'
                   }, '📞'),
                   
-                  // Email button
-                  lead.email && React.createElement('button', {
+                  React.createElement('button', {
                     onClick: () => handleQuickEmail(lead),
-                    className: 'p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors',
+                    className: 'p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
                     title: 'Quick Email'
                   }, '📧'),
                   
-                  // Edit button
                   React.createElement('button', {
                     onClick: () => handleQuickEdit(lead),
-                    className: 'p-2 text-orange-600 hover:bg-orange-50 rounded-full transition-colors',
+                    className: 'p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
                     title: 'Quick Edit'
                   }, '✏️'),
                   
-                  // Progress button
                   React.createElement('button', {
                     onClick: () => handleQuickProgress(lead),
-                    className: 'p-2 text-purple-600 hover:bg-purple-50 rounded-full transition-colors',
+                    className: 'p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
                     title: 'Progress Lead'
                   }, '⏭️')
                 )
               ),
-
-              // Assignment info (if assigned)
+              
+              // Assigned to info
               lead.assigned_to && React.createElement('div', { 
-                className: 'mt-2 pt-2 border-t border-gray-100 flex items-center text-xs text-gray-500'
+                className: 'mt-2 text-xs text-gray-500 dark:text-gray-400'
               },
-                React.createElement('span', { className: 'mr-1' }, '👤'),
-                'Assigned to: ',
-                React.createElement('span', { className: 'font-medium text-gray-700 ml-1' },
-                  window.getUserDisplayName ? window.getUserDisplayName(lead.assigned_to, window.users) : lead.assigned_to
-                )
+                '👤 Assigned to: ',
+                window.getUserDisplayName ? 
+                  window.getUserDisplayName(lead.assigned_to, window.users) : lead.assigned_to
               )
             );
           })
@@ -297,15 +330,15 @@ window.renderEnhancedRecentActivity = function() {
           React.createElement('h3', { className: 'text-lg font-medium text-gray-900 mb-2' }, 'No Recent Activity'),
           React.createElement('p', { className: 'text-gray-500' }, 'No leads found with recent activity.'),
           React.createElement('button', {
-            onClick: () => window.fetchLeads && window.fetchLeads(),
+            onClick: fetchRecentActivity,
             className: 'mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
           },
             React.createElement('span', { className: 'mr-2' }, '🔄'),
-            'Refresh Leads'
+            'Refresh Activity'
           )
         )
     )
   );
 };
 
-console.log('✅ Enhanced Recent Activity Component loaded successfully');
+console.log('✅ Enhanced Recent Activity Component (API Version) loaded successfully');
