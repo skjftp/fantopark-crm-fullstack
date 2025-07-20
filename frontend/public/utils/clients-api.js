@@ -3,51 +3,85 @@ window.ClientsAPI = {
   currentPage: 1,
   perPage: 20,
   
-  // Fetch paginated clients
+  // Fetch paginated clients from backend
   fetchPaginatedClients: async function(params = {}) {
     try {
       const page = params.page || this.currentPage;
       const limit = params.limit || this.perPage;
       
-      // For now, fetch all and paginate client-side
-      // (Backend pagination can be added later)
-      const response = await window.apiCall('/clients');
-      const allClients = response.data || [];
+      window.log.info(`📋 Fetching clients page ${page}`);
       
-      // Client-side pagination
-      const start = (page - 1) * limit;
-      const end = start + limit;
-      const paginatedClients = allClients.slice(start, end);
+      // Build query parameters
+      const queryParams = new URLSearchParams({
+        page: page,
+        limit: limit
+      });
       
-      // Update state
-      if (window.appState.setClients) {
-        window.appState.setClients(paginatedClients);
+      // Fetch paginated clients from API
+      const response = await window.apiCall(`/clients?${queryParams.toString()}`);
+      
+      if (response.success) {
+        // Update state with paginated data
+        if (window.appState.setClients) {
+          window.appState.setClients(response.data || []);
+        }
+        
+        // Update pagination info
+        const paginationData = response.pagination || {};
+        const fullPagination = {
+          page: paginationData.page || page,
+          totalPages: paginationData.totalPages || 1,
+          total: paginationData.total || 0,
+          hasNext: paginationData.hasNext || false,
+          hasPrev: paginationData.hasPrev || false,
+          perPage: paginationData.limit || limit
+        };
+        
+        if (window.appState.setClientsPagination) {
+          window.appState.setClientsPagination(fullPagination);
+        }
+        
+        window.log.success(`✅ Loaded ${response.data?.length || 0} clients (page ${page} of ${fullPagination.totalPages})`);
+        
+        return response;
+      } else {
+        throw new Error(response.error || 'Failed to fetch clients');
       }
       
-      // Set pagination info
+    } catch (error) {
+      window.log.error('Error fetching clients:', error);
+      
+      // Set empty state on error
+      if (window.appState.setClients) {
+        window.appState.setClients([]);
+      }
+      
       if (window.appState.setClientsPagination) {
         window.appState.setClientsPagination({
-          page: page,
-          totalPages: Math.ceil(allClients.length / limit),
-          total: allClients.length,
-          hasNext: end < allClients.length,
-          hasPrev: page > 1,
-          perPage: limit
+          page: 1,
+          totalPages: 1,
+          total: 0,
+          hasNext: false,
+          hasPrev: false,
+          perPage: 20
         });
       }
       
-      // Store all clients for filtering
-      window.allClientsCache = allClients;
-      
-      return { success: true, data: paginatedClients };
-    } catch (error) {
-      console.error('Error fetching clients:', error);
-      return { success: false, data: [] };
+      return { success: false, data: [], error: error.message };
     }
   },
   
+  // Change page
   changePage: function(newPage) {
     this.currentPage = newPage;
     return this.fetchPaginatedClients({ page: newPage });
+  },
+  
+  // Refresh current page
+  refresh: function() {
+    return this.fetchPaginatedClients({ page: this.currentPage });
   }
 };
+
+// Log module loaded
+window.log.success('✅ ClientsAPI module loaded - Server-side pagination');
