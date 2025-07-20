@@ -41,86 +41,58 @@ const EnhancedRecentActivityComponent = () => {
       }
     } catch (error) {
       console.error('❌ Error fetching recent activity:', error);
-      setError(error.message);
+      setError(error.message || 'Failed to load recent activity');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Fetch data on component mount
+  // Load data on mount
   React.useEffect(() => {
     fetchRecentActivity();
   }, [fetchRecentActivity]);
 
-  // Helper function to get status color and icon
+  // Helper functions
   const getStatusDisplay = (status) => {
-    const statusConfig = window.LEAD_STATUSES && window.LEAD_STATUSES[status];
-    if (statusConfig) {
-      return {
-        color: statusConfig.color || 'bg-gray-100 text-gray-800',
-        label: statusConfig.label || status,
-        icon: getStatusIcon(status)
-      };
-    }
-    return {
-      color: 'bg-gray-100 text-gray-800',
+    const statusConfig = window.LEAD_STATUSES?.[status] || {
       label: status || 'Unknown',
+      color: 'bg-gray-100 text-gray-800',
       icon: '📋'
     };
+    return statusConfig;
   };
 
-  // Helper function to get status icons
-  const getStatusIcon = (status) => {
-    const iconMap = {
-      'new': '🆕',
-      'contacted': '📞',
-      'qualified': '✅',
-      'hot': '🔥',
-      'warm': '🌡️',
-      'cold': '❄️',
-      'junk': '🗑️',
-      'converted': '💰',
-      'pickup_later': '⏰',
-      'not_interested': '❌'
+  const getTemperatureDisplay = (lead) => {
+    const temp = lead.temperature?.toLowerCase();
+    const tempConfig = {
+      hot: { icon: '🔥', color: 'text-red-600 bg-red-50' },
+      warm: { icon: '☀️', color: 'text-yellow-600 bg-yellow-50' },
+      cold: { icon: '❄️', color: 'text-blue-600 bg-blue-50' }
     };
-    return iconMap[status] || '📋';
+    return tempConfig[temp] || null;
   };
 
-  // Helper function to format relative time
   const getRelativeTime = (dateString) => {
-    if (!dateString) return 'Unknown';
+    if (!dateString) return 'Unknown time';
     
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now - date;
-    const diffMinutes = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffMinutes < 1) return 'Just now';
-    if (diffMinutes < 60) return `${diffMinutes}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 60) return `${diffMins} minutes ago`;
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    if (diffDays < 30) return `${diffDays} days ago`;
     return date.toLocaleDateString();
   };
 
-  // Helper function to get temperature display
-  const getTemperatureDisplay = (lead) => {
-    const temp = lead.temperature || lead.status;
-    const tempMap = {
-      'hot': { icon: '🔥', color: 'text-red-600', label: 'Hot' },
-      'warm': { icon: '🌡️', color: 'text-orange-600', label: 'Warm' },
-      'cold': { icon: '❄️', color: 'text-blue-600', label: 'Cold' },
-      'qualified': { icon: '🔥', color: 'text-red-600', label: 'Hot' }
-    };
-    return tempMap[temp] || { icon: '📊', color: 'text-gray-600', label: 'Unknown' };
-  };
-
-  // Quick action handlers
+  // Action handlers
   const handleQuickCall = (lead) => {
     console.log('📞 Quick call for lead:', lead.name);
     if (lead.phone) {
-      window.open(`tel:${lead.phone}`);
+      window.location.href = `tel:${lead.phone}`;
     } else {
       alert('No phone number available for this lead');
     }
@@ -129,27 +101,27 @@ const EnhancedRecentActivityComponent = () => {
   const handleQuickEmail = (lead) => {
     console.log('📧 Quick email for lead:', lead.name);
     if (lead.email) {
-      window.open(`mailto:${lead.email}`);
+      window.location.href = `mailto:${lead.email}`;
     } else {
-      alert('No email address available for this lead');
+      alert('No email available for this lead');
     }
   };
 
   const handleQuickEdit = (lead) => {
     console.log('✏️ Quick edit for lead:', lead.name);
-    if (window.editLead) {
-      window.editLead(lead);
+    if (window.openEditForm) {
+      window.openEditForm(lead);
     } else {
       alert('Edit function not available');
     }
   };
 
   const handleQuickProgress = (lead) => {
-    console.log('⏭️ Quick progress for lead:', lead.name);
-    if (window.progressLead) {
-      window.progressLead(lead);
+    console.log('⏭️ Progress lead:', lead.name);
+    if (window.handleLeadProgression) {
+      window.handleLeadProgression(lead);
     } else {
-      alert('Progress function not available');
+      alert('Lead progression function not available');
     }
   };
 
@@ -229,15 +201,19 @@ const EnhancedRecentActivityComponent = () => {
             
             return React.createElement('div', {
               key: lead.id || index,
-              className: 'border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors'
+              className: 'border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer',
+              onClick: (e) => {
+                // Prevent click if clicking on action buttons
+                if (e.target.closest('button')) return;
+                handleViewDetails(lead);
+              }
             },
               // Lead info row
               React.createElement('div', { className: 'flex items-start justify-between mb-3' },
                 React.createElement('div', { className: 'flex-1' },
                   React.createElement('div', { className: 'flex items-center space-x-2 mb-1' },
                     React.createElement('h4', { 
-                      className: 'font-medium text-gray-900 dark:text-white cursor-pointer hover:text-blue-600',
-                      onClick: () => handleViewDetails(lead)
+                      className: 'font-medium text-gray-900 dark:text-white hover:text-blue-600'
                     }, lead.name || 'Unknown Lead'),
                     
                     // Status badge
@@ -249,67 +225,67 @@ const EnhancedRecentActivityComponent = () => {
                     ),
                     
                     // Temperature indicator
-                    React.createElement('span', {
-                      className: `${tempDisplay.color} text-sm`
+                    tempDisplay && React.createElement('span', {
+                      className: `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${tempDisplay.color}`
                     },
-                      React.createElement('span', null, tempDisplay.icon),
-                      React.createElement('span', { className: 'ml-1' }, tempDisplay.label)
+                      React.createElement('span', { className: 'mr-1' }, tempDisplay.icon),
+                      lead.temperature
                     )
                   ),
                   
-                  // Contact info
-                  React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' },
-                    lead.phone && React.createElement('span', { className: 'mr-3' }, 
+                  // Lead details
+                  React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400 space-y-1' },
+                    lead.email && React.createElement('div', null, 
+                      '📧 ', lead.email
+                    ),
+                    lead.phone && React.createElement('div', null, 
                       '📱 ', lead.phone
                     ),
-                    lead.email && React.createElement('span', null, 
-                      '✉️ ', lead.email
+                    lead.lead_for_event && React.createElement('div', null, 
+                      '🎫 ', lead.lead_for_event
+                    ),
+                    lead.potential_value && React.createElement('div', { 
+                      className: 'font-medium text-green-600 dark:text-green-400' 
+                    }, 
+                      '₹ ', parseInt(lead.potential_value).toLocaleString()
                     )
-                  )
-                ),
-                
-                // Time indicator
-                React.createElement('div', { 
-                  className: 'text-xs text-gray-500 dark:text-gray-400'
-                }, timeAgo)
-              ),
-              
-              // Additional info row
-              React.createElement('div', { className: 'flex items-center justify-between text-sm' },
-                React.createElement('div', { className: 'flex items-center space-x-4 text-gray-600 dark:text-gray-400' },
-                  lead.lead_for_event && React.createElement('span', null,
-                    '🎯 ', lead.lead_for_event
-                  ),
-                  lead.source && React.createElement('span', null,
-                    '📍 ', lead.source
-                  ),
-                  lead.potential_value && React.createElement('span', null,
-                    '💰 ₹', parseFloat(lead.potential_value).toLocaleString()
                   )
                 ),
                 
                 // Quick actions
                 React.createElement('div', { className: 'flex items-center space-x-1' },
                   React.createElement('button', {
-                    onClick: () => handleQuickCall(lead),
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      handleQuickCall(lead);
+                    },
                     className: 'p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
                     title: 'Quick Call'
                   }, '📞'),
                   
                   React.createElement('button', {
-                    onClick: () => handleQuickEmail(lead),
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      handleQuickEmail(lead);
+                    },
                     className: 'p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
                     title: 'Quick Email'
                   }, '📧'),
                   
                   React.createElement('button', {
-                    onClick: () => handleQuickEdit(lead),
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      handleQuickEdit(lead);
+                    },
                     className: 'p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
                     title: 'Quick Edit'
                   }, '✏️'),
                   
                   React.createElement('button', {
-                    onClick: () => handleQuickProgress(lead),
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      handleQuickProgress(lead);
+                    },
                     className: 'p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
                     title: 'Progress Lead'
                   }, '⏭️')
