@@ -16,14 +16,46 @@ window.formatCurrency = window.formatCurrency || ((amount) => {
 
 window.formatIndianNumber = window.formatIndianNumber || window.formatNumber;
 
+// Initialize tab state
+if (!window.inventoryDetailTab) {
+  window.inventoryDetailTab = 'details';
+}
+
+// Override setCurrentInventoryDetail to reset tab when changing inventory
+const originalSetCurrentInventoryDetail = window.setCurrentInventoryDetail;
+if (originalSetCurrentInventoryDetail && !window._inventoryDetailOverridden) {
+  window.setCurrentInventoryDetail = (inventory) => {
+    if (inventory && (!window.currentInventoryDetail || window.currentInventoryDetail.id !== inventory.id)) {
+      window.inventoryDetailTab = 'details'; // Reset tab for new inventory
+    }
+    originalSetCurrentInventoryDetail(inventory);
+  };
+  window._inventoryDetailOverridden = true;
+}
+
 window.renderInventoryDetail = () => {
   if (!window.showInventoryDetail || !window.currentInventoryDetail) return null;
 
   const item = window.currentInventoryDetail;
   const daysUntilEvent = Math.ceil((new Date(item.event_date) - new Date()) / (1000 * 60 * 60 * 24));
   
-  // Tab state
-  const [activeTab, setActiveTab] = React.useState('details');
+  // Check if this is a different inventory item than last time
+  if (window.lastInventoryDetailId !== item.id) {
+    window.inventoryDetailTab = 'details'; // Reset to details tab for new items
+    window.lastInventoryDetailId = item.id;
+  }
+  
+  // Tab state management using window globals
+  if (!window.inventoryDetailTab) {
+    window.inventoryDetailTab = 'details';
+  }
+  
+  const activeTab = window.inventoryDetailTab;
+  const setActiveTab = (tab) => {
+    window.inventoryDetailTab = tab;
+    // Force re-render
+    if (window.renderApp) window.renderApp();
+  };
   
   // Calculate total available and total tickets across all categories
   const totalAvailable = item.categories?.reduce((sum, cat) => sum + (cat.available_tickets || 0), 0) || item.available_tickets || 0;
@@ -437,6 +469,7 @@ window.renderInventoryDetail = () => {
 window.closeInventoryDetail = () => {
   window.setShowInventoryDetail(false);
   window.setCurrentInventoryDetail(null);
+  window.inventoryDetailTab = 'details'; // Reset tab to details
 };
 
 console.log('✅ Enhanced Inventory Detail with Market Rate Tab loaded successfully');
