@@ -745,7 +745,11 @@ window.handleBulkAssignSubmit = async function() {
     }
 
     // Refresh leads list
+    if (window.LeadsAPI) {
+    window.LeadsAPI.refresh();
+} else if (window.fetchLeads) {
     window.fetchLeads();
+}
 
     alert(`Bulk assignment completed! ${successCount} leads assigned successfully. ${errorCount} failed.`);
     window.setBulkAssignSelections({});
