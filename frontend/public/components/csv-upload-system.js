@@ -298,9 +298,9 @@ window.CSVUploadModal = ({ isOpen, onClose, type }) => {
         }
 
         try {
-          if (type === 'leads' && window.fetchLeads) {
-            await window.fetchLeads();
-          } else if (type === 'inventory' && window.fetchInventory) {
+          if (type === 'leads' && window.LeadsAPI) {
+    await window.LeadsAPI.refresh();
+} else if (type === 'inventory' && window.fetchInventory) {
             await window.fetchInventory();
           } else if (window.apicall) {
             if (type === 'leads') {
