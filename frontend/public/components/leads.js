@@ -859,13 +859,8 @@ return React.createElement('div', { className: 'space-y-6' },
                         }`
                     }, 
                         React.createElement('span', { className: 'mr-2' }, '👥'),
-                        `Client View (${
-    clientsPagination.total || 
-    window.ClientsAPI?.paginationData?.total || 
-    window.appState?.clientsPagination?.total || 
-    window.appState?.totalClients || 
-    0
-})`
+                        `Client View (${window.ClientsAPI?.paginationData?.total || 0})`
+
                     )
                 )
             ),
