@@ -169,6 +169,110 @@
     -webkit-overflow-scrolling: touch !important;
   }
   
+  /* ===== MODAL FIXES FOR MOBILE ===== */
+  
+  /* Fix modal positioning and sizing */
+  .fixed.inset-0,
+  [role="dialog"],
+  .modal-backdrop {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important; /* Dynamic viewport height */
+    overflow: hidden !important;
+  }
+  
+  /* Modal content container */
+  .fixed.inset-0 > div,
+  [role="dialog"] > div {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  /* Modal inner content - ensure it's scrollable */
+  .bg-white.rounded-lg.w-full,
+  .bg-gray-800.rounded-lg.w-full,
+  .modal-content,
+  [role="dialog"] .bg-white,
+  [role="dialog"] .bg-gray-800 {
+    max-height: calc(100vh - 20px) !important;
+    max-height: calc(100dvh - 20px) !important;
+    margin: 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+  
+  /* Modal header (with tabs) - fixed at top */
+  .modal-header,
+  [role="dialog"] .border-b:first-child,
+  .bg-gray-50.px-6.py-4,
+  .flex.justify-between.items-start {
+    flex-shrink: 0 !important;
+    position: relative !important;
+    z-index: 10 !important;
+  }
+  
+  /* Tab navigation in modals */
+  .border-b nav,
+  [role="tablist"] {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    white-space: nowrap !important;
+  }
+  
+  /* Modal body - scrollable content */
+  .modal-body,
+  .flex-1.overflow-y-auto,
+  [role="dialog"] .p-6,
+  [role="tabpanel"] {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 20px !important;
+    min-height: 0 !important; /* Important for flex children */
+  }
+  
+  /* Ensure lead detail modal content is visible */
+  [data-modal="lead-detail"] .flex-1,
+  .lead-detail-modal .flex-1 {
+    display: block !important;
+    overflow-y: auto !important;
+    height: calc(100% - 120px) !important; /* Account for header and tabs */
+  }
+  
+  /* Fix for dark mode modals */
+  .dark [role="dialog"] .bg-white {
+    background-color: rgb(31 41 55) !important;
+  }
+  
+  /* Close button should be accessible */
+  [role="dialog"] button[aria-label="Close"],
+  .modal-close,
+  button:has(> svg[class*="x-6"]) {
+    position: absolute !important;
+    right: 10px !important;
+    top: 10px !important;
+    z-index: 20 !important;
+  }
+  
+  /* Reduce modal padding on mobile */
+  [role="dialog"] .p-6 {
+    padding: 1rem !important;
+  }
+  
+  [role="dialog"] .px-6 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* ===== END MODAL FIXES =====
+  
   /* ===== END SCROLL FIX ADDITIONS ===== */
 }
 
