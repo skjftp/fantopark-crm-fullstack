@@ -1,7 +1,39 @@
 // Leads CSV Export Functionality
 // Exports all lead fields to CSV format
 
-window.exportLeadsToCSV = async function(exportAll = false) {
+// Helper function to convert date to IST format
+function toISTString(dateValue) {
+  if (!dateValue) return '';
+  
+  let date;
+  
+  // Handle Firestore timestamp format
+  if (dateValue._seconds !== undefined) {
+    date = new Date(dateValue._seconds * 1000);
+  } else if (typeof dateValue === 'object' && dateValue.seconds !== undefined) {
+    date = new Date(dateValue.seconds * 1000);
+  } else {
+    date = new Date(dateValue);
+  }
+  
+  if (isNaN(date.getTime())) return String(dateValue);
+  
+  // Add 5 hours 30 minutes to convert to IST
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(date.getTime() + istOffset);
+  
+  // Format as DD/MM/YYYY HH:MM:SS IST
+  const day = istDate.getUTCDate().toString().padStart(2, '0');
+  const month = (istDate.getUTCMonth() + 1).toString().padStart(2, '0');
+  const year = istDate.getUTCFullYear();
+  const hours = istDate.getUTCHours().toString().padStart(2, '0');
+  const minutes = istDate.getUTCMinutes().toString().padStart(2, '0');
+  const seconds = istDate.getUTCSeconds().toString().padStart(2, '0');
+  
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds} IST`;
+}
+
+window.exportLeadsToCSV = async function(exportAll = false, includeCommunications = true) {
   try {
     console.log('📊 Starting leads CSV export...');
     
@@ -35,132 +67,124 @@ window.exportLeadsToCSV = async function(exportAll = false) {
     
     console.log(`✅ Exporting ${leadsToExport.length} leads to CSV`);
     
+    // Define specific fields to export (in order)
+    const fieldOrder = [
+      'date_of_enquiry',      // Date of Lead
+      'assigned_to_name',     // Alloted to Sales Person
+      'name',                 // Name of Lead
+      'phone',                // Phone No.
+      'email',                // Email
+      'business_type',        // Client Type
+      'status',               // Current Status/Stage
+      'source',               // Source
+      'event_category',       // Event Category
+      'lead_for_event',       // Event (using lead_for_event or event_name)
+      'annual_income_bracket', // What is your annual income
+      'number_of_people',      // How many tickets do you need
+      'first_contact_date',   // First Touchbase Date
+      'last_contact_date',    // Last Touchbase Date
+    ];
+    
+    // Fetch communications for all leads
+    const leadCommunications = {};
+    
+    if (includeCommunications) {
+      console.log('🔄 Fetching communications for leads...');
+      
+      // Process in batches to avoid overwhelming the API
+      const batchSize = 10;
+      for (let i = 0; i < Math.min(leadsToExport.length, 50); i += batchSize) {
+        const batch = leadsToExport.slice(i, i + batchSize);
+        const batchPromises = batch.map(async (lead) => {
+          try {
+            // Log lead info to debug
+            console.log(`Fetching communications for lead: ${lead.name} (${lead.email}) - ID: ${lead.id}`);
+            
+            // Special check for the lead you mentioned
+            if (lead.email === 'garglvsh93@gmail.com') {
+              console.log('🎯 Found the specific lead with email garglvsh93@gmail.com - ID:', lead.id);
+            }
+            
+            const response = await window.apiCall(`/communications/lead/${lead.id}`);
+            
+            // Check response structure
+            if (response && response.data && Array.isArray(response.data)) {
+              leadCommunications[lead.id] = response.data;
+              if (response.data.length > 0) {
+                console.log(`✅ Fetched ${response.data.length} communications for lead ${lead.id} (${lead.name})`);
+              }
+            } else if (response && Array.isArray(response)) {
+              // Sometimes the response might be the array directly
+              leadCommunications[lead.id] = response;
+              if (response.length > 0) {
+                console.log(`✅ Fetched ${response.length} communications for lead ${lead.id} (${lead.name})`);
+              }
+            } else {
+              console.log(`No communications found for lead ${lead.id} (${lead.name})`);
+              leadCommunications[lead.id] = [];
+            }
+          } catch (error) {
+            console.error(`Failed to fetch communications for lead ${lead.id} (${lead.name}):`, error);
+            leadCommunications[lead.id] = [];
+          }
+        });
+        
+        await Promise.all(batchPromises);
+      }
+    }
+    
     // Get all unique fields from all leads
     const allFields = new Set();
     leadsToExport.forEach(lead => {
       Object.keys(lead).forEach(key => allFields.add(key));
     });
     
-    // Define field order (important fields first)
-    const fieldOrder = [
-      'id',
-      'name',
-      'email',
-      'phone',
-      'company',
-      'status',
-      'source',
-      'lead_for_event',
-      'event_name',
-      'assigned_to',
-      'assigned_to_name',
-      'date_of_enquiry',
-      'created_date',
-      'updated_date',
-      'business_type',
-      'potential_value',
-      'client_id',
-      'address',
-      'city',
-      'state',
-      'country',
-      'requirements',
-      'notes',
-      'last_contact_date',
-      'next_follow_up',
-      'conversion_date',
-      'lost_reason',
-      'tags',
-      'priority',
-      'campaign_source',
-      'utm_source',
-      'utm_medium',
-      'utm_campaign',
-      'referral_source',
-      'website_source',
-      'ip_address',
-      'browser_info',
-      'device_type',
-      'operating_system',
-      'page_visited',
-      'form_submitted',
-      'lead_quality_score',
-      'engagement_score',
-      'budget_range',
-      'timeline',
-      'decision_maker',
-      'buying_stage',
-      'competitors_considered',
-      'pain_points',
-      'custom_field_1',
-      'custom_field_2',
-      'custom_field_3',
-      'custom_field_4',
-      'custom_field_5'
-    ];
-    
-    // Add any remaining fields not in fieldOrder
-    allFields.forEach(field => {
-      if (!fieldOrder.includes(field)) {
-        fieldOrder.push(field);
-      }
-    });
-    
     // Filter out fields that don't exist in any lead
-    const fieldsToExport = fieldOrder.filter(field => allFields.has(field));
+    const fieldsToExport = fieldOrder.filter(field => 
+      allFields.has(field) || 
+      field === 'assigned_to_name' || // This is derived from assigned_to
+      field === 'event_category' || // Might need special handling
+      field === 'annual_income_bracket' || // Might be in different field name
+      field === 'number_of_people' || // Might be in different field name
+      field === 'first_contact_date' // Might need to be calculated
+    );
     
     // Create CSV headers with proper labels
     const headerLabels = {
-      id: 'Lead ID',
-      name: 'Name',
+      date_of_enquiry: 'Date of Lead',
+      assigned_to_name: 'Alloted to Sales Person',
+      name: 'Name of Lead',
+      phone: 'Phone No.',
       email: 'Email',
-      phone: 'Phone',
-      company: 'Company',
-      status: 'Status',
+      business_type: 'Client Type',
+      status: 'Current Status/Stage',
       source: 'Source',
-      lead_for_event: 'Lead For Event',
-      event_name: 'Event Name',
-      assigned_to: 'Assigned To (ID)',
-      assigned_to_name: 'Assigned To (Name)',
-      date_of_enquiry: 'Date of Enquiry',
-      created_date: 'Created Date',
-      updated_date: 'Updated Date',
-      business_type: 'Business Type',
-      potential_value: 'Potential Value',
-      client_id: 'Client ID',
-      address: 'Address',
-      city: 'City',
-      state: 'State',
-      country: 'Country',
-      requirements: 'Requirements',
-      notes: 'Notes',
-      last_contact_date: 'Last Contact Date',
-      next_follow_up: 'Next Follow Up',
-      conversion_date: 'Conversion Date',
-      lost_reason: 'Lost Reason',
-      tags: 'Tags',
-      priority: 'Priority',
-      campaign_source: 'Campaign Source',
-      utm_source: 'UTM Source',
-      utm_medium: 'UTM Medium',
-      utm_campaign: 'UTM Campaign',
-      referral_source: 'Referral Source',
-      website_source: 'Website Source',
-      ip_address: 'IP Address',
-      browser_info: 'Browser Info',
-      device_type: 'Device Type',
-      operating_system: 'Operating System',
-      page_visited: 'Page Visited',
-      form_submitted: 'Form Submitted',
-      lead_quality_score: 'Lead Quality Score',
-      engagement_score: 'Engagement Score',
-      budget_range: 'Budget Range',
-      timeline: 'Timeline',
-      decision_maker: 'Decision Maker',
-      buying_stage: 'Buying Stage',
-      competitors_considered: 'Competitors Considered',
-      pain_points: 'Pain Points'
+      event_category: 'Event Category',
+      lead_for_event: 'Event',
+      event_name: 'Event',
+      annual_income_bracket: 'What is your annual income',
+      number_of_people: 'How many tickets do you need',
+      first_contact_date: 'First Touchbase Date',
+      last_contact_date: 'Last Touchbase Date'
     };
+    
+    // Find maximum number of communications across all leads
+    let maxCommunications = 0;
+    let totalCommunications = 0;
+    leadsToExport.forEach(lead => {
+      const commCount = leadCommunications[lead.id] ? leadCommunications[lead.id].length : 0;
+      totalCommunications += commCount;
+      maxCommunications = Math.max(maxCommunications, commCount);
+    });
+    
+    console.log(`📊 Found ${totalCommunications} total communications, max ${maxCommunications} per lead`);
+    
+    // Add communication headers
+    for (let i = 1; i <= maxCommunications; i++) {
+      const commField = `communication_${i}`;
+      fieldsToExport.push(commField);
+      headerLabels[commField] = `Communication ${i}`;
+    }
     
     // Create CSV headers
     const headers = fieldsToExport.map(field => headerLabels[field] || field);
@@ -168,35 +192,106 @@ window.exportLeadsToCSV = async function(exportAll = false) {
     // Create CSV rows
     const rows = leadsToExport.map(lead => {
       return fieldsToExport.map(field => {
-        let value = lead[field];
+        let value = '';
         
-        // Handle special formatting
+        // Handle special fields
+        if (field === 'assigned_to_name') {
+          // Get user name from assigned_to
+          if (lead.assigned_to_name) {
+            value = lead.assigned_to_name;
+          } else if (lead.assigned_to) {
+            const users = window.appState?.users || window.users || [];
+            const assignedUser = users.find(u => u.email === lead.assigned_to || u.id === lead.assigned_to);
+            value = assignedUser ? assignedUser.name : lead.assigned_to;
+          }
+        } else if (field === 'event_category') {
+          // Event category might be in different fields
+          value = lead.event_category || lead.event_type || lead.category || '';
+        } else if (field === 'lead_for_event') {
+          // Use lead_for_event or event_name
+          value = lead.lead_for_event || lead.event_name || lead.event || '';
+        } else if (field === 'annual_income_bracket') {
+          // Look for annual income in various possible fields
+          value = lead.annual_income_bracket || lead.annual_income || lead.income || '';
+        } else if (field === 'number_of_people') {
+          // Look for ticket quantity in various possible fields
+          value = lead.number_of_people || lead.ticket_quantity || lead.tickets_needed || lead.quantity || '';
+        } else if (field === 'first_contact_date') {
+          // Calculate first contact date from communications or use created date
+          const communications = leadCommunications[lead.id] || [];
+          if (communications.length > 0) {
+            // Sort communications by date to find the first one
+            const sortedComms = [...communications].sort((a, b) => 
+              new Date(a.created_date) - new Date(b.created_date)
+            );
+            value = toISTString(sortedComms[0].created_date);
+          } else if (lead.first_contact_date) {
+            value = toISTString(lead.first_contact_date);
+          } else if (lead.created_date) {
+            value = toISTString(lead.created_date);
+          }
+        } else if (field.startsWith('communication_')) {
+          // Handle communication fields
+          const commIndex = parseInt(field.split('_')[1]) - 1;
+          const communications = leadCommunications[lead.id] || [];
+          
+          if (communications && communications[commIndex]) {
+            const comm = communications[commIndex];
+            // Format communication entry
+            const date = comm.created_date ? toISTString(comm.created_date) : '';
+            const type = comm.communication_type || 'Note';
+            const direction = comm.direction ? `[${comm.direction}]` : '';
+            const subject = comm.subject ? `${comm.subject}: ` : '';
+            const content = comm.content || '';
+            const outcome = comm.outcome ? ` (Outcome: ${comm.outcome})` : '';
+            const by = comm.created_by_name || comm.created_by || '';
+            const duration = comm.duration_minutes ? ` (${comm.duration_minutes} mins)` : '';
+            
+            value = `${date} ${type}${direction}${duration} - ${subject}${content}${outcome}${by ? ` - by ${by}` : ''}`;
+          } else {
+            value = ''; // No communication at this index
+          }
+        } else {
+          // Regular field
+          value = lead[field];
+        }
+        
+        // Handle null/undefined
         if (value === null || value === undefined) {
           return '';
         }
         
-        // Format dates
-        if (field.includes('date') || field.includes('Date')) {
-          if (value && !isNaN(new Date(value).getTime())) {
-            value = new Date(value).toLocaleString();
+        // Format dates - use IST for touchbase dates, regular format for others
+        if ((field.includes('date') || field.includes('Date')) && value && field !== 'first_contact_date') {
+          // Handle Firestore timestamp
+          if (value._seconds !== undefined || (typeof value === 'object' && value.seconds !== undefined)) {
+            if (field === 'last_contact_date') {
+              value = toISTString(value);
+            } else {
+              const date = value._seconds ? new Date(value._seconds * 1000) : new Date(value.seconds * 1000);
+              value = date.toLocaleDateString();
+            }
+          } else if (!isNaN(new Date(value).getTime())) {
+            if (field === 'last_contact_date') {
+              value = toISTString(value);
+            } else {
+              value = new Date(value).toLocaleDateString();
+            }
           }
         }
         
         // Format status with label
-        if (field === 'status' && window.LEAD_STATUSES && window.LEAD_STATUSES[value]) {
-          value = window.LEAD_STATUSES[value].label || value;
-        }
-        
-        // Format assigned_to_name
-        if (field === 'assigned_to_name' && !value && lead.assigned_to) {
-          // Try to get user name from users list
-          const users = window.appState?.users || window.users || [];
-          const assignedUser = users.find(u => u.email === lead.assigned_to || u.id === lead.assigned_to);
-          value = assignedUser ? assignedUser.name : lead.assigned_to;
+        if (field === 'status' && value) {
+          if (window.LEAD_STATUSES && window.LEAD_STATUSES[value]) {
+            value = window.LEAD_STATUSES[value].label || value;
+          } else {
+            // Format status string (replace underscores with spaces and capitalize)
+            value = value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          }
         }
         
         // Handle arrays and objects
-        if (typeof value === 'object') {
+        if (typeof value === 'object' && !field.startsWith('communication_')) {
           value = JSON.stringify(value);
         }
         
