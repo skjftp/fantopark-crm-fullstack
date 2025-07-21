@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">
 <link rel="stylesheet" href="css/mobile-responsive.css">
+<link rel="stylesheet" href="css/dark-mode-fixes.css">  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FanToPark CRM Pro</title>
 
@@ -620,6 +621,24 @@ window.optimizeLoginPerformance();
 
 <!-- CSS Styles -->
 <style>
+
+    /* Quick Dark Mode Fixes */
+  .dark .bg-white:hover,
+  .dark [class*="hover:bg-gray"]:hover,
+  .dark .hover\:bg-gray-50:hover,
+  .dark .hover\:bg-gray-100:hover {
+    background-color: rgb(55 65 81) !important;
+  }
+  
+  .dark .text-gray-900,
+  .dark .text-gray-800 {
+    color: rgb(243 244 246) !important;
+  }
+  
+  .dark .text-gray-600,
+  .dark .text-gray-500 {
+    color: rgb(156 163 175) !important;
+  }
 
   /* Stadium Notes Modal Styles */
 .stadium-notes-indicator {

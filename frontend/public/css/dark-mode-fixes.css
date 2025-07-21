@@ -1,0 +1,247 @@
+/* CRM Dark Mode Fixes */
+
+/* Fix hover states for recent activity cards */
+.dark .bg-white:hover {
+  background-color: rgb(31 41 55) !important; /* gray-800 */
+}
+
+/* Fix hover backgrounds for cards in dark mode */
+.dark [class*="hover:bg-gray"]:hover {
+  background-color: rgb(55 65 81) !important; /* gray-700 */
+}
+
+/* Ensure activity cards maintain dark background on hover */
+.dark .bg-white.rounded-lg:hover {
+  background-color: rgb(31 41 55) !important; /* gray-800 */
+}
+
+/* Fix text colors in dark mode */
+.dark .text-gray-900 {
+  color: rgb(243 244 246) !important; /* gray-100 */
+}
+
+.dark .text-gray-800 {
+  color: rgb(209 213 219) !important; /* gray-300 */
+}
+
+.dark .text-gray-700 {
+  color: rgb(209 213 219) !important; /* gray-300 */
+}
+
+.dark .text-gray-600 {
+  color: rgb(156 163 175) !important; /* gray-400 */
+}
+
+.dark .text-gray-500 {
+  color: rgb(156 163 175) !important; /* gray-400 */
+}
+
+/* Fix specific hover states for interactive elements */
+.dark button:hover {
+  background-color: rgb(55 65 81) !important; /* gray-700 */
+}
+
+.dark .hover\:bg-white:hover {
+  background-color: rgb(55 65 81) !important; /* gray-700 */
+}
+
+.dark .hover\:bg-gray-50:hover {
+  background-color: rgb(55 65 81) !important; /* gray-700 */
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: rgb(55 65 81) !important; /* gray-700 */
+}
+
+.dark .hover\:bg-gray-200:hover {
+  background-color: rgb(55 65 81) !important; /* gray-700 */
+}
+
+/* Fix for activity card hover state */
+.dark [class*="border"]:hover {
+  border-color: rgb(75 85 99) !important; /* gray-600 */
+}
+
+/* Ensure proper contrast for badges and labels */
+.dark .bg-blue-100 {
+  background-color: rgb(30 58 138) !important; /* blue-900 */
+}
+
+.dark .text-blue-800 {
+  color: rgb(147 197 253) !important; /* blue-300 */
+}
+
+.dark .bg-green-100 {
+  background-color: rgb(20 83 45) !important; /* green-900 */
+}
+
+.dark .text-green-800 {
+  color: rgb(134 239 172) !important; /* green-300 */
+}
+
+.dark .bg-red-100 {
+  background-color: rgb(127 29 29) !important; /* red-900 */
+}
+
+.dark .text-red-800 {
+  color: rgb(252 165 165) !important; /* red-300 */
+}
+
+.dark .bg-yellow-100 {
+  background-color: rgb(113 63 18) !important; /* yellow-900 */
+}
+
+.dark .text-yellow-800 {
+  color: rgb(253 224 71) !important; /* yellow-300 */
+}
+
+/* Fix for form inputs and selects */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: rgb(31 41 55) !important; /* gray-800 */
+  color: rgb(243 244 246) !important; /* gray-100 */
+  border-color: rgb(75 85 99) !important; /* gray-600 */
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: rgb(59 130 246) !important; /* blue-500 */
+  outline: none !important;
+}
+
+/* Fix dropdown menus */
+.dark .dropdown-menu,
+.dark [role="menu"] {
+  background-color: rgb(31 41 55) !important; /* gray-800 */
+  border-color: rgb(75 85 99) !important; /* gray-600 */
+}
+
+.dark .dropdown-item:hover,
+.dark [role="menuitem"]:hover {
+  background-color: rgb(55 65 81) !important; /* gray-700 */
+}
+
+/* Fix table hover states */
+.dark tbody tr:hover {
+  background-color: rgb(55 65 81) !important; /* gray-700 */
+}
+
+/* Fix card backgrounds */
+.dark .bg-white.shadow {
+  background-color: rgb(31 41 55) !important; /* gray-800 */
+}
+
+/* Fix modal backgrounds */
+.dark .modal-content,
+.dark [role="dialog"] {
+  background-color: rgb(31 41 55) !important; /* gray-800 */
+  color: rgb(243 244 246) !important; /* gray-100 */
+}
+
+/* Fix tooltip backgrounds */
+.dark .tooltip,
+.dark [role="tooltip"] {
+  background-color: rgb(17 24 39) !important; /* gray-900 */
+  color: rgb(243 244 246) !important; /* gray-100 */
+}
+
+/* Ensure proper contrast for disabled elements */
+.dark button:disabled,
+.dark input:disabled,
+.dark select:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Fix specific Recent Activity card issues */
+.dark .recent-activity-card,
+.dark [class*="Recent Activity"] + div > div {
+  background-color: rgb(31 41 55) !important; /* gray-800 */
+}
+
+.dark .recent-activity-card:hover,
+.dark [class*="Recent Activity"] + div > div:hover {
+  background-color: rgb(55 65 81) !important; /* gray-700 */
+}
+
+/* Additional fixes for chart containers */
+.dark .recharts-wrapper {
+  background-color: transparent !important;
+}
+
+.dark .recharts-text {
+  fill: rgb(156 163 175) !important; /* gray-400 */
+}
+
+/* Fix for notification badges */
+.dark .badge,
+.dark .notification-badge {
+  background-color: rgb(59 130 246) !important; /* blue-500 */
+  color: white !important;
+}
+
+/* Fix for tab navigation text colors */
+.dark nav button,
+.dark [role="tab"] {
+  color: rgb(156 163 175) !important; /* gray-400 for inactive tabs */
+}
+
+.dark nav button:hover,
+.dark [role="tab"]:hover {
+  color: rgb(243 244 246) !important; /* gray-100 for hover */
+}
+
+/* Active tab styling */
+.dark nav button.border-blue-600,
+.dark nav button.text-blue-600,
+.dark [role="tab"][aria-selected="true"],
+.dark [class*="border-blue"] {
+  color: rgb(96 165 250) !important; /* blue-400 for active tab */
+  border-color: rgb(96 165 250) !important;
+}
+
+/* Fix for tab containers with specific classes */
+.dark .border-transparent.text-gray-600 {
+  color: rgb(156 163 175) !important; /* gray-400 */
+}
+
+.dark .border-transparent.text-gray-600:hover {
+  color: rgb(243 244 246) !important; /* gray-100 */
+}
+
+/* Ensure active tabs are clearly visible */
+.dark .text-blue-600 {
+  color: rgb(96 165 250) !important; /* blue-400 */
+}
+
+/* Fix for any tab navigation within borders */
+.dark .border-b nav button,
+.dark .border-b nav a {
+  color: rgb(156 163 175) !important; /* gray-400 */
+}
+
+.dark .border-b nav button:hover,
+.dark .border-b nav a:hover {
+  color: rgb(243 244 246) !important; /* gray-100 */
+}
+
+/* Fix for sidebar navigation tabs */
+.dark .w-64 nav button,
+.dark .sidebar nav button {
+  color: rgb(209 213 219) !important; /* gray-300 */
+}
+
+.dark .w-64 nav button:hover,
+.dark .sidebar nav button:hover {
+  color: rgb(243 244 246) !important; /* gray-100 */
+}
+
+/* Active sidebar tab */
+.dark .w-64 nav button.bg-blue-600,
+.dark .sidebar nav button.bg-blue-600,
+.dark .w-64 nav button[class*="bg-blue"],
+.dark .sidebar nav button[class*="bg-blue"] {
+  color: white !important;
+}
