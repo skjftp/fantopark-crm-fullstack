@@ -1198,10 +1198,8 @@ router.delete('/', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Only super admins can perform bulk delete' });
     }
     
-    // Check if bulk delete headers are present
-    if (req.headers['x-delete-all'] !== 'true' || req.headers['x-test-mode'] !== 'true') {
-      return res.status(403).json({ error: 'Bulk delete requires test mode headers' });
-    }
+    // Bulk delete is disabled
+    return res.status(403).json({ error: 'Bulk delete functionality has been disabled' });
     
     console.log('Bulk delete inventory requested by:', req.user.email);
     
