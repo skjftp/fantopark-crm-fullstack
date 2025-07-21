@@ -226,6 +226,7 @@ return React.createElement('header', {
         }
       })
   );
+};
 
 // Mobile More Menu (Sheet)
 window.MobileMoreMenu = function() {
