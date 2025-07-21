@@ -72,22 +72,19 @@
     font-weight: 500 !important;
   }
 
-  /* ===== MOBILE TOP HEADER ===== */
-  .mobile-header {
+/* ===== MOBILE TOP HEADER ===== */
+.mobile-header {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
     height: 56px !important;
-    background: linear-gradient(to right, #ffffff, #fafbfc) !important;
-    /* Update the border to be more subtle */
-    border-bottom: 1px solid #f3f4f6 !important; /* Lighter border */
-    /* Add a subtle shadow for depth */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    background: white !important;
+    border-bottom: 1px solid #e5e7eb !important;
     display: flex !important;
-    align-items: center !important;
+    align-items: center !important; /* This should center vertically */
     justify-content: space-between !important;
-    padding: 0 16px !important; /* Increased padding */
+    padding: 0 12px !important;
     z-index: 999 !important;
     box-sizing: border-box !important;
 }
@@ -97,26 +94,28 @@
     border-bottom-color: #374151 !important;
   }
   
+/* Fix the title specifically */
 .mobile-header-title {
     font-size: 18px !important;
     font-weight: 600 !important;
     flex: 1 !important;
     text-align: center !important;
-    /* Better centering */
+    /* Force vertical centering */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    height: 100% !important; /* Take full height of header */
+    margin: 0 !important; /* Remove any margins */
+    padding: 0 !important; /* Remove any padding */
+    line-height: 1 !important; /* Reset line height */
     color: #111827 !important;
-    letter-spacing: -0.025em !important;
-    /* Prevent wrapping */
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
 }
-  /* Fix icon and title alignment */
+  
+/* Ensure the icon and text inside are also centered */
 .mobile-header-title > span {
     display: flex !important;
     align-items: center !important;
+    justify-content: center !important;
     gap: 8px !important;
 }
 
