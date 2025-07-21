@@ -79,27 +79,36 @@
     left: 0 !important;
     right: 0 !important;
     height: 56px !important;
-    background: white !important;
-    border-bottom: 1px solid #e5e7eb !important;
+    background: linear-gradient(to right, #ffffff, #fafbfc) !important;
+    /* Update the border to be more subtle */
+    border-bottom: 1px solid #f3f4f6 !important; /* Lighter border */
+    /* Add a subtle shadow for depth */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    padding: 0 12px !important;
+    padding: 0 16px !important; /* Increased padding */
     z-index: 999 !important;
     box-sizing: border-box !important;
-  }
+}
 
   .dark .mobile-header {
     background: #1f2937 !important;
     border-bottom-color: #374151 !important;
   }
   
-  .mobile-header-title {
+.mobile-header-title {
     font-size: 18px !important;
     font-weight: 600 !important;
     flex: 1 !important;
     text-align: center !important;
-  }
+    /* Add these lines for better positioning */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #111827 !important; /* Better color than pure black */
+    letter-spacing: -0.025em !important; /* Tighter letter spacing */
+}
 
 
   .mobile-header-action {
