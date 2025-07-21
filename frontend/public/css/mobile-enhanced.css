@@ -73,21 +73,18 @@
   }
 
   /* ===== MOBILE TOP HEADER ===== */
-  .mobile-header {
+.mobile-header {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
     height: 56px !important;
-    background: linear-gradient(to right, #ffffff, #fafbfc) !important;
-    /* Update the border to be more subtle */
-    border-bottom: 1px solid #f3f4f6 !important; /* Lighter border */
-    /* Add a subtle shadow for depth */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    background: white !important;
+    border-bottom: 1px solid #e5e7eb !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    padding: 0 16px !important; /* Increased padding */
+    padding: 0 12px !important;
     z-index: 999 !important;
     box-sizing: border-box !important;
 }
