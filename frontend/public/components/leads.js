@@ -896,12 +896,94 @@ return React.createElement('div', { className: 'space-y-6' },
                     
                     window.hasPermission('leads', 'write') && window.WebsiteLeadsImport && React.createElement(window.WebsiteLeadsImport),
 
+                    // CSV Export Button with Dropdown - Only for specific roles
+                    (window.appState?.user?.role === 'super_admin' || 
+                     window.appState?.user?.role === 'finance_manager' || 
+                     window.appState?.user?.role === 'supply_sales_service_manager') && 
+                    React.createElement('div', { 
+                        className: 'relative export-dropdown-container',
+                        onMouseLeave: () => {
+                            setTimeout(() => {
+                                window.showLeadsExportDropdown = false;
+                                if (window.forceUpdate) window.forceUpdate();
+                            }, 500);
+                        }
+                    },
+                        React.createElement('button', {
+                            onClick: (e) => {
+                                e.stopPropagation();
+                                window.showLeadsExportDropdown = !window.showLeadsExportDropdown;
+                                // Force re-render
+                                if (window.forceUpdate) window.forceUpdate();
+                            },
+                            className: 'bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2'
+                        },
+                            React.createElement('svg', {
+                                className: 'w-5 h-5',
+                                fill: 'none',
+                                stroke: 'currentColor',
+                                viewBox: '0 0 24 24'
+                            },
+                                React.createElement('path', {
+                                    strokeLinecap: 'round',
+                                    strokeLinejoin: 'round',
+                                    strokeWidth: 2,
+                                    d: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10'
+                                })
+                            ),
+                            'Export CSV',
+                            React.createElement('svg', {
+                                className: `w-4 h-4 ml-1 transition-transform ${window.showLeadsExportDropdown ? 'rotate-180' : ''}`,
+                                fill: 'none',
+                                stroke: 'currentColor',
+                                viewBox: '0 0 24 24'
+                            },
+                                React.createElement('path', {
+                                    strokeLinecap: 'round',
+                                    strokeLinejoin: 'round',
+                                    strokeWidth: 2,
+                                    d: 'M19 9l-7 7-7-7'
+                                })
+                            )
+                        ),
+                        
+                        // Export Dropdown Menu
+                        window.showLeadsExportDropdown && React.createElement('div', {
+                            className: 'absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700'
+                        },
+                            React.createElement('button', {
+                                onClick: () => {
+                                    window.showLeadsExportDropdown = false;
+                                    window.exportFilteredLeadsToCSV();
+                                },
+                                className: 'block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            },
+                                React.createElement('div', { className: 'font-medium' }, 'Export Current View'),
+                                React.createElement('div', { className: 'text-xs text-gray-500 dark:text-gray-400' }, 
+                                    `Export ${currentLeads.length} filtered leads`
+                                )
+                            ),
+                            React.createElement('button', {
+                                onClick: () => {
+                                    window.showLeadsExportDropdown = false;
+                                    window.exportAllLeadsToCSV();
+                                },
+                                className: 'block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border-t border-gray-200 dark:border-gray-700'
+                            },
+                                React.createElement('div', { className: 'font-medium' }, 'Export All Leads'),
+                                React.createElement('div', { className: 'text-xs text-gray-500 dark:text-gray-400' }, 
+                                    `Export all ${pagination.total || 0} leads in system`
+                                )
+                            )
+                        )
+                    ),
+
                     React.createElement('button', {
                         onClick: () => {
                             window.setCSVUploadType('leads');
                             window.setShowCSVUploadModal(true);
                         },
-                        className: 'bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded flex items-center gap-2'
+                        className: 'bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2'
                     }, 
                         React.createElement('svg', {
                             className: 'w-5 h-5',
