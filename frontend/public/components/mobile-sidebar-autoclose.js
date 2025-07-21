@@ -113,10 +113,12 @@
       window.navHandlerTimeout = setTimeout(attachNavigationHandlers, 300);
     });
     
-    bodyObserver.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
+    if (document.body) {
+      bodyObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    }
   }
   
   // Start initialization

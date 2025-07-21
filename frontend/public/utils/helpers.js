@@ -361,18 +361,34 @@ window.getPriorityBadgeColor = function(priority) {
 // Add to app-business-logic.js or utils/helpers.js
 
 window.normalizeAllocationData = (allocations) => {
-  return allocations.map(allocation => ({
-    ...allocation,
-    // Ensure we have tickets_allocated field
-    tickets_allocated: allocation.tickets_allocated || allocation.quantity || 0,
-    // Ensure we have quantity field (for backward compatibility)
-    quantity: allocation.quantity || allocation.tickets_allocated || 0
-  }));
+  return allocations.map(allocation => {
+    // Handle both old and new category systems
+    const normalizedCategory = allocation.category_name || allocation.category_of_ticket || 'General';
+    
+    return {
+      ...allocation,
+      // Ensure we have tickets_allocated field
+      tickets_allocated: allocation.tickets_allocated || allocation.quantity || 0,
+      // Ensure we have quantity field (for backward compatibility)
+      quantity: allocation.quantity || allocation.tickets_allocated || 0,
+      // Normalize category field to use category_name consistently
+      category_name: normalizedCategory,
+      // Keep original field for backward compatibility
+      category_of_ticket: allocation.category_of_ticket || normalizedCategory
+    };
+  });
 };
 
 // Update the openAllocationManagement function to use this normalizer:
-window.openAllocationManagement = async (inventory) => {
-  console.log("👁️ openAllocationManagement called with:", inventory?.event_name);
+// Mark this as the authoritative version
+const authoritativeOpenAllocationManagement = async (inventory) => {
+  console.log("👁️ [UTILS] openAllocationManagement called with:", inventory?.event_name);
+  
+  // Check if we're already in allocation management to prevent conflicts
+  if (window.showAllocationManagement || window.appState?.showAllocationManagement) {
+    console.log("⚠️ Allocation management already open, using existing data");
+    return;
+  }
   
   try {
     // Set loading state
@@ -381,37 +397,56 @@ window.openAllocationManagement = async (inventory) => {
     }
     
     // Set the inventory for allocation management
-    window.setAllocationManagementInventory(inventory);
-    
-    // CRITICAL FIX: Fetch allocations from API
-    console.log("🔄 Fetching allocations for inventory:", inventory.id);
-    const response = await window.apiCall(`/inventory/${inventory.id}/allocations`);
-    
-    if (response.error) {
-      throw new Error(response.error);
+    if (window.setAllocationManagementInventory) {
+      window.setAllocationManagementInventory(inventory);
     }
     
-    // Normalize allocation data to handle field name differences
-    const rawAllocations = response.data?.allocations || [];
-    const allocations = window.normalizeAllocationData ? 
-      window.normalizeAllocationData(rawAllocations) : 
-      rawAllocations;
+    // CRITICAL FIX: Fetch allocations from API with React-safe timing
+    console.log("🔄 Fetching allocations for inventory:", inventory.id);
     
-    console.log("✅ Fetched and normalized allocations:", allocations.length);
-    window.setCurrentAllocations(allocations);
+    // Use requestAnimationFrame to ensure React is ready
+    requestAnimationFrame(async () => {
+      try {
+        const response = await window.apiCall(`/inventory/${inventory.id}/allocations`);
+        
+        if (response.error) {
+          throw new Error(response.error);
+        }
+        
+        // Normalize allocation data to handle field name differences
+        const rawAllocations = response.data?.allocations || [];
+        console.log("🔍 Raw allocation data from API:", rawAllocations);
+        
+        const allocations = window.normalizeAllocationData ? 
+          window.normalizeAllocationData(rawAllocations) : 
+          rawAllocations;
+        
+        console.log("✅ Fetched and normalized allocations:", allocations.length);
+        console.log("🔍 First normalized allocation:", allocations[0]);
+        
+        // Use functional update to prevent conflicts
+        if (window.setCurrentAllocations) {
+          window.setCurrentAllocations(() => allocations);
+        }
+        
+      } catch (error) {
+        console.error('❌ Error fetching allocations:', error);
+        if (window.setCurrentAllocations) {
+          window.setCurrentAllocations([]);
+        }
+      }
+    });
     
-    // Show the modal
-    window.setShowAllocationManagement(true);
+    // Show the modal immediately 
+    if (window.setShowAllocationManagement) {
+      window.setShowAllocationManagement(true);
+    }
     
-    console.log("✅ Allocation management modal setup completed with data");
+    console.log("✅ Allocation management modal setup initiated");
     
   } catch (error) {
-    console.error('❌ Error fetching allocations:', error);
-    alert('Error fetching allocations: ' + error.message);
-    
-    // Still show modal but with empty allocations
-    window.setCurrentAllocations([]);
-    window.setShowAllocationManagement(true);
+    console.error('❌ Error in openAllocationManagement:', error);
+    alert('Error opening allocation management: ' + error.message);
     
   } finally {
     if (window.setLoading) {
@@ -419,6 +454,15 @@ window.openAllocationManagement = async (inventory) => {
     }
   }
 };
+
+// Assign to global scope with protection against overwrites
+window.openAllocationManagement = authoritativeOpenAllocationManagement;
+
+// Add a marker to identify the authoritative version
+window.openAllocationManagement._source = 'utils/helpers.js';
+window.openAllocationManagement._isAuthoritative = true;
+
+console.log('✅ Authoritative openAllocationManagement loaded from utils/helpers.js');
 
 // Consolidated user display name function
 window.getUserDisplayName = function(userId, usersList = null) {

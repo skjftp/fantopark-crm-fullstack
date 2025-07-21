@@ -1,5 +1,6 @@
-// Permission check function - moved inside component to access user state
-const hasPermission = (module, action) => {
+// Permission check function - exposed globally
+window.hasPermission = (module, action) => {
+  const user = window.appState?.user;
   if (user?.role === 'super_admin') return true;
   if (!user || !user.role) {
     console.log('No user or role found');
@@ -7,7 +8,7 @@ const hasPermission = (module, action) => {
   }
 
   // Get role permissions from USER_ROLES
-  const rolePermissions = USER_ROLES[user.role]?.permissions;
+  const rolePermissions = window.USER_ROLES[user.role]?.permissions;
   if (!rolePermissions) {
     console.log('No permissions found for role:', user.role);
     return false;
@@ -23,6 +24,9 @@ const hasPermission = (module, action) => {
   console.log(`Permission check: ${user.role} -> ${module}.${action} = ${hasAccess}`);
   return hasAccess;
 };
+
+// Keep local version for backward compatibility
+const hasPermission = window.hasPermission;
 
 const canAccessTab = (tabId) => {
   if (!user) return false;

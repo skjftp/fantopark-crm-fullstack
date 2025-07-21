@@ -979,61 +979,73 @@ return React.createElement('div', { className: 'space-y-6' },
                                     )
                                 ),
 
-                                // Status Options Grouped
+                                // Status Options - Dynamic from API
                                 React.createElement('div', { className: 'py-1' },
-                                    // Initial Contact Group
-                                    React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Initial Contact'),
-                                    ['unassigned', 'assigned', 'contacted', 'attempt_1', 'attempt_2', 'attempt_3'].map(status =>
-                                        window.LEAD_STATUSES[status] && React.createElement('label', {
-                                            key: status,
-                                            className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
-                                        },
-                                            React.createElement('input', {
-                                                type: 'checkbox',
-                                                checked: window.selectedStatusFilters.includes(status),
-                                                onChange: () => {
-                                                    window.handleStatusFilterToggle(status);
-                                                    // Apply filter after toggle
-                                                    setTimeout(() => {
-                                                        const selectedStatus = window.selectedStatusFilters.length > 0 ? 
-                                                            window.selectedStatusFilters[0] : 'all';
-                                                        window.LeadsAPI.handleFilterChange('status', selectedStatus);
-                                                    }, 50);
-                                                },
-                                                className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                                            }),
-                                            React.createElement('span', {
-                                                className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
-                                            }, window.LEAD_STATUSES[status].label)
-                                        )
-                                    ),
-
-                                    // Other status groups follow the same pattern...
-                                    // Qualification Group
-                                    React.createElement('div', { className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' }, 'Qualification'),
-                                    ['qualified', 'junk'].map(status =>
-                                        window.LEAD_STATUSES[status] && React.createElement('label', {
-                                            key: status,
-                                            className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
-                                        },
-                                            React.createElement('input', {
-                                                type: 'checkbox',
-                                                checked: window.selectedStatusFilters.includes(status),
-                                                onChange: () => {
-                                                    window.handleStatusFilterToggle(status);
-                                                    setTimeout(() => {
-                                                        const selectedStatus = window.selectedStatusFilters.length > 0 ? 
-                                                            window.selectedStatusFilters[0] : 'all';
-                                                        window.LeadsAPI.handleFilterChange('status', selectedStatus);
-                                                    }, 50);
-                                                },
-                                                className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                                            }),
-                                            React.createElement('span', {
-                                                className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
-                                            }, window.LEAD_STATUSES[status].label)
-                                        )
-                                    )
+                                    // Get all unique statuses from API
+                                    (() => {
+                                        // Combine statuses from DB and standard statuses
+                                        const allStatuses = new Set([
+                                            ...(filterOptions.statuses || []),
+                                            ...(filterOptions.standardStatuses || [])
+                                        ]);
+                                        
+                                        // Convert to array and filter out any that don't have LEAD_STATUSES definition
+                                        const statusArray = Array.from(allStatuses)
+                                            .filter(status => window.LEAD_STATUSES[status])
+                                            .sort((a, b) => {
+                                                // Sort by the order defined in LEAD_STATUSES or alphabetically
+                                                const orderA = window.LEAD_STATUSES[a]?.order || 999;
+                                                const orderB = window.LEAD_STATUSES[b]?.order || 999;
+                                                if (orderA !== orderB) return orderA - orderB;
+                                                return a.localeCompare(b);
+                                            });
+                                        
+                                        // Group statuses by category
+                                        const statusGroups = {
+                                            'Initial Contact': ['unassigned', 'assigned', 'contacted', 'attempt_1', 'attempt_2', 'attempt_3'],
+                                            'Qualification': ['qualified', 'unqualified', 'junk'],
+                                            'Interest Level': ['interested', 'not_interested', 'warm', 'hot', 'cold'],
+                                            'Status': ['on_hold', 'dropped', 'converted'],
+                                            'Sales': ['invoiced', 'payment_received']
+                                        };
+                                        
+                                        // Render grouped statuses
+                                        return Object.entries(statusGroups).map(([groupName, groupStatuses]) => {
+                                            // Filter to only show statuses that exist in our data
+                                            const availableGroupStatuses = groupStatuses.filter(status => 
+                                                statusArray.includes(status) && window.LEAD_STATUSES[status]
+                                            );
+                                            
+                                            // Only show group if it has statuses
+                                            if (availableGroupStatuses.length === 0) return null;
+                                            
+                                            return React.createElement(React.Fragment, { key: groupName },
+                                                React.createElement('div', { 
+                                                    className: 'px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-700 uppercase' 
+                                                }, groupName),
+                                                availableGroupStatuses.map(status =>
+                                                    React.createElement('label', {
+                                                        key: status,
+                                                        className: 'flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer'
+                                                    },
+                                                        React.createElement('input', {
+                                                            type: 'checkbox',
+                                                            checked: window.selectedStatusFilters.includes(status),
+                                                            onChange: () => {
+                                                                window.handleStatusFilterToggle(status);
+                                                                // Don't trigger API call here - it's handled by fetchPaginatedLeads
+                                                                // which checks window.selectedStatusFilters directly
+                                                            },
+                                                            className: 'mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                                                        }),
+                                                        React.createElement('span', {
+                                                            className: `px-2 py-1 rounded-full text-xs font-medium mr-2 ${window.LEAD_STATUSES[status].color}`
+                                                        }, window.LEAD_STATUSES[status].label)
+                                                    )
+                                                )
+                                            );
+                                        }).filter(Boolean);
+                                    })()
                                 )
                             )
                         ),
@@ -1190,7 +1202,7 @@ return React.createElement('div', { className: 'space-y-6' },
 },
     // Add loader here
     window.appState.loading && React.createElement(LoadingOverlay),
-                currentLeads.length > 0 ? React.createElement('div', { className: 'overflow-x-auto' },
+                (currentLeads && currentLeads.length > 0) ? React.createElement('div', { className: 'overflow-x-auto' },
                     React.createElement('table', { className: 'w-full' },
                         React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
                             React.createElement('tr', null,
@@ -1402,8 +1414,13 @@ return React.createElement('div', { className: 'space-y-6' },
                         }, 'Next')
                     )
                 )
-                ) : React.createElement('div', { className: 'p-6 text-center text-gray-500' }, 
-                    'No leads found. Add your first lead or adjust your filters!'
+                ) : React.createElement('div', { 
+                    key: 'empty-state',
+                    className: 'p-6 text-center text-gray-500' 
+                }, 
+                    React.createElement('div', { className: 'text-lg mb-2' }, '📭'),
+                    React.createElement('div', { className: 'font-medium mb-2' }, 'No leads found'),
+                    React.createElement('div', { className: 'text-sm' }, 'Add your first lead or adjust your filters!')
                 )
             )
         ) :

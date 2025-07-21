@@ -50,8 +50,11 @@ window.LeadsAPI = {
 
       // Handle multi-status filter
       if (window.selectedStatusFilters && window.selectedStatusFilters.length > 0) {
+        console.log('🎯 Multi-status filter active:', window.selectedStatusFilters);
         queryParams.delete('status');
         queryParams.append('status', window.selectedStatusFilters.join(','));
+      } else {
+        console.log('🎯 No multi-status filter, using:', this.currentFilters.status);
       }
 
       // Remove 'all' values from query params as backend might not expect them
@@ -207,14 +210,14 @@ window.LeadsAPI = {
           window.appState.setSearchQuery(value);
         }
         
-        // Debounce search input
+        // Debounce search input with longer delay for mobile
         clearTimeout(this.searchDebounceTimer);
         this.searchDebounceTimer = setTimeout(() => {
           this.fetchPaginatedLeads({ 
             page: 1,
             ...this.currentFilters 
           });
-        }, 300);
+        }, 800); // Increased from 300ms to 800ms for better mobile experience
         return; // Don't apply filters immediately for search
         
       case 'status':

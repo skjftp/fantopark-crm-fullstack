@@ -3,8 +3,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">
-<link rel="stylesheet" href="css/mobile-responsive.css">
+<link rel="stylesheet" href="css/mobile-responsive.css?v=2">
+<link rel="stylesheet" href="css/mobile-enhanced.css?v=3">
 <link rel="stylesheet" href="css/dark-mode-fixes.css">  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FanToPark CRM Pro</title>
@@ -310,6 +314,12 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 <script src="https://cdn.tailwindcss.com"></script>
   <script src="components/birthday-component.js"></script>
   <script src="components/mobile-sidebar-autoclose.js"></script>
+<script src="components/mobile-navigation.js?v=3"></script>
+<script src="components/mobile-cards.js?v=4"></script>
+<script src="components/mobile-lead-handlers.js?v=3"></script>
+<script src="components/mobile-views.js?v=5"></script>
+<script src="components/mobile-forms.js?v=1"></script>
+<script src="components/mobile-gestures.js?v=1"></script>
 
   <!-- External Libraries -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
@@ -340,10 +350,12 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 <script src="components/leads.js"></script>
 <script src="components/dashboard.js"></script> 
 <!-- New Extracted Components -->
-<script src="components/main-app-component.js"></script>
+<script src="components/main-app-component.js?v=2"></script>
 <script src="components/app-business-logic.js"></script>
 <script src="components/app-effects-lifecycle.js"></script>
-<script src="components/simplified-app-component.js"></script> 
+<!-- Load allocation-management.js BEFORE simplified-app-component to ensure handleUnallocate is available -->
+<script src="components/allocation-management.js?v=3"></script>
+<script src="components/simplified-app-component-fixed.js"></script> 
 <script src="components/content-router.js"></script>
 <script src="components/inventory.js"></script>
 <script src="components/market-rate-tab.js"></script>  
@@ -371,7 +383,7 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 <script defer src="components/bulk-assign-modal.js"></script>
 <script defer src="components/choice-modal.js"></script> 
 <script defer src="components/status-progress-modal.js"></script>
-<script src="components/allocation-management.js"></script>
+<!-- Moved allocation-management.js earlier in loading order -->
 <script defer src="components/help-guide.js"></script>  
 <script defer src="components/stadium-form.js"></script>
 <script defer src="components/stadium-notes-modal.js"></script>  
@@ -394,7 +406,7 @@ window.debugLog = window.PRODUCTION_MODE ? () => {} : console.log;
 <script defer src="components/my-actions-data.js"></script>
 <script src="components/user-management-handlers.js"></script>
 <script defer src="components/reminder-management.js"></script>
-<script src="components/allocation-form.js"></script>  
+<script src="components/allocation-form.js?v=18"></script>  
 <script defer src="components/delivery-form.js"></script>
 <script defer src="components/event-modals.js"></script>
 <script defer src="components/reminder-form.js"></script> 

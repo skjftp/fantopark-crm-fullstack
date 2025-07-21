@@ -6,16 +6,75 @@
 
 // Conditional logging control
 
+// Initialize global state for allocation form search (avoiding React hooks issues)
+window.allocationFormState = window.allocationFormState || {
+  leadSearch: '',
+  showLeadDropdown: false,
+  eventFilter: '',
+  statusFilter: 'all',
+  searchResults: [],
+  searching: false,
+  selectedLead: null,
+  formMounted: false
+};
+
 window.renderAllocationForm = () => {
-  // ✅ PATTERN 1: State Variable Extraction (OPTIMIZED)
+  // Mark form as mounted
+  window.allocationFormState.formMounted = true;
+  
+  // ✅ PATTERN 1: State Variable Extraction (OPTIMIZED) - NO HOOKS
   const {
     showAllocationForm = window.appState?.showAllocationForm || window.showAllocationForm,
     currentInventory = window.appState?.currentInventory || window.currentInventory,
     allocationData = window.appState?.allocationData || window.allocationData || {},
     leads = window.appState?.leads || window.leads || [],
+    allLeadsForAllocation = window.appState?.allLeadsForAllocation || [],
     loading = window.appState?.loading || window.loading,
     currentAllocations = window.appState?.currentAllocations || window.currentAllocations || []
   } = window.appState || {};
+  
+  // Use dynamic search results instead of static lead lists
+  const leadSearch = window.allocationFormState.leadSearch;
+  const showLeadDropdown = window.allocationFormState.showLeadDropdown;
+  const searchResults = window.allocationFormState.searchResults || [];
+  const searching = window.allocationFormState.searching;
+  
+  // State management functions with proper re-rendering
+  const setLeadSearch = (value) => {
+    console.error('🔍 SET LEAD SEARCH CALLED:', value);
+    window.allocationFormState.leadSearch = value;
+    // Trigger search if value has content
+    if (value.trim().length >= 2) {
+      console.error('🔍 TRIGGERING SEARCH FOR:', value);
+      searchLeadsForAllocation(value);
+    } else {
+      console.error('🔍 CLEARING SEARCH RESULTS');
+      window.allocationFormState.searchResults = [];
+    }
+    // Force re-render
+    if (window.appState?.forceUpdate) {
+      window.appState.forceUpdate();
+    } else if (window.forceUpdate) {
+      window.forceUpdate();
+    }
+  };
+  
+  const setShowLeadDropdown = (value) => {
+    window.allocationFormState.showLeadDropdown = value;
+    // Force re-render
+    if (window.appState?.forceUpdate) {
+      window.appState.forceUpdate();
+    } else if (window.forceUpdate) {
+      window.forceUpdate();
+    }
+  };
+  
+  // Simplified handlers
+  const handleSearchFocus = () => setShowLeadDropdown(true);
+  const handleSearchBlur = () => {
+    // Delay to allow click on dropdown items
+    setTimeout(() => setShowLeadDropdown(false), 150);
+  };
 
   // ✅ PATTERN 2: Function References with Fallbacks
   const closeForm = window.closeForm || (() => {
@@ -34,14 +93,14 @@ window.renderAllocationForm = () => {
     window.log.debug("Would change:", field, "to:", value);
   });
 
-  if (!showAllocationForm || !currentInventory) {
-    return null;
+  // Conditional check - parent component handles rendering logic now
+  if (!currentInventory) {
+    return React.createElement('div', { className: 'text-center p-4' }, 'No inventory selected');
   }
-  // Reset the hidden flag when form is showing
 
   // ✅ OPTIMIZED: Only log essential info on form show
   window.log.debug("📦 Allocation form rendering for:", currentInventory?.event_name);
-  window.log.debug("👥 Available leads:", leads?.length || 0);
+  window.log.debug("🔍 Search results:", searchResults?.length || 0);
 
   // NEW: Check if inventory has categories
   const hasCategories = currentInventory.categories && Array.isArray(currentInventory.categories) && currentInventory.categories.length > 0;
@@ -56,16 +115,8 @@ window.renderAllocationForm = () => {
     ? selectedCategory.available_tickets 
     : currentInventory.available_tickets || 0;
 
-  // Filter qualified leads for allocation
-  const qualifiedLeads = leads.filter(lead => 
-    lead.status === 'qualified' || 
-    lead.status === 'hot' || 
-    lead.status === 'warm' ||
-    lead.status === 'converted' ||
-    lead.status === 'payment' ||
-    lead.status === 'payment_post_service' ||
-    lead.status === 'payment_received'
-  );
+  // Get selected lead details from stored selection
+  const selectedLead = window.allocationFormState.selectedLead;
 
   // Ensure quantity has a default value
   const currentQuantity = allocationData.quantity || 1;
@@ -82,9 +133,14 @@ window.renderAllocationForm = () => {
     React.createElement('div', {
       className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto'
     },
-      React.createElement('div', { className: 'flex justify-between items-center mb-6' },
-        React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' },
-          `Allocate Tickets - ${currentInventory.event_name}`
+      React.createElement('div', { className: 'flex justify-between items-start mb-6' },
+        React.createElement('div', null,
+          React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-white' },
+            `Allocate Tickets - ${currentInventory.event_name}`
+          ),
+          React.createElement('div', { className: 'text-sm text-gray-500 mt-1' },
+            `Search leads by typing in the field below`
+          )
         ),
         React.createElement('button', {
           onClick: closeForm,
@@ -163,21 +219,103 @@ window.renderAllocationForm = () => {
       ),
 
       React.createElement('form', { onSubmit: handleAllocation },
-        React.createElement('div', { className: 'mb-6' },
+        // Searchable Lead Selection
+        React.createElement('div', { className: 'mb-6 lead-search-container' },
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' },
-            'Select Lead'
+            'Search and Select Lead'
           ),
-          React.createElement('select', {
-            value: allocationData.lead_id || '',
-            onChange: (e) => handleAllocationInputChange('lead_id', e.target.value),
-            className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-            required: true
+          
+          // Search Input
+          React.createElement('div', { className: 'relative' },
+            React.createElement('input', {
+              type: 'text',
+              placeholder: selectedLead && selectedLead.name !== 'Loading...' ? 
+                `Selected: ${selectedLead.name} (${selectedLead.status || 'Unknown'})` : 
+                'Type to search leads by name, email, phone, company, or event...',
+              value: leadSearch || '',
+              onChange: (e) => {
+                console.log('Search input changed:', e.target.value);
+                setLeadSearch(e.target.value);
+              },
+              onFocus: handleSearchFocus,
+              onBlur: handleSearchBlur,
+              className: `w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500 ${selectedLead && selectedLead.name !== 'Loading...' ? 'bg-green-50 dark:bg-green-900' : ''}`
+            }),
+            
+            // Search Icon
+            React.createElement('div', { 
+              className: 'absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none' 
+            },
+              React.createElement('span', { className: 'text-gray-400' }, '🔍')
+            )
+          ),
+          
+          // Selected Lead Display
+          selectedLead && React.createElement('div', { 
+            className: 'mt-2 p-3 bg-blue-50 dark:bg-blue-900 rounded-md border-l-4 border-blue-500' 
           },
-            React.createElement('option', { value: '' }, 'Select a lead...'),
-            qualifiedLeads.map(lead =>
-              React.createElement('option', { key: lead.id, value: lead.id },
-                `${lead.name} - ${lead.event_name || lead.lead_for_event || 'No Event'} (${lead.status})`
+            React.createElement('div', { className: 'flex justify-between items-center' },
+              React.createElement('div', null,
+                React.createElement('div', { className: 'font-medium text-blue-900 dark:text-blue-100' },
+                  selectedLead.name
+                ),
+                React.createElement('div', { className: 'text-sm text-blue-700 dark:text-blue-300' },
+                  `${selectedLead.email || selectedLead.phone || 'No contact'} • ${selectedLead.status} • ${selectedLead.event_name || selectedLead.lead_for_event || 'No event'}`
+                )
+              ),
+              React.createElement('button', {
+                type: 'button',
+                onClick: () => {
+                  // Clear selected lead and ID
+                  window.allocationFormState.selectedLead = null;
+                  handleAllocationInputChange('lead_id', '');
+                  setLeadSearch('');
+                },
+                className: 'text-blue-600 hover:text-blue-800 text-sm font-medium'
+              }, 'Change')
+            )
+          ),
+          
+          // Dropdown Results
+          (showLeadDropdown && (leadSearch || searching)) && React.createElement('div', { 
+            className: 'absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto' 
+          },
+            searching ? React.createElement('div', { 
+              className: 'p-3 text-center text-gray-500 dark:text-gray-400' 
+            }, 'Searching...') :
+            searchResults.length > 0 ? searchResults.slice(0, 10).map(lead =>
+              React.createElement('div', {
+                key: lead.id,
+                onMouseDown: (e) => {
+                  e.preventDefault(); // Prevent blur event
+                  // Store complete lead object and ID
+                  window.allocationFormState.selectedLead = lead;
+                  handleAllocationInputChange('lead_id', lead.id);
+                  setShowLeadDropdown(false);
+                  setLeadSearch('');
+                  // Force re-render to show selected lead
+                  if (window.appState?.forceUpdate) {
+                    window.appState.forceUpdate();
+                  } else if (window.forceUpdate) {
+                    window.forceUpdate();
+                  }
+                },
+                className: 'p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-600'
+              },
+                React.createElement('div', { className: 'font-medium text-gray-900 dark:text-white' },
+                  lead.name
+                ),
+                React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' },
+                  `${lead.email || lead.phone || 'No contact'} • ${lead.status}`,
+                  lead.event_name && React.createElement('span', { className: 'ml-2' },
+                    `• ${lead.event_name}`
+                  )
+                )
               )
+            ) : React.createElement('div', { 
+              className: 'p-3 text-gray-500 dark:text-gray-400 text-center' 
+            }, 
+              leadSearch.length >= 2 ? 'No leads found matching your search' : 'Type at least 2 characters to search leads'
             )
           )
         ),
@@ -327,14 +465,28 @@ window.handleAllocation = async (e) => {
     return;
   }
 
-  // Get current quantity with fallback
-  const quantity = window.allocationData.quantity || 1;
+  // Get current quantity with fallback and validation
+  const quantity = parseInt(window.allocationData.quantity) || 1;
 
-  // Validation
+  // Enhanced validation
   if (!window.allocationData.lead_id) {
     alert('Please select a lead');
     return;
   }
+
+  if (!window.currentInventory || !window.currentInventory.id) {
+    alert('No inventory selected for allocation');
+    return;
+  }
+
+  console.error('🔍 PRE-ALLOCATION DEBUG:', {
+    leadId: window.allocationData.lead_id,
+    quantity,
+    inventoryId: window.currentInventory.id,
+    hasSelectedLead: !!window.allocationFormState.selectedLead,
+    allocationData: window.allocationData,
+    selectedLead: window.allocationFormState.selectedLead
+  });
 
   // NEW: Validate category selection if inventory has categories
   const hasCategories = window.currentInventory.categories && Array.isArray(window.currentInventory.categories) && window.currentInventory.categories.length > 0;
@@ -367,72 +519,208 @@ window.handleAllocation = async (e) => {
   try {
     window.log.debug('🔄 Creating allocation...', window.allocationData);
 
-    // Find the selected lead
-    const selectedLead = window.leads.find(l => l.id === window.allocationData.lead_id);
-    if (!selectedLead) {
-      throw new Error('Selected lead not found');
+    // Get the selected lead from our stored selection
+    const selectedLead = window.allocationFormState.selectedLead;
+    if (!selectedLead || !selectedLead.id) {
+      throw new Error('Please select a lead first');
+    }
+    
+    // Verify the lead ID matches what's stored in allocation data
+    if (selectedLead.id !== window.allocationData.lead_id) {
+      throw new Error('Lead selection mismatch. Please select the lead again.');
     }
 
-    // Validate lead status - must be converted or later
-    const isConvertedOrLater = (status) => {
-      const postConvertedStages = ['converted', 'payment', 'payment_post_service', 'payment_received'];
-      return postConvertedStages.includes(status);
-    };
-
-    if (!isConvertedOrLater(selectedLead.status)) {
-      throw new Error('Lead must be in converted status or later to allocate inventory');
+    // Validate lead status - backend only allows certain statuses
+    const allowedStatuses = ['converted', 'payment_received', 'payment_post_service'];
+    if (!allowedStatuses.includes(selectedLead.status)) {
+      throw new Error(`Cannot allocate to lead with status "${selectedLead.status}". Lead must be in one of these statuses: ${allowedStatuses.join(', ')}`);
     }
+    
+    console.log(`✅ Allocating to lead: ${selectedLead.name} (${selectedLead.status}) - Status valid for allocation`);
 
-    // Create the allocation request with proper field mapping (including category)
+    // Create the allocation request - start with minimal essential fields
     const allocationRequest = {
       lead_id: window.allocationData.lead_id,
       tickets_allocated: parseInt(quantity),
       allocation_date: window.allocationData.allocation_date || new Date().toISOString().split('T')[0],
-      notes: window.allocationData.notes || '',
-      // NEW: Include category name if applicable
-      category_name: window.allocationData.category_name || null
+      notes: window.allocationData.notes || ''
     };
 
-    const response = await window.apiCall(`/inventory/${window.currentInventory.id}/allocate`, {
-      method: 'POST',
-      body: JSON.stringify(allocationRequest)
-    });
-
-    if (response.error) {
-      throw new Error(response.error);
+    // Add category if inventory has categories
+    if (window.allocationData.category_name && window.allocationData.category_name !== null) {
+      allocationRequest.category_name = window.allocationData.category_name;
     }
 
-    // Update inventory available tickets
-    const newAvailableTickets = window.currentInventory.available_tickets - quantity;
-    
-    window.setInventory(prev => prev.map(item =>
-      item.id === window.currentInventory.id
-        ? { ...item, available_tickets: response.remaining_tickets || newAvailableTickets }
-        : item
-    ));
+    // Try a simpler version first - with both field name variations
+    const simpleAllocationRequest = {
+      lead_id: window.allocationData.lead_id,
+      quantity: parseInt(quantity),
+      tickets_allocated: parseInt(quantity)
+    };
 
-    // Reset allocation data
+    console.error('🔍 TRYING SIMPLE REQUEST FIRST:', JSON.stringify(simpleAllocationRequest, null, 2));
+
+    let response;
+    try {
+      // Try the simple request first
+      response = await window.apiCall(`/inventory/${window.currentInventory.id}/allocate`, {
+        method: 'POST',
+        body: JSON.stringify(simpleAllocationRequest)
+      });
+      console.error('📡 API RESPONSE (SUCCESS):', JSON.stringify(response, null, 2));
+    } catch (apiError) {
+      console.error('📡 SIMPLE REQUEST FAILED, TRYING FULL REQUEST:', apiError.message);
+      
+      // If simple request fails, try the full request
+      try {
+        console.error('🔍 TRYING FULL REQUEST:', JSON.stringify(allocationRequest, null, 2));
+        response = await window.apiCall(`/inventory/${window.currentInventory.id}/allocate`, {
+          method: 'POST',
+          body: JSON.stringify(allocationRequest)
+        });
+        console.error('📡 FULL REQUEST SUCCESS:', JSON.stringify(response, null, 2));
+      } catch (fullRequestError) {
+        console.error('📡 BOTH REQUESTS FAILED:', fullRequestError.message);
+        throw apiError; // Throw the original error
+      }
+    }
+    
+    if (response.error) {
+      console.error('❌ API returned error:', response.error);
+      throw new Error(response.error);
+    }
+    
+    if (!response.success && !response.data) {
+      console.error('❌ Unexpected API response:', response);
+      throw new Error('Invalid API response format');
+    }
+
+    // Extract allocated tickets from response (should be > 0 if successful)
+    const allocatedTickets = parseInt(response.message.match(/allocated (\d+) tickets/)?.[1] || 0);
+    const remainingTickets = response.remaining_tickets;
+    
+    console.log(`📊 Allocation result: ${allocatedTickets} tickets allocated, ${remainingTickets} remaining`);
+
+    if (allocatedTickets === 0) {
+      console.warn('⚠️ Warning: API returned success but 0 tickets were allocated');
+    }
+
+    // Update inventory available tickets with response data
+    if (window.setInventory) {
+      window.setInventory(prev => prev.map(item =>
+        item.id === window.currentInventory.id
+          ? { ...item, available_tickets: remainingTickets }
+          : item
+      ));
+    }
+
+    // Update current inventory object
+    window.currentInventory.available_tickets = remainingTickets;
+
+    // Reset allocation data and form state
     window.allocationData = {};
     if (window.setAllocationData) {
       window.setAllocationData({});
     }
+    
+    // Reset allocation form state
+    window.allocationFormState.selectedLead = null;
+    window.allocationFormState.leadSearch = '';
+    window.allocationFormState.searchResults = [];
 
-    // Close form and show success
+    // Show success message with allocated count
+    const successMessage = allocatedTickets > 0 
+      ? `Successfully allocated ${allocatedTickets} ticket(s) to ${selectedLead.name}!`
+      : `Allocation created but 0 tickets were allocated. Please check the allocation details.`;
+    
+    alert(successMessage);
+
+    // Mark form as unmounted and close
+    window.allocationFormState.formMounted = false;
     window.setShowAllocationForm(false);
-    alert('Inventory allocated successfully!');
-
-    // Refresh allocations if allocation management is open
-    if (window.showAllocationManagement && window.fetchAllocations) {
-      await window.fetchAllocations(window.currentInventory.id);
-    }
+    
+    // Note: We don't refresh allocations here to avoid React DOM conflicts
+    // If user needs to see updated allocations, they can open allocation management
 
   } catch (error) {
     console.error('Allocation error:', error);
     alert('Error: ' + error.message);
   } finally {
     window.setLoading(false);
+    // Ensure form is marked as unmounted on any exit
+    window.allocationFormState.formMounted = false;
   }
 };
+
+// ⭐ NEW: Function to search leads dynamically with API calls
+let searchTimeout;
+async function searchLeadsForAllocation(searchTerm) {
+  // Clear previous timeout
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+  }
+  
+  // Set searching state
+  window.allocationFormState.searching = true;
+  
+  // Debounce search to avoid too many API calls
+  searchTimeout = setTimeout(async () => {
+    try {
+      console.error('🔍 SEARCHING LEADS FOR ALLOCATION:', searchTerm);
+      
+      // Build query parameters for search
+      const queryParams = new URLSearchParams({
+        search: searchTerm,
+        limit: 50, // Reasonable limit for dropdown
+        page: 1
+      });
+      
+      // Add filters if they exist
+      if (window.allocationFormState.eventFilter && window.allocationFormState.eventFilter !== 'all') {
+        queryParams.append('event', window.allocationFormState.eventFilter);
+      }
+      if (window.allocationFormState.statusFilter && window.allocationFormState.statusFilter !== 'all') {
+        queryParams.append('status', window.allocationFormState.statusFilter);
+      }
+      
+      const response = await window.apiCall(`/leads/paginated?${queryParams.toString()}`);
+      
+      if (response.success && response.data) {
+        console.log(`✅ Found ${response.data.length} leads matching search`);
+        
+        // Update search results
+        window.allocationFormState.searchResults = response.data;
+        window.allocationFormState.searching = false;
+        
+        // Force re-render
+        if (window.appState?.forceUpdate) {
+          window.appState.forceUpdate();
+        } else if (window.forceUpdate) {
+          window.forceUpdate();
+        }
+        
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Failed to search leads');
+      }
+    } catch (error) {
+      console.error('❌ Failed to search leads for allocation:', error);
+      
+      // Set empty results on error
+      window.allocationFormState.searchResults = [];
+      window.allocationFormState.searching = false;
+      
+      // Force re-render
+      if (window.appState?.forceUpdate) {
+        window.appState.forceUpdate();
+      } else if (window.forceUpdate) {
+        window.forceUpdate();
+      }
+      
+      return [];
+    }
+  }, 500); // 500ms debounce
+}
 
 // ⭐ NEW: Function to fetch allocations for an inventory item
 async function fetchInventoryAllocations(inventoryId) {
@@ -464,10 +752,9 @@ async function fetchInventoryAllocations(inventoryId) {
     
     console.log(`✅ Loaded ${allocations.length} allocations`);
     
-    // Force update if needed
-    if (window.forceUpdate) {
-      window.forceUpdate();
-    }
+    // Skip force updates to prevent React DOM conflicts
+    // Force updates can cause reconciliation errors when components are unmounting
+    console.log('Skipping force update to prevent DOM conflicts');
     
     return allocations;
     
@@ -489,6 +776,18 @@ window.openAllocationForm = (inventory) => {
   
   // Check if inventory has categories
   const hasCategories = inventory.categories && Array.isArray(inventory.categories) && inventory.categories.length > 0;
+  
+  // Reset search state
+  window.allocationFormState = {
+    leadSearch: '',
+    showLeadDropdown: false,
+    eventFilter: inventory.event_name || '', // Default to current event
+    statusFilter: 'all',
+    searchResults: [],
+    searching: false,
+    selectedLead: null,
+    formMounted: true
+  };
   
   // Initialize allocation data with default values
   window.allocationData = {
@@ -514,11 +813,36 @@ window.openAllocationForm = (inventory) => {
   
   window.setShowAllocationForm(true);
   
-  // ⭐ FETCH EXISTING ALLOCATIONS
-  if (inventory && inventory.id) {
-    fetchInventoryAllocations(inventory.id);
-  }
+  // Note: Removed fetchInventoryAllocations call to prevent React DOM conflicts
+  // Existing allocations will be shown as empty initially
+  // User can refresh via allocation management if needed
 };
 
-window.log.debug('✅ Optimized Allocation Form with Category Selection loaded');
-console.log('🎫 Allocation Form v3.0 - With Category Support');
+// Add event listener for search changes to force re-render
+window.addEventListener('allocation-search-changed', () => {
+  if (window.appState?.forceUpdate) {
+    window.appState.forceUpdate();
+  } else if (window.forceUpdate) {
+    window.forceUpdate();
+  } else {
+    // Fallback: trigger a state change to force React re-render
+    const event = new Event('state-changed');
+    document.dispatchEvent(event);
+  }
+});
+
+// ⭐ Function to fetch selected lead details if not in current results
+async function fetchLeadDetails(leadId) {
+  try {
+    const response = await window.apiCall(`/leads/${leadId}`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+  } catch (error) {
+    console.error('Failed to fetch lead details:', error);
+  }
+  return null;
+}
+
+window.log.debug('✅ Optimized Allocation Form with Dynamic Search loaded');
+console.log('🎫 Allocation Form v5.0 - Dynamic API Search & Filtering');
