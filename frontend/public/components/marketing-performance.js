@@ -176,7 +176,8 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
             if (groupBy === 'source' && (key === 'Facebook' || key === 'Instagram')) {
                 // For Facebook/Instagram sources, use the impressions data
                 impressions = facebookImpressions[key] || 0;
-                console.log(`Impressions for ${key}:`, impressions, 'from:', facebookImpressions);
+                console.log(`Impressions for ${key}:`, impressions, 'from:', JSON.stringify(facebookImpressions));
+                console.log(`GroupBy: ${groupBy}, Key: ${key}, Available keys:`, Object.keys(facebookImpressions));
             } else if (groupBy === 'ad_set') {
                 // For ad sets, use the specific ad set impressions
                 impressions = facebookImpressions[key] || 0;
@@ -209,10 +210,11 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
         try {
             console.log('Fetching impressions by source...');
             const response = await window.apiCall(`/marketing/impressions-by-source?date_from=${filters.dateFrom}&date_to=${filters.dateTo}`);
-            console.log('Impressions response:', response);
+            console.log('Impressions response:', JSON.stringify(response));
             if (response.success && response.data) {
                 setFacebookImpressions(response.data);
-                console.log('Set impressions data:', response.data);
+                console.log('Set impressions data:', JSON.stringify(response.data));
+                console.log('Keys in impressions data:', Object.keys(response.data));
             }
         } catch (error) {
             console.error('Error fetching impressions by source:', error);
@@ -239,7 +241,8 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
     // Reprocess data when impressions are updated
     React.useEffect(() => {
         if (Object.keys(facebookImpressions).length > 0 && rawLeads.length > 0) {
-            console.log('Reprocessing data with new impressions:', facebookImpressions);
+            console.log('Reprocessing data with new impressions:', JSON.stringify(facebookImpressions));
+            console.log('Raw leads count:', rawLeads.length);
             // Reprocess the existing leads data with new impressions
             const groupedData = processLeadsData(rawLeads);
             setMarketingData(groupedData);
