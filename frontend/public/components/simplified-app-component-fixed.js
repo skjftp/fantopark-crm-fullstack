@@ -2993,7 +2993,8 @@ window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() =
       name: 'Finance & Analytics',
       items: [
         { id: 'finance', label: 'Financials', icon: '💰' },
-        { id: 'sales-performance', label: 'Sales Performance', icon: '📈' }
+        { id: 'sales-performance', label: 'Sales Performance', icon: '📈' },
+        { id: 'marketing-performance', label: 'Marketing Performance', icon: '📊' }
       ]
     },
     {

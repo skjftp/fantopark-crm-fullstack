@@ -81,6 +81,14 @@ window.renderContent = () => {
                     React.createElement('p', { className: 'text-red-500 text-lg' }, 
                         'Access Denied: You do not have permission to view sales performance.'
                     )
+                );
+            case 'marketing-performance':
+            return window.hasPermission('finance', 'read') ? 
+                window.renderMarketingPerformanceContent() : 
+                React.createElement('div', { className: 'text-center py-12' },
+                    React.createElement('p', { className: 'text-red-500 text-lg' }, 
+                        'Access Denied: You do not have permission to view marketing performance.'
+                    )
                 );    
             case 'assignment-rules':
                 // Return the stable memoized component

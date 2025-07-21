@@ -89,6 +89,8 @@ window.MobileHeader = function() {
       'orders': 'Orders',
       'delivery': 'Deliveries',
       'financials': 'Financials',
+      'sales-performance': 'Sales Performance',
+      'marketing-performance': 'Marketing Performance',
       'stadiums': 'Stadiums',
       'sports-calendar': 'Sports Calendar',
       'reminders': 'Reminders',
@@ -183,6 +185,12 @@ window.MobileMoreMenu = function() {
       id: 'sales-performance',
       label: 'Sales Performance',
       icon: '📊',
+      show: window.hasPermission('reports', 'view')
+    },
+    {
+      id: 'marketing-performance',
+      label: 'Marketing Performance',
+      icon: '📈',
       show: window.hasPermission('reports', 'view')
     },
     {
