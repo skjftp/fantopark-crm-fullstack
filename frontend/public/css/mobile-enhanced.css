@@ -825,4 +825,31 @@
     min-height: 44px !important;
     min-width: 44px !important;
   }
+
+  @media (max-width: 768px) {
+  /* Push content down to account for fixed header */
+  .mobile-main-content {
+    position: fixed !important;
+    top: 56px !important; /* Start below header */
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 60px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    background: #f9fafb !important;
+  }
+  
+  /* If mobile-main-content isn't wrapping your content, use this */
+  body > div:first-child,
+  #root > div:first-child,
+  #app > div:first-child,
+  .min-h-screen {
+    padding-top: 56px !important;
+  }
+  
+  /* Specifically target the dashboard container */
+  .min-h-screen.bg-gray-50 {
+    padding-top: 56px !important;
+  }
+}
 }
