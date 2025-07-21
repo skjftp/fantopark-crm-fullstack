@@ -37,12 +37,13 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       allLeadsData.push({ id: doc.id, ...doc.data() });
     });
     
-    // Collect ALL available options from ALL leads (before filtering)
+    // IMPORTANT: Collect all filter options BEFORE filtering
     const allEvents = new Set();
     const allSources = new Set();
     const allAdSets = new Set();
     const uniqueAdSetNames = new Set(); // For fetching from Facebook
     
+    // Collect ALL available options from ALL leads (before filtering)
     allLeadsData.forEach(lead => {
       if (lead.lead_for_event || lead.event_name) {
         allEvents.add(lead.lead_for_event || lead.event_name);
@@ -61,7 +62,9 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
     
     // Fetch real impressions data from Facebook
     let facebookImpressions = {};
+    let facebookMetrics = {}; // Store full metrics including spend, clicks
     let sourceImpressions = {};
+    let fullSourceInsights = {}; // Store full source metrics
     let facebookApiStatus = 'not_attempted';
     let facebookApiError = null;
     
@@ -76,12 +79,17 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       
       // Get impressions by source (Facebook vs Instagram)
       sourceImpressions = await facebookInsights.getInsightsBySource(date_from, date_to);
+      fullSourceInsights = await facebookInsights.getFullSourceInsights(date_from, date_to);
       console.log('📊 Source impressions:', sourceImpressions);
+      console.log('📊 Full source insights:', fullSourceInsights);
       
       // Get impressions for specific ad sets if we're filtering by ad set
       if (ad_set && ad_set !== 'all') {
-        const adSetInsights = await facebookInsights.getSpecificAdSetInsights([ad_set], date_from, date_to);
-        facebookImpressions = adSetInsights;
+        const allAdSetInsights = await facebookInsights.getAdSetInsights(date_from, date_to);
+        if (allAdSetInsights[ad_set]) {
+          facebookMetrics[ad_set] = allAdSetInsights[ad_set];
+          facebookImpressions[ad_set] = allAdSetInsights[ad_set].impressions;
+        }
       } else {
         // Get all ad set insights
         const allAdSetInsights = await facebookInsights.getAdSetInsights(date_from, date_to);
@@ -91,12 +99,14 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
         uniqueAdSetNames.forEach(name => {
           // Try exact match first
           if (allAdSetInsights[name]) {
+            facebookMetrics[name] = allAdSetInsights[name];
             facebookImpressions[name] = allAdSetInsights[name].impressions;
           } else {
             // Try to find a matching ad set with similar name
             Object.keys(allAdSetInsights).forEach(fbAdSetName => {
               if (fbAdSetName.toLowerCase().includes(name.toLowerCase()) || 
                   name.toLowerCase().includes(fbAdSetName.toLowerCase())) {
+                facebookMetrics[name] = allAdSetInsights[fbAdSetName];
                 facebookImpressions[name] = allAdSetInsights[fbAdSetName].impressions;
               }
             });
@@ -118,6 +128,10 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       console.error('Full error:', fbError);
       // Use fallback data if Facebook API fails
       sourceImpressions = { 'Facebook': 0, 'Instagram': 0 };
+      fullSourceInsights = {
+        'Facebook': { impressions: 0, clicks: 0, spend: 0 },
+        'Instagram': { impressions: 0, clicks: 0, spend: 0 }
+      };
     }
     
     // Now apply filters to get the subset of leads for display
@@ -180,13 +194,17 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       if (touchBasedStatuses.includes(lead.status)) {
         grouped[key].touchBased++;
         
-        if (lead.status === 'qualified') {
+        // Updated qualified logic - includes all post-qualification statuses except junk
+        if (['qualified', 'converted', 'invoiced', 'payment_received', 'payment_post_service'].includes(lead.status)) {
           grouped[key].qualified++;
         } else if (lead.status === 'junk') {
           grouped[key].junk++;
         } else if (lead.status === 'dropped') {
           grouped[key].dropped++;
-        } else if (['converted', 'invoiced', 'payment_received', 'payment_post_service'].includes(lead.status)) {
+        }
+        
+        // Converted includes only actual conversions
+        if (['converted', 'invoiced', 'payment_received', 'payment_post_service'].includes(lead.status)) {
           grouped[key].converted++;
         }
       } else {
@@ -196,22 +214,36 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
     
     // Add impressions and calculate percentages
     const marketingData = Object.entries(grouped).map(([key, data]) => {
-      // Get impressions based on grouping
+      // Get impressions and metrics based on grouping
       let impressions = 0;
+      let spend = 0;
+      let clicks = 0;
       
       if (groupBy === 'source' && (key === 'Facebook' || key === 'Instagram')) {
         impressions = sourceImpressions[key] || 0;
+        // Use full source insights for spend and clicks
+        if (fullSourceInsights[key]) {
+          spend = fullSourceInsights[key].spend || 0;
+          clicks = fullSourceInsights[key].clicks || 0;
+        }
       } else if (groupBy === 'ad_set') {
-        impressions = facebookImpressions[key] || 0;
+        const metrics = facebookMetrics[key];
+        if (metrics) {
+          impressions = metrics.impressions || 0;
+          spend = metrics.spend || 0;
+          clicks = metrics.clicks || 0;
+        }
       } else if (groupBy === 'event') {
-        // For events, sum impressions from all ad sets associated with this event
+        // For events, sum metrics from all ad sets associated with this event
         leads.filter(lead => {
           const leadEvent = lead.lead_for_event || lead.event_name;
           return leadEvent === key;
         }).forEach(lead => {
           const adSetName = lead.ad_set || lead.adset_name;
-          if (adSetName && facebookImpressions[adSetName]) {
-            impressions += facebookImpressions[adSetName];
+          if (adSetName && facebookMetrics[adSetName]) {
+            impressions += facebookMetrics[adSetName].impressions || 0;
+            spend += facebookMetrics[adSetName].spend || 0;
+            clicks += facebookMetrics[adSetName].clicks || 0;
           }
         });
       }
@@ -227,12 +259,22 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
         ? (data.junk / data.touchBased * 100).toFixed(2) 
         : '0.00';
       
+      // Calculate new metrics
+      const cpl = data.totalLeads > 0 ? (spend / data.totalLeads).toFixed(2) : '0.00';
+      const cpm = impressions > 0 ? ((spend / impressions) * 1000).toFixed(2) : '0.00';
+      const ctr = impressions > 0 ? ((clicks / impressions) * 100).toFixed(2) : '0.00';
+      
       return {
         ...data,
         impressions,
+        spend,
+        clicks,
         qualifiedPercent,
         convertedPercent,
-        junkPercent
+        junkPercent,
+        cpl, // Cost Per Lead
+        cpm, // Cost Per Mille (thousand impressions)
+        ctr  // Click Through Rate
       };
     });
     
@@ -246,6 +288,8 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       acc.junk += row.junk;
       acc.dropped += row.dropped;
       acc.converted += row.converted;
+      acc.totalSpend += row.spend;
+      acc.totalClicks += row.clicks;
       return acc;
     }, {
       totalImpressions: 0,
@@ -255,7 +299,9 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       qualified: 0,
       junk: 0,
       dropped: 0,
-      converted: 0
+      converted: 0,
+      totalSpend: 0,
+      totalClicks: 0
     });
     
     // Calculate total percentages
@@ -268,6 +314,11 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
     const totalJunkPercent = totals.touchBased > 0 
       ? (totals.junk / totals.touchBased * 100).toFixed(2) 
       : '0.00';
+    
+    // Calculate total CPL, CPM, CTR
+    const totalCPL = totals.totalLeads > 0 ? (totals.totalSpend / totals.totalLeads).toFixed(2) : '0.00';
+    const totalCPM = totals.totalImpressions > 0 ? ((totals.totalSpend / totals.totalImpressions) * 1000).toFixed(2) : '0.00';
+    const totalCTR = totals.totalImpressions > 0 ? ((totals.totalClicks / totals.totalImpressions) * 100).toFixed(2) : '0.00';
     
     // Prepare filter options - using ALL available options (not just from filtered data)
     const filterOptions = {
@@ -287,7 +338,10 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
           ...totals,
           totalQualifiedPercent,
           totalConvertedPercent,
-          totalJunkPercent
+          totalJunkPercent,
+          totalCPL,
+          totalCPM,
+          totalCTR
         },
         filterOptions,
         groupBy,
