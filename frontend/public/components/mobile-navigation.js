@@ -156,7 +156,7 @@ window.MobileHeader = function() {
         ),
         getPageTitle()
     )
-)
+),
 
     // Action button (add new)
     showActionButton() ?
