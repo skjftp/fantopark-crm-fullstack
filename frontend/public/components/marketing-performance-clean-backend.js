@@ -63,14 +63,12 @@ function MarketingPerformanceBackend() {
         fetchMarketingData(state.filters);
     }, []); // Empty dependency is correct here as we only want to run on mount
     
-    // Handle filter changes - following financials pattern (no DOM cleanup needed)
+    // Handle filter changes
     const handleFilterChange = (filterType, value) => {
         const newFilters = { ...state.filters, [filterType]: value };
         setState(prev => ({ 
             ...prev, 
-            filters: newFilters,
-            loading: true,
-            error: null
+            filters: newFilters
         }));
         fetchMarketingData(newFilters);
     };
@@ -93,10 +91,10 @@ function MarketingPerformanceBackend() {
     const totals = data.totals || {};
     const filterOptions = data.filterOptions || { events: [], sources: [], adSets: [] };
     
-    // No need for unique keys - React will handle re-rendering properly
-    
+    // Main render with unique key for the table container
     return React.createElement('div', { 
-        className: 'p-6 space-y-6'
+        className: 'p-6 space-y-6',
+        key: 'marketing-performance-container'
     },
         // Header
         React.createElement('div', { className: 'flex justify-between items-center' },
@@ -162,7 +160,7 @@ function MarketingPerformanceBackend() {
                     className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white'
                 },
                     React.createElement('option', { value: 'all' }, 'All Events'),
-                    filterOptions.events.map(event => 
+                    filterOptions.events && filterOptions.events.map(event =>
                         React.createElement('option', { key: event, value: event }, event)
                     )
                 )
@@ -178,7 +176,7 @@ function MarketingPerformanceBackend() {
                     className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white'
                 },
                     React.createElement('option', { value: 'all' }, 'All Sources'),
-                    filterOptions.sources.map(source => 
+                    filterOptions.sources && filterOptions.sources.map(source =>
                         React.createElement('option', { key: source, value: source }, source)
                     )
                 )
@@ -194,14 +192,14 @@ function MarketingPerformanceBackend() {
                     className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white'
                 },
                     React.createElement('option', { value: 'all' }, 'All Ad Sets'),
-                    filterOptions.adSets.map(adSet => 
+                    filterOptions.adSets && filterOptions.adSets.map(adSet =>
                         React.createElement('option', { key: adSet, value: adSet }, adSet)
                     )
                 )
             )
         ),
         
-        // Applied Filters Info
+        // Applied filters info
         data.appliedFilters && React.createElement('div', { 
             className: 'bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4'
         },
@@ -217,9 +215,10 @@ function MarketingPerformanceBackend() {
             )
         ),
         
-        // Table - following financials pattern
+        // Table container with unique key
         React.createElement('div', { 
-            className: 'bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden'
+            className: 'bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden',
+            key: `table-container-${JSON.stringify(state.filters)}`
         },
             React.createElement('div', { className: 'px-6 py-4 border-b border-gray-200 dark:border-gray-700' },
                 React.createElement('h2', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
@@ -244,7 +243,7 @@ function MarketingPerformanceBackend() {
             React.createElement('div', { className: 'overflow-x-auto' },
                 React.createElement('table', { 
                     className: 'w-full',
-                    key: 'marketing-performance-table' 
+                    key: `marketing-table-${Date.now()}`
                 },
                     React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
                         React.createElement('tr', null,
@@ -269,12 +268,14 @@ function MarketingPerformanceBackend() {
                     ),
                     React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700' },
                         marketingData.map((row, index) => 
-                            React.createElement('tr', { key: `${row.name}-${index}` },
+                            React.createElement('tr', { key: `row-${row.name}-${index}` },
                                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white' }, row.name),
                                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400' }, 
                                     window.formatIndianNumber ? window.formatIndianNumber(row.impressions) : row.impressions.toLocaleString()
                                 ),
-                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400' }, row.totalLeads),
+                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400' }, 
+                                    window.formatIndianNumber ? window.formatIndianNumber(row.totalLeads) : row.totalLeads.toLocaleString()
+                                ),
                                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400' }, row.touchBased),
                                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400' }, row.notTouchBased),
                                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400' }, row.qualified),
@@ -287,13 +288,18 @@ function MarketingPerformanceBackend() {
                             )
                         ),
                         
-                        // Totals row
-                        totals.totalLeads > 0 && React.createElement('tr', { className: 'bg-gray-100 dark:bg-gray-900 font-semibold' },
+                        // Total row
+                        totals && totals.totalLeads > 0 && React.createElement('tr', { 
+                            key: 'total-row',
+                            className: 'bg-gray-50 dark:bg-gray-900 font-semibold' 
+                        },
                             React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white' }, 'TOTAL'),
                             React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white' }, 
                                 window.formatIndianNumber ? window.formatIndianNumber(totals.totalImpressions || 0) : (totals.totalImpressions || 0).toLocaleString()
                             ),
-                            React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white' }, totals.totalLeads || 0),
+                            React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white' }, 
+                                window.formatIndianNumber ? window.formatIndianNumber(totals.totalLeads || 0) : (totals.totalLeads || 0).toLocaleString()
+                            ),
                             React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white' }, totals.touchBased || 0),
                             React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white' }, totals.notTouchBased || 0),
                             React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white' }, totals.qualified || 0),
@@ -311,33 +317,24 @@ function MarketingPerformanceBackend() {
     );
 }
 
-// Export function
-window.exportMarketingData = function(data, totals) {
+// Export data function
+window.exportMarketingData = (marketingData, totals) => {
     const headers = [
-        'Name',
-        'Total Impressions',
-        'Total Leads',
-        'Touch Based',
-        'Not Touch Based',
-        'Qualified',
-        'Junk',
-        'Dropped',
-        'Converted',
-        'Qualified %',
-        'Converted %',
-        'Junk %'
+        'Source', 'Total Impressions', 'Total Leads', 'Touch Based', 
+        'Not Touch Based', 'Qualified', 'Junk', 'Dropped', 'Converted',
+        'Qualified %', 'Converted %', 'Junk %'
     ];
     
-    const rows = data.map(row => [
+    const rows = marketingData.map(row => [
         row.name,
-        row.impressions,
-        row.totalLeads,
-        row.touchBased,
-        row.notTouchBased,
-        row.qualified,
-        row.junk,
-        row.dropped,
-        row.converted,
+        row.impressions || 0,
+        row.totalLeads || 0,
+        row.touchBased || 0,
+        row.notTouchBased || 0,
+        row.qualified || 0,
+        row.junk || 0,
+        row.dropped || 0,
+        row.converted || 0,
         `${row.qualifiedPercent}%`,
         `${row.convertedPercent}%`,
         `${row.junkPercent}%`
