@@ -286,6 +286,9 @@ function MarketingPerformanceBackend() {
                             ),
                             React.createElement('th', { className: 'px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Total Impressions'),
                             React.createElement('th', { className: 'px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Total Leads'),
+                            React.createElement('th', { className: 'px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'CPL'),
+                            React.createElement('th', { className: 'px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'CPM'),
+                            React.createElement('th', { className: 'px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'CTR %'),
                             React.createElement('th', { className: 'px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Touch Based'),
                             React.createElement('th', { className: 'px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Not Touch Based'),
                             React.createElement('th', { className: 'px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider' }, 'Qualified'),
@@ -306,6 +309,15 @@ function MarketingPerformanceBackend() {
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400' }, 
                                     window.formatIndianNumber ? window.formatIndianNumber(row.totalLeads) : row.totalLeads.toLocaleString()
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400' }, 
+                                    row.cpl > 0 ? `₹${window.formatIndianNumber ? window.formatIndianNumber(parseFloat(row.cpl)) : row.cpl}` : '-'
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400' }, 
+                                    row.cpm > 0 ? `₹${window.formatIndianNumber ? window.formatIndianNumber(parseFloat(row.cpm)) : row.cpm}` : '-'
+                                ),
+                                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400' }, 
+                                    row.ctr > 0 ? `${row.ctr}%` : '-'
                                 ),
                                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400' }, row.touchBased),
                                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400' }, row.notTouchBased),
@@ -331,6 +343,15 @@ function MarketingPerformanceBackend() {
                             React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white' }, 
                                 window.formatIndianNumber ? window.formatIndianNumber(totals.totalLeads || 0) : (totals.totalLeads || 0).toLocaleString()
                             ),
+                            React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white' }, 
+                                totals.totalCPL > 0 ? `₹${window.formatIndianNumber ? window.formatIndianNumber(parseFloat(totals.totalCPL)) : totals.totalCPL}` : '-'
+                            ),
+                            React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white' }, 
+                                totals.totalCPM > 0 ? `₹${window.formatIndianNumber ? window.formatIndianNumber(parseFloat(totals.totalCPM)) : totals.totalCPM}` : '-'
+                            ),
+                            React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white' }, 
+                                totals.totalCTR > 0 ? `${totals.totalCTR}%` : '-'
+                            ),
                             React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white' }, totals.touchBased || 0),
                             React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white' }, totals.notTouchBased || 0),
                             React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white' }, totals.qualified || 0),
@@ -351,8 +372,8 @@ function MarketingPerformanceBackend() {
 // Export data function
 window.exportMarketingData = (marketingData, totals) => {
     const headers = [
-        'Source', 'Total Impressions', 'Total Leads', 'Touch Based', 
-        'Not Touch Based', 'Qualified', 'Junk', 'Dropped', 'Converted',
+        'Source', 'Total Impressions', 'Total Leads', 'CPL', 'CPM', 'CTR %',
+        'Touch Based', 'Not Touch Based', 'Qualified', 'Junk', 'Dropped', 'Converted',
         'Qualified %', 'Converted %', 'Junk %'
     ];
     
@@ -360,6 +381,9 @@ window.exportMarketingData = (marketingData, totals) => {
         row.name,
         row.impressions || 0,
         row.totalLeads || 0,
+        row.cpl || '0',
+        row.cpm || '0',
+        row.ctr || '0',
         row.touchBased || 0,
         row.notTouchBased || 0,
         row.qualified || 0,
@@ -376,6 +400,9 @@ window.exportMarketingData = (marketingData, totals) => {
             'TOTAL',
             totals.totalImpressions || 0,
             totals.totalLeads || 0,
+            totals.totalCPL || '0',
+            totals.totalCPM || '0',
+            totals.totalCTR || '0',
             totals.touchBased || 0,
             totals.notTouchBased || 0,
             totals.qualified || 0,
