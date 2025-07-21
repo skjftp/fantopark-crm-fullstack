@@ -2,10 +2,25 @@
 // Displays marketing metrics based on Excel template specifications
 
 window.renderMarketingPerformanceContent = function() {
-    return React.createElement(window.MarketingPerformance);
+    try {
+        // Wrap in a stable container to prevent DOM issues
+        return React.createElement('div', { 
+            key: 'marketing-performance-container',
+            className: 'marketing-performance-wrapper'
+        },
+            React.createElement(window.MarketingPerformance)
+        );
+    } catch (error) {
+        console.error('Error rendering Marketing Performance:', error);
+        return React.createElement('div', { className: 'p-6 text-center' },
+            React.createElement('p', { className: 'text-red-500' }, 
+                'Error loading Marketing Performance. Please refresh the page.'
+            )
+        );
+    }
 };
 
-window.MarketingPerformance = function() {
+window.MarketingPerformance = React.memo(function MarketingPerformance() {
     const [loading, setLoading] = React.useState(false);
     const [marketingData, setMarketingData] = React.useState([]);
     const [filters, setFilters] = React.useState({
@@ -209,7 +224,7 @@ window.MarketingPerformance = function() {
     // Fetch data on filter change
     React.useEffect(() => {
         fetchMarketingData();
-    }, [filters]);
+    }, [fetchMarketingData]);
     
     // Calculate totals
     const totals = React.useMemo(() => {
@@ -257,14 +272,14 @@ window.MarketingPerformance = function() {
                     onClick: () => setShowFilters(!showFilters),
                     className: 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 px-4 py-2 rounded-lg flex items-center gap-2'
                 },
-                    React.createElement('span', null, showFilters ? '🔽' : '▶️'),
+                    React.createElement('span', null, showFilters ? '▼' : '►'),
                     'Filters'
                 ),
                 React.createElement('button', {
                     onClick: () => exportMarketingData(marketingData, totals),
                     className: 'bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2'
                 },
-                    React.createElement('span', null, '📥'),
+                    React.createElement('i', { className: 'fas fa-download' }),
                     'Export CSV'
                 )
             )
@@ -498,7 +513,7 @@ window.MarketingPerformance = function() {
             )
         )
     );
-};
+});
 
 // Export marketing data to CSV
 function exportMarketingData(data, totals) {
