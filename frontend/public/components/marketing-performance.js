@@ -2,17 +2,20 @@
 // Displays marketing metrics based on Excel template specifications
 
 window.renderMarketingPerformanceContent = function() {
+    // Create a unique key to force component remount on navigation
+    const [componentKey, setComponentKey] = React.useState(Date.now());
+    
+    React.useEffect(() => {
+        // Force remount when navigating to this tab
+        setComponentKey(Date.now());
+    }, []);
+    
     try {
-        // Use a stable wrapper component to prevent DOM issues
-        const MarketingPerformanceWrapper = React.memo(() => {
-            return React.createElement(window.MarketingPerformance);
-        });
-        
         return React.createElement('div', { 
-            key: 'marketing-performance-container',
+            key: `marketing-performance-${componentKey}`,
             className: 'marketing-performance-wrapper'
         },
-            React.createElement(MarketingPerformanceWrapper)
+            React.createElement(window.MarketingPerformance, { key: componentKey })
         );
     } catch (error) {
         console.error('Error rendering Marketing Performance:', error);
@@ -234,8 +237,11 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
     
     // Fetch data on filter change
     React.useEffect(() => {
+        // Reset impressions when filters change
+        setImpressionsLoaded(false);
+        setFacebookImpressions({});
         fetchMarketingData();
-    }, [fetchMarketingData]);
+    }, [filters.dateFrom, filters.dateTo, filters.event, filters.source, filters.adSet]);
     
     // Reprocess data when impressions are updated
     React.useEffect(() => {
@@ -290,14 +296,16 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
             React.createElement('div', { className: 'flex gap-2' },
                 React.createElement('button', {
                     onClick: () => setShowFilters(!showFilters),
-                    className: 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 px-4 py-2 rounded-lg flex items-center gap-2'
+                    className: 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 px-4 py-2 rounded-lg flex items-center gap-2',
+                    type: 'button'
                 },
                     React.createElement('span', null, showFilters ? '▼' : '►'),
                     'Filters'
                 ),
                 React.createElement('button', {
                     onClick: () => exportMarketingData(marketingData, totals),
-                    className: 'bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2'
+                    className: 'bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2',
+                    type: 'button'
                 },
                     React.createElement('i', { className: 'fas fa-download' }),
                     'Export CSV'
@@ -316,8 +324,8 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
                 ),
                 React.createElement('input', {
                     type: 'date',
-                    value: filters.dateFrom,
-                    onChange: (e) => setFilters({...filters, dateFrom: e.target.value}),
+                    value: filters.dateFrom || '',
+                    onChange: (e) => setFilters(prev => ({...prev, dateFrom: e.target.value})),
                     className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white'
                 })
             ),
@@ -328,8 +336,8 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
                 ),
                 React.createElement('input', {
                     type: 'date',
-                    value: filters.dateTo,
-                    onChange: (e) => setFilters({...filters, dateTo: e.target.value}),
+                    value: filters.dateTo || '',
+                    onChange: (e) => setFilters(prev => ({...prev, dateTo: e.target.value})),
                     className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white'
                 })
             ),
@@ -340,8 +348,8 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
                     'Event'
                 ),
                 React.createElement('select', {
-                    value: filters.event,
-                    onChange: (e) => setFilters({...filters, event: e.target.value}),
+                    value: filters.event || 'all',
+                    onChange: (e) => setFilters(prev => ({...prev, event: e.target.value})),
                     className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white'
                 },
                     React.createElement('option', { value: 'all' }, 'All Events'),
@@ -357,8 +365,8 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
                     'Source'
                 ),
                 React.createElement('select', {
-                    value: filters.source,
-                    onChange: (e) => setFilters({...filters, source: e.target.value}),
+                    value: filters.source || 'all',
+                    onChange: (e) => setFilters(prev => ({...prev, source: e.target.value})),
                     className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white'
                 },
                     React.createElement('option', { value: 'all' }, 'All Sources'),
@@ -374,8 +382,8 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
                     'Ad Set Name'
                 ),
                 React.createElement('select', {
-                    value: filters.adSet,
-                    onChange: (e) => setFilters({...filters, adSet: e.target.value}),
+                    value: filters.adSet || 'all',
+                    onChange: (e) => setFilters(prev => ({...prev, adSet: e.target.value})),
                     className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white'
                 },
                     React.createElement('option', { value: 'all' }, 'All Ad Sets'),
