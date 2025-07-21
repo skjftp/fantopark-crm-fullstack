@@ -2,11 +2,12 @@
 // Main Content Router Component - Enhanced with Tab Overlay Fix
 // Complete router functionality with all tabs, permission checks, and complex roles management
 
+// The renderContent function that SimplifiedApp calls
 window.renderContent = () => {
     // Create a wrapper div that forces React to properly unmount/remount content
     // The key prop ensures React treats each tab as a separate component tree
     return React.createElement('div', {
-        key: `tab-${window.activeTab}`, // Unique key per tab only (not per render)
+        key: `tab-${window.activeTab}`, // Unique key per tab only
         className: 'tab-content-wrapper',
         'data-active-tab': window.activeTab,
         style: {
@@ -470,6 +471,12 @@ window.cleanupTabContent = function(previousTab) {
             }
             if (window.setShowReminderDashboard) {
                 window.setShowReminderDashboard(false);
+            }
+            break;
+            
+        case 'marketing-performance':
+            if (window.cleanupMarketingPerformance) {
+                window.cleanupMarketingPerformance();
             }
             break;
             
