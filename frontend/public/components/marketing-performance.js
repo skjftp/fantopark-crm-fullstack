@@ -67,9 +67,15 @@ window.MarketingPerformance = function() {
                     adSets: uniqueAdSets.sort()
                 });
                 
-                // Fetch Facebook impressions for ad sets
+                // Fetch Facebook impressions for ad sets or sources
                 if (filters.adSet !== 'all') {
                     await fetchAdSetImpressions(filters.adSet);
+                } else if (filters.source === 'all' || !filters.source) {
+                    // When showing all sources, fetch impressions by source
+                    await fetchImpressionsBySource();
+                } else if (filters.source === 'Facebook' || filters.source === 'Instagram') {
+                    // Fetch impressions for specific social source
+                    await fetchSourceImpressions(filters.source);
                 }
             }
         } catch (error) {
@@ -106,7 +112,8 @@ window.MarketingPerformance = function() {
                     junk: 0,
                     dropped: 0,
                     converted: 0,
-                    impressions: 0
+                    impressions: 0,
+                    source: lead.source // Track source for impressions
                 };
             }
             
@@ -143,12 +150,22 @@ window.MarketingPerformance = function() {
                 ? (data.junk / data.touchBased * 100).toFixed(2) 
                 : 0;
             
+            // Get impressions based on context
+            let impressions = 0;
+            if (groupBy === 'source' && (key === 'Facebook' || key === 'Instagram')) {
+                // For Facebook/Instagram sources, use the impressions data
+                impressions = facebookImpressions[key] || 0;
+            } else if (groupBy === 'ad_set') {
+                // For ad sets, use the specific ad set impressions
+                impressions = facebookImpressions[key] || 0;
+            }
+            
             return {
                 ...data,
                 qualifiedPercent,
                 convertedPercent,
                 junkPercent,
-                impressions: facebookImpressions[key] || 0
+                impressions
             };
         });
     };
@@ -156,13 +173,36 @@ window.MarketingPerformance = function() {
     // Fetch Facebook ad set impressions
     const fetchAdSetImpressions = async (adSetName) => {
         try {
-            // This would call your Facebook API endpoint
             const response = await window.apiCall(`/marketing/facebook-impressions?ad_set=${adSetName}`);
             if (response.success && response.data) {
                 setFacebookImpressions(response.data);
             }
         } catch (error) {
             console.error('Error fetching Facebook impressions:', error);
+        }
+    };
+    
+    // Fetch impressions by source (for all sources view)
+    const fetchImpressionsBySource = async () => {
+        try {
+            const response = await window.apiCall(`/marketing/impressions-by-source?date_from=${filters.dateFrom}&date_to=${filters.dateTo}`);
+            if (response.success && response.data) {
+                setFacebookImpressions(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching impressions by source:', error);
+        }
+    };
+    
+    // Fetch impressions for specific source (Facebook or Instagram)
+    const fetchSourceImpressions = async (source) => {
+        try {
+            const response = await window.apiCall(`/marketing/facebook-impressions?source=${source}`);
+            if (response.success && response.data) {
+                setFacebookImpressions(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching source impressions:', error);
         }
     };
     
@@ -316,6 +356,9 @@ window.MarketingPerformance = function() {
             React.createElement('div', { className: 'px-6 py-4 border-b border-gray-200 dark:border-gray-700' },
                 React.createElement('h2', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
                     'Marketing Metrics'
+                ),
+                React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400 mt-1' }, 
+                    '* Impressions data available for Facebook and Instagram sources only'
                 )
             ),
             

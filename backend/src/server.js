@@ -164,6 +164,7 @@ app.use('/api/events', require('./routes/events'));
 app.use('/api/sales-performance', require('./routes/sales-performance'));
 app.use('/api/website-leads', require('./routes/websiteLeads'));
 app.use('/api/market-rates', require('./routes/marketRates'));
+app.use('/api/marketing', require('./routes/marketing'));
 
 
 // ✅ JOURNEY ROUTES - NOW AFTER CORS SETUP!
