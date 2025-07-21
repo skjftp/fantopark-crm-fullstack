@@ -150,12 +150,32 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
     // Note: Other filters will be applied in memory to avoid Firestore index issues
     
     const leadsSnapshot = await query.get();
-    let leads = [];
+    let allLeadsData = [];
     leadsSnapshot.forEach(doc => {
-      leads.push({ id: doc.id, ...doc.data() });
+      allLeadsData.push({ id: doc.id, ...doc.data() });
     });
     
-    // Apply other filters in memory
+    // IMPORTANT: Collect all filter options BEFORE filtering
+    const allEvents = new Set();
+    const allSources = new Set();
+    const allAdSets = new Set();
+    
+    // Collect ALL available options from ALL leads (before filtering)
+    allLeadsData.forEach(lead => {
+      if (lead.lead_for_event || lead.event_name) {
+        allEvents.add(lead.lead_for_event || lead.event_name);
+      }
+      if (lead.source) {
+        allSources.add(lead.source);
+      }
+      if (lead.ad_set || lead.adset_name) {
+        allAdSets.add(lead.ad_set || lead.adset_name);
+      }
+    });
+    
+    // Now apply filters to get the subset of leads for display
+    let leads = [...allLeadsData]; // Create a copy for filtering
+    
     if (event && event !== 'all') {
       leads = leads.filter(lead => 
         lead.lead_for_event === event || lead.event_name === event
@@ -170,7 +190,7 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       );
     }
     
-    console.log(`Found ${leads.length} leads for marketing performance`);
+    console.log(`Found ${leads.length} leads for marketing performance (from ${allLeadsData.length} total)`);
     if (leads.length > 0) {
       console.log('📊 Sample lead structure:', Object.keys(leads[0]));
     }
@@ -181,24 +201,10 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
                    event && event !== 'all' ? 'event' :
                    'source'; // Default grouping
     
-    // Group and calculate metrics
+    // Group and calculate metrics (only for filtered leads)
     const grouped = {};
-    const allEvents = new Set();
-    const allSources = new Set();
-    const allAdSets = new Set();
     
     leads.forEach(lead => {
-      // Collect filter options
-      if (lead.lead_for_event || lead.event_name) {
-        allEvents.add(lead.lead_for_event || lead.event_name);
-      }
-      if (lead.source) {
-        allSources.add(lead.source);
-      }
-      if (lead.ad_set || lead.adset_name) {
-        allAdSets.add(lead.ad_set || lead.adset_name);
-      }
-      
       // Determine grouping key
       let key = 'Unknown';
       if (groupBy === 'event') {
@@ -307,7 +313,7 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       ? (totals.junk / totals.touchBased * 100).toFixed(2) 
       : '0.00';
     
-    // Prepare filter options
+    // Prepare filter options - using ALL available options (not just from filtered data)
     const filterOptions = {
       events: Array.from(allEvents).sort(),
       sources: Array.from(allSources).sort(),
@@ -315,6 +321,7 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
     };
     
     console.log(`✅ Marketing performance calculated: ${marketingData.length} rows, ${totals.totalLeads} total leads`);
+    console.log(`📋 Filter options: ${filterOptions.events.length} events, ${filterOptions.sources.length} sources, ${filterOptions.adSets.length} ad sets`);
     
     res.json({
       success: true,
