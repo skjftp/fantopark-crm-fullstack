@@ -486,20 +486,32 @@ const fetchLeads = async () => {
 
   const handleStatusFilterToggle = (status) => {
     setSelectedStatusFilters(prev => {
-      if (prev.includes(status)) {
-        return prev.filter(s => s !== status);
-      } else {
-        return [...prev, status];
-      }
+      const newFilters = prev.includes(status) 
+        ? prev.filter(s => s !== status)
+        : [...prev, status];
+      
+      // Trigger API call after state update
+      setTimeout(() => {
+        if (window.LeadsAPI && window.LeadsAPI.fetchPaginatedLeads) {
+          window.LeadsAPI.fetchPaginatedLeads({ page: 1 });
+        }
+      }, 50);
+      
+      return newFilters;
     });
   };
 
   const handleSelectAllStatuses = () => {
-    if (selectedStatusFilters.length === Object.keys(window.LEAD_STATUSES).length) {
-      setSelectedStatusFilters([]);
-    } else {
-      setSelectedStatusFilters(Object.keys(window.LEAD_STATUSES));
-    }
+    const allStatuses = Object.keys(window.LEAD_STATUSES);
+    const newFilters = selectedStatusFilters.length === allStatuses.length ? [] : allStatuses;
+    setSelectedStatusFilters(newFilters);
+    
+    // Trigger API call after state update
+    setTimeout(() => {
+      if (window.LeadsAPI && window.LeadsAPI.fetchPaginatedLeads) {
+        window.LeadsAPI.fetchPaginatedLeads({ page: 1 });
+      }
+    }, 50);
   };
 
   const checkPhoneForClient = async (phone) => {
@@ -566,6 +578,13 @@ const fetchLeads = async () => {
 
   const handleClearAllStatuses = () => {
     setSelectedStatusFilters([]);
+    
+    // Trigger API call after state update
+    setTimeout(() => {
+      if (window.LeadsAPI && window.LeadsAPI.fetchPaginatedLeads) {
+        window.LeadsAPI.fetchPaginatedLeads({ page: 1 });
+      }
+    }, 50);
   };
 
   const getStatusFilterDisplayText = () => {
@@ -1210,20 +1229,62 @@ const fetchAndProcessLead = async (leadId, receivable) => {
     
     try {
       setLoading(true);
-      setAllocationManagementInventory(inventoryItem);
+      // REMOVED: Duplicate setAllocationManagementInventory - let utils/helpers.js handle it
 
-      // Fetch allocations for this inventory
-      window.log.debug("🔄 Fetching allocations for inventory:", inventoryItem.id);
-      const response = await window.apiCall(`/inventory/${inventoryItem.id}/allocations`);
-
-      if (response.error) {
-        throw new Error(response.error);
+      // CHANGED: Delegate to utils/helpers.js version to prevent duplicate fetches
+      console.log("🔄 [APP-LOGIC] Delegating allocation fetch to utils/helpers.js version");
+      console.log("🔍 [APP-LOGIC] Current window.openAllocationManagement:", typeof window.openAllocationManagement);
+      console.log("🔍 [APP-LOGIC] window.openAllocationManagement._source:", window.openAllocationManagement?._source);
+      console.log("🔍 [APP-LOGIC] window.openAllocationManagement._isAuthoritative:", window.openAllocationManagement?._isAuthoritative);
+      console.log("🔍 [APP-LOGIC] This openAllocationManagement:", typeof openAllocationManagement);
+      console.log("🔍 [APP-LOGIC] Are they the same?", window.openAllocationManagement === openAllocationManagement);
+      
+      // Release our loading state and delegate to the global version
+      setLoading(false);
+      
+      // Call the global version which has React-safe timing
+      if (window.openAllocationManagement && 
+          window.openAllocationManagement !== openAllocationManagement &&
+          window.openAllocationManagement._isAuthoritative) {
+        console.log("✅ Calling authoritative global openAllocationManagement from:", window.openAllocationManagement._source);
+        return await window.openAllocationManagement(inventoryItem);
       }
-
-      // Set the fetched allocations
-      const allocations = response.data?.allocations || [];
-      window.log.info("✅ Fetched allocations:", allocations.length);
-      setCurrentAllocations(allocations);
+      
+      // Fallback: Just show the modal without data but fetch allocations directly
+      console.warn("⚠️ [APP-LOGIC] No authoritative global openAllocationManagement found, fetching allocations directly");
+      
+      // Use React-safe approach with requestAnimationFrame to prevent DOM conflicts
+      requestAnimationFrame(async () => {
+        try {
+          const response = await window.apiCall(`/inventory/${inventoryItem.id}/allocations`);
+          if (!response.error) {
+            const rawAllocations = response.data?.allocations || [];
+            console.log("🔍 [APP-LOGIC] Raw allocations fetched:", rawAllocations);
+            
+            const allocations = window.normalizeAllocationData ? 
+              window.normalizeAllocationData(rawAllocations) : 
+              rawAllocations;
+            console.log("🔍 [APP-LOGIC] Normalized allocations:", allocations);
+            
+            // Use functional update to prevent conflicts
+            if (window.setCurrentAllocations) {
+              window.setCurrentAllocations(() => allocations);
+            }
+          } else {
+            console.warn("⚠️ [APP-LOGIC] API returned error:", response.error);
+            if (window.setCurrentAllocations) {
+              window.setCurrentAllocations([]);
+            }
+          }
+        } catch (error) {
+          console.error('❌ [APP-LOGIC] Error fetching allocations directly:', error);
+          if (window.setCurrentAllocations) {
+            window.setCurrentAllocations([]);
+          }
+        }
+      });
+      
+      // Show modal immediately
       setShowAllocationManagement(true);
 
     } catch (error) {
@@ -1238,45 +1299,8 @@ const fetchAndProcessLead = async (leadId, receivable) => {
     }
   };
 
-  // Function to unallocate tickets
-  const handleUnallocate = async (allocationId, ticketsToReturn) => {
-    if (!confirm(`Are you sure you want to unallocate ${ticketsToReturn} tickets?`)) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const response = await window.apiCall(
-        `/inventory/${allocationManagementInventory.id}/allocations/${allocationId}`, 
-        { method: 'DELETE' }
-      );
-
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      // Refresh allocations
-      await openAllocationManagement(allocationManagementInventory);
-
-      // Update inventory in main list
-      setInventory(prev => 
-        prev.map(item => 
-          item.id === allocationManagementInventory.id 
-            ? { ...item, available_tickets: response.new_available_tickets }
-            : item
-        )
-      );
-
-      alert(`Successfully unallocated ${ticketsToReturn} tickets`);
-
-    } catch (error) {
-      window.log.error('Error unallocating tickets:', error);
-      alert('Error unallocating tickets: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // REMOVED: Legacy handleUnallocate function - now handled by allocation-management.js only
+  const handleUnallocate = null; // Placeholder to prevent undefined errors
 
   const openEditInventoryForm = (inventoryItem) => {
     if (!window.hasPermission('inventory', 'write')) {
@@ -1692,8 +1716,11 @@ const fetchAndProcessLead = async (leadId, receivable) => {
     handleMarkPaymentFromReceivable,
     openLeadDetail,
     openAllocationForm,
-    openAllocationManagement,
-    handleUnallocate,
+    // Use global authoritative version if available, otherwise use local version
+    openAllocationManagement: window.openAllocationManagement?._isAuthoritative ? 
+      window.openAllocationManagement : 
+      openAllocationManagement,
+    // handleUnallocate: REMOVED - handled exclusively by allocation-management.js
     openEditInventoryForm,
     handleEditInventory,
     openInventoryDetail,

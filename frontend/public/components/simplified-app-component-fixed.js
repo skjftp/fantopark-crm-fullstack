@@ -2321,11 +2321,24 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
   });
 
   // ✅ CRITICAL MISSING: Allocation Management Functions
-  window.handleUnallocate = handlers.handleUnallocate || ((allocationId, ticketsToReturn) => {
-    console.log("🗑️ handleUnallocate called with:", allocationId, ticketsToReturn);
-    console.warn("⚠️ handleUnallocate not implemented in handlers");
-    alert("Unallocate functionality will be implemented in next update!");
-  });
+  // Create a wrapper that checks for the real implementation at runtime
+  window.handleUnallocate = window.handleUnallocate || function(allocationId, ticketsToReturn, categoryName) {
+    console.log("🗑️ [SIMPLIFIED-APP] handleUnallocate wrapper called:", allocationId, ticketsToReturn, categoryName);
+    
+    // Check if handlers has the implementation
+    if (handlers.handleUnallocate) {
+      console.log("✅ [SIMPLIFIED-APP] Using handlers.handleUnallocate");
+      return handlers.handleUnallocate(allocationId, ticketsToReturn, categoryName);
+    }
+    
+    // Otherwise show not implemented message
+    console.warn("⚠️ [SIMPLIFIED-APP] handleUnallocate not implemented in handlers");
+    console.log("💡 [SIMPLIFIED-APP] The actual implementation is in allocation-management.js");
+    
+    // Don't show the alert - the real function should be in allocation-management.js
+    // Just log that we're in the wrong function
+    console.error("❌ [SIMPLIFIED-APP] This function should not be called - check script loading order");
+  };
 
   // ===== PERMISSION SYSTEM =====
 
@@ -3187,20 +3200,13 @@ console.log("✅ AssignmentRulesTab exposed to window");
     );
   }
 
-  // Check if mobile view
-  const isMobile = window.innerWidth <= 768;
+  // Check if mobile view - use state from appState instead
+  const isMobile = state.isMobile !== undefined ? state.isMobile : window.innerWidth <= 768;
   
-  // Add resize listener to update view
-  React.useEffect(() => {
-    const handleResize = () => {
-      const newIsMobile = window.innerWidth <= 768;
-      if (newIsMobile !== isMobile) {
-        window.forceUpdate && window.forceUpdate();
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  // Initialize mobile state if not set
+  if (state.setIsMobile && state.isMobile === undefined) {
+    state.setIsMobile(window.innerWidth <= 768);
+  }
 
   // Main application layout
   return React.createElement('div', { className: isMobile ? 'min-h-screen bg-gray-50 dark:bg-gray-900' : 'flex h-screen bg-gray-100 dark:bg-gray-900' },
@@ -3314,7 +3320,7 @@ console.log("✅ AssignmentRulesTab exposed to window");
           window.renderContent()
         )
       )
-    )),
+    ),
 
     // All Modal Forms
     window.renderReminderDashboard && window.renderReminderDashboard(),
@@ -3336,7 +3342,7 @@ console.log("✅ AssignmentRulesTab exposed to window");
     window.showFinanceInvoiceModal && window.renderFinanceInvoiceModal && window.renderFinanceInvoiceModal(),                         
     window.renderLeadDetail && window.renderLeadDetail(),
     state.showInventoryDetail && window.renderInventoryDetail && window.renderInventoryDetail(),
-    window.renderAllocationForm && window.renderAllocationForm(),
+    state.showAllocationForm && window.renderAllocationForm && window.renderAllocationForm(),
     window.renderAllocationManagement && window.renderAllocationManagement(),
     window.renderStadiumForm && window.renderStadiumForm(),
     window.renderChoiceModal && window.renderChoiceModal(),

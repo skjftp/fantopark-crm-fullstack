@@ -284,6 +284,7 @@ router.get('/paginated', authenticateToken, async (req, res) => {
     const limitNum = parseInt(limit);
 
     console.log(`📄 Fetching paginated leads - Page: ${pageNum}, Limit: ${limitNum}`);
+    console.log(`🔍 Filters: status=${status}, source=${source}, business_type=${business_type}, event=${event}, assigned_to=${assigned_to}`);
 
     // Fetch all leads first (we'll optimize this later with proper indexes)
     const snapshot = await db.collection(collections.leads).get();
@@ -297,9 +298,15 @@ router.get('/paginated', authenticateToken, async (req, res) => {
     // Apply filters
     let filteredLeads = allLeads;
 
-    // Status filter
-    if (status !== 'all') {
-      filteredLeads = filteredLeads.filter(lead => lead.status === status);
+    // Status filter - handle both single and multiple statuses
+    if (status && status !== 'all') {
+      // Check if status contains comma (multiple statuses)
+      if (status.includes(',')) {
+        const statusArray = status.split(',').map(s => s.trim());
+        filteredLeads = filteredLeads.filter(lead => statusArray.includes(lead.status));
+      } else {
+        filteredLeads = filteredLeads.filter(lead => lead.status === status);
+      }
     }
 
     // Source filter

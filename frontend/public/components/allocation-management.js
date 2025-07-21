@@ -1,6 +1,93 @@
 // Enhanced Allocation Management Component for FanToPark CRM
 // Now displays category information and category-wise summaries
 
+// Define the unallocation handler first so it's available to the render function
+window.handleUnallocate = window.handleUnallocate || (async (allocationId, ticketsToReturn, categoryName) => {
+  console.log("🗑️ [ALLOC-MGMT] Unallocate called:", allocationId, ticketsToReturn, categoryName);
+  
+  if (!confirm(`Are you sure you want to unallocate ${ticketsToReturn} tickets${categoryName ? ' from ' + categoryName + ' category' : ''}?`)) {
+    return;
+  }
+
+  // Prevent concurrent unallocations
+  if (window._unallocationInProgress) {
+    console.warn('⚠️ Unallocation already in progress, skipping');
+    return;
+  }
+  
+  window._unallocationInProgress = true;
+  
+  // CRITICAL: Store modal state before any async operations
+  const modalOpenAtStart = window.showAllocationManagement || window.appState?.showAllocationManagement;
+  console.log("📊 [ALLOC-MGMT] Modal open at start:", modalOpenAtStart);
+
+  try {
+    if (window.setLoading) {
+      window.setLoading(true);
+    }
+    
+    const inventoryId = window.allocationManagementInventory.id;
+    console.log("🔄 [ALLOC-MGMT] Deleting allocation for inventory:", inventoryId);
+    
+    const response = await window.apiCall(`/inventory/${inventoryId}/allocations/${allocationId}`, {
+      method: 'DELETE'
+    });
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+
+    console.log("✅ [ALLOC-MGMT] Unallocation API success:", response);
+
+    // CRITICAL FIX: Close modal first to avoid React DOM conflicts
+    console.log("🚪 [ALLOC-MGMT] Closing modal to prevent DOM errors");
+    
+    // Close the modal immediately
+    if (window.setShowAllocationManagement) {
+      window.setShowAllocationManagement(false);
+    }
+    
+    // Update inventory state after modal is closed
+    setTimeout(() => {
+      console.log("🔄 [ALLOC-MGMT] Updating inventory after modal closed");
+      
+      try {
+        if (window.setInventory) {
+          if (response.categories) {
+            window.setInventory(prev => prev.map(item => 
+              item.id === inventoryId 
+                ? { ...item, categories: response.categories, available_tickets: response.new_available_tickets }
+                : item
+            ));
+          } else {
+            window.setInventory(prev => prev.map(item => 
+              item.id === inventoryId 
+                ? { ...item, available_tickets: response.new_available_tickets }
+                : item
+            ));
+          }
+        }
+      } catch (stateError) {
+        console.warn('⚠️ Error updating inventory state:', stateError.message);
+      }
+      
+      // Show success message after state updates
+      alert(`Successfully unallocated ${ticketsToReturn} tickets${categoryName ? ' from ' + categoryName : ''}`);
+      
+    }, 50); // Small delay to ensure modal unmounts cleanly
+
+  } catch (error) {
+    console.error('Unallocate error:', error);
+    alert('Failed to unallocate: ' + error.message);
+  } finally {
+    if (window.setLoading) {
+      window.setLoading(false);
+    }
+    // Clear the lock
+    window._unallocationInProgress = false;
+  }
+});
+
 window.exportAllocationsToCSV = (allocations, inventoryName, hasCategories) => {
   try {
     // Define CSV headers based on whether categories exist
@@ -173,15 +260,10 @@ window.renderAllocationManagement = () => {
   });
   
   const handleUnallocate = window.handleUnallocate || ((allocationId, tickets, categoryName) => {
-    console.warn("handleUnallocate not implemented"); 
-    console.log("Would unallocate:", allocationId, tickets, "from category:", categoryName);
+    console.warn("⚠️ [ALLOC-MGMT] handleUnallocate fallback called - global function not available");
+    console.log("📊 [ALLOC-MGMT] Would unallocate:", allocationId, tickets, "from category:", categoryName);
+    console.log("🔍 [ALLOC-MGMT] window.handleUnallocate type:", typeof window.handleUnallocate);
   });
-
-  // ✅ Enhanced Debug Logging
-  console.log("🔍 ALLOCATION MANAGEMENT DEBUG:");
-  console.log("showAllocationManagement:", showAllocationManagement);
-  console.log("allocationManagementInventory:", allocationManagementInventory?.event_name);
-  console.log("currentAllocations count:", currentAllocations?.length || 0);
 
   if (!showAllocationManagement || !allocationManagementInventory) {
     console.log("❌ Not showing allocation management:", {
@@ -191,10 +273,19 @@ window.renderAllocationManagement = () => {
     return null;
   }
 
-  // NEW: Check if inventory has categories
+  // NEW: Check if inventory has categories (MOVED UP to fix hoisting error)
   const hasCategories = allocationManagementInventory.categories && 
     Array.isArray(allocationManagementInventory.categories) && 
     allocationManagementInventory.categories.length > 0;
+
+  // ✅ Enhanced Debug Logging
+  console.log("🔍 ALLOCATION MANAGEMENT DEBUG:");
+  console.log("showAllocationManagement:", showAllocationManagement);
+  console.log("allocationManagementInventory:", allocationManagementInventory?.event_name);
+  console.log("currentAllocations count:", currentAllocations?.length || 0);
+  console.log("🔍 Current allocations data:", currentAllocations);
+  console.log("🔍 Inventory has categories:", hasCategories);
+  console.log("🔍 Inventory categories:", allocationManagementInventory?.categories);
 
   // NEW: Calculate category-wise allocation summary
   const categoryAllocationSummary = {};
@@ -203,7 +294,7 @@ window.renderAllocationManagement = () => {
     allocationManagementInventory.categories.forEach(cat => {
       categoryAllocationSummary[cat.name] = {
         totalTickets: cat.total_tickets || 0,
-        available: cat.available_tickets || 0,
+        originalAvailable: cat.available_tickets || 0,
         allocated: 0,
         allocations: []
       };
@@ -292,7 +383,7 @@ window.renderAllocationManagement = () => {
           React.createElement('div', { className: 'space-y-2' },
             Object.entries(categoryAllocationSummary).map(([categoryName, summary]) =>
               React.createElement('div', { 
-                key: categoryName,
+                key: `category-${categoryName}-${summary.totalTickets}`,
                 className: 'flex justify-between items-center p-2 bg-white dark:bg-gray-800 rounded'
               },
                 React.createElement('div', { className: 'flex-1' },
@@ -306,7 +397,7 @@ window.renderAllocationManagement = () => {
                     `Total: ${summary.totalTickets}`
                   ),
                   React.createElement('span', { className: 'text-green-600 dark:text-green-400' },
-                    `Available: ${summary.available}`
+                    `Available: ${Math.max(0, summary.totalTickets - summary.allocated)}`
                   ),
                   React.createElement('span', { className: 'text-blue-600 dark:text-blue-400' },
                     `Allocated: ${summary.allocated}`
@@ -354,8 +445,12 @@ window.renderAllocationManagement = () => {
               
               const totalValue = (allocation.tickets_allocated || 0) * pricePerTicket;
 
+              // Create stable key without Math.random()
+              const stableKey = allocation.id || 
+                `allocation-${index}-${allocation.lead_id || allocation.lead_email || allocation.allocation_date || 'unknown'}`;
+              
               return React.createElement('tr', { 
-                key: allocation.id || index, 
+                key: stableKey, 
                 className: 'hover:bg-gray-50 dark:hover:bg-gray-700' 
               },
                 React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' },
@@ -440,51 +535,6 @@ React.createElement('div', { className: 'mt-6 flex justify-between items-center'
   );
 };
 
-// Update the unallocate handler to handle categories
-window.handleUnallocate = window.handleUnallocate || (async (allocationId, ticketsToReturn, categoryName) => {
-  if (!confirm(`Are you sure you want to unallocate ${ticketsToReturn} tickets${categoryName ? ' from ' + categoryName + ' category' : ''}?`)) {
-    return;
-  }
-
-  try {
-    window.setLoading(true);
-    
-    const inventoryId = window.allocationManagementInventory.id;
-    const response = await window.apicall(`/inventory/${inventoryId}/allocations/${allocationId}`, {
-      method: 'DELETE'
-    });
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-
-    // Update local state
-    if (response.categories) {
-      // Update inventory with new categories data
-      window.setInventory(prev => prev.map(item => 
-        item.id === inventoryId 
-          ? { ...item, categories: response.categories, available_tickets: response.new_available_tickets }
-          : item
-      ));
-    } else {
-      // Legacy update
-      window.setInventory(prev => prev.map(item => 
-        item.id === inventoryId 
-          ? { ...item, available_tickets: response.new_available_tickets }
-          : item
-      ));
-    }
-
-    // Refresh allocations list
-    await window.fetchAllocations(inventoryId);
-    
-    alert(`Successfully unallocated ${ticketsToReturn} tickets${categoryName ? ' from ' + categoryName : ''}`);
-  } catch (error) {
-    console.error('Unallocate error:', error);
-    alert('Failed to unallocate: ' + error.message);
-  } finally {
-    window.setLoading(false);
-  }
-});
+// REMOVED: Duplicate handleUnallocate function - now defined at the top of the file
 
 console.log('✅ Enhanced Allocation Management with Category Support loaded successfully');

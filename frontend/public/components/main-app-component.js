@@ -6,12 +6,33 @@ window.renderMainApp = function() {
   const { useState, useEffect, useRef } = React;
   window.authToken = window.authToken || localStorage.getItem('crm_auth_token') || '';
   window.forceUpdate = () => {
-  // This will be called from the fixed orders.js when filters change
-  setOrdersFilters({...window.ordersFilters});
-  setOrdersPagination({...window.ordersPagination});
-  setOrdersSorting({...window.ordersSorting});
-  setOrdersShowFilters(window.ordersShowFilters);
-};
+    // Generic force update function that triggers React re-render
+    try {
+      // Update orders filters if available
+      if (setOrdersFilters && window.ordersFilters) {
+        setOrdersFilters({...window.ordersFilters});
+      }
+      if (setOrdersPagination && window.ordersPagination) {
+        setOrdersPagination({...window.ordersPagination});
+      }
+      if (setOrdersSorting && window.ordersSorting) {
+        setOrdersSorting({...window.ordersSorting});
+      }
+      if (setOrdersShowFilters !== undefined && window.ordersShowFilters !== undefined) {
+        setOrdersShowFilters(window.ordersShowFilters);
+      }
+      
+      // Force allocation form re-render by updating a dummy state
+      if (window.allocationFormState) {
+        const timestamp = Date.now();
+        window.allocationFormState._timestamp = timestamp;
+      }
+      
+      console.log('🔄 Force update triggered');
+    } catch (error) {
+      console.error('❌ Error in forceUpdate:', error);
+    }
+  };
   
   // Extract all useState declarations
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -25,6 +46,16 @@ window.renderMainApp = function() {
     return savedTab || 'dashboard';
   });
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  // Add resize listener for mobile view
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Sync activeTab with window object for content router
   useEffect(() => {
@@ -32,6 +63,7 @@ window.renderMainApp = function() {
     localStorage.setItem("crm_active_tab", activeTab);
   }, [activeTab]);
   const [leads, setLeads] = useState([]);
+  const [allLeadsForAllocation, setAllLeadsForAllocation] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [editingInventory, setEditingInventory] = useState(null);
   const [showInventoryForm, setShowInventoryForm] = useState(false);
@@ -171,6 +203,8 @@ const [showStadiumNotesModal, setShowStadiumNotesModal] = React.useState(false);
   const [showStadiumImageLightbox, setShowStadiumImageLightbox] = React.useState(false);
   // Mobile menu state
 const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [paymentData, setPaymentData] = useState({
     legal_name: '',
     gstin: '',
@@ -385,11 +419,13 @@ window.setIsMobileView = setIsMobileView;
     password, setPassword,
     activeTab, setActiveTab,
     loading, setLoading,
+    isMobile, setIsMobile,
       ordersFilters, setOrdersFilters,
   ordersPagination, setOrdersPagination,
   ordersSorting, setOrdersSorting,
   ordersShowFilters, setOrdersShowFilters,
     leads, setLeads,
+    allLeadsForAllocation, setAllLeadsForAllocation,
     inventory, setInventory,
     editingInventory, setEditingInventory,
     showInventoryForm, setShowInventoryForm,
@@ -553,6 +589,8 @@ currentEventsPage,
 eventsPerPage,
     financialPagination, setFinancialPagination,
     isMobileMenuOpen, setIsMobileMenuOpen,
+    showMobileMenu, setShowMobileMenu,
+    showMobileFilters, setShowMobileFilters,
   };
 
   // Stadium Notes Modal Helper Functions
