@@ -185,7 +185,7 @@ class FacebookInsightsService {
       
       const adAccountId = await this.getAdAccountId();
       
-      let url = `${this.baseUrl}/${adAccountId}/insights?fields=adset_name,adset_id,campaign_name,campaign_id,impressions,reach,clicks,spend,ctr&level=adset`;
+      let url = `${this.baseUrl}/${adAccountId}/insights?fields=adset_name,adset_id,campaign_name,campaign_id,impressions,reach,clicks,spend,ctr,cpm,cpp&level=adset`;
       
       if (dateFrom && dateTo) {
         url += `&time_range={'since':'${dateFrom}','until':'${dateTo}'}`;
@@ -219,9 +219,11 @@ class FacebookInsightsService {
             reach: parseInt(insight.reach || 0),
             clicks: parseInt(insight.clicks || 0),
             spend: parseFloat(insight.spend || 0),
-            ctr: parseFloat(insight.ctr || 0)
+            ctr: parseFloat(insight.ctr || 0),
+            cpm: parseFloat(insight.cpm || 0),
+            cpp: parseFloat(insight.cpp || 0)
           };
-          console.log(`✅ Ad Set: ${insight.adset_name} - ${insight.impressions} impressions`);
+          console.log(`✅ Ad Set: ${insight.adset_name} - ${insight.impressions} impressions, ₹${insight.spend} spend`);
         });
       }
       
@@ -255,7 +257,7 @@ class FacebookInsightsService {
       
       const adAccountId = await this.getAdAccountId();
       
-      let url = `${this.baseUrl}/${adAccountId}/insights?fields=impressions&breakdowns=publisher_platform`;
+      let url = `${this.baseUrl}/${adAccountId}/insights?fields=impressions,clicks,spend&breakdowns=publisher_platform`;
       
       if (dateFrom && dateTo) {
         url += `&time_range={'since':'${dateFrom}','until':'${dateTo}'}`;
@@ -274,29 +276,40 @@ class FacebookInsightsService {
       
       // Process the data
       const sourceInsights = {
-        'Facebook': 0,
-        'Instagram': 0
+        'Facebook': { impressions: 0, clicks: 0, spend: 0 },
+        'Instagram': { impressions: 0, clicks: 0, spend: 0 }
       };
       
       if (data.data) {
         data.data.forEach(insight => {
           const platform = insight.publisher_platform;
           if (platform === 'facebook') {
-            sourceInsights['Facebook'] += parseInt(insight.impressions || 0);
+            sourceInsights['Facebook'].impressions += parseInt(insight.impressions || 0);
+            sourceInsights['Facebook'].clicks += parseInt(insight.clicks || 0);
+            sourceInsights['Facebook'].spend += parseFloat(insight.spend || 0);
           } else if (platform === 'instagram') {
-            sourceInsights['Instagram'] += parseInt(insight.impressions || 0);
+            sourceInsights['Instagram'].impressions += parseInt(insight.impressions || 0);
+            sourceInsights['Instagram'].clicks += parseInt(insight.clicks || 0);
+            sourceInsights['Instagram'].spend += parseFloat(insight.spend || 0);
           }
         });
       }
       
+      // For backward compatibility, also return just impressions
+      const impressionsOnly = {
+        'Facebook': sourceInsights['Facebook'].impressions,
+        'Instagram': sourceInsights['Instagram'].impressions
+      };
+      
       // Cache the results
       this.cache.set(cacheKey, {
-        data: sourceInsights,
+        data: impressionsOnly,
+        fullData: sourceInsights,
         timestamp: Date.now()
       });
       
       console.log('✅ Fetched insights by source:', sourceInsights);
-      return sourceInsights;
+      return impressionsOnly;
       
     } catch (error) {
       console.error('❌ Error fetching source insights:', error);
