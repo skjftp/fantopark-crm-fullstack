@@ -804,6 +804,59 @@ window.MobileDashboardView = function() {
   const state = window.appState;
   const { leads, orders, deliveries, invoices } = state;
   const [recentLeadsFromAPI, setRecentLeadsFromAPI] = React.useState([]);
+  const [dashboardData, setDashboardData] = React.useState({
+    summary: {
+      totalLeads: 0,
+      hotLeads: 0,
+      qualifiedLeads: 0,
+      totalPipelineValue: 0
+    },
+    charts: {
+      leadSplit: { labels: [], data: [], colors: [] },
+      temperatureCount: { labels: [], data: [], colors: [] },
+      temperatureValue: { labels: [], data: [], colors: [] }
+    }
+  });
+  const [dashboardFilter, setDashboardFilter] = React.useState('overall');
+  const [selectedSalesPerson, setSelectedSalesPerson] = React.useState('');
+  const [selectedEvent, setSelectedEvent] = React.useState('');
+  
+  // Fetch dashboard data from API
+  React.useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // Build query parameters based on filters
+        const params = new URLSearchParams();
+        
+        if (dashboardFilter === 'salesPerson' && selectedSalesPerson) {
+          params.append('filter_type', 'salesPerson');
+          params.append('sales_person_id', selectedSalesPerson);
+        } else if (dashboardFilter === 'event' && selectedEvent) {
+          params.append('filter_type', 'event');
+          params.append('event_name', selectedEvent);
+        }
+        
+        const response = await fetch(`${window.API_CONFIG.API_URL}/dashboard/charts?${params}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('crm_auth_token'),
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            setDashboardData(result.data);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      }
+    };
+    
+    fetchDashboardData();
+  }, [dashboardFilter, selectedSalesPerson, selectedEvent]);
   
   // Fetch recent activity from API
   React.useEffect(() => {
@@ -830,66 +883,6 @@ window.MobileDashboardView = function() {
     
     fetchRecentActivity();
   }, []);
-
-  // Calculate stats from actual data
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
-
-  // Count today's leads - match web dashboard logic
-  const todayLeads = leads?.filter(lead => {
-    if (!lead.created_at) return false;
-    // Check if date starts with today's date (YYYY-MM-DD format)
-    return lead.created_at.startsWith(todayStr);
-  }).length || 0;
-
-  const activeOrders = orders?.filter(order => 
-    order.status && ['pending', 'processing', 'confirmed'].includes(order.status)
-  ).length || 0;
-
-  const pendingDeliveries = deliveries?.filter(delivery => 
-    delivery.status && delivery.status !== 'delivered'
-  ).length || 0;
-
-  // Calculate month revenue from invoices
-  const monthRevenue = invoices?.filter(invoice => {
-    if (!invoice.created_at) return false;
-    const invoiceDate = new Date(invoice.created_at);
-    return invoiceDate.getMonth() === currentMonth && 
-           invoiceDate.getFullYear() === currentYear;
-  }).reduce((sum, invoice) => sum + (parseFloat(invoice.total_amount) || 0), 0) || 0;
-
-  const quickStats = [
-    {
-      label: 'Today\'s Leads',
-      value: todayLeads,
-      icon: '👥',
-      color: 'bg-blue-500',
-      onClick: () => state.setActiveTab('leads')
-    },
-    {
-      label: 'Active Orders',
-      value: activeOrders,
-      icon: '🎫',
-      color: 'bg-green-500',
-      onClick: () => state.setActiveTab('orders')
-    },
-    {
-      label: 'Pending Delivery',
-      value: pendingDeliveries,
-      icon: '🚚',
-      color: 'bg-yellow-500',
-      onClick: () => state.setActiveTab('delivery')
-    },
-    {
-      label: 'This Month Revenue',
-      value: window.formatCurrency(monthRevenue),
-      icon: '💰',
-      color: 'bg-purple-500',
-      onClick: () => state.setActiveTab('financials')
-    }
-  ];
 
   // Helper functions for lead display
   const getStatusDisplay = (status) => {
@@ -927,49 +920,372 @@ window.MobileDashboardView = function() {
     return date.toLocaleDateString();
   };
 
-  return React.createElement('div', { className: 'mobile-content-wrapper' },
-    // Welcome message
-    React.createElement('div', { className: 'mb-6' },
-      React.createElement('h1', { 
-        className: 'text-2xl font-bold text-gray-900 dark:text-white mb-1'
-      }, `Welcome back, ${state.user?.name || 'User'}!`),
-      React.createElement('p', { 
-        className: 'text-gray-600 dark:text-gray-400'
-      }, new Date().toLocaleDateString('en-US', { 
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }))
-    ),
+  // Create mini pie chart component
+  const MiniPieChart = ({ data, labels, colors, title }) => {
+    const canvasRef = React.useRef(null);
+    const [hoveredSegment, setHoveredSegment] = React.useState(null);
+    const [touchPoint, setTouchPoint] = React.useState(null);
+    
+    // Store segment paths for hit detection
+    const segmentPaths = React.useRef([]);
+    
+    React.useEffect(() => {
+      if (!canvasRef.current || !data || data.length === 0) return;
+      
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Calculate total
+      const total = data.reduce((sum, value) => sum + value, 0);
+      if (total === 0) return;
+      
+      // Draw pie chart
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = Math.min(centerX, centerY) - 20;
+      
+      let currentAngle = -Math.PI / 2;
+      segmentPaths.current = [];
+      
+      data.forEach((value, index) => {
+        const sliceAngle = (value / total) * 2 * Math.PI;
+        
+        // Store segment info for hit detection
+        segmentPaths.current.push({
+          startAngle: currentAngle,
+          endAngle: currentAngle + sliceAngle,
+          index: index,
+          value: value,
+          label: labels[index]
+        });
+        
+        // Draw slice
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+        ctx.closePath();
+        ctx.fillStyle = colors[index];
+        ctx.fill();
+        
+        // Add border for better visibility
+        ctx.strokeStyle = window.matchMedia('(prefers-color-scheme: dark)').matches ? '#374151' : '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        currentAngle += sliceAngle;
+      });
+      
+      // Draw center circle for donut effect
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius * 0.6, 0, 2 * Math.PI);
+      ctx.fillStyle = window.matchMedia('(prefers-color-scheme: dark)').matches ? '#1f2937' : '#ffffff';
+      ctx.fill();
+      
+    }, [data, colors, labels]);
+    
+    // Handle mouse/touch events
+    const handleInteraction = (e) => {
+      if (!canvasRef.current) return;
+      
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      
+      let x, y;
+      if (e.type.includes('touch')) {
+        x = e.touches[0].clientX - rect.left;
+        y = e.touches[0].clientY - rect.top;
+      } else {
+        x = e.clientX - rect.left;
+        y = e.clientY - rect.top;
+      }
+      
+      // Scale coordinates to canvas size
+      x = x * (canvas.width / rect.width);
+      y = y * (canvas.height / rect.height);
+      
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = Math.min(centerX, centerY) - 20;
+      
+      // Calculate distance from center
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Check if within the donut ring
+      if (distance < radius && distance > radius * 0.6) {
+        // Calculate angle
+        let angle = Math.atan2(dy, dx);
+        // Normalize to 0-2PI range starting from top
+        angle = angle + Math.PI / 2;
+        if (angle < 0) angle += 2 * Math.PI;
+        
+        // Find which segment
+        const segment = segmentPaths.current.find(seg => 
+          angle >= seg.startAngle && angle < seg.endAngle
+        );
+        
+        if (segment) {
+          setHoveredSegment(segment.index);
+          if (e.type.includes('touch')) {
+            setTouchPoint({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+          }
+        }
+      } else {
+        setHoveredSegment(null);
+        setTouchPoint(null);
+      }
+    };
+    
+    const handleLeave = () => {
+      setHoveredSegment(null);
+      setTouchPoint(null);
+    };
+    
+    return React.createElement('div', { className: 'relative flex flex-col items-center' },
+      React.createElement('h4', { className: 'text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' }, title),
+      React.createElement('div', { className: 'relative inline-block' },
+        React.createElement('canvas', {
+          ref: canvasRef,
+          width: 140,
+          height: 140,
+          className: 'cursor-pointer',
+          onMouseMove: handleInteraction,
+          onMouseLeave: handleLeave,
+          onTouchStart: handleInteraction,
+          onTouchMove: handleInteraction,
+          onTouchEnd: handleLeave,
+          style: { touchAction: 'none' }
+        }),
+        
+        // Tooltip for hover/touch
+        hoveredSegment !== null && React.createElement('div', {
+          className: 'absolute z-10 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg whitespace-nowrap',
+          style: touchPoint ? {
+            left: '50%',
+            top: '-30px',
+            transform: 'translateX(-50%)'
+          } : {
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            pointerEvents: 'none'
+          }
+        },
+          labels[hoveredSegment],
+          ': ',
+          data[hoveredSegment]
+        )
+      ),
+      
+      // Legend
+      React.createElement('div', { className: 'mt-3 space-y-1 w-full px-2' },
+        labels.map((label, index) => 
+          data[index] > 0 && React.createElement('div', {
+            key: index,
+            className: `flex items-center justify-between text-xs px-2 py-1 rounded transition-colors ${
+              hoveredSegment === index ? 'bg-gray-100 dark:bg-gray-700' : ''
+            }`
+          },
+            React.createElement('span', { className: 'flex items-center gap-1' },
+              React.createElement('span', {
+                className: 'inline-block w-2 h-2 rounded-full',
+                style: { backgroundColor: colors[index] }
+              }),
+              React.createElement('span', { className: 'truncate max-w-[120px]' }, label)
+            ),
+            React.createElement('span', { className: 'font-medium ml-2' }, data[index])
+          )
+        )
+      )
+    );
+  };
 
-    // Quick stats grid
+  return React.createElement('div', { className: 'mobile-content-wrapper' },
+    // Dashboard Stats Cards - matching web version
     React.createElement('div', { 
       className: 'grid grid-cols-2 gap-3 mb-6'
     },
-      quickStats.map((stat, index) =>
-        React.createElement('div', {
-          key: index,
-          className: 'mobile-card touchable',
-          onClick: stat.onClick
-        },
-          React.createElement('div', { 
-            className: 'flex items-center justify-between mb-2'
-          },
-            React.createElement('span', { 
-              className: `text-2xl ${stat.color} bg-opacity-20 p-2 rounded-lg`
-            }, stat.icon),
-            React.createElement('span', { 
-              className: 'text-xs text-gray-500 dark:text-gray-400'
-            }, '→')
+      // Total Leads Card
+      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
+        React.createElement('div', { className: 'flex items-center' },
+          React.createElement('div', { className: 'p-2 bg-blue-100 dark:bg-blue-900 rounded-lg' },
+            React.createElement('svg', {
+              className: 'w-5 h-5 text-blue-600 dark:text-blue-400',
+              fill: 'none',
+              stroke: 'currentColor',
+              viewBox: '0 0 24 24'
+            },
+              React.createElement('path', {
+                strokeLinecap: 'round',
+                strokeLinejoin: 'round',
+                strokeWidth: 2,
+                d: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z'
+              })
+            )
           ),
-          React.createElement('div', { 
-            className: 'text-xl font-bold text-gray-900 dark:text-white'
-          }, stat.value),
-          React.createElement('div', { 
-            className: 'text-xs text-gray-600 dark:text-gray-400 mt-1'
-          }, stat.label)
+          React.createElement('div', { className: 'ml-3' },
+            React.createElement('h3', { 
+              className: 'text-lg font-semibold text-gray-900 dark:text-white'
+            }, dashboardData.summary.totalLeads),
+            React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400' }, 'Total Leads')
+          )
         )
+      ),
+
+      // Hot Leads Card
+      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
+        React.createElement('div', { className: 'flex items-center' },
+          React.createElement('div', { className: 'p-2 bg-red-100 dark:bg-red-900 rounded-lg' },
+            React.createElement('svg', {
+              className: 'w-5 h-5 text-red-600 dark:text-red-400',
+              fill: 'none',
+              stroke: 'currentColor',
+              viewBox: '0 0 24 24'
+            },
+              React.createElement('path', {
+                strokeLinecap: 'round',
+                strokeLinejoin: 'round',
+                strokeWidth: 2,
+                d: 'M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z'
+              })
+            )
+          ),
+          React.createElement('div', { className: 'ml-3' },
+            React.createElement('h3', { 
+              className: 'text-lg font-semibold text-gray-900 dark:text-white'
+            }, dashboardData.summary.hotLeads),
+            React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400' }, 'Hot Leads')
+          )
+        )
+      ),
+
+      // Qualified Leads Card
+      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
+        React.createElement('div', { className: 'flex items-center' },
+          React.createElement('div', { className: 'p-2 bg-green-100 dark:bg-green-900 rounded-lg' },
+            React.createElement('svg', {
+              className: 'w-5 h-5 text-green-600 dark:text-green-400',
+              fill: 'none',
+              stroke: 'currentColor',
+              viewBox: '0 0 24 24'
+            },
+              React.createElement('path', {
+                strokeLinecap: 'round',
+                strokeLinejoin: 'round',
+                strokeWidth: 2,
+                d: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
+              })
+            )
+          ),
+          React.createElement('div', { className: 'ml-3' },
+            React.createElement('h3', { 
+              className: 'text-lg font-semibold text-gray-900 dark:text-white'
+            }, dashboardData.summary.qualifiedLeads),
+            React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400' }, 'Qualified Leads')
+          )
+        )
+      ),
+
+      // Pipeline Value Card
+      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
+        React.createElement('div', { className: 'flex items-center' },
+          React.createElement('div', { className: 'p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg' },
+            React.createElement('span', { className: 'text-xl' }, '₹')
+          ),
+          React.createElement('div', { className: 'ml-3' },
+            React.createElement('h3', { 
+              className: 'text-lg font-semibold text-gray-900 dark:text-white'
+            }, `₹${dashboardData.summary.totalPipelineValue.toLocaleString('en-IN')}`),
+            React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400' }, 'Total Pipeline Value')
+          )
+        )
+      )
+    ),
+
+    // Filters section
+    React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6' },
+      React.createElement('div', { className: 'space-y-3' },
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300' }, 'View by:'),
+        
+        // Main Filter
+        React.createElement('select', {
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+          value: dashboardFilter,
+          onChange: (e) => {
+            setDashboardFilter(e.target.value);
+            setSelectedSalesPerson('');
+            setSelectedEvent('');
+          }
+        },
+          React.createElement('option', { value: 'overall' }, 'Overall'),
+          React.createElement('option', { value: 'salesPerson' }, 'By Sales Person'),
+          React.createElement('option', { value: 'event' }, 'By Event')
+        ),
+
+        // Sales Person Filter
+        dashboardFilter === 'salesPerson' && React.createElement('select', {
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+          value: selectedSalesPerson,
+          onChange: (e) => setSelectedSalesPerson(e.target.value)
+        },
+          React.createElement('option', { value: '' }, 'Select Sales Person'),
+          (window.users || []).map(user =>
+            React.createElement('option', { key: user.id, value: user.id }, user.name)
+          )
+        ),
+
+        // Event Filter
+        dashboardFilter === 'event' && React.createElement('select', {
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+          value: selectedEvent,
+          onChange: (e) => setSelectedEvent(e.target.value)
+        },
+          React.createElement('option', { value: '' }, 'Select Event'),
+          (window.appState?.leadsFilterOptions?.events || 
+           [...new Set((window.leads || []).map(lead => lead.lead_for_event).filter(Boolean))]
+          ).map(event =>
+            React.createElement('option', { key: event, value: event }, event)
+          )
+        )
+      )
+    ),
+
+    // Pie Charts Section
+    React.createElement('div', { className: 'grid grid-cols-1 gap-4 mb-6' },
+      // Lead Split Chart
+      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
+        React.createElement(MiniPieChart, {
+          title: 'Lead Split',
+          data: dashboardData.charts.leadSplit.data,
+          labels: dashboardData.charts.leadSplit.labels,
+          colors: dashboardData.charts.leadSplit.colors
+        })
+      ),
+
+      // Temperature Count Chart
+      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
+        React.createElement(MiniPieChart, {
+          title: 'Lead Temperature Count',
+          data: dashboardData.charts.temperatureCount.data,
+          labels: dashboardData.charts.temperatureCount.labels,
+          colors: dashboardData.charts.temperatureCount.colors
+        })
+      ),
+
+      // Temperature Value Chart
+      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
+        React.createElement(MiniPieChart, {
+          title: 'Lead Temperature Value',
+          data: dashboardData.charts.temperatureValue.data,
+          labels: dashboardData.charts.temperatureValue.labels.map((label, i) => 
+            `${label} (₹${(dashboardData.charts.temperatureValue.data[i] || 0).toLocaleString('en-IN')})`
+          ),
+          colors: dashboardData.charts.temperatureValue.colors
+        })
       )
     ),
 

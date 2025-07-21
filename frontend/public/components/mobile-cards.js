@@ -67,66 +67,53 @@ window.MobileLeadCard = function({ lead, onClick }) {
   };
 
   return React.createElement('div', {
-    className: 'mobile-card touchable',
-    onClick: (e) => {
-      // More comprehensive check for action buttons
-      const target = e.target;
-      const actionButton = target.closest('.action-button') || target.closest('[data-action]');
-      
-      if (actionButton) {
-        console.log('Clicked on action button, preventing card action');
-        return;
-      }
-      
-      // Also check if the clicked element has action-button class or data-action attribute
-      if (target.classList.contains('action-button') || target.hasAttribute('data-action')) {
-        console.log('Direct action button click, preventing card action');
-        return;
-      }
-      
-      console.log('Card clicked, opening lead detail');
-      onClick(lead);
-    }
+    className: 'mobile-card'
   },
-    // Header row
+    // Clickable upper section
     React.createElement('div', {
-      className: 'flex items-start justify-between mb-3'
+      className: 'cursor-pointer',
+      onClick: () => onClick(lead)
     },
-      React.createElement('div', { className: 'flex-1' },
-        React.createElement('h3', {
-          className: 'font-semibold text-base text-gray-900 dark:text-white mb-1'
-        }, lead.name || 'Unnamed Lead'),
-        React.createElement('p', {
-          className: 'text-sm text-gray-600 dark:text-gray-400'
-        }, lead.company || lead.email || lead.phone)
-      ),
-      React.createElement('span', {
-        className: `mobile-badge ${getStatusColor(lead.status)}`
-      }, window.LEAD_STATUSES[lead.status]?.label || lead.status)
-    ),
-
-    // Info rows
-    React.createElement('div', { className: 'space-y-2' },
-      // Event and date
-      React.createElement('div', { className: 'flex items-center justify-between text-sm' },
-        React.createElement('span', { className: 'text-gray-500 dark:text-gray-400' },
-          lead.lead_for_event || 'No event specified'
-        ),
-        React.createElement('span', { className: 'text-gray-500 dark:text-gray-400' },
-          formatDate(lead.date_of_enquiry || lead.created_date)
-        )
-      ),
-
-      // Assigned to and value
-      lead.assigned_to && React.createElement('div', { 
-        className: 'flex items-center justify-between text-sm'
+      // Header row
+      React.createElement('div', {
+        className: 'flex items-start justify-between mb-3'
       },
-        React.createElement('span', { className: 'text-gray-500 dark:text-gray-400' },
-          `Assigned to ${lead.assigned_to_name || lead.assigned_to}`
+        React.createElement('div', { className: 'flex-1' },
+          React.createElement('h3', {
+            className: 'font-semibold text-base text-gray-900 dark:text-white mb-1'
+          }, lead.name || 'Unnamed Lead'),
+          React.createElement('p', {
+            className: 'text-sm text-gray-600 dark:text-gray-400'
+          }, lead.company || lead.email || lead.phone)
         ),
-        lead.potential_value && React.createElement('span', { 
-          className: 'font-medium text-gray-900 dark:text-white'
-        }, `₹${window.formatCurrency(lead.potential_value)}`)
+        React.createElement('span', {
+          className: `mobile-badge ${getStatusColor(lead.status)}`
+        }, window.LEAD_STATUSES[lead.status]?.label || lead.status)
+      ),
+
+      // Info rows
+      React.createElement('div', { className: 'space-y-2' },
+        // Event and date
+        React.createElement('div', { className: 'flex items-center justify-between text-sm' },
+          React.createElement('span', { className: 'text-gray-500 dark:text-gray-400' },
+            lead.lead_for_event || 'No event specified'
+          ),
+          React.createElement('span', { className: 'text-gray-500 dark:text-gray-400' },
+            formatDate(lead.date_of_enquiry || lead.created_date)
+          )
+        ),
+
+        // Assigned to and value
+        lead.assigned_to && React.createElement('div', { 
+          className: 'flex items-center justify-between text-sm'
+        },
+          React.createElement('span', { className: 'text-gray-500 dark:text-gray-400' },
+            `Assigned to ${lead.assigned_to_name || lead.assigned_to}`
+          ),
+          lead.potential_value && React.createElement('span', { 
+            className: 'font-medium text-gray-900 dark:text-white'
+          }, `₹${window.formatCurrency(lead.potential_value)}`)
+        )
       )
     ),
 
@@ -137,14 +124,7 @@ window.MobileLeadCard = function({ lead, onClick }) {
       // Edit button
       window.hasPermission('leads', 'write') && React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors whitespace-nowrap',
-        'data-action': 'edit',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          e.stopImmediatePropagation();
-          console.log('Edit button clicked');
-          
+        onClick: () => {
           if (window.openEditForm) {
             window.openEditForm(lead);
           } else {
@@ -157,12 +137,7 @@ window.MobileLeadCard = function({ lead, onClick }) {
       // Progress button
       window.hasPermission('leads', 'progress') && React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded transition-colors whitespace-nowrap',
-        'data-action': 'progress',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          console.log('Progress button clicked');
+        onClick: () => {
           if (window.handleLeadProgressionClick) {
             window.handleLeadProgressionClick(lead);
           } else if (window.handleLeadProgression) {
@@ -178,12 +153,7 @@ window.MobileLeadCard = function({ lead, onClick }) {
       window.hasPermission('leads', 'assign') && !lead.assigned_to && lead.status === 'unassigned' &&
       React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded transition-colors whitespace-nowrap',
-        'data-action': 'assign',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          console.log('Assign button clicked');
+        onClick: () => {
           if (window.openAssignForm) {
             window.openAssignForm(lead);
           } else {
@@ -198,12 +168,7 @@ window.MobileLeadCard = function({ lead, onClick }) {
         (window.orders && window.orders.some(order => order.lead_id === lead.id && order.status !== 'rejected'))
       ) && React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded transition-colors whitespace-nowrap',
-        'data-action': 'payment',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          console.log('Payment button clicked');
+        onClick: () => {
           if (window.openPaymentForm) {
             window.openPaymentForm(lead);
           } else {
@@ -216,12 +181,7 @@ window.MobileLeadCard = function({ lead, onClick }) {
       // Delete button
       window.hasPermission('leads', 'delete') && React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded transition-colors whitespace-nowrap',
-        'data-action': 'delete',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          console.log('Delete button clicked');
+        onClick: () => {
           if (window.handleDelete) {
             window.handleDelete('leads', lead.id, lead.name);
           } else {
@@ -253,54 +213,55 @@ window.MobileInventoryCard = function({ item, onClick }) {
   };
 
   return React.createElement('div', {
-    className: 'mobile-card touchable',
-    onClick: (e) => {
-      // Don't trigger card click if clicking on action buttons
-      if (e.target.closest('.action-button')) return;
-      onClick(item);
-    }
+    className: 'mobile-card'
   },
-    // Event name and date
-    React.createElement('div', { className: 'mb-3' },
-      React.createElement('h3', {
-        className: 'font-semibold text-base text-gray-900 dark:text-white mb-1'
-      }, item.event_name),
-      React.createElement('p', {
-        className: 'text-sm text-gray-600 dark:text-gray-400'
-      }, `${formatDate(item.event_date)} • ${item.venue || 'Venue TBD'}`)
-    ),
-
-    // Category and availability
+    // Clickable upper section
     React.createElement('div', {
-      className: 'flex items-center justify-between mb-3'
+      className: 'cursor-pointer',
+      onClick: () => onClick(item)
     },
-      React.createElement('span', {
-        className: 'mobile-badge bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-      }, item.category_of_ticket || 'General'),
-      React.createElement('span', {
-        className: `text-sm font-medium ${getAvailabilityColor()}`
-      }, `${item.available_tickets}/${item.total_tickets} available`)
-    ),
-
-    // Price info
-    React.createElement('div', {
-      className: 'flex items-center justify-between text-sm'
-    },
-      React.createElement('span', { className: 'text-gray-500 dark:text-gray-400' },
-        'Selling Price'
+      // Event name and date
+      React.createElement('div', { className: 'mb-3' },
+        React.createElement('h3', {
+          className: 'font-semibold text-base text-gray-900 dark:text-white mb-1'
+        }, item.event_name),
+        React.createElement('p', {
+          className: 'text-sm text-gray-600 dark:text-gray-400'
+        }, `${formatDate(item.event_date)} • ${item.venue || 'Venue TBD'}`)
       ),
-      React.createElement('span', { className: 'font-semibold text-gray-900 dark:text-white' },
-        `₹${window.formatCurrency(item.selling_price || 0)}`
-      )
-    ),
 
-    // Sports type badge
-    item.sports && React.createElement('div', {
-      className: 'mt-3 flex items-center gap-2'
-    },
-      React.createElement('span', {
-        className: 'text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full'
-      }, item.sports)
+      // Category and availability
+      React.createElement('div', {
+        className: 'flex items-center justify-between mb-3'
+      },
+        React.createElement('span', {
+          className: 'mobile-badge bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+        }, item.category_of_ticket || 'General'),
+        React.createElement('span', {
+          className: `text-sm font-medium ${getAvailabilityColor()}`
+        }, `${item.available_tickets}/${item.total_tickets} available`)
+      ),
+
+      // Price info
+      React.createElement('div', {
+        className: 'flex items-center justify-between text-sm'
+      },
+        React.createElement('span', { className: 'text-gray-500 dark:text-gray-400' },
+          'Selling Price'
+        ),
+        React.createElement('span', { className: 'font-semibold text-gray-900 dark:text-white' },
+          `₹${window.formatCurrency(item.selling_price || 0)}`
+        )
+      ),
+
+      // Sports type badge
+      item.sports && React.createElement('div', {
+        className: 'mt-3 flex items-center gap-2'
+      },
+        React.createElement('span', {
+          className: 'text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full'
+        }, item.sports)
+      )
     ),
 
     // Quick action buttons
@@ -310,10 +271,7 @@ window.MobileInventoryCard = function({ item, onClick }) {
       // View button
       React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
+        onClick: () => {
           if (window.openInventoryDetail) {
             window.openInventoryDetail(item);
           } else {
@@ -326,10 +284,7 @@ window.MobileInventoryCard = function({ item, onClick }) {
       // Edit button
       window.hasPermission('inventory', 'write') && React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded transition-colors',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
+        onClick: () => {
           if (window.openEditInventoryForm) {
             window.openEditInventoryForm(item);
           } else if (window.setEditingInventory && window.setShowInventoryForm) {
@@ -343,10 +298,7 @@ window.MobileInventoryCard = function({ item, onClick }) {
       // Allocate button
       React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded transition-colors',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
+        onClick: () => {
           if (window.openAllocationManagement) {
             window.openAllocationManagement(item);
           }
@@ -357,10 +309,7 @@ window.MobileInventoryCard = function({ item, onClick }) {
       // Delete button
       window.hasPermission('inventory', 'delete') && React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded transition-colors',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
+        onClick: () => {
           if (window.handleDeleteInventory) {
             window.handleDeleteInventory(item.id);
           } else if (window.handleDelete) {
@@ -396,60 +345,61 @@ window.MobileOrderCard = function({ order, onClick }) {
   };
 
   return React.createElement('div', {
-    className: 'mobile-card touchable',
-    onClick: (e) => {
-      // Don't trigger card click if clicking on action buttons
-      if (e.target.closest('.action-button')) return;
-      onClick(order);
-    }
+    className: 'mobile-card'
   },
-    // Order header
+    // Clickable upper section
     React.createElement('div', {
-      className: 'flex items-start justify-between mb-3'
+      className: 'cursor-pointer',
+      onClick: () => onClick(order)
     },
-      React.createElement('div', { className: 'flex-1' },
-        React.createElement('h3', {
-          className: 'font-semibold text-base text-gray-900 dark:text-white mb-1'
-        }, order.inventory_name || 'Order #' + order.id?.slice(-6)),
-        React.createElement('p', {
-          className: 'text-sm text-gray-600 dark:text-gray-400'
-        }, order.client_name || 'Unknown Client')
-      ),
-      React.createElement('span', {
-        className: `mobile-badge ${getStatusColor(order.status)}`
-      }, order.status?.charAt(0).toUpperCase() + order.status?.slice(1))
-    ),
-
-    // Order details
-    React.createElement('div', { className: 'space-y-2' },
-      // Quantity and amount
-      React.createElement('div', { className: 'flex items-center justify-between text-sm' },
-        React.createElement('span', { className: 'text-gray-500 dark:text-gray-400' },
-          `${order.quantity || 0} tickets`
+      // Order header
+      React.createElement('div', {
+        className: 'flex items-start justify-between mb-3'
+      },
+        React.createElement('div', { className: 'flex-1' },
+          React.createElement('h3', {
+            className: 'font-semibold text-base text-gray-900 dark:text-white mb-1'
+          }, order.inventory_name || 'Order #' + order.id?.slice(-6)),
+          React.createElement('p', {
+            className: 'text-sm text-gray-600 dark:text-gray-400'
+          }, order.client_name || 'Unknown Client')
         ),
-        React.createElement('span', { className: 'font-medium text-gray-900 dark:text-white' },
-          `₹${window.formatCurrency(order.total_amount || 0)}`
+        React.createElement('span', {
+          className: `mobile-badge ${getStatusColor(order.status)}`
+        }, order.status?.charAt(0).toUpperCase() + order.status?.slice(1))
+      ),
+
+      // Order details
+      React.createElement('div', { className: 'space-y-2' },
+        // Quantity and amount
+        React.createElement('div', { className: 'flex items-center justify-between text-sm' },
+          React.createElement('span', { className: 'text-gray-500 dark:text-gray-400' },
+            `${order.quantity || 0} tickets`
+          ),
+          React.createElement('span', { className: 'font-medium text-gray-900 dark:text-white' },
+            `₹${window.formatCurrency(order.total_amount || 0)}`
+          )
+        ),
+
+        // Payment status
+        React.createElement('div', { className: 'flex items-center justify-between text-sm' },
+          React.createElement('span', { className: 'text-gray-500 dark:text-gray-400' },
+            'Payment'
+          ),
+          React.createElement('span', { className: 'flex items-center gap-1' },
+            React.createElement('span', null, getPaymentStatusIcon(order.payment_status)),
+            React.createElement('span', { 
+              className: 'font-medium'
+            }, order.payment_status || 'pending')
+          )
         )
       ),
 
-      // Payment status
-      React.createElement('div', { className: 'flex items-center justify-between text-sm' },
-        React.createElement('span', { className: 'text-gray-500 dark:text-gray-400' },
-          'Payment'
-        ),
-        React.createElement('span', { className: 'flex items-center gap-1' },
-          React.createElement('span', null, getPaymentStatusIcon(order.payment_status)),
-          React.createElement('span', { 
-            className: 'font-medium'
-          }, order.payment_status || 'pending')
-        )
-      )
+      // Assigned to
+      order.assigned_to && React.createElement('div', {
+        className: 'mt-2 text-xs text-gray-500 dark:text-gray-400'
+      }, `Assigned to ${order.assigned_to_name || order.assigned_to}`)
     ),
-
-    // Assigned to
-    order.assigned_to && React.createElement('div', {
-      className: 'mt-2 text-xs text-gray-500 dark:text-gray-400'
-    }, `Assigned to ${order.assigned_to_name || order.assigned_to}`),
 
     // Quick action buttons
     React.createElement('div', {
@@ -459,10 +409,7 @@ window.MobileOrderCard = function({ order, onClick }) {
       order.status === 'pending' && window.hasPermission('orders', 'approve') &&
       React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded transition-colors whitespace-nowrap',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
+        onClick: () => {
           if (window.handleApproveOrder) {
             window.handleApproveOrder(order);
           }
@@ -473,10 +420,7 @@ window.MobileOrderCard = function({ order, onClick }) {
       // View button
       React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors whitespace-nowrap',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
+        onClick: () => {
           if (window.openOrderView) {
             window.openOrderView(order);
           } else {
@@ -489,10 +433,7 @@ window.MobileOrderCard = function({ order, onClick }) {
       // Edit button
       window.hasPermission('orders', 'write') && React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-yellow-600 bg-yellow-50 hover:bg-yellow-100 rounded transition-colors whitespace-nowrap',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
+        onClick: () => {
           if (window.openOrderEdit) {
             window.openOrderEdit(order);
           } else if (window.openEditOrderForm) {
@@ -505,10 +446,7 @@ window.MobileOrderCard = function({ order, onClick }) {
       // Invoice button
       window.hasPermission('orders', 'invoice') && React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded transition-colors whitespace-nowrap',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
+        onClick: () => {
           if (window.handleGenerateInvoice) {
             window.handleGenerateInvoice(order);
           }
@@ -520,10 +458,7 @@ window.MobileOrderCard = function({ order, onClick }) {
       window.hasPermission('orders', 'assign') && !order.assigned_to &&
       React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded transition-colors whitespace-nowrap',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
+        onClick: () => {
           if (window.handleAssignOrder) {
             window.handleAssignOrder(order);
           } else if (window.openAssignForm) {
@@ -537,10 +472,7 @@ window.MobileOrderCard = function({ order, onClick }) {
       window.hasPermission('orders', 'assign') && order.assigned_to && order.original_assignee &&
       React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded transition-colors whitespace-nowrap',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
+        onClick: () => {
           if (window.handleReassignToOriginal) {
             window.handleReassignToOriginal(order);
           }
@@ -551,10 +483,7 @@ window.MobileOrderCard = function({ order, onClick }) {
       // Delete button
       window.hasPermission('orders', 'delete') && React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded transition-colors whitespace-nowrap',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
+        onClick: () => {
           if (window.handleDeleteOrder) {
             window.handleDeleteOrder(order.id);
           } else if (window.handleDelete) {
@@ -597,7 +526,7 @@ window.MobileDeliveryCard = function({ delivery, onClick }) {
   };
 
   return React.createElement('div', {
-    className: 'mobile-card touchable',
+    className: 'mobile-card cursor-pointer',
     onClick: () => onClick(delivery)
   },
     // Header
