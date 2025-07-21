@@ -83,13 +83,17 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
                 });
                 
                 // Fetch Facebook impressions for ad sets or sources
+                console.log('Current filters:', filters);
                 if (filters.adSet !== 'all') {
+                    console.log('Fetching ad set impressions for:', filters.adSet);
                     await fetchAdSetImpressions(filters.adSet);
                 } else if (filters.source === 'all' || !filters.source) {
                     // When showing all sources, fetch impressions by source
+                    console.log('Fetching impressions for all sources');
                     await fetchImpressionsBySource();
                 } else if (filters.source === 'Facebook' || filters.source === 'Instagram') {
                     // Fetch impressions for specific social source
+                    console.log('Fetching impressions for source:', filters.source);
                     await fetchSourceImpressions(filters.source);
                 }
             }
@@ -170,6 +174,7 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
             if (groupBy === 'source' && (key === 'Facebook' || key === 'Instagram')) {
                 // For Facebook/Instagram sources, use the impressions data
                 impressions = facebookImpressions[key] || 0;
+                console.log(`Impressions for ${key}:`, impressions, 'from:', facebookImpressions);
             } else if (groupBy === 'ad_set') {
                 // For ad sets, use the specific ad set impressions
                 impressions = facebookImpressions[key] || 0;
@@ -200,9 +205,12 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
     // Fetch impressions by source (for all sources view)
     const fetchImpressionsBySource = async () => {
         try {
+            console.log('Fetching impressions by source...');
             const response = await window.apiCall(`/marketing/impressions-by-source?date_from=${filters.dateFrom}&date_to=${filters.dateTo}`);
+            console.log('Impressions response:', response);
             if (response.success && response.data) {
                 setFacebookImpressions(response.data);
+                console.log('Set impressions data:', response.data);
             }
         } catch (error) {
             console.error('Error fetching impressions by source:', error);
