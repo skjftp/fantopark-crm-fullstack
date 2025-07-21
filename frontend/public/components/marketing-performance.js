@@ -3,12 +3,16 @@
 
 window.renderMarketingPerformanceContent = function() {
     try {
-        // Wrap in a stable container to prevent DOM issues
+        // Use a stable wrapper component to prevent DOM issues
+        const MarketingPerformanceWrapper = React.memo(() => {
+            return React.createElement(window.MarketingPerformance);
+        });
+        
         return React.createElement('div', { 
             key: 'marketing-performance-container',
             className: 'marketing-performance-wrapper'
         },
-            React.createElement(window.MarketingPerformance)
+            React.createElement(MarketingPerformanceWrapper)
         );
     } catch (error) {
         console.error('Error rendering Marketing Performance:', error);
@@ -38,6 +42,7 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
         adSets: []
     });
     const [facebookImpressions, setFacebookImpressions] = React.useState({});
+    const [impressionsLoaded, setImpressionsLoaded] = React.useState(false);
     
     // Define what statuses count as "touch based"
     const touchBasedStatuses = [
@@ -85,17 +90,13 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
                 });
                 
                 // Fetch Facebook impressions for ad sets or sources
-                console.log('Current filters:', filters);
                 if (filters.adSet !== 'all') {
-                    console.log('Fetching ad set impressions for:', filters.adSet);
                     await fetchAdSetImpressions(filters.adSet);
                 } else if (filters.source === 'all' || !filters.source) {
                     // When showing all sources, fetch impressions by source
-                    console.log('Fetching impressions for all sources');
                     await fetchImpressionsBySource();
                 } else if (filters.source === 'Facebook' || filters.source === 'Instagram') {
                     // Fetch impressions for specific social source
-                    console.log('Fetching impressions for source:', filters.source);
                     await fetchSourceImpressions(filters.source);
                 }
             }
@@ -176,8 +177,7 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
             if (groupBy === 'source' && (key === 'Facebook' || key === 'Instagram')) {
                 // For Facebook/Instagram sources, use the impressions data
                 impressions = facebookImpressions[key] || 0;
-                console.log(`Impressions for ${key}:`, impressions, 'from:', JSON.stringify(facebookImpressions));
-                console.log(`GroupBy: ${groupBy}, Key: ${key}, Available keys:`, Object.keys(facebookImpressions));
+                // Debug logging removed - impressions working correctly
             } else if (groupBy === 'ad_set') {
                 // For ad sets, use the specific ad set impressions
                 impressions = facebookImpressions[key] || 0;
@@ -199,6 +199,7 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
             const response = await window.apiCall(`/marketing/facebook-impressions?ad_set=${adSetName}`);
             if (response.success && response.data) {
                 setFacebookImpressions(response.data);
+                setImpressionsLoaded(true);
             }
         } catch (error) {
             console.error('Error fetching Facebook impressions:', error);
@@ -208,13 +209,10 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
     // Fetch impressions by source (for all sources view)
     const fetchImpressionsBySource = async () => {
         try {
-            console.log('Fetching impressions by source...');
             const response = await window.apiCall(`/marketing/impressions-by-source?date_from=${filters.dateFrom}&date_to=${filters.dateTo}`);
-            console.log('Impressions response:', JSON.stringify(response));
             if (response.success && response.data) {
                 setFacebookImpressions(response.data);
-                console.log('Set impressions data:', JSON.stringify(response.data));
-                console.log('Keys in impressions data:', Object.keys(response.data));
+                setImpressionsLoaded(true);
             }
         } catch (error) {
             console.error('Error fetching impressions by source:', error);
@@ -227,6 +225,7 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
             const response = await window.apiCall(`/marketing/facebook-impressions?source=${source}`);
             if (response.success && response.data) {
                 setFacebookImpressions(response.data);
+                setImpressionsLoaded(true);
             }
         } catch (error) {
             console.error('Error fetching source impressions:', error);
@@ -240,14 +239,12 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
     
     // Reprocess data when impressions are updated
     React.useEffect(() => {
-        if (Object.keys(facebookImpressions).length > 0 && rawLeads.length > 0) {
-            console.log('Reprocessing data with new impressions:', JSON.stringify(facebookImpressions));
-            console.log('Raw leads count:', rawLeads.length);
+        if (impressionsLoaded && rawLeads.length > 0) {
             // Reprocess the existing leads data with new impressions
             const groupedData = processLeadsData(rawLeads);
             setMarketingData(groupedData);
         }
-    }, [facebookImpressions, rawLeads, processLeadsData]);
+    }, [impressionsLoaded, facebookImpressions, rawLeads, processLeadsData]);
     
     // Calculate totals
     const totals = React.useMemo(() => {
