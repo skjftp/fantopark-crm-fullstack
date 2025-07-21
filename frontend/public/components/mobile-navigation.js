@@ -138,13 +138,8 @@ window.MobileHeader = function() {
   return React.createElement('header', {
     className: 'mobile-header mobile-only'
   },
-    // Search/Filter button
-    React.createElement('div', {
-      className: 'mobile-header-action touchable',
-      onClick: () => state.setShowMobileFilters && state.setShowMobileFilters(true)
-    },
-      React.createElement('span', { style: { fontSize: '20px' } }, '🔍')
-    ),
+    // Empty left side for proper centering
+    React.createElement('div', { className: 'mobile-header-action' }),
 
     // Page title
     React.createElement('h1', { className: 'mobile-header-title' }, getPageTitle()),

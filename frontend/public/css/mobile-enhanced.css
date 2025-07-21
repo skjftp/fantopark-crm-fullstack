@@ -84,7 +84,7 @@
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    padding: 0 16px !important;
+    padding: 0 12px !important;
     z-index: 999 !important;
   }
 
@@ -94,10 +94,25 @@
   }
 
   .mobile-header-title {
-    font-size: 18px !important;
-    font-weight: 600 !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
     flex: 1 !important;
     text-align: center !important;
+    color: #111827 !important;
+    letter-spacing: -0.01em !important;
+    line-height: 56px !important; /* Match header height for vertical centering */
+    margin: 0 !important;
+    padding: 0 8px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  .dark .mobile-header-title {
+    color: #f9fafb !important;
   }
 
   .mobile-header-action {

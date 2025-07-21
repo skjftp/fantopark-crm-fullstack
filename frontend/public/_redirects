@@ -1,1 +1,4 @@
 /journey/*  /journey.html  200
+
+# Redirect webhook calls to backend
+/webhooks/* https://fantopark-backend-150582227311.us-central1.run.app/webhooks/:splat 200
