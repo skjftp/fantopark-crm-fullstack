@@ -10,7 +10,8 @@ const touchBasedStatuses = [
   'contacted', 'attempt_1', 'attempt_2', 'attempt_3',
   'qualified', 'unqualified', 'junk', 'warm', 'hot', 'cold',
   'interested', 'not_interested', 'on_hold', 'dropped',
-  'converted', 'invoiced', 'payment_received', 'payment_post_service'
+  'converted', 'invoiced', 'payment_received', 'payment_post_service',
+  'pickup_later', 'quote_requested', 'quote_received'
 ];
 
 // Comprehensive marketing performance endpoint - everything in one call
@@ -194,12 +195,15 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       if (touchBasedStatuses.includes(lead.status)) {
         grouped[key].touchBased++;
         
-        // Updated qualified logic - includes all post-qualification statuses except junk
-        if (['qualified', 'converted', 'invoiced', 'payment_received', 'payment_post_service'].includes(lead.status)) {
+        // Updated qualified logic - includes qualified, temperature statuses, quote statuses, converted, and dropped
+        if (['qualified', 'hot', 'warm', 'cold', 'pickup_later', 'quote_requested', 'quote_received', 'converted', 'invoiced', 'payment_received', 'payment_post_service', 'dropped'].includes(lead.status)) {
           grouped[key].qualified++;
         } else if (lead.status === 'junk') {
           grouped[key].junk++;
-        } else if (lead.status === 'dropped') {
+        }
+        
+        // Count dropped separately (even though it's also in qualified)
+        if (lead.status === 'dropped') {
           grouped[key].dropped++;
         }
         

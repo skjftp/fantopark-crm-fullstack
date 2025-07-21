@@ -3,6 +3,15 @@ const router = express.Router();
 const { db, collections } = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 
+// Define touch-based statuses - same as marketing performance
+const touchBasedStatuses = [
+  'contacted', 'attempt_1', 'attempt_2', 'attempt_3',
+  'qualified', 'unqualified', 'junk', 'warm', 'hot', 'cold',
+  'interested', 'not_interested', 'on_hold', 'dropped',
+  'converted', 'invoiced', 'payment_received', 'payment_post_service',
+  'pickup_later', 'quote_requested', 'quote_received'
+];
+
 // Cache structure for sales performance data
 const performanceCache = {
   salesData: null,
@@ -369,11 +378,27 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
       leadsToProcess.forEach(doc => {
         const lead = doc.data();
         
-        if (lead.last_contact_date) metrics.touchbased++;
-        if (lead.status === 'qualified') metrics.qualified++;
-        if (lead.temperature === 'hot' || lead.temperature === 'warm') metrics.hotWarm++;
-        if (lead.status === 'converted' || lead.status === 'won') metrics.converted++;
-        if (!lead.last_contact_date) metrics.notTouchbased++;
+        // Touch-based: lead status is in touchBasedStatuses array
+        if (touchBasedStatuses.includes(lead.status)) {
+          metrics.touchbased++;
+        } else {
+          metrics.notTouchbased++;
+        }
+        
+        // Qualified: includes qualified, temperature statuses, quote statuses, converted, and dropped
+        if (['qualified', 'hot', 'warm', 'cold', 'pickup_later', 'quote_requested', 'quote_received', 'converted', 'invoiced', 'payment_received', 'payment_post_service', 'dropped'].includes(lead.status)) {
+          metrics.qualified++;
+        }
+        
+        // Hot/Warm: temperature-based (keeping this as-is per request)
+        if (lead.temperature === 'hot' || lead.temperature === 'warm') {
+          metrics.hotWarm++;
+        }
+        
+        // Converted: includes converted and all payment statuses
+        if (['converted', 'invoiced', 'payment_received', 'payment_post_service'].includes(lead.status)) {
+          metrics.converted++;
+        }
       });
       
       retailData.push({
