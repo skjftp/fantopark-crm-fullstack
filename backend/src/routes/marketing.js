@@ -3,29 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken, checkPermission } = require('../middleware/auth');
 const { db, collections } = require('../config/db');
-
-// Mock data for Facebook/Instagram impressions
-// In production, this would integrate with Facebook Graph API
-const mockImpressions = {
-  // By source
-  'Facebook': 567500,
-  'Instagram': 100000,
-  
-  // By ad sets
-  'FB_Summer_Campaign_2024': 125000,
-  'FB_Diwali_Special_2024': 87500,
-  'FB_New_Year_2025': 95000,
-  'FB_Valentine_Special': 110000,
-  'FB_IPL_Season_2024': 145000,
-  
-  'IG_Influencer_Collab_2024': 78000,
-  'IG_Reels_Campaign': 92000,
-  'IG_Story_Ads_2024': 65000,
-  'IG_Feed_Posts_2024': 83000,
-  'IG_IGTV_Campaign': 54000,
-  
-  'default': 0
-};
+const facebookInsights = require('../services/facebookInsightsService');
 
 // Define touch-based statuses
 const touchBasedStatuses = [
@@ -35,106 +13,12 @@ const touchBasedStatuses = [
   'converted', 'invoiced', 'payment_received', 'payment_post_service'
 ];
 
-// Get impressions for specific ad sets or sources
-router.get('/facebook-impressions', authenticateToken, checkPermission('finance', 'read'), async (req, res) => {
-  try {
-    const { ad_set, source, date_from, date_to } = req.query;
-    
-    console.log('📊 Fetching impressions for:', { ad_set, source, date_from, date_to });
-    
-    // If specific ad set is requested
-    if (ad_set && ad_set !== 'all') {
-      const impressions = mockImpressions[ad_set] || mockImpressions['default'];
-      return res.json({
-        success: true,
-        data: {
-          [ad_set]: impressions
-        }
-      });
-    }
-    
-    // If fetching by source (Facebook or Instagram)
-    if (source === 'Facebook' || source === 'Instagram') {
-      // Get all leads with this source to find unique ad sets
-      const leadsSnapshot = await db.collection(collections.leads)
-        .where('source', '==', source)
-        .get();
-      
-      const adSetImpressions = {};
-      const uniqueAdSets = new Set();
-      
-      leadsSnapshot.forEach(doc => {
-        const lead = doc.data();
-        if (lead.ad_set || lead.adset_name) {
-          uniqueAdSets.add(lead.ad_set || lead.adset_name);
-        }
-      });
-      
-      // Assign impressions to each ad set
-      uniqueAdSets.forEach(adSet => {
-        adSetImpressions[adSet] = mockImpressions[adSet] || mockImpressions['default'];
-      });
-      
-      return res.json({
-        success: true,
-        data: adSetImpressions
-      });
-    }
-    
-    // Return all impressions data
-    res.json({
-      success: true,
-      data: mockImpressions
-    });
-    
-  } catch (error) {
-    console.error('Error fetching Facebook impressions:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching impressions data',
-      error: error.message
-    });
-  }
-});
-
-// Get aggregated impressions by source
-router.get('/impressions-by-source', authenticateToken, checkPermission('finance', 'read'), async (req, res) => {
-  try {
-    const { date_from, date_to } = req.query;
-    
-    // In production, this would fetch from Facebook Graph API with date filters
-    const impressionsBySource = {
-      'Facebook': 567500,  // Sum of all FB campaigns
-      'Instagram': 372000, // Sum of all IG campaigns
-      'Google': 0,         // No impressions for non-social sources
-      'Website': 0,
-      'Direct': 0,
-      'Referral': 0,
-      'Other': 0
-    };
-    
-    res.json({
-      success: true,
-      data: impressionsBySource
-    });
-    
-  } catch (error) {
-    console.error('Error fetching impressions by source:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching impressions data',
-      error: error.message
-    });
-  }
-});
-
 // Comprehensive marketing performance endpoint - everything in one call
 router.get('/performance', authenticateToken, checkPermission('finance', 'read'), async (req, res) => {
   try {
     const { date_from, date_to, event, source, ad_set } = req.query;
     
     console.log('📊 Fetching marketing performance:', { date_from, date_to, event, source, ad_set });
-    console.log('📊 Collections config:', collections);
     
     // Build query for leads - simplified to avoid Firestore index issues
     let query = db.collection(collections.leads);
@@ -147,20 +31,18 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       query = query.where('date_of_enquiry', '<=', date_to);
     }
     
-    // Note: Other filters will be applied in memory to avoid Firestore index issues
-    
     const leadsSnapshot = await query.get();
     let allLeadsData = [];
     leadsSnapshot.forEach(doc => {
       allLeadsData.push({ id: doc.id, ...doc.data() });
     });
     
-    // IMPORTANT: Collect all filter options BEFORE filtering
+    // Collect ALL available options from ALL leads (before filtering)
     const allEvents = new Set();
     const allSources = new Set();
     const allAdSets = new Set();
+    const uniqueAdSetNames = new Set(); // For fetching from Facebook
     
-    // Collect ALL available options from ALL leads (before filtering)
     allLeadsData.forEach(lead => {
       if (lead.lead_for_event || lead.event_name) {
         allEvents.add(lead.lead_for_event || lead.event_name);
@@ -169,9 +51,57 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
         allSources.add(lead.source);
       }
       if (lead.ad_set || lead.adset_name) {
-        allAdSets.add(lead.ad_set || lead.adset_name);
+        const adSetName = lead.ad_set || lead.adset_name;
+        allAdSets.add(adSetName);
+        if (lead.source === 'Facebook' || lead.source === 'Instagram') {
+          uniqueAdSetNames.add(adSetName);
+        }
       }
     });
+    
+    // Fetch real impressions data from Facebook
+    let facebookImpressions = {};
+    let sourceImpressions = {};
+    
+    try {
+      // Get impressions by source (Facebook vs Instagram)
+      sourceImpressions = await facebookInsights.getInsightsBySource(date_from, date_to);
+      
+      // Get impressions for specific ad sets if we're filtering by ad set
+      if (ad_set && ad_set !== 'all') {
+        const adSetInsights = await facebookInsights.getSpecificAdSetInsights([ad_set], date_from, date_to);
+        facebookImpressions = adSetInsights;
+      } else {
+        // Get all ad set insights
+        const allAdSetInsights = await facebookInsights.getAdSetInsights(date_from, date_to);
+        
+        // Map the insights to our ad set names
+        uniqueAdSetNames.forEach(name => {
+          // Try exact match first
+          if (allAdSetInsights[name]) {
+            facebookImpressions[name] = allAdSetInsights[name].impressions;
+          } else {
+            // Try to find a matching ad set with similar name
+            Object.keys(allAdSetInsights).forEach(fbAdSetName => {
+              if (fbAdSetName.toLowerCase().includes(name.toLowerCase()) || 
+                  name.toLowerCase().includes(fbAdSetName.toLowerCase())) {
+                facebookImpressions[name] = allAdSetInsights[fbAdSetName].impressions;
+              }
+            });
+          }
+        });
+      }
+      
+      console.log('✅ Fetched Facebook impressions:', {
+        sources: sourceImpressions,
+        adSets: Object.keys(facebookImpressions).length
+      });
+      
+    } catch (fbError) {
+      console.error('⚠️ Facebook API error, using fallback data:', fbError.message);
+      // Use fallback data if Facebook API fails
+      sourceImpressions = { 'Facebook': 0, 'Instagram': 0 };
+    }
     
     // Now apply filters to get the subset of leads for display
     let leads = [...allLeadsData]; // Create a copy for filtering
@@ -191,9 +121,6 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
     }
     
     console.log(`Found ${leads.length} leads for marketing performance (from ${allLeadsData.length} total)`);
-    if (leads.length > 0) {
-      console.log('📊 Sample lead structure:', Object.keys(leads[0]));
-    }
     
     // Determine grouping logic
     const groupBy = ad_set && ad_set !== 'all' ? 'ad_set' :
@@ -254,10 +181,22 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
     const marketingData = Object.entries(grouped).map(([key, data]) => {
       // Get impressions based on grouping
       let impressions = 0;
+      
       if (groupBy === 'source' && (key === 'Facebook' || key === 'Instagram')) {
-        impressions = mockImpressions[key] || 0;
+        impressions = sourceImpressions[key] || 0;
       } else if (groupBy === 'ad_set') {
-        impressions = mockImpressions[key] || mockImpressions['default'];
+        impressions = facebookImpressions[key] || 0;
+      } else if (groupBy === 'event') {
+        // For events, sum impressions from all ad sets associated with this event
+        leads.filter(lead => {
+          const leadEvent = lead.lead_for_event || lead.event_name;
+          return leadEvent === key;
+        }).forEach(lead => {
+          const adSetName = lead.ad_set || lead.adset_name;
+          if (adSetName && facebookImpressions[adSetName]) {
+            impressions += facebookImpressions[adSetName];
+          }
+        });
       }
       
       // Calculate percentages
@@ -341,7 +280,9 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
           event: event || 'all',
           source: source || 'all',
           ad_set: ad_set || 'all'
-        }
+        },
+        dataSource: sourceImpressions.Facebook > 0 || sourceImpressions.Instagram > 0 ? 
+          'facebook_api' : 'no_impressions'
       }
     });
     
@@ -353,6 +294,63 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       message: 'Error fetching marketing performance data',
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Force refresh Facebook insights cache
+router.post('/refresh-insights', authenticateToken, checkPermission('finance', 'read'), async (req, res) => {
+  try {
+    facebookInsights.clearCache();
+    res.json({
+      success: true,
+      message: 'Facebook insights cache cleared. Next request will fetch fresh data.'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Get Facebook campaign list (for debugging)
+router.get('/facebook-campaigns', authenticateToken, checkPermission('finance', 'read'), async (req, res) => {
+  try {
+    const campaigns = await facebookInsights.getCampaignInsights(
+      req.query.date_from, 
+      req.query.date_to
+    );
+    
+    res.json({
+      success: true,
+      data: campaigns
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Get Facebook ad sets list (for debugging)
+router.get('/facebook-adsets', authenticateToken, checkPermission('finance', 'read'), async (req, res) => {
+  try {
+    const adSets = await facebookInsights.getAdSetInsights(
+      req.query.date_from, 
+      req.query.date_to,
+      req.query.campaign_id
+    );
+    
+    res.json({
+      success: true,
+      data: adSets
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
