@@ -16,9 +16,6 @@ window.renderMainApp = function() {
   // Extract all useState declarations
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showReminderForm, setShowReminderForm] = useState(false);
-  const [testMode, setTestMode] = useState(() => {
-    return localStorage.getItem('testMode') === 'true';
-  });
   const [user, setUser] = useState(null);
   const [inventorySearchQuery, setInventorySearchQuery] = useState('');
   const [email, setEmail] = useState('');
@@ -383,7 +380,6 @@ window.setLeadsSalesPersonFilter = setLeadsSalesPersonFilter;
 window.setIsMobileView = setIsMobileView;
   window.appState = {
     isLoggedIn, setIsLoggedIn,
-    testMode, setTestMode,
     user, setUser,
     email, setEmail,
     password, setPassword,

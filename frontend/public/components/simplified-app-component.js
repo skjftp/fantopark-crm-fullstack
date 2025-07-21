@@ -3264,43 +3264,11 @@ console.log("✅ AssignmentRulesTab exposed to window");
       }, state.darkMode ? '☀️' : '🌙'),
       React.createElement('div', { className: 'w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center' },
         React.createElement('span', { className: 'text-white text-sm' }, (state.user?.name || 'A')[0])
-      ),
-      state.currentUser && state.currentUser.role === 'super_admin' && React.createElement('div', { 
-        className: 'flex items-center gap-2 ml-4'
-      },
-        React.createElement('button', {
-          onClick: () => {
-            const newMode = !state.testMode;
-            state.setTestMode(newMode);
-            localStorage.setItem('testMode', newMode.toString());
-            if (newMode) {
-              document.body.classList.add('test-mode-active');
-            } else {
-              document.body.classList.remove('test-mode-active');
-            }
-          },
-          className: 'relative inline-flex h-6 w-12 items-center rounded-full transition-colors ' + 
-            (state.testMode ? 'bg-red-600' : 'bg-gray-300'),
-          title: 'Toggle Test Mode'
-        },
-          React.createElement('span', {
-            className: 'inline-block h-4 w-4 transform rounded-full bg-white transition-transform ' +
-              (state.testMode ? 'translate-x-6' : 'translate-x-1')
-          })
-        ),
-        state.testMode && React.createElement('span', { 
-          className: 'text-red-600 font-bold text-sm ml-2'
-        }, 'TEST MODE')
       )
     )
   )
 ),
       React.createElement('main', { className: 'flex-1 overflow-y-auto p-6' },
-        state.testMode && state.user.role === 'super_admin' && React.createElement('div', {
-          className: 'bg-red-100 border-2 border-red-500 text-red-700 p-4 rounded-lg mb-4 text-center font-bold animate-pulse'
-        }, 
-          '⚠️ TEST MODE ACTIVE - Delete buttons and test data fills are enabled!'
-        ),
         window.renderContent()
       )
     ),
