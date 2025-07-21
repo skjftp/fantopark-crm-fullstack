@@ -1,268 +1,172 @@
-/* Mobile Responsive Styles - Complete File */
+/* Mobile Scroll Fix for CRM */
 
-/* Hide sidebar on mobile */
+/* Fix for mobile viewport and scrolling issues */
 @media (max-width: 768px) {
-  /* Main grid adjustments */
-  .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3.xl\:grid-cols-5 {
-    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
-  }
-  
-  /* Stack cards vertically on mobile */
-  .flex.flex-wrap.gap-4 > div {
+  /* Reset HTML and Body for proper mobile viewport */
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    position: fixed;
     width: 100%;
   }
   
-  /* Make tables scrollable */
-  .overflow-x-auto {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
+  /* Main app container */
+  #root, .app-wrapper, body > div:first-child {
+    height: 100%;
+    overflow: hidden;
+    position: relative;
   }
   
-  table {
-    min-width: 600px;
-  }
-  
-  /* Responsive padding */
-  .p-6 {
-    padding: 1rem;
-  }
-  
-  /* Responsive text */
-  .text-2xl {
-    font-size: 1.5rem;
-  }
-  
-  .text-xl {
-    font-size: 1.25rem;
-  }
-  
-  /* Hide sidebar initially on mobile */
-  .w-64.bg-white {
-    position: fixed;
-    left: -100%;
-    top: 0;
-    height: 100vh;
-    z-index: 50;
-    transition: left 0.3s ease;
-  }
-  
-  /* Show sidebar when active */
-  .w-64.bg-white.mobile-open {
-    left: 0;
-  }
-  
-  /* Main content full width on mobile */
+  /* Fix the main scrollable container */
   .flex-1.overflow-auto {
-    margin-left: 0 !important;
-  }
-  
-  /* Mobile header */
-  .mobile-header {
-    display: flex;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    background: white;
-    border-bottom: 1px solid #e5e7eb;
-    align-items: center;
-    padding: 0 1rem;
-    z-index: 40;
-  }
-  
-  /* Adjust main content for header */
-  .flex-1.overflow-auto {
-    padding-top: 60px;
-  }
-}
-
-/* Desktop - show sidebar normally */
-@media (min-width: 769px) {
-  .mobile-header {
-    display: none !important;
-  }
-  
-  .mobile-overlay {
-    display: none !important;
-  }
-}
-
-/* Mobile overlay */
-.mobile-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 45;
-}
-
-.mobile-overlay.show {
-  display: block;
-}
-
-/* Responsive chart containers */
-canvas {
-  max-width: 100% !important;
-  height: auto !important;
-}
-
-/* ===== NEW ADDITIONS FOR HORIZONTAL SCROLL FIX AND TICKER REMOVAL ===== */
-
-/* Remove tickers completely on mobile */
-@media (max-width: 768px) {
-  /* Hide all ticker elements */
-  .bg-gray-900.text-white.py-2,
-  .bg-red-600.text-white.py-1,
-  .bg-gray-800.text-white.py-2,
-  div[class*="ticker"],
-  /* Hide the currency/stock bar */
-  div[class*="bg-gray-900"]:first-child,
-  div[class*="bg-red-600"]:first-child,
-  /* Hide any fixed top bars that might be tickers */
-  .fixed.top-0.left-0.right-0.z-50,
-  /* Hide the info bar with leads data */
-  div:has(> span:contains("Leads Logged Today")),
-  /* Target the parent of elements containing currency symbols */
-  div:has(> *:contains("₹")):has(> *:contains("€")):has(> *:contains("$")) {
-    display: none !important;
-  }
-  
-  /* Adjust main content since ticker is gone */
-  .flex-1.overflow-auto,
-  .main-content,
-  body > div > div:not(:first-child) {
-    padding-top: 60px !important; /* Only account for mobile header */
-    margin-top: 0 !important;
-  }
-  
-  /* If there's a mobile header, ensure it's at top */
-  .mobile-header {
-    top: 0 !important;
-  }
-}
-
-/* Aggressive horizontal scroll prevention - Mobile Only */
-@media (max-width: 768px) {
-  /* Root level prevention */
-  html {
-    overflow-x: hidden !important;
-    width: 100% !important;
-    position: relative !important;
-  }
-  
-  body {
-    overflow-x: hidden !important;
-    width: 100% !important;
-    position: relative !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  
-  /* Prevent any element from causing overflow */
-  * {
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-  }
-  
-  /* Main containers */
-  #root, #app, [id^="__next"], .app-wrapper {
-    overflow-x: hidden !important;
-    width: 100% !important;
-  }
-  
-  /* Flex containers shouldn't cause overflow */
-  .flex, [class*="flex"] {
-    flex-wrap: wrap !important;
-  }
-  
-  /* Grid containers */
-  .grid, [class*="grid"] {
-    max-width: 100% !important;
-  }
-  
-  /* Ensure all containers stay within viewport */
-  .container, .wrapper, .content, [class*="container"] {
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-  }
-  
-  /* Specific to your app structure */
-  .flex-1.overflow-auto {
-    max-width: 100vw !important;
-    overflow-x: hidden !important;
-    position: relative !important;
-  }
-  
-  /* Tables need special handling */
-  .overflow-x-auto {
-    max-width: calc(100vw - 2rem) !important;
-    margin: 0 1rem !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-  }
-  
-  /* Ensure tables don't break layout */
-  table {
-    display: block !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-  }
-  
-  /* Images shouldn't overflow */
-  img {
-    max-width: 100% !important;
-    height: auto !important;
-  }
-  
-  /* Long text should wrap */
-  p, span, div, h1, h2, h3, h4, h5, h6 {
-    word-wrap: break-word !important;
-    overflow-wrap: break-word !important;
-    hyphens: auto !important;
-  }
-  
-  /* Buttons and form elements */
-  button, input, select, textarea {
-    max-width: 100% !important;
-  }
-  
-  /* Fixed elements shouldn't extend beyond viewport */
-  .fixed {
-    max-width: 100vw !important;
-  }
-  
-  /* Close button visible only on mobile */
-  .mobile-close-btn {
-    display: flex !important;
-  }
-}
-
-/* Hide close button on desktop */
-@media (min-width: 769px) {
-  .mobile-close-btn {
-    display: none !important;
-  }
-}
-
-/* Additional safety measures for horizontal scroll */
-@media (max-width: 768px) {
-  /* Remove margin/padding that might cause issues */
-  body > * {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-  
-  /* Ensure nothing has negative margins on mobile */
-  * {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-  
-  /* Fix any absolute positioned elements */
-  .absolute {
+    position: fixed !important;
+    top: 60px !important; /* Account for mobile header */
     left: 0 !important;
     right: 0 !important;
-    max-width: 100% !important;
+    bottom: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    z-index: 1;
+  }
+  
+  /* Ensure content inside scrollable area has proper spacing */
+  .flex-1.overflow-auto > div {
+    padding-bottom: 100px !important; /* Extra padding to ensure last content is visible */
+    min-height: calc(100% + 1px); /* Force scrollbar if needed */
+  }
+  
+  /* Fix for cards and containers */
+  .bg-white.rounded-lg.shadow,
+  .bg-gray-800.rounded-lg.shadow,
+  [class*="rounded-lg shadow"] {
+    margin-bottom: 20px !important;
+  }
+  
+  /* Fix for nested scrollable containers */
+  .overflow-y-auto {
+    max-height: calc(100vh - 120px) !important; /* Leave room for headers */
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Specific fix for lead cards and similar scrollable lists */
+  .space-y-4,
+  [class*="space-y-"] {
+    padding-bottom: 50px !important;
+  }
+  
+  /* Fix for table containers */
+  .table-container,
+  .overflow-x-auto {
+    max-height: calc(100vh - 150px) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 50px !important;
+  }
+  
+  /* Ensure modals work properly */
+  .fixed.inset-0 {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+  }
+  
+  /* Modal content scrolling */
+  [role="dialog"] .overflow-y-auto {
+    max-height: calc(100vh - 100px) !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Fix for inventory and similar grid views */
+  .grid {
+    padding-bottom: 50px !important;
+  }
+  
+  /* Mobile header should be fixed */
+  .mobile-header {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 60px !important;
+    z-index: 40 !important;
+  }
+  
+  /* Sidebar fixes for mobile */
+  .sidebar, .w-64 {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Remove any absolute positioning that might interfere */
+  .absolute:not(.modal-backdrop):not([role="dialog"]) {
+    position: relative !important;
+  }
+  
+  /* Ensure touch scrolling works */
+  * {
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Fix for tab content */
+  .tab-content-wrapper {
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+  
+  .tab-inner-content {
+    height: 100% !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 100px !important;
+  }
+}
+
+/* Additional fixes for iOS Safari */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 768px) {
+    /* iOS specific fixes */
+    .flex-1.overflow-auto {
+      height: calc(100vh - 60px) !important;
+      height: calc(100vh - 60px - env(safe-area-inset-bottom)) !important;
+      position: absolute !important;
+    }
+    
+    /* Account for iOS bottom bar */
+    .flex-1.overflow-auto > div {
+      padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important;
+    }
+  }
+}
+
+/* Fix for Android Chrome */
+@media (max-width: 768px) and (display-mode: browser) {
+  .flex-1.overflow-auto {
+    height: calc(100vh - 60px) !important;
+    height: calc(100dvh - 60px) !important; /* Dynamic viewport height */
+  }
+}
+
+/* Ensure last item in lists is visible */
+@media (max-width: 768px) {
+  /* Add spacing after last child in scrollable containers */
+  .overflow-y-auto > :last-child,
+  .overflow-auto > :last-child,
+  .space-y-4 > :last-child,
+  .grid > :last-child {
+    margin-bottom: 80px !important;
+  }
+  
+  /* Fix for specific components */
+  #leads-content > :last-child,
+  #inventory-content > :last-child,
+  #orders-content > :last-child {
+    margin-bottom: 100px !important;
   }
 }
