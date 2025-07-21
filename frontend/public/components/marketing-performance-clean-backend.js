@@ -63,6 +63,16 @@ function MarketingPerformanceBackend() {
         fetchMarketingData(state.filters);
     }, []); // Empty dependency is correct here as we only want to run on mount
     
+    // Log Facebook API status when data changes
+    React.useEffect(() => {
+        if (state.data?.facebookApi) {
+            console.log('📊 Facebook API Status:', state.data.facebookApi);
+            if (state.data.facebookApi.debugInfo) {
+                console.log('🔍 Debug Info:', state.data.facebookApi.debugInfo);
+            }
+        }
+    }, [state.data]);
+    
     // Handle filter changes
     const handleFilterChange = (filterType, value) => {
         const newFilters = { ...state.filters, [filterType]: value };
@@ -203,14 +213,35 @@ function MarketingPerformanceBackend() {
         data.appliedFilters && React.createElement('div', { 
             className: 'bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4'
         },
-            React.createElement('div', { className: 'flex items-center' },
-                React.createElement('i', { className: 'fas fa-info-circle text-blue-500 mr-2' }),
-                React.createElement('span', { className: 'text-sm text-blue-700 dark:text-blue-300' },
-                    `Showing data grouped by: ${data.groupBy || 'source'} | `,
-                    `Filters: ${Object.entries(data.appliedFilters)
-                        .filter(([key, value]) => value !== 'all')
-                        .map(([key, value]) => `${key}: ${value}`)
-                        .join(', ') || 'None'}`
+            React.createElement('div', { className: 'flex items-center justify-between' },
+                React.createElement('div', { className: 'flex items-center' },
+                    React.createElement('i', { className: 'fas fa-info-circle text-blue-500 mr-2' }),
+                    React.createElement('span', { className: 'text-sm text-blue-700 dark:text-blue-300' },
+                        `Showing data grouped by: ${data.groupBy || 'source'} | `,
+                        `Filters: ${Object.entries(data.appliedFilters)
+                            .filter(([key, value]) => value !== 'all')
+                            .map(([key, value]) => `${key}: ${value}`)
+                            .join(', ') || 'None'}`
+                    )
+                ),
+                // Facebook API Status
+                data.facebookApi && React.createElement('div', { 
+                    className: `text-sm px-3 py-1 rounded-full ${
+                        data.facebookApi.status === 'success' ? 'bg-green-100 text-green-700' :
+                        data.facebookApi.status === 'error' ? 'bg-red-100 text-red-700' :
+                        'bg-gray-100 text-gray-700'
+                    }`
+                },
+                    React.createElement('i', { 
+                        className: `fas ${
+                            data.facebookApi.status === 'success' ? 'fa-check-circle' :
+                            data.facebookApi.status === 'error' ? 'fa-exclamation-circle' :
+                            'fa-question-circle'
+                        } mr-1`
+                    }),
+                    data.facebookApi.status === 'success' ? 'Facebook API Connected' :
+                    data.facebookApi.status === 'error' ? `API Error: ${data.facebookApi.error}` :
+                    'Facebook API Not Connected'
                 )
             )
         ),
@@ -316,6 +347,69 @@ function MarketingPerformanceBackend() {
         )
     );
 }
+
+// Export data function
+window.exportMarketingData = (marketingData, totals) => {
+    const headers = [
+        'Source', 'Total Impressions', 'Total Leads', 'Touch Based', 
+        'Not Touch Based', 'Qualified', 'Junk', 'Dropped', 'Converted',
+        'Qualified %', 'Converted %', 'Junk %'
+    ];
+    
+    const rows = marketingData.map(row => [
+        row.name,
+        row.impressions || 0,
+        row.totalLeads || 0,
+        row.touchBased || 0,
+        row.notTouchBased || 0,
+        row.qualified || 0,
+        row.junk || 0,
+        row.dropped || 0,
+        row.converted || 0,
+        `${row.qualifiedPercent}%`,
+        `${row.convertedPercent}%`,
+        `${row.junkPercent}%`
+    ]);
+    
+    if (totals && totals.totalLeads > 0) {
+        rows.push([
+            'TOTAL',
+            totals.totalImpressions || 0,
+            totals.totalLeads || 0,
+            totals.touchBased || 0,
+            totals.notTouchBased || 0,
+            totals.qualified || 0,
+            totals.junk || 0,
+            totals.dropped || 0,
+            totals.converted || 0,
+            `${totals.totalQualifiedPercent || '0.00'}%`,
+            `${totals.totalConvertedPercent || '0.00'}%`,
+            `${totals.totalJunkPercent || '0.00'}%`
+        ]);
+    }
+    
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `marketing-performance-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+};
+
+// Memoized component to prevent multiple instances
+const MemoizedMarketingPerformance = React.memo(MarketingPerformanceBackend);
+
+// Single render function - proper React component pattern
+window.renderMarketingPerformanceContent = function() {
+    return React.createElement(MemoizedMarketingPerformance);
+};
+
+console.log('✅ Marketing Performance Clean Backend component loaded');
 
 // Export data function
 window.exportMarketingData = (marketingData, totals) => {
