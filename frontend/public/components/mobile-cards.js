@@ -20,19 +20,49 @@ window.MobileLeadCard = function({ lead, onClick }) {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    const today = new Date();
-    const diffTime = Math.abs(today - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
+    // Handle Firestore timestamp objects
+    let date;
+    if (dateString._seconds !== undefined) {
+      date = new Date(dateString._seconds * 1000);
+    } else if (typeof dateString === 'object' && dateString.seconds !== undefined) {
+      date = new Date(dateString.seconds * 1000);
+    } else {
+      date = new Date(dateString);
+    }
+    
+    const now = new Date();
+    
+    // Get local date strings for comparison
+    const dateStr = date.toLocaleDateString();
+    const todayStr = now.toLocaleDateString();
+    
+    // Create yesterday's date
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toLocaleDateString();
+    
+    // Create tomorrow's date
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toLocaleDateString();
+    
+    // Compare date strings
+    if (dateStr === todayStr) return 'Today';
+    if (dateStr === yesterdayStr) return 'Yesterday';
+    if (dateStr === tomorrowStr) return 'Tomorrow';
+    
+    // For other dates, calculate days difference
+    const diffTime = now - date;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 0) return 'Future';
     
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric',
-      year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
     });
   };
 
