@@ -90,7 +90,7 @@
   
   /* Ensure content inside main container has proper spacing */
   .flex-1.overflow-auto > div {
-    padding-bottom: 100px !important; /* Extra padding to ensure last content is visible */
+    padding-bottom: 20px !important; /* Reduced from 100px */
     min-height: calc(100% + 1px); /* Force scrollbar if needed */
   }
   
@@ -106,7 +106,7 @@
   .space-y-6 > :last-child,
   .grid > :last-child,
   .overflow-y-auto > :last-child {
-    margin-bottom: 50px !important;
+    margin-bottom: 20px !important; /* Reduced from 50px */
   }
   
   /* Specific fixes for different sections */
@@ -115,7 +115,7 @@
   #orders-content > :last-child,
   #deliveries-content > :last-child,
   #receivables-content > :last-child {
-    margin-bottom: 80px !important;
+    margin-bottom: 30px !important; /* Reduced from 80px */
   }
   
   /* Fix for cards and containers to ensure proper spacing */
@@ -160,7 +160,7 @@
     height: 100% !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    padding-bottom: 100px !important;
+    padding-bottom: 30px !important; /* Reduced from 100px */
   }
   
   /* Modal scroll fixes */
@@ -423,13 +423,26 @@ canvas {
     
     /* Account for iOS bottom bar in content padding */
     .flex-1.overflow-auto > div {
-      padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important; /* Reduced from 100px */
     }
   }
 }
 
 /* ===== HORIZONTAL SCROLL VISUAL INDICATORS ===== */
 @media (max-width: 768px) {
+  /* Minimal bottom spacing approach */
+  .flex-1.overflow-auto {
+    padding-bottom: 0 !important;
+  }
+  
+  /* Use ::after pseudo element for spacing instead of padding */
+  .flex-1.overflow-auto > div::after {
+    content: "";
+    display: block;
+    height: 20px; /* Minimal space at bottom */
+    width: 100%;
+  }
+  
   /* Add visual indicator for horizontal scroll */
   .overflow-x-auto::after {
     content: "";
@@ -469,6 +482,6 @@ canvas {
   /* Ensure content is not cut off */
   .overflow-x-auto > table,
   .overflow-x-auto > div {
-    padding-right: 20px !important; /* Extra padding for scroll */
+    padding-right: 10px !important; /* Reduced from 20px */
   }
 }
