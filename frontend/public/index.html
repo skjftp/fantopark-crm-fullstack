@@ -2013,6 +2013,23 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('✅ Clean chart system loaded');
 })();
 </script>
+<script>
+// Debug mobile components
+window.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => {
+    console.log('Mobile Header exists:', !!window.MobileHeader);
+    console.log('Mobile Bottom Nav exists:', !!window.MobileBottomNavigation);
+    console.log('Is Mobile:', window.innerWidth <= 768);
+    
+    // Force re-render if components exist but aren't showing
+    if (window.innerWidth <= 768 && window.renderApp) {
+      console.log('Forcing mobile re-render...');
+      window.renderApp();
+    }
+  }, 2000);
+});
+</script>
+  
     
 </body>
 </html>
