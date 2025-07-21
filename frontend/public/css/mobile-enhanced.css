@@ -636,16 +636,48 @@
 }
 
 /* Desktop styles - keep existing functionality */
-@media (min-width: 769px) {
+@media (min-width: 1024px) {
   .mobile-only,
   .mobile-bottom-nav,
   .mobile-header,
   .mobile-fab {
     display: none !important;
   }
+}
 
   .desktop-only {
     display: block !important;
+  }
+}
+
+/* Force mobile elements to show on mobile */
+@media (max-width: 768px) {
+  /* Ensure mobile elements are visible */
+  .mobile-header {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  .mobile-bottom-nav {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  .mobile-only {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  /* Fix header title positioning */
+  .mobile-header-title {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #111827 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
   }
 }
 
