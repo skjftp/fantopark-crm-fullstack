@@ -100,17 +100,46 @@
 .mobile-header-title {
     font-size: 18px !important;
     font-weight: 600 !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
     flex: 1 !important;
     text-align: center !important;
-    /* Add these lines for better positioning */
+    /* Better centering */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    color: #111827 !important; /* Better color than pure black */
-    letter-spacing: -0.025em !important; /* Tighter letter spacing */
+    color: #111827 !important;
+    letter-spacing: -0.025em !important;
+    /* Prevent wrapping */
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+  /* Fix icon and title alignment */
+.mobile-header-title > span {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
 }
 
+/* Ensure icon doesn't break alignment */
+.mobile-header-title svg {
+    flex-shrink: 0 !important;
+}
+
+
+  /* Dashboard specific fixes */
+@media (max-width: 768px) {
+  /* Remove any top margin/padding from dashboard content */
+  #dashboard-content > div:first-child,
+  .mobile-main-content > div > div:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  
+  /* Ensure cards start at the right position */
+  .grid.grid-cols-2.gap-3.mb-6 {
+    margin-top: 0 !important;
+  }
+}
 
   .mobile-header-action {
     width: 40px !important;
