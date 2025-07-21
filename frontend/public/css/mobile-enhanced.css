@@ -72,8 +72,8 @@
     font-weight: 500 !important;
   }
 
-/* ===== MOBILE TOP HEADER ===== */
-.mobile-header {
+  /* ===== MOBILE TOP HEADER - FIXED ===== */
+  .mobile-header {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
@@ -82,20 +82,21 @@
     background: white !important;
     border-bottom: 1px solid #e5e7eb !important;
     display: flex !important;
-    align-items: center !important; /* This should center vertically */
+    align-items: center !important;
     justify-content: space-between !important;
     padding: 0 12px !important;
     z-index: 999 !important;
     box-sizing: border-box !important;
-}
+    overflow: hidden !important; /* Prevent content overflow */
+  }
 
   .dark .mobile-header {
     background: #1f2937 !important;
     border-bottom-color: #374151 !important;
   }
   
-/* Fix the title specifically */
-.mobile-header-title {
+  /* Fix the title specifically - UPDATED */
+  .mobile-header-title {
     font-size: 18px !important;
     font-weight: 600 !important;
     flex: 1 !important;
@@ -104,30 +105,49 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    height: 100% !important; /* Take full height of header */
-    margin: 0 !important; /* Remove any margins */
-    padding: 0 !important; /* Remove any padding */
-    line-height: 1 !important; /* Reset line height */
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
     color: #111827 !important;
-}
+    /* Ensure no vertical displacement */
+    position: relative !important;
+    top: 0 !important;
+    transform: none !important;
+  }
   
-/* Ensure the icon and text inside are also centered */
-.mobile-header-title > span {
+  /* Ensure the icon and text inside are also centered */
+  .mobile-header-title > span {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 8px !important;
-}
+    line-height: 1 !important;
+  }
 
-/* Ensure icon doesn't break alignment */
-.mobile-header-title svg {
+  /* Ensure icon doesn't break alignment */
+  .mobile-header-title svg {
     flex-shrink: 0 !important;
-}
+    vertical-align: middle !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
 
+  /* Reset any h1 defaults that might affect alignment */
+  .mobile-header h1 {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  
+  /* Ensure all header children are vertically centered */
+  .mobile-header > * {
+    display: flex !important;
+    align-items: center !important;
+  }
 
-  /* Dashboard specific fixes */
-@media (max-width: 768px) {
-  /* Remove any top margin/padding from dashboard content */
+  /* Remove conflicting styles from dashboard */
   #dashboard-content > div:first-child,
   .mobile-main-content > div > div:first-child {
     margin-top: 0 !important;
@@ -138,7 +158,6 @@
   .grid.grid-cols-2.gap-3.mb-6 {
     margin-top: 0 !important;
   }
-}
 
   .mobile-header-action {
     width: 40px !important;
@@ -154,19 +173,20 @@
     background: #f3f4f6 !important;
   }
 
-/* ===== MAIN CONTENT AREA ===== */
-.mobile-main-content {
+  /* ===== MAIN CONTENT AREA - FIXED ===== */
+  .mobile-main-content {
     position: fixed !important;
-    top: 56px !important;  /* Match header height */
+    top: 56px !important; /* Must match header height exactly */
     left: 0 !important;
     right: 0 !important;
-    bottom: 60px !important;  /* Match bottom nav height */
+    bottom: 60px !important; /* Match bottom nav height */
     overflow-y: auto !important;
     overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;
     background: #f9fafb !important;
-    padding-top: 0 !important;  /* Remove any extra padding */
-}
+    padding-top: 0 !important; /* Remove any extra padding */
+    z-index: 1 !important; /* Below header and nav */
+  }
 
   .dark .mobile-main-content {
     background: #111827 !important;
@@ -177,6 +197,7 @@
     padding: 16px !important;
     padding-bottom: 20px !important;
     min-height: 100% !important;
+    padding-top: 16px !important; /* Consistent top padding */
   }
 
   /* ===== ENHANCED CARD DESIGN ===== */
@@ -587,10 +608,8 @@
   }
 
   /* Adjust for pagination + bottom nav */
-  @media (max-width: 768px) {
-    .has-pagination {
-      padding-bottom: 140px !important; /* 60px nav + 80px pagination */
-    }
+  .has-pagination {
+    padding-bottom: 140px !important; /* 60px nav + 80px pagination */
   }
 
   /* ===== HIDE DESKTOP ELEMENTS ===== */
@@ -662,10 +681,61 @@
   .mobile-main-content > * {
     will-change: transform !important;
   }
+
+  /* ===== PROPER Z-INDEX HIERARCHY ===== */
+  .mobile-header {
+    z-index: 1100 !important; /* Above content and bottom nav */
+  }
+  
+  .mobile-bottom-nav {
+    z-index: 1000 !important; /* Above content but below header */
+  }
+  
+  .mobile-main-content {
+    z-index: 1 !important; /* Base level */
+  }
+
+  /* ===== FIX DESKTOP CONTAINER CONFLICTS ===== */
+  /* Override the desktop content container styles for mobile */
+  .flex-1.overflow-auto {
+    position: static !important;
+    top: auto !important;
+    height: auto !important;
+    padding-top: 0 !important;
+  }
+  
+  /* Ensure proper content spacing in mobile view */
+  .mobile-main-content > div:first-child {
+    padding-top: 0 !important;
+  }
+  
+  /* Fix any content that's being pushed down */
+  .mobile-content-wrapper {
+    padding-top: 16px !important;
+  }
+
+  /* Force mobile elements to show */
+  .mobile-header {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  .mobile-bottom-nav {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  .mobile-only {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
 }
 
 /* Desktop styles - keep existing functionality */
-@media (min-width: 769px) {
+@media (min-width: 1024px) {
   .mobile-only,
   .mobile-bottom-nav,
   .mobile-header,
@@ -680,7 +750,13 @@
 
 /* Tablet adjustments */
 @media (min-width: 769px) and (max-width: 1024px) {
-  /* Tablet-specific styles if needed */
+  /* Show mobile layout for tablets */
+  .mobile-only,
+  .mobile-bottom-nav,
+  .mobile-header,
+  .mobile-fab {
+    display: block !important;
+  }
 }
 
 /* Landscape mobile adjustments */
@@ -697,76 +773,56 @@
     max-height: 80vh !important;
   }
 }
+
 /* Desktop content in mobile wrapper */
-.mobile-content-wrapper > div {
-  max-width: 100% \!important;
-  overflow-x: auto \!important;
-}
-
-/* Fix tables in mobile */
-.mobile-content-wrapper table {
-  font-size: 12px \!important;
-  min-width: 100% \!important;
-}
-
-.mobile-content-wrapper th,
-.mobile-content-wrapper td {
-  padding: 0.5rem \!important;
-  white-space: nowrap \!important;
-}
-
-/* Make forms mobile-friendly */
-.mobile-content-wrapper form {
-  max-width: 100% \!important;
-}
-
-.mobile-content-wrapper input,
-.mobile-content-wrapper select,
-.mobile-content-wrapper textarea {
-  width: 100% \!important;
-  font-size: 16px \!important; /* Prevents zoom on iOS */
-}
-
-/* Fix cards and containers */
-.mobile-content-wrapper .bg-white,
-.mobile-content-wrapper .rounded-lg {
-  margin: 0.5rem 0 \!important;
-}
-
-/* Adjust padding for desktop content */
-.mobile-content-wrapper .p-6 {
-  padding: 1rem \!important;
-}
-
-.mobile-content-wrapper .p-4 {
-  padding: 0.75rem \!important;
-}
-
-/* Make buttons touch-friendly */
-.mobile-content-wrapper button {
-  min-height: 44px \!important;
-  min-width: 44px \!important;
-}
-
-/* Fix mobile layout positioning conflicts */
 @media (max-width: 768px) {
-  /* Override the desktop content container styles for mobile */
-  .flex-1.overflow-auto {
-    position: static !important;  /* Reset position */
-    top: auto !important;
-    height: auto !important;
-    padding-top: 0 !important;
+  .mobile-content-wrapper > div {
+    max-width: 100% !important;
+    overflow-x: auto !important;
   }
-  
-  /* Ensure proper content spacing in mobile view */
-  .mobile-main-content > div:first-child {
-    padding-top: 0 !important;  /* Remove extra top padding */
-  }
-  
-  /* Fix any content that's being pushed down */
-  .mobile-content-wrapper {
-    padding-top: 16px !important;  /* Standard top padding */
-  }
-}
 
+  /* Fix tables in mobile */
+  .mobile-content-wrapper table {
+    font-size: 12px !important;
+    min-width: 100% !important;
+  }
+
+  .mobile-content-wrapper th,
+  .mobile-content-wrapper td {
+    padding: 0.5rem !important;
+    white-space: nowrap !important;
+  }
+
+  /* Make forms mobile-friendly */
+  .mobile-content-wrapper form {
+    max-width: 100% !important;
+  }
+
+  .mobile-content-wrapper input,
+  .mobile-content-wrapper select,
+  .mobile-content-wrapper textarea {
+    width: 100% !important;
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+
+  /* Fix cards and containers */
+  .mobile-content-wrapper .bg-white,
+  .mobile-content-wrapper .rounded-lg {
+    margin: 0.5rem 0 !important;
+  }
+
+  /* Adjust padding for desktop content */
+  .mobile-content-wrapper .p-6 {
+    padding: 1rem !important;
+  }
+
+  .mobile-content-wrapper .p-4 {
+    padding: 0.75rem !important;
+  }
+
+  /* Make buttons touch-friendly */
+  .mobile-content-wrapper button {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
 }
