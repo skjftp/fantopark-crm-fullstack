@@ -23,6 +23,7 @@ window.renderMarketingPerformanceContent = function() {
 window.MarketingPerformance = React.memo(function MarketingPerformance() {
     const [loading, setLoading] = React.useState(false);
     const [marketingData, setMarketingData] = React.useState([]);
+    const [rawLeads, setRawLeads] = React.useState([]); // Store raw leads for reprocessing
     const [filters, setFilters] = React.useState({
         dateFrom: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
         dateTo: new Date().toISOString().split('T')[0],
@@ -66,6 +67,7 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
             
             if (response.success) {
                 const leads = response.data || [];
+                setRawLeads(leads); // Store raw leads
                 
                 // Process leads by grouping them
                 const groupedData = processLeadsData(leads);
@@ -106,7 +108,7 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
     }, [filters]);
     
     // Process leads data to calculate metrics
-    const processLeadsData = (leads) => {
+    const processLeadsData = React.useCallback((leads) => {
         // Group by the appropriate dimension based on filters
         const groupBy = filters.adSet !== 'all' ? 'ad_set' :
                        filters.source !== 'all' ? 'source' :
@@ -188,7 +190,7 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
                 impressions
             };
         });
-    };
+    }, [filters, facebookImpressions, touchBasedStatuses]);
     
     // Fetch Facebook ad set impressions
     const fetchAdSetImpressions = async (adSetName) => {
@@ -233,6 +235,16 @@ window.MarketingPerformance = React.memo(function MarketingPerformance() {
     React.useEffect(() => {
         fetchMarketingData();
     }, [fetchMarketingData]);
+    
+    // Reprocess data when impressions are updated
+    React.useEffect(() => {
+        if (Object.keys(facebookImpressions).length > 0 && rawLeads.length > 0) {
+            console.log('Reprocessing data with new impressions:', facebookImpressions);
+            // Reprocess the existing leads data with new impressions
+            const groupedData = processLeadsData(rawLeads);
+            setMarketingData(groupedData);
+        }
+    }, [facebookImpressions, rawLeads, processLeadsData]);
     
     // Calculate totals
     const totals = React.useMemo(() => {
