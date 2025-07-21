@@ -10,6 +10,10 @@ class FacebookInsightsService {
     // Cache for storing insights data
     this.cache = new Map();
     this.cacheExpiry = 30 * 60 * 1000; // 30 minutes
+    
+    console.log('🔵 Facebook Insights Service initialized');
+    console.log('🔑 Access token present:', !!this.accessToken);
+    console.log('📱 App ID:', this.appId);
   }
 
   // Get cache key
@@ -23,25 +27,58 @@ class FacebookInsightsService {
     return Date.now() - cacheEntry.timestamp < this.cacheExpiry;
   }
 
+  // Test Facebook API connection
+  async testConnection() {
+    try {
+      console.log('🧪 Testing Facebook API connection...');
+      
+      const response = await fetch(
+        `${this.baseUrl}/me?fields=id,name&access_token=${this.accessToken}`
+      );
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        console.error('❌ Facebook API test failed:', data);
+        return { success: false, error: data.error };
+      }
+      
+      console.log('✅ Facebook API connection successful:', data);
+      return { success: true, data };
+      
+    } catch (error) {
+      console.error('❌ Facebook API connection error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Get ad account ID from page
   async getAdAccountId() {
     try {
+      console.log('🔍 Fetching ad account ID...');
+      
       const response = await fetch(
-        `${this.baseUrl}/me/adaccounts?fields=id,name&access_token=${this.accessToken}`
+        `${this.baseUrl}/me/adaccounts?fields=id,name,account_status&access_token=${this.accessToken}`
       );
       
       if (!response.ok) {
-        throw new Error(`Failed to get ad accounts: ${response.statusText}`);
+        const error = await response.json();
+        console.error('❌ Failed to get ad accounts:', error);
+        throw new Error(`Failed to get ad accounts: ${JSON.stringify(error)}`);
       }
       
       const data = await response.json();
+      console.log('📊 Ad accounts response:', data);
+      
       if (data.data && data.data.length > 0) {
-        return data.data[0].id; // Return first ad account
+        const activeAccount = data.data.find(acc => acc.account_status === 1) || data.data[0];
+        console.log('✅ Using ad account:', activeAccount);
+        return activeAccount.id;
       }
       
       throw new Error('No ad accounts found');
     } catch (error) {
-      console.error('Error getting ad account:', error);
+      console.error('❌ Error getting ad account:', error);
       throw error;
     }
   }
@@ -57,30 +94,40 @@ class FacebookInsightsService {
     }
 
     try {
+      console.log('🚀 Fetching campaign insights...', { dateFrom, dateTo });
+      
       const adAccountId = await this.getAdAccountId();
       
-      const timeRange = dateFrom && dateTo ? 
-        `&time_range={'since':'${dateFrom}','until':'${dateTo}'}` : '';
+      let url = `${this.baseUrl}/${adAccountId}/campaigns?fields=id,name,status`;
       
-      const response = await fetch(
-        `${this.baseUrl}/${adAccountId}/campaigns?` +
-        `fields=id,name,status,insights{impressions,reach,clicks,spend,ctr,conversions,cost_per_conversion}` +
-        `${timeRange}&access_token=${this.accessToken}`
-      );
+      // First, get campaigns with basic info
+      const campaignsResponse = await fetch(`${url}&access_token=${this.accessToken}`);
       
-      if (!response.ok) {
-        const error = await response.json();
+      if (!campaignsResponse.ok) {
+        const error = await campaignsResponse.json();
+        console.error('❌ Campaigns fetch error:', error);
         throw new Error(`Facebook API Error: ${JSON.stringify(error)}`);
       }
       
-      const data = await response.json();
+      const campaignsData = await campaignsResponse.json();
+      console.log(`📊 Found ${campaignsData.data?.length || 0} campaigns`);
       
-      // Process the data
+      // Now get insights for each campaign
       const campaigns = {};
-      if (data.data) {
-        data.data.forEach(campaign => {
-          if (campaign.insights && campaign.insights.data && campaign.insights.data[0]) {
-            const insights = campaign.insights.data[0];
+      
+      for (const campaign of (campaignsData.data || [])) {
+        try {
+          let insightsUrl = `${this.baseUrl}/${campaign.id}/insights?fields=impressions,reach,clicks,spend,ctr`;
+          
+          if (dateFrom && dateTo) {
+            insightsUrl += `&time_range={'since':'${dateFrom}','until':'${dateTo}'}`;
+          }
+          
+          const insightsResponse = await fetch(`${insightsUrl}&access_token=${this.accessToken}`);
+          const insightsData = await insightsResponse.json();
+          
+          if (insightsData.data && insightsData.data[0]) {
+            const insights = insightsData.data[0];
             campaigns[campaign.name] = {
               id: campaign.id,
               name: campaign.name,
@@ -89,12 +136,13 @@ class FacebookInsightsService {
               reach: parseInt(insights.reach || 0),
               clicks: parseInt(insights.clicks || 0),
               spend: parseFloat(insights.spend || 0),
-              ctr: parseFloat(insights.ctr || 0),
-              conversions: parseInt(insights.conversions || 0),
-              cost_per_conversion: parseFloat(insights.cost_per_conversion || 0)
+              ctr: parseFloat(insights.ctr || 0)
             };
+            console.log(`✅ Got insights for campaign: ${campaign.name}`, campaigns[campaign.name]);
           }
-        });
+        } catch (insightError) {
+          console.error(`⚠️ Failed to get insights for campaign ${campaign.name}:`, insightError.message);
+        }
       }
       
       // Cache the results
@@ -123,49 +171,60 @@ class FacebookInsightsService {
     }
 
     try {
+      console.log('🚀 Fetching ad set insights...', { dateFrom, dateTo, campaignId });
+      
       const adAccountId = await this.getAdAccountId();
       
-      const timeRange = dateFrom && dateTo ? 
-        `&time_range={'since':'${dateFrom}','until':'${dateTo}'}` : '';
+      let url = `${this.baseUrl}/${adAccountId}/adsets?fields=id,name,status,campaign_id`;
       
-      const campaignFilter = campaignId ? 
-        `&filtering=[{'field':'campaign_id','operator':'IN','value':['${campaignId}']}]` : '';
+      if (campaignId) {
+        url += `&filtering=[{'field':'campaign_id','operator':'IN','value':['${campaignId}']}]`;
+      }
       
-      const response = await fetch(
-        `${this.baseUrl}/${adAccountId}/adsets?` +
-        `fields=id,name,status,campaign_id,campaign{name},insights{impressions,reach,clicks,spend,ctr,conversions,cost_per_conversion}` +
-        `${timeRange}${campaignFilter}&access_token=${this.accessToken}`
-      );
+      // First get ad sets
+      const adSetsResponse = await fetch(`${url}&access_token=${this.accessToken}`);
       
-      if (!response.ok) {
-        const error = await response.json();
+      if (!adSetsResponse.ok) {
+        const error = await adSetsResponse.json();
+        console.error('❌ Ad sets fetch error:', error);
         throw new Error(`Facebook API Error: ${JSON.stringify(error)}`);
       }
       
-      const data = await response.json();
+      const adSetsData = await adSetsResponse.json();
+      console.log(`📊 Found ${adSetsData.data?.length || 0} ad sets`);
       
-      // Process the data
+      // Get insights for each ad set
       const adSets = {};
-      if (data.data) {
-        data.data.forEach(adSet => {
-          if (adSet.insights && adSet.insights.data && adSet.insights.data[0]) {
-            const insights = adSet.insights.data[0];
+      
+      for (const adSet of (adSetsData.data || [])) {
+        try {
+          let insightsUrl = `${this.baseUrl}/${adSet.id}/insights?fields=impressions,reach,clicks,spend,ctr`;
+          
+          if (dateFrom && dateTo) {
+            insightsUrl += `&time_range={'since':'${dateFrom}','until':'${dateTo}'}`;
+          }
+          
+          const insightsResponse = await fetch(`${insightsUrl}&access_token=${this.accessToken}`);
+          const insightsData = await insightsResponse.json();
+          
+          if (insightsData.data && insightsData.data[0]) {
+            const insights = insightsData.data[0];
             adSets[adSet.name] = {
               id: adSet.id,
               name: adSet.name,
               status: adSet.status,
               campaign_id: adSet.campaign_id,
-              campaign_name: adSet.campaign?.name,
               impressions: parseInt(insights.impressions || 0),
               reach: parseInt(insights.reach || 0),
               clicks: parseInt(insights.clicks || 0),
               spend: parseFloat(insights.spend || 0),
-              ctr: parseFloat(insights.ctr || 0),
-              conversions: parseInt(insights.conversions || 0),
-              cost_per_conversion: parseFloat(insights.cost_per_conversion || 0)
+              ctr: parseFloat(insights.ctr || 0)
             };
+            console.log(`✅ Got insights for ad set: ${adSet.name}`, adSets[adSet.name]);
           }
-        });
+        } catch (insightError) {
+          console.error(`⚠️ Failed to get insights for ad set ${adSet.name}:`, insightError.message);
+        }
       }
       
       // Cache the results
@@ -194,25 +253,26 @@ class FacebookInsightsService {
     }
 
     try {
+      console.log('🚀 Fetching insights by source...', { dateFrom, dateTo });
+      
       const adAccountId = await this.getAdAccountId();
       
-      const timeRange = dateFrom && dateTo ? 
-        `&time_range={'since':'${dateFrom}','until':'${dateTo}'}` : '';
+      let url = `${this.baseUrl}/${adAccountId}/insights?fields=impressions&breakdowns=publisher_platform`;
       
-      // Get insights broken down by publisher platform
-      const response = await fetch(
-        `${this.baseUrl}/${adAccountId}/insights?` +
-        `fields=impressions,reach,clicks,spend,ctr,conversions,cost_per_conversion` +
-        `&breakdowns=publisher_platform` +
-        `${timeRange}&access_token=${this.accessToken}`
-      );
+      if (dateFrom && dateTo) {
+        url += `&time_range={'since':'${dateFrom}','until':'${dateTo}'}`;
+      }
+      
+      const response = await fetch(`${url}&access_token=${this.accessToken}`);
       
       if (!response.ok) {
         const error = await response.json();
+        console.error('❌ Source insights error:', error);
         throw new Error(`Facebook API Error: ${JSON.stringify(error)}`);
       }
       
       const data = await response.json();
+      console.log('📊 Source insights raw data:', data);
       
       // Process the data
       const sourceInsights = {
@@ -242,28 +302,43 @@ class FacebookInsightsService {
       
     } catch (error) {
       console.error('❌ Error fetching source insights:', error);
-      throw error;
+      // Return zeros instead of throwing
+      return { 'Facebook': 0, 'Instagram': 0 };
     }
   }
 
   // Get insights for specific ad sets by their IDs
   async getSpecificAdSetInsights(adSetNames, dateFrom, dateTo) {
     try {
+      console.log('🔍 Getting insights for specific ad sets:', adSetNames);
+      
       // First, get all ad sets to find matching IDs
       const allAdSets = await this.getAdSetInsights(dateFrom, dateTo);
       
       const matchingInsights = {};
       adSetNames.forEach(name => {
+        // Try exact match first
         if (allAdSets[name]) {
           matchingInsights[name] = allAdSets[name].impressions;
+          console.log(`✅ Found exact match for ${name}: ${allAdSets[name].impressions} impressions`);
         } else {
-          // If exact match not found, try partial match
+          // Try partial match
+          let found = false;
           Object.keys(allAdSets).forEach(adSetName => {
-            if (adSetName.toLowerCase().includes(name.toLowerCase()) || 
-                name.toLowerCase().includes(adSetName.toLowerCase())) {
+            if (!found && (
+              adSetName.toLowerCase().includes(name.toLowerCase()) || 
+              name.toLowerCase().includes(adSetName.toLowerCase())
+            )) {
               matchingInsights[name] = allAdSets[adSetName].impressions;
+              console.log(`✅ Found partial match for ${name} -> ${adSetName}: ${allAdSets[adSetName].impressions} impressions`);
+              found = true;
             }
           });
+          
+          if (!found) {
+            console.log(`⚠️ No match found for ad set: ${name}`);
+            matchingInsights[name] = 0;
+          }
         }
       });
       
@@ -271,7 +346,10 @@ class FacebookInsightsService {
       
     } catch (error) {
       console.error('❌ Error fetching specific ad set insights:', error);
-      throw error;
+      // Return zeros for all requested ad sets
+      const zeros = {};
+      adSetNames.forEach(name => { zeros[name] = 0; });
+      return zeros;
     }
   }
 
