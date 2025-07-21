@@ -12,9 +12,10 @@ window.renderResponsiveLayout = () => {
       React.createElement('div', { className: 'w-10' }),
       
       // Title
-      React.createElement('h1', { className: 'text-lg font-semibold' }, 
-        getTabTitle(activeTab)
-      ),
+React.createElement('h1', { 
+    className: 'text-lg font-semibold text-gray-900 dark:text-white tracking-tight'
+}, getTabTitle(activeTab))
+
       
       // User avatar/menu
       React.createElement('div', { className: 'w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center' },
