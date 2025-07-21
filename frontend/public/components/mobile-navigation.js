@@ -135,18 +135,58 @@ window.MobileHeader = function() {
     }
   };
 
-  return React.createElement('header', {
-    className: 'mobile-header mobile-only'
+return React.createElement('header', {
+    className: 'mobile-header mobile-only',
+    style: { 
+      display: 'flex', 
+      alignItems: 'center',
+      height: '56px' // Ensure consistent height
+    }
   },
     // Empty left side for proper centering
-    React.createElement('div', { className: 'mobile-header-action' }),
-
-    // Page title
-    React.createElement('h1', { className: 'mobile-header-title' }, 
-    React.createElement('span', { className: 'flex items-center gap-2' },
+    React.createElement('div', { 
+      className: 'mobile-header-action',
+      style: { 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        width: '40px',
+        height: '40px'
+      }
+    }),
+    
+    // Page title with proper vertical centering
+    React.createElement('h1', { 
+      className: 'mobile-header-title',
+      style: { 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        height: '100%',
+        margin: 0,
+        padding: 0,
+        flex: 1,
+        fontSize: '18px',
+        fontWeight: 600,
+        color: '#111827'
+      }
+    }, 
+      React.createElement('span', { 
+        className: 'flex items-center gap-2',
+        style: { 
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }
+      },
         // Add an icon before the title
         activeTab === 'dashboard' && React.createElement('svg', {
             className: 'w-5 h-5',
+            style: { 
+              width: '20px', 
+              height: '20px',
+              flexShrink: 0 
+            },
             fill: 'currentColor',
             viewBox: '0 0 20 20'
         },
@@ -155,20 +195,37 @@ window.MobileHeader = function() {
             })
         ),
         getPageTitle()
-    )
-),
-
+      )
+    ),
+    
     // Action button (add new)
     showActionButton() ?
       React.createElement('div', {
         className: 'mobile-header-action touchable',
+        style: { 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          width: '40px',
+          height: '40px'
+        },
         onClick: handleActionClick
       },
-        React.createElement('span', { style: { fontSize: '20px' } }, '+')
+        React.createElement('span', { 
+          style: { 
+            fontSize: '20px',
+            lineHeight: 1
+          } 
+        }, '+')
       ) :
-      React.createElement('div', { className: 'mobile-header-action' })
+      React.createElement('div', { 
+        className: 'mobile-header-action',
+        style: { 
+          width: '40px',
+          height: '40px'
+        }
+      })
   );
-};
 
 // Mobile More Menu (Sheet)
 window.MobileMoreMenu = function() {
