@@ -413,12 +413,20 @@
   }
 
   /* ===== FLOATING ACTION BUTTON ===== */
-  .mobile-fab {
+  .mobile-fab,
+  button.mobile-fab,
+  .mobile-only.mobile-fab {
     position: fixed !important;
     bottom: 80px !important;
     right: 20px !important;
+    left: auto !important;
+    top: auto !important;
     width: 56px !important;
     height: 56px !important;
+    min-width: 56px !important;
+    min-height: 56px !important;
+    max-width: 56px !important;
+    max-height: 56px !important;
     background: #3b82f6 !important;
     color: white !important;
     border-radius: 28px !important;
@@ -426,15 +434,27 @@
     align-items: center !important;
     justify-content: center !important;
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
-    z-index: 900 !important;
+    z-index: 9999 !important;
     transition: transform 0.2s, box-shadow 0.2s !important;
     cursor: pointer !important;
     -webkit-tap-highlight-color: transparent !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    font-size: 24px !important;
+    font-weight: 300 !important;
+    line-height: 1 !important;
   }
 
-  .mobile-fab:active {
+  .mobile-fab:active,
+  button.mobile-fab:active,
+  .mobile-only.mobile-fab:active {
     transform: scale(0.95) !important;
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3) !important;
+    position: fixed !important;
+    bottom: 80px !important;
+    right: 20px !important;
   }
 
   .mobile-fab-icon {

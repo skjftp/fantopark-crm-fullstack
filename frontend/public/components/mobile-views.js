@@ -68,35 +68,37 @@ window.MobileLeadsView = function() {
     // Search bar with filter toggle
     React.createElement('div', { className: 'mobile-search-bar' },
       React.createElement('div', { className: 'flex gap-2' },
-        React.createElement('div', { className: 'relative flex-1' },
-          React.createElement('input', {
-            type: 'text',
-            className: 'mobile-search-input',
-            placeholder: 'Search leads...',
-            value: searchInput,
-            onChange: (e) => setSearchInput(e.target.value),
-            onKeyPress: (e) => {
-              if (e.key === 'Enter') {
-                handleSearchSubmit();
-              }
+        React.createElement('input', {
+          type: 'text',
+          className: 'mobile-search-input flex-1',
+          placeholder: 'Search leads...',
+          value: searchInput,
+          onChange: (e) => setSearchInput(e.target.value),
+          onKeyPress: (e) => {
+            if (e.key === 'Enter') {
+              handleSearchSubmit();
             }
-          }),
-          React.createElement('span', { className: 'mobile-search-icon' }, '🔍')
-        ),
+          },
+          style: {
+            paddingLeft: '16px',
+            paddingRight: searchInput ? '40px' : '16px'
+          }
+        }),
         searchInput && React.createElement('button', {
           onClick: () => {
             setSearchInput('');
             handleSearch('');
           },
-          className: 'px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-600'
+          className: 'absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700',
+          style: { right: '120px' }
         }, '✕'),
         React.createElement('button', {
           onClick: handleSearchSubmit,
-          className: 'px-3 py-2 rounded-lg bg-blue-600 text-white'
+          className: 'px-4 py-2 rounded-lg bg-blue-600 text-white font-medium'
         }, 'Search'),
         React.createElement('button', {
           onClick: () => setShowFilters(!showFilters),
-          className: `px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 ${showFilters ? 'text-blue-600' : 'text-gray-600'}`
+          className: `px-3 py-2 rounded-lg ${showFilters ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-600'}`
         }, '⚙️')
       )
     ),
@@ -414,19 +416,25 @@ window.MobileInventoryView = function() {
     // Search bar with filter toggle
     React.createElement('div', { className: 'mobile-search-bar' },
       React.createElement('div', { className: 'flex gap-2' },
-        React.createElement('div', { className: 'relative flex-1' },
-          React.createElement('input', {
-            type: 'text',
-            className: 'mobile-search-input',
-            placeholder: 'Search inventory...',
-            value: inventorySearchQuery || '',
-            onChange: (e) => state.setInventorySearchQuery(e.target.value)
-          }),
-          React.createElement('span', { className: 'mobile-search-icon' }, '🔍')
-        ),
+        React.createElement('input', {
+          type: 'text',
+          className: 'mobile-search-input flex-1',
+          placeholder: 'Search inventory...',
+          value: inventorySearchQuery || '',
+          onChange: (e) => state.setInventorySearchQuery(e.target.value),
+          style: {
+            paddingLeft: '16px',
+            paddingRight: inventorySearchQuery ? '40px' : '16px'
+          }
+        }),
+        inventorySearchQuery && React.createElement('button', {
+          onClick: () => state.setInventorySearchQuery(''),
+          className: 'absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700',
+          style: { right: '60px' }
+        }, '✕'),
         React.createElement('button', {
           onClick: () => setShowFilters(!showFilters),
-          className: `px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 ${showFilters ? 'text-blue-600' : 'text-gray-600'}`
+          className: `px-3 py-2 rounded-lg ${showFilters ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-600'}`
         }, '⚙️')
       )
     ),
@@ -668,19 +676,25 @@ window.MobileOrdersView = function() {
     // Search bar with filter toggle
     React.createElement('div', { className: 'mobile-search-bar' },
       React.createElement('div', { className: 'flex gap-2' },
-        React.createElement('div', { className: 'relative flex-1' },
-          React.createElement('input', {
-            type: 'text',
-            className: 'mobile-search-input',
-            placeholder: 'Search orders...',
-            value: filters.searchQuery || '',
-            onChange: (e) => handleFilterChange('searchQuery', e.target.value)
-          }),
-          React.createElement('span', { className: 'mobile-search-icon' }, '🔍')
-        ),
+        React.createElement('input', {
+          type: 'text',
+          className: 'mobile-search-input flex-1',
+          placeholder: 'Search orders...',
+          value: filters.searchQuery || '',
+          onChange: (e) => handleFilterChange('searchQuery', e.target.value),
+          style: {
+            paddingLeft: '16px',
+            paddingRight: filters.searchQuery ? '40px' : '16px'
+          }
+        }),
+        filters.searchQuery && React.createElement('button', {
+          onClick: () => handleFilterChange('searchQuery', ''),
+          className: 'absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700',
+          style: { right: '60px' }
+        }, '✕'),
         React.createElement('button', {
           onClick: () => setShowFilters(!showFilters),
-          className: `px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 ${showFilters ? 'text-blue-600' : 'text-gray-600'}`
+          className: `px-3 py-2 rounded-lg ${showFilters ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-600'}`
         }, '⚙️')
       )
     ),
@@ -1437,6 +1451,7 @@ window.MobileSweetsContent = function() {
     'delivery': window.MobileDeliveriesView,
     'financials': window.MobileFinancialsView,
     'sales-performance': window.MobileSalesPerformanceView,
+    'marketing-performance': window.MobileMarketingPerformanceView,
     'stadiums': window.MobileStadiumsView,
     'sports-calendar': window.MobileSportsCalendarView
   };
@@ -1804,6 +1819,203 @@ window.MobileSalesPerformanceView = function() {
   );
 };
 
+// Mobile Marketing Performance View
+window.MobileMarketingPerformanceView = function() {
+  const state = window.appState;
+  const { leads } = state;
+  const [performanceData, setPerformanceData] = React.useState({
+    overview: {
+      totalLeads: 0,
+      facebookLeads: 0,
+      instagramLeads: 0,
+      otherSourceLeads: 0,
+      conversionRate: 0,
+      avgCostPerLead: 0
+    },
+    sourceBreakdown: []
+  });
+  
+  // Calculate marketing performance metrics
+  React.useEffect(() => {
+    if (!leads || leads.length === 0) return;
+    
+    const sourceStats = {};
+    let totalLeads = leads.length;
+    let convertedLeads = 0;
+    
+    leads.forEach(lead => {
+      const source = lead.source || lead.lead_source || 'Unknown';
+      
+      if (!sourceStats[source]) {
+        sourceStats[source] = {
+          name: source,
+          count: 0,
+          converted: 0,
+          potential_value: 0
+        };
+      }
+      
+      sourceStats[source].count++;
+      sourceStats[source].potential_value += parseFloat(lead.potential_value) || 0;
+      
+      if (lead.status === 'converted' || lead.status === 'qualified') {
+        sourceStats[source].converted++;
+        convertedLeads++;
+      }
+    });
+    
+    const sourceBreakdown = Object.values(sourceStats)
+      .sort((a, b) => b.count - a.count)
+      .map(source => ({
+        ...source,
+        conversionRate: source.count > 0 ? ((source.converted / source.count) * 100).toFixed(1) : '0.0',
+        percentage: ((source.count / totalLeads) * 100).toFixed(1)
+      }));
+    
+    setPerformanceData({
+      overview: {
+        totalLeads,
+        facebookLeads: sourceStats['Facebook']?.count || 0,
+        instagramLeads: sourceStats['Instagram']?.count || 0,
+        otherSourceLeads: totalLeads - (sourceStats['Facebook']?.count || 0) - (sourceStats['Instagram']?.count || 0),
+        conversionRate: totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(1) : '0.0',
+        avgCostPerLead: 0 // This would need to be calculated from actual ad spend data
+      },
+      sourceBreakdown
+    });
+  }, [leads]);
+  
+  return React.createElement('div', { className: 'mobile-content-wrapper' },
+    // Performance Overview Cards
+    React.createElement('div', { 
+      className: 'grid grid-cols-2 gap-3 mb-6'
+    },
+      // Total Leads
+      React.createElement('div', { className: 'mobile-card p-3' },
+        React.createElement('div', { className: 'text-2xl font-bold text-blue-600' },
+          performanceData.overview.totalLeads
+        ),
+        React.createElement('div', { className: 'text-xs text-gray-500' },
+          'Total Leads'
+        )
+      ),
+      
+      // Conversion Rate
+      React.createElement('div', { className: 'mobile-card p-3' },
+        React.createElement('div', { className: 'text-2xl font-bold text-green-600' },
+          performanceData.overview.conversionRate + '%'
+        ),
+        React.createElement('div', { className: 'text-xs text-gray-500' },
+          'Conversion Rate'
+        )
+      ),
+      
+      // Facebook Leads
+      React.createElement('div', { className: 'mobile-card p-3' },
+        React.createElement('div', { className: 'text-2xl font-bold text-blue-500' },
+          performanceData.overview.facebookLeads
+        ),
+        React.createElement('div', { className: 'text-xs text-gray-500' },
+          'Facebook Leads'
+        )
+      ),
+      
+      // Instagram Leads
+      React.createElement('div', { className: 'mobile-card p-3' },
+        React.createElement('div', { className: 'text-2xl font-bold text-purple-500' },
+          performanceData.overview.instagramLeads
+        ),
+        React.createElement('div', { className: 'text-xs text-gray-500' },
+          'Instagram Leads'
+        )
+      )
+    ),
+    
+    // Source Breakdown
+    React.createElement('div', { className: 'mb-6' },
+      React.createElement('h3', { 
+        className: 'text-lg font-semibold mb-3 text-gray-900 dark:text-white'
+      }, 'Lead Sources'),
+      
+      React.createElement('div', { className: 'space-y-3' },
+        performanceData.sourceBreakdown.length > 0 ?
+          performanceData.sourceBreakdown.map((source, index) => 
+            React.createElement('div', {
+              key: source.name,
+              className: 'mobile-card p-4'
+            },
+              React.createElement('div', { className: 'flex items-start justify-between mb-2' },
+                React.createElement('div', { className: 'flex-1' },
+                  React.createElement('h4', { 
+                    className: 'font-medium text-gray-900 dark:text-white'
+                  }, source.name),
+                  React.createElement('div', { className: 'text-sm text-gray-500 dark:text-gray-400' },
+                    `${source.count} leads (${source.percentage}%)`
+                  )
+                ),
+                React.createElement('div', { className: 'text-right' },
+                  React.createElement('div', { 
+                    className: 'text-sm font-medium text-green-600'
+                  }, `${source.conversionRate}%`),
+                  React.createElement('div', { className: 'text-xs text-gray-500' },
+                    'conversion'
+                  )
+                )
+              ),
+              
+              // Progress bar for lead count
+              React.createElement('div', { 
+                className: 'mt-3 bg-gray-200 dark:bg-gray-700 rounded-full h-2'
+              },
+                React.createElement('div', {
+                  className: `bg-gradient-to-r ${
+                    source.name.toLowerCase().includes('facebook') ? 'from-blue-400 to-blue-600' :
+                    source.name.toLowerCase().includes('instagram') ? 'from-purple-400 to-purple-600' :
+                    'from-gray-400 to-gray-600'
+                  } h-2 rounded-full transition-all duration-300`,
+                  style: { 
+                    width: `${Math.max(5, parseFloat(source.percentage))}%`
+                  }
+                })
+              ),
+              
+              // Potential value
+              source.potential_value > 0 && React.createElement('div', { 
+                className: 'mt-2 text-xs text-gray-600 dark:text-gray-400'
+              },
+                `Potential Value: ₹${source.potential_value.toLocaleString('en-IN')}`
+              )
+            )
+          ) :
+          React.createElement('div', { 
+            className: 'text-center py-8 text-gray-500'
+          }, 
+            React.createElement('div', { className: 'text-4xl mb-2' }, '📊'),
+            React.createElement('p', null, 'No marketing data available'),
+            React.createElement('p', { className: 'text-sm' }, 'Lead sources will appear here when data is available')
+          )
+      )
+    ),
+    
+    // Quick Actions
+    React.createElement('div', { className: 'grid grid-cols-1 gap-3' },
+      React.createElement('button', {
+        className: 'mobile-button mobile-button-primary',
+        onClick: () => {
+          if (window.refreshMarketingData) {
+            window.refreshMarketingData();
+          }
+        }
+      }, '🔄 Refresh Data'),
+      
+      React.createElement('button', {
+        className: 'mobile-button mobile-button-secondary', 
+        onClick: () => state.setActiveTab('leads')
+      }, '📋 View All Leads')
+    )
+  );
+};
+
 // Mobile Stadiums View
 window.MobileStadiumsView = function() {
   const state = window.appState;
@@ -1850,20 +2062,13 @@ window.MobileStadiumsView = function() {
       )
     ),
 
-    // Header with Add button
+    // Header
     React.createElement('div', { 
-      className: 'flex items-center justify-between mb-4'
+      className: 'mb-4'
     },
       React.createElement('h2', { 
         className: 'text-lg font-semibold'
-      }, 'Stadiums'),
-      window.hasPermission('stadiums', 'create') &&
-        React.createElement('button', {
-          onClick: () => {
-            state.setShowStadiumForm(true);
-          },
-          className: 'text-blue-600 text-sm'
-        }, '+ Add')
+      }, 'Stadiums')
     ),
     
     React.createElement('div', { className: 'space-y-3' },
@@ -1871,30 +2076,96 @@ window.MobileStadiumsView = function() {
         filteredStadiums.map(stadium => 
           React.createElement('div', {
             key: stadium.id,
-            className: 'mobile-card p-4 touchable',
-            onClick: () => {
-              state.setSelectedStadium(stadium);
-              state.setShowStadiumDetail(true);
-            }
+            className: 'mobile-card'
           },
-            React.createElement('div', { className: 'flex items-start justify-between' },
-              React.createElement('div', { className: 'flex-1' },
-                React.createElement('h3', { 
-                  className: 'font-medium text-gray-900 dark:text-white'
-                }, stadium.name),
-                React.createElement('div', { 
-                  className: 'text-sm text-gray-600 dark:text-gray-400 mt-1'
-                },
-                  stadium.city && React.createElement('div', null, '📍 ', stadium.city),
-                  stadium.sport_type && React.createElement('div', null, '🏃 ', stadium.sport_type),
-                  stadium.capacity && React.createElement('div', null, 
-                    '💺 ', parseInt(stadium.capacity).toLocaleString(), ' seats'
+            // Clickable upper section
+            React.createElement('div', {
+              className: 'cursor-pointer',
+              onClick: () => {
+                if (state.setSelectedStadium && state.setShowStadiumDetail) {
+                  state.setSelectedStadium(stadium);
+                  state.setShowStadiumDetail(true);
+                } else if (window.openStadiumDetail) {
+                  window.openStadiumDetail(stadium);
+                } else {
+                  console.log('Stadium detail view:', stadium);
+                  // Fallback - could show an alert or basic info
+                  alert(`Stadium: ${stadium.name}\nCity: ${stadium.city || 'N/A'}\nCapacity: ${stadium.capacity || 'N/A'}`);
+                }
+              }
+            },
+              React.createElement('div', { className: 'flex items-start justify-between mb-3' },
+                React.createElement('div', { className: 'flex-1' },
+                  React.createElement('h3', { 
+                    className: 'font-semibold text-base text-gray-900 dark:text-white mb-1'
+                  }, stadium.name),
+                  React.createElement('div', { 
+                    className: 'text-sm text-gray-600 dark:text-gray-400 space-y-1'
+                  },
+                    stadium.city && React.createElement('div', null, '📍 ', stadium.city),
+                    stadium.sport_type && React.createElement('div', null, '🏃 ', stadium.sport_type),
+                    stadium.capacity && React.createElement('div', null, 
+                      '💺 ', parseInt(stadium.capacity).toLocaleString(), ' seats'
+                    )
                   )
                 )
-              ),
-              React.createElement('span', { 
-                className: 'text-gray-400'
-              }, '>')
+              )
+            ),
+            
+            // Quick action buttons
+            React.createElement('div', {
+              className: 'flex items-center gap-1 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700'
+            },
+              // Notes button
+              React.createElement('button', {
+                className: 'action-button px-2 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors',
+                onClick: () => {
+                  if (window.openStadiumNotesModal) {
+                    window.openStadiumNotesModal(stadium);
+                  } else {
+                    console.log('Stadium notes view:', stadium);
+                    alert(`Stadium: ${stadium.name}\nNotes functionality not available`);
+                  }
+                },
+                title: 'Stadium Notes'
+              }, '📝'),
+              
+              // Edit button
+              window.hasPermission('stadiums', 'write') && React.createElement('button', {
+                className: 'action-button px-2 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded transition-colors',
+                onClick: () => {
+                  if (window.openEditStadiumForm) {
+                    window.openEditStadiumForm(stadium);
+                  } else if (window.setEditingStadium && window.setShowStadiumForm) {
+                    window.setEditingStadium(stadium);
+                    window.setShowStadiumForm(true);
+                  } else if (state.setShowStadiumForm) {
+                    state.setShowStadiumForm(true);
+                  } else {
+                    console.log('Edit stadium:', stadium);
+                    alert('Edit functionality not available');
+                  }
+                },
+                title: 'Edit Stadium'
+              }, '✏️'),
+              
+              // Delete button
+              window.hasPermission('stadiums', 'delete') && React.createElement('button', {
+                className: 'action-button px-2 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded transition-colors',
+                onClick: () => {
+                  if (window.handleDeleteStadium) {
+                    window.handleDeleteStadium(stadium.id);
+                  } else if (window.handleDelete) {
+                    window.handleDelete('stadiums', stadium.id, stadium.name);
+                  } else {
+                    if (confirm(`Are you sure you want to delete ${stadium.name}?`)) {
+                      // Handle deletion
+                      console.log('Delete stadium:', stadium.id);
+                    }
+                  }
+                },
+                title: 'Delete Stadium'
+              }, '🗑️')
             )
           )
         ) :

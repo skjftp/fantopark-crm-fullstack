@@ -3235,7 +3235,10 @@ console.log("✅ AssignmentRulesTab exposed to window");
       window.MobileMoreMenu && React.createElement(window.MobileMoreMenu),
       
       // Mobile Filter Sheet
-      window.renderMobileFilterSheet && window.renderMobileFilterSheet()
+      window.renderMobileFilterSheet && window.renderMobileFilterSheet(),
+      
+      // Stadium Notes Modal (for mobile)
+      window.renderStadiumNotesModal && window.renderStadiumNotesModal()
     ) :
     // Desktop Layout
     React.createElement(React.Fragment, null,

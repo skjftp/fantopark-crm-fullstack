@@ -124,107 +124,61 @@ window.MobileHeader = function() {
     }
   };
 
-  const showActionButton = () => {
-    switch(activeTab) {
-      case 'leads':
-        return window.hasPermission('leads', 'create');
-      case 'inventory':
-        return window.hasPermission('inventory', 'create');
-      default:
-        return false;
-    }
+  // Get brand colors based on theme
+  const getBrandColors = () => {
+    const isDark = document.documentElement.classList.contains('dark');
+    return {
+      primary: isDark ? '#3B82F6' : '#2563EB',
+      text: isDark ? '#F3F4F6' : '#111827',
+      background: isDark ? '#1F2937' : '#FFFFFF',
+      border: isDark ? '#374151' : '#E5E7EB',
+      secondaryText: isDark ? '#9CA3AF' : '#6B7280'
+    };
   };
 
-return React.createElement('header', {
+  const colors = getBrandColors();
+
+  return React.createElement('header', {
     className: 'mobile-header mobile-only',
     style: { 
       display: 'flex', 
       alignItems: 'center',
-      height: '56px' // Ensure consistent height
+      height: '56px',
+      background: colors.background,
+      borderBottom: `1px solid ${colors.border}`,
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 1100,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
     }
   },
-    // Empty left side for proper centering
+    // Logo section - centered
     React.createElement('div', { 
-      className: 'mobile-header-action',
+      className: 'mobile-header-logo',
       style: { 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
-        width: '40px',
+        flex: 1,
         height: '40px'
       }
-    }),
-    
-    // Page title with proper vertical centering
-    React.createElement('h1', { 
-      className: 'mobile-header-title',
-      style: { 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        height: '100%',
-        margin: 0,
-        padding: 0,
-        flex: 1,
-        fontSize: '18px',
-        fontWeight: 600,
-        color: '#111827'
-      }
-    }, 
-      React.createElement('span', { 
-        className: 'flex items-center gap-2',
-        style: { 
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }
-      },
-        // Add an icon before the title
-        activeTab === 'dashboard' && React.createElement('svg', {
-            className: 'w-5 h-5',
-            style: { 
-              width: '20px', 
-              height: '20px',
-              flexShrink: 0 
-            },
-            fill: 'currentColor',
-            viewBox: '0 0 20 20'
-        },
-            React.createElement('path', {
-                d: 'M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z'
-            })
-        ),
-        getPageTitle()
-      )
-    ),
-    
-    // Action button (add new)
-    showActionButton() ?
-      React.createElement('div', {
-        className: 'mobile-header-action touchable',
-        style: { 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          width: '40px',
-          height: '40px'
-        },
-        onClick: handleActionClick
-      },
-        React.createElement('span', { 
-          style: { 
-            fontSize: '20px',
-            lineHeight: 1
-          } 
-        }, '+')
-      ) :
-      React.createElement('div', { 
-        className: 'mobile-header-action',
-        style: { 
-          width: '40px',
-          height: '40px'
+    },
+      React.createElement('img', {
+        src: 'images/logo.png',
+        alt: 'FanToPark',
+        style: {
+          height: 'auto',
+          width: 'auto',
+          maxHeight: '32px',
+          maxWidth: '200px',
+          objectFit: 'contain',
+          transform: 'scale(0.8)'
         }
       })
+    ),
+    
   );
 };
 
@@ -417,6 +371,8 @@ window.MobileFAB = function() {
         return window.hasPermission('leads', 'create');
       case 'inventory':
         return window.hasPermission('inventory', 'create');
+      case 'stadiums':
+        return window.hasPermission('stadiums', 'create');
       case 'reminders':
         return window.hasPermission('reminders', 'create');
       default:
@@ -432,6 +388,9 @@ window.MobileFAB = function() {
         break;
       case 'inventory':
         state.setShowInventoryForm(true);
+        break;
+      case 'stadiums':
+        state.setShowStadiumForm(true);
         break;
       case 'reminders':
         state.setShowReminderForm(true);
