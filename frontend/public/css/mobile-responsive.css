@@ -123,6 +123,31 @@
   .bg-gray-800.rounded-lg.shadow,
   [class*="rounded-lg shadow"] {
     margin-bottom: 20px !important;
+    overflow: visible !important; /* Allow overflow for horizontal scroll */
+  }
+  
+  /* Horizontal scroll for card content */
+  .bg-white.rounded-lg.shadow > div,
+  .bg-gray-800.rounded-lg.shadow > div {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Specific fix for leads cards and similar containers */
+  .lead-card,
+  .inventory-card,
+  .order-card,
+  [class*="card"] {
+    overflow: visible !important;
+  }
+  
+  .lead-card > div,
+  .inventory-card > div,
+  .order-card > div,
+  [class*="card"] > div {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
   }
   
   /* Tab content wrapper fixes */
@@ -249,26 +274,85 @@ canvas {
     overflow-x: hidden !important;
   }
   
-  /* Specific to your app structure */
+  /* Specific to your app structure - ALLOW INNER HORIZONTAL SCROLL */
   .flex-1.overflow-auto {
     max-width: 100vw !important;
-    overflow-x: hidden !important;
+    overflow-x: hidden !important; /* Hide horizontal scroll on main container */
     position: relative !important;
   }
   
-  /* Tables need special handling */
+  /* But allow horizontal scroll in child containers */
+  .flex-1.overflow-auto .overflow-x-auto,
+  .flex-1.overflow-auto .overflow-x-scroll {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Tables need special handling - ALLOW HORIZONTAL SCROLL */
   .overflow-x-auto {
     max-width: calc(100vw - 2rem) !important;
     margin: 0 1rem !important;
     overflow-x: auto !important;
+    overflow-y: visible !important;
     -webkit-overflow-scrolling: touch !important;
+    position: relative !important;
   }
   
-  /* Ensure tables don't break layout */
+  /* Ensure tables can scroll horizontally */
   table {
     display: block !important;
     overflow-x: auto !important;
+    overflow-y: visible !important;
     -webkit-overflow-scrolling: touch !important;
+    width: max-content !important;
+    min-width: 100% !important;
+  }
+  
+  /* Cards with horizontal scroll content */
+  .bg-white.rounded-lg.shadow .overflow-x-auto,
+  .bg-gray-800.rounded-lg.shadow .overflow-x-auto,
+  [class*="rounded-lg shadow"] .overflow-x-auto {
+    overflow-x: scroll !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-behavior: smooth;
+  }
+  
+  /* Leads cards specific fix */
+  #leads-content .overflow-x-auto,
+  [data-tab="leads"] .overflow-x-auto,
+  .lead-card .overflow-x-auto {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  
+  /* Inner content of scrollable areas should not be restricted */
+  .overflow-x-auto > * {
+    width: max-content !important;
+    min-width: max-content !important;
+  }
+  
+  /* Ensure horizontal scroll indicators are visible */
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 8px !important;
+    display: block !important;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 4px !important;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: #888 !important;
+    border-radius: 4px !important;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: #555 !important;
   }
   
   /* Images shouldn't overflow */
@@ -341,5 +425,50 @@ canvas {
     .flex-1.overflow-auto > div {
       padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important;
     }
+  }
+}
+
+/* ===== HORIZONTAL SCROLL VISUAL INDICATORS ===== */
+@media (max-width: 768px) {
+  /* Add visual indicator for horizontal scroll */
+  .overflow-x-auto::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.8));
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  
+  .overflow-x-auto:hover::after {
+    opacity: 1;
+  }
+  
+  /* Dark mode gradient */
+  .dark .overflow-x-auto::after {
+    background: linear-gradient(to right, transparent, rgba(31,41,55,0.8));
+  }
+  
+  /* Scrollbar styling for dark mode */
+  .dark .overflow-x-auto::-webkit-scrollbar-track {
+    background: #374151 !important;
+  }
+  
+  .dark .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: #6b7280 !important;
+  }
+  
+  .dark .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af !important;
+  }
+  
+  /* Ensure content is not cut off */
+  .overflow-x-auto > table,
+  .overflow-x-auto > div {
+    padding-right: 20px !important; /* Extra padding for scroll */
   }
 }
