@@ -126,18 +126,19 @@
     background: #f3f4f6 !important;
   }
 
-  /* ===== MAIN CONTENT AREA ===== */
-  .mobile-main-content {
+/* ===== MAIN CONTENT AREA ===== */
+.mobile-main-content {
     position: fixed !important;
-    top: 56px !important;
+    top: 56px !important;  /* Match header height */
     left: 0 !important;
     right: 0 !important;
-    bottom: 60px !important;
+    bottom: 60px !important;  /* Match bottom nav height */
     overflow-y: auto !important;
     overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;
     background: #f9fafb !important;
-  }
+    padding-top: 0 !important;  /* Remove any extra padding */
+}
 
   .dark .mobile-main-content {
     background: #111827 !important;
@@ -718,4 +719,26 @@
   min-height: 44px \!important;
   min-width: 44px \!important;
 }
+
+/* Fix mobile layout positioning conflicts */
+@media (max-width: 768px) {
+  /* Override the desktop content container styles for mobile */
+  .flex-1.overflow-auto {
+    position: static !important;  /* Reset position */
+    top: auto !important;
+    height: auto !important;
+    padding-top: 0 !important;
+  }
+  
+  /* Ensure proper content spacing in mobile view */
+  .mobile-main-content > div:first-child {
+    padding-top: 0 !important;  /* Remove extra top padding */
+  }
+  
+  /* Fix any content that's being pushed down */
+  .mobile-content-wrapper {
+    padding-top: 16px !important;  /* Standard top padding */
+  }
+}
+
 }
