@@ -24,24 +24,28 @@ window.renderResponsiveLayout = () => {
   
   return React.createElement('div', { className: 'min-h-screen bg-gray-50 dark:bg-gray-900' },
     // Mobile Header - Only visible on mobile
-    React.createElement('div', { 
-      className: 'lg:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-800 shadow-md z-30 flex items-center justify-between px-4'
-    },
-      // Menu button space (actual button is rendered by sidebar)
-      React.createElement('div', { className: 'w-10' }),
-      
-      // Title
-      React.createElement('h1', { 
-        className: 'text-lg font-semibold text-gray-900 dark:text-white tracking-tight'
-      }, getTabTitle(activeTab)), // <-- FIXED: Added comma here
-      
-      // User avatar/menu
-      React.createElement('div', { className: 'w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center' },
-        React.createElement('span', { className: 'text-sm font-medium' }, 
-          user?.name?.charAt(0)?.toUpperCase() || 'U'
-        )
-      )
-    ),
+React.createElement('div', { 
+  className: 'lg:hidden fixed top-0 left-0 right-0 h-14 bg-white dark:bg-gray-800 shadow-md z-30 flex items-center justify-between px-4'
+},
+  // Menu button space (actual button is rendered by sidebar)
+  React.createElement('div', { className: 'w-10 h-10 flex items-center justify-center' }),
+  
+  // Title - with explicit centering
+  React.createElement('div', { 
+    className: 'flex-1 h-full flex items-center justify-center'
+  },
+    React.createElement('h1', { 
+      className: 'text-lg font-semibold text-gray-900 dark:text-white tracking-tight m-0 p-0'
+    }, getTabTitle(activeTab))
+  ),
+  
+  // User avatar/menu
+  React.createElement('div', { className: 'w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center' },
+    React.createElement('span', { className: 'text-sm font-medium' }, 
+      user?.name?.charAt(0)?.toUpperCase() || 'U'
+    )
+  )
+),
     
     // Sidebar
     window.renderMobileSidebar && window.renderMobileSidebar(), // Added check
