@@ -57,49 +57,13 @@ class FacebookInsightsService {
     try {
       console.log('🔍 Fetching ad account ID...');
       
-      const response = await fetch(
-        `${this.baseUrl}/me/adaccounts?fields=id,name,account_status,currency,account_id&access_token=${this.accessToken}`
-      );
+      // For now, use the specific ad account that has campaigns
+      // This is a temporary fix - in production, you'd want to make this configurable
+      const AD_ACCOUNT_WITH_CAMPAIGNS = 'act_8731185783571850';
       
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('❌ Failed to get ad accounts:', error);
-        throw new Error(`Failed to get ad accounts: ${JSON.stringify(error)}`);
-      }
+      console.log(`✅ Using ad account with campaigns: ${AD_ACCOUNT_WITH_CAMPAIGNS}`);
+      return AD_ACCOUNT_WITH_CAMPAIGNS;
       
-      const data = await response.json();
-      console.log('📊 Ad accounts response:', data);
-      
-      if (data.data && data.data.length > 0) {
-        // Try to find an ad account with campaigns
-        for (const account of data.data) {
-          if (account.account_status === 1) { // Active account
-            console.log(`🔍 Checking ad account ${account.name} (${account.id}) for campaigns...`);
-            
-            // Check if this account has campaigns
-            const campaignsResponse = await fetch(
-              `${this.baseUrl}/${account.id}/campaigns?fields=id&limit=1&access_token=${this.accessToken}`
-            );
-            
-            if (campaignsResponse.ok) {
-              const campaignsData = await campaignsResponse.json();
-              if (campaignsData.data && campaignsData.data.length > 0) {
-                console.log(`✅ Found campaigns in account: ${account.name}`);
-                return account.id;
-              } else {
-                console.log(`⚠️ No campaigns in account: ${account.name}`);
-              }
-            }
-          }
-        }
-        
-        // If no account has campaigns, use the first active one
-        const activeAccount = data.data.find(acc => acc.account_status === 1) || data.data[0];
-        console.log('⚠️ No accounts with campaigns found, using:', activeAccount.name);
-        return activeAccount.id;
-      }
-      
-      throw new Error('No ad accounts found');
     } catch (error) {
       console.error('❌ Error getting ad account:', error);
       throw error;
@@ -316,6 +280,27 @@ class FacebookInsightsService {
       // Return zeros instead of throwing
       return { 'Facebook': 0, 'Instagram': 0 };
     }
+  }
+
+  // Get full source insights including spend and clicks
+  async getFullSourceInsights(dateFrom, dateTo) {
+    const cacheKey = this.getCacheKey({ type: 'source', dateFrom, dateTo });
+    const cachedData = this.cache.get(cacheKey);
+    
+    if (this.isCacheValid(cachedData) && cachedData.fullData) {
+      console.log('📊 Returning cached full source insights');
+      return cachedData.fullData;
+    }
+    
+    // If not cached, fetch it
+    await this.getInsightsBySource(dateFrom, dateTo);
+    
+    // Now get from cache
+    const newCachedData = this.cache.get(cacheKey);
+    return newCachedData?.fullData || {
+      'Facebook': { impressions: 0, clicks: 0, spend: 0 },
+      'Instagram': { impressions: 0, clicks: 0, spend: 0 }
+    };
   }
 
   // Get insights for specific ad sets by their IDs
