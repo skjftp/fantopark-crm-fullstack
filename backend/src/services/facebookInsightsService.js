@@ -33,7 +33,7 @@ class FacebookInsightsService {
       console.log('🧪 Testing Facebook API connection...');
       
       const response = await fetch(
-        `${this.baseUrl}/me?fields=id,name,fan_count&access_token=${this.accessToken}`
+        `${this.baseUrl}/me?fields=id,name&access_token=${this.accessToken}`
       );
       
       const data = await response.json();
@@ -52,45 +52,173 @@ class FacebookInsightsService {
     }
   }
 
-  // Get page insights (works with Page Access Token)
-  async getPageInsights(dateFrom, dateTo) {
+  // Get ad account ID from user
+  async getAdAccountId() {
     try {
-      console.log('🚀 Fetching page insights...');
+      console.log('🔍 Fetching ad account ID...');
       
-      // For Page Access Tokens, we can get page-level insights
-      let url = `${this.baseUrl}/me/insights?metric=page_impressions,page_impressions_by_story_type,page_impressions_by_city_unique`;
+      const response = await fetch(
+        `${this.baseUrl}/me/adaccounts?fields=id,name,account_status,currency,account_id&access_token=${this.accessToken}`
+      );
+      
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('❌ Failed to get ad accounts:', error);
+        throw new Error(`Failed to get ad accounts: ${JSON.stringify(error)}`);
+      }
+      
+      const data = await response.json();
+      console.log('📊 Ad accounts response:', data);
+      
+      if (data.data && data.data.length > 0) {
+        // Use the first active ad account
+        const activeAccount = data.data.find(acc => acc.account_status === 1) || data.data[0];
+        console.log('✅ Using ad account:', activeAccount);
+        return activeAccount.id;
+      }
+      
+      throw new Error('No ad accounts found');
+    } catch (error) {
+      console.error('❌ Error getting ad account:', error);
+      throw error;
+    }
+  }
+
+  // Get insights for all campaigns
+  async getCampaignInsights(dateFrom, dateTo) {
+    const cacheKey = this.getCacheKey({ type: 'campaigns', dateFrom, dateTo });
+    const cachedData = this.cache.get(cacheKey);
+    
+    if (this.isCacheValid(cachedData)) {
+      console.log('📊 Returning cached campaign insights');
+      return cachedData.data;
+    }
+
+    try {
+      console.log('🚀 Fetching campaign insights...', { dateFrom, dateTo });
+      
+      const adAccountId = await this.getAdAccountId();
+      
+      let url = `${this.baseUrl}/${adAccountId}/insights?fields=campaign_name,campaign_id,impressions,reach,clicks,spend,ctr&level=campaign`;
       
       if (dateFrom && dateTo) {
-        url += `&since=${dateFrom}&until=${dateTo}`;
+        url += `&time_range={'since':'${dateFrom}','until':'${dateTo}'}`;
       }
       
       const response = await fetch(`${url}&access_token=${this.accessToken}`);
       
       if (!response.ok) {
         const error = await response.json();
-        console.error('❌ Page insights error:', error);
-        return { 'Facebook': 0, 'Instagram': 0 };
+        console.error('❌ Campaign insights error:', error);
+        throw new Error(`Facebook API Error: ${JSON.stringify(error)}`);
       }
       
       const data = await response.json();
-      let totalImpressions = 0;
+      console.log(`📊 Found ${data.data?.length || 0} campaigns with insights`);
       
-      if (data.data && data.data[0] && data.data[0].values) {
-        data.data[0].values.forEach(value => {
-          totalImpressions += parseInt(value.value || 0);
+      // Process the data
+      const campaigns = {};
+      if (data.data) {
+        data.data.forEach(insight => {
+          campaigns[insight.campaign_name] = {
+            id: insight.campaign_id,
+            name: insight.campaign_name,
+            impressions: parseInt(insight.impressions || 0),
+            reach: parseInt(insight.reach || 0),
+            clicks: parseInt(insight.clicks || 0),
+            spend: parseFloat(insight.spend || 0),
+            ctr: parseFloat(insight.ctr || 0)
+          };
+          console.log(`✅ Campaign: ${insight.campaign_name} - ${insight.impressions} impressions`);
         });
       }
       
-      // For now, attribute all to Facebook (can be refined later)
-      return { 'Facebook': totalImpressions, 'Instagram': 0 };
+      // Cache the results
+      this.cache.set(cacheKey, {
+        data: campaigns,
+        timestamp: Date.now()
+      });
+      
+      console.log(`✅ Fetched insights for ${Object.keys(campaigns).length} campaigns`);
+      return campaigns;
       
     } catch (error) {
-      console.error('❌ Error getting page insights:', error);
-      return { 'Facebook': 0, 'Instagram': 0 };
+      console.error('❌ Error fetching campaign insights:', error);
+      throw error;
     }
   }
 
-  // Get insights by source - simplified for Page tokens
+  // Get insights for all ad sets
+  async getAdSetInsights(dateFrom, dateTo, campaignId = null) {
+    const cacheKey = this.getCacheKey({ type: 'adsets', dateFrom, dateTo, campaignId });
+    const cachedData = this.cache.get(cacheKey);
+    
+    if (this.isCacheValid(cachedData)) {
+      console.log('📊 Returning cached ad set insights');
+      return cachedData.data;
+    }
+
+    try {
+      console.log('🚀 Fetching ad set insights...', { dateFrom, dateTo, campaignId });
+      
+      const adAccountId = await this.getAdAccountId();
+      
+      let url = `${this.baseUrl}/${adAccountId}/insights?fields=adset_name,adset_id,campaign_name,campaign_id,impressions,reach,clicks,spend,ctr&level=adset`;
+      
+      if (dateFrom && dateTo) {
+        url += `&time_range={'since':'${dateFrom}','until':'${dateTo}'}`;
+      }
+      
+      if (campaignId) {
+        url += `&filtering=[{'field':'campaign_id','operator':'IN','value':['${campaignId}']}]`;
+      }
+      
+      const response = await fetch(`${url}&access_token=${this.accessToken}`);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('❌ Ad set insights error:', error);
+        throw new Error(`Facebook API Error: ${JSON.stringify(error)}`);
+      }
+      
+      const data = await response.json();
+      console.log(`📊 Found ${data.data?.length || 0} ad sets with insights`);
+      
+      // Process the data
+      const adSets = {};
+      if (data.data) {
+        data.data.forEach(insight => {
+          adSets[insight.adset_name] = {
+            id: insight.adset_id,
+            name: insight.adset_name,
+            campaign_id: insight.campaign_id,
+            campaign_name: insight.campaign_name,
+            impressions: parseInt(insight.impressions || 0),
+            reach: parseInt(insight.reach || 0),
+            clicks: parseInt(insight.clicks || 0),
+            spend: parseFloat(insight.spend || 0),
+            ctr: parseFloat(insight.ctr || 0)
+          };
+          console.log(`✅ Ad Set: ${insight.adset_name} - ${insight.impressions} impressions`);
+        });
+      }
+      
+      // Cache the results
+      this.cache.set(cacheKey, {
+        data: adSets,
+        timestamp: Date.now()
+      });
+      
+      console.log(`✅ Fetched insights for ${Object.keys(adSets).length} ad sets`);
+      return adSets;
+      
+    } catch (error) {
+      console.error('❌ Error fetching ad set insights:', error);
+      throw error;
+    }
+  }
+
+  // Get aggregated insights by source (Facebook vs Instagram)
   async getInsightsBySource(dateFrom, dateTo) {
     const cacheKey = this.getCacheKey({ type: 'source', dateFrom, dateTo });
     const cachedData = this.cache.get(cacheKey);
@@ -101,52 +229,43 @@ class FacebookInsightsService {
     }
 
     try {
-      console.log('🚀 Fetching insights by source...');
+      console.log('🚀 Fetching insights by source...', { dateFrom, dateTo });
       
-      // Try to get Instagram insights if connected
-      let facebookImpressions = 0;
-      let instagramImpressions = 0;
+      const adAccountId = await this.getAdAccountId();
       
-      // Get Facebook page insights
-      const pageInsights = await this.getPageInsights(dateFrom, dateTo);
-      facebookImpressions = pageInsights.Facebook;
+      let url = `${this.baseUrl}/${adAccountId}/insights?fields=impressions&breakdowns=publisher_platform`;
       
-      // Try to get Instagram insights
-      try {
-        const igResponse = await fetch(
-          `${this.baseUrl}/me?fields=instagram_business_account&access_token=${this.accessToken}`
-        );
-        
-        if (igResponse.ok) {
-          const igData = await igResponse.json();
-          if (igData.instagram_business_account) {
-            const igId = igData.instagram_business_account.id;
-            
-            // Get Instagram insights
-            let igUrl = `${this.baseUrl}/${igId}/insights?metric=impressions,reach`;
-            if (dateFrom && dateTo) {
-              igUrl += `&period=day&since=${dateFrom}&until=${dateTo}`;
-            }
-            
-            const igInsightsResponse = await fetch(`${igUrl}&access_token=${this.accessToken}`);
-            if (igInsightsResponse.ok) {
-              const igInsightsData = await igInsightsResponse.json();
-              if (igInsightsData.data && igInsightsData.data[0]) {
-                igInsightsData.data[0].values.forEach(value => {
-                  instagramImpressions += parseInt(value.value || 0);
-                });
-              }
-            }
-          }
-        }
-      } catch (igError) {
-        console.log('⚠️ Could not fetch Instagram insights:', igError.message);
+      if (dateFrom && dateTo) {
+        url += `&time_range={'since':'${dateFrom}','until':'${dateTo}'}`;
       }
       
+      const response = await fetch(`${url}&access_token=${this.accessToken}`);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('❌ Source insights error:', error);
+        throw new Error(`Facebook API Error: ${JSON.stringify(error)}`);
+      }
+      
+      const data = await response.json();
+      console.log('📊 Source insights raw data:', data);
+      
+      // Process the data
       const sourceInsights = {
-        'Facebook': facebookImpressions,
-        'Instagram': instagramImpressions
+        'Facebook': 0,
+        'Instagram': 0
       };
+      
+      if (data.data) {
+        data.data.forEach(insight => {
+          const platform = insight.publisher_platform;
+          if (platform === 'facebook') {
+            sourceInsights['Facebook'] += parseInt(insight.impressions || 0);
+          } else if (platform === 'instagram') {
+            sourceInsights['Instagram'] += parseInt(insight.impressions || 0);
+          }
+        });
+      }
       
       // Cache the results
       this.cache.set(cacheKey, {
@@ -159,28 +278,55 @@ class FacebookInsightsService {
       
     } catch (error) {
       console.error('❌ Error fetching source insights:', error);
+      // Return zeros instead of throwing
       return { 'Facebook': 0, 'Instagram': 0 };
     }
   }
 
-  // Get campaign insights - returns empty for Page tokens
-  async getCampaignInsights(dateFrom, dateTo) {
-    console.log('⚠️ Campaign insights not available with Page Access Token');
-    return {};
-  }
-
-  // Get ad set insights - returns empty for Page tokens
-  async getAdSetInsights(dateFrom, dateTo) {
-    console.log('⚠️ Ad set insights not available with Page Access Token');
-    return {};
-  }
-
-  // Get specific ad set insights - returns zeros for Page tokens
+  // Get insights for specific ad sets by their IDs
   async getSpecificAdSetInsights(adSetNames, dateFrom, dateTo) {
-    console.log('⚠️ Ad set insights not available with Page Access Token');
-    const zeros = {};
-    adSetNames.forEach(name => { zeros[name] = 0; });
-    return zeros;
+    try {
+      console.log('🔍 Getting insights for specific ad sets:', adSetNames);
+      
+      // First, get all ad sets to find matching IDs
+      const allAdSets = await this.getAdSetInsights(dateFrom, dateTo);
+      
+      const matchingInsights = {};
+      adSetNames.forEach(name => {
+        // Try exact match first
+        if (allAdSets[name]) {
+          matchingInsights[name] = allAdSets[name].impressions;
+          console.log(`✅ Found exact match for ${name}: ${allAdSets[name].impressions} impressions`);
+        } else {
+          // Try partial match
+          let found = false;
+          Object.keys(allAdSets).forEach(adSetName => {
+            if (!found && (
+              adSetName.toLowerCase().includes(name.toLowerCase()) || 
+              name.toLowerCase().includes(adSetName.toLowerCase())
+            )) {
+              matchingInsights[name] = allAdSets[adSetName].impressions;
+              console.log(`✅ Found partial match for ${name} -> ${adSetName}: ${allAdSets[adSetName].impressions} impressions`);
+              found = true;
+            }
+          });
+          
+          if (!found) {
+            console.log(`⚠️ No match found for ad set: ${name}`);
+            matchingInsights[name] = 0;
+          }
+        }
+      });
+      
+      return matchingInsights;
+      
+    } catch (error) {
+      console.error('❌ Error fetching specific ad set insights:', error);
+      // Return zeros for all requested ad sets
+      const zeros = {};
+      adSetNames.forEach(name => { zeros[name] = 0; });
+      return zeros;
+    }
   }
 
   // Clear cache
