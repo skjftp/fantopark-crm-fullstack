@@ -62,10 +62,21 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
     // Fetch real impressions data from Facebook
     let facebookImpressions = {};
     let sourceImpressions = {};
+    let facebookApiStatus = 'not_attempted';
+    let facebookApiError = null;
     
     try {
+      console.log('📊 Attempting to fetch Facebook impressions...');
+      
+      // Test connection first
+      const connectionTest = await facebookInsights.testConnection();
+      if (!connectionTest.success) {
+        throw new Error(`Connection test failed: ${connectionTest.error?.message || 'Unknown error'}`);
+      }
+      
       // Get impressions by source (Facebook vs Instagram)
       sourceImpressions = await facebookInsights.getInsightsBySource(date_from, date_to);
+      console.log('📊 Source impressions:', sourceImpressions);
       
       // Get impressions for specific ad sets if we're filtering by ad set
       if (ad_set && ad_set !== 'all') {
@@ -74,6 +85,7 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       } else {
         // Get all ad set insights
         const allAdSetInsights = await facebookInsights.getAdSetInsights(date_from, date_to);
+        console.log('📊 All ad set insights:', Object.keys(allAdSetInsights));
         
         // Map the insights to our ad set names
         uniqueAdSetNames.forEach(name => {
@@ -92,13 +104,18 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
         });
       }
       
+      facebookApiStatus = 'success';
       console.log('✅ Fetched Facebook impressions:', {
         sources: sourceImpressions,
-        adSets: Object.keys(facebookImpressions).length
+        adSets: Object.keys(facebookImpressions).length,
+        totalImpressions: Object.values(sourceImpressions).reduce((a, b) => a + b, 0)
       });
       
     } catch (fbError) {
-      console.error('⚠️ Facebook API error, using fallback data:', fbError.message);
+      facebookApiStatus = 'error';
+      facebookApiError = fbError.message;
+      console.error('⚠️ Facebook API error:', fbError.message);
+      console.error('Full error:', fbError);
       // Use fallback data if Facebook API fails
       sourceImpressions = { 'Facebook': 0, 'Instagram': 0 };
     }
@@ -281,8 +298,17 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
           source: source || 'all',
           ad_set: ad_set || 'all'
         },
-        dataSource: sourceImpressions.Facebook > 0 || sourceImpressions.Instagram > 0 ? 
-          'facebook_api' : 'no_impressions'
+        facebookApi: {
+          status: facebookApiStatus,
+          error: facebookApiError,
+          hasImpressions: Object.values(sourceImpressions).some(v => v > 0),
+          debugInfo: {
+            sourceImpressions,
+            adSetCount: Object.keys(facebookImpressions).length,
+            totalFbImpressions: sourceImpressions.Facebook || 0,
+            totalIgImpressions: sourceImpressions.Instagram || 0
+          }
+        }
       }
     });
     
@@ -348,6 +374,55 @@ router.get('/facebook-adsets', authenticateToken, checkPermission('finance', 're
       data: adSets
     });
   } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Test Facebook API connection and permissions
+router.get('/test-facebook-connection', authenticateToken, checkPermission('finance', 'read'), async (req, res) => {
+  try {
+    console.log('🧪 Testing Facebook API connection...');
+    
+    // Test basic connection
+    const connectionTest = await facebookInsights.testConnection();
+    
+    // Try to get ad account
+    let adAccountTest = { success: false, error: 'Not tested' };
+    try {
+      const adAccountId = await facebookInsights.getAdAccountId();
+      adAccountTest = { success: true, adAccountId };
+    } catch (error) {
+      adAccountTest = { success: false, error: error.message };
+    }
+    
+    // Try to get some insights
+    let insightsTest = { success: false, error: 'Not tested' };
+    try {
+      const sourceInsights = await facebookInsights.getInsightsBySource();
+      insightsTest = { success: true, data: sourceInsights };
+    } catch (error) {
+      insightsTest = { success: false, error: error.message };
+    }
+    
+    res.json({
+      success: true,
+      tests: {
+        connection: connectionTest,
+        adAccount: adAccountTest,
+        insights: insightsTest,
+        environment: {
+          hasAccessToken: !!process.env.META_PAGE_ACCESS_TOKEN,
+          hasAppId: !!process.env.FACEBOOK_APP_ID,
+          tokenLength: process.env.META_PAGE_ACCESS_TOKEN?.length || 0
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Facebook connection test failed:', error);
     res.status(500).json({
       success: false,
       error: error.message
