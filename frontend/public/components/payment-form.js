@@ -330,7 +330,7 @@ window.renderEnhancedPaymentForm = () => {
   if (!showPaymentForm || !currentLead) return null;
 
   return React.createElement('div', { 
-    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
+    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70]',
     onClick: (e) => e.target === e.currentTarget && closeForm()
   },
     React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-5xl max-h-[95vh] overflow-y-auto' },

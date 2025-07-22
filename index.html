@@ -3470,6 +3470,9 @@ alert('Failed to update lead status: ' + error.message);
 }
 };
 
+// Expose updateLeadStatus to window object for component access
+window.updateLeadStatus = updateLeadStatus;
+
 const renderStatusProgressModal = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [followUpDate, setFollowUpDate] = useState('');
