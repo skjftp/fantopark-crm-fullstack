@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Historical Lead Attribution - FanToPark CRM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .log-output {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold text-gray-900 mb-6">🔧 Historical Lead Attribution Fix</h1>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+                <h2 class="text-lg font-semibold text-blue-900 mb-2">📋 What This Fixes</h2>
+                <ul class="text-blue-800 text-sm space-y-1">
+                    <li>• Corrects hardcoded "Instagram" source for Facebook leads</li>
+                    <li>• Updates form names and created_by fields</li>
+                    <li>• Fixes marketing performance discrepancies</li>
+                    <li>• Aligns CRM data with Facebook Ads Manager</li>
+                </ul>
+            </div>
+
+            <!-- Analysis Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">📊 Analyze Current Data</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date Range (optional)</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="date" id="analyzeDateFrom" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                <input type="date" id="analyzeDateTo" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                            </div>
+                        </div>
+                        <button onclick="analyzeData()" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            📈 Analyze Attribution Issues
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">🔧 Fix Historical Data</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date Range for Fix</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="date" id="fixDateFrom" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                <input type="date" id="fixDateTo" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="dryRunMode" checked class="h-4 w-4 text-blue-600">
+                            <label for="dryRunMode" class="text-sm text-gray-700">Dry Run (no changes)</label>
+                        </div>
+                        <button onclick="fixHistoricalData()" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                            🚀 Run Attribution Fix
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">📊 Results</h3>
+                <div id="resultsContainer" class="hidden">
+                    <div id="statsDisplay" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4"></div>
+                    <div id="changesDisplay" class="mb-4"></div>
+                    <div id="recommendationsDisplay"></div>
+                </div>
+                <div id="loadingDisplay" class="hidden text-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p class="text-gray-600">Processing... This may take a few minutes for large datasets.</p>
+                </div>
+            </div>
+
+            <!-- Log Output -->
+            <div class="bg-black rounded-lg p-4">
+                <h3 class="text-lg font-semibold text-white mb-4">📋 Activity Log</h3>
+                <div id="logOutput" class="log-output text-green-400 h-64 overflow-y-auto whitespace-pre-wrap">
+                    Ready to analyze or fix historical lead attribution...
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="mt-6 flex flex-wrap gap-2">
+                <button onclick="setDateRange('july21')" class="bg-red-600 text-white px-3 py-1 text-sm rounded hover:bg-red-700">
+                    July 21 Only
+                </button>
+                <button onclick="setDateRange('lastweek')" class="bg-purple-600 text-white px-3 py-1 text-sm rounded hover:bg-purple-700">
+                    Last Week
+                </button>
+                <button onclick="setDateRange('lastmonth')" class="bg-purple-600 text-white px-3 py-1 text-sm rounded hover:bg-purple-700">
+                    Last Month
+                </button>
+                <button onclick="clearLog()" class="bg-gray-600 text-white px-3 py-1 text-sm rounded hover:bg-gray-700">
+                    Clear Log
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logOutput = document.getElementById('logOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            logOutput.textContent += `[${timestamp}] ${message}\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('logOutput').textContent = '';
+        }
+
+        function setDateRange(preset) {
+            const today = new Date();
+            let fromDate, toDate;
+
+            switch (preset) {
+                case 'july21':
+                    fromDate = '2024-07-21';
+                    toDate = '2024-07-21';
+                    break;
+                case 'lastweek':
+                    fromDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                    toDate = today.toISOString().split('T')[0];
+                    break;
+                case 'lastmonth':
+                    fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                    toDate = today.toISOString().split('T')[0];
+                    break;
+            }
+
+            document.getElementById('analyzeDateFrom').value = fromDate;
+            document.getElementById('analyzeDateTo').value = toDate;
+            document.getElementById('fixDateFrom').value = fromDate;
+            document.getElementById('fixDateTo').value = toDate;
+
+            log(`📅 Date range set to: ${fromDate} to ${toDate}`);
+        }
+
+        async function analyzeData() {
+            const dateFrom = document.getElementById('analyzeDateFrom').value;
+            const dateTo = document.getElementById('analyzeDateTo').value;
+
+            log('🔍 Starting data analysis...');
+            showLoading(true);
+
+            try {
+                const response = await fetch('/api/webhooks/fix-historical-attribution', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        dryRun: true,
+                        dateFrom: dateFrom || undefined,
+                        dateTo: dateTo || undefined,
+                        batchSize: 100
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    log('✅ Analysis completed successfully');
+                    displayResults(result);
+                } else {
+                    log('❌ Analysis failed: ' + result.message);
+                    log('❌ Error: ' + result.error);
+                }
+            } catch (error) {
+                log('❌ Network error: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function fixHistoricalData() {
+            const dateFrom = document.getElementById('fixDateFrom').value;
+            const dateTo = document.getElementById('fixDateTo').value;
+            const dryRun = document.getElementById('dryRunMode').checked;
+
+            if (!dryRun) {
+                const confirmed = confirm(
+                    'This will make permanent changes to your lead data.\n\n' +
+                    'Are you sure you want to proceed?\n\n' +
+                    'Recommendation: Run as Dry Run first to verify changes.'
+                );
+                if (!confirmed) {
+                    log('🚫 Fix cancelled by user');
+                    return;
+                }
+            }
+
+            log(`🚀 Starting historical fix (${dryRun ? 'DRY RUN' : 'LIVE MODE'})...`);
+            showLoading(true);
+
+            try {
+                const response = await fetch('/api/webhooks/fix-historical-attribution', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        dryRun,
+                        dateFrom: dateFrom || undefined,
+                        dateTo: dateTo || undefined,
+                        batchSize: 50
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`✅ Fix completed successfully`);
+                    if (!dryRun) {
+                        log('🎉 Changes have been applied to your database');
+                    }
+                    displayResults(result);
+                } else {
+                    log('❌ Fix failed: ' + result.message);
+                    log('❌ Error: ' + result.error);
+                }
+            } catch (error) {
+                log('❌ Network error: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingDisplay').classList.toggle('hidden', !show);
+            document.getElementById('resultsContainer').classList.toggle('hidden', show);
+        }
+
+        function displayResults(result) {
+            const stats = result.stats;
+            
+            // Display stats
+            const statsHtml = `
+                <div class="bg-blue-100 rounded-lg p-3 text-center">
+                    <div class="text-2xl font-bold text-blue-900">${stats.total}</div>
+                    <div class="text-sm text-blue-700">Total Leads</div>
+                </div>
+                <div class="bg-yellow-100 rounded-lg p-3 text-center">
+                    <div class="text-2xl font-bold text-yellow-900">${stats.analyzed}</div>
+                    <div class="text-sm text-yellow-700">Analyzed</div>
+                </div>
+                <div class="bg-orange-100 rounded-lg p-3 text-center">
+                    <div class="text-2xl font-bold text-orange-900">${stats.needsUpdate}</div>
+                    <div class="text-sm text-orange-700">Need Updates</div>
+                </div>
+                <div class="bg-green-100 rounded-lg p-3 text-center">
+                    <div class="text-2xl font-bold text-green-900">${stats.updated}</div>
+                    <div class="text-sm text-green-700">Updated</div>
+                </div>
+            `;
+            document.getElementById('statsDisplay').innerHTML = statsHtml;
+
+            // Display source changes
+            if (Object.keys(stats.sourceChanges).length > 0) {
+                const changesHtml = `
+                    <div class="bg-white rounded-lg border p-4">
+                        <h4 class="font-semibold text-gray-900 mb-3">Source Changes</h4>
+                        ${Object.entries(stats.sourceChanges).map(([change, count]) => 
+                            `<div class="flex justify-between py-1"><span>${change}</span><span class="font-semibold">${count} leads</span></div>`
+                        ).join('')}
+                    </div>
+                `;
+                document.getElementById('changesDisplay').innerHTML = changesHtml;
+            }
+
+            // Display recommendations
+            if (result.recommendations && result.recommendations.length > 0) {
+                const recommendationsHtml = `
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h4 class="font-semibold text-green-900 mb-3">📋 Recommendations</h4>
+                        <ul class="text-green-800 text-sm space-y-1">
+                            ${result.recommendations.map(rec => `<li>• ${rec}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+                document.getElementById('recommendationsDisplay').innerHTML = recommendationsHtml;
+            }
+
+            document.getElementById('resultsContainer').classList.remove('hidden');
+            
+            // Log summary
+            log(`📊 Results: ${stats.total} total, ${stats.needsUpdate} need updates, ${stats.updated} updated`);
+            if (Object.keys(stats.sourceChanges).length > 0) {
+                Object.entries(stats.sourceChanges).forEach(([change, count]) => {
+                    log(`   ${change}: ${count} leads`);
+                });
+            }
+        }
+
+        // Set July 21 as default on load
+        document.addEventListener('DOMContentLoaded', function() {
+            setDateRange('july21');
+        });
+    </script>
+</body>
+</html>

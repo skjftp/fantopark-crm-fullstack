@@ -140,6 +140,49 @@ router.get('/debug/leads-attribution', async (req, res) => {
   }
 });
 
+// Historical data correction endpoint
+router.post('/fix-historical-attribution', async (req, res) => {
+  try {
+    const { dryRun = true, dateFrom, dateTo, batchSize = 50 } = req.body;
+    
+    console.log('🔧 Historical attribution fix requested');
+    console.log('📊 Parameters:', { dryRun, dateFrom, dateTo, batchSize });
+    
+    // Import the fix function
+    const { fixHistoricalAttribution } = require('../scripts/fix-historical-lead-attribution');
+    
+    // Run the fix
+    const stats = await fixHistoricalAttribution({
+      dryRun,
+      dateFrom,
+      dateTo,
+      batchSize,
+      onlyIncorrectSources: true
+    });
+    
+    res.json({
+      success: true,
+      message: dryRun ? 'Dry run completed - no changes made' : 'Historical attribution fix completed',
+      stats,
+      recommendations: stats.needsUpdate > 0 ? [
+        dryRun ? 'Run with dryRun: false to apply changes' : 'Changes have been applied',
+        'Check marketing performance report for updated attribution',
+        'Monitor webhook logs for future leads'
+      ] : [
+        'No attribution issues found in the specified date range'
+      ]
+    });
+    
+  } catch (error) {
+    console.error('❌ Historical fix endpoint error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      message: 'Failed to run historical attribution fix'
+    });
+  }
+});
+
 // ===============================================
 // WEBHOOK VERIFICATION ENDPOINT (GET)
 // Meta will call this to verify your webhook
