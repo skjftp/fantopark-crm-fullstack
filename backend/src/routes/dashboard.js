@@ -60,11 +60,16 @@ router.get('/stats', authenticateToken, async (req, res) => {
       }
     });
     
+    // Qualified statuses - matching marketing performance logic
+    const qualifiedStatuses = ['qualified', 'hot', 'warm', 'cold', 'pickup_later', 
+      'quote_requested', 'quote_received', 'converted', 'invoiced', 
+      'payment_received', 'payment_post_service', 'dropped'];
+    
     // Calculate stats
     const stats = {
       totalLeads: leads.size,
       activeDeals: leads.docs.filter(doc => 
-        ['qualified', 'hot', 'warm'].includes(doc.data().status)
+        qualifiedStatuses.includes(doc.data().status)
       ).length,
       totalInventory: availableInventoryCount,
       totalInventoryValue: totalInventoryValue,
@@ -111,13 +116,22 @@ router.get('/charts', async (req, res) => {
       query = query.where('lead_for_event', '==', event_name);
     }
     
-    // Fetch leads with only necessary fields for performance
-    const snapshot = await query.select('status', 'temperature', 'potential_value').get();
+    // Fetch ALL leads without field selection to ensure we get everything
+    const snapshot = await query.get();
     
     console.log(`📊 Processing ${snapshot.size} leads for charts`);
     
     // Calculate chart data efficiently
     const leads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // Debug: Log status distribution
+    const statusCounts = {};
+    leads.forEach(lead => {
+      const status = lead.status || 'no_status';
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
+    console.log('📊 Status distribution:', statusCounts);
+    
     const chartData = calculateChartMetrics(leads);
     
     // Return structured response with all chart data
@@ -196,6 +210,8 @@ router.get('/charts', async (req, res) => {
 // ===============================================
 
 function calculateChartMetrics(leads) {
+  console.log(`📊 calculateChartMetrics called with ${leads.length} leads`);
+  
   // Initialize counters
   let qualifiedCount = 0;
   let junkCount = 0;
@@ -211,8 +227,14 @@ function calculateChartMetrics(leads) {
   let totalPipelineValue = 0;
 
   // Statuses that should be excluded from pipeline value
-const excludedStatuses = ['converted', 'junk', 'payment_received', 'payment_post_service', 'dropped'];
+  const excludedStatuses = ['converted', 'junk', 'payment_received', 'payment_post_service', 'dropped'];
 
+  // Qualified statuses - matching marketing performance logic
+  const qualifiedStatuses = ['qualified', 'hot', 'warm', 'cold', 'pickup_later', 
+    'quote_requested', 'quote_received', 'converted', 'invoiced', 
+    'payment_received', 'payment_post_service', 'dropped'];
+  
+  console.log('📊 Qualified statuses:', qualifiedStatuses);
   
   // Single pass through leads for all calculations
   leads.forEach(lead => {
@@ -220,29 +242,42 @@ const excludedStatuses = ['converted', 'junk', 'payment_received', 'payment_post
     const temperature = lead.temperature ? lead.temperature.toLowerCase() : null;
     const potentialValue = parseFloat(lead.potential_value) || 0;
     
-    // Lead Split calculations
-    if (status === 'qualified') {
+    // Lead Split calculations - using marketing performance logic
+    if (qualifiedStatuses.includes(status)) {
       qualifiedCount++;
+      if (qualifiedCount <= 5) {
+        console.log(`  Qualified lead #${qualifiedCount}: status="${status}"`);
+      }
     } else if (status === 'junk') {
       junkCount++;
     }
     
-    // Temperature Count calculations - only count if temperature exists
-    if (temperature === 'hot') {
+    // Temperature Count calculations - matching marketing logic
+    // Hot: count if temperature is hot OR status is hot
+    if (temperature === 'hot' || status === 'hot') {
       hotCount++;
-      hotValue += potentialValue;
-    } else if (temperature === 'warm') {
+      if (!excludedStatuses.includes(status)) {
+        hotValue += potentialValue;
+      }
+    } else if (temperature === 'warm' || status === 'warm') {
       warmCount++;
-      warmValue += potentialValue;
-    } else if (temperature === 'cold') {
+      if (!excludedStatuses.includes(status)) {
+        warmValue += potentialValue;
+      }
+    } else if (temperature === 'cold' || status === 'cold') {
       coldCount++;
-      coldValue += potentialValue;
+      if (!excludedStatuses.includes(status)) {
+        coldValue += potentialValue;
+      }
     }
-    // Note: leads without temperature field are not counted in temperature charts
-        if (!excludedStatuses.includes(status)) {
-        totalPipelineValue += potentialValue;
+    
+    // Pipeline value calculation
+    if (!excludedStatuses.includes(status)) {
+      totalPipelineValue += potentialValue;
     }
   });
+  
+  console.log(`📊 Final counts - Qualified: ${qualifiedCount}, Junk: ${junkCount}, Hot: ${hotCount}, Warm: ${warmCount}, Cold: ${coldCount}`);
   
   return {
     leadSplit: {

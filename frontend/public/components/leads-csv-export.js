@@ -67,6 +67,51 @@ window.exportLeadsToCSV = async function(exportAll = false, includeCommunication
     
     console.log(`✅ Exporting ${leadsToExport.length} leads to CSV`);
     
+    // Fetch inventory data to get event types (leads reference inventory, not events)
+    console.log('🔄 Fetching inventory data for event types...');
+    let eventTypeMap = {};
+    try {
+      const inventoryResponse = await window.apiCall('/inventory');
+      console.log('Inventory Response:', inventoryResponse);
+      
+      if (inventoryResponse && inventoryResponse.data) {
+        console.log(`Found ${inventoryResponse.data.length} inventory items`);
+        
+        // Create a map of event name to event type from inventory
+        inventoryResponse.data.forEach(item => {
+          if (item.event_name && item.event_type) {
+            eventTypeMap[item.event_name.toLowerCase()] = item.event_type;
+            console.log(`  Mapping: "${item.event_name}" -> "${item.event_type}"`);
+          }
+        });
+        
+        console.log(`✅ Loaded ${Object.keys(eventTypeMap).length} event types from inventory`);
+        console.log('Event Type Map:', eventTypeMap);
+        
+        // Specifically check for Singapore GP'25
+        const singaporeKey = "singapore gp'25".toLowerCase();
+        console.log(`Singapore GP'25 in map: ${singaporeKey in eventTypeMap}`, eventTypeMap[singaporeKey]);
+      } else if (inventoryResponse && Array.isArray(inventoryResponse)) {
+        // Sometimes the response might be the array directly
+        console.log(`Found ${inventoryResponse.length} inventory items (direct array)`);
+        
+        inventoryResponse.forEach(item => {
+          if (item.event_name && item.event_type) {
+            eventTypeMap[item.event_name.toLowerCase()] = item.event_type;
+            console.log(`  Mapping: "${item.event_name}" -> "${item.event_type}"`);
+          }
+        });
+        
+        console.log(`✅ Loaded ${Object.keys(eventTypeMap).length} event types from inventory`);
+        console.log('Event Type Map:', eventTypeMap);
+      } else {
+        console.error('❌ Invalid inventory response:', inventoryResponse);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching inventory data:', error);
+      console.error('Error details:', error.message, error.stack);
+    }
+    
     // Define specific fields to export (in order)
     const fieldOrder = [
       'date_of_enquiry',      // Date of Lead
@@ -205,8 +250,17 @@ window.exportLeadsToCSV = async function(exportAll = false, includeCommunication
             value = assignedUser ? assignedUser.name : lead.assigned_to;
           }
         } else if (field === 'event_category') {
-          // Event category might be in different fields
-          value = lead.event_category || lead.event_type || lead.category || '';
+          // First try to get event type from the event mapping
+          const eventName = lead.lead_for_event || lead.event_name || lead.event || '';
+          console.log(`Lead ${lead.name}: event_name="${eventName}", looking up in eventTypeMap...`);
+          if (eventName && eventTypeMap[eventName.toLowerCase()]) {
+            value = eventTypeMap[eventName.toLowerCase()];
+            console.log(`  Found event type: ${value}`);
+          } else {
+            // Fallback to fields in lead object
+            value = lead.event_category || lead.event_type || lead.category || '';
+            console.log(`  No match found, using fallback: ${value || '(empty)'}`);
+          }
         } else if (field === 'lead_for_event') {
           // Use lead_for_event or event_name
           value = lead.lead_for_event || lead.event_name || lead.event || '';
