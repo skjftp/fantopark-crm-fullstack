@@ -201,7 +201,7 @@ class Journey {
   }
   
   generateJourneyUrl() {
-    const baseUrl = process.env.FRONTEND_URL || 'https://lehrado.com';
+    const baseUrl = process.env.FRONTEND_URL || 'https://crm.fantopark.com';
     return `${baseUrl}/journey/${this.journey_token}`;
   }
   

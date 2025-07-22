@@ -17,7 +17,7 @@ class FacebookConversionsService {
           {
             event_name: eventData.event_name, // 'Lead', 'CompleteRegistration', 'Purchase'
             event_time: Math.floor(Date.now() / 1000), // Unix timestamp
-            event_source_url: eventData.source_url || process.env.BASE_URL || 'https://lehrado.com',
+            event_source_url: eventData.source_url || process.env.BASE_URL || 'https://crm.fantopark.com',
             user_data: this.hashUserData({
               email: eventData.email,
               phone: eventData.phone,
@@ -30,7 +30,7 @@ class FacebookConversionsService {
               value: eventData.value || 0,
               currency: eventData.currency || 'INR',
               content_category: eventData.category || 'sports_events',
-              content_name: eventData.event_name || '',
+              content_name: eventData.content_name || '',
               num_items: eventData.num_people || 1
             },
             // Link back to original ad
@@ -126,7 +126,7 @@ class FacebookConversionsService {
       country: leadData.country_of_residence,
       value: leadData.potential_value || 0,
       currency: 'INR',
-      event_name: leadData.lead_for_event,
+      content_name: leadData.lead_for_event,  // Changed from event_name to content_name
       category: 'qualified_lead',
       num_people: leadData.number_of_people,
       campaign_data: {
@@ -152,7 +152,7 @@ class FacebookConversionsService {
       country: leadData.country_of_residence,
       value: conversionValue || leadData.last_quoted_price || 0,
       currency: 'INR',
-      event_name: leadData.lead_for_event,
+      content_name: leadData.lead_for_event,  // Changed from event_name to content_name
       category: 'conversion',
       num_people: leadData.number_of_people,
       campaign_data: {
@@ -178,7 +178,7 @@ class FacebookConversionsService {
       country: leadData.country_of_residence,
       value: leadData.potential_value || leadData.last_quoted_price || 0,
       currency: 'INR',
-      event_name: leadData.lead_for_event,
+      content_name: leadData.lead_for_event,  // Changed from event_name to content_name
       category: 'quote_requested',
       num_people: leadData.number_of_people,
       campaign_data: {

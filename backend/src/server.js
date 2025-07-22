@@ -19,9 +19,8 @@ const allowedOrigins = [
   'http://localhost:8080',
   'https://3000-my-workstation.cluster-zimojywdj5auyrswx7eyn2ckg6.cloudworkstations.dev',
   'https://skjftp.github.io',
-  'https://lehrado.com',
-  'https://www.lehrado.com',
   'https://crm.fantopark.com',
+  'https://www.crm.fantopark.com',
   'http://crm.fantopark.com',
   'https://enduring-wharf-464005-h7.web.app',
   'https://enduring-wharf-464005-h7.firebaseapp.com',
@@ -191,7 +190,7 @@ app.get('/health', (req, res) => {
     port: PORT,
     origin: req.headers.origin,
     webhooks: {
-      endpoint: 'https://lehrado.com/webhooks/meta-leads',
+      endpoint: 'https://fantopark-backend-150582227311.us-central1.run.app/webhooks/meta-leads',
       verifyToken: process.env.META_VERIFY_TOKEN ? 'Configured ✓' : 'Not configured ⚠️',
       appSecret: process.env.META_APP_SECRET ? 'Configured ✓' : 'Not configured ⚠️',
       pageToken: process.env.META_PAGE_ACCESS_TOKEN ? 'Configured ✓' : 'Not configured ⚠️'
@@ -259,7 +258,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🔍 CORS test: http://localhost:${PORT}/api/cors-test`);
   console.log(`✅ CORS configured for Cloud Workstations and other origins`);
   console.log(`📁 Routes loaded successfully`);
-  console.log(`📡 Webhook endpoint: https://lehrado.com/webhooks/meta-leads`);
+  console.log(`📡 Webhook endpoint: https://fantopark-backend-150582227311.us-central1.run.app/webhooks/meta-leads`);
   console.log(`🔐 Webhook verify token: ${process.env.META_VERIFY_TOKEN ? 'Set ✓' : 'Not set ⚠️'}`);
 });
 

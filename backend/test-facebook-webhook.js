@@ -4,7 +4,7 @@ require('dotenv').config();
 
 const ACCESS_TOKEN = process.env.META_PAGE_ACCESS_TOKEN;
 const APP_ID = process.env.FACEBOOK_APP_ID;
-const WEBHOOK_URL = 'https://lehrado.com/webhooks/meta-leads';
+const WEBHOOK_URL = 'https://fantopark-backend-150582227311.us-central1.run.app/webhooks/meta-leads';
 
 async function testWebhook() {
   console.log('🧪 Testing Facebook Webhook Configuration\n');
