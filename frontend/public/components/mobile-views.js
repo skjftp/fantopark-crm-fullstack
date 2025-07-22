@@ -970,7 +970,7 @@ window.MobileDashboardView = function() {
       // Draw pie chart
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-      const radius = Math.min(centerX, centerY) - 20;
+      const radius = Math.min(centerX, centerY) - 40;
       
       let currentAngle = -Math.PI / 2;
       segmentPaths.current = [];
@@ -1075,8 +1075,8 @@ window.MobileDashboardView = function() {
       React.createElement('div', { className: 'relative inline-block' },
         React.createElement('canvas', {
           ref: canvasRef,
-          width: 140,
-          height: 140,
+          width: 280,
+          height: 280,
           className: 'cursor-pointer',
           onMouseMove: handleInteraction,
           onMouseLeave: handleLeave,
@@ -1106,23 +1106,22 @@ window.MobileDashboardView = function() {
         )
       ),
       
-      // Legend
-      React.createElement('div', { className: 'mt-3 space-y-1 w-full px-2' },
+      // Compact Horizontal Legend
+      React.createElement('div', { className: 'mt-2 flex flex-wrap gap-3 justify-center' },
         labels.map((label, index) => 
           data[index] > 0 && React.createElement('div', {
             key: index,
-            className: `flex items-center justify-between text-xs px-2 py-1 rounded transition-colors ${
-              hoveredSegment === index ? 'bg-gray-100 dark:bg-gray-700' : ''
+            className: `flex items-center gap-1 text-xs ${
+              hoveredSegment === index ? 'font-semibold' : ''
             }`
           },
-            React.createElement('span', { className: 'flex items-center gap-1' },
-              React.createElement('span', {
-                className: 'inline-block w-2 h-2 rounded-full',
-                style: { backgroundColor: colors[index] }
-              }),
-              React.createElement('span', { className: 'truncate max-w-[120px]' }, label)
-            ),
-            React.createElement('span', { className: 'font-medium ml-2' }, data[index])
+            React.createElement('span', {
+              className: 'inline-block w-3 h-3 rounded-full',
+              style: { backgroundColor: colors[index] }
+            }),
+            React.createElement('span', { className: 'whitespace-nowrap' }, 
+              `${label}: ${data[index]}`
+            )
           )
         )
       )
@@ -1181,7 +1180,7 @@ window.MobileDashboardView = function() {
     // Pie Charts Section - moved above stats
     React.createElement('div', { className: 'grid grid-cols-1 gap-4 mb-6' },
       // Lead Split Chart
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
+      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-3 rounded-lg shadow border' },
         React.createElement(MiniPieChart, {
           title: 'Lead Split',
           data: dashboardData.charts.leadSplit.data,
@@ -1191,7 +1190,7 @@ window.MobileDashboardView = function() {
       ),
 
       // Temperature Count Chart
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
+      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-3 rounded-lg shadow border' },
         React.createElement(MiniPieChart, {
           title: 'Lead Temperature Count',
           data: dashboardData.charts.temperatureCount.data,
@@ -1201,7 +1200,7 @@ window.MobileDashboardView = function() {
       ),
 
       // Temperature Value Chart
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
+      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-3 rounded-lg shadow border' },
         React.createElement(MiniPieChart, {
           title: 'Lead Temperature Value',
           data: dashboardData.charts.temperatureValue.data,
