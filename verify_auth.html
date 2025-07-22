@@ -8,7 +8,7 @@
 <script>
 function test() {
   const token = localStorage.getItem('crm_auth_token');
-  fetch('https://fantopark-backend-ofkn6rpg3a-uc.a.run.app/api/users', {
+  fetch('https://fantopark-backend-150582227311.us-central1.run.app/api/users', {
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
   })
   .then(r => r.text())

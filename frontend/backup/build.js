@@ -10,7 +10,7 @@ let html = fs.readFileSync('./public/index.html', 'utf8');
 if (process.env.NODE_ENV === 'production') {
     html = html.replace(
         'http://localhost:8080/api',
-        process.env.BACKEND_API_URL || 'https://fantopark-crm-backend.run.app/api'
+        process.env.BACKEND_API_URL || 'https://fantopark-backend-150582227311.us-central1.run.app/api'
     );
 }
 

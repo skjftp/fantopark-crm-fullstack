@@ -1,6 +1,6 @@
 // Quick test after the fix
 console.log('Testing login...');
-fetch('https://fantopark-backend-ofkn6rpg3a-uc.a.run.app/api/auth/login', {
+fetch('https://fantopark-backend-150582227311.us-central1.run.app/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: 'admin@fantopark.com', password: 'admin123' })
@@ -11,7 +11,7 @@ fetch('https://fantopark-backend-ofkn6rpg3a-uc.a.run.app/api/auth/login', {
     if (data.token) {
         console.log('✅ Login successful!');
         // Test API call
-        return fetch('https://fantopark-backend-ofkn6rpg3a-uc.a.run.app/api/users', {
+        return fetch('https://fantopark-backend-150582227311.us-central1.run.app/api/users', {
             headers: { 'Authorization': `Bearer ${data.token}` }
         });
     }

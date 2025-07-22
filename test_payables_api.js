@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 require('dotenv').config();
 
 async function testPayablesAPI() {
-    const API_URL = 'https://fantopark-backend-ofkn6rpg3a-uc.a.run.app/api';
+    const API_URL = 'https://fantopark-backend-150582227311.us-central1.run.app/api';
     
     // First, let's login to get a token
     console.log('1. Getting auth token...');

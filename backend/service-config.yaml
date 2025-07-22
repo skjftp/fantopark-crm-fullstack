@@ -9,7 +9,7 @@ metadata:
     run.googleapis.com/build-source-location: gs://run-sources-enduring-wharf-464005-h7-us-central1/services/fantopark-backend/1752740539.446955-1d0a8033d5a44b7493684c31f3c5eeaa.zip#1752740539616644
     run.googleapis.com/ingress: all
     run.googleapis.com/ingress-status: all
-    run.googleapis.com/urls: '["https://fantopark-backend-150582227311.us-central1.run.app","https://fantopark-backend-ofkn6rpg3a-uc.a.run.app"]'
+    run.googleapis.com/urls: '["https://fantopark-backend-150582227311.us-central1.run.app"]'
   labels:
     cloud.googleapis.com/location: us-central1
   name: fantopark-backend

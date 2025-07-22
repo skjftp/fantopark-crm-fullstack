@@ -10,7 +10,7 @@ async function testAuthFlow() {
     
     // Step 2: Test login
     console.log('\n2. Testing login...');
-    const loginResponse = await fetch('https://fantopark-backend-ofkn6rpg3a-uc.a.run.app/api/auth/login', {
+    const loginResponse = await fetch('https://fantopark-backend-150582227311.us-central1.run.app/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -35,7 +35,7 @@ async function testAuthFlow() {
     
     // Step 4: Test API call with token
     console.log('\n4. Testing API call with token...');
-    const apiResponse = await fetch('https://fantopark-backend-ofkn6rpg3a-uc.a.run.app/api/users', {
+    const apiResponse = await fetch('https://fantopark-backend-150582227311.us-central1.run.app/api/users', {
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

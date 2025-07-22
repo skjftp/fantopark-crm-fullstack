@@ -4,7 +4,7 @@ console.log('=== TESTING PAYABLES API ===');
 const token = localStorage.getItem('crm_auth_token');
 
 // Test direct payables endpoint
-fetch('https://fantopark-backend-ofkn6rpg3a-uc.a.run.app/api/payables', {
+fetch('https://fantopark-backend-150582227311.us-central1.run.app/api/payables', {
     headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'

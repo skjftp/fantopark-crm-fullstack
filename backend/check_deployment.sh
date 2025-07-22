@@ -3,7 +3,7 @@ echo "Checking backend deployment status..."
 echo ""
 
 # Check if the DELETE routes are working
-API_URL="https://fantopark-backend-ofkn6rpg3a-uc.a.run.app"
+API_URL="https://fantopark-backend-150582227311.us-central1.run.app"
 
 echo "Testing API health..."
 curl -s "$API_URL/health" || echo "API might be updating..."
