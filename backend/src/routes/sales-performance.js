@@ -198,15 +198,24 @@ router.get('/', authenticateToken, async (req, res) => {
       
       userLeads.forEach(lead => {
         const potentialValue = parseFloat(lead.potential_value || 0);
+        const status = (lead.status || '').toLowerCase();
+        const temperature = (lead.temperature || '').toLowerCase();
         
-        // Check business_type for leads (B2B/B2C)
-        if (lead.business_type === 'B2C') {
-          retailPipeline += potentialValue;
-        } else if (lead.business_type === 'B2B') {
-          corporatePipeline += potentialValue;
-        } else {
-          // If business_type is not set, default to retail
-          retailPipeline += potentialValue;
+        // Only include in pipeline if status is hot/warm/cold OR quote statuses with temperature
+        // This matches the dashboard pipeline logic
+        if (status === 'hot' || status === 'warm' || status === 'cold' ||
+            ((status === 'quote_requested' || status === 'quote_received') && 
+             (temperature === 'hot' || temperature === 'warm' || temperature === 'cold'))) {
+          
+          // Check business_type for leads (B2B/B2C)
+          if (lead.business_type === 'B2C') {
+            retailPipeline += potentialValue;
+          } else if (lead.business_type === 'B2B') {
+            corporatePipeline += potentialValue;
+          } else {
+            // If business_type is not set, default to retail
+            retailPipeline += potentialValue;
+          }
         }
       });
       
