@@ -99,10 +99,14 @@ app.use('/webhooks', express.raw({
   type: 'application/json',
   limit: '10mb'
 }));
+app.use('/api/webhooks', express.raw({ 
+  type: 'application/json',
+  limit: '10mb'
+}));
 
 // Regular JSON parser for all other routes
 app.use((req, res, next) => {
-  if (!req.originalUrl.startsWith('/webhooks')) {
+  if (!req.originalUrl.startsWith('/webhooks') && !req.originalUrl.startsWith('/api/webhooks')) {
     express.json()(req, res, next);
   } else {
     next();
@@ -118,7 +122,7 @@ app.use(express.urlencoded({ extended: true }));
 // ===============================================
 
 // Webhook middleware to convert raw body to JSON
-app.use('/webhooks', (req, res, next) => {
+const webhookBodyConverter = (req, res, next) => {
   if (req.body && Buffer.isBuffer(req.body)) {
     try {
       // Store raw body for signature verification
@@ -131,11 +135,15 @@ app.use('/webhooks', (req, res, next) => {
     }
   }
   next();
-});
+};
+
+app.use('/webhooks', webhookBodyConverter);
+app.use('/api/webhooks', webhookBodyConverter);
 
 // Import and mount webhook routes
 const webhookRoutes = require('./routes/webhooks');
 app.use('/webhooks', webhookRoutes);
+app.use('/api/webhooks', webhookRoutes);
 
 // ===============================================
 // AUTHENTICATED ROUTES (existing routes)
