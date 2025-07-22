@@ -28,6 +28,7 @@ const allowedOrigins = [
   // ✅ ADD: Cloud Workstation patterns
   /^https:\/\/\d+-.*\.cluster-.*\.cloudworkstations\.dev$/,
   /^https:\/\/.*-my-workstation\.cluster-.*\.cloudworkstations\.dev$/,
+  /^https:\/\/\d+-w-.*\.cluster-.*\.cloudworkstations\.dev$/,
   /^https:\/\/enduring-wharf-464005-h7.*\.web\.app$/
 ];
 

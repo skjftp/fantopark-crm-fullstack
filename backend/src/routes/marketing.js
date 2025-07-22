@@ -220,6 +220,26 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       }
     });
     
+    // First, ensure we have entries for both Facebook and Instagram if we're grouping by source
+    if (groupBy === 'source') {
+      // Initialize both sources with zero values if they don't exist
+      ['Facebook', 'Instagram'].forEach(source => {
+        if (!grouped[source] && (sourceImpressions[source] > 0 || fullSourceInsights[source])) {
+          grouped[source] = {
+            name: source,
+            totalLeads: 0,
+            touchBased: 0,
+            notTouchBased: 0,
+            qualified: 0,
+            junk: 0,
+            dropped: 0,
+            converted: 0,
+            impressions: 0
+          };
+        }
+      });
+    }
+    
     // Add impressions and calculate percentages
     const marketingData = Object.entries(grouped).map(([key, data]) => {
       // Get impressions and metrics based on grouping

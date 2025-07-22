@@ -1,7 +1,7 @@
 // Historical Lead Attribution Fix Script
 // Fixes source attribution for existing leads that were incorrectly labeled
 
-const { db } = require('../config/db');
+const { db, collections } = require('../config/db');
 
 // Reuse the same detection logic from webhooks.js
 function detectPlatformSourceFromData(leadData) {
@@ -111,7 +111,7 @@ async function fixHistoricalAttribution(options = {}) {
 
   try {
     // Build query
-    let query = db.collection('leads');
+    let query = db.collection(collections.leads);
     
     // Add date filters if provided
     if (dateFrom) {
@@ -192,7 +192,7 @@ async function fixHistoricalAttribution(options = {}) {
           
           if (!dryRun) {
             // Prepare update
-            const docRef = db.collection('leads').doc(lead.id);
+            const docRef = db.collection(collections.leads).doc(lead.id);
             const updateData = {
               source: detectedSource,
               // Update related fields too

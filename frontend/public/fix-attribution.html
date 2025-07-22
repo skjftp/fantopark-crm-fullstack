@@ -154,7 +154,38 @@
             showLoading(true);
 
             try {
-                const response = await fetch('/api/webhooks/fix-historical-attribution', {
+                // Auto-detect the backend URL based on current location
+                const currentHost = window.location.host;
+                const currentUrl = window.location.href;
+                let apiBaseUrl;
+                
+                console.log('🔍 URL Detection Debug:', {
+                    host: currentHost,
+                    url: currentUrl,
+                    protocol: window.location.protocol
+                });
+                
+                if (currentHost.includes('cloudworkstations.dev')) {
+                    // Cloud Workstation environment - use relative path to avoid auth issues
+                    apiBaseUrl = '';
+                    console.log('✅ Detected Cloud Workstation environment - using relative path');
+                } else if (currentHost.includes('localhost') || currentHost.startsWith('127.0.0.1')) {
+                    // Local development - check if we're on port 3000 (proxy) or direct
+                    if (currentHost.includes(':3000')) {
+                        apiBaseUrl = '';  // Use relative path (proxy will handle it)
+                        console.log('✅ Detected local development with proxy');
+                    } else {
+                        apiBaseUrl = 'http://localhost:8080';
+                        console.log('✅ Detected local development direct');
+                    }
+                } else {
+                    // Production or other environment - use relative path
+                    apiBaseUrl = '';
+                    console.log('✅ Detected production/other environment - using relative path');
+                }
+                
+                console.log('🎯 Using API base URL:', apiBaseUrl);
+                const response = await fetch(apiBaseUrl + '/api/webhooks/fix-historical-attribution', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -204,7 +235,38 @@
             showLoading(true);
 
             try {
-                const response = await fetch('/api/webhooks/fix-historical-attribution', {
+                // Auto-detect the backend URL based on current location
+                const currentHost = window.location.host;
+                const currentUrl = window.location.href;
+                let apiBaseUrl;
+                
+                console.log('🔍 URL Detection Debug:', {
+                    host: currentHost,
+                    url: currentUrl,
+                    protocol: window.location.protocol
+                });
+                
+                if (currentHost.includes('cloudworkstations.dev')) {
+                    // Cloud Workstation environment - use relative path to avoid auth issues
+                    apiBaseUrl = '';
+                    console.log('✅ Detected Cloud Workstation environment - using relative path');
+                } else if (currentHost.includes('localhost') || currentHost.startsWith('127.0.0.1')) {
+                    // Local development - check if we're on port 3000 (proxy) or direct
+                    if (currentHost.includes(':3000')) {
+                        apiBaseUrl = '';  // Use relative path (proxy will handle it)
+                        console.log('✅ Detected local development with proxy');
+                    } else {
+                        apiBaseUrl = 'http://localhost:8080';
+                        console.log('✅ Detected local development direct');
+                    }
+                } else {
+                    // Production or other environment - use relative path
+                    apiBaseUrl = '';
+                    console.log('✅ Detected production/other environment - using relative path');
+                }
+                
+                console.log('🎯 Using API base URL:', apiBaseUrl);
+                const response = await fetch(apiBaseUrl + '/api/webhooks/fix-historical-attribution', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

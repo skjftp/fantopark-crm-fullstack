@@ -16,6 +16,22 @@ const PAGE_ACCESS_TOKEN = process.env.META_PAGE_ACCESS_TOKEN || 'your-page-acces
 async function detectPlatformSource(leadDetails, inventory) {
   try {
     console.log('🔍 Detecting platform source...');
+    console.log('   Lead details:', {
+      form_name: leadDetails.form_name || 'N/A',
+      campaign_name: leadDetails.campaign_name || 'N/A',
+      adset_name: leadDetails.adset_name || 'N/A',
+      ad_name: leadDetails.ad_name || 'N/A',
+      platform: leadDetails.platform || 'N/A'
+    });
+    
+    // Method 0: Check if platform is explicitly provided by Meta
+    // NOTE: As of July 2025, Meta sends platform="instagram" for ALL leads regardless of actual platform
+    // So we cannot rely on this field alone
+    if (leadDetails.platform && leadDetails.platform !== 'instagram') {
+      // Only trust non-instagram values (like 'facebook' if they ever send it)
+      console.log('✅ Platform explicitly provided (non-instagram):', leadDetails.platform);
+      return leadDetails.platform === 'facebook' ? 'Facebook' : leadDetails.platform;
+    }
     
     // Method 1: Check form name for platform indicators
     const formName = leadDetails.form_name || leadDetails.form?.name || '';
@@ -63,14 +79,35 @@ async function detectPlatformSource(leadDetails, inventory) {
       return 'Instagram';
     }
     
-    // Default fallback: If we have campaign/adset data, assume Facebook (more common for lead ads)
-    // If no campaign data, assume Instagram (simpler forms)
-    if (leadDetails.campaign_id || leadDetails.adset_id) {
-      console.log('⚠️ Defaulting to Facebook (has campaign data)');
+    // Method 5: Check ad name for platform indicators
+    const adName = leadDetails.ad_name || '';
+    if (adName.toLowerCase().includes('facebook') || adName.toLowerCase().includes('fb')) {
+      console.log('✅ Detected Facebook from ad name:', adName);
+      return 'Facebook';
+    }
+    if (adName.toLowerCase().includes('instagram') || adName.toLowerCase().includes('ig')) {
+      console.log('✅ Detected Instagram from ad name:', adName);
+      return 'Instagram';
+    }
+    
+    // Method 6: Check if lead has NO campaign data at all - these are typically direct/organic leads
+    const hasCampaignData = leadDetails.campaign_id || leadDetails.campaign_name || 
+                           leadDetails.adset_id || leadDetails.adset_name ||
+                           leadDetails.ad_id || leadDetails.ad_name;
+    
+    if (!hasCampaignData) {
+      // No campaign data usually means organic/direct lead
+      // These could come from either platform's organic posts or direct messages
+      // Default to Facebook as it's the parent platform
+      console.log('⚠️ No campaign data - likely organic lead, defaulting to Facebook');
       return 'Facebook';
     }
     
-    console.log('⚠️ Defaulting to Instagram (no campaign data)');
+    // Final fallback: If we have campaign data but no platform indicators
+    // Since Meta sends platform="instagram" for all leads as of July 2025,
+    // and leads with campaign data are coming through their API,
+    // we should default to Instagram for leads with campaign data
+    console.log('⚠️ No platform indicators found, has campaign data, defaulting to Instagram');
     return 'Instagram';
     
   } catch (error) {
@@ -533,7 +570,9 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
       
       // Additional metadata
       notes: fieldData.notes || fieldData.comments || fieldData.message || '',
-      platform: leadDetails.platform || 'instagram',
+      platform: leadDetails.platform || webhookData.platform || 'instagram',
+      // Store the raw platform for debugging
+      meta_platform: leadDetails.platform || webhookData.platform || null,
       
       // Analytics fields
       lead_source_details: {

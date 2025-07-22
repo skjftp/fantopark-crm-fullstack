@@ -1,0 +1,77 @@
+{
+  "runDate": "2025-07-22T13:16:39.822Z",
+  "stats": {
+    "collections": 9,
+    "totalDocs": 2186,
+    "totalFixed": 732,
+    "totalErrors": 0
+  },
+  "collectionDetails": [
+    {
+      "name": "crm_leads",
+      "fixes": {
+        "date_of_enquiry": "convert_date_string",
+        "created_date": "convert_firestore_timestamp",
+        "updated_date": "set_current_if_null",
+        "assignment_date": "skip_if_null",
+        "client_last_activity": "set_current_if_null"
+      }
+    },
+    {
+      "name": "crm_inventory",
+      "fixes": {
+        "created_date": "convert_firestore_timestamp",
+        "updated_date": "set_current_if_null",
+        "event_date": "convert_date_string",
+        "payment_due_date": "skip_if_null"
+      }
+    },
+    {
+      "name": "crm_orders",
+      "fixes": {
+        "created_date": "fix_ist_as_utc",
+        "updated_date": "fix_ist_as_utc",
+        "payment_date": "convert_date_string"
+      }
+    },
+    {
+      "name": "crm_payables",
+      "fixes": {
+        "created_date": "fix_ist_as_utc",
+        "updated_date": "fix_ist_as_utc"
+      }
+    },
+    {
+      "name": "crm_receivables",
+      "fixes": {
+        "created_date": "fix_ist_as_utc",
+        "due_date": "convert_date_string"
+      }
+    },
+    {
+      "name": "crm_deliveries",
+      "fixes": {
+        "created_date": "fix_ist_as_utc"
+      }
+    },
+    {
+      "name": "crm_reminders",
+      "fixes": {
+        "completed_date": "skip_if_null"
+      }
+    },
+    {
+      "name": "crm_activity_logs",
+      "fixes": {
+        "created_date": "convert_firestore_timestamp"
+      }
+    },
+    {
+      "name": "crm_communications",
+      "fixes": {
+        "created_date": "fix_ist_as_utc",
+        "updated_date": "fix_ist_as_utc"
+      }
+    }
+  ]
+}

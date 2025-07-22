@@ -1,0 +1,608 @@
+{
+  "auditDate": "2025-07-22T13:17:00.192Z",
+  "auditDateIST": "22/07/2025, 06:47:00 pm",
+  "results": {
+    "Leads": {
+      "total": 479,
+      "withIssues": 421,
+      "byField": {
+        "date_of_enquiry": 21,
+        "created_date": 17,
+        "updated_date": 2,
+        "assignment_date": 384,
+        "client_last_activity": 1,
+        "import_date": 0
+      },
+      "byIssueType": {
+        "Invalid Format": 0,
+        "Missing Timezone Info": 0,
+        "Plain String Date (YYYY-MM-DD)": 0,
+        "Firestore Timestamp Object": 0,
+        "Future Date": 0,
+        "Very Old Date (before 2020)": 0,
+        "IST Time Stored as UTC": 42,
+        "Null or Empty": 383
+      },
+      "samples": [
+        {
+          "id": "0POjFAX5gACcaVNtk8qn",
+          "fields": {
+            "date_of_enquiry": {
+              "value": "2025-07-17T05:30:00.000Z",
+              "issues": []
+            },
+            "created_date": {
+              "value": "2025-07-18T05:45:45.782Z",
+              "issues": []
+            },
+            "updated_date": {
+              "value": "2025-07-22T09:08:13.911Z",
+              "issues": []
+            },
+            "assignment_date": {
+              "value": null,
+              "issues": [
+                "Null or Empty"
+              ]
+            },
+            "client_last_activity": {
+              "value": "2025-07-18T05:45:45.781Z",
+              "issues": []
+            }
+          },
+          "name": "Rams",
+          "email": "ramachandra.raja@gmail.com"
+        },
+        {
+          "id": "0X7lZnwJW3o0dQC3TROv",
+          "fields": {
+            "date_of_enquiry": {
+              "value": "2025-07-19T12:00:00.000Z",
+              "issues": []
+            },
+            "created_date": {
+              "value": "2025-07-19T05:33:36.747Z",
+              "issues": []
+            },
+            "updated_date": {
+              "value": "2025-07-22T09:17:51.771Z",
+              "issues": []
+            },
+            "assignment_date": {
+              "value": null,
+              "issues": [
+                "Null or Empty"
+              ]
+            },
+            "client_last_activity": {
+              "value": "2025-07-19T05:33:36.747Z",
+              "issues": []
+            }
+          },
+          "name": "Rahul Gupta",
+          "email": "rahul0003gupta@gmail.com"
+        },
+        {
+          "id": "0ecZJNhwY2PfKI6yYIMy",
+          "fields": {
+            "date_of_enquiry": {
+              "value": "2025-07-09T06:30:00.000Z",
+              "issues": []
+            },
+            "created_date": {
+              "value": "2025-07-10T05:53:01.595Z",
+              "issues": []
+            },
+            "updated_date": {
+              "value": "2025-07-14T10:39:22.899Z",
+              "issues": []
+            },
+            "assignment_date": {
+              "value": null,
+              "issues": [
+                "Null or Empty"
+              ]
+            },
+            "client_last_activity": {
+              "value": "2025-07-10T05:53:01.595Z",
+              "issues": []
+            }
+          },
+          "name": "Aditya Singh",
+          "email": "sim7_bob8@ymail.com"
+        },
+        {
+          "id": "0tE3YQusFxYAiBlDAV4u",
+          "fields": {
+            "date_of_enquiry": {
+              "value": "2025-07-17T12:00:00.000Z",
+              "issues": []
+            },
+            "created_date": {
+              "value": "2025-07-17T05:46:16.607Z",
+              "issues": []
+            },
+            "updated_date": {
+              "value": "2025-07-22T06:10:46.605Z",
+              "issues": []
+            },
+            "assignment_date": {
+              "value": null,
+              "issues": [
+                "Null or Empty"
+              ]
+            },
+            "client_last_activity": {
+              "value": "2025-07-17T05:46:16.607Z",
+              "issues": []
+            }
+          },
+          "name": "Lokesh",
+          "email": "Lokeshsakala31@gmail.com"
+        },
+        {
+          "id": "0xkUOqhz2VScJivCOwZ5",
+          "fields": {
+            "date_of_enquiry": {
+              "value": "2025-07-19T21:04:24.000Z",
+              "issues": [
+                "IST Time Stored as UTC"
+              ]
+            },
+            "created_date": {
+              "value": "2025-07-19T15:34:32.000Z",
+              "issues": []
+            },
+            "updated_date": {
+              "value": "2025-07-22T12:20:11.177Z",
+              "issues": []
+            }
+          },
+          "name": "Hitesh Samvedi",
+          "email": "hitesh.samvedi@yahoo.com"
+        }
+      ]
+    },
+    "Inventory": {
+      "total": 45,
+      "withIssues": 44,
+      "byField": {
+        "created_date": 6,
+        "updated_date": 4,
+        "event_date": 21,
+        "payment_due_date": 44
+      },
+      "byIssueType": {
+        "Invalid Format": 0,
+        "Missing Timezone Info": 0,
+        "Plain String Date (YYYY-MM-DD)": 7,
+        "Firestore Timestamp Object": 0,
+        "Future Date": 21,
+        "Very Old Date (before 2020)": 0,
+        "IST Time Stored as UTC": 10,
+        "Null or Empty": 37
+      },
+      "samples": [
+        {
+          "id": "46Iwvt1NiMxeVwpvrx6I",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-22T10:44:28.349Z",
+              "issues": []
+            },
+            "updated_date": {
+              "value": "2025-07-22T11:34:00.254Z",
+              "issues": []
+            },
+            "event_date": {
+              "value": "2025-07-08T06:30:00.000Z",
+              "issues": []
+            },
+            "payment_due_date": {
+              "value": "",
+              "issues": [
+                "Null or Empty"
+              ]
+            }
+          },
+          "event_name": "YouWeCan Event"
+        },
+        {
+          "id": "6zBgaRQbXGNIsoObug8c",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-21T06:40:07.390Z",
+              "issues": []
+            },
+            "updated_date": {
+              "value": "2025-07-21T06:40:07.390Z",
+              "issues": []
+            },
+            "event_date": {
+              "value": "2025-10-29T06:30:00.000Z",
+              "issues": [
+                "Future Date"
+              ]
+            },
+            "payment_due_date": {
+              "value": "",
+              "issues": [
+                "Null or Empty"
+              ]
+            }
+          },
+          "event_name": "India Tour of Australia, 2025 - Canberra T20"
+        },
+        {
+          "id": "8O81Aqqt3fAoJ4hOwrP2",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-10T11:46:07.410Z",
+              "issues": []
+            },
+            "updated_date": {
+              "value": "2025-07-22T11:32:42.859Z",
+              "issues": []
+            },
+            "event_date": {
+              "value": "2025-06-11T06:30:00.000Z",
+              "issues": []
+            },
+            "payment_due_date": {
+              "value": "",
+              "issues": [
+                "Null or Empty"
+              ]
+            }
+          },
+          "event_name": "ICC World Test Championship 2023/25"
+        },
+        {
+          "id": "8wgoaINdt9WFOJyWZdk5",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-11T10:59:36.618Z",
+              "issues": []
+            },
+            "updated_date": {
+              "value": "2025-07-22T10:04:13.620Z",
+              "issues": []
+            },
+            "event_date": {
+              "value": "2025-06-05T06:30:00.000Z",
+              "issues": []
+            },
+            "payment_due_date": {
+              "value": "",
+              "issues": [
+                "Null or Empty"
+              ]
+            }
+          },
+          "event_name": "UAE vs Uzbekistan"
+        },
+        {
+          "id": "9RkoKECe6vVUMrgHs6Hp",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-21T06:46:23.098Z",
+              "issues": []
+            },
+            "updated_date": {
+              "value": "2025-07-21T06:46:23.098Z",
+              "issues": []
+            },
+            "event_date": {
+              "value": "2025-11-08T06:30:00.000Z",
+              "issues": [
+                "Future Date"
+              ]
+            },
+            "payment_due_date": {
+              "value": "",
+              "issues": [
+                "Null or Empty"
+              ]
+            }
+          },
+          "event_name": "India Tour of Australia, 2025 - Brisbane T20"
+        }
+      ]
+    },
+    "Orders": {
+      "total": 60,
+      "withIssues": 0,
+      "byField": {
+        "created_date": 0,
+        "updated_date": 0,
+        "delivery_date": 0,
+        "payment_date": 0
+      },
+      "byIssueType": {
+        "Invalid Format": 0,
+        "Missing Timezone Info": 0,
+        "Plain String Date (YYYY-MM-DD)": 0,
+        "Firestore Timestamp Object": 0,
+        "Future Date": 0,
+        "Very Old Date (before 2020)": 0,
+        "IST Time Stored as UTC": 0,
+        "Null or Empty": 0
+      },
+      "samples": []
+    },
+    "Payables": {
+      "total": 14,
+      "withIssues": 0,
+      "byField": {
+        "created_date": 0,
+        "updated_date": 0,
+        "due_date": 0,
+        "payment_date": 0
+      },
+      "byIssueType": {
+        "Invalid Format": 0,
+        "Missing Timezone Info": 0,
+        "Plain String Date (YYYY-MM-DD)": 0,
+        "Firestore Timestamp Object": 0,
+        "Future Date": 0,
+        "Very Old Date (before 2020)": 0,
+        "IST Time Stored as UTC": 0,
+        "Null or Empty": 0
+      },
+      "samples": []
+    },
+    "Receivables": {
+      "total": 1,
+      "withIssues": 0,
+      "byField": {
+        "created_date": 0,
+        "updated_date": 0,
+        "due_date": 0,
+        "received_date": 0
+      },
+      "byIssueType": {
+        "Invalid Format": 0,
+        "Missing Timezone Info": 0,
+        "Plain String Date (YYYY-MM-DD)": 0,
+        "Firestore Timestamp Object": 0,
+        "Future Date": 0,
+        "Very Old Date (before 2020)": 0,
+        "IST Time Stored as UTC": 0,
+        "Null or Empty": 0
+      },
+      "samples": []
+    },
+    "Deliveries": {
+      "total": 2,
+      "withIssues": 0,
+      "byField": {
+        "created_date": 0,
+        "updated_date": 0,
+        "scheduled_date": 0,
+        "delivered_date": 0
+      },
+      "byIssueType": {
+        "Invalid Format": 0,
+        "Missing Timezone Info": 0,
+        "Plain String Date (YYYY-MM-DD)": 0,
+        "Firestore Timestamp Object": 0,
+        "Future Date": 0,
+        "Very Old Date (before 2020)": 0,
+        "IST Time Stored as UTC": 0,
+        "Null or Empty": 0
+      },
+      "samples": []
+    },
+    "Clients": {
+      "total": 0,
+      "withIssues": 0,
+      "byField": {
+        "created_date": 0,
+        "updated_date": 0,
+        "last_activity_date": 0
+      },
+      "byIssueType": {
+        "Invalid Format": 0,
+        "Missing Timezone Info": 0,
+        "Plain String Date (YYYY-MM-DD)": 0,
+        "Firestore Timestamp Object": 0,
+        "Future Date": 0,
+        "Very Old Date (before 2020)": 0,
+        "IST Time Stored as UTC": 0,
+        "Null or Empty": 0
+      },
+      "samples": []
+    },
+    "Reminders": {
+      "total": 313,
+      "withIssues": 136,
+      "byField": {
+        "created_date": 0,
+        "reminder_date": 0,
+        "completed_date": 136
+      },
+      "byIssueType": {
+        "Invalid Format": 0,
+        "Missing Timezone Info": 0,
+        "Plain String Date (YYYY-MM-DD)": 0,
+        "Firestore Timestamp Object": 0,
+        "Future Date": 0,
+        "Very Old Date (before 2020)": 0,
+        "IST Time Stored as UTC": 0,
+        "Null or Empty": 136
+      },
+      "samples": [
+        {
+          "id": "0ZK64MpI3SyZi9m3iRhG",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-17T10:58:33.295Z",
+              "issues": []
+            },
+            "completed_date": {
+              "value": null,
+              "issues": [
+                "Null or Empty"
+              ]
+            }
+          }
+        },
+        {
+          "id": "1OnUUlTv8P0s156HXUCm",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-21T11:36:34.370Z",
+              "issues": []
+            },
+            "completed_date": {
+              "value": null,
+              "issues": [
+                "Null or Empty"
+              ]
+            }
+          }
+        },
+        {
+          "id": "1UaVGUudWt69dvkWf2QU",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-21T08:03:00.630Z",
+              "issues": []
+            },
+            "completed_date": {
+              "value": null,
+              "issues": [
+                "Null or Empty"
+              ]
+            }
+          }
+        },
+        {
+          "id": "2uAPBo3bhmhaHn6uuHkp",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-22T11:48:31.290Z",
+              "issues": []
+            },
+            "completed_date": {
+              "value": null,
+              "issues": [
+                "Null or Empty"
+              ]
+            }
+          }
+        },
+        {
+          "id": "3KrpZOuMGy4TyjjWln46",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-14T12:52:48.804Z",
+              "issues": []
+            },
+            "completed_date": {
+              "value": null,
+              "issues": [
+                "Null or Empty"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "Activity Logs": {
+      "total": 287,
+      "withIssues": 20,
+      "byField": {
+        "created_date": 20,
+        "timestamp": 0
+      },
+      "byIssueType": {
+        "Invalid Format": 0,
+        "Missing Timezone Info": 0,
+        "Plain String Date (YYYY-MM-DD)": 0,
+        "Firestore Timestamp Object": 0,
+        "Future Date": 0,
+        "Very Old Date (before 2020)": 0,
+        "IST Time Stored as UTC": 20,
+        "Null or Empty": 0
+      },
+      "samples": [
+        {
+          "id": "3lp2SWhDrrzlySryryX2",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-20T19:32:17.000Z",
+              "issues": [
+                "IST Time Stored as UTC"
+              ]
+            }
+          }
+        },
+        {
+          "id": "7MHHxGf3abJPM8DdcrCP",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-21T19:42:47.000Z",
+              "issues": [
+                "IST Time Stored as UTC"
+              ]
+            }
+          }
+        },
+        {
+          "id": "8KtYT7qDoDQQFlPFGlIo",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-19T22:45:48.000Z",
+              "issues": [
+                "IST Time Stored as UTC"
+              ]
+            }
+          }
+        },
+        {
+          "id": "9JV4iMlqV58zChQnZCY5",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-18T19:14:55.000Z",
+              "issues": [
+                "IST Time Stored as UTC"
+              ]
+            }
+          }
+        },
+        {
+          "id": "B4Z59TwGNhhwpKspLB9C",
+          "fields": {
+            "created_date": {
+              "value": "2025-07-18T21:08:58.000Z",
+              "issues": [
+                "IST Time Stored as UTC"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "Communications": {
+      "total": 985,
+      "withIssues": 0,
+      "byField": {
+        "created_date": 0,
+        "updated_date": 0,
+        "follow_up_date": 0
+      },
+      "byIssueType": {
+        "Invalid Format": 0,
+        "Missing Timezone Info": 0,
+        "Plain String Date (YYYY-MM-DD)": 0,
+        "Firestore Timestamp Object": 0,
+        "Future Date": 0,
+        "Very Old Date (before 2020)": 0,
+        "IST Time Stored as UTC": 0,
+        "Null or Empty": 0
+      },
+      "samples": []
+    }
+  }
+}
