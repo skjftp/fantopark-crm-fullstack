@@ -259,7 +259,8 @@ function calculateChartMetrics(leads) {
     if (status === 'hot' || 
         ((status === 'quote_requested' || status === 'quote_received') && temperature === 'hot')) {
       hotCount++;
-      if (!excludedStatuses.includes(status)) {
+      // Always add to hotValue when status is hot
+      if (status === 'hot') {
         hotValue += potentialValue;
       }
     }
@@ -267,26 +268,31 @@ function calculateChartMetrics(leads) {
     else if (status === 'warm' || 
              ((status === 'quote_requested' || status === 'quote_received') && temperature === 'warm')) {
       warmCount++;
-      if (!excludedStatuses.includes(status)) {
+      // Always add to warmValue when status is warm
+      if (status === 'warm') {
         warmValue += potentialValue;
       }
     }
     // Cold: only count temperature-based cold (not status-based)
     else if (temperature === 'cold') {
       coldCount++;
-      if (!excludedStatuses.includes(status)) {
+      // Always add to coldValue when status is cold
+      if (status === 'cold') {
         coldValue += potentialValue;
       }
     }
     
-    // Pipeline value calculation
-    if (!excludedStatuses.includes(status)) {
+    // Pipeline value calculation - only for hot, warm, cold statuses
+    // This matches the temperature value pie chart
+    if (status === 'hot' || status === 'warm' || status === 'cold') {
       totalPipelineValue += potentialValue;
     }
   });
   
   console.log(`📊 Final counts - Qualified: ${qualifiedCount}, Junk: ${junkCount}, Hot: ${hotCount}, Warm: ${warmCount}, Cold: ${coldCount}`);
   console.log(`📊 Hot+Warm combined would be: ${hotCount + warmCount}`);
+  console.log(`📊 Pipeline values - Hot: ₹${hotValue}, Warm: ₹${warmValue}, Cold: ₹${coldValue}`);
+  console.log(`📊 Total Pipeline (Hot+Warm+Cold): ₹${totalPipelineValue} (should equal ₹${hotValue + warmValue + coldValue})`);
   
   return {
     leadSplit: {
