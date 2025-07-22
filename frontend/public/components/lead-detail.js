@@ -466,7 +466,7 @@ window.renderProgressLeadContent = function(lead, status) {
               key: action,
               onClick: () => {
                 window.handleLeadProgression(lead);
-                window.closeForm();
+                // Don't close the form here - let the progression handler decide
               },
               className: 'p-4 border rounded-lg hover:bg-gray-50 text-left transition-colors'
             },
