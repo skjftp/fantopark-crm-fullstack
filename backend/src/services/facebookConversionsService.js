@@ -162,6 +162,32 @@ class FacebookConversionsService {
       }
     });
   }
+
+  // Send initiate checkout event when quote is requested
+  async sendInitiateCheckoutEvent(leadData) {
+    const [firstName, ...lastNameParts] = (leadData.name || '').split(' ');
+    const lastName = lastNameParts.join(' ');
+
+    return this.sendConversionEvent({
+      event_name: 'InitiateCheckout', // Facebook standard event for quote requests
+      email: leadData.email,
+      phone: leadData.phone,
+      first_name: firstName,
+      last_name: lastName,
+      city: leadData.city_of_residence,
+      country: leadData.country_of_residence,
+      value: leadData.potential_value || leadData.last_quoted_price || 0,
+      currency: 'INR',
+      event_name: leadData.lead_for_event,
+      category: 'quote_requested',
+      num_people: leadData.number_of_people,
+      campaign_data: {
+        campaign_id: leadData.campaign_id,
+        adset_id: leadData.adset_id,
+        ad_id: leadData.ad_id
+      }
+    });
+  }
 }
 
 module.exports = FacebookConversionsService;

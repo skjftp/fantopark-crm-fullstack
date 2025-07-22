@@ -35,6 +35,10 @@ class LeadStatusTriggers {
         case 'converted':
           await this.handleConvertedStatus(leadData, updatedData);
           break;
+        
+        case 'quote_requested':
+          await this.handleQuoteRequestedStatus(leadData);
+          break;
           
         // You can add more status triggers here
         case 'contacted':
@@ -98,6 +102,21 @@ class LeadStatusTriggers {
       return result;
     } catch (error) {
       console.error('❌ Failed to send conversion event:', error);
+      throw error;
+    }
+  }
+
+  // Handle quote requested status
+  async handleQuoteRequestedStatus(leadData) {
+    try {
+      console.log(`💰 Sending initiate checkout event for: ${leadData.email}`);
+      
+      const result = await this.fbConversions.sendInitiateCheckoutEvent(leadData);
+      
+      console.log('✅ Initiate checkout event sent successfully');
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to send initiate checkout event:', error);
       throw error;
     }
   }
