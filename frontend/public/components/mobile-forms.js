@@ -591,7 +591,8 @@ if (window.innerWidth <= 768) {
   const originalRenderInventoryForm = window.renderInventoryForm;
   window.renderInventoryForm = function() {
     if (window.innerWidth <= 768 && 
-        (window.appState.showInventoryForm || window.appState.showEditInventoryForm)) {
+        (window.appState?.showInventoryForm || window.appState?.showEditInventoryForm ||
+         window.showInventoryForm || window.showEditInventoryForm)) {
       return React.createElement(window.MobileInventoryForm);
     }
     return originalRenderInventoryForm ? originalRenderInventoryForm() : null;

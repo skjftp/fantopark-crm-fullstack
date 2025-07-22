@@ -381,20 +381,38 @@ window.MobileFAB = function() {
   };
 
   const handleFABClick = () => {
+    console.log('🔵 FAB clicked on tab:', activeTab);
     switch(activeTab) {
       case 'leads':
+        console.log('🔵 Opening lead form');
         state.setShowAddForm(true);
         state.setCurrentForm('lead');
         break;
       case 'inventory':
-        state.setShowInventoryForm(true);
+        console.log('🔵 Attempting to open inventory form');
+        if (window.openAddInventoryForm) {
+          console.log('🔵 Calling window.openAddInventoryForm()');
+          window.openAddInventoryForm();
+        } else if (window.setShowInventoryForm) {
+          console.log('🔵 Fallback - calling window.setShowInventoryForm(true)');
+          window.setShowInventoryForm(true);
+        } else if (state.setShowInventoryForm) {
+          console.log('🔵 Fallback - calling state.setShowInventoryForm(true)');
+          state.setShowInventoryForm(true);
+        } else {
+          console.log('❌ Inventory form function not found');
+        }
         break;
       case 'stadiums':
+        console.log('🔵 Opening stadium form');
         state.setShowStadiumForm(true);
         break;
       case 'reminders':
+        console.log('🔵 Opening reminder form');
         state.setShowReminderForm(true);
         break;
+      default:
+        console.log('🔵 Unknown tab:', activeTab);
     }
   };
 
