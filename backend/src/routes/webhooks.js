@@ -11,8 +11,133 @@ const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || 'your-unique-verify-token-
 const APP_SECRET = process.env.META_APP_SECRET || 'your-app-secret-here';
 const PAGE_ACCESS_TOKEN = process.env.META_PAGE_ACCESS_TOKEN || 'your-page-access-token';
 
+// Helper function to detect platform source (Facebook vs Instagram)
+async function detectPlatformSource(leadDetails, inventory) {
+  try {
+    console.log('🔍 Detecting platform source...');
+    
+    // Method 1: Check form name for platform indicators
+    const formName = leadDetails.form_name || leadDetails.form?.name || '';
+    if (formName.toLowerCase().includes('facebook') || formName.toLowerCase().includes('fb')) {
+      console.log('✅ Detected Facebook from form name:', formName);
+      return 'Facebook';
+    }
+    if (formName.toLowerCase().includes('instagram') || formName.toLowerCase().includes('ig')) {
+      console.log('✅ Detected Instagram from form name:', formName);
+      return 'Instagram';
+    }
+    
+    // Method 2: Check campaign name for platform indicators
+    const campaignName = leadDetails.campaign_name || '';
+    if (campaignName.toLowerCase().includes('facebook') || campaignName.toLowerCase().includes('fb')) {
+      console.log('✅ Detected Facebook from campaign name:', campaignName);
+      return 'Facebook';
+    }
+    if (campaignName.toLowerCase().includes('instagram') || campaignName.toLowerCase().includes('ig')) {
+      console.log('✅ Detected Instagram from campaign name:', campaignName);
+      return 'Instagram';
+    }
+    
+    // Method 3: Check inventory context
+    if (inventory?.event_name) {
+      const eventName = inventory.event_name.toLowerCase();
+      if (eventName.includes('facebook') || eventName.includes('fb')) {
+        console.log('✅ Detected Facebook from inventory event:', inventory.event_name);
+        return 'Facebook';
+      }
+      if (eventName.includes('instagram') || eventName.includes('ig')) {
+        console.log('✅ Detected Instagram from inventory event:', inventory.event_name);
+        return 'Instagram';
+      }
+    }
+    
+    // Method 4: Check adset name for platform indicators
+    const adsetName = leadDetails.adset_name || '';
+    if (adsetName.toLowerCase().includes('facebook') || adsetName.toLowerCase().includes('fb')) {
+      console.log('✅ Detected Facebook from adset name:', adsetName);
+      return 'Facebook';
+    }
+    if (adsetName.toLowerCase().includes('instagram') || adsetName.toLowerCase().includes('ig')) {
+      console.log('✅ Detected Instagram from adset name:', adsetName);
+      return 'Instagram';
+    }
+    
+    // Default fallback: If we have campaign/adset data, assume Facebook (more common for lead ads)
+    // If no campaign data, assume Instagram (simpler forms)
+    if (leadDetails.campaign_id || leadDetails.adset_id) {
+      console.log('⚠️ Defaulting to Facebook (has campaign data)');
+      return 'Facebook';
+    }
+    
+    console.log('⚠️ Defaulting to Instagram (no campaign data)');
+    return 'Instagram';
+    
+  } catch (error) {
+    console.error('❌ Error detecting platform source:', error);
+    return 'Facebook'; // Safe default
+  }
+}
+
 router.get('/test', (req, res) => {
   res.json({ message: 'Webhook routes are working!' });
+});
+
+// Debug endpoint to check recent leads attribution
+router.get('/debug/leads-attribution', async (req, res) => {
+  try {
+    const { days = 7 } = req.query;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - parseInt(days));
+    
+    console.log('🔍 Fetching recent leads for attribution debug...');
+    
+    const leadsRef = db.collection('leads');
+    const snapshot = await leadsRef
+      .where('date_of_enquiry', '>=', cutoffDate.toISOString())
+      .orderBy('date_of_enquiry', 'desc')
+      .limit(50)
+      .get();
+    
+    const leads = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      leads.push({
+        id: doc.id,
+        name: data.name,
+        email: data.email,
+        source: data.source,
+        form_name: data.form_name,
+        campaign_name: data.campaign_name,
+        adset_name: data.adset_name,
+        date_of_enquiry: data.date_of_enquiry,
+        meta_created_time: data.meta_created_time,
+        created_by: data.created_by
+      });
+    });
+    
+    // Group by source
+    const bySource = {};
+    leads.forEach(lead => {
+      if (!bySource[lead.source]) {
+        bySource[lead.source] = [];
+      }
+      bySource[lead.source].push(lead);
+    });
+    
+    res.json({
+      message: `Recent ${leads.length} leads (last ${days} days)`,
+      summary: Object.keys(bySource).map(source => ({
+        source,
+        count: bySource[source].length,
+        sample: bySource[source][0]
+      })),
+      allLeads: leads
+    });
+    
+  } catch (error) {
+    console.error('❌ Debug endpoint error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // ===============================================
@@ -242,10 +367,19 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
       console.log('🎫 Linking to inventory:', inventory.event_name, '-', inventory.category_of_ticket);
     }
 
+    // Detect platform source (Facebook vs Instagram) before creating lead data
+    const detectedSource = await detectPlatformSource(leadDetails, inventory);
+    console.log('📍 Detected platform source:', detectedSource);
+    
+    // Debug: Log date attribution
+    const enquiryDate = leadDetails.created_time || new Date().toISOString();
+    console.log('📅 Date attribution - Meta created_time:', leadDetails.created_time);
+    console.log('📅 Date attribution - Using for enquiry date:', enquiryDate);
+
     // Map Instagram fields to your CRM fields
     const leadRecord = {
       // Basic fields from your form
-      name: fieldData['full name'] || fieldData.full_name || fieldData.name || 'Instagram Lead',
+      name: fieldData['full name'] || fieldData.full_name || fieldData.name || `${detectedSource} Lead`,
       email: fieldData.email || '',
       phone: fieldData.phone || fieldData.phone_number || '',
       city_of_residence: fieldData.city || '',
@@ -263,7 +397,7 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
       company: fieldData.company_name || fieldData.company || '',
       country_of_residence: fieldData.country || 'India',
       business_type: 'B2C',
-      source: 'Instagram',
+      source: detectedSource,
       
       // Event and inventory linkage
       lead_for_event: inventory?.event_name || '',
@@ -271,7 +405,7 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
       category_of_ticket: inventory?.category_of_ticket || '',
       
       // Dynamic form and campaign information - UPDATED MAPPING
-      form_name: leadDetails.form_name || leadDetails.form?.name || (inventory ? `${inventory.event_name} - ${inventory.category_of_ticket}` : 'Instagram Lead Form'),
+      form_name: leadDetails.form_name || leadDetails.form?.name || (inventory ? `${inventory.event_name} - ${inventory.category_of_ticket}` : `${detectedSource} Lead Form`),
       form_id: leadDetails.form_id || webhookData.form_id || '',
       campaign_name: leadDetails.campaign_name || webhookData.campaign_name || '',
       campaign_id: leadDetails.campaign_id || webhookData.campaign_id || '',
@@ -282,9 +416,9 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
       
       // System fields
       status: 'unassigned',
-      date_of_enquiry: new Date().toISOString(),
+      date_of_enquiry: enquiryDate,
       created_date: new Date(),
-      created_by: 'Instagram Lead Form',
+      created_by: `${detectedSource} Lead Form`,
       
       // Meta tracking
       meta_lead_id: leadDetails.id,
