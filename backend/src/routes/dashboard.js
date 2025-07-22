@@ -188,6 +188,7 @@ router.get('/charts', async (req, res) => {
           totalPipelineValue: chartData.totalPipelineValue,
           qualifiedLeads: chartData.leadSplit.qualified,
           hotLeads: chartData.temperatureCount.hot,
+          hotWarmLeads: chartData.temperatureCount.hot + chartData.temperatureCount.warm, // Combined hot+warm like sales performance
           averageDealSize: leads.length > 0 ? Math.round(chartData.totalPipelineValue / leads.length) : 0
         },
         

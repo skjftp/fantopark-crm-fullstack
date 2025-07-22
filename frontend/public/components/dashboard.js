@@ -81,7 +81,7 @@ window.renderDashboardContent = () => {
                         },
                             '0' // Initial value, updated by API
                         ),
-                        React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Hot Leads')
+                        React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Hot+Warm')
                     )
                 )
             ),
@@ -558,7 +558,7 @@ window.updateDashboardSummary = function(summary) {
     // Update stat cards with API data
     const statElements = {
         'total-leads': summary.totalLeads,
-        'hot-leads': summary.hotLeads,
+        'hot-leads': summary.hotWarmLeads || summary.hotLeads, // Use hotWarmLeads if available, fallback to hotLeads
         'qualified-leads': summary.qualifiedLeads,
         'pipeline-value': summary.totalPipelineValue
     };
