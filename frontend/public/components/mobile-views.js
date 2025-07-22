@@ -861,8 +861,19 @@ window.MobileDashboardView = function() {
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
+            console.log('📱 Mobile Dashboard Data:', {
+              totalLeads: result.data.summary.totalLeads,
+              hotLeads: result.data.summary.hotLeads,
+              qualifiedLeads: result.data.summary.qualifiedLeads,
+              totalPipelineValue: result.data.summary.totalPipelineValue,
+              filters: result.data.filters
+            });
             setDashboardData(result.data);
+          } else {
+            console.error('📱 Mobile Dashboard: Invalid API response:', result);
           }
+        } else {
+          console.error('📱 Mobile Dashboard: API request failed:', response.status, response.statusText);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -1022,7 +1033,7 @@ window.MobileDashboardView = function() {
       
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-      const radius = Math.min(centerX, centerY) - 20;
+      const radius = Math.min(centerX, centerY) - 30;
       
       // Calculate distance from center
       const dx = x - centerX;
@@ -1030,7 +1041,7 @@ window.MobileDashboardView = function() {
       const distance = Math.sqrt(dx * dx + dy * dy);
       
       // Check if within the donut ring
-      if (distance < radius && distance > radius * 0.6) {
+      if (distance < radius && distance > radius * 0.55) {
         // Calculate angle
         let angle = Math.atan2(dy, dx);
         // Normalize to 0-2PI range starting from top
@@ -1119,7 +1130,90 @@ window.MobileDashboardView = function() {
   };
 
   return React.createElement('div', { className: 'mobile-content-wrapper' },
-    // Dashboard Stats Cards - matching web version
+    // Filters section - moved to top
+    React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6' },
+      React.createElement('div', { className: 'space-y-3' },
+        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300' }, 'View by:'),
+        
+        // Main Filter
+        React.createElement('select', {
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+          value: dashboardFilter,
+          onChange: (e) => {
+            setDashboardFilter(e.target.value);
+            setSelectedSalesPerson('');
+            setSelectedEvent('');
+          }
+        },
+          React.createElement('option', { value: 'overall' }, 'Overall'),
+          React.createElement('option', { value: 'salesPerson' }, 'By Sales Person'),
+          React.createElement('option', { value: 'event' }, 'By Event')
+        ),
+
+        // Sales Person Filter
+        dashboardFilter === 'salesPerson' && React.createElement('select', {
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+          value: selectedSalesPerson,
+          onChange: (e) => setSelectedSalesPerson(e.target.value)
+        },
+          React.createElement('option', { value: '' }, 'Select Sales Person'),
+          (window.users || []).map(user =>
+            React.createElement('option', { key: user.id, value: user.id }, user.name)
+          )
+        ),
+
+        // Event Filter
+        dashboardFilter === 'event' && React.createElement('select', {
+          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
+          value: selectedEvent,
+          onChange: (e) => setSelectedEvent(e.target.value)
+        },
+          React.createElement('option', { value: '' }, 'Select Event'),
+          (window.appState?.leadsFilterOptions?.events || 
+           [...new Set((window.leads || []).map(lead => lead.lead_for_event).filter(Boolean))]
+          ).map(event =>
+            React.createElement('option', { key: event, value: event }, event)
+          )
+        )
+      )
+    ),
+
+    // Pie Charts Section - moved above stats
+    React.createElement('div', { className: 'grid grid-cols-1 gap-4 mb-6' },
+      // Lead Split Chart
+      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
+        React.createElement(MiniPieChart, {
+          title: 'Lead Split',
+          data: dashboardData.charts.leadSplit.data,
+          labels: dashboardData.charts.leadSplit.labels,
+          colors: dashboardData.charts.leadSplit.colors
+        })
+      ),
+
+      // Temperature Count Chart
+      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
+        React.createElement(MiniPieChart, {
+          title: 'Lead Temperature Count',
+          data: dashboardData.charts.temperatureCount.data,
+          labels: dashboardData.charts.temperatureCount.labels,
+          colors: dashboardData.charts.temperatureCount.colors
+        })
+      ),
+
+      // Temperature Value Chart
+      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
+        React.createElement(MiniPieChart, {
+          title: 'Lead Temperature Value',
+          data: dashboardData.charts.temperatureValue.data,
+          labels: dashboardData.charts.temperatureValue.labels.map((label, i) => 
+            `${label} (₹${(dashboardData.charts.temperatureValue.data[i] || 0).toLocaleString('en-IN')})`
+          ),
+          colors: dashboardData.charts.temperatureValue.colors
+        })
+      )
+    ),
+    
+    // Dashboard Stats Cards - moved below pie charts
     React.createElement('div', { 
       className: 'grid grid-cols-2 gap-3 mb-6'
     },
@@ -1217,89 +1311,6 @@ window.MobileDashboardView = function() {
             React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400' }, 'Total Pipeline Value')
           )
         )
-      )
-    ),
-
-    // Filters section
-    React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6' },
-      React.createElement('div', { className: 'space-y-3' },
-        React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300' }, 'View by:'),
-        
-        // Main Filter
-        React.createElement('select', {
-          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-          value: dashboardFilter,
-          onChange: (e) => {
-            setDashboardFilter(e.target.value);
-            setSelectedSalesPerson('');
-            setSelectedEvent('');
-          }
-        },
-          React.createElement('option', { value: 'overall' }, 'Overall'),
-          React.createElement('option', { value: 'salesPerson' }, 'By Sales Person'),
-          React.createElement('option', { value: 'event' }, 'By Event')
-        ),
-
-        // Sales Person Filter
-        dashboardFilter === 'salesPerson' && React.createElement('select', {
-          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-          value: selectedSalesPerson,
-          onChange: (e) => setSelectedSalesPerson(e.target.value)
-        },
-          React.createElement('option', { value: '' }, 'Select Sales Person'),
-          (window.users || []).map(user =>
-            React.createElement('option', { key: user.id, value: user.id }, user.name)
-          )
-        ),
-
-        // Event Filter
-        dashboardFilter === 'event' && React.createElement('select', {
-          className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
-          value: selectedEvent,
-          onChange: (e) => setSelectedEvent(e.target.value)
-        },
-          React.createElement('option', { value: '' }, 'Select Event'),
-          (window.appState?.leadsFilterOptions?.events || 
-           [...new Set((window.leads || []).map(lead => lead.lead_for_event).filter(Boolean))]
-          ).map(event =>
-            React.createElement('option', { key: event, value: event }, event)
-          )
-        )
-      )
-    ),
-
-    // Pie Charts Section
-    React.createElement('div', { className: 'grid grid-cols-1 gap-4 mb-6' },
-      // Lead Split Chart
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
-        React.createElement(MiniPieChart, {
-          title: 'Lead Split',
-          data: dashboardData.charts.leadSplit.data,
-          labels: dashboardData.charts.leadSplit.labels,
-          colors: dashboardData.charts.leadSplit.colors
-        })
-      ),
-
-      // Temperature Count Chart
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
-        React.createElement(MiniPieChart, {
-          title: 'Lead Temperature Count',
-          data: dashboardData.charts.temperatureCount.data,
-          labels: dashboardData.charts.temperatureCount.labels,
-          colors: dashboardData.charts.temperatureCount.colors
-        })
-      ),
-
-      // Temperature Value Chart
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
-        React.createElement(MiniPieChart, {
-          title: 'Lead Temperature Value',
-          data: dashboardData.charts.temperatureValue.data,
-          labels: dashboardData.charts.temperatureValue.labels.map((label, i) => 
-            `${label} (₹${(dashboardData.charts.temperatureValue.data[i] || 0).toLocaleString('en-IN')})`
-          ),
-          colors: dashboardData.charts.temperatureValue.colors
-        })
       )
     ),
 
