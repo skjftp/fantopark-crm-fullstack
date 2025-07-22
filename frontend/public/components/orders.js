@@ -1261,8 +1261,13 @@ window.integrateOrderCreationWithLeadStatus = function() {
   window.updateLeadStatus = async function(leadId, newStatus) {
     //console.log('🔄 Enhanced lead status update:', leadId, newStatus);
     
-    // Call original function first
-    await originalUpdateLeadStatus(leadId, newStatus);
+    // Call original function first if it exists
+    if (typeof originalUpdateLeadStatus === 'function') {
+      await originalUpdateLeadStatus(leadId, newStatus);
+    } else {
+      console.error('❌ originalUpdateLeadStatus is not a function:', typeof originalUpdateLeadStatus);
+      throw new Error('updateLeadStatus function not available');
+    }
   };
   
   //console.log('🔗 Order creation integrated with lead status updates');
@@ -1274,10 +1279,14 @@ window.integrateOrderCreationWithLeadStatus = function() {
 
 // Auto-initialize when loaded
 window.addEventListener('load', () => {
+  // Use longer timeout to ensure lead-status-management.js is loaded first
   setTimeout(() => {
-    // Integrate with existing system
-    if (window.updateLeadStatus) {
+    // Integrate with existing system only if updateLeadStatus function is available
+    if (window.updateLeadStatus && typeof window.updateLeadStatus === 'function') {
+      console.log('🔗 Integrating order creation with lead status updates');
       window.integrateOrderCreationWithLeadStatus();
+    } else {
+      console.warn('⚠️ updateLeadStatus function not available for integration');
     }
     
     // Replace existing order actions renderer if it exists
@@ -1286,7 +1295,7 @@ window.addEventListener('load', () => {
     }
     
     //console.log('✅ Enhanced order workflow integration completed');
-  }, 1000);
+  }, 2000);
 });
 
 //console.log('✅ Order Actions Integration for Enhanced Workflow loaded successfully');

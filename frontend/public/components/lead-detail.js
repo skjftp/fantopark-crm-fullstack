@@ -437,78 +437,6 @@ window.renderLeadDetailsContent = function(lead, status) {
   );
 };
 
-// ===== PROGRESS LEAD TAB CONTENT =====
-window.renderProgressLeadContent = function(lead, status) {
-  const nextActions = status.next || [];
-  
-  return React.createElement('div', null,
-    React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 
-      'Lead Progression'
-    ),
-    
-    React.createElement('div', { className: 'mb-6' },
-      React.createElement('p', { className: 'text-gray-600 mb-4' }, 
-        'Current Status: ',
-        React.createElement('span', {
-          className: 'px-3 py-1 rounded-full text-sm ' + status.color
-        }, status.label)
-      ),
-      
-      nextActions.length > 0 ? 
-      React.createElement('div', null,
-        React.createElement('p', { className: 'text-gray-600 mb-4' }, 
-          'Select next action:'
-        ),
-        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-3' },
-          nextActions.map(action => {
-            const actionStatus = window.LEAD_STATUSES[action];
-            return React.createElement('button', {
-              key: action,
-              onClick: () => {
-                window.handleLeadProgression(lead);
-                window.closeForm();
-              },
-              className: 'p-4 border rounded-lg hover:bg-gray-50 text-left transition-colors'
-            },
-              React.createElement('div', { className: 'font-medium' }, 
-                actionStatus.label
-              ),
-              actionStatus.description && React.createElement('div', { 
-                className: 'text-sm text-gray-600 mt-1' 
-              }, actionStatus.description)
-            );
-          })
-        )
-      ) :
-      React.createElement('p', { className: 'text-gray-600' }, 
-        'This lead is at the final stage. No further progression available.'
-      )
-    ),
-    
-    // Special actions for dropped/junk leads
-    (lead.status === 'dropped' || lead.status === 'junk') && 
-    React.createElement('div', { className: 'mt-6 p-4 bg-yellow-50 rounded-lg' },
-      React.createElement('p', { className: 'text-yellow-800 mb-3' }, 
-        'This lead has been marked as ' + lead.status + '. You can reactivate it if needed.'
-      ),
-      React.createElement('button', {
-        onClick: () => {
-          const confirmReactivate = confirm(
-            'Are you sure you want to reactivate this lead? ' +
-            'It will return to: ' + 
-            (window.LEAD_STATUSES[lead.previous_status]?.label || 'contacted')
-          );
-          if (confirmReactivate) {
-            const targetStatus = lead.previous_status || 'contacted';
-            window.updateLeadStatus(lead.id, targetStatus);
-            window.closeForm();
-          }
-        },
-        className: 'px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700'
-      }, '🔄 Reactivate Lead')
-    )
-  );
-};
 
 window.renderLeadDetail = () => {
   if (!window.appState.showLeadDetail || !window.appState.currentLead) return null;
@@ -556,10 +484,25 @@ window.renderLeadDetail = () => {
               }, '🤖 Auto-assigned')
             )
           ),
-          React.createElement('button', {
-            onClick: window.closeForm,
-            className: 'text-gray-400 hover:text-gray-600 text-2xl'
-          }, '✕')
+          React.createElement('div', { className: 'flex items-center gap-3' },
+            // Progress button - only show if there are next actions  
+            nextActions.length > 0 && window.hasPermission('leads', 'progress') && 
+              React.createElement('button', {
+                onClick: () => window.handleLeadProgression(lead),
+                className: 'bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 text-sm flex items-center gap-1',
+                disabled: window.loading,
+                title: nextActions.length === 1 
+                  ? `Progress to ${window.LEAD_STATUSES[nextActions[0]]?.label || nextActions[0]}`
+                  : `Choose next stage (${nextActions.length} options)`
+              }, 
+                React.createElement('span', null, window.loading ? '...' : '→'),
+                React.createElement('span', null, 'Progress')
+              ),
+            React.createElement('button', {
+              onClick: window.closeForm,
+              className: 'text-gray-400 hover:text-gray-600 text-2xl'
+            }, '✕')
+          )
         ),
         
         // Tab Navigation
@@ -577,15 +520,6 @@ window.renderLeadDetail = () => {
               }`
             }, '📋 Details'),
             
-            // Progress Lead Tab
-            nextActions.length > 0 && React.createElement('button', {
-              onClick: () => setActiveTab('progress'),
-              className: `py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'progress'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400'
-              }`
-            }, '➡️ Progress Lead'),
             
             // Inclusions Tab (NEW)
             React.createElement('button', {
@@ -623,11 +557,6 @@ window.renderLeadDetail = () => {
           // Details Tab Content
           activeTab === 'details' && React.createElement('div', { className: 'p-6' },
             window.renderLeadDetailsContent(lead, status)
-          ),
-          
-          // Progress Lead Tab Content
-          activeTab === 'progress' && React.createElement('div', { className: 'p-6' },
-            window.renderProgressLeadContent(lead, status)
           ),
           
           // Inclusions Tab Content (NEW)
