@@ -306,7 +306,7 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       };
     });
     
-    // Calculate totals
+    // Calculate totals - separate Meta (FB/IG) totals for CPL, CPM, CTR calculations
     const totals = marketingData.reduce((acc, row) => {
       acc.totalImpressions += row.impressions;
       acc.totalLeads += row.totalLeads;
@@ -318,6 +318,15 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       acc.converted += row.converted;
       acc.totalSpend += row.spend;
       acc.totalClicks += row.clicks;
+      
+      // Track Meta-specific totals for CPL/CPM/CTR calculations
+      if (row.name === 'Facebook' || row.name === 'Instagram') {
+        acc.metaLeads += row.totalLeads;
+        acc.metaImpressions += row.impressions;
+        acc.metaSpend += row.spend;
+        acc.metaClicks += row.clicks;
+      }
+      
       return acc;
     }, {
       totalImpressions: 0,
@@ -329,7 +338,11 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       dropped: 0,
       converted: 0,
       totalSpend: 0,
-      totalClicks: 0
+      totalClicks: 0,
+      metaLeads: 0,
+      metaImpressions: 0,
+      metaSpend: 0,
+      metaClicks: 0
     });
     
     // Calculate total percentages
@@ -343,10 +356,10 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
       ? (totals.junk / totals.touchBased * 100).toFixed(2) 
       : '0.00';
     
-    // Calculate total CPL, CPM, CTR
-    const totalCPL = totals.totalLeads > 0 ? (totals.totalSpend / totals.totalLeads).toFixed(2) : '0.00';
-    const totalCPM = totals.totalImpressions > 0 ? ((totals.totalSpend / totals.totalImpressions) * 1000).toFixed(2) : '0.00';
-    const totalCTR = totals.totalImpressions > 0 ? ((totals.totalClicks / totals.totalImpressions) * 100).toFixed(2) : '0.00';
+    // Calculate total CPL, CPM, CTR - only based on Facebook and Instagram data
+    const totalCPL = totals.metaLeads > 0 ? (totals.metaSpend / totals.metaLeads).toFixed(2) : '0.00';
+    const totalCPM = totals.metaImpressions > 0 ? ((totals.metaSpend / totals.metaImpressions) * 1000).toFixed(2) : '0.00';
+    const totalCTR = totals.metaImpressions > 0 ? ((totals.metaClicks / totals.metaImpressions) * 100).toFixed(2) : '0.00';
     
     // Prepare filter options - using ALL available options (not just from filtered data)
     const filterOptions = {
@@ -369,7 +382,9 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
           totalJunkPercent,
           totalCPL,
           totalCPM,
-          totalCTR
+          totalCTR,
+          // Note: CPL, CPM, and CTR are calculated only for Facebook and Instagram sources
+          metricNote: 'CPL, CPM, and CTR in totals are calculated only for Facebook and Instagram leads'
         },
         filterOptions,
         groupBy,
