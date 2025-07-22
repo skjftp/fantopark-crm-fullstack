@@ -66,6 +66,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
       'payment_received', 'payment_post_service', 'dropped'];
     
     // Calculate stats
+    console.log(`📊 Dashboard Stats - Total leads: ${leads.size}`);
     const stats = {
       totalLeads: leads.size,
       activeDeals: leads.docs.filter(doc => 

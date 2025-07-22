@@ -48,39 +48,14 @@ router.get('/', authenticateToken, async (req, res) => {
     console.log('📊 Cache expired or not found, fetching fresh sales performance data...');
     const startTime = Date.now();
     
-    // 1. Get all users first
-    const usersSnapshot = await db.collection('crm_users')
-      .where('role', 'in', ['sales_person', 'sales_manager', 'sales_head'])
-      .get();
+    // 1. Get ALL users (matching dashboard logic - no role filtering)
+    const allUsersSnapshot = await db.collection('crm_users').get();
     
-    // Get manually added members
-    let manualMemberIds = [];
-    try {
-      const manualMembersSnapshot = await db.collection('sales_performance_members').get();
-      manualMemberIds = manualMembersSnapshot.docs.map(doc => doc.data().userId);
-    } catch (err) {
-      console.log('No manual members collection yet');
-    }
-    
-    // Get user details for manually added members
-    const manualUsersDocs = [];
-    for (const id of manualMemberIds) {
-      try {
-        const doc = await db.collection('crm_users').doc(id).get();
-        if (doc.exists) {
-          manualUsersDocs.push(doc);
-        }
-      } catch (err) {
-        console.log(`Failed to fetch user ${id}`);
-      }
-    }
-    
-    // Combine all users
-    const allUserDocs = [...usersSnapshot.docs];
-    manualUsersDocs.forEach(doc => {
-      if (!allUserDocs.find(d => d.id === doc.id)) {
-        allUserDocs.push(doc);
-      }
+    // Filter to only users with sales-related roles
+    const allUserDocs = allUsersSnapshot.docs.filter(doc => {
+      const userData = doc.data();
+      // Include all users with sales-related roles
+      return ['sales_person', 'sales_manager', 'sales_head', 'super_admin', 'admin'].includes(userData.role);
     });
     
     // Create name to email mapping for conversion
@@ -279,7 +254,7 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// GET retail tracker data - OPTIMIZED WITH CACHE
+// GET retail tracker data - NOW SHOWS ALL USERS (matching dashboard logic)
 router.get('/retail-tracker', authenticateToken, async (req, res) => {
   try {
     const { start_date, end_date } = req.query;
@@ -293,6 +268,8 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
       return res.json({
         success: true,
         retailData: cachedEntry.data,
+        totalSystemLeads: cachedEntry.totalSystemLeads || 0,
+        totalSystemLeadsInDateRange: cachedEntry.totalSystemLeadsInDateRange || 0,
         cached: true,
         cacheAge: Math.round((Date.now() - cachedEntry.timestamp) / 1000 / 60) + ' minutes'
       });
@@ -301,40 +278,53 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
     console.log('📊 Cache expired or not found for retail range:', cacheKey);
     const startTime = Date.now();
     
-    // Get retail team members by department
-    const retailTeamSnapshot = await db.collection('crm_users')
-      .where('department', '==', 'retail')
-      .get();
+    // Get ALL users (matching dashboard logic - no department filtering)
+    const allUsersSnapshot = await db.collection('crm_users').get();
     
-    // Get manually added retail members
-    let manualRetailIds = [];
-    try {
-      const manualRetailSnapshot = await db.collection('retail_tracker_members').get();
-      manualRetailIds = manualRetailSnapshot.docs.map(doc => doc.data().userId);
-    } catch (err) {
-      console.log('No manual retail members yet');
-    }
-    
-    // Get user details for manually added retail members
-    const manualRetailDocs = [];
-    for (const id of manualRetailIds) {
-      try {
-        const doc = await db.collection('crm_users').doc(id).get();
-        if (doc.exists) {
-          manualRetailDocs.push(doc);
-        }
-      } catch (err) {
-        console.log(`Failed to fetch user ${id}`);
-      }
-    }
-    
-    // Combine all retail users
-    const allRetailDocs = [...retailTeamSnapshot.docs];
-    manualRetailDocs.forEach(doc => {
-      if (!allRetailDocs.find(d => d.id === doc.id)) {
-        allRetailDocs.push(doc);
-      }
+    // Filter to only users with sales-related roles (optional - you can remove this if you want ALL users)
+    const allRetailDocs = allUsersSnapshot.docs.filter(doc => {
+      const userData = doc.data();
+      // Include all users with sales-related roles
+      return ['sales_person', 'sales_manager', 'sales_head', 'super_admin', 'admin'].includes(userData.role);
     });
+    
+    // Get total system leads count (matching dashboard logic)
+    let totalSystemLeads = 0;
+    let totalSystemLeadsInDateRange = 0;
+    
+    try {
+      const allLeadsSnapshot = await db.collection(collections.leads).get();
+      totalSystemLeads = allLeadsSnapshot.size;
+      console.log(`📊 Sales Performance - Total system leads: ${totalSystemLeads}`);
+      
+      // Debug: Check for leads without created_date
+      let leadsWithoutDate = 0;
+      allLeadsSnapshot.docs.forEach(doc => {
+        const lead = doc.data();
+        if (!lead.created_date) {
+          leadsWithoutDate++;
+        }
+      });
+      console.log(`📊 Leads without created_date: ${leadsWithoutDate}`);
+      
+      // If date range is provided, count leads in that range
+      if (start_date && end_date) {
+        const startDate = new Date(start_date);
+        const endDate = new Date(end_date);
+        endDate.setHours(23, 59, 59, 999);
+        
+        totalSystemLeadsInDateRange = allLeadsSnapshot.docs.filter(doc => {
+          const lead = doc.data();
+          if (lead.created_date) {
+            const createdDate = new Date(lead.created_date);
+            return createdDate >= startDate && createdDate <= endDate;
+          }
+          return false; // Exclude leads without created_date from date range filtering
+        }).length;
+      }
+    } catch (error) {
+      console.error('Error counting total system leads:', error);
+    }
     
     const retailData = [];
     
@@ -420,6 +410,8 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
     // Update cache for this date range
     performanceCache.retailData.set(cacheKey, {
       data: retailData,
+      totalSystemLeads: totalSystemLeads,
+      totalSystemLeadsInDateRange: start_date && end_date ? totalSystemLeadsInDateRange : totalSystemLeads,
       timestamp: Date.now()
     });
     
@@ -432,12 +424,85 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       retailData: retailData,
+      totalSystemLeads: totalSystemLeads,
+      totalSystemLeadsInDateRange: start_date && end_date ? totalSystemLeadsInDateRange : totalSystemLeads,
       responseTime: endTime - startTime,
       cached: false
     });
     
   } catch (error) {
     console.error('❌ Retail tracker error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message
+    });
+  }
+});
+
+// Get ALL users lead counts (not just retail)
+router.get('/all-users-leads', authenticateToken, async (req, res) => {
+  try {
+    console.log('📊 Fetching all users lead counts...');
+    
+    // Get all users
+    const usersSnapshot = await db.collection('crm_users').get();
+    const allUsers = [];
+    usersSnapshot.forEach(doc => {
+      const userData = doc.data();
+      allUsers.push({
+        id: doc.id,
+        name: userData.name,
+        email: userData.email,
+        department: userData.department || 'Not Set',
+        role: userData.role
+      });
+    });
+    
+    // Get all leads
+    const leadsSnapshot = await db.collection(collections.leads).get();
+    
+    // Count leads per user
+    const userLeadCounts = {};
+    let unassignedCount = 0;
+    
+    leadsSnapshot.forEach(doc => {
+      const lead = doc.data();
+      const assignedTo = lead.assigned_to;
+      
+      if (!assignedTo) {
+        unassignedCount++;
+      } else {
+        if (!userLeadCounts[assignedTo]) {
+          userLeadCounts[assignedTo] = 0;
+        }
+        userLeadCounts[assignedTo]++;
+      }
+    });
+    
+    // Build result with user details
+    const result = allUsers.map(user => ({
+      ...user,
+      leadCount: userLeadCounts[user.email] || 0
+    })).filter(user => user.leadCount > 0);
+    
+    // Sort by lead count descending
+    result.sort((a, b) => b.leadCount - a.leadCount);
+    
+    res.json({
+      success: true,
+      totalLeads: leadsSnapshot.size,
+      assignedLeads: leadsSnapshot.size - unassignedCount,
+      unassignedLeads: unassignedCount,
+      userCounts: result,
+      summary: {
+        totalUsers: allUsers.length,
+        usersWithLeads: result.length,
+        retailUsers: allUsers.filter(u => u.department === 'retail').length
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fetching all users leads:', error);
     res.status(500).json({ 
       success: false, 
       error: error.message

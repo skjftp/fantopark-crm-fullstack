@@ -83,6 +83,10 @@ const fetchSalesPerformance = async () => {
     if (retailResponse.ok) {
       const retailResult = await retailResponse.json();
       setRetailData(retailResult.retailData || []);
+      // Store total system leads in state or window for display
+      if (retailResult.totalSystemLeadsInDateRange !== undefined) {
+        window.totalSystemLeadsInDateRange = retailResult.totalSystemLeadsInDateRange;
+      }
     }
     
   } catch (error) {
@@ -105,6 +109,10 @@ const fetchSalesPerformance = async () => {
     if (retailResponse.ok) {
       const retailResult = await retailResponse.json();
       setRetailData(retailResult.retailData || []);
+      // Store total system leads in state or window for display
+      if (retailResult.totalSystemLeadsInDateRange !== undefined) {
+        window.totalSystemLeadsInDateRange = retailResult.totalSystemLeadsInDateRange;
+      }
     }
   } catch (error) {
     console.error('Error fetching retail data:', error);
@@ -637,6 +645,21 @@ if (loading) {
               onChange: (e) => setDateRange({...dateRange, end: e.target.value}),
               className: 'px-3 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500'
             })
+          ),
+          
+          // Total System Leads Display
+          window.totalSystemLeadsInDateRange !== undefined && React.createElement('div', { 
+            className: 'mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg' 
+          },
+            React.createElement('div', { className: 'text-sm text-blue-800' },
+              React.createElement('span', { className: 'font-semibold' }, 'Total System Leads: '),
+              React.createElement('span', { className: 'text-lg font-bold' }, 
+                window.totalSystemLeadsInDateRange || 0
+              ),
+              React.createElement('span', { className: 'ml-2 text-xs' }, 
+                '(All leads in the system for selected date range)'
+              )
+            )
           ),
           
           // Retail Table (rest remains the same)

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Missing Created Dates</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.check {
+            background-color: #2196F3;
+        }
+        button.check:hover {
+            background-color: #0b7dda;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .stats {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fix Missing Created Dates in Leads</h1>
+    
+    <div>
+        <button class="check" onclick="checkStats()">Check Missing Dates Stats</button>
+        <button class="check" onclick="check1970Dates()">Check 1970 Dates</button>
+        <button onclick="fixDates()">Fix Missing Created Dates</button>
+    </div>
+    
+    <div id="result" class="result"></div>
+    
+    <script>
+        const API_URL = window.location.origin.includes('localhost') 
+            ? 'http://localhost:8000/api' 
+            : 'https://fantopark-backend-150582227311.us-central1.run.app/api';
+        
+        const token = localStorage.getItem('crm_auth_token');
+        
+        if (!token) {
+            alert('Please login to the CRM first');
+            window.location.href = '/';
+        }
+        
+        async function check1970Dates() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.innerHTML = 'Checking for 1970 dates...';
+            
+            try {
+                const response = await fetch(`${API_URL}/maintenance/check-1970-dates`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>1970/Old Dates Check</h3>
+                        <div class="stats">
+                            <p><strong>Total Leads:</strong> ${data.stats.totalLeads}</p>
+                            <p><strong>Leads with normal dates:</strong> ${data.stats.leadsWithNormalDates}</p>
+                            <p><strong>Leads with 1970 or pre-2000 dates:</strong> ${data.stats.leadsWith1970}</p>
+                            <p><strong>Leads with invalid dates:</strong> ${data.stats.leadsWithInvalidDates}</p>
+                        </div>
+                        ${data.stats.leadsWith1970 > 0 ? `
+                            <h4>Leads with 1970/old dates:</h4>
+                            <pre>${JSON.stringify(data.leads1970, null, 2)}</pre>
+                        ` : '<p>✅ No leads with 1970 dates found!</p>'}
+                    `;
+                } else {
+                    throw new Error(data.error || 'Failed to check 1970 dates');
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+        
+        async function checkStats() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.innerHTML = 'Checking...';
+            
+            try {
+                const response = await fetch(`${API_URL}/maintenance/missing-dates-stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>Missing Created Dates Stats</h3>
+                        <div class="stats">
+                            <p><strong>Total Leads:</strong> ${data.stats.totalLeads}</p>
+                            <p><strong>Leads with created_date:</strong> ${data.stats.leadsWithDate}</p>
+                            <p><strong>Leads WITHOUT created_date:</strong> ${data.stats.leadsWithoutDate}</p>
+                        </div>
+                        ${data.stats.leadsWithoutDate > 0 ? `
+                            <h4>Leads missing created_date:</h4>
+                            <pre>${JSON.stringify(data.missingDateLeads, null, 2)}</pre>
+                        ` : '<p>✅ All leads have created_date!</p>'}
+                    `;
+                } else {
+                    throw new Error(data.error || 'Failed to get stats');
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+        
+        async function fixDates() {
+            if (!confirm('This will update all leads without created_date. Continue?')) {
+                return;
+            }
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.innerHTML = 'Fixing missing dates...';
+            
+            try {
+                const response = await fetch(`${API_URL}/maintenance/fix-created-dates`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ ${data.message}</h3>
+                        <div class="stats">
+                            <p><strong>Total Leads:</strong> ${data.stats.totalLeads}</p>
+                            <p><strong>Previously had dates:</strong> ${data.stats.leadsWithDate}</p>
+                            <p><strong>Missing dates found:</strong> ${data.stats.leadsWithoutDate}</p>
+                            <p><strong>Updated:</strong> ${data.stats.updated}</p>
+                            <p><strong>Still missing:</strong> ${data.stats.stillMissing}</p>
+                        </div>
+                        ${data.details && data.details.length > 0 ? `
+                            <h4>Update Details:</h4>
+                            <pre>${JSON.stringify(data.details, null, 2)}</pre>
+                        ` : ''}
+                    `;
+                } else {
+                    throw new Error(data.error || 'Failed to fix dates');
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+        
+        // Check stats on load
+        window.onload = () => {
+            checkStats();
+        };
+    </script>
+</body>
+</html>

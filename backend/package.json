@@ -5,7 +5,8 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "fix-dates": "node src/scripts/fix-missing-created-dates.js"
   },
   "dependencies": {
     "@google-cloud/firestore": "^7.1.0",
