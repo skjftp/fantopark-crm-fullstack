@@ -563,7 +563,10 @@ router.get('/performance-timeseries', authenticateToken, checkPermission('financ
             qualified: 0,
             converted: 0,
             junk: 0,
-            touchBased: 0
+            touchBased: 0,
+            impressions: 0,
+            clicks: 0,
+            spend: 0
           }
         };
       }
@@ -623,11 +626,43 @@ router.get('/performance-timeseries', authenticateToken, checkPermission('financ
             day.Instagram.spend = insightData.Instagram.spend || 0;
           }
         }
+        
+        // Calculate total impressions, clicks, and spend
+        day.total.impressions = (day.Facebook.impressions || 0) + (day.Instagram.impressions || 0);
+        day.total.clicks = (day.Facebook.clicks || 0) + (day.Instagram.clicks || 0);
+        day.total.spend = (day.Facebook.spend || 0) + (day.Instagram.spend || 0);
+        
+        // Calculate CPL and CPM for each source
+        day.Facebook.cpl = day.Facebook.leads > 0 ? (day.Facebook.spend / day.Facebook.leads).toFixed(2) : 0;
+        day.Instagram.cpl = day.Instagram.leads > 0 ? (day.Instagram.spend / day.Instagram.leads).toFixed(2) : 0;
+        day.total.cpl = day.total.leads > 0 ? (day.total.spend / day.total.leads).toFixed(2) : 0;
+        
+        day.Facebook.cpm = day.Facebook.impressions > 0 ? ((day.Facebook.spend / day.Facebook.impressions) * 1000).toFixed(2) : 0;
+        day.Instagram.cpm = day.Instagram.impressions > 0 ? ((day.Instagram.spend / day.Instagram.impressions) * 1000).toFixed(2) : 0;
+        day.total.cpm = day.total.impressions > 0 ? ((day.total.spend / day.total.impressions) * 1000).toFixed(2) : 0;
+        
+        // Calculate qualified percentage
+        day.Facebook.qualifiedPercent = day.Facebook.touchBased > 0 ? ((day.Facebook.qualified / day.Facebook.touchBased) * 100).toFixed(2) : 0;
+        day.Instagram.qualifiedPercent = day.Instagram.touchBased > 0 ? ((day.Instagram.qualified / day.Instagram.touchBased) * 100).toFixed(2) : 0;
+        day.total.qualifiedPercent = day.total.touchBased > 0 ? ((day.total.qualified / day.total.touchBased) * 100).toFixed(2) : 0;
       });
       
       facebookInsightsData = insights;
     } catch (fbError) {
       console.error('⚠️ Could not fetch Facebook insights for time series:', fbError.message);
+      // Still calculate metrics with zero spend/impressions
+      series.forEach(day => {
+        day.total.impressions = 0;
+        day.total.clicks = 0;
+        day.total.spend = 0;
+        day.Facebook.cpl = day.Instagram.cpl = day.total.cpl = 0;
+        day.Facebook.cpm = day.Instagram.cpm = day.total.cpm = 0;
+        
+        // Calculate qualified percentage even without insights
+        day.Facebook.qualifiedPercent = day.Facebook.touchBased > 0 ? ((day.Facebook.qualified / day.Facebook.touchBased) * 100).toFixed(2) : 0;
+        day.Instagram.qualifiedPercent = day.Instagram.touchBased > 0 ? ((day.Instagram.qualified / day.Instagram.touchBased) * 100).toFixed(2) : 0;
+        day.total.qualifiedPercent = day.total.touchBased > 0 ? ((day.total.qualified / day.total.touchBased) * 100).toFixed(2) : 0;
+      });
     }
     
     // Calculate week-on-week or day-on-day changes

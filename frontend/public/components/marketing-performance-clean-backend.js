@@ -499,7 +499,7 @@ function MarketingPerformanceCharts({ filters, loading }) {
         const data = activeTab === 'daily' ? dailyData : weeklyData;
         if (!data || !data.series || data.series.length === 0) return;
         
-        // Leads Chart
+        // Leads Chart - Total Meta as default
         const leadsCtx = document.getElementById('marketing-leads-chart');
         if (leadsCtx) {
             const existingChart = Chart.getChart(leadsCtx);
@@ -511,25 +511,28 @@ function MarketingPerformanceCharts({ filters, loading }) {
                     labels: data.series.map(d => new Date(d.date).toLocaleDateString()),
                     datasets: [
                         {
+                            label: 'Total Meta Leads',
+                            data: data.series.map(d => d.total.leads),
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.1,
+                            borderWidth: 3
+                        },
+                        {
                             label: 'Facebook Leads',
                             data: data.series.map(d => d.Facebook.leads),
                             borderColor: '#1877f2',
                             backgroundColor: 'rgba(24, 119, 242, 0.1)',
-                            tension: 0.1
+                            tension: 0.1,
+                            borderWidth: 2
                         },
                         {
                             label: 'Instagram Leads',
                             data: data.series.map(d => d.Instagram.leads),
                             borderColor: '#E4405F',
                             backgroundColor: 'rgba(228, 64, 95, 0.1)',
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Total Leads',
-                            data: data.series.map(d => d.total.leads),
-                            borderColor: '#10B981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            tension: 0.1
+                            tension: 0.1,
+                            borderWidth: 2
                         }
                     ]
                 },
@@ -539,7 +542,7 @@ function MarketingPerformanceCharts({ filters, loading }) {
                     plugins: {
                         title: {
                             display: true,
-                            text: `${activeTab === 'daily' ? 'Day-on-Day' : 'Week-on-Week'} Lead Generation`
+                            text: `${activeTab === 'daily' ? 'Daily' : 'Weekly'} Lead Generation Trends`
                         },
                         tooltip: {
                             mode: 'index',
@@ -610,7 +613,7 @@ function MarketingPerformanceCharts({ filters, loading }) {
                     plugins: {
                         title: {
                             display: true,
-                            text: `${activeTab === 'daily' ? 'Daily' : 'Weekly'} Conversion Metrics`
+                            text: `${activeTab === 'daily' ? 'Daily' : 'Weekly'} Qualified vs Converted %`
                         }
                     },
                     scales: {
@@ -627,30 +630,141 @@ function MarketingPerformanceCharts({ filters, loading }) {
             });
         }
         
-        // Performance Change Chart
-        const changeCtx = document.getElementById('marketing-change-chart');
-        if (changeCtx) {
-            const existingChart = Chart.getChart(changeCtx);
+        // CPL and CPM Chart
+        const cplCpmCtx = document.getElementById('marketing-cpl-cpm-chart');
+        if (cplCpmCtx) {
+            const existingChart = Chart.getChart(cplCpmCtx);
             if (existingChart) existingChart.destroy();
             
-            new Chart(changeCtx, {
+            new Chart(cplCpmCtx, {
                 type: 'line',
                 data: {
                     labels: data.series.map(d => new Date(d.date).toLocaleDateString()),
                     datasets: [
                         {
-                            label: 'Facebook Lead Change %',
-                            data: data.series.map(d => parseFloat(d.changes.Facebook.leads)),
-                            borderColor: '#1877f2',
-                            backgroundColor: 'rgba(24, 119, 242, 0.1)',
-                            tension: 0.1
+                            label: 'Total Meta CPL (₹)',
+                            data: data.series.map(d => parseFloat(d.total.cpl) || 0),
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.1,
+                            borderWidth: 3,
+                            yAxisID: 'y'
                         },
                         {
-                            label: 'Instagram Lead Change %',
-                            data: data.series.map(d => parseFloat(d.changes.Instagram.leads)),
+                            label: 'Facebook CPL (₹)',
+                            data: data.series.map(d => parseFloat(d.Facebook.cpl) || 0),
+                            borderColor: '#1877f2',
+                            backgroundColor: 'rgba(24, 119, 242, 0.1)',
+                            tension: 0.1,
+                            borderWidth: 2,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Instagram CPL (₹)',
+                            data: data.series.map(d => parseFloat(d.Instagram.cpl) || 0),
                             borderColor: '#E4405F',
                             backgroundColor: 'rgba(228, 64, 95, 0.1)',
-                            tension: 0.1
+                            tension: 0.1,
+                            borderWidth: 2,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Total Meta CPM (₹)',
+                            data: data.series.map(d => parseFloat(d.total.cpm) || 0),
+                            borderColor: '#6366F1',
+                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            tension: 0.1,
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${activeTab === 'daily' ? 'Daily' : 'Weekly'} Cost Per Lead (CPL) & Cost Per Mille (CPM)`
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ₹' + context.parsed.y;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Cost Per Lead (₹)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'CPM (₹)'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Qualified % Trend Chart
+        const qualifiedCtx = document.getElementById('marketing-qualified-chart');
+        if (qualifiedCtx) {
+            const existingChart = Chart.getChart(qualifiedCtx);
+            if (existingChart) existingChart.destroy();
+            
+            new Chart(qualifiedCtx, {
+                type: 'line',
+                data: {
+                    labels: data.series.map(d => new Date(d.date).toLocaleDateString()),
+                    datasets: [
+                        {
+                            label: 'Total Meta Qualified %',
+                            data: data.series.map(d => parseFloat(d.total.qualifiedPercent) || 0),
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.1,
+                            borderWidth: 3
+                        },
+                        {
+                            label: 'Facebook Qualified %',
+                            data: data.series.map(d => parseFloat(d.Facebook.qualifiedPercent) || 0),
+                            borderColor: '#1877f2',
+                            backgroundColor: 'rgba(24, 119, 242, 0.1)',
+                            tension: 0.1,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Instagram Qualified %',
+                            data: data.series.map(d => parseFloat(d.Instagram.qualifiedPercent) || 0),
+                            borderColor: '#E4405F',
+                            backgroundColor: 'rgba(228, 64, 95, 0.1)',
+                            tension: 0.1,
+                            borderWidth: 2
                         }
                     ]
                 },
@@ -660,7 +774,7 @@ function MarketingPerformanceCharts({ filters, loading }) {
                     plugins: {
                         title: {
                             display: true,
-                            text: `${activeTab === 'daily' ? 'Day-on-Day' : 'Week-on-Week'} Performance Change`
+                            text: `${activeTab === 'daily' ? 'Daily' : 'Weekly'} Qualified Lead Percentage`
                         },
                         tooltip: {
                             callbacks: {
@@ -672,9 +786,11 @@ function MarketingPerformanceCharts({ filters, loading }) {
                     },
                     scales: {
                         y: {
+                            beginAtZero: true,
+                            max: 100,
                             title: {
                                 display: true,
-                                text: 'Change %'
+                                text: 'Qualified %'
                             }
                         }
                     }
@@ -732,19 +848,21 @@ function MarketingPerformanceCharts({ filters, loading }) {
             )
         ),
         
-        // Charts grid
-        React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-3 gap-6' },
-            // Leads Chart
+        // Charts grid - 4 charts
+        React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-2 gap-6' },
+            // Row 1: Leads Chart and Qualified % Chart
             React.createElement('div', { className: 'h-64' },
                 React.createElement('canvas', { id: 'marketing-leads-chart' })
             ),
-            // Metrics Chart
+            React.createElement('div', { className: 'h-64' },
+                React.createElement('canvas', { id: 'marketing-qualified-chart' })
+            ),
+            // Row 2: Conversion Metrics and CPL/CPM Chart
             React.createElement('div', { className: 'h-64' },
                 React.createElement('canvas', { id: 'marketing-metrics-chart' })
             ),
-            // Change Chart
             React.createElement('div', { className: 'h-64' },
-                React.createElement('canvas', { id: 'marketing-change-chart' })
+                React.createElement('canvas', { id: 'marketing-cpl-cpm-chart' })
             )
         ),
         
