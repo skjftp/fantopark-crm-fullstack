@@ -891,4 +891,68 @@ router.get('/periods', authenticateToken, async (req, res) => {
   }
 });
 
+// Clear cache endpoint - for super admin only
+router.post('/clear-cache', authenticateToken, async (req, res) => {
+  try {
+    // Check if user is super admin
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ success: false, error: 'No token provided' });
+    }
+
+    // Decode token to get user info
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.decode(token);
+    const userEmail = decoded?.email;
+
+    if (!userEmail) {
+      return res.status(401).json({ success: false, error: 'Invalid token' });
+    }
+
+    // Check if user is super admin
+    const userDoc = await db.collection('crm_users').where('email', '==', userEmail).get();
+    if (userDoc.empty) {
+      return res.status(403).json({ success: false, error: 'User not found' });
+    }
+
+    const userData = userDoc.docs[0].data();
+    if (userData.role !== 'super_admin') {
+      return res.status(403).json({ success: false, error: 'Access denied. Super admin role required.' });
+    }
+
+    // Clear all cache data
+    const clearedCaches = [];
+    
+    // Clear sales performance caches
+    Object.keys(performanceCache).forEach(key => {
+      if (key.startsWith('sales_')) {
+        delete performanceCache[key];
+        clearedCaches.push(key);
+      }
+    });
+    
+    // Clear legacy cache
+    performanceCache.salesData = null;
+    performanceCache.salesDataTimestamp = null;
+    
+    // Clear retail data cache
+    performanceCache.retailData.clear();
+    
+    console.log(`🧹 Cache cleared by super admin: ${userEmail}`);
+    console.log(`🧹 Cleared cache keys: ${clearedCaches.join(', ')}`);
+
+    res.json({
+      success: true,
+      message: 'All sales performance caches cleared successfully',
+      clearedCaches: clearedCaches,
+      clearedBy: userEmail,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('Error clearing cache:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;

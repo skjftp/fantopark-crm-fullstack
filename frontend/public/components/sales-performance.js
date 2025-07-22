@@ -16,6 +16,8 @@ function SalesPerformanceTracker() {
   const [modalType, setModalType] = React.useState('sales'); // 'sales' or 'retail'
   const [period, setPeriod] = React.useState('lifetime'); // Default to lifetime
   const [availablePeriods, setAvailablePeriods] = React.useState([]);
+  const [isSuperAdmin, setIsSuperAdmin] = React.useState(false);
+  const [clearingCache, setClearingCache] = React.useState(false);
   // Calculate last 7 days date range
 const getDefaultDateRange = () => {
   const endDate = new Date();
@@ -70,6 +72,50 @@ const fetchPeriods = async () => {
     }
   } catch (error) {
     console.error('Error fetching periods:', error);
+  }
+};
+
+// Check if current user is super admin
+const checkSuperAdminStatus = async () => {
+  try {
+    const currentUser = window.currentUser;
+    if (currentUser && currentUser.role === 'super_admin') {
+      setIsSuperAdmin(true);
+    }
+  } catch (error) {
+    console.error('Error checking super admin status:', error);
+  }
+};
+
+// Clear cache function (super admin only)
+const clearCache = async () => {
+  if (!isSuperAdmin) {
+    alert('Access denied. Super admin role required.');
+    return;
+  }
+  
+  setClearingCache(true);
+  try {
+    const token = localStorage.getItem('crm_auth_token');
+    const response = await fetch(`${window.API_CONFIG.API_URL}/sales-performance/clear-cache`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      alert('Cache cleared successfully! Data will be refreshed.');
+      // Refresh the data
+      await fetchSalesPerformance();
+    } else {
+      alert(result.error || 'Failed to clear cache');
+    }
+  } catch (error) {
+    console.error('Error clearing cache:', error);
+    alert('Error clearing cache: ' + error.message);
+  } finally {
+    setClearingCache(false);
   }
 };
 
@@ -143,6 +189,7 @@ const fetchSalesPerformance = async () => {
     fetchAllUsers();
     fetchPeriods();
     fetchSalesPerformance();
+    checkSuperAdminStatus();
   }, []);
   
   // Refetch when period changes
@@ -471,8 +518,8 @@ if (loading) {
         React.createElement('h1', { className: 'text-3xl font-bold text-gray-900' }, 
           'Sales Team Performance/Productivity Tracking'
         ),
-        // Period Filter
-        React.createElement('div', { className: 'mt-4' },
+        // Period Filter and Admin Controls
+        React.createElement('div', { className: 'mt-4 flex items-center justify-center gap-4' },
           React.createElement('select', {
             value: period,
             onChange: (e) => setPeriod(e.target.value),
@@ -481,7 +528,13 @@ if (loading) {
             availablePeriods.map(p => 
               React.createElement('option', { key: p.value, value: p.value }, p.label)
             )
-          )
+          ),
+          // Clear Cache Button (Super Admin Only)
+          isSuperAdmin && React.createElement('button', {
+            onClick: clearCache,
+            disabled: clearingCache,
+            className: `px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed ${clearingCache ? 'animate-pulse' : ''}`
+          }, clearingCache ? 'Clearing...' : '🧹 Clear Cache')
         )
       ),
 
