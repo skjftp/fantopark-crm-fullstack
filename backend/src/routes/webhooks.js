@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { db } = require('../config/db');
 const fetch = require('node-fetch');
 const { getInventoryByFormId } = require('../utils/inventoryLookup');
+const { convertToIST } = require('../utils/dateHelpers');
 
 // Meta webhook verification token and app secret - store these securely
 const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || 'your-unique-verify-token-here';
@@ -89,11 +90,15 @@ router.get('/debug/leads-attribution', async (req, res) => {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - parseInt(days));
     
-    console.log('🔍 Fetching recent leads for attribution debug...');
+    // Convert cutoff to IST for proper comparison
+    const cutoffIST = convertToIST(cutoffDate);
     
-    const leadsRef = db.collection('leads');
+    console.log('🔍 Fetching recent leads for attribution debug...');
+    console.log(`📅 Cutoff date (IST): ${cutoffIST}`);
+    
+    const leadsRef = db.collection('crm_leads');
     const snapshot = await leadsRef
-      .where('date_of_enquiry', '>=', cutoffDate.toISOString())
+      .where('date_of_enquiry', '>=', cutoffIST)
       .orderBy('date_of_enquiry', 'desc')
       .limit(50)
       .get();
@@ -142,25 +147,71 @@ router.get('/debug/leads-attribution', async (req, res) => {
 
 // Historical data correction endpoint
 router.post('/fix-historical-attribution', async (req, res) => {
+  console.log('🔧 Historical attribution fix endpoint called');
+  console.log('📊 Request method:', req.method);
+  console.log('📊 Request path:', req.path);
+  console.log('📊 Request body:', req.body);
+  
+  // Add response headers
+  res.set({
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache'
+  });
+
   try {
-    const { dryRun = true, dateFrom, dateTo, batchSize = 50 } = req.body;
+    const { dryRun = true, dateFrom, dateTo, batchSize = 50 } = req.body || {};
     
     console.log('🔧 Historical attribution fix requested');
-    console.log('📊 Parameters:', { dryRun, dateFrom, dateTo, batchSize });
+    console.log('📊 Parsed parameters:', { dryRun, dateFrom, dateTo, batchSize });
     
-    // Import the fix function
-    const { fixHistoricalAttribution } = require('../scripts/fix-historical-lead-attribution');
+    // Test database connection first
+    console.log('🔍 Testing database connection...');
+    const testQuery = await db.collection('crm_leads').limit(1).get();
+    console.log('✅ Database connection successful, sample size:', testQuery.size);
     
-    // Run the fix
-    const stats = await fixHistoricalAttribution({
-      dryRun,
-      dateFrom,
-      dateTo,
-      batchSize,
-      onlyIncorrectSources: true
-    });
+    // Import the fix function with error handling
+    console.log('📦 Importing fix function...');
+    let fixHistoricalAttribution;
+    try {
+      const scriptModule = require('../scripts/fix-historical-lead-attribution');
+      fixHistoricalAttribution = scriptModule.fixHistoricalAttribution;
+      console.log('✅ Fix function imported successfully');
+    } catch (importError) {
+      console.error('❌ Failed to import fix function:', importError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to load attribution fix script',
+        details: importError.message
+      });
+    }
     
-    res.json({
+    if (typeof fixHistoricalAttribution !== 'function') {
+      console.error('❌ Fix function is not a function:', typeof fixHistoricalAttribution);
+      return res.status(500).json({
+        success: false,
+        error: 'Attribution fix function not found or invalid'
+      });
+    }
+    
+    console.log('🚀 Starting attribution fix...');
+    
+    // Run the fix with timeout
+    const stats = await Promise.race([
+      fixHistoricalAttribution({
+        dryRun,
+        dateFrom,
+        dateTo,
+        batchSize,
+        onlyIncorrectSources: true
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Operation timeout after 5 minutes')), 5 * 60 * 1000)
+      )
+    ]);
+    
+    console.log('✅ Attribution fix completed, stats:', stats);
+    
+    const response = {
       success: true,
       message: dryRun ? 'Dry run completed - no changes made' : 'Historical attribution fix completed',
       stats,
@@ -171,15 +222,24 @@ router.post('/fix-historical-attribution', async (req, res) => {
       ] : [
         'No attribution issues found in the specified date range'
       ]
-    });
+    };
+    
+    console.log('📤 Sending response:', JSON.stringify(response, null, 2));
+    res.json(response);
     
   } catch (error) {
     console.error('❌ Historical fix endpoint error:', error);
-    res.status(500).json({ 
+    console.error('❌ Error stack:', error.stack);
+    
+    const errorResponse = { 
       success: false, 
-      error: error.message,
-      message: 'Failed to run historical attribution fix'
-    });
+      error: error.message || 'Unknown error',
+      message: 'Failed to run historical attribution fix',
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log('📤 Sending error response:', JSON.stringify(errorResponse, null, 2));
+    res.status(500).json(errorResponse);
   }
 });
 
@@ -414,10 +474,13 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
     const detectedSource = await detectPlatformSource(leadDetails, inventory);
     console.log('📍 Detected platform source:', detectedSource);
     
-    // Debug: Log date attribution
-    const enquiryDate = leadDetails.created_time || new Date().toISOString();
-    console.log('📅 Date attribution - Meta created_time:', leadDetails.created_time);
-    console.log('📅 Date attribution - Using for enquiry date:', enquiryDate);
+    // Convert to IST for date_of_enquiry using helper
+    const enquiryDate = convertToIST(new Date(), leadDetails.created_time);
+    
+    console.log('📅 Date attribution:');
+    console.log('   Meta created_time (UTC):', leadDetails.created_time);
+    console.log('   Converted to IST:', enquiryDate);
+    console.log('   IST Date:', enquiryDate.split('T')[0]);
 
     // Map Instagram fields to your CRM fields
     const leadRecord = {
@@ -466,6 +529,7 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
       // Meta tracking
       meta_lead_id: leadDetails.id,
       meta_created_time: leadDetails.created_time || new Date().toISOString(),
+      meta_created_time_utc: leadDetails.created_time || new Date().toISOString(), // Keep original UTC
       
       // Additional metadata
       notes: fieldData.notes || fieldData.comments || fieldData.message || '',

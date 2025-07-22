@@ -1,6 +1,7 @@
 // backend/src/services/leadMappingService.js
 
 const { db, collections } = require('../config/db');
+const { convertToIST } = require('../utils/dateHelpers');
 
 class LeadMappingService {
   constructor() {
@@ -147,7 +148,7 @@ async mapWebsiteLeadToCRM(websiteLead, importedBy) {
     event_name: websiteLead.tours || '', // This is the critical field
     lead_for_event: websiteLead.tours || '', // Also set this for compatibility
     inventory_id: inventory ? inventory.id : null,
-    match_date: websiteLead.trip_date ? new Date(websiteLead.trip_date).toISOString() : '',
+    match_date: websiteLead.trip_date ? convertToIST(websiteLead.trip_date) : '',
     
     // If inventory found, also use its event name to ensure consistency
     ...(inventory && {
@@ -174,11 +175,14 @@ async mapWebsiteLeadToCRM(websiteLead, importedBy) {
     status: 'unassigned',
     stage: 'new',
     
+    // Set date_of_enquiry in IST
+    date_of_enquiry: convertToIST(new Date()),
+    
     // Metadata - ENSURE these fields are set
     created_by: importedBy,
-    created_date: new Date().toISOString(),
+    created_date: convertToIST(new Date()),
     imported_from: 'website', // Critical for import history
-    import_date: new Date().toISOString(), // Critical for import history
+    import_date: convertToIST(new Date()), // Critical for import history
     
     // Notes
     notes: `Imported from website. Original ID: ${websiteLead.id}`

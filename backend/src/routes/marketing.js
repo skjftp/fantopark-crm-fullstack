@@ -4,6 +4,7 @@ const router = express.Router();
 const { authenticateToken, checkPermission } = require('../middleware/auth');
 const { db, collections } = require('../config/db');
 const facebookInsights = require('../services/facebookInsightsService');
+const { formatDateForQuery } = require('../utils/dateHelpers');
 
 // Define touch-based statuses
 const touchBasedStatuses = [
@@ -25,11 +26,14 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
     let query = db.collection(collections.leads);
     
     // Only apply date filters to avoid compound index requirements
+    // Handle both date-only strings and ISO timestamps with IST conversion
     if (date_from) {
-      query = query.where('date_of_enquiry', '>=', date_from);
+      const fromDate = formatDateForQuery(date_from, 'start');
+      query = query.where('date_of_enquiry', '>=', fromDate);
     }
     if (date_to) {
-      query = query.where('date_of_enquiry', '<=', date_to);
+      const toDate = formatDateForQuery(date_to, 'end');
+      query = query.where('date_of_enquiry', '<=', toDate);
     }
     
     const leadsSnapshot = await query.get();

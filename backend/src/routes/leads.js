@@ -14,6 +14,7 @@ const statusTriggers = new LeadStatusTriggers();
 
 // Import db for bulk operations (you already had this)
 const { db, collections } = require('../config/db');
+const { convertToIST, formatDateForQuery } = require('../utils/dateHelpers');
 
 // Initialize Google Cloud Storage for PDF downloads
 const storage = new Storage({
@@ -105,7 +106,7 @@ async function performEnhancedAutoAssignment(leadData) {
             assignment_reason: rule.description || `Matched rule: ${rule.name}`,
             assignment_rule_used: rule.name,
             assignment_rule_id: rule.id,
-            assignment_date: new Date().toISOString(),
+            assignment_date: convertToIST(new Date()),
             status: 'assigned'
           };
           
@@ -714,7 +715,7 @@ router.post('/', authenticateToken, async (req, res) => {
           await Lead.updateClientMetadata(clientInfo.client_id, {
             client_total_leads: clientInfo.total_leads + 1,
             client_events: newLeadData.client_events,
-            client_last_activity: new Date().toISOString()
+            client_last_activity: convertToIST(new Date())
           });
           
           console.log('✅ Client metadata updated');

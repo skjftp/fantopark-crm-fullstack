@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { db, collections } = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
+const { convertToIST } = require('../utils/dateHelpers');
 
 // Define touch-based statuses - same as marketing performance
 const touchBasedStatuses = [
@@ -74,8 +75,9 @@ router.get('/', authenticateToken, async (req, res) => {
     let allOrdersSnapshot;
     try {
       // Try with date filter first
+      const threeMonthsAgoIST = convertToIST(threeMonthsAgo);
       allOrdersSnapshot = await db.collection(collections.orders)
-        .where('created_date', '>=', threeMonthsAgo.toISOString())
+        .where('created_date', '>=', threeMonthsAgoIST)
         .get();
       console.log(`Found ${allOrdersSnapshot.size} orders from last 3 months`);
     } catch (err) {

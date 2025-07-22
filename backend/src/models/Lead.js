@@ -1,4 +1,5 @@
 const { db, collections } = require('../config/db');
+const { convertToIST } = require('../utils/dateHelpers');
 
 class Lead {
   constructor(data) {
@@ -12,7 +13,8 @@ class Lead {
     
     // Lead Source & Initial Contact
     this.source = data.source || '';
-    this.date_of_enquiry = data.date_of_enquiry;
+    // Convert date_of_enquiry to IST
+    this.date_of_enquiry = data.date_of_enquiry ? convertToIST(data.date_of_enquiry) : convertToIST(new Date());
     this.first_touch_base_done_by = data.first_touch_base_done_by || '';
 
         // Contact Preferences
@@ -55,8 +57,8 @@ class Lead {
     
     // Additional
     this.notes = data.notes || '';
-    this.created_date = data.created_date || new Date().toISOString();
-    this.updated_date = new Date().toISOString();
+    this.created_date = data.created_date || convertToIST(new Date());
+    this.updated_date = convertToIST(new Date());
 
     // Client Management Fields
     this.client_id = data.client_id || this.generateClientId(data.phone);
@@ -143,7 +145,7 @@ class Lead {
       // FIXED: Parse numeric values before updating
       const updateData = { 
         ...data, 
-        updated_date: new Date().toISOString() 
+        updated_date: convertToIST(new Date())
       };
 
       // Ensure numeric fields are properly parsed

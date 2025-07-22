@@ -4,6 +4,7 @@ const multer = require('multer');
 const { Storage } = require('@google-cloud/storage');
 const { db, collections } = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
+const { convertToIST } = require('../utils/dateHelpers');
 const csv = require('csv-parser');
 const { Readable } = require('stream');
 const Lead = require('../models/Lead');
@@ -58,8 +59,8 @@ const parseDate = (dateValue) => {
   console.log('🗓️ Parsing date value:', dateValue, 'Type:', typeof dateValue);
   
   if (!dateValue || dateValue === '' || dateValue === null || dateValue === undefined) {
-    console.log('⚠️ No date value provided, using current date');
-    return new Date().toISOString();
+    console.log('⚠️ No date value provided, using current IST date');
+    return convertToIST(new Date());
   }
 
     // Add handling for DD/MM/YY format
@@ -67,13 +68,13 @@ const parseDate = (dateValue) => {
     const [day, month, year] = dateValue.split('/');
     const fullYear = year.length === 2 ? '20' + year : year;
     const isoDate = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    return isoDate;
+    return convertToIST(isoDate);
   }
   
-  // If it's already a Date object, convert to ISO string
+  // If it's already a Date object, convert to IST
   if (dateValue instanceof Date) {
-    console.log('✅ Date object found, converting to ISO');
-    return dateValue.toISOString();
+    console.log('✅ Date object found, converting to IST');
+    return convertToIST(dateValue);
   }
   
   // If it's a string, try to parse it
@@ -81,60 +82,57 @@ const parseDate = (dateValue) => {
     const trimmedValue = dateValue.trim();
     
     if (trimmedValue === '') {
-      console.log('⚠️ Empty string date, using current date');
-      return new Date().toISOString();
+      console.log('⚠️ Empty string date, using current IST date');
+      return convertToIST(new Date());
     }
     
     // Handle YYYY-MM-DD format (most common CSV format)
     if (trimmedValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
       console.log('✅ YYYY-MM-DD format detected');
-      return new Date(trimmedValue + 'T00:00:00Z').toISOString();
+      return convertToIST(trimmedValue);
     }
     
     // Handle DD/MM/YYYY format
     if (trimmedValue.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
       console.log('✅ DD/MM/YYYY format detected');
       const [day, month, year] = trimmedValue.split('/');
-      const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00Z`;
+      const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
       console.log('✅ Converted to:', formattedDate);
-      return new Date(formattedDate).toISOString();
+      return convertToIST(formattedDate);
     }
     
     // Handle MM/DD/YYYY format (American style)
     if (trimmedValue.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/) && trimmedValue.indexOf('/') !== -1) {
       console.log('✅ Attempting MM/DD/YYYY format');
       const [month, day, year] = trimmedValue.split('/');
-      const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00Z`;
+      const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
       console.log('✅ Converted to:', formattedDate);
-      return new Date(formattedDate).toISOString();
+      return convertToIST(formattedDate);
     }
     
     // Handle DD-MM-YYYY format
     if (trimmedValue.match(/^\d{1,2}-\d{1,2}-\d{4}$/)) {
       console.log('✅ DD-MM-YYYY format detected');
       const [day, month, year] = trimmedValue.split('-');
-      const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00Z`;
+      const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
       console.log('✅ Converted to:', formattedDate);
-      return new Date(formattedDate).toISOString();
+      return convertToIST(formattedDate);
     }
     
     // Handle ISO format with time
     if (trimmedValue.includes('T') || trimmedValue.includes('Z')) {
       console.log('✅ ISO format detected');
-      const parsed = new Date(trimmedValue);
-      if (!isNaN(parsed.getTime())) {
-        return parsed.toISOString();
-      }
+      return convertToIST(trimmedValue);
     }
     
     // Try general Date parsing as fallback
     const parsed = new Date(trimmedValue);
     if (!isNaN(parsed.getTime())) {
       console.log('✅ Successfully parsed with Date constructor');
-      return parsed.toISOString();
+      return convertToIST(parsed);
     }
     
-    console.log('⚠️ String date parsing failed for:', trimmedValue, 'using current date');
+    console.log('⚠️ String date parsing failed for:', trimmedValue, 'using current IST date');
   }
   
   // If it's a number (Excel serial date), convert it
@@ -144,13 +142,13 @@ const parseDate = (dateValue) => {
     const excelEpoch = new Date(1900, 0, 1);
     const msPerDay = 24 * 60 * 60 * 1000;
     const date = new Date(excelEpoch.getTime() + (dateValue - 2) * msPerDay);
-    console.log('✅ Excel date converted to:', date.toISOString());
-    return date.toISOString();
+    console.log('✅ Excel date converted to IST:', convertToIST(date));
+    return convertToIST(date);
   }
   
-  // Default to current date if parsing fails
-  console.log('⚠️ All parsing methods failed, using current date');
-  return new Date().toISOString();
+  // Default to current IST date if parsing fails
+  console.log('⚠️ All parsing methods failed, using current IST date');
+  return convertToIST(new Date());
 };
 
 // Helper function to parse both CSV and Excel files
@@ -429,8 +427,10 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
           
           // Bulk upload metadata
           bulk_upload: true,
-          bulk_upload_date: new Date().toISOString(),
-          bulk_upload_user: req.user.email
+          bulk_upload_date: convertToIST(new Date()),
+          bulk_upload_user: req.user.email,
+          created_date: convertToIST(new Date()),
+          updated_date: convertToIST(new Date())
         };
 
         // Validate required fields
@@ -532,7 +532,7 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
                 : existingEvents;
                 
               leadData.client_first_contact = clientInfo.first_contact;
-              leadData.client_last_activity = new Date().toISOString();
+              leadData.client_last_activity = convertToIST(new Date());
               
               console.log(`✅ Row ${index + 1}: Smart client metadata applied`);
               
@@ -546,7 +546,7 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
               if (leadData.lead_for_event) {
                 leadData.client_events = [leadData.lead_for_event];
               }
-              leadData.client_first_contact = leadData.date_of_enquiry || new Date().toISOString();
+              leadData.client_first_contact = leadData.date_of_enquiry || convertToIST(new Date());
             }
             
           } catch (clientError) {
@@ -567,7 +567,7 @@ router.post('/leads/csv', authenticateToken, csvUpload.single('file'), async (re
             await Lead.updateClientMetadata(clientDetectionResult.client_id, {
               client_total_leads: clientDetectionResult.total_existing_leads + 1,
               client_events: leadData.client_events,
-              client_last_activity: new Date().toISOString()
+              client_last_activity: convertToIST(new Date())
             });
             console.log(`✅ Row ${index + 1}: Updated existing client metadata`);
           } catch (updateError) {
@@ -776,8 +776,8 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
           
           // Metadata
           created_by: req.user.name,
-          created_date: new Date().toISOString(),
-          updated_date: new Date().toISOString()
+          created_date: convertToIST(new Date()),
+          updated_date: convertToIST(new Date())
         };
 
         console.log(`Creating inventory: ${eventInfo.event_name} with ${categories.length} categories`);
@@ -801,8 +801,8 @@ router.post('/inventory/csv', authenticateToken, csvUpload.single('file'), async
                 amount: pendingAmount,
                 dueDate: inventoryData.paymentDueDate || null,
                 status: 'pending',
-                created_date: new Date().toISOString(),
-                updated_date: new Date().toISOString(),
+                created_date: convertToIST(new Date()),
+                updated_date: convertToIST(new Date()),
                 createdBy: req.user.id,
                 description: `Payment for inventory: ${inventoryData.event_name}`,
                 payment_notes: `Created from CSV import - ${categories.length} categories`
