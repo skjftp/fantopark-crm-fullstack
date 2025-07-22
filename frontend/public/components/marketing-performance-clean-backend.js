@@ -246,6 +246,12 @@ function MarketingPerformanceBackend() {
             )
         ),
         
+        // Performance Charts Section
+        React.createElement(MarketingPerformanceCharts, {
+            filters: state.filters,
+            loading: state.loading
+        }),
+        
         // Table container with unique key
         React.createElement('div', { 
             className: 'bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden',
@@ -427,6 +433,344 @@ window.exportMarketingData = (marketingData, totals) => {
     link.download = `marketing-performance-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
 };
+
+// Marketing Performance Charts Component
+function MarketingPerformanceCharts({ filters, loading }) {
+    const [chartData, setChartData] = React.useState({
+        daily: null,
+        weekly: null,
+        loading: true,
+        error: null,
+        activeTab: 'daily'
+    });
+    
+    // Fetch time-series data
+    const fetchChartData = async () => {
+        try {
+            setChartData(prev => ({ ...prev, loading: true, error: null }));
+            
+            // Fetch both daily and weekly data in parallel
+            const [dailyResponse, weeklyResponse] = await Promise.all([
+                window.apiCall(`/marketing/performance-timeseries?${new URLSearchParams({
+                    ...filters,
+                    date_from: filters.dateFrom,
+                    date_to: filters.dateTo,
+                    event: filters.event === 'all' ? '' : filters.event,
+                    source: filters.source === 'all' ? '' : filters.source,
+                    ad_set: filters.adSet === 'all' ? '' : filters.adSet,
+                    granularity: 'daily'
+                })}`),
+                window.apiCall(`/marketing/performance-timeseries?${new URLSearchParams({
+                    ...filters,
+                    date_from: filters.dateFrom,
+                    date_to: filters.dateTo,
+                    event: filters.event === 'all' ? '' : filters.event,
+                    source: filters.source === 'all' ? '' : filters.source,
+                    ad_set: filters.adSet === 'all' ? '' : filters.adSet,
+                    granularity: 'weekly'
+                })}`)
+            ]);
+            
+            if (!dailyResponse.success || !weeklyResponse.success) {
+                throw new Error('Failed to fetch chart data');
+            }
+            
+            setChartData({
+                daily: dailyResponse.data,
+                weekly: weeklyResponse.data,
+                loading: false,
+                error: null,
+                activeTab: chartData.activeTab
+            });
+            
+            // Create the charts
+            setTimeout(() => {
+                createPerformanceCharts(dailyResponse.data, weeklyResponse.data, chartData.activeTab);
+            }, 100);
+            
+        } catch (error) {
+            console.error('Error fetching chart data:', error);
+            setChartData(prev => ({ ...prev, loading: false, error: error.message }));
+        }
+    };
+    
+    // Create charts using Chart.js
+    const createPerformanceCharts = (dailyData, weeklyData, activeTab) => {
+        const data = activeTab === 'daily' ? dailyData : weeklyData;
+        if (!data || !data.series || data.series.length === 0) return;
+        
+        // Leads Chart
+        const leadsCtx = document.getElementById('marketing-leads-chart');
+        if (leadsCtx) {
+            const existingChart = Chart.getChart(leadsCtx);
+            if (existingChart) existingChart.destroy();
+            
+            new Chart(leadsCtx, {
+                type: 'line',
+                data: {
+                    labels: data.series.map(d => new Date(d.date).toLocaleDateString()),
+                    datasets: [
+                        {
+                            label: 'Facebook Leads',
+                            data: data.series.map(d => d.Facebook.leads),
+                            borderColor: '#1877f2',
+                            backgroundColor: 'rgba(24, 119, 242, 0.1)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Instagram Leads',
+                            data: data.series.map(d => d.Instagram.leads),
+                            borderColor: '#E4405F',
+                            backgroundColor: 'rgba(228, 64, 95, 0.1)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Total Leads',
+                            data: data.series.map(d => d.total.leads),
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${activeTab === 'daily' ? 'Day-on-Day' : 'Week-on-Week'} Lead Generation`
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Leads'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Conversion Metrics Chart
+        const metricsCtx = document.getElementById('marketing-metrics-chart');
+        if (metricsCtx) {
+            const existingChart = Chart.getChart(metricsCtx);
+            if (existingChart) existingChart.destroy();
+            
+            new Chart(metricsCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.series.map(d => new Date(d.date).toLocaleDateString()),
+                    datasets: [
+                        {
+                            label: 'FB Qualified %',
+                            data: data.series.map(d => 
+                                d.Facebook.touchBased > 0 ? (d.Facebook.qualified / d.Facebook.touchBased * 100).toFixed(2) : 0
+                            ),
+                            backgroundColor: 'rgba(24, 119, 242, 0.7)',
+                            stack: 'Facebook'
+                        },
+                        {
+                            label: 'FB Converted %',
+                            data: data.series.map(d => 
+                                d.Facebook.touchBased > 0 ? (d.Facebook.converted / d.Facebook.touchBased * 100).toFixed(2) : 0
+                            ),
+                            backgroundColor: 'rgba(24, 119, 242, 0.5)',
+                            stack: 'Facebook'
+                        },
+                        {
+                            label: 'IG Qualified %',
+                            data: data.series.map(d => 
+                                d.Instagram.touchBased > 0 ? (d.Instagram.qualified / d.Instagram.touchBased * 100).toFixed(2) : 0
+                            ),
+                            backgroundColor: 'rgba(228, 64, 95, 0.7)',
+                            stack: 'Instagram'
+                        },
+                        {
+                            label: 'IG Converted %',
+                            data: data.series.map(d => 
+                                d.Instagram.touchBased > 0 ? (d.Instagram.converted / d.Instagram.touchBased * 100).toFixed(2) : 0
+                            ),
+                            backgroundColor: 'rgba(228, 64, 95, 0.5)',
+                            stack: 'Instagram'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${activeTab === 'daily' ? 'Daily' : 'Weekly'} Conversion Metrics`
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Percentage (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Performance Change Chart
+        const changeCtx = document.getElementById('marketing-change-chart');
+        if (changeCtx) {
+            const existingChart = Chart.getChart(changeCtx);
+            if (existingChart) existingChart.destroy();
+            
+            new Chart(changeCtx, {
+                type: 'line',
+                data: {
+                    labels: data.series.map(d => new Date(d.date).toLocaleDateString()),
+                    datasets: [
+                        {
+                            label: 'Facebook Lead Change %',
+                            data: data.series.map(d => parseFloat(d.changes.Facebook.leads)),
+                            borderColor: '#1877f2',
+                            backgroundColor: 'rgba(24, 119, 242, 0.1)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Instagram Lead Change %',
+                            data: data.series.map(d => parseFloat(d.changes.Instagram.leads)),
+                            borderColor: '#E4405F',
+                            backgroundColor: 'rgba(228, 64, 95, 0.1)',
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${activeTab === 'daily' ? 'Day-on-Day' : 'Week-on-Week'} Performance Change`
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Change %'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    };
+    
+    // Fetch data when filters change
+    React.useEffect(() => {
+        if (!loading) {
+            fetchChartData();
+        }
+    }, [filters, loading]);
+    
+    // Re-create charts when tab changes
+    React.useEffect(() => {
+        if (chartData.daily && chartData.weekly && !chartData.loading) {
+            createPerformanceCharts(chartData.daily, chartData.weekly, chartData.activeTab);
+        }
+    }, [chartData.activeTab]);
+    
+    if (chartData.loading) {
+        return React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center' },
+            React.createElement('div', { className: 'inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white' }),
+            React.createElement('p', { className: 'mt-2 text-gray-600' }, 'Loading performance charts...')
+        );
+    }
+    
+    if (chartData.error) {
+        return React.createElement('div', { className: 'bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg p-4' },
+            React.createElement('p', { className: 'text-red-700 dark:text-red-300' }, 'Error loading charts: ', chartData.error)
+        );
+    }
+    
+    return React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-6' },
+        // Header with tabs
+        React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+            React.createElement('h2', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
+                'Performance Trends'
+            ),
+            React.createElement('div', { className: 'flex gap-2' },
+                React.createElement('button', {
+                    onClick: () => setChartData(prev => ({ ...prev, activeTab: 'daily' })),
+                    className: `px-4 py-2 rounded-lg ${chartData.activeTab === 'daily' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'}`
+                }, 'Daily'),
+                React.createElement('button', {
+                    onClick: () => setChartData(prev => ({ ...prev, activeTab: 'weekly' })),
+                    className: `px-4 py-2 rounded-lg ${chartData.activeTab === 'weekly' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'}`
+                }, 'Weekly')
+            )
+        ),
+        
+        // Charts grid
+        React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-3 gap-6' },
+            // Leads Chart
+            React.createElement('div', { className: 'h-64' },
+                React.createElement('canvas', { id: 'marketing-leads-chart' })
+            ),
+            // Metrics Chart
+            React.createElement('div', { className: 'h-64' },
+                React.createElement('canvas', { id: 'marketing-metrics-chart' })
+            ),
+            // Change Chart
+            React.createElement('div', { className: 'h-64' },
+                React.createElement('canvas', { id: 'marketing-change-chart' })
+            )
+        ),
+        
+        // Summary stats
+        chartData[chartData.activeTab] && React.createElement('div', { className: 'mt-4 grid grid-cols-3 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700' },
+            React.createElement('div', { className: 'text-center' },
+                React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Total Facebook Leads'),
+                React.createElement('p', { className: 'text-2xl font-bold text-blue-600' }, 
+                    chartData[chartData.activeTab].summary.facebookLeads
+                )
+            ),
+            React.createElement('div', { className: 'text-center' },
+                React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Total Instagram Leads'),
+                React.createElement('p', { className: 'text-2xl font-bold text-pink-600' }, 
+                    chartData[chartData.activeTab].summary.instagramLeads
+                )
+            ),
+            React.createElement('div', { className: 'text-center' },
+                React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 'Total Meta Leads'),
+                React.createElement('p', { className: 'text-2xl font-bold text-green-600' }, 
+                    chartData[chartData.activeTab].summary.totalLeads
+                )
+            )
+        )
+    );
+}
 
 // Single render function - proper React component pattern
 // Directly return the component without memoization to avoid duplicate declaration

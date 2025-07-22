@@ -349,6 +349,53 @@ class FacebookInsightsService {
     }
   }
 
+  // Get time-series insights for charting
+  async getTimeSeriesInsights(dateFrom, dateTo, granularity = 'daily') {
+    try {
+      console.log('📊 Getting time-series insights:', { dateFrom, dateTo, granularity });
+      
+      // For now, return empty data structure
+      // This would need to be implemented with actual Facebook API calls
+      // to get daily/weekly breakdown of impressions, clicks, and spend
+      const timeSeriesData = {};
+      
+      // Create date range
+      const startDate = new Date(dateFrom);
+      const endDate = new Date(dateTo);
+      const currentDate = new Date(startDate);
+      
+      while (currentDate <= endDate) {
+        const dateKey = currentDate.toISOString().split('T')[0];
+        
+        timeSeriesData[dateKey] = {
+          Facebook: {
+            impressions: 0,
+            clicks: 0,
+            spend: 0
+          },
+          Instagram: {
+            impressions: 0,
+            clicks: 0,
+            spend: 0
+          }
+        };
+        
+        // Move to next day/week
+        if (granularity === 'weekly') {
+          currentDate.setDate(currentDate.getDate() + 7);
+        } else {
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+      }
+      
+      return timeSeriesData;
+      
+    } catch (error) {
+      console.error('❌ Error getting time-series insights:', error);
+      return {};
+    }
+  }
+
   // Clear cache
   clearCache() {
     this.cache.clear();

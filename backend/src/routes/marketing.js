@@ -478,6 +478,226 @@ router.get('/facebook-adsets', authenticateToken, checkPermission('finance', 're
   }
 });
 
+// Get time-series data for marketing performance charts
+router.get('/performance-timeseries', authenticateToken, checkPermission('finance', 'read'), async (req, res) => {
+  try {
+    const { date_from, date_to, event, source, ad_set, granularity = 'daily' } = req.query;
+    
+    console.log('📊 Fetching marketing time-series data:', { date_from, date_to, event, source, ad_set, granularity });
+    
+    // Build query for leads
+    let query = db.collection(collections.leads);
+    
+    // Apply date filters
+    if (date_from) {
+      const fromDate = formatDateForQuery(date_from, 'start');
+      query = query.where('date_of_enquiry', '>=', fromDate);
+    }
+    if (date_to) {
+      const toDate = formatDateForQuery(date_to, 'end');
+      query = query.where('date_of_enquiry', '<=', toDate);
+    }
+    
+    const leadsSnapshot = await query.get();
+    let allLeads = [];
+    leadsSnapshot.forEach(doc => {
+      allLeads.push({ id: doc.id, ...doc.data() });
+    });
+    
+    // Apply additional filters
+    if (event && event !== 'all') {
+      allLeads = allLeads.filter(lead => 
+        lead.lead_for_event === event || lead.event_name === event
+      );
+    }
+    if (source && source !== 'all') {
+      allLeads = allLeads.filter(lead => lead.source === source);
+    }
+    if (ad_set && ad_set !== 'all') {
+      allLeads = allLeads.filter(lead => 
+        lead.ad_set === ad_set || lead.adset_name === ad_set
+      );
+    }
+    
+    // Filter for Facebook and Instagram leads only
+    const metaLeads = allLeads.filter(lead => 
+      lead.source === 'Facebook' || lead.source === 'Instagram'
+    );
+    
+    // Group leads by date and source
+    const timeSeriesData = {};
+    
+    metaLeads.forEach(lead => {
+      const leadDate = new Date(lead.date_of_enquiry);
+      let dateKey;
+      
+      if (granularity === 'weekly') {
+        // Get start of week (Sunday)
+        const weekStart = new Date(leadDate);
+        weekStart.setDate(leadDate.getDate() - leadDate.getDay());
+        dateKey = weekStart.toISOString().split('T')[0];
+      } else {
+        // Daily granularity
+        dateKey = leadDate.toISOString().split('T')[0];
+      }
+      
+      if (!timeSeriesData[dateKey]) {
+        timeSeriesData[dateKey] = {
+          date: dateKey,
+          Facebook: {
+            leads: 0,
+            qualified: 0,
+            converted: 0,
+            junk: 0,
+            touchBased: 0
+          },
+          Instagram: {
+            leads: 0,
+            qualified: 0,
+            converted: 0,
+            junk: 0,
+            touchBased: 0
+          },
+          total: {
+            leads: 0,
+            qualified: 0,
+            converted: 0,
+            junk: 0,
+            touchBased: 0
+          }
+        };
+      }
+      
+      const source = lead.source;
+      const sourceData = timeSeriesData[dateKey][source];
+      const totalData = timeSeriesData[dateKey].total;
+      
+      if (sourceData) {
+        sourceData.leads++;
+        totalData.leads++;
+        
+        if (touchBasedStatuses.includes(lead.status)) {
+          sourceData.touchBased++;
+          totalData.touchBased++;
+          
+          if (['qualified', 'hot', 'warm', 'cold', 'pickup_later', 'quote_requested', 'quote_received', 'converted', 'invoiced', 'payment_received', 'payment_post_service', 'dropped'].includes(lead.status)) {
+            sourceData.qualified++;
+            totalData.qualified++;
+          }
+          
+          if (['converted', 'invoiced', 'payment_received', 'payment_post_service'].includes(lead.status)) {
+            sourceData.converted++;
+            totalData.converted++;
+          }
+          
+          if (lead.status === 'junk') {
+            sourceData.junk++;
+            totalData.junk++;
+          }
+        }
+      }
+    });
+    
+    // Convert to array and sort by date
+    const series = Object.values(timeSeriesData).sort((a, b) => 
+      new Date(a.date) - new Date(b.date)
+    );
+    
+    // Fetch Facebook Insights for the same period
+    let facebookInsightsData = {};
+    try {
+      const insights = await facebookInsights.getTimeSeriesInsights(date_from, date_to, granularity);
+      
+      // Merge insights data with leads data
+      series.forEach(day => {
+        const insightData = insights[day.date];
+        if (insightData) {
+          if (insightData.Facebook) {
+            day.Facebook.impressions = insightData.Facebook.impressions || 0;
+            day.Facebook.clicks = insightData.Facebook.clicks || 0;
+            day.Facebook.spend = insightData.Facebook.spend || 0;
+          }
+          if (insightData.Instagram) {
+            day.Instagram.impressions = insightData.Instagram.impressions || 0;
+            day.Instagram.clicks = insightData.Instagram.clicks || 0;
+            day.Instagram.spend = insightData.Instagram.spend || 0;
+          }
+        }
+      });
+      
+      facebookInsightsData = insights;
+    } catch (fbError) {
+      console.error('⚠️ Could not fetch Facebook insights for time series:', fbError.message);
+    }
+    
+    // Calculate week-on-week or day-on-day changes
+    const changes = series.map((current, index) => {
+      if (index === 0) {
+        return {
+          ...current,
+          changes: {
+            Facebook: { leads: 0, qualified: 0, converted: 0 },
+            Instagram: { leads: 0, qualified: 0, converted: 0 },
+            total: { leads: 0, qualified: 0, converted: 0 }
+          }
+        };
+      }
+      
+      const previous = series[index - 1];
+      const calculateChange = (current, previous) => {
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return ((current - previous) / previous * 100).toFixed(2);
+      };
+      
+      return {
+        ...current,
+        changes: {
+          Facebook: {
+            leads: calculateChange(current.Facebook.leads, previous.Facebook.leads),
+            qualified: calculateChange(current.Facebook.qualified, previous.Facebook.qualified),
+            converted: calculateChange(current.Facebook.converted, previous.Facebook.converted)
+          },
+          Instagram: {
+            leads: calculateChange(current.Instagram.leads, previous.Instagram.leads),
+            qualified: calculateChange(current.Instagram.qualified, previous.Instagram.qualified),
+            converted: calculateChange(current.Instagram.converted, previous.Instagram.converted)
+          },
+          total: {
+            leads: calculateChange(current.total.leads, previous.total.leads),
+            qualified: calculateChange(current.total.qualified, previous.total.qualified),
+            converted: calculateChange(current.total.converted, previous.total.converted)
+          }
+        }
+      };
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        series: changes,
+        summary: {
+          totalLeads: metaLeads.length,
+          facebookLeads: metaLeads.filter(l => l.source === 'Facebook').length,
+          instagramLeads: metaLeads.filter(l => l.source === 'Instagram').length,
+          dateRange: {
+            from: date_from,
+            to: date_to
+          },
+          granularity
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fetching marketing time-series:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching marketing time-series data',
+      error: error.message
+    });
+  }
+});
+
 // Test Facebook API connection and permissions
 router.get('/test-facebook-connection', authenticateToken, checkPermission('finance', 'read'), async (req, res) => {
   try {
