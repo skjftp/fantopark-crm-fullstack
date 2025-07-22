@@ -259,8 +259,9 @@ function calculateChartMetrics(leads) {
     if (status === 'hot' || 
         ((status === 'quote_requested' || status === 'quote_received') && temperature === 'hot')) {
       hotCount++;
-      // Always add to hotValue when status is hot
-      if (status === 'hot') {
+      // Add to hotValue for hot status OR quote statuses with hot temperature
+      if (status === 'hot' || 
+          ((status === 'quote_requested' || status === 'quote_received') && temperature === 'hot')) {
         hotValue += potentialValue;
       }
     }
@@ -268,23 +269,28 @@ function calculateChartMetrics(leads) {
     else if (status === 'warm' || 
              ((status === 'quote_requested' || status === 'quote_received') && temperature === 'warm')) {
       warmCount++;
-      // Always add to warmValue when status is warm
-      if (status === 'warm') {
+      // Add to warmValue for warm status OR quote statuses with warm temperature
+      if (status === 'warm' || 
+          ((status === 'quote_requested' || status === 'quote_received') && temperature === 'warm')) {
         warmValue += potentialValue;
       }
     }
-    // Cold: only count temperature-based cold (not status-based)
-    else if (temperature === 'cold') {
+    // Cold: status is cold OR (status is quote_requested/quote_received AND temperature is cold)
+    else if (status === 'cold' || 
+             ((status === 'quote_requested' || status === 'quote_received') && temperature === 'cold')) {
       coldCount++;
-      // Always add to coldValue when status is cold
-      if (status === 'cold') {
+      // Add to coldValue for cold status OR quote statuses with cold temperature
+      if (status === 'cold' || 
+          ((status === 'quote_requested' || status === 'quote_received') && temperature === 'cold')) {
         coldValue += potentialValue;
       }
     }
     
-    // Pipeline value calculation - only for hot, warm, cold statuses
+    // Pipeline value calculation - includes hot/warm/cold statuses AND quote statuses with temperature
     // This matches the temperature value pie chart
-    if (status === 'hot' || status === 'warm' || status === 'cold') {
+    if (status === 'hot' || status === 'warm' || status === 'cold' ||
+        ((status === 'quote_requested' || status === 'quote_received') && 
+         (temperature === 'hot' || temperature === 'warm' || temperature === 'cold'))) {
       totalPipelineValue += potentialValue;
     }
   });
