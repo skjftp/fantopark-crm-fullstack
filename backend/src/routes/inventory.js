@@ -785,8 +785,12 @@ router.post('/:id/allocate', authenticateToken, checkPermission('inventory', 'wr
     }
     
     const leadData = leadDoc.data();
-    if (leadData.status !== 'converted') {
-      return res.status(400).json({ error: 'Lead must be in converted status to allocate inventory' });
+    // Allow allocation for converted and payment-related statuses
+    const allowedStatuses = ['converted', 'payment_received', 'payment_post_service'];
+    if (!allowedStatuses.includes(leadData.status)) {
+      return res.status(400).json({ 
+        error: `Lead must be in one of these statuses to allocate inventory: ${allowedStatuses.join(', ')}. Current status: ${leadData.status}` 
+      });
     }
     
     const inventoryDoc = await db.collection('crm_inventory').doc(id).get();
