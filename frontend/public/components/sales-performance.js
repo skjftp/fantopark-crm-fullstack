@@ -14,6 +14,8 @@ function SalesPerformanceTracker() {
   const [allUsers, setAllUsers] = React.useState([]);
   const [showUserModal, setShowUserModal] = React.useState(false);
   const [modalType, setModalType] = React.useState('sales'); // 'sales' or 'retail'
+  const [period, setPeriod] = React.useState('lifetime'); // Default to lifetime
+  const [availablePeriods, setAvailablePeriods] = React.useState([]);
   // Calculate last 7 days date range
 const getDefaultDateRange = () => {
   const endDate = new Date();
@@ -54,14 +56,31 @@ const fetchAllUsers = async () => {
   }
 };
 
+// Fetch available periods
+const fetchPeriods = async () => {
+  try {
+    const token = localStorage.getItem('crm_auth_token');
+    const response = await fetch(`${window.API_CONFIG.API_URL}/sales-performance/periods`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      setAvailablePeriods(result.periods || []);
+    }
+  } catch (error) {
+    console.error('Error fetching periods:', error);
+  }
+};
+
  // Fetch sales performance data
 const fetchSalesPerformance = async () => {
   setLoading(true);
   try {
     const token = localStorage.getItem('crm_auth_token');
     
-    // Fetch sales team data - remove /api prefix
-    const salesResponse = await fetch(`${window.API_CONFIG.API_URL}/sales-performance`, {
+    // Fetch sales team data with period filter
+    const salesResponse = await fetch(`${window.API_CONFIG.API_URL}/sales-performance?period=${period}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
@@ -122,8 +141,16 @@ const fetchSalesPerformance = async () => {
   // Fetch data on component mount
   React.useEffect(() => {
     fetchAllUsers();
+    fetchPeriods();
     fetchSalesPerformance();
   }, []);
+  
+  // Refetch when period changes
+  React.useEffect(() => {
+    if (period) {
+      fetchSalesPerformance();
+    }
+  }, [period]);
 
   // Refresh retail data when date range changes
   React.useEffect(() => {
@@ -443,6 +470,18 @@ if (loading) {
       React.createElement('div', { className: 'text-center mb-8' },
         React.createElement('h1', { className: 'text-3xl font-bold text-gray-900' }, 
           'Sales Team Performance/Productivity Tracking'
+        ),
+        // Period Filter
+        React.createElement('div', { className: 'mt-4' },
+          React.createElement('select', {
+            value: period,
+            onChange: (e) => setPeriod(e.target.value),
+            className: 'px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+          },
+            availablePeriods.map(p => 
+              React.createElement('option', { key: p.value, value: p.value }, p.label)
+            )
+          )
         )
       ),
 

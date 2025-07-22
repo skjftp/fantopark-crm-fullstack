@@ -32,22 +32,83 @@ function getRetailCacheKey(start_date, end_date) {
   return `${start_date || 'all'}_${end_date || 'all'}`;
 }
 
+// Helper function to get date range based on period
+function getDateRange(period) {
+  const now = new Date();
+  let startDate = null;
+  let endDate = null;
+  
+  switch(period) {
+    case 'current_fy':
+      // Indian FY: April 1 to March 31
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const fyYear = currentMonth >= 3 ? currentYear : currentYear - 1;
+      startDate = new Date(fyYear, 3, 1); // April 1
+      break;
+      
+    case 'previous_fy':
+      const prevMonth = now.getMonth();
+      const prevYear = now.getFullYear();
+      const prevFyYear = prevMonth >= 3 ? prevYear - 1 : prevYear - 2;
+      startDate = new Date(prevFyYear, 3, 1);
+      endDate = new Date(prevFyYear + 1, 2, 31); // March 31
+      break;
+      
+    case 'current_quarter':
+      const quarter = Math.floor(now.getMonth() / 3);
+      startDate = new Date(now.getFullYear(), quarter * 3, 1);
+      break;
+      
+    case 'previous_quarter':
+      const prevQuarter = Math.floor(now.getMonth() / 3) - 1;
+      const year = prevQuarter < 0 ? now.getFullYear() - 1 : now.getFullYear();
+      const actualQuarter = prevQuarter < 0 ? 3 : prevQuarter;
+      startDate = new Date(year, actualQuarter * 3, 1);
+      endDate = new Date(year, (actualQuarter + 1) * 3, 0);
+      break;
+      
+    case 'last_3_months':
+      startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 3);
+      break;
+      
+    case 'last_6_months':
+      startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 6);
+      break;
+      
+    case 'lifetime':
+    default:
+      return { startDate: null, endDate: null };
+  }
+  
+  return { startDate, endDate: endDate || now };
+}
+
 // GET sales team performance data - SHOWS ONLY MEMBERS IN sales_performance_members
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    // Check if we have valid cached data
-    if (isCacheValid(performanceCache.salesDataTimestamp)) {
-      // console.log('📊 Returning cached sales performance data');
+    const period = req.query.period || 'lifetime'; // Default to lifetime
+    const cacheKey = `sales_${period}`;
+    
+    // Check if we have valid cached data for this period
+    if (performanceCache[cacheKey] && isCacheValid(performanceCache[`${cacheKey}_timestamp`])) {
+      // console.log(`📊 Returning cached sales performance data for period: ${period}`);
       return res.json({
         success: true,
-        salesTeam: performanceCache.salesData,
+        salesTeam: performanceCache[cacheKey],
+        period: period,
         cached: true,
-        cacheAge: Math.round((Date.now() - performanceCache.salesDataTimestamp) / 1000 / 60) + ' minutes'
+        cacheAge: Math.round((Date.now() - performanceCache[`${cacheKey}_timestamp`]) / 1000 / 60) + ' minutes'
       });
     }
 
-    console.log('📊 Cache expired or not found, fetching fresh sales performance data...');
+    console.log(`📊 Cache expired or not found, fetching fresh sales performance data for period: ${period}`);
     const startTime = Date.now();
+    
+    // Get date range based on period
+    const { startDate, endDate } = getDateRange(period);
     
     // 1. Get sales performance members first
     const salesMembersSnapshot = await db.collection('sales_performance_members').get();
@@ -75,23 +136,33 @@ router.get('/', authenticateToken, async (req, res) => {
       emailToName.set(userData.email, userData.name);
     });
     
-    // 2. Get orders from last 3 months only (for performance)
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    
+    // 2. Get orders based on date range
     let allOrdersSnapshot;
-    try {
-      // Try with date filter first
-      const threeMonthsAgoIST = convertToIST(threeMonthsAgo);
-      allOrdersSnapshot = await db.collection(collections.orders)
-        .where('created_date', '>=', threeMonthsAgoIST)
-        .get();
-      console.log(`Found ${allOrdersSnapshot.size} orders from last 3 months`);
-    } catch (err) {
-      // If date filter fails, get all orders
-      console.log('Date filter failed, fetching all orders');
+    let ordersQuery = db.collection(collections.orders);
+    
+    // Apply date filters if not lifetime
+    if (startDate) {
+      try {
+        const startDateIST = convertToIST(startDate);
+        ordersQuery = ordersQuery.where('created_date', '>=', startDateIST);
+        
+        if (endDate) {
+          const endDateIST = convertToIST(endDate);
+          ordersQuery = ordersQuery.where('created_date', '<=', endDateIST);
+        }
+        
+        allOrdersSnapshot = await ordersQuery.get();
+        console.log(`Found ${allOrdersSnapshot.size} orders for period: ${period}`);
+      } catch (err) {
+        // If date filter fails, get all orders
+        console.log('Date filter failed, fetching all orders');
+        allOrdersSnapshot = await db.collection(collections.orders).get();
+        console.log(`Found ${allOrdersSnapshot.size} total orders`);
+      }
+    } else {
+      // Lifetime - get all orders
       allOrdersSnapshot = await db.collection(collections.orders).get();
-      console.log(`Found ${allOrdersSnapshot.size} total orders`);
+      console.log(`Found ${allOrdersSnapshot.size} total orders (lifetime)`);
     }
     
     // 3. Get active leads only (not converted/junk)
@@ -304,13 +375,14 @@ router.get('/', authenticateToken, async (req, res) => {
     console.log(`Orders WITHOUT buying_price: ${ordersWithoutBuyingPrice} (${((ordersWithoutBuyingPrice / totalOrdersProcessed) * 100).toFixed(1)}%)`);
     console.log('This is why margin equals sales for many users!\n');
     
-    // Update cache
-    performanceCache.salesData = salesTeam;
-    performanceCache.salesDataTimestamp = Date.now();
+    // Update cache for this period
+    performanceCache[cacheKey] = salesTeam;
+    performanceCache[`${cacheKey}_timestamp`] = Date.now();
     
     res.json({
       success: true,
       salesTeam: salesTeam,
+      period: period,
       responseTime: endTime - startTime,
       cached: false
     });
@@ -790,6 +862,32 @@ router.post('/update-sales-person-field', authenticateToken, async (req, res) =>
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// GET available periods for filtering
+router.get('/periods', authenticateToken, async (req, res) => {
+  try {
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    const currentFY = currentMonth >= 3 ? currentYear : currentYear - 1;
+    
+    res.json({
+      success: true,
+      periods: [
+        { value: 'lifetime', label: 'Lifetime', default: true },
+        { value: 'current_fy', label: `FY ${currentFY}-${(currentFY + 1).toString().substr(-2)}` },
+        { value: 'previous_fy', label: `FY ${currentFY - 1}-${currentFY.toString().substr(-2)}` },
+        { value: 'current_quarter', label: 'Current Quarter' },
+        { value: 'previous_quarter', label: 'Previous Quarter' },
+        { value: 'last_6_months', label: 'Last 6 Months' },
+        { value: 'last_3_months', label: 'Last 3 Months' }
+      ]
+    });
+  } catch (error) {
+    console.error('Error fetching periods:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
