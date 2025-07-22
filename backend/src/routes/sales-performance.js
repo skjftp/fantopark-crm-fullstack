@@ -390,8 +390,14 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
           metrics.qualified++;
         }
         
-        // Hot/Warm: temperature-based (keeping this as-is per request)
-        if (lead.temperature === 'hot' || lead.temperature === 'warm') {
+        // Hot/Warm: New unified logic
+        // Count if status is hot/warm OR (status is quote_requested/quote_received AND temperature is hot/warm)
+        const status = (lead.status || '').toLowerCase();
+        const temperature = (lead.temperature || '').toLowerCase();
+        
+        if (status === 'hot' || status === 'warm' ||
+            ((status === 'quote_requested' || status === 'quote_received') && 
+             (temperature === 'hot' || temperature === 'warm'))) {
           metrics.hotWarm++;
         }
         

@@ -252,19 +252,25 @@ function calculateChartMetrics(leads) {
       junkCount++;
     }
     
-    // Temperature Count calculations - matching marketing logic
-    // Hot: count if temperature is hot OR status is hot
-    if (temperature === 'hot' || status === 'hot') {
+    // Temperature Count calculations - new unified logic
+    // Hot: status is hot OR (status is quote_requested/quote_received AND temperature is hot)
+    if (status === 'hot' || 
+        ((status === 'quote_requested' || status === 'quote_received') && temperature === 'hot')) {
       hotCount++;
       if (!excludedStatuses.includes(status)) {
         hotValue += potentialValue;
       }
-    } else if (temperature === 'warm' || status === 'warm') {
+    }
+    // Warm: status is warm OR (status is quote_requested/quote_received AND temperature is warm)
+    else if (status === 'warm' || 
+             ((status === 'quote_requested' || status === 'quote_received') && temperature === 'warm')) {
       warmCount++;
       if (!excludedStatuses.includes(status)) {
         warmValue += potentialValue;
       }
-    } else if (temperature === 'cold' || status === 'cold') {
+    }
+    // Cold: only count temperature-based cold (not status-based)
+    else if (temperature === 'cold') {
       coldCount++;
       if (!excludedStatuses.includes(status)) {
         coldValue += potentialValue;
@@ -278,6 +284,7 @@ function calculateChartMetrics(leads) {
   });
   
   console.log(`📊 Final counts - Qualified: ${qualifiedCount}, Junk: ${junkCount}, Hot: ${hotCount}, Warm: ${warmCount}, Cold: ${coldCount}`);
+  console.log(`📊 Hot+Warm combined would be: ${hotCount + warmCount}`);
   
   return {
     leadSplit: {
