@@ -90,10 +90,11 @@ function getDateRange(period) {
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const period = req.query.period || 'lifetime'; // Default to lifetime
+    const forceRefresh = req.query.force === 'true'; // Force refresh parameter
     const cacheKey = `sales_${period}`;
     
-    // Check if we have valid cached data for this period
-    if (performanceCache[cacheKey] && isCacheValid(performanceCache[`${cacheKey}_timestamp`])) {
+    // Check if we have valid cached data for this period (and not currently clearing cache or forcing refresh)
+    if (!forceRefresh && !performanceCache.clearingInProgress && performanceCache[cacheKey] && isCacheValid(performanceCache[`${cacheKey}_timestamp`])) {
       // console.log(`📊 Returning cached sales performance data for period: ${period}`);
       return res.json({
         success: true,
@@ -923,20 +924,37 @@ router.post('/clear-cache', authenticateToken, async (req, res) => {
     // Clear all cache data
     const clearedCaches = [];
     
-    // Clear sales performance caches
+    // Get all current cache keys before clearing
+    const cacheKeysBefore = Object.keys(performanceCache);
+    console.log('📊 Cache keys before clearing:', cacheKeysBefore);
+    
+    // Clear ALL sales performance caches (more aggressive)
     Object.keys(performanceCache).forEach(key => {
-      if (key.startsWith('sales_')) {
+      if (key.startsWith('sales_') || key === 'salesData' || key === 'salesDataTimestamp') {
+        const oldValue = performanceCache[key];
         delete performanceCache[key];
-        clearedCaches.push(key);
+        if (oldValue) {
+          clearedCaches.push(key);
+        }
       }
     });
     
-    // Clear legacy cache
+    // Force clear legacy cache
     performanceCache.salesData = null;
     performanceCache.salesDataTimestamp = null;
     
     // Clear retail data cache
+    const retailSize = performanceCache.retailData.size;
     performanceCache.retailData.clear();
+    if (retailSize > 0) {
+      clearedCaches.push(`retailData(${retailSize} entries)`);
+    }
+    
+    // Add a cache invalidation flag to prevent immediate repopulation
+    performanceCache.clearingInProgress = true;
+    setTimeout(() => {
+      delete performanceCache.clearingInProgress;
+    }, 2000); // 2 second delay to prevent immediate cache repopulation
     
     console.log(`🧹 Cache cleared by super admin: ${userEmail}`);
     console.log(`🧹 Cleared cache keys: ${clearedCaches.join(', ')}`);

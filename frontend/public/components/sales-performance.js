@@ -106,8 +106,8 @@ const clearCache = async () => {
     
     if (response.ok) {
       alert('Cache cleared successfully! Data will be refreshed.');
-      // Refresh the data
-      await fetchSalesPerformance();
+      // Force refresh the data (bypass any remaining cache)
+      await fetchSalesPerformance('force');
     } else {
       alert(result.error || 'Failed to clear cache');
     }
@@ -125,8 +125,9 @@ const fetchSalesPerformance = async () => {
   try {
     const token = localStorage.getItem('crm_auth_token');
     
-    // Fetch sales team data with period filter
-    const salesResponse = await fetch(`${window.API_CONFIG.API_URL}/sales-performance?period=${period}`, {
+    // Fetch sales team data with period filter (add force parameter if needed)
+    const forceParam = arguments[0] === 'force' ? '&force=true' : '';
+    const salesResponse = await fetch(`${window.API_CONFIG.API_URL}/sales-performance?period=${period}${forceParam}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
