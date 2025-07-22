@@ -104,7 +104,11 @@ router.post('/', authenticateToken, async (req, res) => {
       status: req.body.status || 'pending_approval',
       created_by: req.user.name,
       sales_person: req.body.sales_person || req.user.email, // Add this line
-      created_date: new Date().toISOString()
+      created_date: new Date().toISOString(),
+      // Initialize buying price fields
+      buying_price: parseFloat(req.body.buying_price) || 0,
+      buying_price_inclusions: parseFloat(req.body.buying_price_inclusions) || 0,
+      total_allocated_tickets: 0
     };
     
     // Ensure currency fields are properly set

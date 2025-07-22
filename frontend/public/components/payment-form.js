@@ -795,6 +795,51 @@ window.renderEnhancedPaymentForm = () => {
           )
         ),
 
+        // Inclusions Cost Section
+        React.createElement('div', { className: 'mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200' },
+          React.createElement('h3', { className: 'text-lg font-semibold text-gray-800 mb-4' }, 
+            '🎁 Inclusions Cost (Optional)'
+          ),
+          React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+            React.createElement('div', null,
+              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+                'Cost Price of Inclusions (₹)'
+              ),
+              React.createElement('input', {
+                type: 'number',
+                value: paymentData.buying_price_inclusions || '',
+                onChange: (e) => handlePaymentInputChange('buying_price_inclusions', e.target.value),
+                className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
+                min: 0,
+                step: 0.01,
+                placeholder: 'Enter cost of any inclusions/add-ons'
+              })
+            ),
+            React.createElement('div', { className: 'flex items-center p-3 bg-purple-100 rounded border border-purple-300' },
+              React.createElement('div', null,
+                React.createElement('div', { className: 'text-sm font-medium text-purple-800' }, 
+                  '💡 What are inclusions?'
+                ),
+                React.createElement('div', { className: 'text-xs text-purple-700 mt-1' }, 
+                  'Any additional items provided with tickets (merchandise, food vouchers, transport, etc.)'
+                )
+              )
+            )
+          ),
+          React.createElement('div', { className: 'mt-2' },
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
+              'Inclusions Description'
+            ),
+            React.createElement('textarea', {
+              value: paymentData.inclusions_description || '',
+              onChange: (e) => handlePaymentInputChange('inclusions_description', e.target.value),
+              className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
+              rows: 2,
+              placeholder: 'Describe the inclusions (e.g., Team jersey, VIP lounge access, etc.)'
+            })
+          )
+        ),
+
         // Service Fee Section
         paymentData.type_of_sale === 'Service Fee' && 
           React.createElement('div', { className: 'mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200' },

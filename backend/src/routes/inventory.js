@@ -856,6 +856,21 @@ router.post('/:id/allocate', authenticateToken, checkPermission('inventory', 'wr
     // Update inventory
     await db.collection('crm_inventory').doc(id).update(updateData);
     
+    // Get buying price for allocation
+    let buyingPricePerTicket = 0;
+    if (inventoryData.categories && Array.isArray(inventoryData.categories)) {
+      // For categorized inventory
+      const category = inventoryData.categories.find(cat => cat.name === category_name);
+      if (category) {
+        buyingPricePerTicket = parseFloat(category.buying_price) || 0;
+      }
+    } else {
+      // For legacy inventory
+      buyingPricePerTicket = parseFloat(inventoryData.buying_price) || 0;
+    }
+    
+    const totalBuyingPrice = buyingPricePerTicket * allocatedTickets;
+    
     // Create allocation record
     const allocationData = {
       inventory_id: id,
@@ -868,10 +883,43 @@ router.post('/:id/allocate', authenticateToken, checkPermission('inventory', 'wr
       created_by: req.user.id,
       lead_name: leadData.name,
       lead_email: leadData.email,
-      inventory_event: inventoryData.event_name
+      inventory_event: inventoryData.event_name,
+      buying_price_per_ticket: buyingPricePerTicket,
+      total_buying_price: totalBuyingPrice
     };
     
     const allocationRef = await db.collection('crm_allocations').add(allocationData);
+    
+    // Update order with cumulative buying price
+    try {
+      // Find the order for this lead and event
+      const ordersSnapshot = await db.collection('crm_orders')
+        .where('lead_id', '==', lead_id)
+        .where('event_name', '==', inventoryData.event_name)
+        .get();
+      
+      if (!ordersSnapshot.empty) {
+        const orderDoc = ordersSnapshot.docs[0]; // Assuming one order per lead per event
+        const orderData = orderDoc.data();
+        const currentBuyingPrice = parseFloat(orderData.buying_price) || 0;
+        const newBuyingPrice = currentBuyingPrice + totalBuyingPrice;
+        
+        // Update order with new cumulative buying price
+        await db.collection('crm_orders').doc(orderDoc.id).update({
+          buying_price: newBuyingPrice,
+          updated_date: new Date().toISOString(),
+          last_allocation_date: allocation_date || new Date().toISOString().split('T')[0],
+          total_allocated_tickets: (parseInt(orderData.total_allocated_tickets) || 0) + allocatedTickets
+        });
+        
+        console.log(`Updated order ${orderDoc.id} buying price: ${currentBuyingPrice} -> ${newBuyingPrice}`);
+      } else {
+        console.log(`No order found for lead ${lead_id} and event ${inventoryData.event_name}`);
+      }
+    } catch (orderError) {
+      console.error('Error updating order buying price:', orderError);
+      // Don't fail the allocation if order update fails
+    }
     
     console.log(`Successfully allocated ${allocatedTickets} tickets to lead ${leadData.name}`);
     

@@ -169,12 +169,37 @@ router.get('/', authenticateToken, async (req, res) => {
       
       userOrders.forEach(order => {
         const orderAmount = parseFloat(order.total_amount || 0);
-        const quantity = parseFloat(order.quantity || 1);
-        const buyingPrice = parseFloat(order.buying_price || 0);
-        const sellingPrice = parseFloat(order.selling_price || 0);
         
-        // Calculate margin per unit * quantity
-        const margin = (sellingPrice - buyingPrice) * quantity;
+        // New margin calculation:
+        // Selling Price = Invoice value (total_amount without GST/TCS)
+        // Buying Price = buying_price (cumulative from allocations) + buying_price_inclusions
+        const sellingPrice = parseFloat(order.base_amount || order.total_amount || 0);
+        const buyingPriceTickets = parseFloat(order.buying_price || 0);
+        const buyingPriceInclusions = parseFloat(order.buying_price_inclusions || 0);
+        const totalBuyingPrice = buyingPriceTickets + buyingPriceInclusions;
+        
+        // Calculate margin
+        const margin = sellingPrice - totalBuyingPrice;
+        
+        // Calculate margin percentage (avoid division by zero)
+        const marginPercentage = sellingPrice > 0 ? (margin / sellingPrice) * 100 : 0;
+        
+        // Debug logging for first 5 orders
+        if (userOrders.indexOf(order) < 5) {
+          console.log(`📊 DEBUG Order for ${userData.name}:`, {
+            orderId: order.id || 'N/A',
+            customer: order.customer_name || 'N/A',
+            totalAmount: orderAmount,
+            baseAmount: order.base_amount || 0,
+            sellingPrice: sellingPrice,
+            buyingPriceTickets: buyingPriceTickets,
+            buyingPriceInclusions: buyingPriceInclusions,
+            totalBuyingPrice: totalBuyingPrice,
+            calculatedMargin: margin,
+            marginPercentage: marginPercentage.toFixed(2) + '%',
+            hasBuyingPrice: buyingPriceTickets > 0
+          });
+        }
         
         totalSales += orderAmount;
         totalMargin += margin;
@@ -232,6 +257,10 @@ router.get('/', authenticateToken, async (req, res) => {
         // Use default
       }
       
+      // Calculate margin percentages
+      const marginPercentage = totalSales > 0 ? (totalMargin / totalSales) * 100 : 0;
+      const actualizedMarginPercentage = actualizedSales > 0 ? (actualizedMargin / actualizedSales) * 100 : 0;
+      
       salesTeam.push({
         id: userDoc.id,
         name: userData.name,
@@ -241,6 +270,8 @@ router.get('/', authenticateToken, async (req, res) => {
         actualizedSales: actualizedSales / 10000000,
         totalMargin: totalMargin / 10000000,
         actualizedMargin: actualizedMargin / 10000000,
+        marginPercentage: marginPercentage,
+        actualizedMarginPercentage: actualizedMarginPercentage,
         salesPersonPipeline: salesPersonPipeline / 10000000,
         retailPipeline: retailPipeline / 10000000,
         corporatePipeline: corporatePipeline / 10000000,
@@ -250,6 +281,28 @@ router.get('/', authenticateToken, async (req, res) => {
     
     const endTime = Date.now();
     console.log(`Performance API took ${endTime - startTime}ms`);
+    
+    // Debug: Log summary of buying price issues
+    let ordersWithBuyingPrice = 0;
+    let ordersWithoutBuyingPrice = 0;
+    let totalOrdersProcessed = 0;
+    
+    ordersByUser.forEach((orders, userEmail) => {
+      orders.forEach(order => {
+        totalOrdersProcessed++;
+        if (parseFloat(order.buying_price || 0) > 0) {
+          ordersWithBuyingPrice++;
+        } else {
+          ordersWithoutBuyingPrice++;
+        }
+      });
+    });
+    
+    console.log('\n📊 BUYING PRICE SUMMARY:');
+    console.log(`Total orders processed: ${totalOrdersProcessed}`);
+    console.log(`Orders WITH buying_price: ${ordersWithBuyingPrice} (${((ordersWithBuyingPrice / totalOrdersProcessed) * 100).toFixed(1)}%)`);
+    console.log(`Orders WITHOUT buying_price: ${ordersWithoutBuyingPrice} (${((ordersWithoutBuyingPrice / totalOrdersProcessed) * 100).toFixed(1)}%)`);
+    console.log('This is why margin equals sales for many users!\n');
     
     // Update cache
     performanceCache.salesData = salesTeam;

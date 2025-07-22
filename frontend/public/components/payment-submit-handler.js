@@ -177,6 +177,10 @@ window.renderPaymentSubmitHandler = () => {
             final_amount: finalAmount,
             gst_rate: calculation.gst.rate,
             service_fee_amount: window.paymentData.service_fee_amount || existingOrder.service_fee_amount,
+            
+            // Inclusions fields
+            buying_price_inclusions: parseFloat(window.paymentData.buying_price_inclusions) || 0,
+            inclusions_description: window.paymentData.inclusions_description || '',
 
             // Clear post-service fields if this was a post-service order
             expected_amount: null,
@@ -407,7 +411,11 @@ window.renderPaymentSubmitHandler = () => {
         
         payment_currency: window.paymentData.payment_currency || 'INR',
         payment_status: 'paid',
-        order_type: 'standard'
+        order_type: 'standard',
+        
+        // Add inclusions fields
+        buying_price_inclusions: parseFloat(window.paymentData.buying_price_inclusions) || 0,
+        inclusions_description: window.paymentData.inclusions_description || ''
       };
 
       console.log('=== ENHANCED ORDER CREATION DEBUG ===');
