@@ -516,23 +516,9 @@ function MarketingPerformanceCharts({ filters, loading }) {
                             borderColor: '#10B981',
                             backgroundColor: 'rgba(16, 185, 129, 0.1)',
                             tension: 0.1,
-                            borderWidth: 3
-                        },
-                        {
-                            label: 'Facebook Leads',
-                            data: data.series.map(d => d.Facebook.leads),
-                            borderColor: '#1877f2',
-                            backgroundColor: 'rgba(24, 119, 242, 0.1)',
-                            tension: 0.1,
-                            borderWidth: 2
-                        },
-                        {
-                            label: 'Instagram Leads',
-                            data: data.series.map(d => d.Instagram.leads),
-                            borderColor: '#E4405F',
-                            backgroundColor: 'rgba(228, 64, 95, 0.1)',
-                            tension: 0.1,
-                            borderWidth: 2
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
                         }
                     ]
                 },
@@ -574,36 +560,22 @@ function MarketingPerformanceCharts({ filters, loading }) {
                     labels: data.series.map(d => new Date(d.date).toLocaleDateString()),
                     datasets: [
                         {
-                            label: 'FB Qualified %',
+                            label: 'Qualified %',
                             data: data.series.map(d => 
-                                d.Facebook.touchBased > 0 ? (d.Facebook.qualified / d.Facebook.touchBased * 100).toFixed(2) : 0
+                                d.total.touchBased > 0 ? (d.total.qualified / d.total.touchBased * 100).toFixed(2) : 0
                             ),
-                            backgroundColor: 'rgba(24, 119, 242, 0.7)',
-                            stack: 'Facebook'
+                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            borderColor: '#10B981',
+                            borderWidth: 2
                         },
                         {
-                            label: 'FB Converted %',
+                            label: 'Converted %',
                             data: data.series.map(d => 
-                                d.Facebook.touchBased > 0 ? (d.Facebook.converted / d.Facebook.touchBased * 100).toFixed(2) : 0
+                                d.total.touchBased > 0 ? (d.total.converted / d.total.touchBased * 100).toFixed(2) : 0
                             ),
-                            backgroundColor: 'rgba(24, 119, 242, 0.5)',
-                            stack: 'Facebook'
-                        },
-                        {
-                            label: 'IG Qualified %',
-                            data: data.series.map(d => 
-                                d.Instagram.touchBased > 0 ? (d.Instagram.qualified / d.Instagram.touchBased * 100).toFixed(2) : 0
-                            ),
-                            backgroundColor: 'rgba(228, 64, 95, 0.7)',
-                            stack: 'Instagram'
-                        },
-                        {
-                            label: 'IG Converted %',
-                            data: data.series.map(d => 
-                                d.Instagram.touchBased > 0 ? (d.Instagram.converted / d.Instagram.touchBased * 100).toFixed(2) : 0
-                            ),
-                            backgroundColor: 'rgba(228, 64, 95, 0.5)',
-                            stack: 'Instagram'
+                            backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                            borderColor: '#6366F1',
+                            borderWidth: 2
                         }
                     ]
                 },
@@ -642,41 +614,27 @@ function MarketingPerformanceCharts({ filters, loading }) {
                     labels: data.series.map(d => new Date(d.date).toLocaleDateString()),
                     datasets: [
                         {
-                            label: 'Total Meta CPL (₹)',
+                            label: 'Cost Per Lead (CPL) ₹',
                             data: data.series.map(d => parseFloat(d.total.cpl) || 0),
                             borderColor: '#10B981',
                             backgroundColor: 'rgba(16, 185, 129, 0.1)',
                             tension: 0.1,
                             borderWidth: 3,
-                            yAxisID: 'y'
+                            yAxisID: 'y',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
                         },
                         {
-                            label: 'Facebook CPL (₹)',
-                            data: data.series.map(d => parseFloat(d.Facebook.cpl) || 0),
-                            borderColor: '#1877f2',
-                            backgroundColor: 'rgba(24, 119, 242, 0.1)',
-                            tension: 0.1,
-                            borderWidth: 2,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: 'Instagram CPL (₹)',
-                            data: data.series.map(d => parseFloat(d.Instagram.cpl) || 0),
-                            borderColor: '#E4405F',
-                            backgroundColor: 'rgba(228, 64, 95, 0.1)',
-                            tension: 0.1,
-                            borderWidth: 2,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: 'Total Meta CPM (₹)',
+                            label: 'Cost Per Mille (CPM) ₹',
                             data: data.series.map(d => parseFloat(d.total.cpm) || 0),
                             borderColor: '#6366F1',
                             backgroundColor: 'rgba(99, 102, 241, 0.1)',
                             tension: 0.1,
-                            borderWidth: 2,
+                            borderWidth: 3,
                             borderDash: [5, 5],
-                            yAxisID: 'y1'
+                            yAxisID: 'y1',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
                         }
                     ]
                 },
@@ -743,28 +701,15 @@ function MarketingPerformanceCharts({ filters, loading }) {
                     labels: data.series.map(d => new Date(d.date).toLocaleDateString()),
                     datasets: [
                         {
-                            label: 'Total Meta Qualified %',
+                            label: 'Qualified Lead Percentage',
                             data: data.series.map(d => parseFloat(d.total.qualifiedPercent) || 0),
                             borderColor: '#10B981',
                             backgroundColor: 'rgba(16, 185, 129, 0.1)',
                             tension: 0.1,
-                            borderWidth: 3
-                        },
-                        {
-                            label: 'Facebook Qualified %',
-                            data: data.series.map(d => parseFloat(d.Facebook.qualifiedPercent) || 0),
-                            borderColor: '#1877f2',
-                            backgroundColor: 'rgba(24, 119, 242, 0.1)',
-                            tension: 0.1,
-                            borderWidth: 2
-                        },
-                        {
-                            label: 'Instagram Qualified %',
-                            data: data.series.map(d => parseFloat(d.Instagram.qualifiedPercent) || 0),
-                            borderColor: '#E4405F',
-                            backgroundColor: 'rgba(228, 64, 95, 0.1)',
-                            tension: 0.1,
-                            borderWidth: 2
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            fill: true
                         }
                     ]
                 },
