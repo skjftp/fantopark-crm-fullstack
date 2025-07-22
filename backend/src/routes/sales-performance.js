@@ -32,7 +32,7 @@ function getRetailCacheKey(start_date, end_date) {
   return `${start_date || 'all'}_${end_date || 'all'}`;
 }
 
-// GET sales team performance data - OPTIMIZED VERSION WITH CACHE
+// GET sales team performance data - SHOWS ONLY MEMBERS IN sales_performance_members
 router.get('/', authenticateToken, async (req, res) => {
   try {
     // Check if we have valid cached data
@@ -49,15 +49,22 @@ router.get('/', authenticateToken, async (req, res) => {
     console.log('📊 Cache expired or not found, fetching fresh sales performance data...');
     const startTime = Date.now();
     
-    // 1. Get ALL users (matching dashboard logic - no role filtering)
+    // 1. Get sales performance members first
+    const salesMembersSnapshot = await db.collection('sales_performance_members').get();
+    const salesMemberIds = new Set();
+    salesMembersSnapshot.forEach(doc => {
+      salesMemberIds.add(doc.id);
+    });
+    console.log(`📊 Found ${salesMemberIds.size} sales performance members`);
+    
+    // 2. Get ALL users and filter to only those in sales_performance_members
     const allUsersSnapshot = await db.collection('crm_users').get();
     
-    // Filter to only users with sales-related roles
+    // Filter to only users who are in sales_performance_members
     const allUserDocs = allUsersSnapshot.docs.filter(doc => {
-      const userData = doc.data();
-      // Include all users with sales-related roles
-      return ['sales_person', 'sales_manager', 'sales_head', 'super_admin', 'admin'].includes(userData.role);
+      return salesMemberIds.has(doc.id);
     });
+    console.log(`📊 Filtered to ${allUserDocs.length} users who are sales members`);
     
     // Create name to email mapping for conversion
     const nameToEmail = new Map();
@@ -256,7 +263,7 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// GET retail tracker data - NOW SHOWS ALL USERS (matching dashboard logic)
+// GET retail tracker data - SHOWS ONLY MEMBERS IN retail_tracker_members
 router.get('/retail-tracker', authenticateToken, async (req, res) => {
   try {
     const { start_date, end_date } = req.query;
@@ -280,14 +287,19 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
     console.log('📊 Cache expired or not found for retail range:', cacheKey);
     const startTime = Date.now();
     
-    // Get ALL users (matching dashboard logic - no department filtering)
+    // Get retail tracker members first
+    const retailMembersSnapshot = await db.collection('retail_tracker_members').get();
+    const retailMemberIds = new Set();
+    retailMembersSnapshot.forEach(doc => {
+      retailMemberIds.add(doc.id);
+    });
+    
+    // Get ALL users and filter to only those in retail_tracker_members
     const allUsersSnapshot = await db.collection('crm_users').get();
     
-    // Filter to only users with sales-related roles (optional - you can remove this if you want ALL users)
+    // Filter to only users who are in retail_tracker_members
     const allRetailDocs = allUsersSnapshot.docs.filter(doc => {
-      const userData = doc.data();
-      // Include all users with sales-related roles
-      return ['sales_person', 'sales_manager', 'sales_head', 'super_admin', 'admin'].includes(userData.role);
+      return retailMemberIds.has(doc.id);
     });
     
     // Get total system leads count (matching dashboard logic)
