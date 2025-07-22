@@ -267,7 +267,14 @@ window.updateLeadStatus = async function(leadId, newStatus) {
     window.setLoading(true);
 
     // CRITICAL: Get the full lead object first
-    const currentLead = window.leads.find(l => l.id === leadId);
+    // Check both window.leads (main leads page) and window.myLeads (My Actions)
+    let currentLead = window.leads ? window.leads.find(l => l.id === leadId) : null;
+    
+    // If not found in leads, check myLeads (when called from My Actions)
+    if (!currentLead && window.myLeads) {
+      currentLead = window.myLeads.find(l => l.id === leadId);
+    }
+    
     console.log('🔍 currentLead found:', currentLead);
     
     if (!currentLead) {
@@ -381,11 +388,22 @@ window.updateLeadStatus = async function(leadId, newStatus) {
     console.log('🔍 API Response Data:', response.data);
 
     // Update local state with response from server
-    window.setLeads(prevLeads => 
-      prevLeads.map(lead => 
-        lead.id === leadId ? response.data : lead
-      )
-    );
+    if (window.setLeads) {
+      window.setLeads(prevLeads => 
+        prevLeads.map(lead => 
+          lead.id === leadId ? response.data : lead
+        )
+      );
+    }
+    
+    // Also update myLeads if we're in My Actions
+    if (window.myLeads && window.setMyLeads) {
+      window.setMyLeads(prevLeads => 
+        prevLeads.map(lead => 
+          lead.id === leadId ? response.data : lead
+        )
+      );
+    }
 
     // Update current lead if in detail view
     if (window.showLeadDetail && window.currentLead?.id === leadId) {

@@ -276,7 +276,7 @@ router.get('/paginated', authenticateToken, async (req, res) => {
       assigned_to = 'all',
       
       // Sort params
-      sort_by = 'date_of_enquiry',
+      sort_by = 'created_date',
       sort_order = 'desc'
     } = req.query;
 
@@ -349,9 +349,23 @@ router.get('/paginated', authenticateToken, async (req, res) => {
       let aValue, bValue;
       
       switch (sort_by) {
+        case 'created_date':
+          // Handle Firestore timestamp objects from Instagram leads
+          if (a.created_date && typeof a.created_date === 'object' && a.created_date._seconds) {
+            aValue = a.created_date._seconds * 1000 + (a.created_date._nanoseconds || 0) / 1000000;
+          } else {
+            aValue = a.created_date ? new Date(a.created_date).getTime() : 0;
+          }
+          
+          if (b.created_date && typeof b.created_date === 'object' && b.created_date._seconds) {
+            bValue = b.created_date._seconds * 1000 + (b.created_date._nanoseconds || 0) / 1000000;
+          } else {
+            bValue = b.created_date ? new Date(b.created_date).getTime() : 0;
+          }
+          break;
         case 'date_of_enquiry':
-          aValue = new Date(a.date_of_enquiry || a.created_date || 0);
-          bValue = new Date(b.date_of_enquiry || b.created_date || 0);
+          aValue = a.date_of_enquiry ? new Date(a.date_of_enquiry).getTime() : 0;
+          bValue = b.date_of_enquiry ? new Date(b.date_of_enquiry).getTime() : 0;
           break;
         case 'name':
           aValue = (a.name || '').toLowerCase();
@@ -366,8 +380,18 @@ router.get('/paginated', authenticateToken, async (req, res) => {
           bValue = (b.company || '').toLowerCase();
           break;
         default:
-          aValue = new Date(a.date_of_enquiry || a.created_date || 0);
-          bValue = new Date(b.date_of_enquiry || b.created_date || 0);
+          // Handle Firestore timestamp objects from Instagram leads
+          if (a.created_date && typeof a.created_date === 'object' && a.created_date._seconds) {
+            aValue = a.created_date._seconds * 1000 + (a.created_date._nanoseconds || 0) / 1000000;
+          } else {
+            aValue = a.created_date ? new Date(a.created_date).getTime() : 0;
+          }
+          
+          if (b.created_date && typeof b.created_date === 'object' && b.created_date._seconds) {
+            bValue = b.created_date._seconds * 1000 + (b.created_date._nanoseconds || 0) / 1000000;
+          } else {
+            bValue = b.created_date ? new Date(b.created_date).getTime() : 0;
+          }
       }
       
       if (sort_order === 'asc') {
@@ -385,9 +409,26 @@ router.get('/paginated', authenticateToken, async (req, res) => {
 
     console.log(`✅ Returning ${paginatedLeads.length} of ${totalCount} total leads`);
 
+    // Convert any Firestore timestamps to ISO strings for frontend compatibility
+    const normalizedLeads = paginatedLeads.map(lead => {
+      if (lead.created_date && typeof lead.created_date === 'object' && lead.created_date._seconds) {
+        const timestamp = lead.created_date._seconds * 1000;
+        lead.created_date = new Date(timestamp).toISOString();
+      }
+      if (lead.updated_date && typeof lead.updated_date === 'object' && lead.updated_date._seconds) {
+        const timestamp = lead.updated_date._seconds * 1000;
+        lead.updated_date = new Date(timestamp).toISOString();
+      }
+      if (lead.date_of_enquiry && typeof lead.date_of_enquiry === 'object' && lead.date_of_enquiry._seconds) {
+        const timestamp = lead.date_of_enquiry._seconds * 1000;
+        lead.date_of_enquiry = new Date(timestamp).toISOString();
+      }
+      return lead;
+    });
+
     res.json({
       success: true,
-      data: paginatedLeads,
+      data: normalizedLeads,
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -707,6 +748,14 @@ router.post('/', authenticateToken, async (req, res) => {
     const savedLead = await lead.save(); // This will trigger auto-reminder creation in the Lead model
     
     console.log(`✅ Lead created successfully: ${savedLead.id}`);
+    
+    // Ensure proper date format for frontend compatibility
+    if (savedLead.created_date && typeof savedLead.created_date === 'object' && savedLead.created_date._seconds) {
+      // Convert Firestore timestamp to ISO string
+      const timestamp = savedLead.created_date._seconds * 1000;
+      savedLead.created_date = new Date(timestamp).toISOString();
+      console.log('📅 Converted Firestore timestamp to ISO string:', savedLead.created_date);
+    }
     
     // 📞 **NEW: AUTO-LOG LEAD CREATION COMMUNICATION**
     try {

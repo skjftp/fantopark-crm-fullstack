@@ -273,6 +273,18 @@ window.renderMyActionsContent = () => {
         );
     }
 
+    // Auto-fetch data when component renders
+    // Check if we already fetched for this session
+    if (!window.myActionsDataLoaded && window.fetchMyActions) {
+        console.log('🎯 My Actions: No data loaded yet, fetching...');
+        window.myActionsDataLoaded = true; // Set flag immediately to prevent duplicate calls
+        
+        // Fetch data with small delay to ensure all components are ready
+        setTimeout(() => {
+            window.fetchMyActions();
+        }, 50);
+    }
+
     const { myActionsFilters } = appState;
     
     // Calculate if we have actions
@@ -488,10 +500,96 @@ window.renderMyActionsContent = () => {
                                     lead.potential_value ? `₹${parseInt(lead.potential_value).toLocaleString()}` : '-'
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3' },
-                                    React.createElement('button', {
-                                        onClick: () => window.openLeadDetail && window.openLeadDetail(lead),
-                                        className: 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50 transition-colors duration-200'
-                                    }, 'View Details')
+                                    React.createElement('div', { className: 'flex flex-wrap gap-1' },
+                                        // View Details button
+                                        React.createElement('button', {
+                                            onClick: () => window.openLeadDetail && window.openLeadDetail(lead),
+                                            className: 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50 transition-colors duration-200',
+                                            title: 'View lead details'
+                                        }, '👁️'),
+                                        
+                                        // Edit button
+                                        window.hasPermission && window.hasPermission('leads', 'write') && React.createElement('button', { 
+                                            className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
+                                            onClick: async () => {
+                                                if (window.openEditForm) {
+                                                    await window.openEditForm(lead);
+                                                    // Refresh My Actions data after edit
+                                                    setTimeout(() => {
+                                                        if (window.fetchMyActions) {
+                                                            window.fetchMyActions();
+                                                        }
+                                                    }, 500);
+                                                }
+                                            },
+                                            title: 'Edit lead'
+                                        }, '✏️'),
+                                        
+                                        // Assign button (only for unassigned leads)
+                                        window.hasPermission && window.hasPermission('leads', 'assign') && !lead.assigned_to && lead.status === 'unassigned' &&
+                                            React.createElement('button', { 
+                                                className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
+                                                onClick: async () => {
+                                                    if (window.openAssignForm) {
+                                                        await window.openAssignForm(lead);
+                                                        // Refresh My Actions data after assign
+                                                        setTimeout(() => {
+                                                            if (window.fetchMyActions) {
+                                                                window.fetchMyActions();
+                                                            }
+                                                        }, 500);
+                                                    }
+                                                },
+                                                title: 'Assign lead'
+                                            }, '👤'),
+                                        
+                                        // Progress button
+                                        window.hasPermission && window.hasPermission('leads', 'progress') && React.createElement('button', {
+                                            className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
+                                            onClick: () => {
+                                                if (window.handleLeadProgression && typeof window.handleLeadProgression === 'function') {
+                                                    window.handleLeadProgression(lead);
+                                                    // Don't refresh here - let the status update handle it
+                                                } else {
+                                                    alert('Lead progression not available');
+                                                }
+                                            },
+                                            disabled: window.loading,
+                                            title: 'Progress lead to next stage'
+                                        }, window.loading ? '...' : '→'),
+                                        
+                                        // Payment button (for converted leads or leads with orders)
+                                        window.hasPermission && window.hasPermission('leads', 'write') && (() => {
+                                            const hasOrder = window.orders && window.orders.some(order => 
+                                                order.lead_id === lead.id && 
+                                                order.status !== 'rejected'
+                                            );
+                                            return lead.status === 'converted' || hasOrder;
+                                        })() &&
+                                        React.createElement('button', { 
+                                            className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
+                                            onClick: () => window.openPaymentForm && window.openPaymentForm(lead),
+                                            title: 'Collect Payment'
+                                        }, '💳'),
+                                        
+                                        // Delete button
+                                        window.hasPermission && window.hasPermission('leads', 'delete') && React.createElement('button', { 
+                                            className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
+                                            onClick: async () => {
+                                                if (window.handleDelete) {
+                                                    await window.handleDelete('leads', lead.id, lead.name);
+                                                    // Refresh My Actions data after delete
+                                                    setTimeout(() => {
+                                                        if (window.fetchMyActions) {
+                                                            window.fetchMyActions();
+                                                        }
+                                                    }, 500);
+                                                }
+                                            },
+                                            disabled: window.loading,
+                                            title: 'Delete lead'
+                                        }, '🗑️')
+                                    )
                                 )
                             )
                         )
@@ -617,10 +715,110 @@ window.renderMyActionsContent = () => {
                                     }, (delivery.status || 'pending').replace(/_/g, ' ').toUpperCase())
                                 ),
                                 React.createElement('td', { className: 'px-4 py-3' },
-                                    React.createElement('button', {
-                                        onClick: () => window.updateDeliveryStatus(delivery.id),
-                                        className: 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-200 hover:bg-blue-50 transition-colors duration-200'
-                                    }, 'Update Status')
+                                    React.createElement('div', { className: 'flex gap-2' },
+                                        // Schedule button for pending deliveries
+                                        window.hasPermission && window.hasPermission('delivery', 'write') && 
+                                        delivery.status === 'pending' && React.createElement('button', {
+                                            onClick: () => {
+                                                if (window.openDeliveryForm) {
+                                                    window.openDeliveryForm(delivery);
+                                                } else {
+                                                    alert('Schedule delivery feature not available');
+                                                }
+                                            },
+                                            className: 'text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded border border-blue-200 hover:bg-blue-50',
+                                            title: 'Schedule delivery'
+                                        }, '📅'),
+                                        
+                                        // Start button for scheduled deliveries
+                                        window.hasPermission && window.hasPermission('delivery', 'write') && 
+                                        delivery.status === 'scheduled' && React.createElement('button', {
+                                            onClick: async () => {
+                                                if (confirm('Start delivery now?')) {
+                                                    try {
+                                                        await window.apiCall(`/deliveries/${delivery.id}`, {
+                                                            method: 'PUT',
+                                                            body: JSON.stringify({ 
+                                                                status: 'in_transit',
+                                                                started_at: new Date().toISOString()
+                                                            })
+                                                        });
+                                                        window.fetchMyActions && window.fetchMyActions();
+                                                        alert('Delivery started!');
+                                                    } catch (error) {
+                                                        alert('Failed to start delivery');
+                                                    }
+                                                }
+                                            },
+                                            className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
+                                            title: 'Start delivery'
+                                        }, '🚚'),
+                                        
+                                        // Complete button for in-transit deliveries
+                                        window.hasPermission && window.hasPermission('delivery', 'write') && 
+                                        delivery.status === 'in_transit' && React.createElement('button', {
+                                            onClick: async () => {
+                                                if (confirm('Mark delivery as completed?')) {
+                                                    try {
+                                                        await window.apiCall(`/deliveries/${delivery.id}`, {
+                                                            method: 'PUT',
+                                                            body: JSON.stringify({ 
+                                                                status: 'delivered',
+                                                                delivered_at: new Date().toISOString()
+                                                            })
+                                                        });
+                                                        window.fetchMyActions && window.fetchMyActions();
+                                                        alert('Delivery completed!');
+                                                    } catch (error) {
+                                                        alert('Failed to complete delivery');
+                                                    }
+                                                }
+                                            },
+                                            className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
+                                            title: 'Complete delivery'
+                                        }, '✅'),
+                                        
+                                        // View Details button
+                                        (delivery.status === 'scheduled' || delivery.delivery_type) && 
+                                        React.createElement('button', {
+                                            onClick: () => {
+                                                const details = `
+Delivery Details:
+- ID: ${delivery.id}
+- Customer: ${delivery.customer_name || 'N/A'}
+- Order: ${delivery.order_id || 'N/A'}
+- Status: ${delivery.status}
+- Scheduled: ${delivery.scheduled_date ? new Date(delivery.scheduled_date).toLocaleString() : 'N/A'}
+- Type: ${delivery.delivery_type || 'Standard'}
+- Address: ${delivery.delivery_address || 'N/A'}
+- Notes: ${delivery.delivery_notes || 'None'}
+                                                `.trim();
+                                                alert(details);
+                                            },
+                                            className: 'text-gray-600 hover:text-gray-900 text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-50',
+                                            title: 'View details'
+                                        }, '👁️'),
+                                        
+                                        // Delete button
+                                        window.hasPermission && window.hasPermission('delivery', 'write') && 
+                                        React.createElement('button', {
+                                            onClick: async () => {
+                                                if (confirm('Are you sure you want to delete this delivery?')) {
+                                                    try {
+                                                        await window.apiCall(`/deliveries/${delivery.id}`, {
+                                                            method: 'DELETE'
+                                                        });
+                                                        window.fetchMyActions && window.fetchMyActions();
+                                                        alert('Delivery deleted!');
+                                                    } catch (error) {
+                                                        alert('Failed to delete delivery');
+                                                    }
+                                                }
+                                            },
+                                            className: 'text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded border border-red-200 hover:bg-red-50',
+                                            title: 'Delete delivery'
+                                        }, '🗑️')
+                                    )
                                 )
                             )
                         )

@@ -100,7 +100,7 @@ window.testAssignmentRulesButtons = () => {
   window.appState.leadsSourceFilter = state.leadsSourceFilter || 'all';
   window.appState.leadsBusinessTypeFilter = state.leadsBusinessTypeFilter || 'all';
   window.appState.leadsEventFilter = state.leadsEventFilter || 'all';
-  window.appState.leadsSortField = state.leadsSortField || 'date_of_enquiry';
+  window.appState.leadsSortField = state.leadsSortField || 'created_date';
   window.appState.leadsSortDirection = state.leadsSortDirection || 'desc';
   window.appState.currentLeadsPage = state.currentLeadsPage || 1;
   window.appState.itemsPerPage = state.itemsPerPage || 20;
@@ -2475,7 +2475,7 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
     { name: 'event_name', label: 'Event Name', type: 'text', required: true },
     { name: 'event_date', label: 'Event Date', type: 'date', required: true },
     { name: 'event_type', label: 'Event Type', type: 'select', options: ['IPL', 'India Cricket + ICC', 'Football', 'Tennis', 'F1', 'Miscellaneous'], required: true },
-    { name: 'sports', label: 'Sports Category', type: 'select', options: ['Cricket', 'Football', 'Tennis', 'Formula 1', 'Olympics', 'Basketball', 'Badminton', 'Hockey', 'Golf', 'Wrestling'], required: true },
+    { name: 'sports', label: 'Sports Category', type: 'select', options: ['Cricket', 'Football', 'Tennis', 'Formula 1', 'Olympics', 'Basketball', 'Badminton', 'Hockey', 'Golf', 'Wrestling', 'Miscellaneous'], required: true },
     { name: 'venue', label: 'Venue', type: 'select', options: 'dynamic', required: true },
     { name: 'day_of_match', label: 'Day of Match (for Test/Multi-day)', type: 'select', options: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Not Applicable'], required: false },
     { name: 'category_of_ticket', label: 'Category of Ticket', type: 'select', options: ['VIP', 'Premium', 'Gold', 'Silver', 'Bronze', 'General', 'Corporate Box', 'Hospitality'], required: true },

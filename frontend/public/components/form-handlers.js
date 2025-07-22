@@ -153,13 +153,28 @@ window.handleFormSubmit = async function(e) {
         method: "POST",
         body: JSON.stringify({
           ...window.formData,
-          status: "unassigned",
           created_by: window.user.name,
           created_date: new Date().toISOString()
         })
       });
       
-      window.setLeads(prev => [...prev, leadResponse.data]);
+      // Refresh the leads list to show the new lead in the correct sort order
+      // Use the paginated API to fetch the updated list
+      try {
+        const paginatedResponse = await window.apiCall('/leads/paginated?page=1&limit=20&sort=created_date&sortOrder=desc');
+        
+        if (paginatedResponse.success && paginatedResponse.data) {
+          window.setLeads(paginatedResponse.data);
+          console.log('✅ Refreshed leads list after creation, showing newest first');
+        } else {
+          // Fallback: add to existing list
+          window.setLeads(prev => [leadResponse.data, ...prev]);
+        }
+      } catch (error) {
+        console.error('Failed to refresh paginated leads:', error);
+        // Fallback: add to existing list
+        window.setLeads(prev => [leadResponse.data, ...prev]);
+      }
       alert("Lead created successfully!");
     }
     // ✅ EDIT INVENTORY PATH

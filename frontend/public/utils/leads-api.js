@@ -17,7 +17,7 @@ window.LeadsAPI = {
     business_type: 'all',
     event: 'all',
     assigned_to: 'all',
-    sort_by: 'date_of_enquiry',
+    sort_by: 'created_date',
     sort_order: 'desc'
   },
 
@@ -317,7 +317,7 @@ window.LeadsAPI = {
       business_type: 'all',
       event: 'all',
       assigned_to: 'all',
-      sort_by: 'date_of_enquiry',
+      sort_by: 'created_date',
       sort_order: 'desc'
     };
     
@@ -353,7 +353,7 @@ window.LeadsAPI = {
     window.leadsSalesPersonFilter = 'all';
     
     if (window.appState.setLeadsSortField) {
-      window.appState.setLeadsSortField('date_of_enquiry');
+      window.appState.setLeadsSortField('created_date');
     }
     
     if (window.appState.setLeadsSortDirection) {
@@ -377,7 +377,7 @@ window.LeadsAPI = {
     this.currentFilters.business_type = window.appState?.leadsBusinessTypeFilter || 'all';
     this.currentFilters.event = window.appState?.leadsEventFilter || 'all';
     this.currentFilters.assigned_to = window.leadsSalesPersonFilter || window.appState?.leadsSalesPersonFilter || 'all';
-    this.currentFilters.sort_by = window.appState?.leadsSortField || 'date_of_enquiry';
+    this.currentFilters.sort_by = window.appState?.leadsSortField || 'created_date';
     this.currentFilters.sort_order = window.appState?.leadsSortDirection || 'desc';
     
     window.log.debug('🔧 Initialized filters:', this.currentFilters);

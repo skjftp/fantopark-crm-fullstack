@@ -1232,7 +1232,8 @@ return React.createElement('div', { className: 'space-y-6' },
                                 onChange: (e) => window.LeadsAPI.handleFilterChange('sort_by', e.target.value),
                                 className: 'flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
                             },
-                                React.createElement('option', { value: 'date_of_enquiry' }, 'Date'),
+                                React.createElement('option', { value: 'created_date' }, 'Created Date'),
+                                React.createElement('option', { value: 'date_of_enquiry' }, 'Enquiry Date'),
                                 React.createElement('option', { value: 'name' }, 'Name'),
                                 React.createElement('option', { value: 'potential_value' }, 'Value'),
                                 React.createElement('option', { value: 'company' }, 'Company')

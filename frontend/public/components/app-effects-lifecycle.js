@@ -105,15 +105,9 @@ useEffect(() => {
     console.log('useEffect triggered - activeTab:', activeTab, 'isLoggedIn:', isLoggedIn);
     
     if (activeTab === 'myactions') {
-      console.log('My Actions tab is active, calling fetchMyActions...');
-      // ✅ ENHANCED: Add delay to ensure state is ready
-      setTimeout(() => {
-        if (window.fetchMyActions) {
-          window.fetchMyActions();
-        } else {
-          console.warn('fetchMyActions function not available yet');
-        }
-      }, 100);
+      console.log('My Actions tab is active');
+      // Don't need to manually call fetchMyActions here
+      // The component will handle it on render
     } else if (activeTab === 'finance') {
       console.log('Finance tab active, fetching financial data...');
       window.fetchFinancialData && window.fetchFinancialData();
