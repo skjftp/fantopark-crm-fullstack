@@ -89,9 +89,10 @@ window.renderEditOrderForm = () => {
   }
   
   // Fetch inventory if needed (cache for 5 minutes)
-  const shouldFetchInventory = Date.now() - window.inventoryState.lastFetch > 300000;
+  const shouldFetchInventory = Date.now() - window.inventoryState.lastFetch > 300000 || window.inventoryState.items.length === 0;
   
   if (shouldFetchInventory && !window.inventoryState.loading) {
+    console.log('🔄 Fetching inventory...');
     window.inventoryState.loading = true;
     
     window.apiCall('/inventory').then(response => {
@@ -116,6 +117,11 @@ window.renderEditOrderForm = () => {
       window.inventoryState.loading = false;
       window.inventoryState.lastFetch = Date.now();
       
+      console.log('✅ Inventory loaded:', {
+        count: window.inventoryState.items.length,
+        items: window.inventoryState.items.slice(0, 5).map(i => i.event_name)
+      });
+      
       // Re-render to show the loaded items
       if (window.renderApp) {
         window.renderApp();
@@ -123,6 +129,7 @@ window.renderEditOrderForm = () => {
     }).catch(error => {
       console.error('Error fetching inventory:', error);
       window.inventoryState.loading = false;
+      window.inventoryState.lastFetch = Date.now(); // Set lastFetch even on error to prevent retry loop
     });
   }
   
@@ -133,7 +140,13 @@ window.renderEditOrderForm = () => {
     status: currentStatus,
     assigned_to: currentAssignedTo,
     total_amount: currentTotalAmount,
-    lastUpdate: window.editOrderState?.lastUpdate
+    lastUpdate: window.editOrderState?.lastUpdate,
+    inventoryState: {
+      loading: loadingInventory,
+      itemsCount: inventoryItems.length,
+      lastFetch: window.inventoryState.lastFetch,
+      shouldFetch: shouldFetchInventory
+    }
   });
 
   return React.createElement('div', { 
@@ -318,6 +331,11 @@ window.openEditOrderForm = function(order) {
   // Clear any existing state
   window.editOrderState = null;
   window.orderEditData = null;
+  
+  // Force inventory to be fetched on next render
+  if (window.inventoryState) {
+    window.inventoryState.lastFetch = 0;
+  }
   
   // Set the order to edit
   window.setCurrentOrderForEdit(order);
