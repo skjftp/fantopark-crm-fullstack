@@ -9,16 +9,17 @@
 <body class="bg-gray-100">
     <div class="container mx-auto p-8">
         <div class="bg-white rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
-            <h1 class="text-3xl font-bold text-gray-800 mb-6">Update Orders with Event ID & Date</h1>
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Update Orders with Inventory ID</h1>
             
             <div class="mb-6 p-4 bg-blue-50 rounded-lg">
                 <h2 class="text-lg font-semibold text-blue-800 mb-2">What this tool does:</h2>
                 <ul class="list-disc list-inside text-blue-700 space-y-1">
                     <li>Scans all orders in the system</li>
-                    <li>Matches order's event_name with events in the database</li>
-                    <li>Updates missing event_id with the correct event document ID</li>
-                    <li>Updates event_date from the matched event's start_date</li>
+                    <li>Matches order's event_name with inventory items</li>
+                    <li>Updates missing event_id with the inventory document ID</li>
+                    <li>Updates event_date from the inventory's event_date</li>
                     <li>Only updates orders that don't already have event_id</li>
+                    <li>Also stores the ID as inventory_id for clarity</li>
                 </ul>
             </div>
 
@@ -135,20 +136,20 @@
                 const ordersResponse = await apiCall('/orders');
                 const orders = ordersResponse.data || [];
 
-                updateProgress(30, 'Fetching events...');
+                updateProgress(30, 'Fetching inventory...');
 
-                // Get all events
-                const eventsResponse = await apiCall('/events');
-                const events = eventsResponse.data || [];
+                // Get all inventory items
+                const inventoryResponse = await apiCall('/inventory');
+                const inventory = inventoryResponse.data || [];
 
                 updateProgress(50, 'Analyzing updates needed...');
 
-                // Create event map for quick lookup
-                const eventMap = new Map();
-                events.forEach(event => {
-                    eventMap.set(event.event_name, {
-                        id: event.id,
-                        start_date: event.start_date
+                // Create inventory map for quick lookup
+                const inventoryMap = new Map();
+                inventory.forEach(item => {
+                    inventoryMap.set(item.event_name, {
+                        id: item.id,
+                        event_date: item.event_date
                     });
                 });
 
@@ -170,8 +171,8 @@
                     }
                     
                     if (!hasEventId && order.event_name) {
-                        const eventData = eventMap.get(order.event_name);
-                        if (eventData) {
+                        const inventoryData = inventoryMap.get(order.event_name);
+                        if (inventoryData) {
                             ordersNeedingUpdate.push({
                                 order_id: order.id,
                                 order_number: order.order_number,
@@ -179,8 +180,8 @@
                                 current_event_name: order.event_name,
                                 current_event_date: order.event_date,
                                 current_event_id: order.event_id || 'none',
-                                new_event_id: eventData.id,
-                                new_event_date: eventData.start_date
+                                new_inventory_id: inventoryData.id,
+                                new_event_date: inventoryData.event_date
                             });
                         }
                     }
@@ -206,7 +207,7 @@
                     const noMatchOrders = [];
                     orders.forEach(order => {
                         const hasEventId = order.event_id && order.event_id.trim() !== '';
-                        if (!hasEventId && order.event_name && !eventMap.has(order.event_name)) {
+                        if (!hasEventId && order.event_name && !inventoryMap.has(order.event_name)) {
                             noMatchOrders.push({
                                 order_number: order.order_number,
                                 event_name: order.event_name
@@ -223,7 +224,7 @@
                                     <li>Total orders: ${orders.length}</li>
                                     <li>Orders with event_id: ${ordersWithEventId}</li>
                                     <li>Orders with event_name: ${ordersWithEventName}</li>
-                                    <li>Available events in system: ${events.length}</li>
+                                    <li>Available inventory items: ${inventory.length}</li>
                                 </ul>
                                 ${noMatchOrders.length > 0 ? `
                                     <p class="mt-4 text-red-600">Orders with no matching event:</p>

@@ -127,22 +127,23 @@ router.post('/', authenticateToken, async (req, res) => {
       payment_currency: req.body.payment_currency || 'INR'
     };
     
-    // Look up event_id if event_name is provided
+    // Look up inventory_id (event_id) if event_name is provided
     if (orderData.event_name && !orderData.event_id) {
       try {
-        const eventsSnapshot = await db.collection('crm_events')
+        const inventorySnapshot = await db.collection('crm_inventory')
           .where('event_name', '==', orderData.event_name)
           .limit(1)
           .get();
         
-        if (!eventsSnapshot.empty) {
-          orderData.event_id = eventsSnapshot.docs[0].id;
-          console.log(`Found event_id ${orderData.event_id} for event_name: ${orderData.event_name}`);
+        if (!inventorySnapshot.empty) {
+          orderData.event_id = inventorySnapshot.docs[0].id;
+          orderData.inventory_id = inventorySnapshot.docs[0].id; // Also store as inventory_id for clarity
+          console.log(`Found inventory_id ${orderData.event_id} for event_name: ${orderData.event_name}`);
         } else {
-          console.log(`No event found with name: ${orderData.event_name}`);
+          console.log(`No inventory found with event_name: ${orderData.event_name}`);
         }
       } catch (error) {
-        console.error('Error looking up event_id:', error);
+        console.error('Error looking up inventory_id:', error);
         // Continue without event_id if lookup fails
       }
     }
@@ -242,20 +243,21 @@ router.put('/:id', authenticateToken, async (req, res) => {
       updates.payment_currency = req.body.payment_currency;
     }
     
-    // Look up event_id if event_name is provided and event_id is not
+    // Look up inventory_id (event_id) if event_name is provided and event_id is not
     if (updates.event_name && !updates.event_id) {
       try {
-        const eventsSnapshot = await db.collection('crm_events')
+        const inventorySnapshot = await db.collection('crm_inventory')
           .where('event_name', '==', updates.event_name)
           .limit(1)
           .get();
         
-        if (!eventsSnapshot.empty) {
-          updates.event_id = eventsSnapshot.docs[0].id;
-          console.log(`Found event_id ${updates.event_id} for event_name: ${updates.event_name}`);
+        if (!inventorySnapshot.empty) {
+          updates.event_id = inventorySnapshot.docs[0].id;
+          updates.inventory_id = inventorySnapshot.docs[0].id; // Also store as inventory_id for clarity
+          console.log(`Found inventory_id ${updates.event_id} for event_name: ${updates.event_name}`);
         }
       } catch (error) {
-        console.error('Error looking up event_id:', error);
+        console.error('Error looking up inventory_id:', error);
         // Continue without event_id if lookup fails
       }
     }
@@ -517,39 +519,39 @@ router.post('/bulk-update-event-ids', authenticateToken, async (req, res) => {
     // Get all orders
     const ordersSnapshot = await db.collection(collections.orders).get();
     
-    // Get all events and create a map for quick lookup
-    const eventsSnapshot = await db.collection('crm_events').get();
-    const eventMap = new Map();
-    const duplicateEvents = new Map();
+    // Get all inventory items and create a map for quick lookup
+    const inventorySnapshot = await db.collection('crm_inventory').get();
+    const inventoryMap = new Map();
+    const duplicateInventory = new Map();
     
-    eventsSnapshot.forEach(doc => {
-      const event = doc.data();
-      const eventName = event.event_name;
+    inventorySnapshot.forEach(doc => {
+      const inventory = doc.data();
+      const eventName = inventory.event_name;
       
-      if (eventMap.has(eventName)) {
+      if (inventoryMap.has(eventName)) {
         // Track duplicates
-        if (!duplicateEvents.has(eventName)) {
-          duplicateEvents.set(eventName, [eventMap.get(eventName)]);
+        if (!duplicateInventory.has(eventName)) {
+          duplicateInventory.set(eventName, [inventoryMap.get(eventName)]);
         }
-        duplicateEvents.get(eventName).push({
+        duplicateInventory.get(eventName).push({
           id: doc.id,
-          start_date: event.start_date,
-          created_date: event.created_date
+          event_date: inventory.event_date,
+          created_date: inventory.created_date
         });
       } else {
-        eventMap.set(eventName, {
+        inventoryMap.set(eventName, {
           id: doc.id,
-          start_date: event.start_date,
-          created_date: event.created_date
+          event_date: inventory.event_date,
+          created_date: inventory.created_date
         });
       }
     });
     
-    console.log(`Found ${eventMap.size} unique event names in the system`);
-    if (duplicateEvents.size > 0) {
-      console.log(`Warning: Found ${duplicateEvents.size} event names with duplicates`);
-      duplicateEvents.forEach((events, name) => {
-        console.log(`  - "${name}" has ${events.length} entries`);
+    console.log(`Found ${inventoryMap.size} unique event names in inventory`);
+    if (duplicateInventory.size > 0) {
+      console.log(`Warning: Found ${duplicateInventory.size} event names with multiple inventory items`);
+      duplicateInventory.forEach((items, name) => {
+        console.log(`  - "${name}" has ${items.length} inventory entries`);
       });
     }
     
@@ -575,34 +577,35 @@ router.post('/bulk-update-event-ids', authenticateToken, async (req, res) => {
         return;
       }
       
-      // Look up event by name
-      let eventData = eventMap.get(order.event_name);
+      // Look up inventory by event name
+      let inventoryData = inventoryMap.get(order.event_name);
       
-      // Handle duplicates - use the most recent event
-      if (!eventData && duplicateEvents.has(order.event_name)) {
-        const duplicates = duplicateEvents.get(order.event_name);
+      // Handle duplicates - use the most recent inventory
+      if (!inventoryData && duplicateInventory.has(order.event_name)) {
+        const duplicates = duplicateInventory.get(order.event_name);
         // Sort by created_date descending and pick the most recent
         duplicates.sort((a, b) => {
           const dateA = new Date(a.created_date || '1900-01-01');
           const dateB = new Date(b.created_date || '1900-01-01');
           return dateB - dateA;
         });
-        eventData = duplicates[0];
-        console.log(`Using most recent event for duplicate "${order.event_name}": ${eventData.id}`);
+        inventoryData = duplicates[0];
+        console.log(`Using most recent inventory for duplicate "${order.event_name}": ${inventoryData.id}`);
       }
       
-      if (eventData) {
-        // Update order with event_id and event_date
+      if (inventoryData) {
+        // Update order with inventory_id (as event_id) and event_date
         batch.update(doc.ref, {
-          event_id: eventData.id,
-          event_date: eventData.start_date || order.event_date,
+          event_id: inventoryData.id,
+          inventory_id: inventoryData.id, // Also store as inventory_id for clarity
+          event_date: inventoryData.event_date || order.event_date,
           event_id_updated_date: new Date().toISOString(),
           event_id_updated_by: req.user.email
         });
         updateCount++;
       } else {
         noMatchCount++;
-        console.log(`No event found for order ${doc.id} with event_name: ${order.event_name}`);
+        console.log(`No inventory found for order ${doc.id} with event_name: ${order.event_name}`);
       }
     });
     
@@ -618,12 +621,12 @@ router.post('/bulk-update-event-ids', authenticateToken, async (req, res) => {
       updated: updateCount,
       skipped: skipCount,
       noMatch: noMatchCount,
-      duplicateEventNames: duplicateEvents.size,
-      message: `Successfully updated ${updateCount} orders with event IDs`,
-      duplicates: duplicateEvents.size > 0 ? Array.from(duplicateEvents.entries()).map(([name, events]) => ({
+      duplicateInventoryNames: duplicateInventory.size,
+      message: `Successfully updated ${updateCount} orders with inventory IDs`,
+      duplicates: duplicateInventory.size > 0 ? Array.from(duplicateInventory.entries()).map(([name, items]) => ({
         eventName: name,
-        count: events.length,
-        note: 'Used most recent event for matching'
+        count: items.length,
+        note: 'Used most recent inventory for matching'
       })) : undefined,
       errors: errors.length > 0 ? errors : undefined
     });
