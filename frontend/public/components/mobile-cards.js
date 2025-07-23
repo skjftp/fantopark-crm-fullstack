@@ -374,7 +374,7 @@ window.MobileOrderCard = function({ order, onClick }) {
         // Quantity and amount
         React.createElement('div', { className: 'flex items-center justify-between text-sm' },
           React.createElement('span', { className: 'text-gray-500 dark:text-gray-400' },
-            `${order.quantity || 0} tickets`
+            `${order.tickets_allocated || order.quantity || 0} tickets`
           ),
           React.createElement('span', { className: 'font-medium text-gray-900 dark:text-white' },
             `${window.formatCurrency(order.total_amount || 0)}`
@@ -447,8 +447,30 @@ window.MobileOrderCard = function({ order, onClick }) {
       window.hasPermission('orders', 'invoice') && React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded transition-colors whitespace-nowrap',
         onClick: () => {
-          if (window.handleGenerateInvoice) {
-            window.handleGenerateInvoice(order);
+          // Use the same logic as web version for invoice generation
+          const isProforma = false; // Regular tax invoice
+          
+          // For tax invoices that don't have finance invoice number
+          if (!isProforma && !order.finance_invoice_number) {
+            console.log('📝 Tax invoice needs finance invoice number');
+            
+            // Check if modal functions are available
+            if (window.setCurrentOrderForInvoice && window.setFinanceInvoiceNumber && window.setShowFinanceInvoiceModal) {
+              console.log('✅ Opening finance invoice modal');
+              window.setCurrentOrderForInvoice(order);
+              window.setFinanceInvoiceNumber(order.finance_invoice_number || '');
+              window.setShowFinanceInvoiceModal(true);
+              return;
+            } else {
+              console.log('❌ Modal functions not available');
+              alert('Finance invoice number is required. Please contact admin.');
+              return;
+            }
+          }
+          
+          // Show invoice preview
+          if (window.openInvoicePreviewDirectly) {
+            window.openInvoicePreviewDirectly(order);
           }
         },
         title: 'Generate Invoice'
@@ -502,9 +524,31 @@ window.MobileOrderCard = function({ order, onClick }) {
       window.hasPermission('orders', 'assign') && order.assigned_to && order.original_assignee &&
       React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded transition-colors whitespace-nowrap',
-        onClick: () => {
-          if (window.handleReassignToOriginal) {
-            window.handleReassignToOriginal(order);
+        onClick: async () => {
+          // Reassign to original assignee
+          if (confirm(`Reassign this order back to ${order.original_assignee}?`)) {
+            try {
+              const response = await window.apiCall(`/orders/${order.id}/assign`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                  assigned_to: order.original_assignee,
+                  assigned_team: order.original_team || 'sales'
+                })
+              });
+              
+              if (response.success) {
+                alert('Order reassigned successfully');
+                // Refresh the orders list
+                if (window.fetchOrders) {
+                  window.fetchOrders();
+                }
+              } else {
+                alert('Failed to reassign order: ' + (response.message || 'Unknown error'));
+              }
+            } catch (error) {
+              console.error('Error reassigning order:', error);
+              alert('Error reassigning order: ' + error.message);
+            }
           }
         },
         title: 'Reassign to Original'
