@@ -72,6 +72,46 @@ window.renderEditOrderForm = () => {
   const currentAssignedTo = window.editOrderState?.assigned_to || currentOrderForEdit?.assigned_to || '';
   const currentTotalAmount = window.editOrderState?.total_amount || window.editOrderState?.final_amount || currentOrderForEdit?.total_amount || currentOrderForEdit?.final_amount || '';
   const currentNotes = window.editOrderState?.notes || currentOrderForEdit?.notes || '';
+  const currentEventName = window.editOrderState?.event_name || currentOrderForEdit?.event_name || '';
+  const currentEventDate = window.editOrderState?.event_date || currentOrderForEdit?.event_date || '';
+  
+  // State for inventory items
+  const [inventoryItems, setInventoryItems] = React.useState([]);
+  const [loadingInventory, setLoadingInventory] = React.useState(false);
+  
+  // Fetch inventory items on component mount
+  React.useEffect(() => {
+    const fetchInventory = async () => {
+      setLoadingInventory(true);
+      try {
+        const response = await window.apiCall('/inventory');
+        const items = response.data || [];
+        
+        // Get unique event names from inventory
+        const uniqueEventNames = [...new Set(items.map(item => item.event_name).filter(Boolean))];
+        
+        // Create inventory map for quick lookup
+        const inventoryMap = new Map();
+        items.forEach(item => {
+          if (item.event_name) {
+            // If duplicate event names, keep the most recent
+            if (!inventoryMap.has(item.event_name) || 
+                new Date(item.created_date) > new Date(inventoryMap.get(item.event_name).created_date)) {
+              inventoryMap.set(item.event_name, item);
+            }
+          }
+        });
+        
+        setInventoryItems(uniqueEventNames.map(name => inventoryMap.get(name)));
+      } catch (error) {
+        console.error('Error fetching inventory:', error);
+      } finally {
+        setLoadingInventory(false);
+      }
+    };
+    
+    fetchInventory();
+  }, []);
 
   console.log('🔍 Rendering form with values:', {
     status: currentStatus,
@@ -122,14 +162,54 @@ window.renderEditOrderForm = () => {
           })
         ),
 
-        // Event Name - READ ONLY
+        // Event Name - EDITABLE DROPDOWN
         React.createElement('div', { className: 'mb-4' },
           React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Event'),
+          loadingInventory ? 
+            React.createElement('div', { className: 'w-full px-3 py-2 border rounded-md bg-gray-50' }, 'Loading inventory...') :
+            React.createElement('select', {
+              value: currentEventName,
+              onChange: (e) => {
+                const selectedEventName = e.target.value;
+                const selectedInventory = inventoryItems.find(item => item.event_name === selectedEventName);
+                
+                // Update event name
+                handleInputChange('event_name', selectedEventName);
+                
+                // If inventory found, update event_id and event_date
+                if (selectedInventory) {
+                  handleInputChange('event_id', selectedInventory.id);
+                  handleInputChange('inventory_id', selectedInventory.id);
+                  handleInputChange('event_date', selectedInventory.event_date || '');
+                  
+                  console.log('Selected inventory:', {
+                    event_name: selectedEventName,
+                    inventory_id: selectedInventory.id,
+                    event_date: selectedInventory.event_date
+                  });
+                }
+              },
+              className: 'w-full px-3 py-2 border rounded-md'
+            },
+              React.createElement('option', { value: '' }, 'Select Event'),
+              inventoryItems.map(item =>
+                React.createElement('option', { 
+                  key: item.id, 
+                  value: item.event_name 
+                }, item.event_name)
+              )
+            )
+        ),
+        
+        // Event Date - AUTO-FILLED, READ ONLY
+        React.createElement('div', { className: 'mb-4' },
+          React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Event Date'),
           React.createElement('input', {
             type: 'text',
-            value: currentOrderForEdit?.event_name || '',
+            value: currentEventDate || '',
             readOnly: true,
-            className: 'w-full px-3 py-2 border rounded-md bg-gray-50'
+            className: 'w-full px-3 py-2 border rounded-md bg-gray-50',
+            placeholder: 'Auto-filled from selected event'
           })
         ),
 
