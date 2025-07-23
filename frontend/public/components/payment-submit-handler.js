@@ -186,6 +186,10 @@ window.renderPaymentSubmitHandler = () => {
             gst_rate: calculation.gst.rate,
             service_fee_amount: window.paymentData.service_fee_amount || existingOrder.service_fee_amount,
             
+            // Preserve event information for event_id lookup
+            event_name: existingOrder.event_name || window.currentLead?.lead_for_event || '',
+            event_date: existingOrder.event_date,
+            
             // Inclusions fields
             buying_price_inclusions: parseFloat(window.paymentData.buying_price_inclusions) || 0,
             inclusions_description: window.paymentData.inclusions_description || '',

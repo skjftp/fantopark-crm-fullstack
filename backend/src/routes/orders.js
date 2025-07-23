@@ -563,8 +563,8 @@ router.post('/bulk-update-event-ids', authenticateToken, async (req, res) => {
     ordersSnapshot.forEach(doc => {
       const order = doc.data();
       
-      // Skip if order already has event_id
-      if (order.event_id) {
+      // Skip if order already has event_id (check for empty strings too)
+      if (order.event_id && order.event_id.trim() !== '') {
         skipCount++;
         return;
       }

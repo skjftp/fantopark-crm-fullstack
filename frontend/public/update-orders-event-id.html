@@ -154,8 +154,22 @@
 
                 // Find orders that need updates
                 const ordersNeedingUpdate = [];
+                let ordersWithEventName = 0;
+                let ordersWithEventId = 0;
+                
                 orders.forEach(order => {
-                    if (!order.event_id && order.event_name) {
+                    // Check if event_id is truly empty (handle null, undefined, empty string)
+                    const hasEventId = order.event_id && order.event_id.trim() !== '';
+                    
+                    if (hasEventId) {
+                        ordersWithEventId++;
+                    }
+                    
+                    if (order.event_name) {
+                        ordersWithEventName++;
+                    }
+                    
+                    if (!hasEventId && order.event_name) {
                         const eventData = eventMap.get(order.event_name);
                         if (eventData) {
                             ordersNeedingUpdate.push({
@@ -164,11 +178,19 @@
                                 client_name: order.client_name,
                                 current_event_name: order.event_name,
                                 current_event_date: order.event_date,
+                                current_event_id: order.event_id || 'none',
                                 new_event_id: eventData.id,
                                 new_event_date: eventData.start_date
                             });
                         }
                     }
+                });
+                
+                console.log('Preview Analysis:', {
+                    totalOrders: orders.length,
+                    ordersWithEventName: ordersWithEventName,
+                    ordersWithEventId: ordersWithEventId,
+                    ordersNeedingUpdate: ordersNeedingUpdate.length
                 });
 
                 updateProgress(100, 'Preview ready');
@@ -180,7 +202,39 @@
                 previewDiv.classList.remove('hidden');
 
                 if (ordersNeedingUpdate.length === 0) {
-                    previewContent.innerHTML = '<p class="text-gray-600">No orders need updating. All orders either have event_id already set or no matching event was found.</p>';
+                    // Show detailed breakdown when no updates are needed
+                    const noMatchOrders = [];
+                    orders.forEach(order => {
+                        const hasEventId = order.event_id && order.event_id.trim() !== '';
+                        if (!hasEventId && order.event_name && !eventMap.has(order.event_name)) {
+                            noMatchOrders.push({
+                                order_number: order.order_number,
+                                event_name: order.event_name
+                            });
+                        }
+                    });
+                    
+                    previewContent.innerHTML = `
+                        <div class="text-gray-600">
+                            <p class="mb-4">No orders need updating.</p>
+                            <div class="bg-gray-100 p-4 rounded-lg text-sm">
+                                <p>Analysis Summary:</p>
+                                <ul class="list-disc list-inside mt-2">
+                                    <li>Total orders: ${orders.length}</li>
+                                    <li>Orders with event_id: ${ordersWithEventId}</li>
+                                    <li>Orders with event_name: ${ordersWithEventName}</li>
+                                    <li>Available events in system: ${events.length}</li>
+                                </ul>
+                                ${noMatchOrders.length > 0 ? `
+                                    <p class="mt-4 text-red-600">Orders with no matching event:</p>
+                                    <ul class="list-disc list-inside mt-2">
+                                        ${noMatchOrders.slice(0, 10).map(o => `<li>${o.order_number}: "${o.event_name}"</li>`).join('')}
+                                        ${noMatchOrders.length > 10 ? `<li>... and ${noMatchOrders.length - 10} more</li>` : ''}
+                                    </ul>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
                 } else {
                     previewContent.innerHTML = `
                         <p class="text-green-600 font-medium mb-4">${ordersNeedingUpdate.length} orders will be updated:</p>
