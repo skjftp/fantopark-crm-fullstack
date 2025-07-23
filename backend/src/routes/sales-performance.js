@@ -240,12 +240,24 @@ router.get('/', authenticateToken, async (req, res) => {
       let actualizedMargin = 0;
       
       userOrders.forEach(order => {
-        const orderAmount = parseFloat(order.total_amount || 0);
+        // Use INR equivalent amounts for foreign currency orders
+        const isForeignCurrency = order.payment_currency && order.payment_currency !== 'INR';
+        const orderAmount = parseFloat(order.final_amount_inr || order.total_amount || 0);
+        
+        if (isForeignCurrency && userOrders.indexOf(order) < 3) {
+          console.log(`💱 Foreign currency order detected:`, {
+            currency: order.payment_currency,
+            originalAmount: order.total_amount,
+            inrAmount: order.final_amount_inr,
+            exchangeRate: order.exchange_rate
+          });
+        }
         
         // New margin calculation:
         // Selling Price = Invoice value (total_amount without GST/TCS)
         // Buying Price = buying_price (cumulative from allocations) + buying_price_inclusions
-        const sellingPrice = parseFloat(order.base_amount || order.total_amount || 0);
+        // For foreign currency orders, use inr_equivalent for base amount
+        const sellingPrice = parseFloat(order.inr_equivalent || order.base_amount || order.total_amount || 0);
         const buyingPriceTickets = parseFloat(order.buying_price || 0);
         const buyingPriceInclusions = parseFloat(order.buying_price_inclusions || 0);
         const totalBuyingPrice = buyingPriceTickets + buyingPriceInclusions;
@@ -261,8 +273,13 @@ router.get('/', authenticateToken, async (req, res) => {
           console.log(`📊 DEBUG Order for ${userData.name}:`, {
             orderId: order.id || 'N/A',
             customer: order.customer_name || 'N/A',
+            currency: order.payment_currency || 'INR',
+            exchangeRate: order.exchange_rate || 1,
             totalAmount: orderAmount,
+            originalAmount: order.total_amount || 0,
+            finalAmountINR: order.final_amount_inr || 'N/A',
             baseAmount: order.base_amount || 0,
+            inrEquivalent: order.inr_equivalent || 'N/A',
             sellingPrice: sellingPrice,
             buyingPriceTickets: buyingPriceTickets,
             buyingPriceInclusions: buyingPriceInclusions,
@@ -280,7 +297,7 @@ router.get('/', authenticateToken, async (req, res) => {
         if (order.event_date) {
           const eventDate = new Date(order.event_date);
           if (eventDate < now) {
-            actualizedSales += orderAmount;
+            actualizedSales += orderAmount;  // orderAmount already uses INR equivalent
             actualizedMargin += margin;
           }
         }
