@@ -632,8 +632,23 @@ window.MobileOrdersView = function() {
   }, [orders, filters]);
 
   const handleOrderClick = (order) => {
-    state.setCurrentOrder(order);
-    state.setShowOrderDetail(true);
+    // Set the current order detail
+    if (state.setCurrentOrderDetail) {
+      state.setCurrentOrderDetail(order);
+    } else if (window.setCurrentOrderDetail) {
+      window.setCurrentOrderDetail(order);
+    } else if (window.appState) {
+      window.appState.currentOrderDetail = order;
+    }
+    
+    // Show the order detail modal
+    if (state.setShowOrderDetail) {
+      state.setShowOrderDetail(true);
+    } else if (window.setShowOrderDetail) {
+      window.setShowOrderDetail(true);
+    } else if (window.appState) {
+      window.appState.showOrderDetail = true;
+    }
   };
 
   const handleFilterChange = (key, value) => {
@@ -864,6 +879,7 @@ window.MobileDashboardView = function() {
             console.log('📱 Mobile Dashboard Data:', {
               totalLeads: result.data.summary.totalLeads,
               hotLeads: result.data.summary.hotLeads,
+              hotWarmLeads: result.data.summary.hotWarmLeads,
               qualifiedLeads: result.data.summary.qualifiedLeads,
               totalPipelineValue: result.data.summary.totalPipelineValue,
               filters: result.data.filters
@@ -1264,8 +1280,8 @@ window.MobileDashboardView = function() {
           React.createElement('div', { className: 'ml-3' },
             React.createElement('h3', { 
               className: 'text-lg font-semibold text-gray-900 dark:text-white'
-            }, dashboardData.summary.hotLeads),
-            React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400' }, 'Hot Leads')
+            }, dashboardData.summary.hotWarmLeads || dashboardData.summary.hotLeads),
+            React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400' }, 'Hot + Warm Leads')
           )
         )
       ),

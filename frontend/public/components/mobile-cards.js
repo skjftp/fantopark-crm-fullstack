@@ -112,7 +112,7 @@ window.MobileLeadCard = function({ lead, onClick }) {
           ),
           lead.potential_value && React.createElement('span', { 
             className: 'font-medium text-gray-900 dark:text-white'
-          }, `₹${window.formatCurrency(lead.potential_value)}`)
+          }, `${window.formatCurrency(lead.potential_value)}`)
         )
       )
     ),
@@ -250,7 +250,7 @@ window.MobileInventoryCard = function({ item, onClick }) {
           'Selling Price'
         ),
         React.createElement('span', { className: 'font-semibold text-gray-900 dark:text-white' },
-          `₹${window.formatCurrency(item.selling_price || 0)}`
+          `${window.formatCurrency(item.selling_price || 0)}`
         )
       ),
 
@@ -377,7 +377,7 @@ window.MobileOrderCard = function({ order, onClick }) {
             `${order.quantity || 0} tickets`
           ),
           React.createElement('span', { className: 'font-medium text-gray-900 dark:text-white' },
-            `₹${window.formatCurrency(order.total_amount || 0)}`
+            `${window.formatCurrency(order.total_amount || 0)}`
           )
         ),
 
@@ -405,8 +405,8 @@ window.MobileOrderCard = function({ order, onClick }) {
     React.createElement('div', {
       className: 'flex items-center gap-1 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 overflow-x-auto'
     },
-      // Approve button (for pending orders)
-      order.status === 'pending' && window.hasPermission('orders', 'approve') &&
+      // Approve button (for pending_approval orders)
+      order.status === 'pending_approval' && window.hasPermission('orders', 'approve') &&
       React.createElement('button', {
         className: 'action-button px-2 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded transition-colors whitespace-nowrap',
         onClick: () => {
@@ -467,6 +467,36 @@ window.MobileOrderCard = function({ order, onClick }) {
         },
         title: 'Assign Order'
       }, '👤'),
+      
+      // Generate Premium Journey button
+      window.hasPermission('orders', 'write') && window.JourneyGenerator &&
+      React.createElement('button', {
+        className: 'action-button px-2 py-1.5 text-xs font-medium text-yellow-600 bg-yellow-50 hover:bg-yellow-100 rounded transition-colors whitespace-nowrap',
+        onClick: () => {
+          console.log('Journey button clicked for order:', order.id);
+          
+          // Remove any existing modal
+          const existing = document.getElementById('journey-modal-container');
+          if (existing) existing.remove();
+          
+          // Create new modal
+          const div = document.createElement('div');
+          div.id = 'journey-modal-container';
+          document.body.appendChild(div);
+          
+          ReactDOM.render(
+            React.createElement(window.JourneyGenerator, {
+              order: order,
+              onClose: () => {
+                ReactDOM.unmountComponentAtNode(div);
+                div.remove();
+              }
+            }),
+            div
+          );
+        },
+        title: 'Generate Premium Journey'
+      }, '✨'),
       
       // Reassign to original button
       window.hasPermission('orders', 'assign') && order.assigned_to && order.original_assignee &&

@@ -992,6 +992,11 @@ const updateOrdersPagination = (orders) => {
   const openPaymentForm = (lead) => {
     setCurrentLead(lead);
     
+    // Load stadiums if not already loaded (needed for venue country mapping)
+    if (stadiums.length === 0) {
+      window.fetchStadiums();
+    }
+    
     // ✅ NEW: Check for existing order and pre-load data
     const existingOrder = orders.find(order => 
       order.lead_id === lead.id && 
@@ -1003,6 +1008,8 @@ const updateOrdersPagination = (orders) => {
     if (existingOrder) {
       // ✅ PRE-LOAD from existing order
       window.log.debug('💰 Pre-loading payment form from existing order:', existingOrder.id);
+      window.log.debug('📍 Existing order event_location:', existingOrder.event_location);
+      window.log.debug('🎾 Event name:', existingOrder.event_name || existingOrder.inventory_name || lead.lead_for_event);
       
       initialPaymentData = {
         // Payment details
@@ -1021,9 +1028,42 @@ const updateOrdersPagination = (orders) => {
         indian_state: existingOrder.indian_state || 'Haryana',
         is_outside_india: existingOrder.is_outside_india || false,
         
-        // Customer classification
+        // Customer classification - Fix event_location mapping
         customer_type: existingOrder.customer_type || 'indian',
-        event_location: existingOrder.event_location || 'domestic',
+        event_location: (() => {
+          // First check if existing order has event_location
+          if (existingOrder.event_location) {
+            if (existingOrder.event_location === 'domestic') return 'india';
+            if (existingOrder.event_location === 'outside_india') return 'outside_india';
+            if (existingOrder.event_location === 'india') return 'india';
+            return existingOrder.event_location;
+          }
+          
+          // If not, try to determine from venue/stadium
+          let eventLocation = 'india'; // Default
+          
+          if ((lead.lead_for_event || existingOrder.event_name) && inventory && stadiums) {
+            const eventName = existingOrder.event_name || existingOrder.inventory_name || lead.lead_for_event;
+            const eventInventory = inventory.find(item => 
+              item.event_name === eventName || 
+              item.name === eventName
+            );
+            
+            if (eventInventory && eventInventory.venue) {
+              const venue = stadiums.find(s => 
+                s.name === eventInventory.venue || 
+                s.stadium_name === eventInventory.venue
+              );
+              
+              if (venue && venue.country) {
+                eventLocation = venue.country.toLowerCase() === 'india' ? 'india' : 'outside_india';
+                window.log.debug('📍 Mapped event location from venue for existing order:', venue.name, venue.country, '->', eventLocation);
+              }
+            }
+          }
+          
+          return eventLocation;
+        })(),
         payment_currency: existingOrder.payment_currency || 'INR',
         
         // Documents
@@ -1058,6 +1098,31 @@ const updateOrdersPagination = (orders) => {
       // ✅ NEW order - use original logic
       window.log.debug('💰 Creating new payment form for lead:', lead.id);
       
+      // Try to determine event location from venue/stadium
+      let eventLocation = 'india'; // Default to India
+      
+      if (lead.lead_for_event && inventory && stadiums) {
+        // Find the inventory item for this event
+        const eventInventory = inventory.find(item => 
+          item.event_name === lead.lead_for_event || 
+          item.name === lead.lead_for_event
+        );
+        
+        if (eventInventory && eventInventory.venue) {
+          // Find the stadium/venue details
+          const venue = stadiums.find(s => 
+            s.name === eventInventory.venue || 
+            s.stadium_name === eventInventory.venue
+          );
+          
+          if (venue && venue.country) {
+            // Map country to event location
+            eventLocation = venue.country.toLowerCase() === 'india' ? 'india' : 'outside_india';
+            window.log.debug('📍 Mapped event location from venue:', venue.name, venue.country, '->', eventLocation);
+          }
+        }
+      }
+      
       initialPaymentData = {
         payment_method: '',
         transaction_id: '',
@@ -1070,9 +1135,9 @@ const updateOrdersPagination = (orders) => {
         type_of_sale: 'Tour',
         registered_address: lead.registered_address || '',
         indian_state: 'Haryana',
-        is_outside_india: false,
+        is_outside_india: eventLocation === 'outside_india',
         customer_type: 'indian',
-        event_location: 'domestic',
+        event_location: eventLocation,
         payment_currency: 'INR',
         gst_certificate: null,
         pan_card: null,
@@ -1172,6 +1237,7 @@ const fetchAndProcessLead = async (leadId, receivable) => {
     openPaymentForm(leadData);
     
     // Set payment data with receivable information
+    // Note: openPaymentForm already set the payment data with proper event_location
     setPaymentData(prev => ({
       ...prev,
       payment_post_service: true,
@@ -1179,6 +1245,7 @@ const fetchAndProcessLead = async (leadId, receivable) => {
       from_receivable: true,
       receivable_id: receivable.id,
       receivable_amount: receivable.balance_amount || receivable.expected_amount || receivable.amount || 0
+      // Preserve event_location that was set in openPaymentForm
     }));
     
     window.log.debug('Successfully opened payment form for lead:', leadData.name || leadData.company_name);

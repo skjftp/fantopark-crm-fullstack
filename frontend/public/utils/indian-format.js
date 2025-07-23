@@ -2,9 +2,44 @@
 // Add this to your main JavaScript file or create a separate utilities file
 
 // Enhanced Indian Currency Formatter - No Decimals
-window.formatCurrency = function(amount, options = {}) {
+window.formatCurrency = function(amount, currencyOrOptions = 'INR') {
   if (amount === null || amount === undefined || isNaN(amount)) {
+    // If currency is passed as string, use appropriate symbol
+    if (typeof currencyOrOptions === 'string' && currencyOrOptions !== 'INR') {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currencyOrOptions,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(0);
+    }
     return '₹0';
+  }
+
+  // Handle both string currency code and options object
+  let options = {};
+  let currencyCode = 'INR';
+  
+  if (typeof currencyOrOptions === 'string') {
+    currencyCode = currencyOrOptions;
+    options = {
+      showDecimals: false,
+      currency: currencyCode === 'INR' ? '₹' : currencyCode,
+      showFullForm: false
+    };
+  } else {
+    options = currencyOrOptions;
+    currencyCode = options.currency === '₹' ? 'INR' : (options.currency || 'INR');
+  }
+
+  // For non-INR currencies, use Intl.NumberFormat
+  if (currencyCode !== 'INR' && currencyCode !== '₹') {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+      minimumFractionDigits: options.showDecimals ? 2 : 0,
+      maximumFractionDigits: options.showDecimals ? 2 : 0
+    }).format(amount);
   }
 
   const {

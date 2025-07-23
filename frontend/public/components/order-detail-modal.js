@@ -141,14 +141,14 @@ window.renderOrderDetailModal = () => {
               React.createElement('div', { className: 'mb-3' },
                 React.createElement('span', { className: 'font-medium text-gray-700' }, 'Total Amount: '),
                 React.createElement('span', { className: 'text-gray-900 font-semibold' }, 
-                  '₹' + (currentOrderDetail.final_amount || currentOrderDetail.total_amount || currentOrderDetail.amount || 0).toLocaleString()
+                  window.formatCurrency(currentOrderDetail.final_amount || currentOrderDetail.total_amount || currentOrderDetail.amount || 0, currentOrderDetail.payment_currency || currentOrderDetail.currency || 'INR')
                 )
               ),
               React.createElement('div', { className: 'mb-3' },
                 React.createElement('span', { className: 'font-medium text-gray-700' }, 'Balance Due: '),
                 React.createElement('span', { className: 'text-red-600 font-semibold' }, 
-                  '₹' + ((currentOrderDetail.final_amount || currentOrderDetail.total_amount || 0) - 
-                         (currentOrderDetail.advance_received || currentOrderDetail.advance_amount || 0)).toLocaleString()
+                  window.formatCurrency((currentOrderDetail.final_amount || currentOrderDetail.total_amount || 0) - 
+                         (currentOrderDetail.advance_received || currentOrderDetail.advance_amount || 0), currentOrderDetail.payment_currency || currentOrderDetail.currency || 'INR')
                 )
               ),
               React.createElement('div', { className: 'mb-3' },
@@ -160,13 +160,13 @@ window.renderOrderDetailModal = () => {
               React.createElement('div', { className: 'mb-3' },
                 React.createElement('span', { className: 'font-medium text-gray-700' }, 'Advance Received: '),
                 React.createElement('span', { className: 'text-green-600 font-semibold' }, 
-                  '₹' + (currentOrderDetail.advance_received || currentOrderDetail.advance_amount || 0).toLocaleString()
+                  window.formatCurrency(currentOrderDetail.advance_received || currentOrderDetail.advance_amount || 0, currentOrderDetail.payment_currency || currentOrderDetail.currency || 'INR')
                 )
               ),
               React.createElement('div', { className: 'mb-3' },
-                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Total Tax: '),
+                React.createElement('span', { className: 'font-medium text-gray-700' }, 'Total Tax (GST + TCS): '),
                 React.createElement('span', { className: 'text-gray-900' }, 
-                  '₹' + (currentOrderDetail.total_tax || 0).toLocaleString()
+                  window.formatCurrency((currentOrderDetail.gst_amount || 0) + (currentOrderDetail.tcs_amount || 0), currentOrderDetail.payment_currency || currentOrderDetail.currency || 'INR')
                 )
               ),
               React.createElement('div', { className: 'mb-3' },
@@ -204,7 +204,7 @@ window.renderOrderDetailModal = () => {
                   currentOrderDetail.sales_person || 'Not Assigned'
                 ),
                 // Show edit button for admin/manager roles
-                (hasPermission('orders', 'write') && (window.user?.role === 'super_admin' || window.user?.role === 'finance_manager' || window.user?.role === 'sales_manager')) &&
+                (hasPermission('orders', 'write') && (window.user?.role === 'super_admin' || window.user?.role === 'supply_sales_service_manager' || window.user?.role === 'finance_manager' || window.user?.role === 'sales_manager')) &&
                 React.createElement('button', {
                   className: 'ml-2 text-blue-600 hover:text-blue-800 text-xs',
                   onClick: () => {

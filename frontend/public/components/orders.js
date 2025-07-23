@@ -633,7 +633,7 @@ const viewInvoice = window.viewInvoice;
   )
 ),
                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white' },
-                  order.total_amount ? `₹${parseFloat(order.total_amount).toLocaleString()}` : 'N/A'
+                  order.total_amount ? window.formatCurrency(order.total_amount, order.payment_currency || order.currency || 'INR') : 'N/A'
                 ),
                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
                   React.createElement('span', {

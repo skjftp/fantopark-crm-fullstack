@@ -1235,7 +1235,9 @@ window.calculateGSTAndTCS = function(baseAmount, paymentData) {
   if (isOutsideIndia && (isIndian || isINRPayment)) {
     result.tcs.applicable = true;
     result.tcs.rate = paymentData.tcs_rate || 5;
-    result.tcs.amount = (baseAmount * result.tcs.rate) / 100;
+    // TCS should be calculated on amount including GST
+    const amountWithGST = baseAmount + result.gst.amount;
+    result.tcs.amount = (amountWithGST * result.tcs.rate) / 100;
   }
 
   result.finalAmount = baseAmount + result.gst.amount + result.tcs.amount;

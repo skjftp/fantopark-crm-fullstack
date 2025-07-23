@@ -322,8 +322,8 @@ React.createElement('div', { className: 'invoice-meta' },
               React.createElement('tr', null,
                 React.createElement('th', null, 'Particulars'),
                 React.createElement('th', { style: { textAlign: 'center' }}, 'Qty.'),
-                React.createElement('th', { style: { textAlign: 'right' }}, 'Rate (INR)'),
-                React.createElement('th', { style: { textAlign: 'right' }}, 'Value (INR)')
+                React.createElement('th', { style: { textAlign: 'right' }}, `Rate (${invoice.payment_currency || invoice.currency || 'INR'})`),
+                React.createElement('th', { style: { textAlign: 'right' }}, `Value (${invoice.payment_currency || invoice.currency || 'INR'})`)
               )
             ),
             React.createElement('tbody', null,
@@ -332,10 +332,10 @@ React.createElement('div', { className: 'invoice-meta' },
                   React.createElement('td', null, item.description || 'Service'),
                   React.createElement('td', { style: { textAlign: 'center' }}, item.quantity || 1),
                   React.createElement('td', { style: { textAlign: 'right' }}, 
-                    window.formatCurrency ? window.formatCurrency(item.rate || 0).replace('₹', '') : (item.rate || 0).toFixed(2)
+                    window.formatCurrency ? window.formatCurrency(item.rate || 0, invoice.payment_currency || invoice.currency || 'INR') : (item.rate || 0).toFixed(2)
                   ),
                   React.createElement('td', { style: { textAlign: 'right' }}, 
-                    window.formatCurrency ? window.formatCurrency((item.quantity || 1) * (item.rate || 0)).replace('₹', '') : 
+                    window.formatCurrency ? window.formatCurrency((item.quantity || 1) * (item.rate || 0), invoice.payment_currency || invoice.currency || 'INR') : 
                     ((item.quantity || 1) * (item.rate || 0)).toFixed(2)
                   )
                 )
@@ -350,14 +350,14 @@ React.createElement('div', { className: 'invoice-meta' },
                   React.createElement('td', { style: { width: '70%' }}, 'CGST'),
                   React.createElement('td', { style: { textAlign: 'center', width: '15%' }}, gstCalculation.rate ? `${(gstCalculation.rate / 2).toFixed(2)}%` : '2.50%'),
                   React.createElement('td', { style: { textAlign: 'right', width: '15%' }}, 
-                    window.formatCurrency ? window.formatCurrency(gstCalculation.cgst || 0).replace('₹', '') : (gstCalculation.cgst || 0).toFixed(2)
+                    window.formatCurrency ? window.formatCurrency(gstCalculation.cgst || 0, invoice.payment_currency || invoice.currency || 'INR') : (gstCalculation.cgst || 0).toFixed(2)
                   )
                 ),
                 React.createElement('tr', { key: 'sgst' },
                   React.createElement('td', null, 'SGST'),
                   React.createElement('td', { style: { textAlign: 'center' }}, gstCalculation.rate ? `${(gstCalculation.rate / 2).toFixed(2)}%` : '2.50%'),
                   React.createElement('td', { style: { textAlign: 'right' }}, 
-                    window.formatCurrency ? window.formatCurrency(gstCalculation.sgst || 0).replace('₹', '') : (gstCalculation.sgst || 0).toFixed(2)
+                    window.formatCurrency ? window.formatCurrency(gstCalculation.sgst || 0, invoice.payment_currency || invoice.currency || 'INR') : (gstCalculation.sgst || 0).toFixed(2)
                   )
                 )
               ],
@@ -366,7 +366,7 @@ React.createElement('div', { className: 'invoice-meta' },
                 React.createElement('td', null, 'IGST'),
                 React.createElement('td', { style: { textAlign: 'center' }}, `${(gstCalculation.rate || 0).toFixed(2)}%`),
                 React.createElement('td', { style: { textAlign: 'right' }}, 
-                  window.formatCurrency ? window.formatCurrency(gstCalculation.igst || 0).replace('₹', '') : (gstCalculation.igst || 0).toFixed(2)
+                  window.formatCurrency ? window.formatCurrency(gstCalculation.igst || 0, invoice.payment_currency || invoice.currency || 'INR') : (gstCalculation.igst || 0).toFixed(2)
                 )
               ),
 
@@ -374,7 +374,7 @@ React.createElement('div', { className: 'invoice-meta' },
                 React.createElement('td', null, 'TCS'),
                 React.createElement('td', { style: { textAlign: 'center' }}, `${(tcsCalculation.rate || 0).toFixed(2)}%`),
                 React.createElement('td', { style: { textAlign: 'right' }}, 
-                  window.formatCurrency ? window.formatCurrency(tcsCalculation.amount || 0).replace('₹', '') : (tcsCalculation.amount || 0).toFixed(2)
+                  window.formatCurrency ? window.formatCurrency(tcsCalculation.amount || 0, invoice.payment_currency || invoice.currency || 'INR') : (tcsCalculation.amount || 0).toFixed(2)
                 )
               ),
 
@@ -382,7 +382,7 @@ React.createElement('div', { className: 'invoice-meta' },
                 React.createElement('td', null, 'Grand Total'),
                 React.createElement('td', null),
                 React.createElement('td', { style: { textAlign: 'right' }}, 
-                  window.formatCurrency ? window.formatCurrency(finalAmount).replace('₹', '') : finalAmount.toFixed(2)
+                  window.formatCurrency ? window.formatCurrency(finalAmount, invoice.payment_currency || invoice.currency || 'INR') : finalAmount.toFixed(2)
                 )
               ),
 
@@ -396,7 +396,7 @@ React.createElement('div', { className: 'invoice-meta' },
                 React.createElement('td', null, 'Invoice Value'),
                 React.createElement('td', null),
                 React.createElement('td', { style: { textAlign: 'right' }}, 
-                  window.formatCurrency ? window.formatCurrency(finalAmount).replace('₹', '') : finalAmount.toFixed(2)
+                  window.formatCurrency ? window.formatCurrency(finalAmount, invoice.payment_currency || invoice.currency || 'INR') : finalAmount.toFixed(2)
                 )
               )
             )

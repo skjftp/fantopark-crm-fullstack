@@ -199,7 +199,7 @@ window.renderCurrencyConversionSection = () => {
       // Exchange Rate (Editable)
       React.createElement('div', null,
         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-          'Exchange Rate (1 ' + currency + ' = ₹)'
+          'Exchange Rate (1 ' + currency + ' = INR)'
         ),
         React.createElement('div', { className: 'flex items-center gap-2' },
           React.createElement('input', {
@@ -246,7 +246,7 @@ window.renderCurrencyConversionSection = () => {
         React.createElement('div', { 
           className: 'px-3 py-2 bg-green-100 border border-green-300 rounded-md font-mono font-semibold text-green-800' 
         }, 
-          '₹ ' + inrEquivalent.toFixed(2)
+          'INR ' + inrEquivalent.toFixed(2)
         )
       )
     ),
@@ -380,7 +380,7 @@ window.renderEnhancedPaymentForm = () => {
               React.createElement('div', { className: 'flex items-center p-3 bg-orange-100 rounded' },
                 React.createElement('div', null,
                   React.createElement('div', { className: 'text-sm font-medium text-orange-800' }, 
-                    `TCS Amount: ₹${((baseAmount * (paymentData.tcs_rate || 5)) / 100).toFixed(2)}`
+                    `TCS Amount: ${window.formatCurrency(((baseAmount + calculation.gst.amount) * (paymentData.tcs_rate || 5)) / 100, paymentData.payment_currency || 'INR')}`
                   ),
                   React.createElement('div', { className: 'text-xs text-orange-700 mt-1' }, 
                     'Rate depends on individual income level - select appropriate rate'
@@ -411,7 +411,7 @@ window.renderEnhancedPaymentForm = () => {
             ),
             React.createElement('div', null,
               React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                paymentData.from_receivable ? 'Payment Amount (₹) *' : 'Advance Amount (₹) *'
+                paymentData.from_receivable ? `Payment Amount (${paymentData.payment_currency || 'INR'}) *` : `Advance Amount (${paymentData.payment_currency || 'INR'}) *`
               ),
               React.createElement('input', {
                 type: 'number',
@@ -775,7 +775,7 @@ window.renderEnhancedPaymentForm = () => {
                 // Item Total Display
                 React.createElement('div', { className: 'mt-3 flex justify-end' },
                   React.createElement('div', { className: 'text-sm font-medium text-gray-700 bg-gray-100 px-3 py-2 rounded' },
-                    'Item Total: ₹', ((item.quantity || 0) * (item.rate || 0)).toFixed(2)
+                    `Item Total: ${window.formatCurrency((item.quantity || 0) * (item.rate || 0), paymentData.payment_currency || 'INR')}`
                   )
                 )
               )
@@ -787,9 +787,9 @@ window.renderEnhancedPaymentForm = () => {
             React.createElement('div', { className: 'flex justify-between text-lg font-semibold' },
               React.createElement('span', null, 'Invoice Subtotal:'),
               React.createElement('span', null, 
-                '₹', (paymentData.invoice_items?.reduce((sum, item) => 
+                window.formatCurrency(paymentData.invoice_items?.reduce((sum, item) => 
                   sum + ((item.quantity || 0) * (item.rate || 0)), 0
-                ) || 0).toFixed(2)
+                ) || 0, paymentData.payment_currency || 'INR')
               )
             )
           )
@@ -803,7 +803,7 @@ window.renderEnhancedPaymentForm = () => {
           React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
             React.createElement('div', null,
               React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                'Cost Price of Inclusions (₹)'
+                `Cost Price of Inclusions (${paymentData.payment_currency || 'INR'})`
               ),
               React.createElement('input', {
                 type: 'number',
@@ -849,7 +849,7 @@ window.renderEnhancedPaymentForm = () => {
             React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
               React.createElement('div', null,
                 React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 
-                  'Service Fee Amount (₹) *'
+                  `Service Fee Amount (${paymentData.payment_currency || 'INR'}) *`
                 ),
                 React.createElement('input', {
                   type: 'number',
@@ -1049,8 +1049,8 @@ window.renderInvoiceItemsTable = () => {
             React.createElement('th', { className: 'border p-2 text-left' }, 'Description'),
             React.createElement('th', { className: 'border p-2 text-left' }, 'Additional Info'),
             React.createElement('th', { className: 'border p-2 text-center w-24' }, 'Qty'),
-            React.createElement('th', { className: 'border p-2 text-right w-32' }, 'Rate (₹)'),
-            React.createElement('th', { className: 'border p-2 text-right w-32' }, 'Amount (₹)'),
+            React.createElement('th', { className: 'border p-2 text-right w-32' }, `Rate (${paymentData.payment_currency || 'INR'})`),
+            React.createElement('th', { className: 'border p-2 text-right w-32' }, `Amount (${paymentData.payment_currency || 'INR'})`),
             React.createElement('th', { className: 'border p-2 text-center w-20' }, 'Action')
           )
         ),
@@ -1097,7 +1097,7 @@ window.renderInvoiceItemsTable = () => {
                 })
               ),
               React.createElement('td', { className: 'border p-2 text-right font-medium' },
-                '₹ ' + ((item.quantity || 0) * (item.rate || 0)).toFixed(2)
+                window.formatCurrency((item.quantity || 0) * (item.rate || 0), paymentData.payment_currency || 'INR')
               ),
               React.createElement('td', { className: 'border p-2 text-center' },
                 items.length > 1 && React.createElement('button', {
@@ -1115,7 +1115,7 @@ window.renderInvoiceItemsTable = () => {
               className: 'border p-2 text-right' 
             }, 'Total:'),
             React.createElement('td', { className: 'border p-2 text-right' },
-              '₹ ' + items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.rate || 0)), 0).toFixed(2)
+              window.formatCurrency(items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.rate || 0)), 0), paymentData.payment_currency || 'INR')
             ),
             React.createElement('td', { className: 'border p-2' })
           )
