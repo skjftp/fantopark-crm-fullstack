@@ -3705,10 +3705,6 @@ window.MobileMyActionsView = function() {
     React.createElement('div', { 
       className: 'sticky top-0 bg-white dark:bg-gray-900 z-10 pb-3 border-b'
     },
-      React.createElement('h2', { 
-        className: 'text-lg font-semibold mb-3 px-4'
-      }, 'My Actions'),
-      
       // Search bar
       React.createElement('div', { className: 'px-4 mb-3' },
         React.createElement('div', { className: 'relative' },
