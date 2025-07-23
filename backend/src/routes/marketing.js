@@ -18,9 +18,9 @@ const touchBasedStatuses = [
 // Comprehensive marketing performance endpoint - everything in one call
 router.get('/performance', authenticateToken, checkPermission('finance', 'read'), async (req, res) => {
   try {
-    const { date_from, date_to, event, source, ad_set } = req.query;
+    const { date_from, date_to, event, source, sources, ad_set } = req.query;
     
-    console.log('📊 Fetching marketing performance:', { date_from, date_to, event, source, ad_set });
+    console.log('📊 Fetching marketing performance:', { date_from, date_to, event, source, sources, ad_set });
     
     // Build query for leads - simplified to avoid Firestore index issues
     let query = db.collection(collections.leads);
@@ -147,7 +147,16 @@ router.get('/performance', authenticateToken, checkPermission('finance', 'read')
         lead.lead_for_event === event || lead.event_name === event
       );
     }
-    if (source && source !== 'all') {
+    // Handle multi-select sources
+    if (sources) {
+      // Parse comma-separated sources
+      const sourcesArray = sources.split(',').map(s => s.trim());
+      if (sourcesArray.length > 0) {
+        leads = leads.filter(lead => sourcesArray.includes(lead.source));
+        console.log(`Filtering by multiple sources: ${sourcesArray.join(', ')}`);
+      }
+    } else if (source && source !== 'all') {
+      // Fallback to single source for backward compatibility
       leads = leads.filter(lead => lead.source === source);
     }
     if (ad_set && ad_set !== 'all') {
@@ -481,9 +490,9 @@ router.get('/facebook-adsets', authenticateToken, checkPermission('finance', 're
 // Get time-series data for marketing performance charts
 router.get('/performance-timeseries', authenticateToken, checkPermission('finance', 'read'), async (req, res) => {
   try {
-    const { date_from, date_to, event, source, ad_set, granularity = 'daily' } = req.query;
+    const { date_from, date_to, event, source, sources, ad_set, granularity = 'daily' } = req.query;
     
-    console.log('📊 Fetching marketing time-series data:', { date_from, date_to, event, source, ad_set, granularity });
+    console.log('📊 Fetching marketing time-series data:', { date_from, date_to, event, source, sources, ad_set, granularity });
     
     // Build query for leads
     let query = db.collection(collections.leads);
@@ -510,7 +519,15 @@ router.get('/performance-timeseries', authenticateToken, checkPermission('financ
         lead.lead_for_event === event || lead.event_name === event
       );
     }
-    if (source && source !== 'all') {
+    // Handle multi-select sources
+    if (sources) {
+      // Parse comma-separated sources
+      const sourcesArray = sources.split(',').map(s => s.trim());
+      if (sourcesArray.length > 0) {
+        allLeads = allLeads.filter(lead => sourcesArray.includes(lead.source));
+      }
+    } else if (source && source !== 'all') {
+      // Fallback to single source for backward compatibility
       allLeads = allLeads.filter(lead => lead.source === source);
     }
     if (ad_set && ad_set !== 'all') {

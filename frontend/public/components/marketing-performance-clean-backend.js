@@ -11,8 +11,10 @@ function MarketingPerformanceBackend() {
             dateTo: new Date().toISOString().split('T')[0],
             event: 'all',
             source: 'all',
+            sources: [], // New: array for multi-select
             adSet: 'all'
         },
+        showSourceDropdown: false, // For dropdown visibility
         showFilters: true
     });
 
@@ -29,7 +31,15 @@ function MarketingPerformanceBackend() {
             });
             
             if (filters.event !== 'all') queryParams.append('event', filters.event);
-            if (filters.source !== 'all') queryParams.append('source', filters.source);
+            
+            // Handle multi-select sources
+            if (filters.sources && filters.sources.length > 0) {
+                queryParams.append('sources', filters.sources.join(','));
+            } else if (filters.source !== 'all') {
+                // Fallback to single source for backward compatibility
+                queryParams.append('source', filters.source);
+            }
+            
             if (filters.adSet !== 'all') queryParams.append('ad_set', filters.adSet);
             
             const response = await window.apiCall(`/marketing/performance?${queryParams}`);
@@ -62,6 +72,18 @@ function MarketingPerformanceBackend() {
     React.useEffect(() => {
         fetchMarketingData(state.filters);
     }, []); // Empty dependency is correct here as we only want to run on mount
+    
+    // Click outside handler for source dropdown
+    React.useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (state.showSourceDropdown && !event.target.closest('.source-dropdown-container')) {
+                setState(prev => ({ ...prev, showSourceDropdown: false }));
+            }
+        };
+        
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [state.showSourceDropdown]);
     
     // Log Facebook API status when data changes
     React.useEffect(() => {
@@ -176,18 +198,93 @@ function MarketingPerformanceBackend() {
                 )
             ),
             
-            React.createElement('div', null,
+            React.createElement('div', { className: 'relative source-dropdown-container' },
                 React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 
                     'Source'
                 ),
-                React.createElement('select', {
-                    value: state.filters.source,
-                    onChange: (e) => handleFilterChange('source', e.target.value),
-                    className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white'
+                React.createElement('div', {
+                    className: 'relative'
                 },
-                    React.createElement('option', { value: 'all' }, 'All Sources'),
-                    filterOptions.sources && filterOptions.sources.map(source =>
-                        React.createElement('option', { key: source, value: source }, source)
+                    // Multi-select button
+                    React.createElement('button', {
+                        type: 'button',
+                        onClick: () => setState(prev => ({ ...prev, showSourceDropdown: !prev.showSourceDropdown })),
+                        className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white bg-white text-left flex justify-between items-center'
+                    },
+                        React.createElement('span', { className: 'truncate' },
+                            state.filters.sources.length === 0 
+                                ? 'All Sources' 
+                                : state.filters.sources.length === 1 
+                                    ? state.filters.sources[0]
+                                    : `${state.filters.sources.length} sources selected`
+                        ),
+                        React.createElement('i', { 
+                            className: `fas fa-chevron-${state.showSourceDropdown ? 'up' : 'down'} text-gray-400`
+                        })
+                    ),
+                    
+                    // Dropdown menu
+                    state.showSourceDropdown && React.createElement('div', {
+                        className: 'absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto'
+                    },
+                        // Select All / Deselect All buttons
+                        React.createElement('div', { 
+                            className: 'sticky top-0 bg-gray-50 dark:bg-gray-700 p-2 border-b border-gray-200 dark:border-gray-600 flex gap-2'
+                        },
+                            React.createElement('button', {
+                                type: 'button',
+                                onClick: () => {
+                                    const allSources = filterOptions.sources || [];
+                                    setState(prev => ({ 
+                                        ...prev, 
+                                        filters: { ...prev.filters, sources: [...allSources] }
+                                    }));
+                                },
+                                className: 'text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600'
+                            }, 'Select All'),
+                            React.createElement('button', {
+                                type: 'button',
+                                onClick: () => {
+                                    setState(prev => ({ 
+                                        ...prev, 
+                                        filters: { ...prev.filters, sources: [] }
+                                    }));
+                                },
+                                className: 'text-xs px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600'
+                            }, 'Clear All'),
+                            React.createElement('button', {
+                                type: 'button',
+                                onClick: () => {
+                                    setState(prev => ({ ...prev, showSourceDropdown: false }));
+                                    fetchMarketingData(state.filters);
+                                },
+                                className: 'text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 ml-auto'
+                            }, 'Apply')
+                        ),
+                        
+                        // Source checkboxes
+                        filterOptions.sources && filterOptions.sources.map(source =>
+                            React.createElement('label', { 
+                                key: source,
+                                className: 'flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer'
+                            },
+                                React.createElement('input', {
+                                    type: 'checkbox',
+                                    checked: state.filters.sources.includes(source),
+                                    onChange: (e) => {
+                                        const newSources = e.target.checked
+                                            ? [...state.filters.sources, source]
+                                            : state.filters.sources.filter(s => s !== source);
+                                        setState(prev => ({
+                                            ...prev,
+                                            filters: { ...prev.filters, sources: newSources }
+                                        }));
+                                    },
+                                    className: 'mr-2 rounded text-blue-600'
+                                }),
+                                React.createElement('span', { className: 'text-sm' }, source)
+                            )
+                        )
                     )
                 )
             ),
