@@ -58,11 +58,38 @@
 
     <script>
         const API_BASE_URL = window.location.origin;
-        const authToken = localStorage.getItem('authToken');
-
+        
+        // Check authentication more thoroughly
+        function checkAuth() {
+            // Check both possible token locations
+            const authToken = localStorage.getItem('crm_auth_token') || localStorage.getItem('authToken');
+            const userStr = localStorage.getItem('crm_user') || localStorage.getItem('user');
+            const user = JSON.parse(userStr || '{}');
+            
+            if (!authToken) {
+                alert('Please login first');
+                window.location.href = '/';
+                return false;
+            }
+            
+            // Store user info on window for consistency
+            window.user = user;
+            window.authToken = authToken;
+            
+            // Check if user has required role
+            if (user.role !== 'super_admin' && user.role !== 'finance_manager') {
+                alert('Access denied. This tool is only available to Super Admins and Finance Managers.');
+                window.location.href = '/';
+                return false;
+            }
+            
+            return authToken;
+        }
+        
+        const authToken = checkAuth();
         if (!authToken) {
-            alert('Please login first');
-            window.location.href = '/login.html';
+            // Stop execution if not authenticated
+            throw new Error('Not authenticated');
         }
 
         async function apiCall(endpoint, options = {}) {
