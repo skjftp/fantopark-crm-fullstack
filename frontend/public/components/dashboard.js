@@ -801,22 +801,8 @@ window.updateDashboardSummary = function(summary) {
         };
     }
     
-    // Initialize dashboard with API data on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        // Check if user is logged in AND on dashboard tab
-        if (window.appState && window.appState.activeTab === 'dashboard' && window.isLoggedIn) {
-            console.log('📊 Dashboard active on load, initializing with API data...');
-            
-            setTimeout(async () => {
-                try {
-                    // Fetch chart data (which includes summary stats)
-                    await window.fetchChartDataFromAPI();
-                } catch (error) {
-                    console.error('❌ Error initializing dashboard:', error);
-                }
-            }, 1000);
-        }
-    });
+    // Dashboard initialization is now handled by the tab switching logic and component mounting
+    // This prevents duplicate calls during page load
     
     console.log('✅ Dashboard API Integration loaded');
 })();

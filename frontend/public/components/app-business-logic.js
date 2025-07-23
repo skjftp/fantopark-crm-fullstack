@@ -646,13 +646,7 @@ const fetchData = async () => {
         setDeliveries(deliveriesData.data || []);
         setClients(clientsData.data || []);
 
-    // ✅ ADD THIS: Initialize dashboard if it's the active tab
-    if (window.activeTab === 'dashboard' && window.fetchChartDataFromAPI) {
-        console.log('📊 Dashboard active, fetching chart data...');
-        setTimeout(() => {
-            window.fetchChartDataFromAPI();
-        }, 500);
-    }
+    // Dashboard charts will be initialized by the dashboard component itself
       
         // ✅ ADD THIS: Initialize leads module after other data is loaded
         if (window.initializeLeadsModule && !window.leadsInitialized) {
@@ -891,12 +885,7 @@ const updateOrdersPagination = (orders) => {
   setCurrentUser(response.user);
   setIsLoggedIn(true);
 
-  setTimeout(() => {
-    if (window.activeTab === 'dashboard' && window.fetchChartDataFromAPI) {
-        console.log('📊 Loading dashboard after login...');
-        window.fetchChartDataFromAPI();
-    }
-}, 1000);    
+  // Dashboard will be initialized by its own component    
   
   // Initialize leads module after login
   if (window.initializeLeadsModule) {
