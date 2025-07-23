@@ -1480,7 +1480,8 @@ window.MobileSweetsContent = function() {
     'sales-performance': window.MobileSalesPerformanceView,
     'marketing-performance': window.MobileMarketingPerformanceView,
     'stadiums': window.MobileStadiumsView,
-    'sports-calendar': window.MobileSportsCalendarView
+    'sports-calendar': window.MobileSportsCalendarView,
+    'myactions': window.MobileMyActionsView
   };
   
   // If mobile view exists, use it
@@ -1503,44 +1504,303 @@ window.MobileSweetsContent = function() {
   );
 };
 
-// Mobile Deliveries View
+// Mobile Deliveries View with Card Design
 window.MobileDeliveriesView = function() {
   const state = window.appState;
-  const { deliveries, loading } = state;
-
+  const { deliveries = [], loading } = state;
+  
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [statusFilter, setStatusFilter] = React.useState('all');
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const itemsPerPage = 10;
+  
+  // Delivery status definitions
+  const DELIVERY_STATUSES = {
+    'pending': { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: '⏳' },
+    'scheduled': { label: 'Scheduled', color: 'bg-blue-100 text-blue-800', icon: '📅' },
+    'in_transit': { label: 'In Transit', color: 'bg-purple-100 text-purple-800', icon: '🚚' },
+    'delivered': { label: 'Delivered', color: 'bg-green-100 text-green-800', icon: '✅' },
+    'failed': { label: 'Failed', color: 'bg-red-100 text-red-800', icon: '❌' }
+  };
+  
+  // Filter deliveries
+  const filteredDeliveries = React.useMemo(() => {
+    let filtered = [...deliveries];
+    
+    // Search filter
+    if (searchQuery) {
+      const search = searchQuery.toLowerCase();
+      filtered = filtered.filter(delivery =>
+        delivery.delivery_number?.toLowerCase().includes(search) ||
+        delivery.order_number?.toLowerCase().includes(search) ||
+        delivery.client_name?.toLowerCase().includes(search) ||
+        delivery.event_name?.toLowerCase().includes(search)
+      );
+    }
+    
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(delivery => delivery.status === statusFilter);
+    }
+    
+    return filtered;
+  }, [deliveries, searchQuery, statusFilter]);
+  
+  // Pagination
+  const totalPages = Math.ceil(filteredDeliveries.length / itemsPerPage);
+  const paginatedDeliveries = filteredDeliveries.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  
+  // Handle status update
+  const updateDeliveryStatus = async (deliveryId, newStatus) => {
+    if (window.updateDeliveryStatus) {
+      await window.updateDeliveryStatus(deliveryId, newStatus);
+    } else {
+      // Fallback - update locally
+      state.setDeliveries(prev => 
+        prev.map(d => d.id === deliveryId ? { ...d, status: newStatus } : d)
+      );
+    }
+  };
+  
   if (loading) {
-    return React.createElement('div', { className: 'mobile-loading' },
-      React.createElement('div', { className: 'loading-spinner' })
-    );
+    return React.createElement(window.MobileLoadingState || 'div', null, 'Loading deliveries...');
   }
-
-  return React.createElement('div', { className: 'mobile-deliveries-view' },
-    React.createElement('div', { className: 'mobile-list-header' },
-      React.createElement('h2', { className: 'text-lg font-semibold' }, 'Deliveries'),
-      React.createElement('span', { className: 'text-sm text-gray-500' }, 
-        `${deliveries?.length || 0} deliveries`
+  
+  return React.createElement('div', { className: 'mobile-content-wrapper' },
+    // Header with search
+    React.createElement('div', { 
+      className: 'sticky top-0 bg-white dark:bg-gray-900 z-10 pb-3 border-b'
+    },
+      React.createElement('h2', { 
+        className: 'text-lg font-semibold mb-3'
+      }, 'Deliveries'),
+      
+      // Search bar
+      React.createElement('div', { className: 'px-4 mb-3' },
+        React.createElement('div', { className: 'relative' },
+          React.createElement('input', {
+            type: 'text',
+            placeholder: 'Search deliveries...',
+            value: searchQuery,
+            onChange: (e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            },
+            className: 'w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm'
+          }),
+          React.createElement('span', { 
+            className: 'absolute left-3 top-2.5 text-gray-400'
+          }, '🔍')
+        )
+      ),
+      
+      // Status filter tabs
+      React.createElement('div', { className: 'flex overflow-x-auto no-scrollbar px-4 gap-2' },
+        React.createElement('button', {
+          onClick: () => {
+            setStatusFilter('all');
+            setCurrentPage(1);
+          },
+          className: `px-3 py-1 text-xs rounded-full whitespace-nowrap ${
+            statusFilter === 'all' 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-gray-100 text-gray-700'
+          }`
+        }, 'All'),
+        Object.entries(DELIVERY_STATUSES).map(([status, config]) =>
+          React.createElement('button', {
+            key: status,
+            onClick: () => {
+              setStatusFilter(status);
+              setCurrentPage(1);
+            },
+            className: `px-3 py-1 text-xs rounded-full whitespace-nowrap flex items-center gap-1 ${
+              statusFilter === status 
+                ? config.color 
+                : 'bg-gray-100 text-gray-700'
+            }`
+          }, 
+            React.createElement('span', null, config.icon),
+            config.label
+          )
+        )
       )
     ),
     
-    React.createElement('div', { className: 'mobile-list' },
-      !deliveries || deliveries.length === 0 ? 
-        React.createElement('div', { className: 'mobile-empty-state' },
-          React.createElement('p', null, '📦'),
-          React.createElement('p', null, 'No deliveries found'),
-          React.createElement('p', { className: 'text-sm text-gray-500' }, 
-            'Deliveries will appear here when created'
-          )
+    // Deliveries list
+    React.createElement('div', { className: 'p-4' },
+      paginatedDeliveries.length > 0 ?
+        React.createElement('div', { className: 'space-y-4' },
+          paginatedDeliveries.map(delivery => {
+            const status = DELIVERY_STATUSES[delivery.status] || DELIVERY_STATUSES.pending;
+            
+            return React.createElement('div', {
+              key: delivery.id,
+              className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+              style: {
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+              },
+              onClick: () => {
+                if (window.openDeliveryDetail) {
+                  window.openDeliveryDetail(delivery);
+                }
+              }
+            },
+              // Header with delivery number and status
+              React.createElement('div', { className: 'flex justify-between items-start mb-3' },
+                React.createElement('div', null,
+                  React.createElement('div', { className: 'font-bold text-gray-900 dark:text-white' },
+                    delivery.delivery_number || `Delivery #${delivery.id}`
+                  ),
+                  React.createElement('div', { className: 'text-xs text-gray-500 mt-1' },
+                    new Date(delivery.created_date || delivery.created_at).toLocaleDateString()
+                  )
+                ),
+                React.createElement('div', { 
+                  className: `px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${status.color}`
+                },
+                  React.createElement('span', null, status.icon),
+                  status.label
+                )
+              ),
+              
+              // Order and client info
+              React.createElement('div', { className: 'space-y-2 mb-3' },
+                React.createElement('div', { className: 'flex items-center gap-2 text-sm' },
+                  React.createElement('span', { className: 'text-gray-500' }, '📋'),
+                  React.createElement('span', { className: 'font-medium' }, 
+                    delivery.order_number || 'No order number'
+                  )
+                ),
+                React.createElement('div', { className: 'flex items-center gap-2 text-sm' },
+                  React.createElement('span', { className: 'text-gray-500' }, '🎪'),
+                  React.createElement('span', null, delivery.event_name || 'Unknown event')
+                ),
+                React.createElement('div', { className: 'flex items-center gap-2 text-sm' },
+                  React.createElement('span', { className: 'text-gray-500' }, '👤'),
+                  React.createElement('span', null, delivery.client_name || 'Unknown client')
+                ),
+                delivery.client_phone && React.createElement('div', { 
+                  className: 'flex items-center gap-2 text-sm' 
+                },
+                  React.createElement('span', { className: 'text-gray-500' }, '📞'),
+                  React.createElement('span', null, delivery.client_phone)
+                )
+              ),
+              
+              // Delivery details
+              React.createElement('div', { className: 'grid grid-cols-2 gap-3 mb-3' },
+                React.createElement('div', { 
+                  className: 'bg-gray-50 dark:bg-gray-900 rounded-lg p-2 text-center'
+                },
+                  React.createElement('div', { className: 'text-xs text-gray-500' }, 'Type'),
+                  React.createElement('div', { className: 'text-sm font-medium' },
+                    delivery.delivery_type ? 
+                      (delivery.delivery_type === 'online' ? '💻 Online' : '📍 Offline') : 
+                      '- Not set'
+                  )
+                ),
+                React.createElement('div', { 
+                  className: 'bg-gray-50 dark:bg-gray-900 rounded-lg p-2 text-center'
+                },
+                  React.createElement('div', { className: 'text-xs text-gray-500' }, 'Tickets'),
+                  React.createElement('div', { className: 'text-sm font-medium' },
+                    delivery.tickets_count || '0'
+                  )
+                )
+              ),
+              
+              // Assigned to
+              delivery.assigned_to && React.createElement('div', { 
+                className: 'text-xs text-gray-500 mb-3' 
+              },
+                'Assigned to: ',
+                React.createElement('span', { className: 'font-medium text-gray-700' },
+                  delivery.assigned_to
+                )
+              ),
+              
+              // Action buttons
+              React.createElement('div', { className: 'flex gap-2 flex-wrap' },
+                window.hasPermission('delivery', 'write') && delivery.status === 'pending' &&
+                React.createElement('button', {
+                  className: 'flex-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors',
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    if (window.openDeliveryForm) {
+                      window.openDeliveryForm(delivery);
+                    }
+                  }
+                }, '📅 Schedule'),
+                
+                window.hasPermission('delivery', 'write') && delivery.status === 'scheduled' &&
+                React.createElement('button', {
+                  className: 'flex-1 px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors',
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    updateDeliveryStatus(delivery.id, 'in_transit');
+                  }
+                }, '🚚 '),
+                
+                window.hasPermission('delivery', 'write') && delivery.status === 'in_transit' &&
+                React.createElement('button', {
+                  className: 'flex-1 px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors',
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    updateDeliveryStatus(delivery.id, 'delivered');
+                  }
+                }, '✅ Mark '),
+                
+                React.createElement('button', {
+                  className: 'px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors',
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    if (window.openDeliveryDetail) {
+                      window.openDeliveryDetail(delivery);
+                    }
+                  }
+                }, '👁️ View Details')
+              )
+            );
+          })
         ) :
-        deliveries.map(delivery => 
-          React.createElement(window.MobileDeliveryCard || 'div', { 
-            key: delivery.id,
-            delivery: delivery,
-            onClick: () => {
-              state.setCurrentDeliveryDetail(delivery);
-              state.setShowDeliveryDetail(true);
-            }
-          }, `Delivery #${delivery.id}`)
-        )
+        React.createElement(window.MobileEmptyState || 'div', {
+          icon: '📦',
+          title: 'No deliveries found',
+          message: searchQuery ? 'Try adjusting your search' : 'Deliveries will appear here when created'
+        })
+    ),
+    
+    // Pagination
+    totalPages > 1 && React.createElement('div', { 
+      className: 'flex items-center justify-between px-4 pb-4'
+    },
+      React.createElement('button', {
+        onClick: () => setCurrentPage(Math.max(1, currentPage - 1)),
+        disabled: currentPage === 1,
+        className: `px-3 py-1 text-sm rounded-lg ${
+          currentPage === 1 
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+            : 'bg-blue-600 text-white hover:bg-blue-700'
+        }`
+      }, 'Previous'),
+      
+      React.createElement('span', { className: 'text-sm text-gray-600' },
+        `Page ${currentPage} of ${totalPages}`
+      ),
+      
+      React.createElement('button', {
+        onClick: () => setCurrentPage(Math.min(totalPages, currentPage + 1)),
+        disabled: currentPage === totalPages,
+        className: `px-3 py-1 text-sm rounded-lg ${
+          currentPage === totalPages 
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+            : 'bg-blue-600 text-white hover:bg-blue-700'
+        }`
+      }, 'Next')
     )
   );
 };
@@ -1620,7 +1880,16 @@ window.MobileFinancialsView = function() {
     if (activeFinancialTab === 'expiring' && window.getEnhancedExpiringInventory) {
       currentData = window.getEnhancedExpiringInventory() || [];
     } else {
-      currentData = financialData[activeFinancialTab] || [];
+      // Map tab names to data property names
+      const dataKeyMap = {
+        'activesales': 'activeSales',
+        'sales': 'sales',
+        'receivables': 'receivables',
+        'payables': 'payables',
+        'expiring': 'expiringInventory'
+      };
+      const dataKey = dataKeyMap[activeFinancialTab] || activeFinancialTab;
+      currentData = financialData[dataKey] || [];
     }
     
     // Apply filters
@@ -3342,6 +3611,610 @@ window.MobileSportsCalendarView = function() {
         React.createElement('div', { 
           className: 'text-center py-8 text-gray-500'
         }, 'No events found')
+    )
+  );
+};
+
+// Mobile My Actions View with Card Design
+window.MobileMyActionsView = function() {
+  const state = window.appState;
+  const { 
+    myLeads = [], 
+    myQuoteRequested = [], 
+    myOrders = [], 
+    myDeliveries = [], 
+    myReceivables = [],
+    loading 
+  } = state;
+  
+  const [activeSection, setActiveSection] = React.useState('leads');
+  const [searchQuery, setSearchQuery] = React.useState('');
+  
+  // Load My Actions data on mount
+  React.useEffect(() => {
+    if (window.fetchMyActions && !window.myActionsDataLoaded) {
+      window.myActionsDataLoaded = true;
+      window.fetchMyActions();
+    }
+  }, []);
+  
+  // Clear search when switching tabs to prevent confusion
+  React.useEffect(() => {
+    setSearchQuery('');
+  }, [activeSection]);
+  
+  // Filter data based on search
+  const filterData = (data) => {
+    if (!searchQuery) return data;
+    const search = searchQuery.toLowerCase();
+    return data.filter(item => {
+      const searchableText = [
+        item.name,
+        item.client_name,
+        item.lead_name,
+        item.email,
+        item.event_name,
+        item.order_number,
+        item.delivery_number
+      ].filter(Boolean).join(' ').toLowerCase();
+      return searchableText.includes(search);
+    });
+  };
+  
+  // Get section data with proper filtering
+  const getSectionData = (sectionId) => {
+    const dataMap = {
+      'leads': myLeads,
+      'quotes': myQuoteRequested,
+      'orders': myOrders,
+      'deliveries': myDeliveries,
+      'receivables': myReceivables
+    };
+    return filterData(dataMap[sectionId] || []);
+  };
+  
+  const currentData = getSectionData(activeSection);
+  
+  // Get count for each section independently
+  const getSectionCount = (sectionId) => {
+    const dataMap = {
+      'leads': myLeads,
+      'quotes': myQuoteRequested,
+      'orders': myOrders,
+      'deliveries': myDeliveries,
+      'receivables': myReceivables
+    };
+    return (dataMap[sectionId] || []).length;
+  };
+  
+  // Section configuration
+  const sections = [
+    { id: 'leads', label: 'Leads', icon: '👥', color: 'blue' },
+    { id: 'quotes', label: 'Quotes', icon: '📋', color: 'purple' },
+    { id: 'orders', label: 'Orders', icon: '📦', color: 'green' },
+    { id: 'deliveries', label: 'Deliveries', icon: '🚚', color: 'orange' },
+    { id: 'receivables', label: 'Receivables', icon: '💰', color: 'yellow' }
+  ];
+  
+  if (loading) {
+    return React.createElement(window.MobileLoadingState || 'div', null, 'Loading my actions...');
+  }
+  
+  return React.createElement('div', { className: 'mobile-content-wrapper' },
+    // Header
+    React.createElement('div', { 
+      className: 'sticky top-0 bg-white dark:bg-gray-900 z-10 pb-3 border-b'
+    },
+      React.createElement('h2', { 
+        className: 'text-lg font-semibold mb-3 px-4'
+      }, 'My Actions'),
+      
+      // Search bar
+      React.createElement('div', { className: 'px-4 mb-3' },
+        React.createElement('div', { className: 'relative' },
+          React.createElement('input', {
+            type: 'text',
+            placeholder: 'Search across all actions...',
+            value: searchQuery,
+            onChange: (e) => setSearchQuery(e.target.value),
+            className: 'w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm'
+          }),
+          React.createElement('span', { 
+            className: 'absolute left-3 top-2.5 text-gray-400'
+          }, '🔍')
+        )
+      ),
+      
+      // Section tabs
+      React.createElement('div', { className: 'flex overflow-x-auto no-scrollbar px-4 gap-2' },
+        sections.map(section => {
+          // Define color classes based on section
+          const activeColors = {
+            'leads': 'bg-blue-600 text-white',
+            'quotes': 'bg-purple-600 text-white',
+            'orders': 'bg-green-600 text-white',
+            'deliveries': 'bg-orange-600 text-white',
+            'receivables': 'bg-yellow-600 text-white'
+          };
+          
+          return React.createElement('button', {
+            key: section.id,
+            onClick: () => setActiveSection(section.id),
+            className: `px-3 py-1.5 text-xs rounded-full whitespace-nowrap flex items-center gap-1 ${
+              activeSection === section.id 
+                ? activeColors[section.id] 
+                : 'bg-gray-100 text-gray-700'
+            }`
+          }, 
+            React.createElement('span', null, section.icon),
+            section.label,
+            React.createElement('span', { 
+              className: `ml-1 px-1.5 py-0.5 rounded-full text-xs ${
+                activeSection === section.id 
+                  ? 'bg-white/20' 
+                  : 'bg-gray-200'
+              }`
+            }, getSectionCount(section.id))
+          );
+        })
+      )
+    ),
+    
+    // Content - with key to force re-render on tab change
+    React.createElement('div', { className: 'p-4', key: activeSection },
+      currentData.length > 0 ?
+        React.createElement('div', { className: 'space-y-4' },
+          currentData.map((item, index) => {
+            // Render different cards based on section
+            if (activeSection === 'leads') {
+              return React.createElement('div', {
+                key: item.id || index,
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                style: {
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                },
+                onClick: () => window.openLeadDetail && window.openLeadDetail(item)
+              },
+                React.createElement('div', { className: 'flex justify-between items-start mb-3' },
+                  React.createElement('div', null,
+                    React.createElement('div', { className: 'font-bold text-gray-900' },
+                      item.name || 'Unknown Lead'
+                    ),
+                    React.createElement('div', { className: 'text-xs text-gray-500' },
+                      item.email || item.phone
+                    )
+                  ),
+                  React.createElement('div', { 
+                    className: `px-2 py-1 rounded-full text-xs font-medium ${
+                      item.temperature === 'hot' ? 'bg-red-100 text-red-800' :
+                      item.temperature === 'warm' ? 'bg-orange-100 text-orange-800' :
+                      item.temperature === 'cold' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`
+                  }, item.temperature || 'New')
+                ),
+                React.createElement('div', { className: 'space-y-1 text-sm' },
+                  item.event_name && React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '🎪'),
+                    item.event_name
+                  ),
+                  item.business_type && React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '🏢'),
+                    item.business_type
+                  ),
+                  React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '📅'),
+                    new Date(item.date_of_enquiry || item.created_at).toLocaleDateString()
+                  )
+                ),
+                // Action buttons for leads
+                React.createElement('div', { className: 'flex gap-2 mt-3' },
+                  React.createElement('button', {
+                    className: 'flex-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.openLeadEditForm) {
+                        window.openLeadEditForm(item);
+                      }
+                    }
+                  }, '✏️ '),
+                  React.createElement('button', {
+                    className: 'flex-1 px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.convertLeadToOrder) {
+                        window.convertLeadToOrder(item);
+                      }
+                    }
+                  }, '📦 '),
+                  React.createElement('button', {
+                    className: 'flex-1 px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.setCurrentLead && window.setShowChoiceModal) {
+                        window.setCurrentLead(item);
+                        window.setShowChoiceModal(true);
+                      }
+                    }
+                  }, '🎯 ')
+                )
+              );
+            } else if (activeSection === 'quotes') {
+              return React.createElement('div', {
+                key: item.id || index,
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                style: {
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                }
+              },
+                React.createElement('div', { className: 'flex justify-between items-start mb-3' },
+                  React.createElement('div', null,
+                    React.createElement('div', { className: 'font-bold text-gray-900' },
+                      item.client_name || item.lead_name || 'Unknown Client'
+                    ),
+                    React.createElement('div', { className: 'text-xs text-gray-500' },
+                      'Quote #', item.id
+                    )
+                  ),
+                  React.createElement('div', { 
+                    className: 'px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800'
+                  }, 'Pending')
+                ),
+                React.createElement('div', { className: 'space-y-1 text-sm' },
+                  item.event_name && React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '🎪'),
+                    item.event_name
+                  ),
+                  React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '🎫'),
+                    item.quantity || 0, ' tickets'
+                  ),
+                  React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '💰'),
+                    window.formatCurrency(item.amount || 0)
+                  )
+                ),
+                React.createElement('button', {
+                  className: 'mt-3 w-full px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors',
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    if (window.openQuoteUploadModal) {
+                      window.openQuoteUploadModal(item);
+                    }
+                  }
+                }, '📤 ')
+              );
+            } else if (activeSection === 'orders') {
+              return React.createElement('div', {
+                key: item.id || index,
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                style: {
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                },
+                onClick: () => window.openOrderDetail && window.openOrderDetail(item)
+              },
+                React.createElement('div', { className: 'flex justify-between items-start mb-3' },
+                  React.createElement('div', null,
+                    React.createElement('div', { className: 'font-bold text-gray-900' },
+                      item.order_number || `Order #${item.id}`
+                    ),
+                    React.createElement('div', { className: 'text-xs text-gray-500' },
+                      item.client_name || 'Unknown Client'
+                    )
+                  ),
+                  React.createElement('div', { 
+                    className: `px-2 py-1 rounded-full text-xs font-medium ${
+                      item.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
+                      item.status === 'approved' ? 'bg-green-100 text-green-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`
+                  }, item.status === 'pending_approval' ? 'Pending' : item.status)
+                ),
+                React.createElement('div', { className: 'space-y-1 text-sm' },
+                  item.event_name && React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '🎪'),
+                    item.event_name
+                  ),
+                  React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '🎫'),
+                    item.tickets_allocated || item.quantity || 0, ' tickets'
+                  ),
+                  React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '💰'),
+                    window.formatCurrency(item.final_amount || item.total_amount || 0)
+                  )
+                ),
+                // Action buttons for orders
+                React.createElement('div', { className: 'flex gap-2 mt-3 flex-wrap' },
+                  window.hasPermission('orders', 'write') && React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.openEditOrderForm) {
+                        window.openEditOrderForm(item);
+                      } else if (window.openOrderEdit) {
+                        window.openOrderEdit(item);
+                      } else {
+                        console.error('No order edit function available');
+                      }
+                    }
+                  }, '✏️ '),
+                  window.hasPermission('orders', 'invoice') && React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.handleInvoiceClick) {
+                        window.handleInvoiceClick(item);
+                      } else if (window.openInvoicePreviewDirectly) {
+                        window.openInvoicePreviewDirectly(item);
+                      } else if (window.handleGenerateInvoice) {
+                        window.handleGenerateInvoice(item);
+                      } else {
+                        console.error('No invoice function available');
+                      }
+                    }
+                  }, '📄 '),
+                  window.hasPermission('orders', 'approve') && item.status === 'pending_approval' && React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.handleOrderApproval) {
+                        window.handleOrderApproval(item.id, 'approve');
+                      }
+                    }
+                  }, '✓ '),
+                  window.hasPermission('orders', 'write') && window.JourneyGenerator && React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      console.log('Journey button clicked for order:', item.id);
+                      
+                      // Remove any existing modal
+                      const existing = document.getElementById('journey-modal-container');
+                      if (existing) existing.remove();
+                      
+                      // Create new modal
+                      const div = document.createElement('div');
+                      div.id = 'journey-modal-container';
+                      document.body.appendChild(div);
+                      
+                      ReactDOM.render(
+                        React.createElement(window.JourneyGenerator, {
+                          order: item,
+                          onClose: () => {
+                            ReactDOM.unmountComponentAtNode(div);
+                            div.remove();
+                          }
+                        }),
+                        div
+                      );
+                    }
+                  }, '✨')
+                )
+              );
+            } else if (activeSection === 'deliveries') {
+              return React.createElement('div', {
+                key: item.id || index,
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                style: {
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                },
+                onClick: () => window.openDeliveryDetail && window.openDeliveryDetail(item)
+              },
+                React.createElement('div', { className: 'flex justify-between items-start mb-3' },
+                  React.createElement('div', null,
+                    React.createElement('div', { className: 'font-bold text-gray-900' },
+                      item.delivery_number || `Delivery #${item.id}`
+                    ),
+                    React.createElement('div', { className: 'text-xs text-gray-500' },
+                      item.client_name || 'Unknown Client'
+                    )
+                  ),
+                  React.createElement('div', { 
+                    className: `px-2 py-1 rounded-full text-xs font-medium ${
+                      item.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                      item.status === 'in_transit' ? 'bg-blue-100 text-blue-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`
+                  }, item.status || 'Pending')
+                ),
+                React.createElement('div', { className: 'space-y-1 text-sm' },
+                  item.order_number && React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '📋'),
+                    'Order: ', item.order_number
+                  ),
+                  item.delivery_date && React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '📅'),
+                    'Scheduled: ', new Date(item.delivery_date).toLocaleDateString()
+                  ),
+                  React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '📦'),
+                    item.tickets_count || 0, ' tickets'
+                  )
+                ),
+                // Action buttons for deliveries
+                React.createElement('div', { className: 'flex gap-2 mt-3 flex-wrap' },
+                  // View button
+                  React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.openDeliveryDetail) {
+                        window.openDeliveryDetail(item);
+                      }
+                    }
+                  }, '👁️ '),
+                  
+                  // Start Transit button
+                  item.status === 'scheduled' && window.hasPermission('delivery', 'write') &&
+                  React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.updateDeliveryStatus) {
+                        window.updateDeliveryStatus(item.id, 'in_transit');
+                      }
+                    }
+                  }, '🚚 '),
+                  
+                  // Mark Delivered button
+                  item.status === 'in_transit' && window.hasPermission('delivery', 'write') &&
+                  React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.updateDeliveryStatus) {
+                        window.updateDeliveryStatus(item.id, 'delivered');
+                      }
+                    }
+                  }, '✅ '),
+                  
+                  // Mark Failed button
+                  item.status === 'in_transit' && window.hasPermission('delivery', 'write') &&
+                  React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.updateDeliveryStatus) {
+                        window.updateDeliveryStatus(item.id, 'failed');
+                      }
+                    }
+                  }, '❌ '),
+                  
+                  // Retry Delivery button
+                  item.status === 'failed' && window.hasPermission('delivery', 'write') &&
+                  React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.updateDeliveryStatus) {
+                        window.updateDeliveryStatus(item.id, 'scheduled');
+                      }
+                    }
+                  }, '🔄 '),
+                  
+                  // Update Status button (always available)
+                  window.hasPermission('delivery', 'write') &&
+                  React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.updateDeliveryStatus) {
+                        window.updateDeliveryStatus(item.id);
+                      }
+                    }
+                  }, '📝 ')
+                )
+              );
+            } else if (activeSection === 'receivables') {
+              return React.createElement('div', {
+                key: item.id || index,
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                style: {
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                }
+              },
+                React.createElement('div', { className: 'flex justify-between items-start mb-3' },
+                  React.createElement('div', null,
+                    React.createElement('div', { className: 'font-bold text-gray-900' },
+                      item.invoice_number || `Invoice #${item.id}`
+                    ),
+                    React.createElement('div', { className: 'text-xs text-gray-500' },
+                      item.client_name || 'Unknown Client'
+                    )
+                  ),
+                  React.createElement('div', { 
+                    className: `px-2 py-1 rounded-full text-xs font-medium ${
+                      new Date(item.due_date) < new Date() ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`
+                  }, new Date(item.due_date) < new Date() ? 'Overdue' : 'Pending')
+                ),
+                React.createElement('div', { className: 'space-y-1 text-sm' },
+                  React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '💰'),
+                    'Balance: ', window.formatCurrency(item.balance_amount || item.amount || 0)
+                  ),
+                  React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '📅'),
+                    'Due: ', new Date(item.due_date).toLocaleDateString()
+                  ),
+                  item.order_number && React.createElement('div', { className: 'flex items-center gap-2' },
+                    React.createElement('span', { className: 'text-gray-500' }, '📋'),
+                    'Order: ', item.order_number
+                  )
+                ),
+                // Action buttons for receivables
+                React.createElement('div', { className: 'flex gap-2 mt-3 flex-wrap' },
+                  // View Invoice button
+                  React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.openInvoicePreview) {
+                        window.openInvoicePreview(item);
+                      }
+                    }
+                  }, '📄 View '),
+                  
+                  // Mark as Paid button
+                  window.hasPermission('finance', 'write') &&
+                  React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.handleMarkAsPaid) {
+                        window.handleMarkAsPaid(item.id);
+                      } else if (window.markAsPaid) {
+                        window.markAsPaid(item.id);
+                      }
+                    }
+                  }, '✅ '),
+                  
+                  // Send Reminder button
+                  window.hasPermission('finance', 'write') &&
+                  React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.sendPaymentReminder) {
+                        window.sendPaymentReminder(item);
+                      }
+                    }
+                  }, '📧 '),
+                  
+                  // Download Invoice button
+                  React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.downloadInvoice) {
+                        window.downloadInvoice(item.invoice_id || item.id);
+                      }
+                    }
+                  }, '⬇️ '),
+                  
+                  // Record Partial Payment button
+                  window.hasPermission('finance', 'write') &&
+                  React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.recordPartialPayment) {
+                        window.recordPartialPayment(item);
+                      }
+                    }
+                  }, '💳 ')
+                )
+              );
+            }
+          })
+        ) :
+        React.createElement(window.MobileEmptyState || 'div', {
+          icon: sections.find(s => s.id === activeSection)?.icon || '📋',
+          title: `No ${sections.find(s => s.id === activeSection)?.label.toLowerCase()} found`,
+          message: searchQuery ? 'Try adjusting your search' : 'Items assigned to you will appear here'
+        })
     )
   );
 };
