@@ -391,10 +391,36 @@ window.renderDashboardContent = () => {
 // API-BASED CHART DATA FETCHING
 // ===============================================
 
-window.fetchChartDataFromAPI = async function() {
-    console.log('🚀 Fetching chart data from API...');
+// Add debounce mechanism to prevent multiple simultaneous calls
+window._chartDataFetchInProgress = false;
+window._chartDataFetchDebounceTimer = null;
+
+window.fetchChartDataFromAPI = async function(forceUpdate = false) {
+    // Debounce multiple rapid calls
+    if (window._chartDataFetchDebounceTimer) {
+        clearTimeout(window._chartDataFetchDebounceTimer);
+    }
     
-    try {
+    return new Promise((resolve, reject) => {
+        window._chartDataFetchDebounceTimer = setTimeout(async () => {
+            // Prevent multiple simultaneous calls
+            if (window._chartDataFetchInProgress && !forceUpdate) {
+                console.log('📊 Chart data fetch already in progress, skipping...');
+                resolve(window.apiChartData || null);
+                return;
+            }
+            
+            // Only proceed if we're on dashboard tab
+            if (window.activeTab !== 'dashboard') {
+                console.log('📊 Not on dashboard tab, skipping chart fetch');
+                resolve(null);
+                return;
+            }
+            
+            window._chartDataFetchInProgress = true;
+            console.log('🚀 Fetching chart data from API...');
+            
+            try {
         // Build query parameters based on current filters
         const params = new URLSearchParams();
         
@@ -435,45 +461,50 @@ window.fetchChartDataFromAPI = async function() {
                 updateDashboardSummary(result.data.summary);
             }
             
-            return result.data;
-        } else {
-            throw new Error(result.error || 'Invalid response format');
+            resolve(result.data);
+            } else {
+                throw new Error(result.error || 'Invalid response format');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error fetching chart data:', error);
+            
+            // Show empty charts instead of falling back
+            const emptyData = {
+                charts: {
+                    leadSplit: {
+                        labels: ['Qualified', 'Junk'],
+                        data: [0, 0],
+                        colors: ['#10B981', '#EF4444']
+                    },
+                    temperatureCount: {
+                        labels: ['Hot', 'Warm', 'Cold'],
+                        data: [0, 0, 0],
+                        colors: ['#EF4444', '#F59E0B', '#3B82F6']
+                    },
+                    temperatureValue: {
+                        labels: ['Hot Value', 'Warm Value', 'Cold Value'],
+                        data: [0, 0, 0],
+                        colors: ['#EF4444', '#F59E0B', '#3B82F6']
+                    }
+                },
+                summary: {
+                    totalLeads: 0,
+                    hotLeads: 0,
+                    qualifiedLeads: 0,
+                    totalPipelineValue: 0
+                }
+            };
+            
+            updateChartsFromAPIData(emptyData);
+            updateDashboardSummary(emptyData.summary);
+            reject(error);
+        } finally {
+            window._chartDataFetchInProgress = false;
         }
         
-    } catch (error) {
-        console.error('❌ Error fetching chart data:', error);
-        
-        // Show empty charts instead of falling back
-        const emptyData = {
-            charts: {
-                leadSplit: {
-                    labels: ['Qualified', 'Junk'],
-                    data: [0, 0],
-                    colors: ['#10B981', '#EF4444']
-                },
-                temperatureCount: {
-                    labels: ['Hot', 'Warm', 'Cold'],
-                    data: [0, 0, 0],
-                    colors: ['#EF4444', '#F59E0B', '#3B82F6']
-                },
-                temperatureValue: {
-                    labels: ['Hot Value', 'Warm Value', 'Cold Value'],
-                    data: [0, 0, 0],
-                    colors: ['#EF4444', '#F59E0B', '#3B82F6']
-                }
-            },
-            summary: {
-                totalLeads: 0,
-                hotLeads: 0,
-                qualifiedLeads: 0,
-                totalPipelineValue: 0
-            }
-        };
-        
-        updateChartsFromAPIData(emptyData);
-        updateDashboardSummary(emptyData.summary);
-        return null;
-    }
+        }, 100); // 100ms debounce delay
+    });
 };
 
 // ===============================================
@@ -801,22 +832,8 @@ window.updateDashboardSummary = function(summary) {
         };
     }
     
-    // Initialize dashboard with API data on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        // Check if user is logged in AND on dashboard tab
-        if (window.appState && window.appState.activeTab === 'dashboard' && window.isLoggedIn) {
-            console.log('📊 Dashboard active on load, initializing with API data...');
-            
-            setTimeout(async () => {
-                try {
-                    // Fetch chart data (which includes summary stats)
-                    await window.fetchChartDataFromAPI();
-                } catch (error) {
-                    console.error('❌ Error initializing dashboard:', error);
-                }
-            }, 1000);
-        }
-    });
+    // Dashboard initialization is now handled by the tab switching logic and component mounting
+    // This prevents duplicate calls during page load
     
     console.log('✅ Dashboard API Integration loaded');
 })();

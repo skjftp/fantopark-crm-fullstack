@@ -1929,78 +1929,18 @@ document.addEventListener('DOMContentLoaded', function() {
 (function() {
   'use strict';
   
-  console.log('🚀 Loading clean API-based chart system...');
+  console.log('📊 Chart initialization is now handled by dashboard component to prevent duplicates');
   
-  // Simple chart creation that always uses API
+  // Legacy function stubs for compatibility
   window.createDashboardCharts = function() {
-    console.log('📊 Creating dashboard charts using API...');
-    
-    // Check if we're on dashboard
-    if (window.activeTab !== 'dashboard') {
-      return;
-    }
-    
-    // Check if Chart.js is loaded
-    if (typeof Chart === 'undefined') {
-      console.log('⏳ Waiting for Chart.js...');
-      setTimeout(window.createDashboardCharts, 500);
-      return;
-    }
-    
-    // Check if API function exists
-    if (!window.fetchChartDataFromAPI) {
-      console.log('⏳ Waiting for API functions...');
-      setTimeout(window.createDashboardCharts, 500);
-      return;
-    }
-    
-    // Fetch chart data from API
-    window.fetchChartDataFromAPI();
+    console.log('📊 Dashboard charts handled by dashboard component');
+    // Dashboard component will handle this
   };
   
-  // Handle filter changes - directly call API
   window.handleChartFilterChange = function() {
-    console.log('🎯 Filter changed, refreshing from API...');
-    if (window.fetchChartDataFromAPI) {
-      window.fetchChartDataFromAPI();
-    }
+    console.log('🎯 Filter changes handled by dashboard component');
+    // Filter changes are handled in dashboard component directly
   };
-  
-  // Initialize when dashboard becomes active
-  const originalSetActiveTab = window.setActiveTab;
-  if (originalSetActiveTab) {
-    window.setActiveTab = function(tab) {
-      originalSetActiveTab(tab);
-      if (tab === 'dashboard') {
-        setTimeout(window.createDashboardCharts, 500);
-      }
-    };
-  }
-  
-// Initialize on page load if dashboard is active AND user is logged in
-document.addEventListener('DOMContentLoaded', function() {
-    // Watch for login and dashboard
-    let dashboardCheckInterval = setInterval(() => {
-        if (window.isLoggedIn && window.appState) {
-            // Clear the interval
-            clearInterval(dashboardCheckInterval);
-            
-            // If on dashboard or no tab selected (default is dashboard)
-            if (!window.activeTab || window.activeTab === 'dashboard') {
-                console.log('📊 User logged in, initializing dashboard...');
-                
-                // Wait a bit for data to load
-                setTimeout(() => {
-                    if (window.fetchChartDataFromAPI) {
-                        window.fetchChartDataFromAPI();
-                    } else if (window.createDashboardCharts) {
-                        window.createDashboardCharts();
-                    }
-                }, 1000);
-            }
-        }
-    }, 500);
-});
   
   // All chart function aliases point to API-based creation
   window.initializeOptimizedCharts = window.createDashboardCharts;
