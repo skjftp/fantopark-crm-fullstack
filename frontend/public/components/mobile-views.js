@@ -967,12 +967,23 @@ window.MobileDashboardView = function() {
     const canvasRef = React.useRef(null);
     const [hoveredSegment, setHoveredSegment] = React.useState(null);
     const [touchPoint, setTouchPoint] = React.useState(null);
+    const [isLoading, setIsLoading] = React.useState(true);
     
     // Store segment paths for hit detection
     const segmentPaths = React.useRef([]);
     
     React.useEffect(() => {
-      if (!canvasRef.current || !data || data.length === 0) return;
+      // Check if we have actual data vs empty/loading data
+      const hasData = data && data.length > 0 && data.some(value => value > 0);
+      
+      if (!hasData) {
+        setIsLoading(true);
+        return;
+      }
+      
+      setIsLoading(false);
+      
+      if (!canvasRef.current) return;
       
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
@@ -1090,6 +1101,37 @@ window.MobileDashboardView = function() {
     return React.createElement('div', { className: 'relative flex flex-col items-center' },
       React.createElement('h4', { className: 'text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' }, title),
       React.createElement('div', { className: 'relative inline-block' },
+        // Show loader when loading
+        isLoading && React.createElement('div', {
+          className: 'absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800',
+          style: { width: '280px', height: '280px', zIndex: 10 }
+        },
+          React.createElement('div', { className: 'text-center' },
+            // Animated logo loader
+            React.createElement('div', {
+              className: 'relative w-16 h-16 mx-auto mb-3',
+              style: {
+                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+              }
+            },
+              React.createElement('img', {
+                src: 'images/logo.png',
+                alt: 'Loading...',
+                className: 'w-full h-full object-contain',
+                style: {
+                  filter: 'drop-shadow(0 0 15px rgba(59, 130, 246, 0.5))',
+                  animation: 'float 3s ease-in-out infinite'
+                }
+              })
+            ),
+            React.createElement('p', { 
+              className: 'text-xs text-gray-500 dark:text-gray-400',
+              style: {
+                animation: 'fadeInOut 2s ease-in-out infinite'
+              }
+            }, 'Loading chart...')
+          )
+        ),
         React.createElement('canvas', {
           ref: canvasRef,
           width: 280,
@@ -1100,7 +1142,7 @@ window.MobileDashboardView = function() {
           onTouchStart: handleInteraction,
           onTouchMove: handleInteraction,
           onTouchEnd: handleLeave,
-          style: { touchAction: 'none' }
+          style: { touchAction: 'none', display: isLoading ? 'none' : 'block' }
         }),
         
         // Tooltip for hover/touch
