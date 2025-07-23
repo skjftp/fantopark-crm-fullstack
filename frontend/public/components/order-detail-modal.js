@@ -208,14 +208,35 @@ window.renderOrderDetailModal = () => {
                 React.createElement('button', {
                   className: 'ml-2 text-blue-600 hover:text-blue-800 text-xs',
                   onClick: () => {
-                    if (window.showSalesPersonEditModal) {
-                      window.showSalesPersonEditModal(currentOrderDetail);
-                    } else {
-                      // Fallback to simple prompt
-                      const salesPerson = prompt('Enter sales person email:', currentOrderDetail.sales_person || '');
-                      if (salesPerson !== null) {
-                        window.updateOrderSalesPerson(currentOrderDetail.id, salesPerson);
+                    console.log('Edit Sales Person clicked at', new Date().toISOString());
+                    
+                    // Try to load the function dynamically if it doesn't exist
+                    if (!window.showSalesPersonEditModal) {
+                      console.log('Function not found, checking if script loaded...');
+                      const scriptTag = document.querySelector('script[src*="sales-person-edit-modal.js"]');
+                      console.log('Script tag found:', !!scriptTag);
+                      
+                      // If render function exists, the script loaded but function was deleted
+                      if (window.renderSalesPersonEditModal) {
+                        console.error('❌ Script loaded but showSalesPersonEditModal was deleted or overwritten!');
                       }
+                      
+                      // Try one more time after a delay
+                      setTimeout(() => {
+                        if (window.showSalesPersonEditModal) {
+                          console.log('✅ Function found after delay!');
+                          window.showSalesPersonEditModal(currentOrderDetail);
+                        } else {
+                          console.log('Using fallback prompt - modal function still not found');
+                          const salesPerson = prompt('Enter sales person email:', currentOrderDetail.sales_person || '');
+                          if (salesPerson !== null) {
+                            window.updateOrderSalesPerson(currentOrderDetail.id, salesPerson);
+                          }
+                        }
+                      }, 100);
+                    } else {
+                      console.log('✅ Function exists, calling it...');
+                      window.showSalesPersonEditModal(currentOrderDetail);
                     }
                   }
                 }, '✏️ Edit')
