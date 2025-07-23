@@ -413,7 +413,24 @@ const viewInvoice = window.viewInvoice;
         hasPermission('orders', 'write') && React.createElement('button', {
           onClick: () => window.setShowOrderForm && window.setShowOrderForm(true),
           className: 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
-        }, '📝 New Order')
+        }, '📝 New Order'),
+        // CSV Export button - for super_admin, supply_sales_service_manager, finance_manager
+        (window.user?.role === 'super_admin' || 
+         window.user?.role === 'supply_sales_service_manager' || 
+         window.user?.role === 'finance_manager') && 
+        React.createElement('button', {
+          onClick: () => window.exportOrdersToCSV && window.exportOrdersToCSV(filteredOrders),
+          className: 'px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700',
+          title: 'Export filtered orders to CSV'
+        }, '📥 Export CSV'),
+        // CSV Import button for invoice numbers - for super_admin, finance_manager
+        (window.user?.role === 'super_admin' || 
+         window.user?.role === 'finance_manager') && 
+        React.createElement('button', {
+          onClick: () => window.showInvoiceCSVImport && window.showInvoiceCSVImport(),
+          className: 'px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700',
+          title: 'Import finance invoice numbers from CSV'
+        }, '📤 Import Invoice CSV')
       )
     ),
 
@@ -1334,3 +1351,231 @@ window.addEventListener('load', () => {
 
 //console.log('✅ Order Actions Integration for Enhanced Workflow loaded successfully');
 //console.log("✅ ENHANCED: Orders component with search filters and pagination loaded successfully");
+
+// =============================================================================
+// CSV EXPORT FUNCTIONALITY
+// =============================================================================
+
+window.exportOrdersToCSV = function(orders) {
+  console.log('📥 Exporting orders to CSV:', orders.length);
+  
+  // Define CSV headers
+  const headers = [
+    'Order ID',
+    'Order Number',
+    'Client Name',
+    'Client Phone',
+    'Event Name',
+    'Event Date',
+    'Total Amount',
+    'Currency',
+    'Status',
+    'Payment Status',
+    'Payment Terms',
+    'Order Type',
+    'Invoice Type',
+    'Finance Invoice Number',
+    'Assigned To',
+    'Original Assignee',
+    'Created Date',
+    'Created By',
+    'Notes'
+  ];
+  
+  // Convert orders to CSV rows
+  const rows = orders.map(order => [
+    order.id || '',
+    order.order_number || '',
+    order.client_name || '',
+    order.client_phone || '',
+    order.event_name || '',
+    order.event_date || '',
+    order.total_amount || '0',
+    order.currency || 'INR',
+    order.status || '',
+    order.payment_status || '',
+    order.payment_terms || '',
+    order.order_type || '',
+    order.invoice_type || '',
+    order.finance_invoice_number || '',
+    order.assigned_to || '',
+    order.original_assignee || '',
+    order.created_date || '',
+    order.created_by || '',
+    (order.notes || '').replace(/"/g, '""') // Escape quotes in notes
+  ]);
+  
+  // Combine headers and rows
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+  ].join('\n');
+  
+  // Create blob and download
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', `orders_export_${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  console.log('✅ CSV export completed');
+};
+
+// =============================================================================
+// CSV IMPORT FUNCTIONALITY FOR INVOICE NUMBERS
+// =============================================================================
+
+window.showInvoiceCSVImport = function() {
+  console.log('📤 Opening invoice CSV import modal');
+  
+  // Create modal container
+  const modalContainer = document.createElement('div');
+  modalContainer.id = 'invoice-csv-import-modal';
+  modalContainer.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+  
+  // Modal content
+  modalContainer.innerHTML = `
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+      <div class="mt-3">
+        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Import Finance Invoice Numbers</h3>
+        
+        <div class="mt-2 mb-4">
+          <p class="text-sm text-gray-500 mb-2">
+            Upload a CSV file with two columns:
+          </p>
+          <ul class="text-sm text-gray-500 list-disc list-inside mb-4">
+            <li>Order ID</li>
+            <li>Finance Invoice Number</li>
+          </ul>
+          
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Select CSV File
+            </label>
+            <input type="file" id="invoice-csv-file" accept=".csv" 
+                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 
+                          file:rounded-full file:border-0 file:text-sm file:font-semibold 
+                          file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+          </div>
+          
+          <div class="mb-4">
+            <a href="#" id="download-sample-csv" class="text-sm text-blue-600 hover:text-blue-800">
+              📥 Download Sample CSV Template
+            </a>
+          </div>
+        </div>
+        
+        <div class="flex justify-end gap-2">
+          <button id="cancel-import" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+            Cancel
+          </button>
+          <button id="upload-csv" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+            Upload & Import
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modalContainer);
+  
+  // Event handlers
+  document.getElementById('cancel-import').addEventListener('click', () => {
+    modalContainer.remove();
+  });
+  
+  document.getElementById('download-sample-csv').addEventListener('click', (e) => {
+    e.preventDefault();
+    const sampleCSV = 'Order ID,Finance Invoice Number\n1001,FIN-INV-2024-001\n1002,FIN-INV-2024-002';
+    const blob = new Blob([sampleCSV], { type: 'text/csv' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'invoice_import_template.csv';
+    link.click();
+  });
+  
+  document.getElementById('upload-csv').addEventListener('click', async () => {
+    const fileInput = document.getElementById('invoice-csv-file');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+      alert('Please select a CSV file');
+      return;
+    }
+    
+    try {
+      const text = await file.text();
+      const rows = text.split('\n').map(row => row.trim()).filter(row => row);
+      
+      if (rows.length < 2) {
+        alert('CSV file must have headers and at least one data row');
+        return;
+      }
+      
+      // Parse CSV (skip header row)
+      const updates = [];
+      for (let i = 1; i < rows.length; i++) {
+        const [orderId, invoiceNumber] = rows[i].split(',').map(cell => cell.trim().replace(/^"|"$/g, ''));
+        if (orderId && invoiceNumber) {
+          updates.push({ order_id: orderId, finance_invoice_number: invoiceNumber });
+        }
+      }
+      
+      if (updates.length === 0) {
+        alert('No valid data found in CSV');
+        return;
+      }
+      
+      // Send to backend
+      await window.updateFinanceInvoiceNumbers(updates);
+      
+      modalContainer.remove();
+      
+      // Refresh orders
+      if (window.loadOrders) {
+        window.loadOrders();
+      }
+      
+    } catch (error) {
+      console.error('Error processing CSV:', error);
+      alert('Error processing CSV file: ' + error.message);
+    }
+  });
+};
+
+// Function to update finance invoice numbers via API
+window.updateFinanceInvoiceNumbers = async function(updates) {
+  console.log('📤 Updating finance invoice numbers:', updates);
+  
+  try {
+    const response = await fetch('/api/orders/update-finance-invoices', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      },
+      body: JSON.stringify({ updates })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update invoice numbers');
+    }
+    
+    const result = await response.json();
+    console.log('✅ Invoice numbers updated:', result);
+    
+    alert(`Successfully updated ${result.updated} invoice numbers`);
+    
+  } catch (error) {
+    console.error('❌ Error updating invoice numbers:', error);
+    alert('Error updating invoice numbers: ' + error.message);
+    throw error;
+  }
+};

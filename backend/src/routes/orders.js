@@ -392,4 +392,76 @@ router.get('/update-status-by-date', authenticateToken, async (req, res) => {
   }
 });
 
+// Bulk update finance invoice numbers via CSV
+router.post('/update-finance-invoices', authenticateToken, async (req, res) => {
+  try {
+    // Check if user has permission (super_admin or finance_manager)
+    if (req.user.role !== 'super_admin' && req.user.role !== 'finance_manager') {
+      return res.status(403).json({ 
+        error: 'Only super admins and finance managers can update finance invoice numbers' 
+      });
+    }
+    
+    const { updates } = req.body;
+    
+    if (!updates || !Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ error: 'No updates provided' });
+    }
+    
+    const batch = db.batch();
+    let updatedCount = 0;
+    const errors = [];
+    
+    // Process each update
+    for (const update of updates) {
+      const { order_id, finance_invoice_number } = update;
+      
+      if (!order_id || !finance_invoice_number) {
+        errors.push(`Invalid update: missing order_id or finance_invoice_number`);
+        continue;
+      }
+      
+      try {
+        // Check if order exists
+        const orderRef = db.collection(collections.orders).doc(order_id);
+        const orderDoc = await orderRef.get();
+        
+        if (!orderDoc.exists) {
+          errors.push(`Order ${order_id} not found`);
+          continue;
+        }
+        
+        // Update the finance invoice number
+        batch.update(orderRef, {
+          finance_invoice_number: finance_invoice_number.trim(),
+          finance_invoice_updated_date: new Date().toISOString(),
+          finance_invoice_updated_by: req.user.email
+        });
+        
+        updatedCount++;
+        
+      } catch (error) {
+        errors.push(`Error updating order ${order_id}: ${error.message}`);
+      }
+    }
+    
+    // Commit the batch update
+    if (updatedCount > 0) {
+      await batch.commit();
+      console.log(`Finance invoice numbers updated: ${updatedCount} orders by ${req.user.email}`);
+    }
+    
+    res.json({ 
+      success: true,
+      updated: updatedCount,
+      total: updates.length,
+      errors: errors.length > 0 ? errors : undefined
+    });
+    
+  } catch (error) {
+    console.error('Error updating finance invoice numbers:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
