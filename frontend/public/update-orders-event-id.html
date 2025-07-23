@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Orders with Event ID</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-8">
+        <div class="bg-white rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Update Orders with Inventory ID</h1>
+            
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+                <h2 class="text-lg font-semibold text-blue-800 mb-2">What this tool does:</h2>
+                <ul class="list-disc list-inside text-blue-700 space-y-1">
+                    <li>Scans all orders in the system</li>
+                    <li>Matches order's event_name with inventory items</li>
+                    <li>Updates missing event_id with the inventory document ID</li>
+                    <li>Updates event_date from the inventory's event_date</li>
+                    <li>Only updates orders that don't already have event_id</li>
+                    <li>Also stores the ID as inventory_id for clarity</li>
+                </ul>
+            </div>
+
+            <div class="mb-6">
+                <button id="updateBtn" 
+                        onclick="updateOrders()" 
+                        class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium">
+                    Start Update Process
+                </button>
+                <button id="previewBtn" 
+                        onclick="previewUpdates()" 
+                        class="ml-4 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition duration-200 font-medium">
+                    Preview Changes
+                </button>
+            </div>
+
+            <div id="progressSection" class="hidden">
+                <div class="mb-4">
+                    <div class="bg-gray-200 rounded-full h-4 overflow-hidden">
+                        <div id="progressBar" class="bg-blue-600 h-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="progressText" class="text-sm text-gray-600 mt-2">Processing...</p>
+                </div>
+            </div>
+
+            <div id="results" class="hidden">
+                <h3 class="text-xl font-semibold mb-3">Update Results</h3>
+                <div id="resultContent" class="space-y-2"></div>
+            </div>
+
+            <div id="preview" class="hidden">
+                <h3 class="text-xl font-semibold mb-3">Preview of Changes</h3>
+                <div id="previewContent" class="space-y-2 max-h-96 overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = (window.location.hostname === "localhost")
+            ? "http://localhost:8080/api"
+            : "https://fantopark-backend-150582227311.us-central1.run.app/api";
+        
+        // Check authentication more thoroughly
+        function checkAuth() {
+            // Check both possible token locations
+            const authToken = localStorage.getItem('crm_auth_token') || localStorage.getItem('authToken');
+            const userStr = localStorage.getItem('crm_user') || localStorage.getItem('user');
+            const user = JSON.parse(userStr || '{}');
+            
+            if (!authToken) {
+                alert('Please login first');
+                window.location.href = '/';
+                return false;
+            }
+            
+            // Store user info on window for consistency
+            window.user = user;
+            window.authToken = authToken;
+            
+            // Check if user has required role
+            if (user.role !== 'super_admin' && user.role !== 'finance_manager') {
+                alert('Access denied. This tool is only available to Super Admins and Finance Managers.');
+                window.location.href = '/';
+                return false;
+            }
+            
+            return authToken;
+        }
+        
+        const authToken = checkAuth();
+        if (!authToken) {
+            // Stop execution if not authenticated
+            throw new Error('Not authenticated');
+        }
+
+        async function apiCall(endpoint, options = {}) {
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                ...options,
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || `HTTP error! status: ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        function showProgress(show = true) {
+            document.getElementById('progressSection').classList.toggle('hidden', !show);
+        }
+
+        function updateProgress(percent, text) {
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            document.getElementById('progressText').textContent = text;
+        }
+
+        async function previewUpdates() {
+            const previewBtn = document.getElementById('previewBtn');
+            previewBtn.disabled = true;
+            previewBtn.textContent = 'Loading...';
+
+            try {
+                showProgress(true);
+                updateProgress(10, 'Fetching orders...');
+
+                // Get all orders
+                const ordersResponse = await apiCall('/orders');
+                const orders = ordersResponse.data || [];
+
+                updateProgress(30, 'Fetching inventory...');
+
+                // Get all inventory items
+                const inventoryResponse = await apiCall('/inventory');
+                const inventory = inventoryResponse.data || [];
+
+                updateProgress(50, 'Analyzing updates needed...');
+
+                // Create inventory map for quick lookup
+                const inventoryMap = new Map();
+                inventory.forEach(item => {
+                    inventoryMap.set(item.event_name, {
+                        id: item.id,
+                        event_date: item.event_date
+                    });
+                });
+
+                // Find orders that need updates
+                const ordersNeedingUpdate = [];
+                let ordersWithEventName = 0;
+                let ordersWithEventId = 0;
+                
+                orders.forEach(order => {
+                    // Check if event_id is truly empty (handle null, undefined, empty string)
+                    const hasEventId = order.event_id && order.event_id.trim() !== '';
+                    
+                    if (hasEventId) {
+                        ordersWithEventId++;
+                    }
+                    
+                    if (order.event_name) {
+                        ordersWithEventName++;
+                    }
+                    
+                    if (!hasEventId && order.event_name) {
+                        const inventoryData = inventoryMap.get(order.event_name);
+                        if (inventoryData) {
+                            ordersNeedingUpdate.push({
+                                order_id: order.id,
+                                order_number: order.order_number,
+                                client_name: order.client_name,
+                                current_event_name: order.event_name,
+                                current_event_date: order.event_date,
+                                current_event_id: order.event_id || 'none',
+                                new_inventory_id: inventoryData.id,
+                                new_event_date: inventoryData.event_date
+                            });
+                        }
+                    }
+                });
+                
+                console.log('Preview Analysis:', {
+                    totalOrders: orders.length,
+                    ordersWithEventName: ordersWithEventName,
+                    ordersWithEventId: ordersWithEventId,
+                    ordersNeedingUpdate: ordersNeedingUpdate.length
+                });
+
+                updateProgress(100, 'Preview ready');
+                showProgress(false);
+
+                // Display preview
+                const previewDiv = document.getElementById('preview');
+                const previewContent = document.getElementById('previewContent');
+                previewDiv.classList.remove('hidden');
+
+                if (ordersNeedingUpdate.length === 0) {
+                    // Show detailed breakdown when no updates are needed
+                    const noMatchOrders = [];
+                    orders.forEach(order => {
+                        const hasEventId = order.event_id && order.event_id.trim() !== '';
+                        if (!hasEventId && order.event_name && !inventoryMap.has(order.event_name)) {
+                            noMatchOrders.push({
+                                order_number: order.order_number,
+                                event_name: order.event_name
+                            });
+                        }
+                    });
+                    
+                    previewContent.innerHTML = `
+                        <div class="text-gray-600">
+                            <p class="mb-4">No orders need updating.</p>
+                            <div class="bg-gray-100 p-4 rounded-lg text-sm">
+                                <p>Analysis Summary:</p>
+                                <ul class="list-disc list-inside mt-2">
+                                    <li>Total orders: ${orders.length}</li>
+                                    <li>Orders with event_id: ${ordersWithEventId}</li>
+                                    <li>Orders with event_name: ${ordersWithEventName}</li>
+                                    <li>Available inventory items: ${inventory.length}</li>
+                                </ul>
+                                ${noMatchOrders.length > 0 ? `
+                                    <p class="mt-4 text-red-600">Orders with no matching event:</p>
+                                    <ul class="list-disc list-inside mt-2">
+                                        ${noMatchOrders.slice(0, 10).map(o => `<li>${o.order_number}: "${o.event_name}"</li>`).join('')}
+                                        ${noMatchOrders.length > 10 ? `<li>... and ${noMatchOrders.length - 10} more</li>` : ''}
+                                    </ul>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    previewContent.innerHTML = `
+                        <p class="text-green-600 font-medium mb-4">${ordersNeedingUpdate.length} orders will be updated:</p>
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="p-2 text-left">Order #</th>
+                                    <th class="p-2 text-left">Client</th>
+                                    <th class="p-2 text-left">Event Name</th>
+                                    <th class="p-2 text-left">Current Date</th>
+                                    <th class="p-2 text-left">New Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${ordersNeedingUpdate.map(order => `
+                                    <tr class="border-t">
+                                        <td class="p-2">${order.order_number}</td>
+                                        <td class="p-2">${order.client_name}</td>
+                                        <td class="p-2">${order.current_event_name}</td>
+                                        <td class="p-2">${order.current_event_date || 'N/A'}</td>
+                                        <td class="p-2 text-green-600">${order.new_event_date || 'N/A'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`Error: ${error.message}`);
+                showProgress(false);
+            } finally {
+                previewBtn.disabled = false;
+                previewBtn.textContent = 'Preview Changes';
+            }
+        }
+
+        async function updateOrders() {
+            if (!confirm('This will update all orders with missing event_id. Continue?')) {
+                return;
+            }
+
+            const updateBtn = document.getElementById('updateBtn');
+            updateBtn.disabled = true;
+            updateBtn.textContent = 'Processing...';
+
+            try {
+                showProgress(true);
+                updateProgress(10, 'Starting bulk update...');
+
+                // Call the bulk update endpoint
+                const response = await apiCall('/orders/bulk-update-event-ids', {
+                    method: 'POST',
+                    body: JSON.stringify({})
+                });
+
+                updateProgress(100, 'Update complete!');
+
+                // Display results
+                const resultsDiv = document.getElementById('results');
+                const resultContent = document.getElementById('resultContent');
+                resultsDiv.classList.remove('hidden');
+
+                resultContent.innerHTML = `
+                    <div class="bg-green-100 p-4 rounded-lg">
+                        <p class="text-green-800 font-medium">✅ Update completed successfully!</p>
+                        <p class="text-green-700 mt-2">Total orders processed: ${response.totalProcessed || 0}</p>
+                        <p class="text-green-700">Orders updated: ${response.updated || 0}</p>
+                        <p class="text-green-700">Orders skipped (already had event_id): ${response.skipped || 0}</p>
+                        <p class="text-green-700">Orders with no matching event: ${response.noMatch || 0}</p>
+                    </div>
+                    ${response.duplicateEventNames > 0 ? `
+                        <div class="bg-yellow-100 p-4 rounded-lg mt-4">
+                            <p class="text-yellow-800 font-medium">⚠️ Duplicate Event Names Found:</p>
+                            <p class="text-yellow-700 mt-1">Found ${response.duplicateEventNames} event names with duplicates.</p>
+                            <p class="text-yellow-700">For orders with duplicate event names, the most recent event was used.</p>
+                            ${response.duplicates ? `
+                                <ul class="list-disc list-inside text-yellow-700 mt-2">
+                                    ${response.duplicates.map(dup => `<li>"${dup.eventName}" - ${dup.count} duplicates found</li>`).join('')}
+                                </ul>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+                    ${response.errors && response.errors.length > 0 ? `
+                        <div class="bg-red-100 p-4 rounded-lg mt-4">
+                            <p class="text-red-800 font-medium">⚠️ Some errors occurred:</p>
+                            <ul class="list-disc list-inside text-red-700 mt-2">
+                                ${response.errors.map(err => `<li>${err}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                `;
+
+                showProgress(false);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`Error: ${error.message}`);
+                showProgress(false);
+            } finally {
+                updateBtn.disabled = false;
+                updateBtn.textContent = 'Start Update Process';
+            }
+        }
+    </script>
+</body>
+</html>

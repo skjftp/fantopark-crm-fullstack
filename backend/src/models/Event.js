@@ -73,11 +73,34 @@ class Event {
   }
 
   async save() {
+    // Check for duplicate event name before saving
+    const existingEvent = await db.collection(collections.events || 'crm_events')
+      .where('event_name', '==', this.event_name)
+      .limit(1)
+      .get();
+    
+    if (!existingEvent.empty) {
+      throw new Error(`Event with name "${this.event_name}" already exists`);
+    }
+    
     const docRef = await db.collection(collections.events || 'crm_events').add({...this});
     return { id: docRef.id, ...this };
   }
 
   static async update(id, data) {
+    // If event_name is being updated, check for duplicates
+    if (data.event_name) {
+      const existingEvent = await db.collection(collections.events || 'crm_events')
+        .where('event_name', '==', data.event_name)
+        .limit(1)
+        .get();
+      
+      // Check if the found event is not the same one we're updating
+      if (!existingEvent.empty && existingEvent.docs[0].id !== id) {
+        throw new Error(`Event with name "${data.event_name}" already exists`);
+      }
+    }
+    
     const updateData = { ...data, updated_date: new Date().toISOString() };
     await db.collection(collections.events || 'crm_events').doc(id).update(updateData);
     return { id, ...updateData };

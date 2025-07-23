@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List Events - Fantopark CRM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-8">
+        <div class="bg-white rounded-lg shadow-lg p-6 max-w-6xl mx-auto">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Events in System</h1>
+            
+            <div class="mb-4">
+                <button onclick="loadEvents()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Refresh Events List
+                </button>
+            </div>
+            
+            <div id="eventsContainer" class="space-y-2">
+                <p class="text-gray-600">Loading events...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = (window.location.hostname === "localhost")
+            ? "http://localhost:8080/api"
+            : "https://fantopark-backend-150582227311.us-central1.run.app/api";
+        
+        const authToken = localStorage.getItem('crm_auth_token') || localStorage.getItem('authToken');
+        
+        async function loadEvents() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/events`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Failed to fetch events');
+                
+                const result = await response.json();
+                const events = result.data || [];
+                
+                const container = document.getElementById('eventsContainer');
+                
+                if (events.length === 0) {
+                    container.innerHTML = '<p class="text-gray-600">No events found in the system.</p>';
+                    return;
+                }
+                
+                // Sort events alphabetically
+                events.sort((a, b) => (a.event_name || '').localeCompare(b.event_name || ''));
+                
+                container.innerHTML = `
+                    <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                        <p class="font-semibold">Total Events: ${events.length}</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sport Type</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${events.map(event => `
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${event.event_name || 'No name'}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${event.id}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${event.start_date || 'No date'}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${event.sport_type || 'No sport'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error loading events:', error);
+                document.getElementById('eventsContainer').innerHTML = 
+                    `<p class="text-red-600">Error loading events: ${error.message}</p>`;
+            }
+        }
+        
+        // Load events on page load
+        loadEvents();
+    </script>
+</body>
+</html>

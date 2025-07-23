@@ -102,7 +102,9 @@ window.renderStadiumForm = () => {
                 React.createElement('option', { value: '' }, 'Select Country'),
                 ['India', 'United States', 'United Kingdom', 'Australia', 'Canada', 'South Africa',
                  'New Zealand', 'West Indies', 'Sri Lanka', 'Bangladesh', 'Pakistan', 'Afghanistan',
-                 'Spain', 'Germany', 'France', 'Italy', 'Brazil', 'Argentina', 'Japan', 'China', 'Other'
+                 'Spain', 'Germany', 'France', 'Italy', 'Brazil', 'Argentina', 'Japan', 'China',
+                 'Mexico', 'UAE', 'Singapore', 'Saudi Arabia', 'Bahrain', 'Qatar', 'Azerbaijan',
+                 'Hungary', 'Netherlands', 'Belgium', 'Ireland', 'Other'
                 ].map(country => 
                   React.createElement('option', { key: country, value: country }, country)
                 )

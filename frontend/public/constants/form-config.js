@@ -6,7 +6,9 @@ window.stadiumFormFields = [
   { name: 'country', label: 'Country', type: 'select', required: true, options: [
     'India', 'United States', 'United Kingdom', 'Australia', 'Canada', 'South Africa',
     'New Zealand', 'West Indies', 'Sri Lanka', 'Bangladesh', 'Pakistan', 'Afghanistan',
-    'Spain', 'Germany', 'France', 'Italy', 'Brazil', 'Argentina', 'Japan', 'China', 'Other'
+    'Spain', 'Germany', 'France', 'Italy', 'Brazil', 'Argentina', 'Japan', 'China',
+    'Mexico', 'UAE', 'Singapore', 'Saudi Arabia', 'Bahrain', 'Qatar', 'Azerbaijan',
+    'Hungary', 'Netherlands', 'Belgium', 'Ireland', 'Other'
   ]},
   { name: 'sport_type', label: 'Primary Sport', type: 'select', required: true, options: [
     'Cricket', 'Football', 'Basketball', 'Tennis', 'Hockey', 'Baseball', 

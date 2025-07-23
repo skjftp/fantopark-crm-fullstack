@@ -1,6 +1,12 @@
 // ✅ FIXED: Edit Order Form - Removed force re-render patterns
 
 window.renderEditOrderForm = () => {
+  // Force initialize API_CONFIG if not already done
+  if (!window.API_CONFIG) {
+    window.API_CONFIG = {
+      API_URL: window.API_URL || 'https://fantopark-backend-150582227311.us-central1.run.app/api'
+    };
+  }
   // ✅ Check if form should be shown
   const showEditOrderForm = window.showEditOrderForm || window.appState?.showEditOrderForm;
   const currentOrderForEdit = window.currentOrderForEdit || window.appState?.currentOrderForEdit;
@@ -65,6 +71,10 @@ window.renderEditOrderForm = () => {
     window.setShowEditOrderForm(false);
     window.orderEditData = null;
     window.editOrderState = null; // Clear the state
+    // Force inventory refresh on next open
+    if (window.inventoryState) {
+      window.inventoryState.lastFetch = 0;
+    }
   };
 
   // ✅ Current values with fallbacks
@@ -72,12 +82,88 @@ window.renderEditOrderForm = () => {
   const currentAssignedTo = window.editOrderState?.assigned_to || currentOrderForEdit?.assigned_to || '';
   const currentTotalAmount = window.editOrderState?.total_amount || window.editOrderState?.final_amount || currentOrderForEdit?.total_amount || currentOrderForEdit?.final_amount || '';
   const currentNotes = window.editOrderState?.notes || currentOrderForEdit?.notes || '';
+  const currentEventName = window.editOrderState?.event_name || currentOrderForEdit?.event_name || '';
+  const currentEventDate = window.editOrderState?.event_date || currentOrderForEdit?.event_date || '';
+  
+  // Initialize inventory state at window level if not exists
+  if (!window.inventoryState) {
+    window.inventoryState = {
+      items: [],
+      loading: false,
+      lastFetch: 0
+    };
+  }
+  
+  // Fetch inventory if needed (cache for 5 minutes)
+  const shouldFetchInventory = Date.now() - window.inventoryState.lastFetch > 300000 || window.inventoryState.items.length === 0;
+  
+  if (shouldFetchInventory && !window.inventoryState.loading) {
+    console.log('🔄 Fetching inventory...');
+    window.inventoryState.loading = true;
+    
+    // Use direct promise to ensure we catch the result
+    const inventoryPromise = window.apiCall('/inventory');
+    
+    inventoryPromise.then(response => {
+      console.log('📦 Inventory API response:', response);
+      const items = response.data || [];
+      
+      // Get unique event names from inventory
+      const uniqueEventNames = [...new Set(items.map(item => item.event_name).filter(Boolean))];
+      
+      // Create inventory map for quick lookup
+      const inventoryMap = new Map();
+      items.forEach(item => {
+        if (item.event_name) {
+          // If duplicate event names, keep the most recent
+          if (!inventoryMap.has(item.event_name) || 
+              new Date(item.created_date) > new Date(inventoryMap.get(item.event_name).created_date)) {
+            inventoryMap.set(item.event_name, item);
+          }
+        }
+      });
+      
+      window.inventoryState.items = uniqueEventNames.map(name => inventoryMap.get(name));
+      window.inventoryState.loading = false;
+      window.inventoryState.lastFetch = Date.now();
+      
+      console.log('✅ Inventory loaded:', {
+        count: window.inventoryState.items.length,
+        items: window.inventoryState.items.slice(0, 5).map(i => i.event_name)
+      });
+      
+      // Force re-render multiple ways to ensure UI updates
+      setTimeout(() => {
+        if (window.renderApp) {
+          window.renderApp();
+        } else if (window.setShowEditOrderForm) {
+          // Toggle to force re-render
+          const current = window.showEditOrderForm;
+          window.setShowEditOrderForm(!current);
+          window.setShowEditOrderForm(current);
+        }
+      }, 50);
+    }).catch(error => {
+      console.error('Error fetching inventory:', error);
+      window.inventoryState.loading = false;
+      window.inventoryState.lastFetch = Date.now(); // Set lastFetch even on error to prevent retry loop
+    });
+  }
+  
+  const inventoryItems = window.inventoryState.items;
+  const loadingInventory = window.inventoryState.loading;
 
   console.log('🔍 Rendering form with values:', {
     status: currentStatus,
     assigned_to: currentAssignedTo,
     total_amount: currentTotalAmount,
-    lastUpdate: window.editOrderState?.lastUpdate
+    lastUpdate: window.editOrderState?.lastUpdate,
+    inventoryState: {
+      loading: loadingInventory,
+      itemsCount: inventoryItems.length,
+      lastFetch: window.inventoryState.lastFetch,
+      shouldFetch: shouldFetchInventory
+    }
   });
 
   return React.createElement('div', { 
@@ -122,14 +208,56 @@ window.renderEditOrderForm = () => {
           })
         ),
 
-        // Event Name - READ ONLY
+        // Event Name - EDITABLE DROPDOWN
         React.createElement('div', { className: 'mb-4' },
           React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Event'),
+          window.inventoryState.loading ? 
+            React.createElement('div', { className: 'w-full px-3 py-2 border rounded-md bg-gray-50' }, 'Loading inventory...') :
+            (!inventoryItems || inventoryItems.length === 0) ?
+            React.createElement('div', { className: 'w-full px-3 py-2 border rounded-md bg-gray-50 text-gray-500' }, 'No inventory items available') :
+            React.createElement('select', {
+              value: currentEventName,
+              onChange: (e) => {
+                const selectedEventName = e.target.value;
+                const selectedInventory = inventoryItems.find(item => item.event_name === selectedEventName);
+                
+                // Update event name
+                handleInputChange('event_name', selectedEventName);
+                
+                // If inventory found, update event_id and event_date
+                if (selectedInventory) {
+                  handleInputChange('event_id', selectedInventory.id);
+                  handleInputChange('inventory_id', selectedInventory.id);
+                  handleInputChange('event_date', selectedInventory.event_date || '');
+                  
+                  console.log('Selected inventory:', {
+                    event_name: selectedEventName,
+                    inventory_id: selectedInventory.id,
+                    event_date: selectedInventory.event_date
+                  });
+                }
+              },
+              className: 'w-full px-3 py-2 border rounded-md'
+            },
+              React.createElement('option', { value: '' }, 'Select Event'),
+              inventoryItems.map(item =>
+                React.createElement('option', { 
+                  key: item.id, 
+                  value: item.event_name 
+                }, item.event_name)
+              )
+            )
+        ),
+        
+        // Event Date - AUTO-FILLED, READ ONLY
+        React.createElement('div', { className: 'mb-4' },
+          React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Event Date'),
           React.createElement('input', {
             type: 'text',
-            value: currentOrderForEdit?.event_name || '',
+            value: currentEventDate || '',
             readOnly: true,
-            className: 'w-full px-3 py-2 border rounded-md bg-gray-50'
+            className: 'w-full px-3 py-2 border rounded-md bg-gray-50',
+            placeholder: 'Auto-filled from selected event'
           })
         ),
 
@@ -220,6 +348,11 @@ window.openEditOrderForm = function(order) {
   // Clear any existing state
   window.editOrderState = null;
   window.orderEditData = null;
+  
+  // Force inventory to be fetched on next render
+  if (window.inventoryState) {
+    window.inventoryState.lastFetch = 0;
+  }
   
   // Set the order to edit
   window.setCurrentOrderForEdit(order);

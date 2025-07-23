@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Utilities - Fantopark CRM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-8">
+        <div class="bg-white rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Admin Utilities</h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Update Orders Event ID -->
+                <div class="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                    <h2 class="text-xl font-semibold text-blue-800 mb-3">Update Orders Event Data</h2>
+                    <p class="text-gray-700 mb-4">
+                        Bulk update all orders to add missing event_id and correct event_date based on event names.
+                    </p>
+                    <a href="/update-orders-event-id.html" 
+                       class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition duration-200">
+                        Open Tool →
+                    </a>
+                </div>
+
+                <!-- CSV Import for Invoice Numbers -->
+                <div class="bg-purple-50 p-6 rounded-lg border border-purple-200">
+                    <h2 class="text-xl font-semibold text-purple-800 mb-3">Import Finance Invoice Numbers</h2>
+                    <p class="text-gray-700 mb-4">
+                        Bulk import finance invoice numbers from CSV file to update multiple orders at once.
+                    </p>
+                    <button onclick="openInvoiceImport()" 
+                            class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition duration-200">
+                        Open Import →
+                    </button>
+                </div>
+
+                <!-- Export Orders to CSV -->
+                <div class="bg-green-50 p-6 rounded-lg border border-green-200">
+                    <h2 class="text-xl font-semibold text-green-800 mb-3">Export Orders to CSV</h2>
+                    <p class="text-gray-700 mb-4">
+                        Export all orders data to CSV format for analysis or external processing.
+                    </p>
+                    <a href="/orders" 
+                       class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition duration-200">
+                        Go to Orders →
+                    </a>
+                </div>
+
+                <!-- Back to Main App -->
+                <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-3">Main Application</h2>
+                    <p class="text-gray-700 mb-4">
+                        Return to the main CRM application dashboard.
+                    </p>
+                    <a href="/" 
+                       class="inline-block bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition duration-200">
+                        Back to CRM →
+                    </a>
+                </div>
+            </div>
+
+            <div class="mt-8 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p class="text-sm text-yellow-800">
+                    <strong>Note:</strong> These utilities are restricted to Super Admins and Finance Managers only.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication more thoroughly
+        function checkAuth() {
+            // Check both possible token locations
+            const authToken = localStorage.getItem('crm_auth_token') || localStorage.getItem('authToken');
+            const userStr = localStorage.getItem('crm_user') || localStorage.getItem('user');
+            const user = JSON.parse(userStr || '{}');
+            
+            if (!authToken) {
+                alert('Please login first');
+                window.location.href = '/';
+                return false;
+            }
+            
+            // Store user info on window for consistency
+            window.user = user;
+            window.authToken = authToken;
+            
+            // Check if user has required role
+            if (user.role !== 'super_admin' && user.role !== 'finance_manager' && user.role !== 'supply_sales_service_manager') {
+                alert('Access denied. This page is only available to Super Admins, Finance Managers, and Supply Sales Service Managers.');
+                window.location.href = '/';
+                return false;
+            }
+            
+            return true;
+        }
+        
+        if (!checkAuth()) {
+            // Stop execution if not authenticated
+            throw new Error('Not authenticated');
+        }
+
+        function openInvoiceImport() {
+            // This function is defined in the orders.js component
+            if (window.showInvoiceCSVImport) {
+                window.showInvoiceCSVImport();
+            } else {
+                // If not loaded, redirect to orders page
+                window.location.href = '/orders';
+                setTimeout(() => {
+                    alert('Click on "Import Invoice CSV" button in the orders page');
+                }, 1000);
+            }
+        }
+    </script>
+</body>
+</html>

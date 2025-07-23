@@ -7,7 +7,7 @@ function MarketingPerformanceBackend() {
         data: null,
         error: null,
         filters: {
-            dateFrom: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
+            dateFrom: new Date(new Date().setDate(new Date().getDate() - 14)).toISOString().split('T')[0],
             dateTo: new Date().toISOString().split('T')[0],
             event: 'all',
             source: 'all',

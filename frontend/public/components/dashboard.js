@@ -508,17 +508,26 @@ window.updateChartsFromAPIData = function(apiData) {
     
     // Helper function to safely create a chart
     const createChart = (canvasId, chartType, chartData, chartOptions) => {
+        console.log(`🔍 Looking for canvas: ${canvasId}`);
         const canvas = document.getElementById(canvasId);
         if (!canvas) {
-            console.warn(`Canvas ${canvasId} not found`);
+            console.warn(`❌ Canvas ${canvasId} not found in DOM`);
+            // Log what elements are actually available
+            const allCanvases = document.querySelectorAll('canvas');
+            console.log('📊 Available canvas elements:', Array.from(allCanvases).map(c => c.id));
             return null;
         }
+        
+        console.log(`✅ Found canvas ${canvasId}, creating chart...`);
         
         // Hide corresponding loader
         const loaderId = canvasId.replace('Chart', 'Loader');
         const loader = document.getElementById(loaderId);
         if (loader) {
+            console.log(`🔄 Hiding loader: ${loaderId}`);
             loader.style.display = 'none';
+        } else {
+            console.warn(`⚠️ Loader ${loaderId} not found`);
         }
         
         // Destroy existing chart
@@ -553,8 +562,24 @@ window.updateChartsFromAPIData = function(apiData) {
         }
     };
     
-    // Delay to ensure DOM is ready
-    setTimeout(() => {
+    // Delay to ensure DOM is ready with retry mechanism
+    const attemptChartCreation = (retryCount = 0) => {
+        const maxRetries = 3;
+        const delay = 200 * (retryCount + 1); // Increasing delay: 200ms, 400ms, 600ms
+        
+        setTimeout(() => {
+            console.log(`📊 Attempting chart creation (attempt ${retryCount + 1}/${maxRetries + 1})`);
+            
+            // Check if any canvas elements exist
+            const canvasElements = document.querySelectorAll('#leadSplitChart, #tempCountChart, #tempValueChart');
+            console.log(`📊 Found ${canvasElements.length}/3 canvas elements`);
+            
+            if (canvasElements.length === 0 && retryCount < maxRetries) {
+                console.log(`⏳ No canvas elements found, retrying in ${200 * (retryCount + 2)}ms...`);
+                attemptChartCreation(retryCount + 1);
+                return;
+            }
+            
         try {
             // Create Lead Split Chart
             if (leadSplit) {
@@ -652,7 +677,11 @@ window.updateChartsFromAPIData = function(apiData) {
             window._chartUpdateInProgress = false;
         }
         
-    }, 100);
+        }, delay);
+    };
+    
+    // Start the chart creation process
+    attemptChartCreation();
 };
 
 // ===============================================

@@ -355,6 +355,8 @@ const [darkMode, setDarkMode] = useState(() => {
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   const [currentLeadForChoice, setCurrentLeadForChoice] = useState(null);
   const [choiceOptions, setChoiceOptions] = useState([]);
+  const [showSalesPersonEditModal, setShowSalesPersonEditModal] = useState(false);
+  const [currentOrderForSalesPersonEdit, setCurrentOrderForSalesPersonEdit] = useState(null);
   const [dashboardStats, setDashboardStats] = useState({
     totalLeads: 0,
     activeDeals: 0,
@@ -427,6 +429,7 @@ window.setIsMobileView = setIsMobileView;
     leads, setLeads,
     allLeadsForAllocation, setAllLeadsForAllocation,
     inventory, setInventory,
+    inventorySearchQuery, setInventorySearchQuery,
     editingInventory, setEditingInventory,
     showInventoryForm, setShowInventoryForm,
     orders, setOrders,
@@ -573,6 +576,8 @@ showStadiumNotesModal, setShowStadiumNotesModal,
     showChoiceModal, setShowChoiceModal,
     currentLeadForChoice, setCurrentLeadForChoice,
     choiceOptions, setChoiceOptions,
+    showSalesPersonEditModal, setShowSalesPersonEditModal,
+    currentOrderForSalesPersonEdit, setCurrentOrderForSalesPersonEdit,
     dashboardStats, setDashboardStats,
     dashboardFilter, setDashboardFilter,
     selectedSalesPerson, setSelectedSalesPerson,
@@ -648,6 +653,10 @@ window.setOrdersShowFilters = setOrdersShowFilters;
 window.setQuoteUploadData = setQuoteUploadData;
 window.showQuoteUploadModal = showQuoteUploadModal;
 window.quoteUploadData = quoteUploadData;
+window.setShowSalesPersonEditModal = setShowSalesPersonEditModal;
+window.showSalesPersonEditModal = showSalesPersonEditModal;
+window.setCurrentOrderForSalesPersonEdit = setCurrentOrderForSalesPersonEdit;
+window.currentOrderForSalesPersonEdit = currentOrderForSalesPersonEdit;
 
   // Return the state object to be used by App component
   window.setViewMode = setViewMode;
