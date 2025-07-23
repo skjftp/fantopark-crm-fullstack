@@ -141,19 +141,19 @@ router.get('/', authenticateToken, async (req, res) => {
     let allOrdersSnapshot;
     let ordersQuery = db.collection(collections.orders);
     
-    // Apply date filters if not lifetime
+    // Apply date filters if not lifetime - filter by event_date
     if (startDate) {
       try {
         const startDateIST = convertToIST(startDate);
-        ordersQuery = ordersQuery.where('created_date', '>=', startDateIST);
+        ordersQuery = ordersQuery.where('event_date', '>=', startDateIST);
         
         if (endDate) {
           const endDateIST = convertToIST(endDate);
-          ordersQuery = ordersQuery.where('created_date', '<=', endDateIST);
+          ordersQuery = ordersQuery.where('event_date', '<=', endDateIST);
         }
         
         allOrdersSnapshot = await ordersQuery.get();
-        console.log(`Found ${allOrdersSnapshot.size} orders for period: ${period}`);
+        console.log(`Found ${allOrdersSnapshot.size} orders for period: ${period} (filtered by event_date)`);
       } catch (err) {
         // If date filter fails, get all orders
         console.log('Date filter failed, fetching all orders');
