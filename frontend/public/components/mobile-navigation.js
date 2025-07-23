@@ -22,15 +22,15 @@ window.MobileBottomNavigation = function() {
         show: true // Always show for now
       },
       {
-        id: 'inventory',
-        label: 'Inventory',
-        icon: '📦',
+        id: 'myactions',
+        label: 'My Actions',
+        icon: '📋',
         show: true // Always show for now
       },
       {
-        id: 'orders',
-        label: 'Orders',
-        icon: '🎫',
+        id: 'inventory',
+        label: 'Inventory',
+        icon: '📦',
         show: true // Always show for now
       },
       {
@@ -191,6 +191,12 @@ window.MobileMoreMenu = function() {
 
   const menuItems = [
     {
+      id: 'orders',
+      label: 'Orders',
+      icon: '🎫',
+      show: true // Always show for now
+    },
+    {
       id: 'delivery',
       label: 'Deliveries',
       icon: '🚚',
@@ -231,12 +237,6 @@ window.MobileMoreMenu = function() {
       label: 'Assignment Rules',
       icon: '🎯',
       show: window.hasPermission('leads', 'assign')
-    },
-    {
-      id: 'myactions',
-      label: 'My Actions',
-      icon: '📋',
-      show: true
     },
     {
       id: 'reminders',
