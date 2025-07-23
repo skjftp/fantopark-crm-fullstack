@@ -1189,7 +1189,7 @@ if (hasPermission('orders', 'write')) {
     case 'completed':
     case 'delivered':
       // Show invoice for completed orders
-      if (hasPermission('orders', 'read') && order.invoice_number) {
+      if (hasPermission('orders', 'read')) {
         actions.push(
           React.createElement('button', {
             key: 'invoice',
@@ -1197,6 +1197,40 @@ if (hasPermission('orders', 'write')) {
             className: 'px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200',
             title: 'View Invoice'
           }, '📄')
+        );
+      }
+
+      // Journey Experience button for completed orders
+      if (hasPermission('orders', 'write')) {
+        actions.push(
+          React.createElement('button', {
+            key: 'journey',
+            onClick: () => {
+              console.log('Journey button clicked for order:', order.id);
+              
+              // Remove any existing modal
+              const existing = document.getElementById('journey-modal-container');
+              if (existing) existing.remove();
+              
+              // Create new modal
+              const div = document.createElement('div');
+              div.id = 'journey-modal-container';
+              document.body.appendChild(div);
+              
+              ReactDOM.render(
+                React.createElement(window.JourneyGenerator, {
+                  order: order,
+                  onClose: () => {
+                    ReactDOM.unmountComponentAtNode(div);
+                    div.remove();
+                  }
+                }),
+                div
+              );
+            },
+            className: 'px-2 py-1 text-xs bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded hover:from-yellow-600 hover:to-yellow-700',
+            title: 'Generate Premium Journey'
+          }, '✨')
         );
       }
       break;
