@@ -45,7 +45,10 @@ window.renderEnhancedCurrencySection = () => {
         ),
         React.createElement('select', {
           value: paymentData.customer_type || 'indian',
-          onChange: (e) => window.handlePaymentInputChange('customer_type', e.target.value),
+          onChange: (e) => {
+            console.log('🔍 Customer type changed to:', e.target.value);
+            window.handlePaymentInputChange('customer_type', e.target.value);
+          },
           className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
           required: true
         },
@@ -276,6 +279,10 @@ window.renderEnhancedPaymentForm = () => {
     paymentData = window.paymentData || {},
     loading = window.loading
   } = window.appState || {};
+  
+  // Debug log to see what's in paymentData when form renders
+  console.log('🔍 Payment form rendering with customer_type:', paymentData?.customer_type);
+  console.log('🔍 Full paymentData:', paymentData);
 
   // ✅ COMPONENT INTEGRATION PATTERN: Function references with fallbacks
   const handlePaymentSubmit = window.handlePaymentSubmit || ((e) => {
@@ -1213,7 +1220,10 @@ window.renderTaxClassificationSection = () => {
         ),
         React.createElement('select', {
           value: paymentData.customer_type || 'indian',
-          onChange: (e) => window.handlePaymentInputChange('customer_type', e.target.value),
+          onChange: (e) => {
+            console.log('🔍 Customer type changed to:', e.target.value);
+            window.handlePaymentInputChange('customer_type', e.target.value);
+          },
           className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
           required: true
         },

@@ -117,7 +117,10 @@ window.renderPaymentSubmitHandler = () => {
           registered_address: window.paymentData.registered_address,
           category_of_sale: window.paymentData.category_of_sale,
           type_of_sale: window.paymentData.type_of_sale,
-          indian_state: window.paymentData.indian_state
+          indian_state: window.paymentData.indian_state,
+          customer_type: window.paymentData.customer_type,
+          event_location: window.paymentData.event_location,
+          payment_currency: window.paymentData.payment_currency
         });
 
         // FIXED: Correct API call format
@@ -167,6 +170,11 @@ window.renderPaymentSubmitHandler = () => {
             is_outside_india: window.paymentData.is_outside_india || existingOrder.is_outside_india,
             gst_certificate: window.paymentData.gst_certificate || existingOrder.gst_certificate,
             pan_card: window.paymentData.pan_card || existingOrder.pan_card,
+            
+            // Customer classification fields
+            customer_type: window.paymentData.customer_type || existingOrder.customer_type,
+            event_location: window.paymentData.event_location || existingOrder.event_location,
+            payment_currency: window.paymentData.payment_currency || existingOrder.payment_currency,
 
             // Invoice details
             invoice_items: window.paymentData.invoice_items || existingOrder.invoice_items,

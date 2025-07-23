@@ -99,6 +99,9 @@ router.get('/', authenticateToken, async (req, res) => {
 // POST create order
 router.post('/', authenticateToken, async (req, res) => {
   try {
+    console.log('📥 Raw request body:', JSON.stringify(req.body, null, 2));
+    console.log('📥 customer_type from request:', req.body.customer_type);
+    
     let orderData = {
       ...req.body,
       status: req.body.status || 'pending_approval',
@@ -108,7 +111,20 @@ router.post('/', authenticateToken, async (req, res) => {
       // Initialize buying price fields
       buying_price: parseFloat(req.body.buying_price) || 0,
       buying_price_inclusions: parseFloat(req.body.buying_price_inclusions) || 0,
-      total_allocated_tickets: 0
+      total_allocated_tickets: 0,
+      // Explicitly include customer classification fields
+      customer_type: (() => {
+        const ct = req.body.customer_type;
+        console.log('🔍 Customer type value check:', { 
+          value: ct, 
+          type: typeof ct, 
+          truthiness: !!ct,
+          defaulting: !ct ? 'YES' : 'NO'
+        });
+        return ct || 'indian';
+      })(),
+      event_location: req.body.event_location || 'india',
+      payment_currency: req.body.payment_currency || 'INR'
     };
     
     // Ensure currency fields are properly set
@@ -127,7 +143,31 @@ router.post('/', authenticateToken, async (req, res) => {
       advance_amount_inr: orderData.advance_amount_inr
     });
     
+    console.log('🔍 Customer classification fields:', {
+      customer_type: orderData.customer_type,
+      event_location: orderData.event_location,
+      payment_currency: orderData.payment_currency
+    });
+    
+    // Log the exact data being saved
+    console.log('📤 Order data being saved to Firebase:', JSON.stringify({
+      customer_type: orderData.customer_type,
+      event_location: orderData.event_location,
+      payment_currency: orderData.payment_currency
+    }, null, 2));
+    
     const docRef = await db.collection(collections.orders).add(orderData);
+    
+    // Fetch the created document to ensure we have all fields
+    const createdDoc = await docRef.get();
+    const createdOrder = { id: docRef.id, ...createdDoc.data() };
+    
+    console.log('✅ Order created with customer_type:', createdOrder.customer_type);
+    console.log('📥 Order retrieved from Firebase:', JSON.stringify({
+      customer_type: createdOrder.customer_type,
+      event_location: createdOrder.event_location,
+      payment_currency: createdOrder.payment_currency
+    }, null, 2));
     
     // Create receivable if needed (using INR amounts)
     if (orderData.payment_post_service || orderData.lead_status === 'payment_post_service') {
@@ -153,7 +193,7 @@ router.post('/', authenticateToken, async (req, res) => {
       }
     }
     
-    res.status(201).json({ data: { id: docRef.id, ...orderData } });
+    res.status(201).json({ data: createdOrder });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -167,13 +207,35 @@ router.put('/:id', authenticateToken, async (req, res) => {
       updated_date: new Date().toISOString()
     };
     
+    // Explicitly ensure customer classification fields are included if provided
+    console.log('🔍 UPDATE route - customer_type from request:', req.body.customer_type);
+    console.log('🔍 UPDATE route - full request body:', JSON.stringify(req.body, null, 2));
+    
+    if (req.body.customer_type !== undefined) {
+      updates.customer_type = req.body.customer_type;
+      console.log('✅ Setting customer_type in updates:', updates.customer_type);
+    }
+    if (req.body.event_location !== undefined) {
+      updates.event_location = req.body.event_location;
+    }
+    if (req.body.payment_currency !== undefined) {
+      updates.payment_currency = req.body.payment_currency;
+    }
+    
     // If updating payment/currency fields, ensure INR equivalents are updated
     if (updates.payment_currency || updates.exchange_rate || updates.advance_amount || updates.final_amount) {
       updates = ensureCurrencyFields(updates);
     }
     
+    console.log('Updating order with customer_type:', updates.customer_type);
+    
     await db.collection(collections.orders).doc(req.params.id).update(updates);
-    res.json({ data: { id: req.params.id, ...updates } });
+    
+    // Fetch the updated document to return the complete data
+    const updatedDoc = await db.collection(collections.orders).doc(req.params.id).get();
+    const updatedData = { id: req.params.id, ...updatedDoc.data() };
+    
+    res.json({ data: updatedData });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -982,7 +982,22 @@ window.handlePaymentPostService = async function(lead) {
 // ✅ PAYMENT INPUT CHANGE HANDLER
 window.handlePaymentInputChange = function(field, value) {
   console.log("📝 Payment Input Change:", field, value);
-  window.setPaymentData(prev => ({ ...prev, [field]: value }));
+  
+  // Special logging for customer_type
+  if (field === 'customer_type') {
+    console.log("🎯 Customer type specifically changed to:", value);
+    console.log("🎯 Current paymentData before update:", window.paymentData);
+  }
+  
+  window.setPaymentData(prev => {
+    const updated = { ...prev, [field]: value };
+    
+    if (field === 'customer_type') {
+      console.log("🎯 PaymentData after customer_type update:", updated);
+    }
+    
+    return updated;
+  });
 };
 
 // ✅ PAYMENT FORM SUBMISSION HANDLER
@@ -1056,6 +1071,11 @@ window.handlePaymentSubmit = async function(e) {
         indian_state: window.paymentData.indian_state || existingOrder.indian_state,
         is_outside_india: window.paymentData.is_outside_india || existingOrder.is_outside_india,
         
+        // Customer classification fields
+        customer_type: window.paymentData.customer_type || existingOrder.customer_type,
+        event_location: window.paymentData.event_location || existingOrder.event_location,
+        payment_currency: window.paymentData.payment_currency || existingOrder.payment_currency,
+        
         // Keep financial calculations
         base_amount: existingOrder.base_amount,
         gst_calculation: existingOrder.gst_calculation,
@@ -1071,6 +1091,8 @@ window.handlePaymentSubmit = async function(e) {
       };
       
       console.log('Update data being sent:', updateData);
+      console.log('🎯 Specifically customer_type in updateData:', updateData.customer_type);
+      console.log('🎯 Full updateData:', JSON.stringify(updateData, null, 2));
       
       // Update order via API
       const response = await window.apiCall(`/orders/${existingOrderId}`, {
@@ -1127,6 +1149,11 @@ window.handlePaymentSubmit = async function(e) {
 
       const calculation = window.calculateGSTAndTCS(baseAmount, window.paymentData);
       
+      // Debug log payment data before creating order
+      console.log('🔍 Payment data customer_type:', window.paymentData.customer_type);
+      console.log('🔍 Payment data event_location:', window.paymentData.event_location);
+      console.log('🔍 Payment data payment_currency:', window.paymentData.payment_currency);
+      
       const newOrder = {
         order_number: 'ORD-' + Date.now(),
         lead_id: window.currentLead.id,
@@ -1149,6 +1176,11 @@ window.handlePaymentSubmit = async function(e) {
         indian_state: window.paymentData.indian_state,
         is_outside_india: window.paymentData.is_outside_india,
         
+        // Customer classification fields
+        customer_type: window.paymentData.customer_type,
+        event_location: window.paymentData.event_location,
+        payment_currency: window.paymentData.payment_currency,
+        
         // Financial calculations
         invoice_items: window.paymentData.invoice_items || [],
         base_amount: baseAmount,
@@ -1166,12 +1198,18 @@ window.handlePaymentSubmit = async function(e) {
         created_by: window.user.name
       };
 
+      console.log('📤 Sending order with customer_type:', newOrder.customer_type);
+      console.log('📤 Full order data:', newOrder);
+      
       const orderResponse = await window.apiCall('/orders', {
         method: 'POST',
         body: JSON.stringify(newOrder)
       });
 
       const finalOrder = orderResponse.data || orderResponse;
+      console.log('📥 Received order with customer_type:', finalOrder.customer_type);
+      console.log('📥 Full response:', finalOrder);
+      
       window.setOrders(prev => [...prev, finalOrder]);
       
       alert('Payment processed successfully! Order created.');

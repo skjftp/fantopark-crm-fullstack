@@ -1010,6 +1010,11 @@ const updateOrdersPagination = (orders) => {
       window.log.debug('💰 Pre-loading payment form from existing order:', existingOrder.id);
       window.log.debug('📍 Existing order event_location:', existingOrder.event_location);
       window.log.debug('🎾 Event name:', existingOrder.event_name || existingOrder.inventory_name || lead.lead_for_event);
+      window.log.debug('👤 Customer type from order:', existingOrder.customer_type);
+      
+      // Log the entire existing order to debug customer_type
+      window.log.debug('🔍 Existing order full data:', existingOrder);
+      window.log.debug('🔍 Customer type value:', existingOrder.customer_type);
       
       initialPaymentData = {
         // Payment details
@@ -1136,7 +1141,7 @@ const updateOrdersPagination = (orders) => {
         registered_address: lead.registered_address || '',
         indian_state: 'Haryana',
         is_outside_india: eventLocation === 'outside_india',
-        customer_type: 'indian',
+        customer_type: 'indian', // Default, user can change in form
         event_location: eventLocation,
         payment_currency: 'INR',
         gst_certificate: null,
