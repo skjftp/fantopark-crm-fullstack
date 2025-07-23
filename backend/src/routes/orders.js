@@ -127,6 +127,26 @@ router.post('/', authenticateToken, async (req, res) => {
       payment_currency: req.body.payment_currency || 'INR'
     };
     
+    // Look up event_id if event_name is provided
+    if (orderData.event_name && !orderData.event_id) {
+      try {
+        const eventsSnapshot = await db.collection('crm_events')
+          .where('event_name', '==', orderData.event_name)
+          .limit(1)
+          .get();
+        
+        if (!eventsSnapshot.empty) {
+          orderData.event_id = eventsSnapshot.docs[0].id;
+          console.log(`Found event_id ${orderData.event_id} for event_name: ${orderData.event_name}`);
+        } else {
+          console.log(`No event found with name: ${orderData.event_name}`);
+        }
+      } catch (error) {
+        console.error('Error looking up event_id:', error);
+        // Continue without event_id if lookup fails
+      }
+    }
+    
     // Ensure currency fields are properly set
     orderData = ensureCurrencyFields(orderData);
     
@@ -220,6 +240,24 @@ router.put('/:id', authenticateToken, async (req, res) => {
     }
     if (req.body.payment_currency !== undefined) {
       updates.payment_currency = req.body.payment_currency;
+    }
+    
+    // Look up event_id if event_name is provided and event_id is not
+    if (updates.event_name && !updates.event_id) {
+      try {
+        const eventsSnapshot = await db.collection('crm_events')
+          .where('event_name', '==', updates.event_name)
+          .limit(1)
+          .get();
+        
+        if (!eventsSnapshot.empty) {
+          updates.event_id = eventsSnapshot.docs[0].id;
+          console.log(`Found event_id ${updates.event_id} for event_name: ${updates.event_name}`);
+        }
+      } catch (error) {
+        console.error('Error looking up event_id:', error);
+        // Continue without event_id if lookup fails
+      }
     }
     
     // If updating payment/currency fields, ensure INR equivalents are updated
