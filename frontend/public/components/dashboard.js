@@ -226,7 +226,7 @@ window.renderDashboardContent = () => {
             )
         ),
 
-        // Pie Charts Section
+        // Pie Charts Section with Loader
         React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-3 gap-6' },
             // Lead Split Chart
             React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow border' },
@@ -234,6 +234,38 @@ window.renderDashboardContent = () => {
                     'Lead Split'
                 ),
                 React.createElement('div', { className: 'relative h-64' },
+                    // Show loader until chart is ready
+                    React.createElement('div', {
+                        id: 'leadSplitLoader',
+                        className: 'absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800',
+                        style: { zIndex: 10 }
+                    },
+                        React.createElement('div', { className: 'text-center' },
+                            // Animated logo loader
+                            React.createElement('div', {
+                                className: 'relative w-24 h-24 mx-auto mb-4',
+                                style: {
+                                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                                }
+                            },
+                                React.createElement('img', {
+                                    src: 'images/logo.png',
+                                    alt: 'Loading...',
+                                    className: 'w-full h-full object-contain',
+                                    style: {
+                                        filter: 'drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))',
+                                        animation: 'float 3s ease-in-out infinite'
+                                    }
+                                })
+                            ),
+                            React.createElement('p', { 
+                                className: 'text-sm text-gray-500 dark:text-gray-400',
+                                style: {
+                                    animation: 'fadeInOut 2s ease-in-out infinite'
+                                }
+                            }, 'Loading chart data...')
+                        )
+                    ),
                     React.createElement('canvas', { 
                         id: 'leadSplitChart',
                         className: 'w-full h-full'
@@ -247,6 +279,41 @@ window.renderDashboardContent = () => {
                     'Lead Temperature Count'
                 ),
                 React.createElement('div', { className: 'relative h-64' },
+                    // Show loader until chart is ready
+                    React.createElement('div', {
+                        id: 'tempCountLoader',
+                        className: 'absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800',
+                        style: { zIndex: 10 }
+                    },
+                        React.createElement('div', { className: 'text-center' },
+                            // Animated logo loader
+                            React.createElement('div', {
+                                className: 'relative w-24 h-24 mx-auto mb-4',
+                                style: {
+                                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                                    animationDelay: '0.5s'
+                                }
+                            },
+                                React.createElement('img', {
+                                    src: 'images/logo.png',
+                                    alt: 'Loading...',
+                                    className: 'w-full h-full object-contain',
+                                    style: {
+                                        filter: 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.5))',
+                                        animation: 'float 3s ease-in-out infinite',
+                                        animationDelay: '0.5s'
+                                    }
+                                })
+                            ),
+                            React.createElement('p', { 
+                                className: 'text-sm text-gray-500 dark:text-gray-400',
+                                style: {
+                                    animation: 'fadeInOut 2s ease-in-out infinite',
+                                    animationDelay: '0.5s'
+                                }
+                            }, 'Loading temperature data...')
+                        )
+                    ),
                     React.createElement('canvas', { 
                         id: 'tempCountChart',
                         className: 'w-full h-full'
@@ -260,6 +327,41 @@ window.renderDashboardContent = () => {
                     'Lead Temperature Value'
                 ),
                 React.createElement('div', { className: 'relative h-64' },
+                    // Show loader until chart is ready
+                    React.createElement('div', {
+                        id: 'tempValueLoader',
+                        className: 'absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800',
+                        style: { zIndex: 10 }
+                    },
+                        React.createElement('div', { className: 'text-center' },
+                            // Animated logo loader
+                            React.createElement('div', {
+                                className: 'relative w-24 h-24 mx-auto mb-4',
+                                style: {
+                                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                                    animationDelay: '1s'
+                                }
+                            },
+                                React.createElement('img', {
+                                    src: 'images/logo.png',
+                                    alt: 'Loading...',
+                                    className: 'w-full h-full object-contain',
+                                    style: {
+                                        filter: 'drop-shadow(0 0 20px rgba(168, 85, 247, 0.5))',
+                                        animation: 'float 3s ease-in-out infinite',
+                                        animationDelay: '1s'
+                                    }
+                                })
+                            ),
+                            React.createElement('p', { 
+                                className: 'text-sm text-gray-500 dark:text-gray-400',
+                                style: {
+                                    animation: 'fadeInOut 2s ease-in-out infinite',
+                                    animationDelay: '1s'
+                                }
+                            }, 'Calculating values...')
+                        )
+                    ),
                     React.createElement('canvas', { 
                         id: 'tempValueChart',
                         className: 'w-full h-full'
@@ -410,6 +512,13 @@ window.updateChartsFromAPIData = function(apiData) {
         if (!canvas) {
             console.warn(`Canvas ${canvasId} not found`);
             return null;
+        }
+        
+        // Hide corresponding loader
+        const loaderId = canvasId.replace('Chart', 'Loader');
+        const loader = document.getElementById(loaderId);
+        if (loader) {
+            loader.style.display = 'none';
         }
         
         // Destroy existing chart

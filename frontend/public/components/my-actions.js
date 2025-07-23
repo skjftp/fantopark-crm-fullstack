@@ -308,9 +308,8 @@ window.renderMyActionsContent = () => {
     const searchQuery = myActionsFilters?.searchQuery || '';
 
     return React.createElement('div', { className: 'space-y-6' },
-        // Header
-        React.createElement('div', { className: 'flex justify-between items-center' },
-            React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 'My Actions'),
+        // Header with refresh button only
+        React.createElement('div', { className: 'flex justify-end items-center' },
             React.createElement('button', {
                 onClick: () => {
                     console.log('🔄 Manual refresh triggered');
