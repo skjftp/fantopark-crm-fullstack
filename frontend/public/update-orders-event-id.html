@@ -57,7 +57,10 @@
     </div>
 
     <script>
-        const API_BASE_URL = window.location.origin;
+        // API Configuration
+        const API_BASE_URL = (window.location.hostname === "localhost")
+            ? "http://localhost:8080/api"
+            : "https://fantopark-backend-150582227311.us-central1.run.app/api";
         
         // Check authentication more thoroughly
         function checkAuth() {
@@ -93,7 +96,7 @@
         }
 
         async function apiCall(endpoint, options = {}) {
-            const response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                 ...options,
                 headers: {
                     'Authorization': `Bearer ${authToken}`,
