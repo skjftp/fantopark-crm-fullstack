@@ -502,4 +502,136 @@ router.post('/update-finance-invoices', authenticateToken, async (req, res) => {
   }
 });
 
+// Bulk update event_id and event_date for all orders
+router.post('/bulk-update-event-ids', authenticateToken, async (req, res) => {
+  try {
+    // Check if user has permission (super_admin or finance_manager)
+    if (req.user.role !== 'super_admin' && req.user.role !== 'finance_manager') {
+      return res.status(403).json({ 
+        error: 'Only super admins and finance managers can perform bulk updates' 
+      });
+    }
+    
+    console.log('Starting bulk update of event IDs...');
+    
+    // Get all orders
+    const ordersSnapshot = await db.collection(collections.orders).get();
+    
+    // Get all events and create a map for quick lookup
+    const eventsSnapshot = await db.collection('crm_events').get();
+    const eventMap = new Map();
+    const duplicateEvents = new Map();
+    
+    eventsSnapshot.forEach(doc => {
+      const event = doc.data();
+      const eventName = event.event_name;
+      
+      if (eventMap.has(eventName)) {
+        // Track duplicates
+        if (!duplicateEvents.has(eventName)) {
+          duplicateEvents.set(eventName, [eventMap.get(eventName)]);
+        }
+        duplicateEvents.get(eventName).push({
+          id: doc.id,
+          start_date: event.start_date,
+          created_date: event.created_date
+        });
+      } else {
+        eventMap.set(eventName, {
+          id: doc.id,
+          start_date: event.start_date,
+          created_date: event.created_date
+        });
+      }
+    });
+    
+    console.log(`Found ${eventMap.size} unique event names in the system`);
+    if (duplicateEvents.size > 0) {
+      console.log(`Warning: Found ${duplicateEvents.size} event names with duplicates`);
+      duplicateEvents.forEach((events, name) => {
+        console.log(`  - "${name}" has ${events.length} entries`);
+      });
+    }
+    
+    const batch = db.batch();
+    let updateCount = 0;
+    let skipCount = 0;
+    let noMatchCount = 0;
+    const errors = [];
+    
+    // Process each order
+    ordersSnapshot.forEach(doc => {
+      const order = doc.data();
+      
+      // Skip if order already has event_id
+      if (order.event_id) {
+        skipCount++;
+        return;
+      }
+      
+      // Skip if no event_name
+      if (!order.event_name) {
+        noMatchCount++;
+        return;
+      }
+      
+      // Look up event by name
+      let eventData = eventMap.get(order.event_name);
+      
+      // Handle duplicates - use the most recent event
+      if (!eventData && duplicateEvents.has(order.event_name)) {
+        const duplicates = duplicateEvents.get(order.event_name);
+        // Sort by created_date descending and pick the most recent
+        duplicates.sort((a, b) => {
+          const dateA = new Date(a.created_date || '1900-01-01');
+          const dateB = new Date(b.created_date || '1900-01-01');
+          return dateB - dateA;
+        });
+        eventData = duplicates[0];
+        console.log(`Using most recent event for duplicate "${order.event_name}": ${eventData.id}`);
+      }
+      
+      if (eventData) {
+        // Update order with event_id and event_date
+        batch.update(doc.ref, {
+          event_id: eventData.id,
+          event_date: eventData.start_date || order.event_date,
+          event_id_updated_date: new Date().toISOString(),
+          event_id_updated_by: req.user.email
+        });
+        updateCount++;
+      } else {
+        noMatchCount++;
+        console.log(`No event found for order ${doc.id} with event_name: ${order.event_name}`);
+      }
+    });
+    
+    // Commit the batch update
+    if (updateCount > 0) {
+      await batch.commit();
+      console.log(`Bulk update completed: ${updateCount} orders updated`);
+    }
+    
+    res.json({
+      success: true,
+      totalProcessed: ordersSnapshot.size,
+      updated: updateCount,
+      skipped: skipCount,
+      noMatch: noMatchCount,
+      duplicateEventNames: duplicateEvents.size,
+      message: `Successfully updated ${updateCount} orders with event IDs`,
+      duplicates: duplicateEvents.size > 0 ? Array.from(duplicateEvents.entries()).map(([name, events]) => ({
+        eventName: name,
+        count: events.length,
+        note: 'Used most recent event for matching'
+      })) : undefined,
+      errors: errors.length > 0 ? errors : undefined
+    });
+    
+  } catch (error) {
+    console.error('Error in bulk update:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
