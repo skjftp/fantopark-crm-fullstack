@@ -1,6 +1,12 @@
 // ✅ FIXED: Edit Order Form - Removed force re-render patterns
 
 window.renderEditOrderForm = () => {
+  // Force initialize API_CONFIG if not already done
+  if (!window.API_CONFIG) {
+    window.API_CONFIG = {
+      API_URL: window.API_URL || 'https://fantopark-backend-150582227311.us-central1.run.app/api'
+    };
+  }
   // ✅ Check if form should be shown
   const showEditOrderForm = window.showEditOrderForm || window.appState?.showEditOrderForm;
   const currentOrderForEdit = window.currentOrderForEdit || window.appState?.currentOrderForEdit;
@@ -95,7 +101,11 @@ window.renderEditOrderForm = () => {
     console.log('🔄 Fetching inventory...');
     window.inventoryState.loading = true;
     
-    window.apiCall('/inventory').then(response => {
+    // Use direct promise to ensure we catch the result
+    const inventoryPromise = window.apiCall('/inventory');
+    
+    inventoryPromise.then(response => {
+      console.log('📦 Inventory API response:', response);
       const items = response.data || [];
       
       // Get unique event names from inventory
@@ -122,10 +132,17 @@ window.renderEditOrderForm = () => {
         items: window.inventoryState.items.slice(0, 5).map(i => i.event_name)
       });
       
-      // Re-render to show the loaded items
-      if (window.renderApp) {
-        window.renderApp();
-      }
+      // Force re-render multiple ways to ensure UI updates
+      setTimeout(() => {
+        if (window.renderApp) {
+          window.renderApp();
+        } else if (window.setShowEditOrderForm) {
+          // Toggle to force re-render
+          const current = window.showEditOrderForm;
+          window.setShowEditOrderForm(!current);
+          window.setShowEditOrderForm(current);
+        }
+      }, 50);
     }).catch(error => {
       console.error('Error fetching inventory:', error);
       window.inventoryState.loading = false;
@@ -194,9 +211,9 @@ window.renderEditOrderForm = () => {
         // Event Name - EDITABLE DROPDOWN
         React.createElement('div', { className: 'mb-4' },
           React.createElement('label', { className: 'block text-sm font-medium mb-2' }, 'Event'),
-          loadingInventory ? 
+          window.inventoryState.loading ? 
             React.createElement('div', { className: 'w-full px-3 py-2 border rounded-md bg-gray-50' }, 'Loading inventory...') :
-            inventoryItems.length === 0 ?
+            (!inventoryItems || inventoryItems.length === 0) ?
             React.createElement('div', { className: 'w-full px-3 py-2 border rounded-md bg-gray-50 text-gray-500' }, 'No inventory items available') :
             React.createElement('select', {
               value: currentEventName,
