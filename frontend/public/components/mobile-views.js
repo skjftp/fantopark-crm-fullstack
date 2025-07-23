@@ -416,22 +416,23 @@ window.MobileInventoryView = function() {
     // Search bar with filter toggle
     React.createElement('div', { className: 'mobile-search-bar' },
       React.createElement('div', { className: 'flex gap-2' },
-        React.createElement('input', {
-          type: 'text',
-          className: 'mobile-search-input flex-1',
-          placeholder: 'Search inventory...',
-          value: inventorySearchQuery || '',
-          onChange: (e) => state.setInventorySearchQuery(e.target.value),
-          style: {
-            paddingLeft: '16px',
-            paddingRight: inventorySearchQuery ? '40px' : '16px'
-          }
-        }),
-        inventorySearchQuery && React.createElement('button', {
-          onClick: () => state.setInventorySearchQuery(''),
-          className: 'absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700',
-          style: { right: '60px' }
-        }, '✕'),
+        React.createElement('div', { className: 'relative flex-1' },
+          React.createElement('input', {
+            type: 'text',
+            className: 'mobile-search-input w-full',
+            placeholder: 'Search inventory...',
+            value: inventorySearchQuery || '',
+            onChange: (e) => state.setInventorySearchQuery(e.target.value),
+            style: {
+              paddingLeft: '16px',
+              paddingRight: inventorySearchQuery ? '40px' : '16px'
+            }
+          }),
+          inventorySearchQuery && React.createElement('button', {
+            onClick: () => state.setInventorySearchQuery(''),
+            className: 'absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700'
+          }, '✕')
+        ),
         React.createElement('button', {
           onClick: () => setShowFilters(!showFilters),
           className: `px-3 py-2 rounded-lg ${showFilters ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-600'}`
@@ -1547,76 +1548,182 @@ window.MobileDeliveriesView = function() {
 // Mobile Financials View
 window.MobileFinancialsView = function() {
   const state = window.appState;
-  const { financialData, activeFinancialTab, financialsFilters } = state;
+  const { 
+    financialData = {
+      activeSales: [],
+      sales: [],
+      receivables: [],
+      payables: [],
+      expiringInventory: []
+    },
+    financialFilters = {
+      clientName: '',
+      assignedPerson: '',
+      dateFrom: '',
+      dateTo: '',
+      status: 'all',
+      expiringDays: 7
+    },
+    activeFinancialTab = 'activesales',
+    setActiveFinancialTab,
+    setFinancialFilters
+  } = state;
   
   const [showFilters, setShowFilters] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
   
-  // Get filter values
-  const filters = financialsFilters || {
-    dateRange: 'this_month',
-    stadium: 'all',
-    event: 'all',
-    type: 'all'
-  };
+  // Pagination state for mobile
+  const [currentPage, setCurrentPage] = React.useState({
+    activesales: 1,
+    sales: 1,
+    receivables: 1,
+    payables: 1,
+    expiring: 1
+  });
+  const itemsPerPage = 10;
   
   // Ensure financial data is loaded
   React.useEffect(() => {
-    if ((!financialData || !financialData.sales) && window.fetchFinancialData) {
-      window.fetchFinancialData();
-    }
-  }, []);
-  
-  // Calculate financial metrics
-  const calculateMetrics = () => {
-    if (!financialData) return {
-      totalSales: 0,
-      totalReceivables: 0,
-      totalPayables: 0,
-      totalMargin: 0
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        if (window.loadFinancialData) {
+          await window.loadFinancialData();
+        } else if (window.fetchFinancialData) {
+          await window.fetchFinancialData();
+        }
+        
+        // If expiring tab, ensure expiring inventory is loaded
+        if (activeFinancialTab === 'expiring' && window.getEnhancedExpiringInventory) {
+          const expiringData = window.getEnhancedExpiringInventory();
+          if (window.appState && window.appState.setFinancialData) {
+            window.appState.setFinancialData(prev => ({
+              ...prev,
+              expiringInventory: expiringData
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading financial data:', error);
+      } finally {
+        setLoading(false);
+      }
     };
     
-    return {
-      totalSales: financialData.totalSales || 0,
-      totalReceivables: financialData.totalReceivables || 0,
-      totalPayables: financialData.totalPayables || 0,
-      totalMargin: financialData.totalMargin || 0
-    };
+    loadData();
+  }, []);
+  
+  // Get current tab data
+  const getCurrentTabData = () => {
+    let currentData = [];
+    
+    if (activeFinancialTab === 'expiring' && window.getEnhancedExpiringInventory) {
+      currentData = window.getEnhancedExpiringInventory() || [];
+    } else {
+      currentData = financialData[activeFinancialTab] || [];
+    }
+    
+    // Apply filters
+    let filteredData = [...currentData];
+    
+    if (financialFilters.clientName) {
+      filteredData = filteredData.filter(item => 
+        (item.client_name || item.supplier_name || item.event_name || '').toLowerCase().includes(financialFilters.clientName.toLowerCase())
+      );
+    }
+    
+    if (financialFilters.assignedPerson && activeFinancialTab !== 'payables' && activeFinancialTab !== 'expiring') {
+      filteredData = filteredData.filter(item => 
+        (item.assigned_to || item.assigned_to_name || '').toLowerCase().includes(financialFilters.assignedPerson.toLowerCase())
+      );
+    }
+    
+    if (financialFilters.status !== 'all' && activeFinancialTab !== 'expiring') {
+      filteredData = filteredData.filter(item => item.status === financialFilters.status);
+    }
+    
+    // Date filters
+    if (financialFilters.dateFrom) {
+      filteredData = filteredData.filter(item => {
+        const itemDate = new Date(item.date || item.due_date || item.created_at || item.order_date || item.event_date);
+        return itemDate >= new Date(financialFilters.dateFrom);
+      });
+    }
+    
+    if (financialFilters.dateTo) {
+      filteredData = filteredData.filter(item => {
+        const itemDate = new Date(item.date || item.due_date || item.created_at || item.order_date || item.event_date);
+        return itemDate <= new Date(financialFilters.dateTo);
+      });
+    }
+    
+    return filteredData;
   };
   
-  const metrics = calculateMetrics();
-  const tabs = ['overview', 'sales', 'receivables', 'payables'];
-  const currentTab = activeFinancialTab || 'overview';
+  // Get financial metrics
+  const metrics = window.calculateEnhancedFinancialMetricsSync ? 
+    window.calculateEnhancedFinancialMetricsSync() : 
+    {
+      totalSales: 0,
+      totalActiveSales: 0,
+      totalPayables: 0,
+      totalReceivables: 0,
+      totalMargin: 0,
+      marginPercentage: 0
+    };
+  
+  const tabs = ['activesales', 'sales', 'receivables', 'payables', 'expiring'];
+  const tabLabels = {
+    'activesales': 'Active Sales',
+    'sales': 'Sales',
+    'receivables': 'Receivables',
+    'payables': 'Payables',
+    'expiring': 'Expiring'
+  };
+  
+  const currentTabData = getCurrentTabData();
+  
+  // Pagination logic
+  const getPaginatedData = () => {
+    const startIndex = (currentPage[activeFinancialTab] - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return currentTabData.slice(startIndex, endIndex);
+  };
+  
+  const totalPages = Math.ceil(currentTabData.length / itemsPerPage);
+  const paginatedData = getPaginatedData();
+  
+  // Reset page when tab changes
+  React.useEffect(() => {
+    setCurrentPage(prev => ({ ...prev, [activeFinancialTab]: 1 }));
+  }, [activeFinancialTab]);
+  
+  if (loading) {
+    return React.createElement(window.MobileLoadingState || 'div', null, 'Loading financial data...');
+  }
   
   return React.createElement('div', { className: 'mobile-content-wrapper' },
-    // Header with filter button
+    // Sticky header with stats
     React.createElement('div', { 
       className: 'sticky top-0 bg-white dark:bg-gray-900 z-10'
     },
-      // Filter button row
-      React.createElement('div', { 
-        className: 'flex justify-end p-2 border-b'
-      },
-        React.createElement('button', {
-          onClick: () => setShowFilters(!showFilters),
-          className: `px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 ${showFilters ? 'text-blue-600' : 'text-gray-600'}`
-        }, '⚙️ Filters')
-      ),
-      
-      // Expanded filters section
-      showFilters && React.createElement('div', { 
-        className: 'bg-gray-50 dark:bg-gray-800 p-4 space-y-3 border-b'
-      },
-        // Date range filter
-        React.createElement('select', {
-          value: filters.dateRange,
-          onChange: (e) => state.setFinancialsFilters?.({ ...filters, dateRange: e.target.value }),
-          className: 'w-full px-3 py-2 rounded-lg border bg-white dark:bg-gray-700'
-        },
-          React.createElement('option', { value: 'today' }, 'Today'),
-          React.createElement('option', { value: 'this_week' }, 'This Week'),
-          React.createElement('option', { value: 'this_month' }, 'This Month'),
-          React.createElement('option', { value: 'last_month' }, 'Last Month'),
-          React.createElement('option', { value: 'this_year' }, 'This Year')
+      // Financial Stats Summary - single line format
+      React.createElement('div', { className: 'p-3 border-b' },
+        React.createElement('div', { className: 'grid grid-cols-2 gap-2' },
+          [
+            { label: 'Active Sales', value: window.formatCurrency(metrics.totalActiveSales), color: 'text-blue-600' },
+            { label: 'Total Sales', value: window.formatCurrency(metrics.totalSales), color: 'text-green-600' },
+            { label: 'Receivables', value: window.formatCurrency(metrics.totalReceivables), color: 'text-yellow-600' },
+            { label: 'Payables', value: window.formatCurrency(metrics.totalPayables), color: 'text-red-600' }
+          ].map((stat, idx) => 
+            React.createElement('div', { 
+              key: idx,
+              className: 'bg-gray-50 dark:bg-gray-800 p-2 rounded flex items-center justify-between'
+            },
+              React.createElement('span', { className: 'text-xs text-gray-500' }, stat.label),
+              React.createElement('span', { className: `text-sm font-bold ${stat.color}` }, stat.value)
+            )
+          )
         )
       ),
       
@@ -1625,419 +1732,1318 @@ window.MobileFinancialsView = function() {
         tabs.map(tab => 
           React.createElement('button', {
             key: tab,
-            onClick: () => state.setActiveFinancialTab(tab),
-            className: `px-4 py-3 text-sm font-medium whitespace-nowrap ${
-              currentTab === tab 
+            onClick: () => setActiveFinancialTab(tab),
+            className: `px-3 py-2 text-xs font-medium whitespace-nowrap ${
+              activeFinancialTab === tab 
                 ? 'text-blue-600 border-b-2 border-blue-600' 
                 : 'text-gray-500'
             }`
-          }, tab.charAt(0).toUpperCase() + tab.slice(1))
+          }, tabLabels[tab])
+        )
+      ),
+      
+      // Filters section
+      React.createElement('div', { 
+        className: 'p-2 border-b flex items-center justify-between'
+      },
+        React.createElement('button', {
+          onClick: () => setShowFilters(!showFilters),
+          className: `px-3 py-1 text-xs rounded-lg bg-gray-100 dark:bg-gray-700 ${showFilters ? 'text-blue-600' : 'text-gray-600'}`
+        }, '⚙️ Filters'),
+        React.createElement('span', { className: 'text-xs text-gray-500' },
+          `Showing ${currentTabData.length} items`
+        )
+      ),
+      
+      // Expanded filters
+      showFilters && React.createElement('div', { 
+        className: 'bg-gray-50 dark:bg-gray-800 p-3 space-y-2 border-b'
+      },
+        // Client/Supplier Name
+        React.createElement('input', {
+          type: 'text',
+          placeholder: activeFinancialTab === 'payables' ? 'Search supplier...' : 'Search client...',
+          value: financialFilters.clientName,
+          onChange: (e) => setFinancialFilters({...financialFilters, clientName: e.target.value}),
+          className: 'w-full px-3 py-2 text-sm rounded border'
+        }),
+        
+        // Assigned Person
+        activeFinancialTab !== 'payables' && React.createElement('input', {
+          type: 'text',
+          placeholder: 'Search by assigned person...',
+          value: financialFilters.assignedPerson,
+          onChange: (e) => setFinancialFilters({...financialFilters, assignedPerson: e.target.value}),
+          className: 'w-full px-3 py-2 text-sm rounded border'
+        }),
+        
+        // Status filter
+        React.createElement('select', {
+          value: financialFilters.status,
+          onChange: (e) => setFinancialFilters({...financialFilters, status: e.target.value}),
+          className: 'w-full px-3 py-2 text-sm rounded border'
+        },
+          React.createElement('option', { value: 'all' }, 'All Status'),
+          React.createElement('option', { value: 'pending' }, 'Pending'),
+          React.createElement('option', { value: 'partial' }, 'Partial'),
+          React.createElement('option', { value: 'paid' }, 'Paid'),
+          React.createElement('option', { value: 'overdue' }, 'Overdue')
         )
       )
     ),
     
-    // Content based on tab
-    currentTab === 'overview' && React.createElement('div', { className: 'space-y-4' },
-      // Metrics cards
-      React.createElement('div', { className: 'grid grid-cols-2 gap-3' },
-        [
-          { label: 'Total Sales', value: metrics.totalSales, color: 'bg-green-500' },
-          { label: 'Receivables', value: metrics.totalReceivables, color: 'bg-yellow-500' },
-          { label: 'Payables', value: metrics.totalPayables, color: 'bg-red-500' },
-          { label: 'Margin', value: metrics.totalMargin, color: 'bg-blue-500' }
-        ].map((metric, index) => 
-          React.createElement('div', {
-            key: index,
-            className: 'mobile-card p-4'
-          },
-            React.createElement('div', { 
-              className: `text-xs text-gray-600 dark:text-gray-400 mb-2`
-            }, metric.label),
-            React.createElement('div', { 
-              className: 'text-lg font-bold text-gray-900 dark:text-white'
-            }, window.formatCurrency(metric.value))
-          )
-        )
+    // Content area with 3D cards
+    React.createElement('div', { className: 'p-4' },
+      currentTabData.length > 0 ?
+        React.createElement('div', { className: 'space-y-4 px-2' },
+          paginatedData.map((item, index) => {
+            // Different rendering based on tab
+            if (activeFinancialTab === 'activesales' || activeFinancialTab === 'sales') {
+              return React.createElement('div', {
+                key: item.id || index,
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                style: {
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                }
+              },
+                React.createElement('div', { className: 'flex justify-between items-start mb-2' },
+                  React.createElement('div', { className: 'flex-1' },
+                    React.createElement('div', { className: 'font-medium text-sm' }, 
+                      item.client_name || item.clientName || item.client || 'Unknown Client'
+                    ),
+                    React.createElement('div', { className: 'text-xs text-gray-500' }, 
+                      `Order: ${item.order_number || item.order_id || item.id}`
+                    ),
+                    item.event_name && React.createElement('div', { className: 'text-xs text-gray-500' }, 
+                      item.event_name
+                    )
+                  ),
+                  React.createElement('div', { className: 'text-right' },
+                    React.createElement('div', { 
+                      className: 'text-sm font-bold text-green-600'
+                    }, window.formatCurrency(item.amount || item.total_amount || 0)),
+                    React.createElement('div', { 
+                      className: `text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${
+                        item.status === 'completed' || item.status === 'paid' ? 
+                          'bg-green-100 text-green-800' : 
+                          'bg-yellow-100 text-yellow-800'
+                      }`
+                    }, item.status || 'pending')
+                  )
+                ),
+                React.createElement('div', { className: 'grid grid-cols-2 gap-2 text-xs' },
+                  React.createElement('div', null,
+                    React.createElement('span', { className: 'text-gray-500' }, 'Date: '),
+                    new Date(item.created_at || item.order_date || item.date).toLocaleDateString()
+                  ),
+                  item.assigned_to && React.createElement('div', null,
+                    React.createElement('span', { className: 'text-gray-500' }, 'Assigned: '),
+                    item.assigned_to_name || item.assigned_to
+                  )
+                )
+              );
+            } else if (activeFinancialTab === 'receivables') {
+              return React.createElement('div', {
+                key: item.id || index,
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                style: {
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                }
+              },
+                React.createElement('div', { className: 'flex justify-between items-start mb-2' },
+                  React.createElement('div', { className: 'flex-1' },
+                    React.createElement('div', { className: 'font-medium text-sm' }, 
+                      item.client_name || item.clientName || item.client || 'Unknown Client'
+                    ),
+                    React.createElement('div', { className: 'text-xs text-gray-500' }, 
+                      `Invoice: ${item.invoice_number || item.order_number || item.id}`
+                    ),
+                    React.createElement('div', { className: 'text-xs text-gray-500' }, 
+                      `Order: ${item.order_number || item.order_id || '-'}`
+                    )
+                  ),
+                  React.createElement('div', { className: 'text-right' },
+                    React.createElement('div', { 
+                      className: 'text-sm font-bold text-yellow-600'
+                    }, window.formatCurrency(item.balance_amount || item.amount || 0)),
+                    React.createElement('div', { 
+                      className: `text-xs ${
+                        new Date(item.due_date) < new Date() ? 'text-red-600 font-medium' : 'text-gray-500'
+                      }`
+                    }, new Date(item.due_date) < new Date() ? 'OVERDUE' : 'Due: ' + new Date(item.due_date).toLocaleDateString())
+                  )
+                ),
+                React.createElement('div', { className: 'grid grid-cols-2 gap-2 text-xs' },
+                  React.createElement('div', null,
+                    React.createElement('span', { className: 'text-gray-500' }, 'Total: '),
+                    window.formatCurrency(item.total_amount || 0)
+                  ),
+                  React.createElement('div', null,
+                    React.createElement('span', { className: 'text-gray-500' }, 'Paid: '),
+                    window.formatCurrency(item.paid_amount || 0)
+                  )
+                )
+              );
+            } else if (activeFinancialTab === 'payables') {
+              return React.createElement('div', {
+                key: item.id || index,
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                style: {
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                }
+              },
+                React.createElement('div', { className: 'flex justify-between items-start mb-2' },
+                  React.createElement('div', { className: 'flex-1' },
+                    React.createElement('div', { className: 'font-medium text-sm' }, 
+                      item.supplier_name || item.supplierName || item.supplier || item.event_name || 'Unknown Supplier'
+                    ),
+                    React.createElement('div', { className: 'text-xs text-gray-500' }, 
+                      `Invoice: ${item.invoice_number || item.id}`
+                    ),
+                    item.description && React.createElement('div', { className: 'text-xs text-gray-500' }, 
+                      item.description
+                    )
+                  ),
+                  React.createElement('div', { className: 'text-right' },
+                    React.createElement('div', { 
+                      className: 'text-sm font-bold text-red-600'
+                    }, window.formatCurrency(item.amount || 0)),
+                    React.createElement('div', { 
+                      className: `text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${
+                        item.status === 'paid' ? 'bg-green-100 text-green-800' : 
+                        item.status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`
+                    }, item.status || 'pending')
+                  )
+                ),
+                React.createElement('div', { className: 'text-xs text-gray-500' },
+                  'Due: ', new Date(item.due_date || item.date).toLocaleDateString()
+                )
+              );
+            } else if (activeFinancialTab === 'expiring') {
+              return React.createElement('div', {
+                key: item.id || index,
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                style: {
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                }
+              },
+                React.createElement('div', { className: 'flex justify-between items-start' },
+                  React.createElement('div', { className: 'flex-1' },
+                    React.createElement('div', { className: 'font-medium text-sm' }, 
+                      item.event_name || 'Unknown Event'
+                    ),
+                    React.createElement('div', { className: 'text-xs text-gray-500' }, 
+                      `${item.available_tickets || 0} tickets available`
+                    ),
+                    React.createElement('div', { className: 'text-xs text-gray-500' }, 
+                      'Expires: ', new Date(item.event_date).toLocaleDateString()
+                    )
+                  ),
+                  React.createElement('div', { className: 'text-right' },
+                    React.createElement('div', { 
+                      className: 'text-sm font-bold text-purple-600'
+                    }, window.formatCurrency(item.inventory_value || 0)),
+                    React.createElement('div', { className: 'text-xs text-gray-500' },
+                      `${item.days_until_expiry || 0} days left`
+                    )
+                  )
+                )
+              );
+            }
+          })
+        ) :
+        React.createElement('div', { 
+          className: 'text-center py-8 text-gray-500'
+        }, 
+          React.createElement('p', null, `No ${tabLabels[activeFinancialTab].toLowerCase()} data available`),
+          React.createElement('p', { className: 'text-sm mt-2' }, 'Try adjusting your filters or check back later')
+        ),
+      
+      // Pagination controls
+      currentTabData.length > itemsPerPage && React.createElement('div', { 
+        className: 'flex items-center justify-between mt-6 px-2'
+      },
+        React.createElement('button', {
+          onClick: () => setCurrentPage(prev => ({
+            ...prev,
+            [activeFinancialTab]: Math.max(1, prev[activeFinancialTab] - 1)
+          })),
+          disabled: currentPage[activeFinancialTab] === 1,
+          className: `px-3 py-1 text-sm rounded-lg ${
+            currentPage[activeFinancialTab] === 1 
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          }`
+        }, 'Previous'),
+        
+        React.createElement('span', { className: 'text-sm text-gray-600' },
+          `Page ${currentPage[activeFinancialTab]} of ${totalPages}`
+        ),
+        
+        React.createElement('button', {
+          onClick: () => setCurrentPage(prev => ({
+            ...prev,
+            [activeFinancialTab]: Math.min(totalPages, prev[activeFinancialTab] + 1)
+          })),
+          disabled: currentPage[activeFinancialTab] === totalPages,
+          className: `px-3 py-1 text-sm rounded-lg ${
+            currentPage[activeFinancialTab] === totalPages 
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          }`
+        }, 'Next')
       )
-    ),
-    
-    currentTab === 'sales' && React.createElement('div', { className: 'space-y-3' },
-      React.createElement('h3', { className: 'font-semibold mb-3' }, 'Sales'),
-      financialData?.sales && financialData.sales.length > 0 ?
-        financialData.sales.slice(0, 10).map((sale, index) => 
-          React.createElement('div', {
-            key: sale.id || index,
-            className: 'mobile-card p-3'
-          },
-            React.createElement('div', { className: 'flex justify-between items-start' },
-              React.createElement('div', { className: 'flex-1' },
-                React.createElement('div', { className: 'font-medium' }, 
-                  sale.client_name || 'Unknown Client'
-                ),
-                React.createElement('div', { className: 'text-xs text-gray-500' }, 
-                  `Order #${sale.order_id || sale.id}`
-                ),
-                sale.event_name && React.createElement('div', { className: 'text-xs text-gray-500' }, 
-                  sale.event_name
-                ),
-                React.createElement('div', { className: 'text-xs text-gray-500' }, 
-                  new Date(sale.created_at || sale.order_date).toLocaleDateString()
-                )
-              ),
-              React.createElement('div', { className: 'text-right' },
-                React.createElement('div', { 
-                  className: 'text-sm font-medium text-green-600'
-                }, window.formatCurrency(sale.total_amount || sale.amount)),
-                sale.status && React.createElement('div', { 
-                  className: `text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${
-                    sale.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                  }`
-                }, sale.status)
-              )
-            )
-          )
-        ) :
-        React.createElement('p', { className: 'text-center text-gray-500 py-8' }, 'No sales data')
-    ),
-    
-    currentTab === 'receivables' && React.createElement('div', { className: 'space-y-3' },
-      React.createElement('h3', { className: 'font-semibold mb-3' }, 'Receivables'),
-      financialData?.receivables && financialData.receivables.length > 0 ?
-        financialData.receivables.slice(0, 10).map((receivable, index) => 
-          React.createElement('div', {
-            key: receivable.id || index,
-            className: 'mobile-card p-3'
-          },
-            React.createElement('div', { className: 'flex justify-between items-start' },
-              React.createElement('div', { className: 'flex-1' },
-                React.createElement('div', { className: 'font-medium' }, 
-                  receivable.client_name || 'Unknown Client'
-                ),
-                React.createElement('div', { className: 'text-xs text-gray-500' }, 
-                  `Invoice #${receivable.invoice_number || receivable.id}`
-                ),
-                React.createElement('div', { className: 'text-xs text-gray-500' }, 
-                  `Due: ${new Date(receivable.due_date).toLocaleDateString()}`
-                )
-              ),
-              React.createElement('div', { className: 'text-right' },
-                React.createElement('div', { 
-                  className: 'text-sm font-medium text-yellow-600'
-                }, window.formatCurrency(receivable.amount || receivable.total_amount)),
-                React.createElement('div', { 
-                  className: `text-xs ${
-                    new Date(receivable.due_date) < new Date() ? 'text-red-600' : 'text-gray-500'
-                  }`
-                }, new Date(receivable.due_date) < new Date() ? 'Overdue' : 'Pending')
-              )
-            )
-          )
-        ) :
-        React.createElement('p', { className: 'text-center text-gray-500 py-8' }, 'No receivables')
-    ),
-    
-    currentTab === 'payables' && React.createElement('div', { className: 'space-y-3' },
-      React.createElement('h3', { className: 'font-semibold mb-3' }, 'Payables'),
-      financialData?.payables && financialData.payables.length > 0 ?
-        financialData.payables.slice(0, 10).map((payable, index) => 
-          React.createElement('div', {
-            key: payable.id || index,
-            className: 'mobile-card p-3'
-          },
-            React.createElement('div', { className: 'flex justify-between items-start' },
-              React.createElement('div', { className: 'flex-1' },
-                React.createElement('div', { className: 'font-medium' }, 
-                  payable.inventory_item || 'Unknown Item'
-                ),
-                React.createElement('div', { className: 'text-xs text-gray-500' }, 
-                  `Supplier: ${payable.supplier || 'Unknown'}`
-                ),
-                React.createElement('div', { className: 'text-xs text-gray-500' }, 
-                  `Due: ${new Date(payable.due_date).toLocaleDateString()}`
-                )
-              ),
-              React.createElement('div', { className: 'text-right' },
-                React.createElement('div', { 
-                  className: 'text-sm font-medium text-red-600'
-                }, window.formatCurrency(payable.amount || payable.total_amount)),
-                React.createElement('button', {
-                  onClick: () => window.handleMarkAsPaid && window.handleMarkAsPaid(payable),
-                  className: 'text-xs text-blue-600 mt-1'
-                }, 'Mark as Paid')
-              )
-            )
-          )
-        ) :
-        React.createElement('p', { className: 'text-center text-gray-500 py-8' }, 'No payables')
     )
   );
 };
 
 // Mobile Sales Performance View
 window.MobileSalesPerformanceView = function() {
-  const state = window.appState;
-  const { orders, users } = state;
+  const [salesData, setSalesData] = React.useState([]);
+  const [retailData, setRetailData] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [period, setPeriod] = React.useState('lifetime');
+  const [availablePeriods, setAvailablePeriods] = React.useState([]);
+  const [activeTab, setActiveTab] = React.useState('target'); // 'target' or 'retail'
+  const [dateRange, setDateRange] = React.useState({
+    start: new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  });
+  const [totalSystemLeads, setTotalSystemLeads] = React.useState(0);
   
-  // Calculate sales by user
-  const salesByUser = {};
-  if (orders && users) {
-    orders.forEach(order => {
-      if (order.assigned_to && (order.status === 'completed' || order.status === 'delivered')) {
-        if (!salesByUser[order.assigned_to]) {
-          salesByUser[order.assigned_to] = {
-            count: 0,
-            total: 0,
-            name: window.getUserDisplayName ? 
-              window.getUserDisplayName(order.assigned_to, users) : 
-              order.assigned_to
-          };
+  // Fetch periods
+  React.useEffect(() => {
+    const fetchPeriods = async () => {
+      try {
+        const token = localStorage.getItem('crm_auth_token');
+        const response = await fetch(`${window.API_CONFIG.API_URL}/sales-performance/periods`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          setAvailablePeriods(result.periods || []);
         }
-        salesByUser[order.assigned_to].count++;
-        salesByUser[order.assigned_to].total += parseFloat(order.total_amount) || 0;
+      } catch (error) {
+        console.error('Error fetching periods:', error);
       }
-    });
+    };
+    
+    fetchPeriods();
+  }, []);
+  
+  // Fetch sales performance data
+  const fetchSalesPerformance = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('crm_auth_token');
+      
+      // Fetch sales team data
+      const salesResponse = await fetch(`${window.API_CONFIG.API_URL}/sales-performance?period=${period}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (salesResponse.ok) {
+        const salesResult = await salesResponse.json();
+        setSalesData(salesResult.salesTeam || []);
+      }
+      
+      // Fetch retail tracker data
+      const retailResponse = await fetch(`${window.API_CONFIG.API_URL}/sales-performance/retail-tracker?start_date=${dateRange.start}&end_date=${dateRange.end}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (retailResponse.ok) {
+        const retailResult = await retailResponse.json();
+        setRetailData(retailResult.retailData || []);
+        setTotalSystemLeads(retailResult.totalSystemLeadsInDateRange || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching sales performance:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  React.useEffect(() => {
+    fetchSalesPerformance();
+  }, [period]);
+  
+  React.useEffect(() => {
+    if (!loading) {
+      fetchSalesPerformance();
+    }
+  }, [dateRange.start, dateRange.end]);
+  
+  if (loading) {
+    return React.createElement(window.MobileLoadingState);
   }
   
-  const topPerformers = Object.values(salesByUser)
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 10);
+  // Sort data alphabetically by name
+  const sortedSalesData = [...salesData].sort((a, b) => 
+    (a.name || '').localeCompare(b.name || '')
+  );
   
-  return React.createElement('div', { className: 'mobile-content-wrapper' },
-    React.createElement('h2', { 
-      className: 'text-lg font-semibold mb-4'
-    }, 'Sales Performance'),
+  const sortedRetailData = [...retailData].sort((a, b) => 
+    (a.salesMember || '').localeCompare(b.salesMember || '')
+  );
+  
+  // Calculate totals
+  const totals = salesData.reduce((acc, person) => ({
+    target: acc.target + (person.target || 0),
+    totalSales: acc.totalSales + (person.totalSales || 0),
+    actualizedSales: acc.actualizedSales + (person.actualizedSales || 0),
+    totalMargin: acc.totalMargin + (person.totalMargin || 0),
+    actualizedMargin: acc.actualizedMargin + (person.actualizedMargin || 0),
+    salesPersonPipeline: acc.salesPersonPipeline + (person.salesPersonPipeline || 0),
+    retailPipeline: acc.retailPipeline + (person.retailPipeline || 0),
+    corporatePipeline: acc.corporatePipeline + (person.corporatePipeline || 0),
+    overallPipeline: acc.overallPipeline + (person.overallPipeline || 0)
+  }), { 
+    target: 0, totalSales: 0, actualizedSales: 0, totalMargin: 0, 
+    actualizedMargin: 0, salesPersonPipeline: 0, retailPipeline: 0, 
+    corporatePipeline: 0, overallPipeline: 0 
+  });
+  
+  const calculateRetailMetrics = (row) => {
+    const qualTouchbasedDenominator = row.touchbased + row.qualified;
+    const qualTouchbased = qualTouchbasedDenominator > 0 ? 
+      (row.qualified / qualTouchbasedDenominator * 100).toFixed(0) : 0;
     
-    React.createElement('div', { className: 'space-y-3' },
-      topPerformers.length > 0 ?
-        topPerformers.map((performer, index) => 
-          React.createElement('div', {
-            key: index,
-            className: 'mobile-card p-4'
-          },
-            React.createElement('div', { className: 'flex items-center justify-between' },
-              React.createElement('div', null,
-                React.createElement('div', { className: 'font-medium' }, performer.name),
-                React.createElement('div', { className: 'text-sm text-gray-500' }, 
-                  `${performer.count} sales`
-                )
-              ),
-              React.createElement('div', { 
-                className: 'text-lg font-bold text-green-600'
-              }, window.formatCurrency(performer.total))
+    const convertedQualDenominator = row.converted + row.qualified;
+    const convertedQual = convertedQualDenominator > 0 ? 
+      (row.converted / convertedQualDenominator * 100).toFixed(0) : 0;
+    
+    return { qualTouchbased, convertedQual };
+  };
+
+  return React.createElement('div', { className: 'mobile-content-wrapper' },
+    // Header with tab switcher
+    React.createElement('div', { 
+      className: 'sticky top-0 bg-white dark:bg-gray-900 z-10 pb-3 border-b'
+    },
+      React.createElement('h2', { 
+        className: 'text-lg font-semibold mb-3'
+      }, 'Sales Performance'),
+      
+      // Tab switcher
+      React.createElement('div', { className: 'flex gap-2' },
+        React.createElement('button', {
+          onClick: () => setActiveTab('target'),
+          className: `flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === 'target' 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+          }`
+        }, 'Target vs Achievement'),
+        React.createElement('button', {
+          onClick: () => setActiveTab('retail'),
+          className: `flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === 'retail' 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+          }`
+        }, 'Retail Tracker')
+      ),
+      
+      // Period selector for target tab
+      activeTab === 'target' && availablePeriods.length > 0 && React.createElement('select', {
+        value: period,
+        onChange: (e) => setPeriod(e.target.value),
+        className: 'w-full mt-3 px-3 py-2 border rounded-lg text-sm'
+      },
+        availablePeriods.map(p => 
+          React.createElement('option', { key: p.value, value: p.value }, p.label)
+        )
+      )
+    ),
+    
+    // Content based on active tab
+    activeTab === 'target' ? 
+      // Target vs Achievement Tab
+      React.createElement('div', { className: 'space-y-4 mt-4' },
+        // Summary cards - single line format
+        React.createElement('div', { 
+          className: 'grid grid-cols-2 gap-3 mb-4'
+        },
+          React.createElement('div', { className: 'mobile-card p-3 flex items-center justify-between' },
+            React.createElement('span', { className: 'text-xs text-gray-500' },
+              'Actualized Sales (Crs)'
             ),
-            // Progress bar
-            React.createElement('div', { 
-              className: 'mt-2 bg-gray-200 rounded-full h-2'
-            },
-              React.createElement('div', {
-                className: 'bg-blue-500 h-2 rounded-full',
-                style: { 
-                  width: `${(performer.total / topPerformers[0].total) * 100}%` 
-                }
-              })
+            React.createElement('span', { className: 'text-xl font-bold text-blue-600' },
+              (totals.actualizedSales || 0).toFixed(2)
+            )
+          ),
+          React.createElement('div', { className: 'mobile-card p-3 flex items-center justify-between' },
+            React.createElement('span', { className: 'text-xs text-gray-500' },
+              'Overall Achievement'
+            ),
+            React.createElement('span', { className: 'text-xl font-bold text-green-600' },
+              totals.target > 0 ? 
+                Math.round(totals.actualizedSales / totals.target * 100) + '%' : '0%'
             )
           )
-        ) :
-        React.createElement('p', { 
-          className: 'text-center text-gray-500 py-8'
-        }, 'No sales data available')
-    )
+        ),
+        
+        // Individual sales person cards with 3D effect
+        React.createElement('div', { className: 'space-y-4 px-2' },
+          sortedSalesData.length > 0 ?
+            sortedSalesData.map(person => {
+              const achievement = person.target > 0 ? 
+                Math.round((person.actualizedSales || 0) / person.target * 100) : 0;
+              
+              return React.createElement('div', {
+                key: person.id,
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                style: {
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                }
+              },
+                // Header with name and achievement badge
+                React.createElement('div', { className: 'flex items-start justify-between mb-4' },
+                  React.createElement('div', null,
+                    React.createElement('h3', { 
+                      className: 'font-bold text-lg text-gray-900 dark:text-white'
+                    }, person.name),
+                    React.createElement('div', { 
+                      className: 'text-sm text-gray-600 dark:text-gray-400 mt-1'
+                    }, `Target: ${(person.target || 0).toFixed(2)} Crs`)
+                  ),
+                  React.createElement('div', { 
+                    className: `px-3 py-1 rounded-full text-xs font-bold ${
+                      achievement >= 100 ? 'bg-green-100 text-green-800' : 
+                      achievement >= 75 ? 'bg-yellow-100 text-yellow-800' : 
+                      'bg-red-100 text-red-800'
+                    }`
+                  }, `${achievement}%`)
+                ),
+                
+                // Achievement progress bar
+                React.createElement('div', { className: 'mb-4' },
+                  React.createElement('div', { 
+                    className: 'bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden'
+                  },
+                    React.createElement('div', {
+                      className: `h-full rounded-full transition-all duration-500 ${
+                        achievement >= 100 ? 'bg-gradient-to-r from-green-400 to-green-600' : 
+                        achievement >= 75 ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 
+                        'bg-gradient-to-r from-red-400 to-red-600'
+                      }`,
+                      style: { 
+                        width: `${Math.min(achievement, 100)}%` 
+                      }
+                    })
+                  )
+                ),
+                
+                // Achievement metrics grid
+                React.createElement('div', { className: 'grid grid-cols-2 gap-3 mb-4' },
+                  React.createElement('div', { 
+                    className: 'bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3'
+                  },
+                    React.createElement('div', { className: 'text-xs text-blue-600 dark:text-blue-400' }, 
+                      'Total Sales'
+                    ),
+                    React.createElement('div', { className: 'text-sm font-bold text-blue-900 dark:text-blue-100' }, 
+                      (person.totalSales || 0).toFixed(2) + ' Crs'
+                    )
+                  ),
+                  React.createElement('div', { 
+                    className: 'bg-green-50 dark:bg-green-900/20 rounded-lg p-3'
+                  },
+                    React.createElement('div', { className: 'text-xs text-green-600 dark:text-green-400' }, 
+                      'Actualized Sales'
+                    ),
+                    React.createElement('div', { className: 'text-sm font-bold text-green-900 dark:text-green-100' }, 
+                      (person.actualizedSales || 0).toFixed(2) + ' Crs'
+                    )
+                  ),
+                  React.createElement('div', { 
+                    className: 'bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3'
+                  },
+                    React.createElement('div', { className: 'text-xs text-purple-600 dark:text-purple-400' }, 
+                      'Total Margin'
+                    ),
+                    React.createElement('div', { className: 'text-sm font-bold text-purple-900 dark:text-purple-100' }, 
+                      (person.totalMargin || 0).toFixed(2) + ' Crs'
+                    )
+                  ),
+                  React.createElement('div', { 
+                    className: 'bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3'
+                  },
+                    React.createElement('div', { className: 'text-xs text-orange-600 dark:text-orange-400' }, 
+                      'Actualized Margin'
+                    ),
+                    React.createElement('div', { className: 'text-sm font-bold text-orange-900 dark:text-orange-100' }, 
+                      (person.actualizedMargin || 0).toFixed(2) + ' Crs'
+                    )
+                  )
+                ),
+                
+                // Pipeline section with gradient background
+                React.createElement('div', { 
+                  className: 'bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg p-3'
+                },
+                  React.createElement('div', { 
+                    className: 'text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider' 
+                  }, 'Pipeline (Crs)'),
+                  React.createElement('div', { className: 'grid grid-cols-2 gap-x-4 gap-y-2' },
+                    React.createElement('div', { className: 'flex justify-between items-center' },
+                      React.createElement('span', { className: 'text-xs text-gray-600 dark:text-gray-400' }, 
+                        'Sales Person:'
+                      ),
+                      React.createElement('span', { className: 'text-sm font-bold text-gray-900 dark:text-white' }, 
+                        (person.salesPersonPipeline || 0).toFixed(2)
+                      )
+                    ),
+                    React.createElement('div', { className: 'flex justify-between items-center' },
+                      React.createElement('span', { className: 'text-xs text-gray-600 dark:text-gray-400' }, 
+                        'Retail:'
+                      ),
+                      React.createElement('span', { className: 'text-sm font-bold text-gray-900 dark:text-white' }, 
+                        (person.retailPipeline || 0).toFixed(2)
+                      )
+                    ),
+                    React.createElement('div', { className: 'flex justify-between items-center' },
+                      React.createElement('span', { className: 'text-xs text-gray-600 dark:text-gray-400' }, 
+                        'Corporate:'
+                      ),
+                      React.createElement('span', { className: 'text-sm font-bold text-gray-900 dark:text-white' }, 
+                        (person.corporatePipeline || 0).toFixed(2)
+                      )
+                    ),
+                    React.createElement('div', { 
+                      className: 'flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600'
+                    },
+                      React.createElement('span', { className: 'text-xs font-bold text-gray-700 dark:text-gray-300' }, 
+                        'Overall:'
+                      ),
+                      React.createElement('span', { className: 'text-sm font-bold text-blue-600 dark:text-blue-400' }, 
+                        (person.overallPipeline || 0).toFixed(2)
+                      )
+                    )
+                  )
+                )
+              );
+            }) :
+            React.createElement('p', { 
+              className: 'text-center text-gray-500 py-8'
+            }, 'No sales team members found')
+        ),
+        
+        // Total row
+        sortedSalesData.length > 0 && React.createElement('div', { 
+          className: 'mobile-card p-4 bg-gray-100 dark:bg-gray-800'
+        },
+          React.createElement('h3', { 
+            className: 'font-bold text-gray-900 dark:text-white mb-3'
+          }, 'Total Sales'),
+          React.createElement('div', { className: 'grid grid-cols-2 gap-2 text-xs' },
+            React.createElement('div', null,
+              React.createElement('span', { className: 'text-gray-600 block' }, 'Target'),
+              React.createElement('span', { className: 'font-bold text-lg' }, 
+                totals.target.toFixed(2) + ' Crs'
+              )
+            ),
+            React.createElement('div', null,
+              React.createElement('span', { className: 'text-gray-600 block' }, 'Actualized Sales'),
+              React.createElement('span', { className: 'font-bold text-lg text-green-600' }, 
+                totals.actualizedSales.toFixed(2) + ' Crs'
+              )
+            )
+          )
+        )
+      ) :
+      // Retail Tracker Tab
+      React.createElement('div', { className: 'space-y-4 mt-4' },
+        // Date range selector
+        React.createElement('div', { className: 'flex gap-2 mb-4' },
+          React.createElement('input', {
+            type: 'date',
+            value: dateRange.start,
+            onChange: (e) => setDateRange({ ...dateRange, start: e.target.value }),
+            className: 'flex-1 px-3 py-2 border rounded-lg text-sm'
+          }),
+          React.createElement('input', {
+            type: 'date',
+            value: dateRange.end,
+            onChange: (e) => setDateRange({ ...dateRange, end: e.target.value }),
+            className: 'flex-1 px-3 py-2 border rounded-lg text-sm'
+          })
+        ),
+        
+        // Total System Leads
+        totalSystemLeads !== undefined && React.createElement('div', { 
+          className: 'mobile-card p-3 bg-blue-50 dark:bg-blue-900/20 border-blue-200'
+        },
+          React.createElement('div', { className: 'text-sm text-blue-800 dark:text-blue-200' },
+            React.createElement('span', { className: 'font-semibold' }, 'Total System Leads: '),
+            React.createElement('span', { className: 'text-lg font-bold' }, 
+              totalSystemLeads || 0
+            )
+          ),
+          React.createElement('div', { className: 'text-xs text-blue-600 dark:text-blue-300' }, 
+            'All leads in the system for selected date range'
+          )
+        ),
+        
+        // Retail team member cards with 3D effect
+        React.createElement('div', { className: 'space-y-4 px-2' },
+          sortedRetailData.length > 0 ?
+            sortedRetailData.map(member => {
+              const metrics = calculateRetailMetrics(member);
+              const conversionRate = member.assigned > 0 ? 
+                Math.round((member.converted || 0) / member.assigned * 100) : 0;
+              
+              return React.createElement('div', {
+                key: member.id,
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                style: {
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                }
+              },
+                // Header with name and conversion badge
+                React.createElement('div', { className: 'flex items-start justify-between mb-4' },
+                  React.createElement('h3', { 
+                    className: 'font-bold text-lg text-gray-900 dark:text-white'
+                  }, member.salesMember),
+                  React.createElement('div', { 
+                    className: `px-3 py-1 rounded-full text-xs font-bold ${
+                      conversionRate >= 20 ? 'bg-green-100 text-green-800' : 
+                      conversionRate >= 10 ? 'bg-yellow-100 text-yellow-800' : 
+                      'bg-red-100 text-red-800'
+                    }`
+                  }, `${conversionRate}% Conv`)
+                ),
+                
+                // Primary lead stats in colored boxes
+                React.createElement('div', { className: 'grid grid-cols-3 gap-3 mb-4' },
+                  React.createElement('div', { 
+                    className: 'bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center'
+                  },
+                    React.createElement('div', { className: 'text-2xl font-bold text-blue-600 dark:text-blue-400' }, 
+                      member.assigned || 0
+                    ),
+                    React.createElement('div', { className: 'text-xs text-blue-700 dark:text-blue-300' }, 
+                      'Assigned'
+                    )
+                  ),
+                  React.createElement('div', { 
+                    className: 'bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center'
+                  },
+                    React.createElement('div', { className: 'text-2xl font-bold text-green-600 dark:text-green-400' }, 
+                      member.touchbased || 0
+                    ),
+                    React.createElement('div', { className: 'text-xs text-green-700 dark:text-green-300' }, 
+                      'Touchbased'
+                    )
+                  ),
+                  React.createElement('div', { 
+                    className: 'bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 text-center'
+                  },
+                    React.createElement('div', { className: 'text-2xl font-bold text-purple-600 dark:text-purple-400' }, 
+                      member.qualified || 0
+                    ),
+                    React.createElement('div', { className: 'text-xs text-purple-700 dark:text-purple-300' }, 
+                      'Qualified'
+                    )
+                  )
+                ),
+                
+                // Conversion funnel visualization
+                React.createElement('div', { className: 'mb-4' },
+                  React.createElement('div', { className: 'text-xs font-bold text-gray-700 dark:text-gray-300 mb-2' }, 
+                    'CONVERSION FUNNEL'
+                  ),
+                  React.createElement('div', { className: 'space-y-2' },
+                    // Touchbased percentage bar
+                    React.createElement('div', null,
+                      React.createElement('div', { className: 'flex justify-between text-xs mb-1' },
+                        React.createElement('span', { className: 'text-gray-600 dark:text-gray-400' }, 
+                          'Touchbased Rate'
+                        ),
+                        React.createElement('span', { className: 'font-medium' }, 
+                          member.assigned > 0 ? 
+                            Math.round(member.touchbased / member.assigned * 100) + '%' : '0%'
+                        )
+                      ),
+                      React.createElement('div', { 
+                        className: 'bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden'
+                      },
+                        React.createElement('div', {
+                          className: 'h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full',
+                          style: { 
+                            width: member.assigned > 0 ? 
+                              `${Math.round(member.touchbased / member.assigned * 100)}%` : '0%'
+                          }
+                        })
+                      )
+                    ),
+                    // Qualified percentage bar
+                    React.createElement('div', null,
+                      React.createElement('div', { className: 'flex justify-between text-xs mb-1' },
+                        React.createElement('span', { className: 'text-gray-600 dark:text-gray-400' }, 
+                          'Qual/Touchbased'
+                        ),
+                        React.createElement('span', { className: 'font-medium text-purple-600' }, 
+                          metrics.qualTouchbased + '%'
+                        )
+                      ),
+                      React.createElement('div', { 
+                        className: 'bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden'
+                      },
+                        React.createElement('div', {
+                          className: 'h-full bg-gradient-to-r from-purple-400 to-purple-600 rounded-full',
+                          style: { 
+                            width: `${metrics.qualTouchbased}%`
+                          }
+                        })
+                      )
+                    ),
+                    // Converted percentage bar
+                    React.createElement('div', null,
+                      React.createElement('div', { className: 'flex justify-between text-xs mb-1' },
+                        React.createElement('span', { className: 'text-gray-600 dark:text-gray-400' }, 
+                          'Converted/Qual'
+                        ),
+                        React.createElement('span', { className: 'font-medium text-green-600' }, 
+                          metrics.convertedQual + '%'
+                        )
+                      ),
+                      React.createElement('div', { 
+                        className: 'bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden'
+                      },
+                        React.createElement('div', {
+                          className: 'h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full',
+                          style: { 
+                            width: `${metrics.convertedQual}%`
+                          }
+                        })
+                      )
+                    )
+                  )
+                ),
+                
+                // Additional metrics in gradient box
+                React.createElement('div', { 
+                  className: 'bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg p-3'
+                },
+                  React.createElement('div', { className: 'grid grid-cols-2 gap-x-4 gap-y-2' },
+                    React.createElement('div', { className: 'flex justify-between items-center' },
+                      React.createElement('span', { className: 'text-xs text-gray-600 dark:text-gray-400' }, 
+                        'Hot + Warm:'
+                      ),
+                      React.createElement('span', { className: 'text-sm font-bold text-orange-600 dark:text-orange-400' }, 
+                        member.hotWarm || 0
+                      )
+                    ),
+                    React.createElement('div', { className: 'flex justify-between items-center' },
+                      React.createElement('span', { className: 'text-xs text-gray-600 dark:text-gray-400' }, 
+                        'Converted:'
+                      ),
+                      React.createElement('span', { className: 'text-sm font-bold text-green-600 dark:text-green-400' }, 
+                        member.converted || 0
+                      )
+                    ),
+                    React.createElement('div', { className: 'flex justify-between items-center' },
+                      React.createElement('span', { className: 'text-xs text-gray-600 dark:text-gray-400' }, 
+                        'Not Touchbased:'
+                      ),
+                      React.createElement('span', { className: 'text-sm font-bold text-gray-700 dark:text-gray-300' }, 
+                        member.notTouchbased || 0
+                      )
+                    ),
+                    React.createElement('div', { className: 'flex justify-between items-center' },
+                      React.createElement('span', { className: 'text-xs text-gray-600 dark:text-gray-400' }, 
+                        'Success Rate:'
+                      ),
+                      React.createElement('span', { 
+                        className: `text-sm font-bold ${
+                          conversionRate >= 20 ? 'text-green-600' : 
+                          conversionRate >= 10 ? 'text-yellow-600' : 
+                          'text-red-600'
+                        }`
+                      }, 
+                        conversionRate + '%'
+                      )
+                    )
+                  )
+                )
+              );
+            }) :
+            React.createElement('p', { 
+              className: 'text-center text-gray-500 py-8'
+            }, 'No retail tracking data found')
+        )
+      )
   );
 };
 
 // Mobile Marketing Performance View
 window.MobileMarketingPerformanceView = function() {
-  const state = window.appState;
-  const { leads } = state;
-  const [performanceData, setPerformanceData] = React.useState({
-    overview: {
-      totalLeads: 0,
-      facebookLeads: 0,
-      instagramLeads: 0,
-      otherSourceLeads: 0,
-      conversionRate: 0,
-      avgCostPerLead: 0
+  const [state, setState] = React.useState({
+    loading: true,
+    data: null,
+    error: null,
+    filters: {
+      dateFrom: new Date(new Date().setDate(new Date().getDate() - 14)).toISOString().split('T')[0],
+      dateTo: new Date().toISOString().split('T')[0],
+      event: 'all',
+      source: 'all',
+      sources: [],
+      adSet: 'all'
     },
-    sourceBreakdown: []
+    activeView: 'metrics', // 'metrics' or 'chart'
+    showFilters: false
   });
   
-  // Calculate marketing performance metrics
-  React.useEffect(() => {
-    if (!leads || leads.length === 0) return;
-    
-    const sourceStats = {};
-    let totalLeads = leads.length;
-    let convertedLeads = 0;
-    
-    leads.forEach(lead => {
-      const source = lead.source || lead.lead_source || 'Unknown';
+  // Fetch marketing data from backend
+  const fetchMarketingData = async (filters) => {
+    try {
+      setState(prev => ({ ...prev, loading: true, error: null }));
       
-      if (!sourceStats[source]) {
-        sourceStats[source] = {
-          name: source,
-          count: 0,
-          converted: 0,
-          potential_value: 0
-        };
+      const queryParams = new URLSearchParams({
+        date_from: filters.dateFrom,
+        date_to: filters.dateTo
+      });
+      
+      if (filters.event !== 'all') queryParams.append('event', filters.event);
+      
+      // Handle multi-select sources
+      if (filters.sources && filters.sources.length > 0) {
+        queryParams.append('sources', filters.sources.join(','));
+      } else if (filters.source !== 'all') {
+        queryParams.append('source', filters.source);
       }
       
-      sourceStats[source].count++;
-      sourceStats[source].potential_value += parseFloat(lead.potential_value) || 0;
+      if (filters.adSet !== 'all') queryParams.append('ad_set', filters.adSet);
       
-      if (lead.status === 'converted' || lead.status === 'qualified') {
-        sourceStats[source].converted++;
-        convertedLeads++;
+      const response = await window.apiCall(`/marketing/performance?${queryParams}`);
+      
+      if (response.success) {
+        setState(prev => ({ 
+          ...prev, 
+          data: response.data, 
+          loading: false 
+        }));
+      } else {
+        throw new Error(response.message || 'Failed to fetch data');
       }
-    });
-    
-    const sourceBreakdown = Object.values(sourceStats)
-      .sort((a, b) => b.count - a.count)
-      .map(source => ({
-        ...source,
-        conversionRate: source.count > 0 ? ((source.converted / source.count) * 100).toFixed(1) : '0.0',
-        percentage: ((source.count / totalLeads) * 100).toFixed(1)
+    } catch (error) {
+      console.error('Error fetching marketing data:', error);
+      setState(prev => ({ 
+        ...prev, 
+        error: error.message, 
+        loading: false 
       }));
-    
-    setPerformanceData({
-      overview: {
-        totalLeads,
-        facebookLeads: sourceStats['Facebook']?.count || 0,
-        instagramLeads: sourceStats['Instagram']?.count || 0,
-        otherSourceLeads: totalLeads - (sourceStats['Facebook']?.count || 0) - (sourceStats['Instagram']?.count || 0),
-        conversionRate: totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(1) : '0.0',
-        avgCostPerLead: 0 // This would need to be calculated from actual ad spend data
-      },
-      sourceBreakdown
+    }
+  };
+  
+  // Initial fetch
+  React.useEffect(() => {
+    fetchMarketingData(state.filters);
+  }, []);
+  
+  if (state.loading) {
+    return React.createElement(window.MobileLoadingState);
+  }
+  
+  if (state.error) {
+    return React.createElement(window.MobileErrorState, {
+      error: state.error,
+      onRetry: () => fetchMarketingData(state.filters)
     });
-  }, [leads]);
+  }
+  
+  const data = state.data || {};
+  const marketingData = data.marketingData || [];
+  const totals = data.totals || {};
   
   return React.createElement('div', { className: 'mobile-content-wrapper' },
-    // Performance Overview Cards
+    // Header with date filter
     React.createElement('div', { 
-      className: 'grid grid-cols-2 gap-3 mb-6'
+      className: 'sticky top-0 bg-white dark:bg-gray-900 z-10 border-b'
     },
-      // Total Leads
-      React.createElement('div', { className: 'mobile-card p-3' },
-        React.createElement('div', { className: 'text-2xl font-bold text-blue-600' },
-          performanceData.overview.totalLeads
+      React.createElement('div', { className: 'p-4' },
+        React.createElement('div', { className: 'flex items-center justify-between mb-3' },
+          React.createElement('h2', { 
+            className: 'text-lg font-semibold'
+          }, 'Marketing Performance'),
+          React.createElement('button', {
+            onClick: () => setState(prev => ({ ...prev, showFilters: !prev.showFilters })),
+            className: 'text-blue-600 text-sm'
+          }, state.showFilters ? 'Hide Filters' : 'Show Filters')
         ),
-        React.createElement('div', { className: 'text-xs text-gray-500' },
-          'Total Leads'
+        
+        // Date range filters (always visible)
+        React.createElement('div', { className: 'flex gap-2' },
+          React.createElement('input', {
+            type: 'date',
+            value: state.filters.dateFrom,
+            onChange: (e) => {
+              const newFilters = { ...state.filters, dateFrom: e.target.value };
+              setState(prev => ({ ...prev, filters: newFilters }));
+              fetchMarketingData(newFilters);
+            },
+            className: 'px-3 py-1 text-sm rounded border flex-1'
+          }),
+          React.createElement('input', {
+            type: 'date',
+            value: state.filters.dateTo,
+            onChange: (e) => {
+              const newFilters = { ...state.filters, dateTo: e.target.value };
+              setState(prev => ({ ...prev, filters: newFilters }));
+              fetchMarketingData(newFilters);
+            },
+            className: 'px-3 py-1 text-sm rounded border flex-1'
+          })
         )
       ),
       
-      // Conversion Rate
-      React.createElement('div', { className: 'mobile-card p-3' },
-        React.createElement('div', { className: 'text-2xl font-bold text-green-600' },
-          performanceData.overview.conversionRate + '%'
-        ),
-        React.createElement('div', { className: 'text-xs text-gray-500' },
-          'Conversion Rate'
-        )
-      ),
-      
-      // Facebook Leads
-      React.createElement('div', { className: 'mobile-card p-3' },
-        React.createElement('div', { className: 'text-2xl font-bold text-blue-500' },
-          performanceData.overview.facebookLeads
-        ),
-        React.createElement('div', { className: 'text-xs text-gray-500' },
-          'Facebook Leads'
-        )
-      ),
-      
-      // Instagram Leads
-      React.createElement('div', { className: 'mobile-card p-3' },
-        React.createElement('div', { className: 'text-2xl font-bold text-purple-500' },
-          performanceData.overview.instagramLeads
-        ),
-        React.createElement('div', { className: 'text-xs text-gray-500' },
-          'Instagram Leads'
+      // Additional filters (collapsible)
+      state.showFilters && React.createElement('div', { 
+        className: 'p-4 bg-gray-50 dark:bg-gray-800 border-t'
+      },
+        React.createElement('div', { className: 'space-y-2' },
+          // Event filter
+          React.createElement('select', {
+            value: state.filters.event,
+            onChange: (e) => {
+              const newFilters = { ...state.filters, event: e.target.value };
+              setState(prev => ({ ...prev, filters: newFilters }));
+              fetchMarketingData(newFilters);
+            },
+            className: 'w-full px-3 py-2 text-sm rounded border'
+          },
+            React.createElement('option', { value: 'all' }, 'All Events'),
+            data.events && data.events.map(event => 
+              React.createElement('option', { key: event, value: event }, event)
+            )
+          ),
+          
+          // Source filter
+          React.createElement('select', {
+            value: state.filters.source,
+            onChange: (e) => {
+              const newFilters = { ...state.filters, source: e.target.value, sources: [] };
+              setState(prev => ({ ...prev, filters: newFilters }));
+              fetchMarketingData(newFilters);
+            },
+            className: 'w-full px-3 py-2 text-sm rounded border'
+          },
+            React.createElement('option', { value: 'all' }, 'All Sources'),
+            data.sources && data.sources.map(source => 
+              React.createElement('option', { key: source, value: source }, source)
+            )
+          )
         )
       )
     ),
     
-    // Source Breakdown
-    React.createElement('div', { className: 'mb-6' },
+    // Summary Stats - single line format
+    React.createElement('div', { 
+      className: 'grid grid-cols-2 gap-3 p-4'
+    },
+      React.createElement('div', { className: 'mobile-card p-3 flex items-center justify-between' },
+        React.createElement('span', { className: 'text-xs text-gray-500' },
+          'Total Leads'
+        ),
+        React.createElement('span', { className: 'text-xl font-bold text-blue-600' },
+          totals.totalLeads || 0
+        )
+      ),
+      React.createElement('div', { className: 'mobile-card p-3 flex items-center justify-between' },
+        React.createElement('span', { className: 'text-xs text-gray-500' },
+          'Qualified'
+        ),
+        React.createElement('span', { className: 'text-xl font-bold text-green-600' },
+          totals.qualified || 0
+        )
+      ),
+      React.createElement('div', { className: 'mobile-card p-3 flex items-center justify-between' },
+        React.createElement('span', { className: 'text-xs text-gray-500' },
+          'Converted'
+        ),
+        React.createElement('span', { className: 'text-xl font-bold text-purple-600' },
+          totals.converted || 0
+        )
+      ),
+      React.createElement('div', { className: 'mobile-card p-3 flex items-center justify-between' },
+        React.createElement('span', { className: 'text-xs text-gray-500' },
+          'Avg CPL'
+        ),
+        React.createElement('span', { className: 'text-xl font-bold text-red-600' },
+          totals.totalCPL ? `₹${parseFloat(totals.totalCPL).toFixed(0)}` : '₹0'
+        )
+      )
+    ),
+    
+    // Marketing Metrics
+    React.createElement('div', { className: 'p-4' },
       React.createElement('h3', { 
         className: 'text-lg font-semibold mb-3 text-gray-900 dark:text-white'
-      }, 'Lead Sources'),
+      }, 'Marketing Metrics'),
       
-      React.createElement('div', { className: 'space-y-3' },
-        performanceData.sourceBreakdown.length > 0 ?
-          performanceData.sourceBreakdown.map((source, index) => 
-            React.createElement('div', {
-              key: source.name,
-              className: 'mobile-card p-4'
-            },
-              React.createElement('div', { className: 'flex items-start justify-between mb-2' },
-                React.createElement('div', { className: 'flex-1' },
-                  React.createElement('h4', { 
-                    className: 'font-medium text-gray-900 dark:text-white'
-                  }, source.name),
-                  React.createElement('div', { className: 'text-sm text-gray-500 dark:text-gray-400' },
-                    `${source.count} leads (${source.percentage}%)`
+      React.createElement('div', { className: 'space-y-4 px-2' },
+        marketingData.length > 0 ?
+          (() => {
+            // Sort data to put Instagram and Facebook first
+            const sortedData = [...marketingData].sort((a, b) => {
+              const aName = (a.name || '').toLowerCase();
+              const bName = (b.name || '').toLowerCase();
+              
+              // Instagram first
+              if (aName.includes('instagram')) return -1;
+              if (bName.includes('instagram')) return 1;
+              
+              // Facebook second
+              if (aName.includes('facebook')) return -1;
+              if (bName.includes('facebook')) return 1;
+              
+              // Rest alphabetically
+              return aName.localeCompare(bName);
+            });
+            
+            return sortedData.map((row, index) => {
+              const isInstagram = (row.name || '').toLowerCase().includes('instagram');
+              const isFacebook = (row.name || '').toLowerCase().includes('facebook');
+              const qualifiedRate = row.totalLeads > 0 ? 
+                Math.round((row.qualified || 0) / row.totalLeads * 100) : 0;
+              
+              return React.createElement('div', {
+                key: `${row.name}-${index}`,
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                style: {
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                }
+              },
+                // Header with source name and performance badge
+                React.createElement('div', { className: 'flex items-start justify-between mb-4' },
+                  React.createElement('div', null,
+                    React.createElement('h3', { 
+                      className: 'font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2'
+                    }, 
+                      isInstagram && React.createElement('span', { className: 'text-purple-600' }, '📷'),
+                      isFacebook && React.createElement('span', { className: 'text-blue-600' }, '👤'),
+                      row.name
+                    ),
+                    row.impressions > 0 && React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400 mt-1' },
+                      window.formatIndianNumber ? window.formatIndianNumber(row.impressions) : row.impressions.toLocaleString(),
+                      ' impressions'
+                    )
+                  ),
+                  React.createElement('div', { 
+                    className: `px-3 py-1 rounded-full text-xs font-bold ${
+                      qualifiedRate >= 30 ? 'bg-green-100 text-green-800' : 
+                      qualifiedRate >= 15 ? 'bg-yellow-100 text-yellow-800' : 
+                      'bg-red-100 text-red-800'
+                    }`
+                  }, `${qualifiedRate}% Qual`)
+                ),
+                
+                // Total leads with visual indicator
+                React.createElement('div', { className: 'mb-4' },
+                  React.createElement('div', { 
+                    className: 'bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-3 text-center'
+                  },
+                    React.createElement('div', { className: 'text-3xl font-bold text-blue-600 dark:text-blue-400' }, 
+                      row.totalLeads || 0
+                    ),
+                    React.createElement('div', { className: 'text-xs text-blue-700 dark:text-blue-300' }, 
+                      'Total Leads'
+                    )
                   )
                 ),
-                React.createElement('div', { className: 'text-right' },
+                
+                // Key metrics in colored boxes
+                React.createElement('div', { className: 'grid grid-cols-3 gap-3 mb-4' },
                   React.createElement('div', { 
-                    className: 'text-sm font-medium text-green-600'
-                  }, `${source.conversionRate}%`),
-                  React.createElement('div', { className: 'text-xs text-gray-500' },
-                    'conversion'
+                    className: 'bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center'
+                  },
+                    React.createElement('div', { className: 'text-lg font-bold text-green-600 dark:text-green-400' }, 
+                      row.cpl > 0 ? `₹${parseFloat(row.cpl).toFixed(0)}` : '-'
+                    ),
+                    React.createElement('div', { className: 'text-xs text-green-700 dark:text-green-300' }, 'CPL')
+                  ),
+                  React.createElement('div', { 
+                    className: 'bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 text-center'
+                  },
+                    React.createElement('div', { className: 'text-lg font-bold text-purple-600 dark:text-purple-400' }, 
+                      row.ctr > 0 ? `${row.ctr}%` : '-'
+                    ),
+                    React.createElement('div', { className: 'text-xs text-purple-700 dark:text-purple-300' }, 'CTR')
+                  ),
+                  React.createElement('div', { 
+                    className: 'bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 text-center'
+                  },
+                    React.createElement('div', { className: 'text-lg font-bold text-orange-600 dark:text-orange-400' }, 
+                      row.cpm > 0 ? `₹${parseFloat(row.cpm).toFixed(0)}` : '-'
+                    ),
+                    React.createElement('div', { className: 'text-xs text-orange-700 dark:text-orange-300' }, 'CPM')
+                  )
+                ),
+                
+                // Lead funnel visualization
+                React.createElement('div', { className: 'mb-4' },
+                  React.createElement('div', { className: 'text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider' }, 
+                    'Lead Funnel'
+                  ),
+                  React.createElement('div', { className: 'space-y-2' },
+                    // Touchbased bar
+                    React.createElement('div', null,
+                      React.createElement('div', { className: 'flex justify-between text-xs mb-1' },
+                        React.createElement('span', { className: 'text-gray-600 dark:text-gray-400' }, 
+                          'Touch Based'
+                        ),
+                        React.createElement('span', { className: 'font-medium' }, 
+                          `${row.touchBased || 0} (${row.totalLeads > 0 ? 
+                            Math.round(row.touchBased / row.totalLeads * 100) : 0}%)`
+                        )
+                      ),
+                      React.createElement('div', { 
+                        className: 'bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden'
+                      },
+                        React.createElement('div', {
+                          className: 'h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full',
+                          style: { 
+                            width: row.totalLeads > 0 ? 
+                              `${Math.round(row.touchBased / row.totalLeads * 100)}%` : '0%'
+                          }
+                        })
+                      )
+                    ),
+                    // Qualified bar
+                    React.createElement('div', null,
+                      React.createElement('div', { className: 'flex justify-between text-xs mb-1' },
+                        React.createElement('span', { className: 'text-gray-600 dark:text-gray-400' }, 
+                          'Qualified'
+                        ),
+                        React.createElement('span', { className: 'font-medium text-green-600' }, 
+                          `${row.qualified || 0} (${row.qualifiedPercent || 0}%)`
+                        )
+                      ),
+                      React.createElement('div', { 
+                        className: 'bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden'
+                      },
+                        React.createElement('div', {
+                          className: 'h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full',
+                          style: { 
+                            width: `${row.qualifiedPercent || 0}%`
+                          }
+                        })
+                      )
+                    ),
+                    // Converted bar
+                    React.createElement('div', null,
+                      React.createElement('div', { className: 'flex justify-between text-xs mb-1' },
+                        React.createElement('span', { className: 'text-gray-600 dark:text-gray-400' }, 
+                          'Converted'
+                        ),
+                        React.createElement('span', { className: 'font-medium text-blue-600' }, 
+                          `${row.converted || 0} (${row.convertedPercent || 0}%)`
+                        )
+                      ),
+                      React.createElement('div', { 
+                        className: 'bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden'
+                      },
+                        React.createElement('div', {
+                          className: 'h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full',
+                          style: { 
+                            width: `${row.convertedPercent || 0}%`
+                          }
+                        })
+                      )
+                    )
+                  )
+                ),
+                
+                // Additional metrics in gradient box
+                React.createElement('div', { 
+                  className: 'bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg p-3'
+                },
+                  React.createElement('div', { className: 'grid grid-cols-2 gap-x-4 gap-y-2' },
+                    React.createElement('div', { className: 'flex justify-between items-center' },
+                      React.createElement('span', { className: 'text-xs text-gray-600 dark:text-gray-400' }, 
+                        'Not Touch Based:'
+                      ),
+                      React.createElement('span', { className: 'text-sm font-bold text-gray-700 dark:text-gray-300' }, 
+                        row.notTouchBased || 0
+                      )
+                    ),
+                    React.createElement('div', { className: 'flex justify-between items-center' },
+                      React.createElement('span', { className: 'text-xs text-gray-600 dark:text-gray-400' }, 
+                        'Junk:'
+                      ),
+                      React.createElement('span', { className: 'text-sm font-bold text-red-600 dark:text-red-400' }, 
+                        `${row.junk || 0} (${row.junkPercent || 0}%)`
+                      )
+                    ),
+                    React.createElement('div', { className: 'flex justify-between items-center' },
+                      React.createElement('span', { className: 'text-xs text-gray-600 dark:text-gray-400' }, 
+                        'Dropped:'
+                      ),
+                      React.createElement('span', { className: 'text-sm font-bold text-orange-600 dark:text-orange-400' }, 
+                        row.dropped || 0
+                      )
+                    ),
+                    React.createElement('div', { className: 'flex justify-between items-center' },
+                      React.createElement('span', { className: 'text-xs text-gray-600 dark:text-gray-400' }, 
+                        'Hot + Warm:'
+                      ),
+                      React.createElement('span', { className: 'text-sm font-bold text-yellow-600 dark:text-yellow-400' }, 
+                        row.hotWarm || 0
+                      )
+                    )
                   )
                 )
-              ),
-              
-              // Progress bar for lead count
-              React.createElement('div', { 
-                className: 'mt-3 bg-gray-200 dark:bg-gray-700 rounded-full h-2'
-              },
-                React.createElement('div', {
-                  className: `bg-gradient-to-r ${
-                    source.name.toLowerCase().includes('facebook') ? 'from-blue-400 to-blue-600' :
-                    source.name.toLowerCase().includes('instagram') ? 'from-purple-400 to-purple-600' :
-                    'from-gray-400 to-gray-600'
-                  } h-2 rounded-full transition-all duration-300`,
-                  style: { 
-                    width: `${Math.max(5, parseFloat(source.percentage))}%`
-                  }
-                })
-              ),
-              
-              // Potential value
-              source.potential_value > 0 && React.createElement('div', { 
-                className: 'mt-2 text-xs text-gray-600 dark:text-gray-400'
-              },
-                `Potential Value: ₹${source.potential_value.toLocaleString('en-IN')}`
-              )
-            )
-          ) :
+              );
+            });
+          })() :
           React.createElement('div', { 
             className: 'text-center py-8 text-gray-500'
           }, 
             React.createElement('div', { className: 'text-4xl mb-2' }, '📊'),
             React.createElement('p', null, 'No marketing data available'),
-            React.createElement('p', { className: 'text-sm' }, 'Lead sources will appear here when data is available')
+            React.createElement('p', { className: 'text-sm' }, 'Try adjusting your filters')
           )
-      )
-    ),
-    
-    // Quick Actions
-    React.createElement('div', { className: 'grid grid-cols-1 gap-3' },
-      React.createElement('button', {
-        className: 'mobile-button mobile-button-primary',
-        onClick: () => {
-          if (window.refreshMarketingData) {
-            window.refreshMarketingData();
-          }
-        }
-      }, '🔄 Refresh Data'),
+      ),
       
-      React.createElement('button', {
-        className: 'mobile-button mobile-button-secondary', 
-        onClick: () => state.setActiveTab('leads')
-      }, '📋 View All Leads')
+      // Total summary card
+      totals && totals.totalLeads > 0 && React.createElement('div', { 
+        className: 'mobile-card p-4 mt-4 bg-gray-100 dark:bg-gray-800'
+      },
+        React.createElement('h4', { 
+          className: 'font-bold text-gray-900 dark:text-white mb-3'
+        }, 'TOTAL'),
+        React.createElement('div', { className: 'grid grid-cols-2 gap-2 text-xs' },
+          React.createElement('div', null,
+            React.createElement('span', { className: 'text-gray-600 block' }, 'Total Leads'),
+            React.createElement('span', { className: 'font-bold text-lg' }, 
+              totals.totalLeads || 0
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('span', { className: 'text-gray-600 block' }, 'Qualified'),
+            React.createElement('span', { className: 'font-bold text-lg text-green-600' }, 
+              `${totals.qualified || 0} (${totals.totalQualifiedPercent || 0}%)`
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('span', { className: 'text-gray-600 block' }, 'Converted'),
+            React.createElement('span', { className: 'font-bold text-lg text-blue-600' }, 
+              `${totals.converted || 0} (${totals.totalConvertedPercent || 0}%)`
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('span', { className: 'text-gray-600 block' }, 'Avg CPL'),
+            React.createElement('span', { className: 'font-bold text-lg' }, 
+              totals.totalCPL ? `₹${parseFloat(totals.totalCPL).toFixed(0)}` : '₹0'
+            )
+          )
+        )
+      )
     )
   );
 };

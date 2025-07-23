@@ -23,15 +23,15 @@ window.renderOrderDetailModal = () => {
   console.log('✅ Rendering EXACT PRODUCTION order detail modal for:', currentOrderDetail.order_number || currentOrderDetail.id);
 
   return React.createElement('div', { 
-    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
+    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 md:p-0',
     onClick: (e) => e.target === e.currentTarget && setShowOrderDetail(false)
   },
     React.createElement('div', { 
-      className: 'bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl' 
+      className: 'bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl mx-auto' 
     },
       // Header with X button
-      React.createElement('div', { className: 'flex justify-between items-center p-6 border-b border-gray-200' },
-        React.createElement('h2', { className: 'text-xl font-semibold text-gray-900' }, 
+      React.createElement('div', { className: 'flex justify-between items-center p-4 md:p-6 border-b border-gray-200' },
+        React.createElement('h2', { className: 'text-lg md:text-xl font-semibold text-gray-900' }, 
           'Order Details: ' + (currentOrderDetail.order_number || currentOrderDetail.id)
         ),
         React.createElement('button', {
@@ -41,7 +41,7 @@ window.renderOrderDetailModal = () => {
       ),
 
       // Main Content
-      React.createElement('div', { className: 'p-6 space-y-6' },
+      React.createElement('div', { className: 'p-4 md:p-6 space-y-4 md:space-y-6' },
         
         // 👤 Client Information Section
         React.createElement('div', null,
@@ -300,12 +300,12 @@ window.renderOrderDetailModal = () => {
             ),
 
         // Action Buttons Section
-        React.createElement('div', { className: 'flex justify-center space-x-4 pt-6 border-t border-gray-200' },
+        React.createElement('div', { className: 'flex flex-col sm:flex-row justify-center gap-3 sm:space-x-4 pt-4 md:pt-6 border-t border-gray-200' },
           // Show approval buttons for pending orders
           currentOrderDetail.status === 'pending_approval' && hasPermission('orders', 'approve') ? [
             React.createElement('button', {
               key: 'approve',
-              className: 'flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors min-w-[140px] justify-center',
+              className: 'flex items-center px-4 md:px-6 py-2 md:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors sm:min-w-[140px] justify-center w-full sm:w-auto',
               onClick: () => {
                 handleOrderApproval(currentOrderDetail.id, 'approve');
                 setShowOrderDetail(false);
@@ -313,7 +313,7 @@ window.renderOrderDetailModal = () => {
             }, '✓ Approve Order'),
             React.createElement('button', {
               key: 'reject',
-              className: 'flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors min-w-[140px] justify-center',
+              className: 'flex items-center px-4 md:px-6 py-2 md:py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors sm:min-w-[140px] justify-center w-full sm:w-auto',
               onClick: () => {
                 const reason = prompt('Please provide a reason for rejection:');
                 if (reason) {
@@ -326,7 +326,7 @@ window.renderOrderDetailModal = () => {
             // For non-pending orders, show Close button
             React.createElement('button', {
               key: 'close',
-              className: 'px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors',
+              className: 'px-4 md:px-6 py-2 md:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors w-full sm:w-auto',
               onClick: () => setShowOrderDetail(false)
             }, 'Close')
           ]
