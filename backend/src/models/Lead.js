@@ -13,7 +13,7 @@ class Lead {
     
     // Lead Source & Initial Contact
     this.source = data.source || '';
-    // Convert date_of_enquiry to IST
+    // Ensure date_of_enquiry is in proper UTC ISO format
     this.date_of_enquiry = data.date_of_enquiry ? convertToIST(data.date_of_enquiry) : convertToIST(new Date());
     this.first_touch_base_done_by = data.first_touch_base_done_by || '';
 

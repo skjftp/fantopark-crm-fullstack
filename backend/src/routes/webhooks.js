@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const { db } = require('../config/db');
 const fetch = require('node-fetch');
 const { getInventoryByFormId } = require('../utils/inventoryLookup');
-const { convertToIST } = require('../utils/dateHelpers');
+const { convertToIST, getISTDateString } = require('../utils/dateHelpers');
 
 // Meta webhook verification token and app secret - store these securely
 const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || 'your-unique-verify-token-here';
@@ -511,13 +511,16 @@ async function saveLeadToDatabase(leadDetails, webhookData) {
     const detectedSource = await detectPlatformSource(leadDetails, inventory);
     console.log('📍 Detected platform source:', detectedSource);
     
-    // Convert to IST for date_of_enquiry using helper
-    const enquiryDate = convertToIST(new Date(), leadDetails.created_time);
+    // Get IST date for date_of_enquiry
+    const metaCreatedTime = leadDetails.created_time || new Date().toISOString();
+    const istDateStr = getISTDateString(metaCreatedTime);
+    // Store as IST date at midnight UTC for consistency
+    const enquiryDate = `${istDateStr}T00:00:00.000Z`;
     
     console.log('📅 Date attribution:');
-    console.log('   Meta created_time (UTC):', leadDetails.created_time);
-    console.log('   Converted to IST:', enquiryDate);
-    console.log('   IST Date:', enquiryDate.split('T')[0]);
+    console.log('   Meta created_time (UTC):', metaCreatedTime);
+    console.log('   IST date:', istDateStr);
+    console.log('   Stored as date_of_enquiry:', enquiryDate);
 
     // Map Instagram fields to your CRM fields
     const leadRecord = {

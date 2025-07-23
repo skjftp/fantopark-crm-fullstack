@@ -124,6 +124,8 @@ window.exportLeadsToCSV = async function(exportAll = false, includeCommunication
       'source',               // Source
       'event_category',       // Event Category
       'lead_for_event',       // Event (using lead_for_event or event_name)
+      'ad_set',               // Ad Set
+      'ad_name',              // Ad Name
       'annual_income_bracket', // What is your annual income
       'number_of_people',      // How many tickets do you need
       'first_contact_date',   // First Touchbase Date
@@ -191,7 +193,9 @@ window.exportLeadsToCSV = async function(exportAll = false, includeCommunication
       field === 'event_category' || // Might need special handling
       field === 'annual_income_bracket' || // Might be in different field name
       field === 'number_of_people' || // Might be in different field name
-      field === 'first_contact_date' // Might need to be calculated
+      field === 'first_contact_date' || // Might need to be calculated
+      field === 'ad_set' || // Might be stored as adset_name
+      field === 'ad_name' // Might be stored under different name
     );
     
     // Create CSV headers with proper labels
@@ -207,6 +211,8 @@ window.exportLeadsToCSV = async function(exportAll = false, includeCommunication
       event_category: 'Event Category',
       lead_for_event: 'Event',
       event_name: 'Event',
+      ad_set: 'Ad Set',
+      ad_name: 'Ad Name',
       annual_income_bracket: 'What is your annual income',
       number_of_people: 'How many tickets do you need',
       first_contact_date: 'First Touchbase Date',
@@ -284,6 +290,12 @@ window.exportLeadsToCSV = async function(exportAll = false, includeCommunication
           } else if (lead.created_date) {
             value = toISTString(lead.created_date);
           }
+        } else if (field === 'ad_set') {
+          // Handle ad_set field - check multiple possible field names
+          value = lead.ad_set || lead.adset_name || lead.ad_set_name || lead.adset || '';
+        } else if (field === 'ad_name') {
+          // Handle ad_name field
+          value = lead.ad_name || lead.ad || '';
         } else if (field.startsWith('communication_')) {
           // Handle communication fields
           const commIndex = parseInt(field.split('_')[1]) - 1;
