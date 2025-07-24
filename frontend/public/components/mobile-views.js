@@ -1193,7 +1193,7 @@ window.MobileDashboardView = function() {
       // Draw center circle for donut effect
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius * 0.6, 0, 2 * Math.PI);
-      ctx.fillStyle = window.matchMedia('(prefers-color-scheme: dark)').matches ? '#1f2937' : '#ffffff';
+      ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff';
       ctx.fill();
       
     }, [data, colors, labels, isLoading]);
@@ -1285,7 +1285,7 @@ window.MobileDashboardView = function() {
               }
             },
               React.createElement('img', {
-                src: 'images/logo.png',
+                src: document.documentElement.classList.contains('dark') ? 'images/logo-dark.png' : 'images/logo.png',
                 alt: 'Loading...',
                 className: 'w-full h-full object-contain',
                 style: {
@@ -1763,7 +1763,7 @@ window.MobileSweetsContent = function() {
           style: { animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
         },
           React.createElement('img', {
-            src: 'images/logo.png',
+            src: document.documentElement.classList.contains('dark') ? 'images/logo-dark.png' : 'images/logo.png',
             alt: 'Loading...',
             className: 'w-full h-full object-contain',
             style: {

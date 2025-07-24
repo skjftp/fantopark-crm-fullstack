@@ -166,7 +166,7 @@ window.MobileHeader = function() {
       }
     },
       React.createElement('img', {
-        src: 'images/logo.png',
+        src: document.documentElement.classList.contains('dark') ? 'images/logo-dark.png' : 'images/logo.png',
         alt: 'FanToPark',
         style: {
           height: 'auto',

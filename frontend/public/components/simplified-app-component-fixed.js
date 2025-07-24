@@ -3022,7 +3022,7 @@ window.renderSportsCalendarContent = window.renderSportsCalendarContent || (() =
       React.createElement('div', { className: 'flex items-center space-x-3' },
         React.createElement('div', { className: 'w-12 h-8 bg-white rounded flex items-center justify-center p-1 shadow-sm border' },
           React.createElement('img', { 
-            src: 'images/logo.png',
+            src: document.documentElement.classList.contains('dark') ? 'images/logo-dark.png' : 'images/logo.png',
             alt: 'FanToPark Logo',
             className: 'w-full h-full object-contain',
             onError: (e) => {
@@ -3149,7 +3149,7 @@ console.log("✅ AssignmentRulesTab exposed to window");
         React.createElement('div', { className: 'text-center mb-8' },
          React.createElement('div', { className: 'w-16 h-16 bg-white rounded-lg flex items-center justify-center mx-auto mb-4 p-2 shadow-md border' },
   React.createElement('img', { 
-    src: 'images/logo.png',
+    src: document.documentElement.classList.contains('dark') ? 'images/logo-dark.png' : 'images/logo.png',
     alt: 'FanToPark Logo',
     className: 'w-full h-full object-contain',
     onError: (e) => {

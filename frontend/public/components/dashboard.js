@@ -274,7 +274,7 @@ const DashboardComponent = () => {
                                 }
                             },
                                 React.createElement('img', {
-                                    src: 'images/logo.png',
+                                    src: document.documentElement.classList.contains('dark') ? 'images/logo-dark.png' : 'images/logo.png',
                                     alt: 'Loading...',
                                     className: 'w-full h-full object-contain',
                                     style: {
@@ -320,7 +320,7 @@ const DashboardComponent = () => {
                                 }
                             },
                                 React.createElement('img', {
-                                    src: 'images/logo.png',
+                                    src: document.documentElement.classList.contains('dark') ? 'images/logo-dark.png' : 'images/logo.png',
                                     alt: 'Loading...',
                                     className: 'w-full h-full object-contain',
                                     style: {
@@ -368,7 +368,7 @@ const DashboardComponent = () => {
                                 }
                             },
                                 React.createElement('img', {
-                                    src: 'images/logo.png',
+                                    src: document.documentElement.classList.contains('dark') ? 'images/logo-dark.png' : 'images/logo.png',
                                     alt: 'Loading...',
                                     className: 'w-full h-full object-contain',
                                     style: {
