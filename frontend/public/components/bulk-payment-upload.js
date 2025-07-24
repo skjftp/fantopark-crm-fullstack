@@ -1,9 +1,9 @@
-// Bulk Payment Upload Component for FanToPark CRM
-// Handles CSV upload for bulk payment processing
-// Version: 2.0 - Vanilla JavaScript implementation
+// Bulk Order Upload Component for FanToPark CRM
+// Handles CSV upload for bulk order creation
+// Version: 3.0 - Creates fresh orders instead of recording payments
 
 window.BulkPaymentUpload = () => {
-  console.log('🔄 BulkPaymentUpload v2.0 - Vanilla JS implementation');
+  console.log('🔄 BulkOrderUpload v3.0 - Bulk order creation');
   
   // Create a unique ID for this component instance
   const componentId = 'bulk-payment-' + Date.now();
@@ -59,7 +59,7 @@ window.BulkPaymentUpload = () => {
   // Download template
   const downloadTemplate = async () => {
     try {
-      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/template`, {
+      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-orders/template`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
         }
@@ -71,7 +71,7 @@ window.BulkPaymentUpload = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'payment-upload-template.csv';
+      a.download = 'bulk-order-template.csv';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -95,7 +95,7 @@ window.BulkPaymentUpload = () => {
     formData.append('file', state.file);
 
     try {
-      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/validate`, {
+      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-orders/validate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
@@ -135,7 +135,7 @@ window.BulkPaymentUpload = () => {
     formData.append('file', state.file);
 
     try {
-      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/upload`, {
+      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-orders/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
@@ -159,7 +159,7 @@ window.BulkPaymentUpload = () => {
 
       // Show success notification
       if (window.showNotification) {
-        window.showNotification(`Successfully processed ${data.results.summary.success} payments`, 'success');
+        window.showNotification(`Successfully created ${data.results.summary.ordersCreated} orders`, 'success');
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -172,7 +172,7 @@ window.BulkPaymentUpload = () => {
   // Get upload history
   const fetchHistory = async () => {
     try {
-      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/history`, {
+      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-orders/history`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
         }
@@ -192,7 +192,7 @@ window.BulkPaymentUpload = () => {
   // Get sample data
   const fetchSampleData = async () => {
     try {
-      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/sample-data`, {
+      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-orders/sample-data`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
         }
@@ -296,8 +296,8 @@ window.BulkPaymentUpload = () => {
       <div class="p-6">
         <!-- Header -->
         <div class="mb-6">
-          <h2 class="text-2xl font-bold text-gray-800 mb-2">💳 Bulk Payment Upload</h2>
-          <p class="text-gray-600">Upload CSV files to process multiple payment records at once</p>
+          <h2 class="text-2xl font-bold text-gray-800 mb-2">📦 Bulk Order Creation</h2>
+          <p class="text-gray-600">Upload CSV files to create multiple orders and process payments at once</p>
         </div>
 
         <!-- Action buttons -->
