@@ -847,6 +847,7 @@ window.MobileDashboardView = function() {
       temperatureValue: { labels: [], data: [], colors: [] }
     }
   });
+  const [chartsLoaded, setChartsLoaded] = React.useState(false);
   const [dashboardFilter, setDashboardFilter] = React.useState('overall');
   const [selectedSalesPerson, setSelectedSalesPerson] = React.useState('');
   const [selectedEvent, setSelectedEvent] = React.useState('');
@@ -886,6 +887,7 @@ window.MobileDashboardView = function() {
               filters: result.data.filters
             });
             setDashboardData(result.data);
+            setChartsLoaded(true);
           } else {
             console.error('📱 Mobile Dashboard: Invalid API response:', result);
           }
@@ -963,27 +965,22 @@ window.MobileDashboardView = function() {
   };
 
   // Create mini pie chart component
-  const MiniPieChart = ({ data, labels, colors, title }) => {
+  const MiniPieChart = ({ data, labels, colors, title, isLoading }) => {
     const canvasRef = React.useRef(null);
     const [hoveredSegment, setHoveredSegment] = React.useState(null);
     const [touchPoint, setTouchPoint] = React.useState(null);
-    const [isLoading, setIsLoading] = React.useState(true);
     
     // Store segment paths for hit detection
     const segmentPaths = React.useRef([]);
     
     React.useEffect(() => {
-      // Check if we have actual data vs empty/loading data
+      // Skip drawing if loading
+      if (isLoading) return;
+      
+      // Check if we have actual data
       const hasData = data && data.length > 0 && data.some(value => value > 0);
       
-      if (!hasData) {
-        setIsLoading(true);
-        return;
-      }
-      
-      setIsLoading(false);
-      
-      if (!canvasRef.current) return;
+      if (!hasData || !canvasRef.current) return;
       
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
@@ -1037,7 +1034,7 @@ window.MobileDashboardView = function() {
       ctx.fillStyle = window.matchMedia('(prefers-color-scheme: dark)').matches ? '#1f2937' : '#ffffff';
       ctx.fill();
       
-    }, [data, colors, labels]);
+    }, [data, colors, labels, isLoading]);
     
     // Handle mouse/touch events
     const handleInteraction = (e) => {
@@ -1258,7 +1255,8 @@ window.MobileDashboardView = function() {
           title: 'Lead Split',
           data: dashboardData.charts.leadSplit.data,
           labels: dashboardData.charts.leadSplit.labels,
-          colors: dashboardData.charts.leadSplit.colors
+          colors: dashboardData.charts.leadSplit.colors,
+          isLoading: !chartsLoaded
         })
       ),
 
@@ -1268,7 +1266,8 @@ window.MobileDashboardView = function() {
           title: 'Lead Temperature Count',
           data: dashboardData.charts.temperatureCount.data,
           labels: dashboardData.charts.temperatureCount.labels,
-          colors: dashboardData.charts.temperatureCount.colors
+          colors: dashboardData.charts.temperatureCount.colors,
+          isLoading: !chartsLoaded
         })
       ),
 
@@ -1280,7 +1279,8 @@ window.MobileDashboardView = function() {
           labels: dashboardData.charts.temperatureValue.labels.map((label, i) => 
             `${label} (₹${(dashboardData.charts.temperatureValue.data[i] || 0).toLocaleString('en-IN')})`
           ),
-          colors: dashboardData.charts.temperatureValue.colors
+          colors: dashboardData.charts.temperatureValue.colors,
+          isLoading: !chartsLoaded
         })
       )
     ),
