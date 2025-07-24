@@ -156,7 +156,7 @@
                         }
                     }
                     
-                    const serviceFeeAmount = order.service_fee_amount || order.service_fee || 0;
+                    let serviceFeeAmount = order.service_fee_amount || order.service_fee || 0;
                     
                     // Check for GST in multiple places
                     let gstAmount = order.gst_amount || 0;
@@ -171,7 +171,13 @@
                         gstAmount = cgst + sgst + igst;
                     }
                     
-                    const tcsAmount = order.tcs_amount || 0;
+                    let tcsAmount = order.tcs_amount || 0;
+                    
+                    // Ensure all amounts are numbers, not strings
+                    invoiceTotal = parseFloat(invoiceTotal) || 0;
+                    serviceFeeAmount = parseFloat(serviceFeeAmount) || 0;
+                    gstAmount = parseFloat(gstAmount) || 0;
+                    tcsAmount = parseFloat(tcsAmount) || 0;
                     
                     // Debug log for problematic orders
                     if (order.order_number === 'ORD-1753366847075') {
@@ -188,12 +194,6 @@
                     
                     // Calculate correct final amount
                     let correctFinalAmount;
-                    
-                    // Ensure all amounts are numbers, not strings
-                    invoiceTotal = parseFloat(invoiceTotal) || 0;
-                    serviceFeeAmount = parseFloat(serviceFeeAmount) || 0;
-                    gstAmount = parseFloat(gstAmount) || 0;
-                    tcsAmount = parseFloat(tcsAmount) || 0;
                     
                     if (order.type_of_sale === 'Service Fee') {
                         // For Service Fee: Invoice Total + Service Fee + GST + TCS

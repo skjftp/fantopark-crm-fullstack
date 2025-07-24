@@ -30,8 +30,11 @@ npm run dev
 # Build for production
 npm run build
 
-# Deploy to Google Cloud Run
-npm run deploy
+# Deploy to production
+# Frontend is auto-deployed by Netlify when pushing to git main branch
+git add .
+git commit -m "your commit message"
+git push origin main
 ```
 
 ### Running Full Application Locally
@@ -51,7 +54,9 @@ npm run deploy
 - **Backend**: Node.js + Express + Firestore + JWT Auth
 - **Frontend**: Vanilla JavaScript with component pattern + Mobile-first UI
 - **Database**: Google Firestore (NoSQL)
-- **Deployment**: Google Cloud Run (backend) + Firebase/Vercel (frontend)
+- **Deployment**: 
+  - Backend: Google Cloud Run (run `gcloud run deploy fantopark-backend --source . --region=us-central1` from backend directory)
+  - Frontend: Netlify (auto-deploys on push to main branch)
 - **Integrations**: Meta/Facebook API, Google Cloud Storage
 
 ### Key Architecture Patterns
