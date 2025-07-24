@@ -122,7 +122,7 @@ window.InventoryFormManager = function({ formIds = [], onChange }) {
   // Filter forms based on search query
   const filterForms = React.useCallback((query, forms) => {
     if (!query.trim()) {
-      setFilteredForms(forms.slice(0, 20)); // Show first 20 forms
+      setFilteredForms(forms); // Show all forms when no search query
       return;
     }
     
@@ -131,7 +131,7 @@ window.InventoryFormManager = function({ formIds = [], onChange }) {
       form.id.includes(query)
     );
     
-    setFilteredForms(filtered.slice(0, 20)); // Limit to 20 results
+    setFilteredForms(filtered); // Show all matching results
   }, []);
 
   // Handle search input

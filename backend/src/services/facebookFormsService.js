@@ -110,7 +110,8 @@ class FacebookFormsService {
       const adAccountId = await this.getAdAccountId();
       
       // Get all lead forms from the ad account
-      const url = `${this.baseUrl}/${adAccountId}/leadgen_forms?fields=id,name,status,created_time,updated_time,locale,follow_up_action_url,is_continued_flow_setup&access_token=${this.accessToken}`;
+      // Try the correct endpoint for lead forms
+      const url = `${this.baseUrl}/${adAccountId}/lead_gen_forms?fields=id,name,status,created_time,updated_time,locale&access_token=${this.accessToken}`;
       
       console.log(`🔗 Making request to: ${url.replace(this.accessToken, '[REDACTED]')}`);
       

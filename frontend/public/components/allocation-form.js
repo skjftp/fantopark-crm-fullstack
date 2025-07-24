@@ -332,9 +332,9 @@ window.renderAllocationForm = () => {
             required: hasCategories
           },
             React.createElement('option', { value: '' }, 'Select a category...'),
-            currentInventory.categories.map(category =>
+            currentInventory.categories.map((category, index) =>
               React.createElement('option', { 
-                key: category.name, 
+                key: `category-${index}-${category.name}`, 
                 value: category.name,
                 disabled: category.available_tickets === 0 
               },
