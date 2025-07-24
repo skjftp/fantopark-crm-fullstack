@@ -730,6 +730,8 @@ async function triggerAutoAssignment(leadId, leadData) {
       console.log(`✅ Lead auto-assigned to: ${assignedTo}`);
       
       // Trigger WhatsApp welcome message
+      // TODO: Re-enable after WhatsApp webhook is validated
+      /*
       try {
         // Get assigned user details
         const userSnapshot = await db.collection('crm_users')
@@ -753,6 +755,7 @@ async function triggerAutoAssignment(leadId, leadData) {
         console.error('❌ WhatsApp message error:', whatsappError);
         // Don't throw - WhatsApp failure shouldn't break assignment
       }
+      */
     }
     
   } catch (error) {
