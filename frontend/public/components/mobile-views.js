@@ -1929,14 +1929,10 @@ window.MobileDeliveriesView = function() {
             
             return React.createElement('div', {
               key: delivery.id,
-              className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+              className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 border border-gray-100 dark:border-gray-700',
               style: {
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-              },
-              onClick: () => {
-                if (window.openDeliveryDetail) {
-                  window.openDeliveryDetail(delivery);
-                }
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                touchAction: 'manipulation'
               }
             },
               // Header with delivery number and status
@@ -4171,11 +4167,11 @@ window.MobileMyActionsView = function() {
             if (activeSection === 'leads') {
               return React.createElement('div', {
                 key: item.id || index,
-                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 border border-gray-100 dark:border-gray-700',
                 style: {
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                },
-                onClick: () => window.openLeadDetail && window.openLeadDetail(item)
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  touchAction: 'manipulation' // Prevent double-tap zoom and other touch conflicts
+                }
               },
                 React.createElement('div', { className: 'flex justify-between items-start mb-3' },
                   React.createElement('div', null,
@@ -4293,9 +4289,10 @@ window.MobileMyActionsView = function() {
             } else if (activeSection === 'quotes') {
               return React.createElement('div', {
                 key: item.id || index,
-                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 border border-gray-100 dark:border-gray-700',
                 style: {
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  touchAction: 'manipulation'
                 }
               },
                 React.createElement('div', { className: 'flex justify-between items-start mb-3' },
@@ -4359,11 +4356,11 @@ window.MobileMyActionsView = function() {
             } else if (activeSection === 'orders') {
               return React.createElement('div', {
                 key: item.id || index,
-                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 border border-gray-100 dark:border-gray-700',
                 style: {
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                },
-                onClick: () => window.openOrderDetail && window.openOrderDetail(item)
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  touchAction: 'manipulation'
+                }
               },
                 React.createElement('div', { className: 'flex justify-between items-start mb-3' },
                   React.createElement('div', null,
@@ -4467,11 +4464,11 @@ window.MobileMyActionsView = function() {
             } else if (activeSection === 'deliveries') {
               return React.createElement('div', {
                 key: item.id || index,
-                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 border border-gray-100 dark:border-gray-700',
                 style: {
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                },
-                onClick: () => window.openDeliveryDetail && window.openDeliveryDetail(item)
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  touchAction: 'manipulation'
+                }
               },
                 React.createElement('div', { className: 'flex justify-between items-start mb-3' },
                   React.createElement('div', null,
@@ -4581,9 +4578,10 @@ window.MobileMyActionsView = function() {
             } else if (activeSection === 'receivables') {
               return React.createElement('div', {
                 key: item.id || index,
-                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl border border-gray-100 dark:border-gray-700',
+                className: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 border border-gray-100 dark:border-gray-700',
                 style: {
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  touchAction: 'manipulation'
                 }
               },
                 React.createElement('div', { className: 'flex justify-between items-start mb-3' },
