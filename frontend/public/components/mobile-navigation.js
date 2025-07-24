@@ -253,7 +253,7 @@ window.MobileMoreMenu = function() {
       icon: '🔑',
       show: true,
       action: () => {
-        state.setShowChangePassword(true);
+        state.setActiveTab('changePassword');
         state.setShowMobileMenu(false);
       }
     },
@@ -261,13 +261,21 @@ window.MobileMoreMenu = function() {
       id: 'user-management',
       label: 'User Management',
       icon: '👤',
-      show: user?.role === 'super_admin' || user?.role === 'admin'
+      show: user?.role === 'super_admin' || user?.role === 'admin',
+      action: () => {
+        state.setActiveTab('users');
+        state.setShowMobileMenu(false);
+      }
     },
     {
       id: 'role-management',
       label: 'Role Management',
       icon: '🔐',
-      show: user?.role === 'super_admin'
+      show: user?.role === 'super_admin',
+      action: () => {
+        state.setActiveTab('roles');
+        state.setShowMobileMenu(false);
+      }
     },
     {
       divider: true

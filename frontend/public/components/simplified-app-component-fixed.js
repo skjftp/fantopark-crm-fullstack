@@ -10,9 +10,12 @@ window.SimplifiedApp = function() {
   // Initialize all effects
   window.renderAppEffects();
 
-  // Make handlers available globall
+  // Make handlers available globally
   
   window.appHandlers = handlers;
+  
+  // Expose logout function
+  window.logout = handlers.handleLogout;
 
   // ✅ ENSURE USER FORM GLOBALS ARE AVAILABLE
 window.loading = state.loading || false;
