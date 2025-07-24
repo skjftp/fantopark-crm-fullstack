@@ -1,7 +1,9 @@
 // Bulk Payment Upload Component for FanToPark CRM
 // Handles CSV upload for bulk payment processing
+// Version: 1.1 - Fixed React hooks error
 
 window.BulkPaymentUpload = () => {
+  console.log('🔄 BulkPaymentUpload v1.1 - Using window.React');
   const [state, setState] = window.React.useState({
     file: null,
     uploading: false,
