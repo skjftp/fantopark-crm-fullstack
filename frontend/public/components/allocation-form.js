@@ -148,19 +148,6 @@ window.renderAllocationForm = () => {
         }, '✕')
       ),
 
-      // Debug Information (temporary)
-      React.createElement('div', { className: 'bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 mb-4 border border-yellow-300' },
-        React.createElement('h4', { className: 'font-bold text-yellow-800 dark:text-yellow-200 mb-2' }, '🔍 Debug Information'),
-        React.createElement('div', { className: 'text-sm text-yellow-700 dark:text-yellow-300 space-y-1' },
-          React.createElement('div', null, `Current category value: "${allocationData.category_name || 'none'}"`),
-          React.createElement('div', null, `Current category index: ${allocationData.category_index !== undefined ? allocationData.category_index : 'none'}`),
-          React.createElement('div', null, `Has categories: ${hasCategories}`),
-          React.createElement('div', null, `Number of categories: ${currentInventory.categories ? currentInventory.categories.length : 0}`),
-          React.createElement('div', null, `Selected category object: ${selectedCategory ? `${selectedCategory.name} (index ${allocationData.category_index})` : 'none'}`),
-          React.createElement('div', null, `Available tickets: ${availableTickets}`)
-        )
-      ),
-
       // Event Information Summary
       React.createElement('div', { className: 'bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6' },
         React.createElement('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
@@ -267,13 +254,18 @@ window.renderAllocationForm = () => {
           selectedLead && React.createElement('div', { 
             className: 'mt-2 p-3 bg-blue-50 dark:bg-blue-900 rounded-md border-l-4 border-blue-500' 
           },
-            React.createElement('div', { className: 'flex justify-between items-center' },
-              React.createElement('div', null,
+            React.createElement('div', { className: 'flex justify-between items-start' },
+              React.createElement('div', { className: 'flex-1' },
                 React.createElement('div', { className: 'font-medium text-blue-900 dark:text-blue-100' },
                   selectedLead.name
                 ),
                 React.createElement('div', { className: 'text-sm text-blue-700 dark:text-blue-300' },
-                  `${selectedLead.email || selectedLead.phone || 'No contact'} • ${selectedLead.status} • ${selectedLead.event_name || selectedLead.lead_for_event || 'No event'}`
+                  `${selectedLead.email || selectedLead.phone || 'No contact'} • ${selectedLead.status}`
+                ),
+                (selectedLead.event_name || selectedLead.lead_for_event) && React.createElement('div', { 
+                  className: 'text-sm text-blue-600 dark:text-blue-400 mt-1' 
+                },
+                  `🎫 ${selectedLead.event_name || selectedLead.lead_for_event}`
                 )
               ),
               React.createElement('button', {
@@ -315,14 +307,30 @@ window.renderAllocationForm = () => {
                 },
                 className: 'p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-600'
               },
-                React.createElement('div', { className: 'font-medium text-gray-900 dark:text-white' },
-                  lead.name
-                ),
-                React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' },
-                  `${lead.email || lead.phone || 'No contact'} • ${lead.status}`,
-                  lead.event_name && React.createElement('span', { className: 'ml-2' },
-                    `• ${lead.event_name}`
+                React.createElement('div', { className: 'flex justify-between items-start' },
+                  React.createElement('div', { className: 'flex-1' },
+                    React.createElement('div', { className: 'font-medium text-gray-900 dark:text-white' },
+                      lead.name
+                    ),
+                    React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' },
+                      `${lead.email || lead.phone || 'No contact'}`
+                    )
+                  ),
+                  React.createElement('div', { className: 'text-right' },
+                    React.createElement('div', { 
+                      className: `text-xs px-2 py-1 rounded-full ${
+                        lead.status === 'converted' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                        lead.status === 'payment_received' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                        lead.status === 'payment_post_service' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                      }` 
+                    }, lead.status)
                   )
+                ),
+                (lead.event_name || lead.lead_for_event) && React.createElement('div', { 
+                  className: 'mt-1 text-sm text-blue-600 dark:text-blue-400 font-medium' 
+                },
+                  `🎫 ${lead.event_name || lead.lead_for_event}`
                 )
               )
             ) : React.createElement('div', { 
@@ -344,25 +352,14 @@ window.renderAllocationForm = () => {
               const selectedIndex = parseInt(e.target.value);
               const selectedOption = e.target.options[e.target.selectedIndex];
               
-              console.log('=== CATEGORY SELECTION DEBUG ===');
-              console.log('Selected index value:', selectedIndex);
-              console.log('Selected option text:', selectedOption ? selectedOption.text : 'none');
-              
               if (!isNaN(selectedIndex) && selectedIndex >= 0 && selectedIndex < currentInventory.categories.length) {
                 const selectedCategory = currentInventory.categories[selectedIndex];
-                console.log('Selected category object:', selectedCategory);
                 
                 // Store both the index and the category name
                 window.updateAllocationData({
                   category_index: selectedIndex,
                   category_name: selectedCategory.name
                 });
-                
-                // Log after change
-                setTimeout(() => {
-                  console.log('Allocation data after change:', window.allocationData);
-                  console.log('=== END CATEGORY DEBUG ===');
-                }, 200);
               } else {
                 // Clear selection
                 window.updateAllocationData({
