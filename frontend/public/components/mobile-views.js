@@ -1423,13 +1423,15 @@ window.MobileDashboardView = function() {
         
         // Create a 2x2 grid layout with truly independent components
         React.createElement('div', { 
-          className: 'grid grid-cols-2 gap-3',
+          className: '',  // Remove any Tailwind grid classes
           style: {
-            display: 'grid !important',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr)) !important',
-            gridTemplateRows: 'repeat(2, minmax(0, 1fr)) !important',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gridTemplateRows: 'repeat(2, 1fr)',
             gap: '12px',
-            width: '100%'
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
           }
         },
           // Map through stats data to create independent components
@@ -1474,13 +1476,13 @@ window.MobileDashboardView = function() {
               key: stat.id,
               className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center',
               style: {
-                minHeight: '100px',
+                minHeight: '80px',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '100%',
-                height: '100%'
+                // Remove width/height 100% that might be breaking grid
+                boxSizing: 'border-box'
               }
             },
               // Icon container
