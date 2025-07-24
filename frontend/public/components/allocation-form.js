@@ -106,8 +106,8 @@ window.renderAllocationForm = () => {
   const hasCategories = currentInventory.categories && Array.isArray(currentInventory.categories) && currentInventory.categories.length > 0;
   
   // NEW: Get selected category details
-  const selectedCategory = hasCategories && allocationData.category_name
-    ? currentInventory.categories.find(cat => cat.name === allocationData.category_name)
+  const selectedCategory = hasCategories && allocationData.category_index !== undefined && allocationData.category_index !== ''
+    ? currentInventory.categories[allocationData.category_index]
     : null;
 
   // NEW: Calculate available tickets based on category or total
@@ -153,9 +153,10 @@ window.renderAllocationForm = () => {
         React.createElement('h4', { className: 'font-bold text-yellow-800 dark:text-yellow-200 mb-2' }, '🔍 Debug Information'),
         React.createElement('div', { className: 'text-sm text-yellow-700 dark:text-yellow-300 space-y-1' },
           React.createElement('div', null, `Current category value: "${allocationData.category_name || 'none'}"`),
+          React.createElement('div', null, `Current category index: ${allocationData.category_index !== undefined ? allocationData.category_index : 'none'}`),
           React.createElement('div', null, `Has categories: ${hasCategories}`),
           React.createElement('div', null, `Number of categories: ${currentInventory.categories ? currentInventory.categories.length : 0}`),
-          React.createElement('div', null, `Selected category object: ${selectedCategory ? selectedCategory.name : 'none'}`),
+          React.createElement('div', null, `Selected category object: ${selectedCategory ? `${selectedCategory.name} (index ${allocationData.category_index})` : 'none'}`),
           React.createElement('div', null, `Available tickets: ${availableTickets}`)
         )
       ),
@@ -338,31 +339,33 @@ window.renderAllocationForm = () => {
             'Select Ticket Category'
           ),
           React.createElement('select', {
-            value: allocationData.category_name || '',
+            value: allocationData.category_index !== undefined ? allocationData.category_index : '',
             onChange: (e) => {
-              const newValue = e.target.value;
-              const selectedIndex = e.target.selectedIndex;
-              const selectedOption = e.target.options[selectedIndex];
+              const selectedIndex = parseInt(e.target.value);
+              const selectedOption = e.target.options[e.target.selectedIndex];
               
               console.log('=== CATEGORY SELECTION DEBUG ===');
-              console.log('New value:', newValue);
-              console.log('Selected index:', selectedIndex);
+              console.log('Selected index value:', selectedIndex);
               console.log('Selected option text:', selectedOption ? selectedOption.text : 'none');
-              console.log('Current categories:', currentInventory.categories);
-              console.log('Current allocation data before change:', allocationData);
-              console.log('Category names available:', currentInventory.categories.map(c => c.name));
               
-              // Check if the value exists in categories
-              const categoryExists = currentInventory.categories.some(cat => cat.name === newValue);
-              console.log('Category exists in list:', categoryExists);
-              
-              handleAllocationInputChange('category_name', newValue);
-              
-              // Log after change
-              setTimeout(() => {
-                console.log('Allocation data after change:', window.allocationData);
-                console.log('=== END CATEGORY DEBUG ===');
-              }, 200);
+              if (!isNaN(selectedIndex) && selectedIndex >= 0 && selectedIndex < currentInventory.categories.length) {
+                const selectedCategory = currentInventory.categories[selectedIndex];
+                console.log('Selected category object:', selectedCategory);
+                
+                // Store both the index and the category name
+                handleAllocationInputChange('category_index', selectedIndex);
+                handleAllocationInputChange('category_name', selectedCategory.name);
+                
+                // Log after change
+                setTimeout(() => {
+                  console.log('Allocation data after change:', window.allocationData);
+                  console.log('=== END CATEGORY DEBUG ===');
+                }, 200);
+              } else {
+                // Clear selection
+                handleAllocationInputChange('category_index', '');
+                handleAllocationInputChange('category_name', '');
+              }
             },
             className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
             required: hasCategories
@@ -370,8 +373,8 @@ window.renderAllocationForm = () => {
             React.createElement('option', { value: '' }, 'Select a category...'),
             currentInventory.categories.map((category, index) =>
               React.createElement('option', { 
-                key: `category-${index}-${category.name}`, 
-                value: category.name
+                key: `category-${index}`, 
+                value: index
                 // REMOVED: disabled attribute - allow all selections
               },
                 `${category.name} - ${category.section || 'General'} (${category.available_tickets} available @ ₹${category.selling_price})`
@@ -551,8 +554,8 @@ window.handleAllocation = async (e) => {
   }
 
   // NEW: Validate against category-specific availability
-  const selectedCategory = hasCategories && window.allocationData.category_name
-    ? window.currentInventory.categories.find(cat => cat.name === window.allocationData.category_name)
+  const selectedCategory = hasCategories && window.allocationData.category_index !== undefined && window.allocationData.category_index !== ''
+    ? window.currentInventory.categories[window.allocationData.category_index]
     : null;
   
   const availableTickets = selectedCategory 
@@ -853,7 +856,8 @@ window.openAllocationForm = (inventory) => {
     allocation_date: new Date().toISOString().split('T')[0],
     notes: '',
     // NEW: Add category selection - no default to avoid selection issues
-    category_name: ''
+    category_name: '',
+    category_index: ''
   };
   
   // Update state if setters are available
