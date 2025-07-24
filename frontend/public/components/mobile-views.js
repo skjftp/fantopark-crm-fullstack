@@ -1383,8 +1383,11 @@ window.MobileDashboardView = function() {
   const firstName = window.user?.name?.split(' ')[0] || window.user?.email?.split('@')[0] || 'there';
   
   return React.createElement('div', { className: 'mobile-content-wrapper' },
+    // Add spacer div for proper separation from header
+    React.createElement('div', { style: { height: '20px' } }),
+    
     // Greeting section
-    React.createElement('div', { className: 'bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-lg shadow-lg mb-6 mt-4' },
+    React.createElement('div', { className: 'bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-lg shadow-lg mb-6' },
       React.createElement('h2', { 
         className: 'text-2xl font-bold text-white mb-2' 
       }, `${getGreeting()}, ${firstName}! 👋`),
