@@ -1562,62 +1562,59 @@ window.MobileDashboardView = function() {
             
             return React.createElement('div', {
               key: lead.id || index,
-              className: 'mobile-card p-4 touchable',
-              onClick: (e) => {
-                // Don't open lead detail if clicking on a button
-                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
-                  return;
-                }
-                // Don't open if clicking in the action buttons area
-                if (e.target.closest('.action-buttons-area')) {
-                  return;
-                }
-                if (window.openLeadDetail) {
-                  window.openLeadDetail(lead);
-                } else {
-                  state.setActiveTab('leads');
-                }
-              }
+              className: 'mobile-card p-4'
             },
-              // Lead header
-              React.createElement('div', { className: 'flex items-start justify-between mb-2' },
-                React.createElement('div', { className: 'flex-1' },
-                  // Name and badges
-                  React.createElement('div', { className: 'flex items-center gap-2 flex-wrap mb-1' },
-                    React.createElement('h4', { 
-                      className: 'font-medium text-gray-900 dark:text-white'
-                    }, lead.name || 'Unknown Lead'),
-                    
-                    // Status badge
-                    React.createElement('span', {
-                      className: `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusDisplay.color}`
-                    },
-                      statusDisplay.icon,
-                      ' ',
-                      statusDisplay.label
+              // Clickable upper section
+              React.createElement('div', { 
+                className: 'cursor-pointer touchable',
+                onClick: () => {
+                  if (window.openLeadDetail) {
+                    window.openLeadDetail(lead);
+                  } else {
+                    state.setActiveTab('leads');
+                  }
+                }
+              },
+                // Lead header
+                React.createElement('div', { className: 'flex items-start justify-between mb-2' },
+                  React.createElement('div', { className: 'flex-1' },
+                    // Name and badges
+                    React.createElement('div', { className: 'flex items-center gap-2 flex-wrap mb-1' },
+                      React.createElement('h4', { 
+                        className: 'font-medium text-gray-900 dark:text-white'
+                      }, lead.name || 'Unknown Lead'),
+                      
+                      // Status badge
+                      React.createElement('span', {
+                        className: `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusDisplay.color}`
+                      },
+                        statusDisplay.icon,
+                        ' ',
+                        statusDisplay.label
+                      ),
+                      
+                      // Temperature
+                      tempDisplay && React.createElement('span', {
+                        className: `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${tempDisplay.color}`
+                      }, tempDisplay.icon)
                     ),
                     
-                    // Temperature
-                    tempDisplay && React.createElement('span', {
-                      className: `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${tempDisplay.color}`
-                    }, tempDisplay.icon)
+                    // Lead details
+                    React.createElement('div', { className: 'text-xs text-gray-600 dark:text-gray-400 space-y-0.5' },
+                      lead.phone && React.createElement('div', null, '📱 ', lead.phone),
+                      lead.email && React.createElement('div', { className: 'truncate' }, '📧 ', lead.email),
+                      lead.lead_for_event && React.createElement('div', null, '🎫 ', lead.lead_for_event),
+                      lead.potential_value > 0 && React.createElement('div', { 
+                        className: 'font-medium text-green-600 dark:text-green-400' 
+                      }, '₹', parseInt(lead.potential_value).toLocaleString())
+                    )
                   ),
                   
-                  // Lead details
-                  React.createElement('div', { className: 'text-xs text-gray-600 dark:text-gray-400 space-y-0.5' },
-                    lead.phone && React.createElement('div', null, '📱 ', lead.phone),
-                    lead.email && React.createElement('div', { className: 'truncate' }, '📧 ', lead.email),
-                    lead.lead_for_event && React.createElement('div', null, '🎫 ', lead.lead_for_event),
-                    lead.potential_value > 0 && React.createElement('div', { 
-                      className: 'font-medium text-green-600 dark:text-green-400' 
-                    }, '₹', parseInt(lead.potential_value).toLocaleString())
-                  )
-                ),
-                
-                // Time
-                React.createElement('div', { 
-                  className: 'text-xs text-gray-500 dark:text-gray-400 text-right'
-                }, timeAgo)
+                  // Time
+                  React.createElement('div', { 
+                    className: 'text-xs text-gray-500 dark:text-gray-400 text-right'
+                  }, timeAgo)
+                )
               ),
               
               // Quick actions
@@ -1635,18 +1632,10 @@ window.MobileDashboardView = function() {
                 
                 // Action buttons
                 React.createElement('div', { 
-                  className: 'flex items-center gap-2 action-buttons-area',
-                  onClick: (e) => e.stopPropagation() // Prevent card click when clicking this area
+                  className: 'flex items-center gap-2'
                 },
                   lead.phone && React.createElement('button', {
-                    onClick: (e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      window.location.href = `tel:${lead.phone}`;
-                    },
-                    onTouchEnd: (e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
+                    onClick: () => {
                       window.location.href = `tel:${lead.phone}`;
                     },
                     className: 'p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
@@ -1654,14 +1643,7 @@ window.MobileDashboardView = function() {
                   }, '📞'),
                   
                   lead.email && React.createElement('button', {
-                    onClick: (e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      window.location.href = `mailto:${lead.email}`;
-                    },
-                    onTouchEnd: (e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
+                    onClick: () => {
                       window.location.href = `mailto:${lead.email}`;
                     },
                     className: 'p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
