@@ -585,10 +585,13 @@ const viewInvoice = window.viewInvoice;
     ),
 
     // Orders table
-    React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow border overflow-hidden' },
+    React.createElement('div', { 
+      className: 'bg-white dark:bg-gray-800 rounded-lg shadow border overflow-hidden',
+      key: 'orders-table-container'
+    },
       loading ? React.createElement('div', { className: 'text-center py-12' },
         React.createElement('div', { className: 'text-gray-500' }, 'Loading orders...')
-      ) : React.createElement('div', { className: 'overflow-x-auto' },
+      ) : React.createElement('div', { className: 'overflow-x-auto', key: 'orders-table-wrapper' },
         React.createElement('table', { className: 'w-full divide-y divide-gray-200 dark:divide-gray-700' },
           React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
             React.createElement('tr', null,
@@ -610,7 +613,7 @@ const viewInvoice = window.viewInvoice;
             )
           ),
           React.createElement('tbody', { className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700' },
-            paginatedOrders.length === 0 ? React.createElement('tr', null,
+            !paginatedOrders || paginatedOrders.length === 0 ? React.createElement('tr', null,
               React.createElement('td', { colSpan: 8, className: 'px-6 py-12 text-center text-gray-500' },
                 ordersFilters.searchQuery || Object.values(ordersFilters).some(v => v && v !== 'all') 
                   ? 'No orders match your search criteria' 

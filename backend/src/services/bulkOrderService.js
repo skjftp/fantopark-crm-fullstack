@@ -110,6 +110,23 @@ class BulkOrderService {
 
       const leadData = leadDoc.data();
 
+      // Get event date from inventory based on event_name
+      let eventDate = record.event_date || leadData.event_date || leadData.event_start_date;
+      
+      if (!eventDate && record.event_name) {
+        // Try to find the event in inventory
+        const inventorySnapshot = await db.collection('crm_inventory')
+          .where('event_name', '==', record.event_name)
+          .limit(1)
+          .get();
+        
+        if (!inventorySnapshot.empty) {
+          const inventoryData = inventorySnapshot.docs[0].data();
+          eventDate = inventoryData.event_date || inventoryData.event_start_date;
+          console.log(`📅 Found event date from inventory: ${eventDate} for ${record.event_name}`);
+        }
+      }
+
       // Parse amounts
       const rate = parseFloat(record.rate) || 0;
       const quantity = parseInt(record.quantity) || 1;
@@ -119,14 +136,19 @@ class BulkOrderService {
       const inclusionsCost = parseFloat(record.inclusions_cost) || 0;
       const gstRate = parseFloat(record.gst_rate) || 18;
 
-      // Calculate GST on service fee
-      const gstAmount = (serviceFeeAmount * gstRate) / 100;
+      // Check if GST applies (not for outside India)
+      const isOutsideIndia = record.is_outside_india === 'true' || record.is_outside_india === true;
+      const effectiveGstRate = isOutsideIndia ? 0 : gstRate;
+      
+      // Calculate GST on total (invoice + service fee)
+      const totalBeforeTax = invoiceTotal + serviceFeeAmount;
+      const gstAmount = (totalBeforeTax * effectiveGstRate) / 100;
       const cgst = gstAmount / 2;
       const sgst = gstAmount / 2;
-      const totalServiceFeeWithGst = serviceFeeAmount + gstAmount;
+      const igst = isOutsideIndia ? 0 : gstAmount;
 
       // Calculate final amount
-      const finalAmount = totalServiceFeeWithGst;
+      const finalAmount = totalBeforeTax + gstAmount;
 
       // Prepare order data
       const orderData = {
@@ -145,8 +167,8 @@ class BulkOrderService {
         payment_currency: record.payment_currency || 'INR',
         
         // Event details
-        event_name: record.event_name,
-        event_date: record.event_date || leadData.event_date,
+        event_name: record.event_name || leadData.event_name || 'Event',
+        event_date: eventDate || null,
         
         // GST & Legal details
         gstin: record.gstin || '',
@@ -156,7 +178,7 @@ class BulkOrderService {
         gst_rate: gstRate,
         registered_address: record.registered_address || '',
         state_location: record.state_location || '',
-        is_outside_india: record.is_outside_india === 'true',
+        is_outside_india: record.is_outside_india === 'true' || record.is_outside_india === true,
         
         // Invoice items
         items: [{
@@ -172,8 +194,9 @@ class BulkOrderService {
         service_fee_amount: serviceFeeAmount,
         cgst_amount: cgst,
         sgst_amount: sgst,
+        igst_amount: igst,
         gst_amount: gstAmount,
-        total_service_fee_with_gst: totalServiceFeeWithGst,
+        total_amount_before_tax: totalBeforeTax,
         final_amount: finalAmount,
         advance_amount: advanceAmount,
         balance_due: finalAmount - advanceAmount,
@@ -185,25 +208,45 @@ class BulkOrderService {
         // Payment details
         payment_method: record.payment_method || 'Bank Transfer',
         transaction_id: record.transaction_id || '',
-        payment_date: record.payment_date || moment().tz('Asia/Kolkata').format('YYYY-MM-DD'),
+        payment_date: record.payment_date ? moment(record.payment_date, ['DD/MM/YY', 'DD/MM/YYYY', 'YYYY-MM-DD']).format('YYYY-MM-DD') : moment().tz('Asia/Kolkata').format('YYYY-MM-DD'),
         
         // Metadata
         order_number: `ORD-${Date.now()}-${row}`,
-        status: advanceAmount >= finalAmount ? 'payment_received' : 'approved',
+        status: advanceAmount >= finalAmount ? 'payment_received' : 'pending',
         created_by: uploadedBy,
         created_date: moment().tz('Asia/Kolkata').toISOString(),
         created_via: 'bulk_upload',
         notes: record.notes || '',
         
-        // Additional fields for compatibility
+        // Additional fields for compatibility with payment form
         advance_amount_inr: advanceAmount,
         final_amount_inr: finalAmount,
         exchange_rate: 1,
-        sales_person: uploadedBy
+        sales_person: uploadedBy,
+        
+        // Fields expected by payment form
+        invoice_total: invoiceTotal,
+        service_fee: serviceFeeAmount,
+        total_before_tax: totalBeforeTax,
+        tax_amount: gstAmount,
+        tour_package: record.type_of_sale === 'Tour Package',
+        
+        // Approval tracking
+        approval_status: 'pending',
+        approved_by: null,
+        approved_date: null
       };
 
+      // Remove any undefined values to prevent Firestore errors
+      const cleanedOrderData = Object.entries(orderData).reduce((acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {});
+
       // Create the order
-      const orderRef = await db.collection('crm_orders').add(orderData);
+      const orderRef = await db.collection('crm_orders').add(cleanedOrderData);
       console.log(`✅ Order created: ${orderRef.id} for lead ${record.lead_id}`);
 
       // Generate invoice
@@ -237,7 +280,15 @@ class BulkOrderService {
         status: 'generated'
       };
 
-      const invoiceRef = await db.collection('crm_invoices').add(invoiceData);
+      // Remove undefined values from invoice data
+      const cleanedInvoiceData = Object.entries(invoiceData).reduce((acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {});
+
+      const invoiceRef = await db.collection('crm_invoices').add(cleanedInvoiceData);
       console.log(`✅ Invoice created: ${invoiceRef.id}`);
 
       // Update lead status if payment is complete
