@@ -1055,11 +1055,10 @@ window.MobileDashboardView = function() {
           return React.createElement(MiniPieChart, {
             title: 'Lead Temperature Value',
             data: dashboardData.charts.temperatureValue.data,
-            labels: dashboardData.charts.temperatureValue.labels.map((label, i) => 
-              `${label} (₹${(dashboardData.charts.temperatureValue.data[i] || 0).toLocaleString('en-IN')})`
-            ),
+            labels: dashboardData.charts.temperatureValue.labels,
             colors: dashboardData.charts.temperatureValue.colors,
-            isLoading: !chartsLoaded
+            isLoading: !chartsLoaded,
+            showValueInLacs: true
           });
         default:
           return null;
@@ -1121,7 +1120,7 @@ window.MobileDashboardView = function() {
   };
 
   // Create mini pie chart component
-  const MiniPieChart = ({ data, labels, colors, title, isLoading }) => {
+  const MiniPieChart = ({ data, labels, colors, title, isLoading, showValueInLacs }) => {
     const canvasRef = React.useRef(null);
     const [hoveredSegment, setHoveredSegment] = React.useState(null);
     const [touchPoint, setTouchPoint] = React.useState(null);
@@ -1362,7 +1361,9 @@ window.MobileDashboardView = function() {
               style: { backgroundColor: colors[index] }
             }),
             React.createElement('span', { className: 'whitespace-nowrap' }, 
-              `${label}: ${data[index]}`
+              showValueInLacs 
+                ? `${label}: ₹${(data[index] / 100000).toFixed(1)}L`
+                : `${label}: ${data[index]}`
             )
           )
         )
@@ -1383,7 +1384,7 @@ window.MobileDashboardView = function() {
   
   return React.createElement('div', { className: 'mobile-content-wrapper' },
     // Greeting section
-    React.createElement('div', { className: 'bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-lg shadow-lg mb-6' },
+    React.createElement('div', { className: 'bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-lg shadow-lg mb-6 mt-4' },
       React.createElement('h2', { 
         className: 'text-2xl font-bold text-white mb-2' 
       }, `${getGreeting()}, ${firstName}! 👋`),

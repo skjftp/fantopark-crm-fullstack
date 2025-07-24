@@ -97,6 +97,13 @@
 
   .mobile-nav-item.active {
     color: #3b82f6 !important;
+    background-color: #eff6ff !important;
+    border-radius: 8px !important;
+  }
+  
+  .dark .mobile-nav-item.active {
+    background-color: #1e3a8a !important;
+    color: #60a5fa !important;
   }
 
   .mobile-nav-item.active::before {
