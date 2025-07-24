@@ -353,8 +353,10 @@ window.renderAllocationForm = () => {
                 console.log('Selected category object:', selectedCategory);
                 
                 // Store both the index and the category name
-                handleAllocationInputChange('category_index', selectedIndex);
-                handleAllocationInputChange('category_name', selectedCategory.name);
+                window.updateAllocationData({
+                  category_index: selectedIndex,
+                  category_name: selectedCategory.name
+                });
                 
                 // Log after change
                 setTimeout(() => {
@@ -363,8 +365,10 @@ window.renderAllocationForm = () => {
                 }, 200);
               } else {
                 // Clear selection
-                handleAllocationInputChange('category_index', '');
-                handleAllocationInputChange('category_name', '');
+                window.updateAllocationData({
+                  category_index: '',
+                  category_name: ''
+                });
               }
             },
             className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
@@ -472,10 +476,10 @@ window.renderAllocationForm = () => {
 
 // Enhanced allocation input change handler with throttling
 let allocationInputTimeout;
-window.handleAllocationInputChange = (field, value) => {
+window.handleAllocationInputChange = (field, value, skipDebounce = false) => {
   console.log(`🔍 handleAllocationInputChange called: ${field} = ${value}`);
-  clearTimeout(allocationInputTimeout);
-  allocationInputTimeout = setTimeout(() => {
+  
+  const updateData = () => {
     console.log(`📝 Processing allocation field change: ${field} = ${value}`);
     window.log.debug(`📝 Allocation field changed: ${field} = ${value}`);
     
@@ -502,10 +506,45 @@ window.handleAllocationInputChange = (field, value) => {
     
     // Force re-render
     if (window.forceUpdate) {
-      console.log('Forcing update after category change');
+      console.log('Forcing update after change');
       window.forceUpdate();
     }
-  }, 100); // Throttle input changes
+  };
+  
+  if (skipDebounce) {
+    updateData();
+  } else {
+    clearTimeout(allocationInputTimeout);
+    allocationInputTimeout = setTimeout(updateData, 100); // Throttle input changes
+  }
+};
+
+// New function to handle multiple field updates at once
+window.updateAllocationData = (updates) => {
+  console.log('📝 Updating multiple allocation fields:', updates);
+  
+  if (window.setAllocationData) {
+    window.setAllocationData(prev => {
+      const newData = {
+        ...prev,
+        ...updates
+      };
+      console.log('New allocation data:', newData);
+      return newData;
+    });
+  } else {
+    // Fallback
+    window.allocationData = window.allocationData || {};
+    Object.assign(window.allocationData, updates);
+    if (window.appState) {
+      window.appState.allocationData = window.allocationData;
+    }
+  }
+  
+  // Force re-render
+  if (window.forceUpdate) {
+    window.forceUpdate();
+  }
 };
 
 // Enhanced allocation submission handler (updated to include category)
