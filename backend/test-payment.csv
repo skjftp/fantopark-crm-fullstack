@@ -1,0 +1,2 @@
+lead_id,lead_name,lead_email,lead_phone,event_name,event_date,payment_date,payment_amount,payment_mode,bank_name,transaction_id,cheque_number,invoice_numbers,invoice_amounts,taxes,discount,processing_fee,total_amount,payment_status,payment_proof_url,collected_by,branch,notes
+LEAD001,Test Customer,test@example.com,9876543210,IPL 2025 - CSK vs RCB,2025-04-20,2025-07-24,25000,UPI,HDFC Bank,UPI987654321,,INV-TEST001,25000,2250,500,250,27000,Full Payment,,Pratik,Mumbai,Test payment upload

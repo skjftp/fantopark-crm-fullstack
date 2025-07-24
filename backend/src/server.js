@@ -184,6 +184,7 @@ app.use('/api/market-rates', require('./routes/marketRates'));
 app.use('/api/marketing', require('./routes/marketing'));
 app.use('/api/maintenance', require('./routes/maintenance'));
 app.use('/api/facebook-forms', require('./routes/facebookForms'));
+app.use('/api/bulk-payments', require('./routes/bulkPayments'));
 
 
 // ✅ JOURNEY ROUTES - NOW AFTER CORS SETUP!

@@ -1,0 +1,38 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: fantopark-backend
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containerConcurrency: 100
+      timeoutSeconds: 300
+      serviceAccountName: 150582227311-compute@developer.gserviceaccount.com
+      containers:
+      - image: gcr.io/enduring-wharf-464005-h7/fantopark-backend
+        ports:
+        - name: http1
+          containerPort: 8080
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "enduring-wharf-464005-h7"
+        - name: META_APP_SECRET
+          value: "7611662ab8e4e65375347effda257067"
+        - name: META_VERIFY_TOKEN
+          value: "fantopark-webhook-verify-2024"
+        - name: META_PAGE_ACCESS_TOKEN
+          value: "EAAiYOriHXGEBPKt8IxBWZBV0KxKb3qMRAVPkajZABR2yKWQUl8ZAwQ9iEutkleVm2ViIQlLmJfywY0DipqgUwvwH35nxHtXXTDEE1FkNPdBgWnL6LxNI5xl8t69Q0Y8DB4Limwu1vSLcntR7Goc3w5uH1jhGBBemqYsgs7ZBsJ6vfMnUKC7l5o9WMQZDZD"
+        - name: BASE_URL
+          value: "https://crm.fantopark.com"
+        resources:
+          limits:
+            cpu: "2"
+            memory: "1Gi"
+  traffic:
+  - percent: 100
+    latestRevision: true

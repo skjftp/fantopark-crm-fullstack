@@ -1,0 +1,12 @@
+lead_id,lead_name,lead_email,lead_phone,event_name,event_date,payment_date,payment_amount,payment_mode,bank_name,transaction_id,cheque_number,invoice_numbers,invoice_amounts,taxes,discount,processing_fee,total_amount,payment_status,payment_proof_url,collected_by,branch,notes
+LEAD123,John Doe,john@example.com,9876543210,IPL 2025 - CSK vs MI,2025-04-15,2025-07-24,50000,UPI,HDFC Bank,UPI123456789,,"INV-001,INV-002","25000,25000","4500,4500",2000,500,58000,Full Payment,,Amisha,Mumbai,Payment for 2 premium tickets
+LEAD456,Jane Smith,jane@example.com,9876543211,ICC World Cup Final,2025-06-20,2025-07-24,75000,Bank Transfer,ICICI Bank,NEFT987654321,,INV-003,75000,13500,5000,1000,84500,Full Payment,https://drive.google.com/payment1.pdf,Sumit,Delhi,Corporate booking
+
+Instructions:
+1. lead_id is REQUIRED - Get this from the CRM lead details page
+2. payment_date format: YYYY-MM-DD
+3. payment_mode options: UPI, Bank Transfer, Credit Card, Debit Card, Cash, Cheque, Online
+4. For multiple invoices: Use comma-separated values in invoice_numbers and invoice_amounts
+5. payment_status options: Full Payment, Partial Payment
+6. Leave cheque_number empty for non-cheque payments
+7. All amounts should be numeric values (no commas or currency symbols)

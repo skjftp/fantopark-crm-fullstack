@@ -73,7 +73,8 @@ window.renderFinancials = () => {
             sales: { currentPage: 1, itemsPerPage: 10 },
             receivables: { currentPage: 1, itemsPerPage: 10 },
             payables: { currentPage: 1, itemsPerPage: 10 },
-            expiring: { currentPage: 1, itemsPerPage: 10 }
+            expiring: { currentPage: 1, itemsPerPage: 10 },
+            bulkpayment: { currentPage: 1, itemsPerPage: 10 }
         },
         setFinancialFilters = window.setFinancialFilters || (() => {
             console.warn("setFinancialFilters not implemented");
@@ -82,6 +83,19 @@ window.renderFinancials = () => {
             console.warn("setActiveFinancialTab not implemented");
         })
     } = window.appState || {};
+
+    // Helper function to format tab names for display
+    const formatTabName = (tab) => {
+        const names = {
+            'activesales': 'Active Sales',
+            'sales': 'Sales',
+            'receivables': 'Receivables',
+            'payables': 'Payables',
+            'expiring': 'Expiring',
+            'bulkpayment': 'Bulk Payment Upload'
+        };
+        return names[tab] || tab;
+    };
 
     // 2. Apply filters function - ENHANCED FOR TAB-SPECIFIC FILTERING
     const applyFilters = (data) => {
@@ -289,6 +303,13 @@ window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financi
                         window.renderExpiringTab(currentTabData.data),
                         window.renderFinancialPagination('expiring', currentTabData.totalItems)
                     );
+                })(),
+                activeFinancialTab === 'bulkpayment' && (() => {
+                    console.log('🔍 Rendering Bulk Payment Upload tab');
+                    return window.BulkPaymentUpload ? window.BulkPaymentUpload() : 
+                        React.createElement('div', { className: 'text-center py-8' }, 
+                            'Bulk Payment Upload component not loaded'
+                        );
                 })()
             )
         )

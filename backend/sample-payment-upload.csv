@@ -1,0 +1,5 @@
+lead_email,lead_phone,payment_date,payment_amount,payment_mode,transaction_id,invoice_numbers,notes
+john.doe@example.com,9876543210,2025-07-24,50000,UPI,UPI123456789,"INV-001,INV-002",Payment for IPL tickets
+jane.smith@example.com,9876543211,2025-07-24,75000,Bank Transfer,NEFT987654321,INV-003,Full payment received
+mike.jones@example.com,9876543212,2025-07-24,125000,Credit Card,CC456789123,"INV-004,INV-005,INV-006",Paid for 3 events
+sarah.wilson@example.com,9876543213,2025-07-24,30000,Cash,CASH789456,INV-007,Cash payment at office
