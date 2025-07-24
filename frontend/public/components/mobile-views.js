@@ -856,6 +856,9 @@ window.MobileDashboardView = function() {
   React.useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        // Ensure loader shows for at least 1 second
+        const startTime = Date.now();
+        
         // Build query parameters based on filters
         const params = new URLSearchParams();
         
@@ -886,19 +889,32 @@ window.MobileDashboardView = function() {
               totalPipelineValue: result.data.summary.totalPipelineValue,
               filters: result.data.filters
             });
-            setDashboardData(result.data);
-            setChartsLoaded(true);
+            
+            // Calculate how long to wait to ensure minimum display time
+            const elapsedTime = Date.now() - startTime;
+            const remainingTime = Math.max(0, 1000 - elapsedTime);
+            
+            // Wait before hiding loader
+            setTimeout(() => {
+              setDashboardData(result.data);
+              setChartsLoaded(true);
+            }, remainingTime);
           } else {
             console.error('📱 Mobile Dashboard: Invalid API response:', result);
+            setChartsLoaded(true); // Hide loader on error
           }
         } else {
           console.error('📱 Mobile Dashboard: API request failed:', response.status, response.statusText);
+          setChartsLoaded(true); // Hide loader on error
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        setChartsLoaded(true); // Hide loader on error
       }
     };
     
+    // Reset loading state when filters change
+    setChartsLoaded(false);
     fetchDashboardData();
   }, [dashboardFilter, selectedSalesPerson, selectedEvent]);
   
@@ -969,6 +985,11 @@ window.MobileDashboardView = function() {
     const canvasRef = React.useRef(null);
     const [hoveredSegment, setHoveredSegment] = React.useState(null);
     const [touchPoint, setTouchPoint] = React.useState(null);
+    
+    // Debug logging
+    React.useEffect(() => {
+      console.log(`📱 MiniPieChart ${title} - isLoading:`, isLoading);
+    }, [isLoading, title]);
     
     // Store segment paths for hit detection
     const segmentPaths = React.useRef([]);
@@ -1097,11 +1118,14 @@ window.MobileDashboardView = function() {
     
     return React.createElement('div', { className: 'relative flex flex-col items-center' },
       React.createElement('h4', { className: 'text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' }, title),
-      React.createElement('div', { className: 'relative inline-block' },
+      React.createElement('div', { 
+        className: 'relative inline-block',
+        style: { width: '280px', height: '280px' }
+      },
         // Show loader when loading
         isLoading && React.createElement('div', {
           className: 'absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg',
-          style: { width: '280px', height: '280px', zIndex: 10 }
+          style: { width: '100%', height: '100%', zIndex: 20 }
         },
           React.createElement('div', { className: 'text-center' },
             // Animated logo loader with different colors based on title
@@ -1153,7 +1177,7 @@ window.MobileDashboardView = function() {
           onTouchStart: handleInteraction,
           onTouchMove: handleInteraction,
           onTouchEnd: handleLeave,
-          style: { touchAction: 'none', display: isLoading ? 'none' : 'block' }
+          style: { touchAction: 'none' }
         }),
         
         // Tooltip for hover/touch
