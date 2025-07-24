@@ -123,11 +123,52 @@
                 let correctCount = 0;
                 
                 orders.forEach(order => {
-                    // Get amounts
-                    const invoiceTotal = order.invoice_total || 0;
+                    // Get amounts - check multiple possible fields for invoice total
+                    let invoiceTotal = order.invoice_total || 0;
+                    
+                    // If invoice_total is 0, try to calculate from invoice_items
+                    if (invoiceTotal === 0 && order.invoice_items && order.invoice_items.length > 0) {
+                        invoiceTotal = order.invoice_items.reduce((sum, item) => {
+                            return sum + ((item.quantity || 0) * (item.rate || 0));
+                        }, 0);
+                    }
+                    
+                    // Also check items array (some orders might use this)
+                    if (invoiceTotal === 0 && order.items && order.items.length > 0) {
+                        invoiceTotal = order.items.reduce((sum, item) => {
+                            return sum + ((item.quantity || 0) * (item.rate || 0));
+                        }, 0);
+                    }
+                    
                     const serviceFeeAmount = order.service_fee_amount || order.service_fee || 0;
-                    const gstAmount = order.gst_amount || 0;
+                    
+                    // Check for GST in multiple places
+                    let gstAmount = order.gst_amount || 0;
+                    if (gstAmount === 0 && order.gst_calculation) {
+                        gstAmount = order.gst_calculation.amount || order.gst_calculation.total || 0;
+                    }
+                    if (gstAmount === 0) {
+                        // Check individual GST components
+                        const cgst = order.cgst_amount || 0;
+                        const sgst = order.sgst_amount || 0;
+                        const igst = order.igst_amount || 0;
+                        gstAmount = cgst + sgst + igst;
+                    }
+                    
                     const tcsAmount = order.tcs_amount || 0;
+                    
+                    // Debug log for problematic orders
+                    if (order.order_number === 'ORD-1753366847075') {
+                        console.log('Debug Order ORD-1753366847075:', {
+                            invoice_total_field: order.invoice_total,
+                            invoice_items: order.invoice_items,
+                            items: order.items,
+                            calculated_invoice_total: invoiceTotal,
+                            service_fee: serviceFeeAmount,
+                            gst: gstAmount,
+                            tcs: tcsAmount
+                        });
+                    }
                     
                     // Calculate correct final amount
                     let correctFinalAmount;
@@ -319,16 +360,23 @@
                 
                 for (const issue of orders) {
                     try {
+                        const updateData = {
+                            final_amount: issue.correctFinalAmount,
+                            final_amount_inr: issue.currency === 'INR' ? issue.correctFinalAmount : issue.correctFinalAmount * 83.5,
+                            balance_due: issue.correctFinalAmount - (issue.advanceAmount || 0),
+                            final_amount_fixed: true,
+                            final_amount_fixed_date: new Date().toISOString(),
+                            final_amount_fixed_reason: 'Bulk fix via audit tool'
+                        };
+                        
+                        // If invoice_total was 0, also update it
+                        if (issue.invoiceTotal > 0) {
+                            updateData.invoice_total = issue.invoiceTotal;
+                        }
+                        
                         await apiCall(`/api/orders/${issue.orderId}`, {
                             method: 'PUT',
-                            body: JSON.stringify({
-                                final_amount: issue.correctFinalAmount,
-                                final_amount_inr: issue.currency === 'INR' ? issue.correctFinalAmount : issue.correctFinalAmount * 83.5,
-                                balance_due: issue.correctFinalAmount - (issue.advanceAmount || 0),
-                                final_amount_fixed: true,
-                                final_amount_fixed_date: new Date().toISOString(),
-                                final_amount_fixed_reason: 'Bulk fix via audit tool'
-                            })
+                            body: JSON.stringify(updateData)
                         });
                         successCount++;
                     } catch (error) {
