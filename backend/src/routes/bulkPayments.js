@@ -23,7 +23,18 @@ const upload = multer({
 });
 
 // GET /api/bulk-payments/template - Download CSV template
-router.get('/template', authenticateToken, (req, res) => {
+router.get('/template', 
+  authenticateToken,
+  (req, res, next) => {
+    // Allow both finance managers and supply_sales_service_manager
+    if (req.user.role === 'supply_sales_service_manager' || 
+        req.user.role === 'super_admin' ||
+        (req.user.permissions && req.user.permissions.finance && req.user.permissions.finance.manage)) {
+      return next();
+    }
+    return res.status(403).json({ error: 'Access denied' });
+  },
+  (req, res) => {
   try {
     const csvContent = `lead_id,lead_name,lead_email,lead_phone,event_name,event_date,payment_date,payment_amount,payment_mode,bank_name,transaction_id,cheque_number,invoice_numbers,invoice_amounts,taxes,discount,processing_fee,total_amount,payment_status,payment_proof_url,collected_by,branch,notes
 LEAD123,John Doe,john@example.com,9876543210,IPL 2025 - CSK vs MI,2025-04-15,2025-07-24,50000,UPI,HDFC Bank,UPI123456789,,"INV-001,INV-002","25000,25000","4500,4500",2000,500,58000,Full Payment,,Amisha,Mumbai,Payment for 2 premium tickets
@@ -109,7 +120,15 @@ router.post('/upload',
 // GET /api/bulk-payments/history - Get upload history
 router.get('/history', 
   authenticateToken,
-  checkPermission('finance', 'view'),
+  (req, res, next) => {
+    // Allow both finance managers and supply_sales_service_manager
+    if (req.user.role === 'supply_sales_service_manager' || 
+        req.user.role === 'super_admin' ||
+        (req.user.permissions && req.user.permissions.finance && req.user.permissions.finance.view)) {
+      return next();
+    }
+    return res.status(403).json({ error: 'Access denied' });
+  },
   async (req, res) => {
     try {
       const { limit = 10, offset = 0 } = req.query;
@@ -223,6 +242,15 @@ router.post('/validate',
 // GET /api/bulk-payments/sample-data - Get sample lead IDs for testing
 router.get('/sample-data', 
   authenticateToken,
+  (req, res, next) => {
+    // Allow both finance managers and supply_sales_service_manager
+    if (req.user.role === 'supply_sales_service_manager' || 
+        req.user.role === 'super_admin' ||
+        (req.user.permissions && req.user.permissions.finance && req.user.permissions.finance.view)) {
+      return next();
+    }
+    return res.status(403).json({ error: 'Access denied' });
+  },
   async (req, res) => {
     try {
       const db = admin.firestore();
