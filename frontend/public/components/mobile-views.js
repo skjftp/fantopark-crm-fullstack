@@ -986,9 +986,10 @@ window.MobileDashboardView = function() {
     const [touchStart, setTouchStart] = React.useState(0);
     const [touchEnd, setTouchEnd] = React.useState(0);
     
-    // Debug function
+    // Debug effect must be after charts declaration
     const debugCarousel = () => {
       console.log('📱 Carousel - Current chart:', currentChart);
+      console.log('📱 Carousel - Transform:', `translateX(-${currentChart * 100}%)`);
     };
     
     const charts = [
@@ -1100,18 +1101,26 @@ window.MobileDashboardView = function() {
             })
           )
         ),
-          // Chart container - only render current chart
+          // Charts container with transform
           React.createElement('div', {
-            className: 'h-full flex items-center justify-center p-3 transition-opacity duration-300'
+            className: 'flex transition-transform duration-300 ease-in-out h-full',
+            style: {
+              transform: `translateX(-${currentChart * 100}%)`
+            }
           },
-            React.createElement(MiniPieChart, {
-              key: currentChart, // Force re-render on chart change
-              title: charts[currentChart].title,
-              data: charts[currentChart].data,
-              labels: charts[currentChart].labels,
-              colors: charts[currentChart].colors,
-              isLoading: !chartsLoaded
-            })
+            charts.map((chart, index) => 
+              React.createElement('div', {
+                key: index,
+                className: 'w-full flex-shrink-0 p-3 h-full flex items-center justify-center'
+              },
+              React.createElement(MiniPieChart, {
+                title: chart.title,
+                data: chart.data,
+                labels: chart.labels,
+                colors: chart.colors,
+                isLoading: !chartsLoaded
+              })
+            )
           )
         )
       ),
