@@ -2,7 +2,7 @@
 window.API_CONFIG = {
   API_URL: (window.location.hostname === "localhost")
     ? "http://localhost:8080/api"
-    : "https://fantopark-backend-150582227311.us-central1.run.app/api",
+    : "https://fantopark-backend-ofkn6rpg3a-uc.a.run.app/api",
   
   UPLOAD_URL_FUNCTION: 'https://asia-south1-enduring-wharf-464005-h7.cloudfunctions.net/getSignedUploadUrl',
   READ_URL_FUNCTION: 'https://asia-south1-enduring-wharf-464005-h7.cloudfunctions.net/getSignedReadUrl'
