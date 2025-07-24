@@ -1865,7 +1865,7 @@ window.MobileDeliveriesView = function() {
   
   return React.createElement('div', { className: 'mobile-content-wrapper pb-20' },
     // Search bar with filter toggle
-    React.createElement('div', { className: 'bg-white dark:bg-gray-900 p-4 border-b -mx-4 mb-4' },
+    React.createElement('div', { className: 'bg-white dark:bg-gray-900 p-4 border-b' },
       React.createElement('div', { className: 'flex gap-2' },
         React.createElement('div', { className: 'relative flex-1' },
           React.createElement('input', {
@@ -1918,13 +1918,6 @@ window.MobileDeliveriesView = function() {
           )
         )
       )
-    ),
-    
-    // Header
-    React.createElement('div', { className: 'px-4 pt-2 pb-3' },
-      React.createElement('h2', { 
-        className: 'text-lg font-semibold'
-      }, 'Deliveries')
     ),
     
     // Deliveries list
@@ -2736,42 +2729,113 @@ window.MobileSalesPerformanceView = function() {
   };
 
   return React.createElement('div', { className: 'mobile-content-wrapper' },
-    // Header with tab switcher
+    // Header with tab switcher and summary stats
     React.createElement('div', { 
-      className: 'bg-white dark:bg-gray-900 pb-3 border-b -mx-4 px-4 mb-4'
+      className: 'bg-white dark:bg-gray-900 border-b -mx-4 mb-4'
     },
-      React.createElement('h2', { 
-        className: 'text-lg font-semibold mb-3'
-      }, 'Sales Performance'),
-      
-      // Tab switcher
-      React.createElement('div', { className: 'flex gap-2' },
-        React.createElement('button', {
-          onClick: () => setActiveTab('target'),
-          className: `flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'target' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-          }`
-        }, 'Target vs Achievement'),
-        React.createElement('button', {
-          onClick: () => setActiveTab('retail'),
-          className: `flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'retail' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-          }`
-        }, 'Retail Tracker')
-      ),
-      
-      // Period selector for target tab
-      activeTab === 'target' && availablePeriods.length > 0 && React.createElement('select', {
-        value: period,
-        onChange: (e) => setPeriod(e.target.value),
-        className: 'w-full mt-3 px-3 py-2 border rounded-lg text-sm'
-      },
-        availablePeriods.map(p => 
-          React.createElement('option', { key: p.value, value: p.value }, p.label)
+      React.createElement('div', { className: 'p-4' },
+        React.createElement('h2', { 
+          className: 'text-lg font-semibold mb-3'
+        }, 'Sales Performance'),
+        
+        // Tab switcher
+        React.createElement('div', { className: 'flex gap-2 mb-4' },
+          React.createElement('button', {
+            onClick: () => setActiveTab('target'),
+            className: `flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'target' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+            }`
+          }, 'Target vs Achievement'),
+          React.createElement('button', {
+            onClick: () => setActiveTab('retail'),
+            className: `flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'retail' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+            }`
+          }, 'Retail Tracker')
+        ),
+        
+        // Period selector for target tab
+        activeTab === 'target' && availablePeriods.length > 0 && React.createElement('select', {
+          value: period,
+          onChange: (e) => setPeriod(e.target.value),
+          className: 'w-full mb-4 px-3 py-2 border rounded-lg text-sm'
+        },
+          availablePeriods.map(p => 
+            React.createElement('option', { key: p.value, value: p.value }, p.label)
+          )
+        ),
+        
+        // Summary stats in 2x2 matrix - only for target tab
+        activeTab === 'target' && React.createElement('div', {
+          className: 'bg-white dark:bg-gray-800 rounded-xl shadow-xl transform transition-all duration-200 hover:scale-[1.02]',
+          style: {
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 20px 25px -5px rgba(0, 0, 0, 0.05)'
+          }
+        },
+          React.createElement('div', { className: 'p-5' },
+            React.createElement('h3', { 
+              className: 'text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wider' 
+            }, 'Performance Summary'),
+            
+            // 2x2 grid layout
+            React.createElement('div', { 
+              style: {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gridTemplateRows: 'repeat(2, 1fr)',
+                gap: '12px',
+                width: '100%',
+                boxSizing: 'border-box'
+              }
+            },
+              [
+                { 
+                  label: 'Actualized Sales', 
+                  value: `₹${(totals.actualizedSales || 0).toFixed(2)}Cr`, 
+                  icon: '💰',
+                  bgColor: 'bg-blue-100 dark:bg-blue-900/50'
+                },
+                { 
+                  label: 'Overall Achievement', 
+                  value: totals.target > 0 ? 
+                    Math.round(totals.actualizedSales / totals.target * 100) + '%' : '0%', 
+                  icon: '🎯',
+                  bgColor: 'bg-green-100 dark:bg-green-900/50'
+                },
+                { 
+                  label: 'Total Target', 
+                  value: `₹${(totals.target || 0).toFixed(2)}Cr`, 
+                  icon: '📊',
+                  bgColor: 'bg-yellow-100 dark:bg-yellow-900/50'
+                },
+                { 
+                  label: 'Sales Team', 
+                  value: `${sortedSalesData.length} Members`, 
+                  icon: '👥',
+                  bgColor: 'bg-purple-100 dark:bg-purple-900/50'
+                }
+              ].map((stat, idx) => 
+                React.createElement('div', { 
+                  key: idx,
+                  className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center'
+                },
+                  React.createElement('div', { 
+                    className: `w-10 h-10 ${stat.bgColor} rounded-full mx-auto mb-2 flex items-center justify-center`
+                  },
+                    React.createElement('span', { className: 'text-lg' }, stat.icon)
+                  ),
+                  React.createElement('p', { className: 'text-lg font-bold text-gray-900 dark:text-white' }, 
+                    stat.value
+                  ),
+                  React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, stat.label)
+                )
+              )
+            )
+          )
         )
       )
     ),
@@ -2779,29 +2843,7 @@ window.MobileSalesPerformanceView = function() {
     // Content based on active tab
     activeTab === 'target' ? 
       // Target vs Achievement Tab
-      React.createElement('div', { className: 'space-y-4 mt-4' },
-        // Summary cards - single line format
-        React.createElement('div', { 
-          className: 'grid grid-cols-2 gap-3 mb-4'
-        },
-          React.createElement('div', { className: 'mobile-card p-3 flex items-center justify-between' },
-            React.createElement('span', { className: 'text-xs text-gray-500' },
-              'Actualized Sales (Crs)'
-            ),
-            React.createElement('span', { className: 'text-xl font-bold text-blue-600' },
-              (totals.actualizedSales || 0).toFixed(2)
-            )
-          ),
-          React.createElement('div', { className: 'mobile-card p-3 flex items-center justify-between' },
-            React.createElement('span', { className: 'text-xs text-gray-500' },
-              'Overall Achievement'
-            ),
-            React.createElement('span', { className: 'text-xl font-bold text-green-600' },
-              totals.target > 0 ? 
-                Math.round(totals.actualizedSales / totals.target * 100) + '%' : '0%'
-            )
-          )
-        ),
+      React.createElement('div', { className: 'space-y-4' },
         
         // Individual sales person cards with 3D effect
         React.createElement('div', { className: 'space-y-4 px-2' },
