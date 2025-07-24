@@ -1270,18 +1270,15 @@ window.MobileDashboardView = function() {
           style: { 
             width: '240px', 
             height: '240px', 
-            zIndex: 20,
-            top: 0,
-            left: 0
+            zIndex: 20
           }
         },
           React.createElement('div', { 
-            className: 'flex flex-col items-center justify-center',
-            style: { marginTop: '-20px' } // Adjust for visual center
+            className: 'flex flex-col items-center justify-center'
           },
             // Animated logo loader with different colors based on title
             React.createElement('div', {
-              className: 'relative w-16 h-16 mb-3',
+              className: 'relative w-16 h-16 mb-2',
               style: {
                 animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                 animationDelay: title === 'Lead Temperature Count' ? '0.5s' : 
@@ -1384,35 +1381,6 @@ window.MobileDashboardView = function() {
   // Get user's first name
   const firstName = window.user?.name?.split(' ')[0] || window.user?.email?.split('@')[0] || 'there';
   
-  // Show initial loader for entire dashboard
-  if (isInitialLoad && !chartsLoaded) {
-    return React.createElement('div', { className: 'mobile-content-wrapper' },
-      React.createElement('div', { 
-        className: 'flex items-center justify-center min-h-[400px]' 
-      },
-        React.createElement('div', { className: 'text-center' },
-          React.createElement('div', {
-            className: 'relative w-24 h-24 mx-auto mb-4',
-            style: { animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
-          },
-            React.createElement('img', {
-              src: 'images/logo.png',
-              alt: 'Loading...',
-              className: 'w-full h-full object-contain',
-              style: {
-                filter: 'drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))',
-                animation: 'float 3s ease-in-out infinite'
-              }
-            })
-          ),
-          React.createElement('p', { 
-            className: 'text-sm text-gray-500 dark:text-gray-400' 
-          }, 'Loading dashboard...')
-        )
-      )
-    );
-  }
-
   return React.createElement('div', { className: 'mobile-content-wrapper' },
     // Greeting section
     React.createElement('div', { className: 'bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-lg shadow-lg mb-6' },
@@ -1723,6 +1691,40 @@ window.MobileDashboardView = function() {
 window.MobileSweetsContent = function() {
   const state = window.appState;
   const { activeTab } = state;
+  
+  // Add initial mount state to prevent double rendering
+  const [isMounted, setIsMounted] = React.useState(false);
+  
+  React.useEffect(() => {
+    // Small delay to ensure everything is initialized
+    const timer = setTimeout(() => {
+      setIsMounted(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  if (!isMounted) {
+    return React.createElement('div', { 
+      className: 'mobile-content-wrapper flex items-center justify-center min-h-screen' 
+    },
+      React.createElement('div', { className: 'text-center' },
+        React.createElement('div', {
+          className: 'relative w-20 h-20 mx-auto',
+          style: { animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+        },
+          React.createElement('img', {
+            src: 'images/logo.png',
+            alt: 'Loading...',
+            className: 'w-full h-full object-contain',
+            style: {
+              filter: 'drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))',
+              animation: 'float 3s ease-in-out infinite'
+            }
+          })
+        )
+      )
+    );
+  }
 
   // For tabs with mobile views
   const mobileViews = {
