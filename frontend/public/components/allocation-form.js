@@ -220,7 +220,7 @@ window.renderAllocationForm = () => {
 
       React.createElement('form', { onSubmit: handleAllocation },
         // Searchable Lead Selection
-        React.createElement('div', { className: 'mb-6 lead-search-container' },
+        React.createElement('div', { className: 'mb-6 lead-search-container relative' },
           React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' },
             'Search and Select Lead'
           ),
@@ -247,6 +247,65 @@ window.renderAllocationForm = () => {
               className: 'absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none' 
             },
               React.createElement('span', { className: 'text-gray-400' }, '🔍')
+            ),
+            
+            // Dropdown Results - moved inside the relative container
+            (showLeadDropdown && (leadSearch || searching)) && React.createElement('div', { 
+              className: 'absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto' 
+            },
+              searching ? React.createElement('div', { 
+                className: 'p-3 text-center text-gray-500 dark:text-gray-400' 
+              }, 'Searching...') :
+              searchResults.length > 0 ? searchResults.slice(0, 10).map(lead =>
+                React.createElement('div', {
+                  key: lead.id,
+                  onMouseDown: (e) => {
+                    e.preventDefault(); // Prevent blur event
+                    // Store complete lead object and ID
+                    window.allocationFormState.selectedLead = lead;
+                    handleAllocationInputChange('lead_id', lead.id);
+                    setShowLeadDropdown(false);
+                    setLeadSearch('');
+                    // Force re-render to show selected lead
+                    if (window.appState?.forceUpdate) {
+                      window.appState.forceUpdate();
+                    } else if (window.forceUpdate) {
+                      window.forceUpdate();
+                    }
+                  },
+                  className: 'p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-600'
+                },
+                  React.createElement('div', { className: 'flex justify-between items-start' },
+                    React.createElement('div', { className: 'flex-1' },
+                      React.createElement('div', { className: 'font-medium text-gray-900 dark:text-white' },
+                        lead.name
+                      ),
+                      React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' },
+                        `${lead.email || lead.phone || 'No contact'}`
+                      )
+                    ),
+                    React.createElement('div', { className: 'text-right' },
+                      React.createElement('div', { 
+                        className: `text-xs px-2 py-1 rounded-full ${
+                          lead.status === 'converted' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                          lead.status === 'payment_received' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                          lead.status === 'payment_post_service' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                          'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                        }` 
+                      }, lead.status)
+                    )
+                  ),
+                  (lead.event_name || lead.lead_for_event) && React.createElement('div', { 
+                    className: 'mt-1 text-sm text-blue-600 dark:text-blue-400 font-medium' 
+                  },
+                    `🎫 ${lead.event_name || lead.lead_for_event}`
+                  )
+                )
+              ) : React.createElement('div', { 
+                className: 'p-3 text-gray-500 dark:text-gray-400 text-center' 
+              }, 
+                leadSearch.length >= 2 ? 'No leads found matching your search' : 'Type at least 2 characters to search leads'
+              )
             )
           ),
           
@@ -278,65 +337,6 @@ window.renderAllocationForm = () => {
                 },
                 className: 'text-blue-600 hover:text-blue-800 text-sm font-medium'
               }, 'Change')
-            )
-          ),
-          
-          // Dropdown Results
-          (showLeadDropdown && (leadSearch || searching)) && React.createElement('div', { 
-            className: 'absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto' 
-          },
-            searching ? React.createElement('div', { 
-              className: 'p-3 text-center text-gray-500 dark:text-gray-400' 
-            }, 'Searching...') :
-            searchResults.length > 0 ? searchResults.slice(0, 10).map(lead =>
-              React.createElement('div', {
-                key: lead.id,
-                onMouseDown: (e) => {
-                  e.preventDefault(); // Prevent blur event
-                  // Store complete lead object and ID
-                  window.allocationFormState.selectedLead = lead;
-                  handleAllocationInputChange('lead_id', lead.id);
-                  setShowLeadDropdown(false);
-                  setLeadSearch('');
-                  // Force re-render to show selected lead
-                  if (window.appState?.forceUpdate) {
-                    window.appState.forceUpdate();
-                  } else if (window.forceUpdate) {
-                    window.forceUpdate();
-                  }
-                },
-                className: 'p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-600'
-              },
-                React.createElement('div', { className: 'flex justify-between items-start' },
-                  React.createElement('div', { className: 'flex-1' },
-                    React.createElement('div', { className: 'font-medium text-gray-900 dark:text-white' },
-                      lead.name
-                    ),
-                    React.createElement('div', { className: 'text-sm text-gray-600 dark:text-gray-400' },
-                      `${lead.email || lead.phone || 'No contact'}`
-                    )
-                  ),
-                  React.createElement('div', { className: 'text-right' },
-                    React.createElement('div', { 
-                      className: `text-xs px-2 py-1 rounded-full ${
-                        lead.status === 'converted' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                        lead.status === 'payment_received' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                        lead.status === 'payment_post_service' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
-                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                      }` 
-                    }, lead.status)
-                  )
-                ),
-                (lead.event_name || lead.lead_for_event) && React.createElement('div', { 
-                  className: 'mt-1 text-sm text-blue-600 dark:text-blue-400 font-medium' 
-                },
-                  `🎫 ${lead.event_name || lead.lead_for_event}`
-                )
-              )
-            ) : React.createElement('div', { 
-              className: 'p-3 text-gray-500 dark:text-gray-400 text-center' 
-            }, 
-              leadSearch.length >= 2 ? 'No leads found matching your search' : 'Type at least 2 characters to search leads'
             )
           )
         ),
