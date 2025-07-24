@@ -327,7 +327,12 @@ window.renderAllocationForm = () => {
           ),
           React.createElement('select', {
             value: allocationData.category_name || '',
-            onChange: (e) => handleAllocationInputChange('category_name', e.target.value),
+            onChange: (e) => {
+              console.log('Category selection changed:', e.target.value);
+              console.log('Current categories:', currentInventory.categories);
+              console.log('Current allocation data:', allocationData);
+              handleAllocationInputChange('category_name', e.target.value);
+            },
             className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
             required: hasCategories
           },
@@ -434,16 +439,24 @@ window.renderAllocationForm = () => {
 // Enhanced allocation input change handler with throttling
 let allocationInputTimeout;
 window.handleAllocationInputChange = (field, value) => {
+  console.log(`🔍 handleAllocationInputChange called: ${field} = ${value}`);
   clearTimeout(allocationInputTimeout);
   allocationInputTimeout = setTimeout(() => {
+    console.log(`📝 Processing allocation field change: ${field} = ${value}`);
     window.log.debug(`📝 Allocation field changed: ${field} = ${value}`);
     
     if (window.setAllocationData) {
-      window.setAllocationData(prev => ({
-        ...prev,
-        [field]: value
-      }));
+      console.log('Using setAllocationData');
+      window.setAllocationData(prev => {
+        const newData = {
+          ...prev,
+          [field]: value
+        };
+        console.log('New allocation data:', newData);
+        return newData;
+      });
     } else {
+      console.log('Using fallback - updating window.allocationData directly');
       // Fallback: update window globals directly
       window.allocationData = window.allocationData || {};
       window.allocationData[field] = value;
@@ -451,6 +464,12 @@ window.handleAllocationInputChange = (field, value) => {
         window.appState.allocationData = window.allocationData;
       }
       window.log.debug("⚠️ setAllocationData not available, using fallback");
+    }
+    
+    // Force re-render
+    if (window.forceUpdate) {
+      console.log('Forcing update after category change');
+      window.forceUpdate();
     }
   }, 100); // Throttle input changes
 };
