@@ -22,22 +22,25 @@ const DashboardComponent = () => {
     const [chartsInitialized, setChartsInitialized] = React.useState(false);
     
     React.useEffect(() => {
-        console.log('📊 Dashboard mounted, initializing charts...');
-        
-        // Small delay to ensure DOM is ready
-        const initTimer = setTimeout(() => {
-            if (window.fetchChartDataFromAPI && !chartsInitialized) {
-                console.log('📊 Fetching chart data from API...');
-                window.fetchChartDataFromAPI().then(() => {
-                    setChartsInitialized(true);
-                }).catch(error => {
-                    console.error('❌ Error fetching chart data:', error);
-                });
-            }
-        }, 100);
-        
-        return () => clearTimeout(initTimer);
-    }, [chartsInitialized]);
+        // Only initialize if not already initialized
+        if (!chartsInitialized && window.activeTab === 'dashboard') {
+            console.log('📊 Dashboard mounted, initializing charts...');
+            
+            // Small delay to ensure DOM is ready
+            const initTimer = setTimeout(() => {
+                if (window.fetchChartDataFromAPI) {
+                    console.log('📊 Fetching chart data from API...');
+                    window.fetchChartDataFromAPI().then(() => {
+                        setChartsInitialized(true);
+                    }).catch(error => {
+                        console.error('❌ Error fetching chart data:', error);
+                    });
+                }
+            }, 500); // Increased delay to ensure DOM is ready
+            
+            return () => clearTimeout(initTimer);
+        }
+    }, []); // Remove chartsInitialized dependency to prevent re-runs
     
     return React.createElement('div', { className: 'space-y-6' },
         // Dashboard Stats Cards - API DRIVEN
@@ -421,8 +424,16 @@ window.renderDashboardContent = () => {
 // Add debounce mechanism to prevent multiple simultaneous calls
 window._chartDataFetchInProgress = false;
 window._chartDataFetchDebounceTimer = null;
+window._lastChartDataFetch = 0;
 
 window.fetchChartDataFromAPI = async function(forceUpdate = false) {
+    // Prevent calls within 2 seconds of each other
+    const now = Date.now();
+    if (now - window._lastChartDataFetch < 2000 && !forceUpdate) {
+        console.log('📊 Chart data recently fetched, skipping...');
+        return window.apiChartData || null;
+    }
+    
     // Debounce multiple rapid calls
     if (window._chartDataFetchDebounceTimer) {
         clearTimeout(window._chartDataFetchDebounceTimer);
@@ -445,6 +456,7 @@ window.fetchChartDataFromAPI = async function(forceUpdate = false) {
             }
             
             window._chartDataFetchInProgress = true;
+            window._lastChartDataFetch = Date.now();
             console.log('🚀 Fetching chart data from API...');
             
             try {
@@ -807,59 +819,8 @@ window.updateDashboardSummary = function(summary) {
     window.dashboardSummary = summary;
 };
 
-// ===============================================
-// TAB SWITCHING OBSERVER
-// ===============================================
-
-(function() {
-    'use strict';
-    
-    console.log('📊 Initializing tab switching fix for dashboard charts...');
-    
-    // Store the original setActiveTab function
-    const originalSetActiveTab = window.setActiveTab;
-    
-    // Override setActiveTab to handle chart recreation
-    window.setActiveTab = function(tab) {
-        const previousTab = window.activeTab;
-        
-        // Call original function
-        if (originalSetActiveTab) {
-            originalSetActiveTab(tab);
-        }
-        
-        // If switching TO dashboard from another tab
-        if (tab === 'dashboard' && previousTab !== 'dashboard') {
-            console.log('📊 Switching to dashboard tab, scheduling chart refresh...');
-            
-            // Clear any existing chart instances
-            ['leadSplitChart', 'tempCountChart', 'tempValueChart'].forEach(id => {
-                const canvas = document.getElementById(id);
-                if (canvas) {
-                    const chart = Chart.getChart(canvas);
-                    if (chart) {
-                        chart.destroy();
-                    }
-                }
-            });
-            
-            // Schedule chart recreation after tab animation
-            setTimeout(() => {
-                // Double-check we're still on dashboard
-                if (window.activeTab === 'dashboard' && window.fetchChartDataFromAPI) {
-                    console.log('📊 Recreating dashboard charts...');
-                    window.fetchChartDataFromAPI().then(() => {
-                        console.log('✅ Dashboard charts recreated successfully');
-                    }).catch(error => {
-                        console.error('❌ Error recreating charts:', error);
-                    });
-                }
-            }, 300);
-        }
-    };
-    
-    console.log('✅ Tab switching fix initialized');
-})();
+// Tab switching is now handled by the DashboardComponent
+// This prevents duplicate chart initializations
 
 // ===============================================
 // DASHBOARD API INTEGRATION
@@ -870,39 +831,7 @@ window.updateDashboardSummary = function(summary) {
     
     console.log('📊 Dashboard API Integration: Loading...');
     
-    // Initialize dashboard when page loads if dashboard is active
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-            if (window.activeTab === 'dashboard' && window.isLoggedIn) {
-                console.log('📊 Dashboard is active on page load, initializing charts...');
-                if (window.fetchChartDataFromAPI) {
-                    window.fetchChartDataFromAPI();
-                }
-            }
-        }, 1000);
-    });
-    
-    // Ensure dashboard initializes with API data when switching to dashboard tab
-    const originalSetActiveTab = window.setActiveTab;
-    if (originalSetActiveTab) {
-        window.setActiveTab = function(tab) {
-            originalSetActiveTab(tab);
-            
-            if (tab === 'dashboard' && window.isLoggedIn) {
-                console.log('📊 Switched to dashboard tab, fetching API data...');
-                
-                // Add a small delay to ensure DOM is ready
-                setTimeout(async () => {
-                    // Fetch chart data (which includes summary stats)
-                    if (window.fetchChartDataFromAPI) {
-                        await window.fetchChartDataFromAPI();
-                    }
-                }, 300);
-            }
-        };
-    }
-    
-    // Dashboard initialization is now handled by the tab switching logic and component mounting
+    // Dashboard initialization is now handled by the DashboardComponent useEffect
     // This prevents duplicate calls during page load
     
     console.log('✅ Dashboard API Integration loaded');

@@ -32,7 +32,9 @@ window.renderContent = () => {
             return window.renderProformaInvoiceForm();
         }
         
-        if (window.loading && window.activeTab !== 'leads') {
+        // Only show loading if we're actually loading data
+        // Remove the generic loading screen to prevent grey flash
+        if (window.loading && window.activeTab === 'orders' && !window.orders) {
             return React.createElement('div', { className: 'flex items-center justify-center h-64' },
                 React.createElement('div', { className: 'text-gray-500' }, 'Loading...')
             );
