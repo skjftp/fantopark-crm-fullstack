@@ -986,6 +986,10 @@ window.MobileDashboardView = function() {
     const [touchStart, setTouchStart] = React.useState(0);
     const [touchEnd, setTouchEnd] = React.useState(0);
     
+    React.useEffect(() => {
+      console.log('📱 Carousel - Current chart:', currentChart);
+    }, [currentChart]);
+    
     const charts = [
       {
         title: 'Lead Split',
@@ -1033,13 +1037,23 @@ window.MobileDashboardView = function() {
     };
     
     return React.createElement('div', { className: 'mb-6' },
-      // Carousel container
+      // Carousel wrapper
       React.createElement('div', { 
-        className: 'relative overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow border',
-        onTouchStart: handleTouchStart,
-        onTouchMove: handleTouchMove,
-        onTouchEnd: handleTouchEnd
+        className: 'relative bg-white dark:bg-gray-800 rounded-lg shadow border p-4'
       },
+        // Title
+        React.createElement('h3', { 
+          className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4 text-center' 
+        }, 'Dashboard Charts'),
+        
+        // Carousel container
+        React.createElement('div', { 
+          className: 'relative overflow-hidden',
+          style: { height: '320px' },
+          onTouchStart: handleTouchStart,
+          onTouchMove: handleTouchMove,
+          onTouchEnd: handleTouchEnd
+        },
         // Previous arrow
         currentChart > 0 && React.createElement('button', {
           onClick: () => setCurrentChart(currentChart - 1),
@@ -1083,7 +1097,7 @@ window.MobileDashboardView = function() {
         ),
         // Charts container with transform
         React.createElement('div', {
-          className: 'flex transition-transform duration-300 ease-in-out',
+          className: 'flex transition-transform duration-300 ease-in-out h-full',
           style: {
             transform: `translateX(-${currentChart * 100}%)`
           }
@@ -1091,7 +1105,7 @@ window.MobileDashboardView = function() {
           charts.map((chart, index) => 
             React.createElement('div', {
               key: index,
-              className: 'w-full flex-shrink-0 p-3'
+              className: 'w-full flex-shrink-0 p-3 h-full flex items-center justify-center'
             },
               React.createElement(MiniPieChart, {
                 title: chart.title,
@@ -1105,7 +1119,7 @@ window.MobileDashboardView = function() {
         )
       ),
       
-      // Carousel indicators
+      // Carousel indicators - moved inside wrapper
       React.createElement('div', { className: 'flex justify-center mt-4 space-x-2' },
         charts.map((_, index) => 
           React.createElement('button', {
@@ -1119,6 +1133,7 @@ window.MobileDashboardView = function() {
           })
         )
       )
+      ) // Close wrapper div
     );
   };
 
