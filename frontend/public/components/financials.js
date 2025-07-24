@@ -306,10 +306,15 @@ window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financi
                 })(),
                 activeFinancialTab === 'bulkpayment' && (() => {
                     console.log('🔍 Rendering Bulk Payment Upload tab');
-                    return window.BulkPaymentUpload ? window.BulkPaymentUpload() : 
-                        React.createElement('div', { className: 'text-center py-8' }, 
+                    if (window.BulkPaymentUpload) {
+                        return React.createElement('div', {
+                            dangerouslySetInnerHTML: { __html: window.BulkPaymentUpload() }
+                        });
+                    } else {
+                        return React.createElement('div', { className: 'text-center py-8' }, 
                             'Bulk Payment Upload component not loaded'
                         );
+                    }
                 })()
             )
         )

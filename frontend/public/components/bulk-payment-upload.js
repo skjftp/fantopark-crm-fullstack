@@ -538,5 +538,12 @@ window.BulkPaymentUpload = () => {
   };
 
   // Return the initial HTML with container
-  return `<div id="${componentId}">${renderComponent()}</div>`;
+  const html = `<div id="${componentId}">${renderComponent()}</div>`;
+  
+  // Attach event listeners after DOM update
+  setTimeout(() => {
+    attachEventListeners();
+  }, 0);
+  
+  return html;
 };
