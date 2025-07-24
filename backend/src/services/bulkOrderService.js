@@ -137,7 +137,7 @@ class BulkOrderService {
       const gstRate = parseFloat(record.gst_rate) || 18;
 
       // Check if GST applies (not for outside India)
-      const isOutsideIndia = record.is_outside_india === 'true' || record.is_outside_india === true;
+      const isOutsideIndia = record.is_outside_india === 'true' || record.is_outside_india === 'TRUE' || record.is_outside_india === true || record.event_location === 'outside_india';
       const effectiveGstRate = isOutsideIndia ? 0 : gstRate;
       
       // Calculate GST on total (invoice + service fee)
@@ -178,9 +178,18 @@ class BulkOrderService {
         gst_rate: gstRate,
         registered_address: record.registered_address || '',
         state_location: record.state_location || '',
-        is_outside_india: record.is_outside_india === 'true' || record.is_outside_india === true,
+        indian_state: record.state_location || '',  // Payment form expects this field
+        is_outside_india: record.is_outside_india === 'true' || record.is_outside_india === 'TRUE' || record.is_outside_india === true,
         
-        // Invoice items
+        // Invoice items (payment form expects 'invoice_items' not 'items')
+        invoice_items: [{
+          description: record.event_description || record.event_name,
+          quantity: quantity,
+          rate: rate,
+          amount: invoiceTotal,
+          additional_info: record.additional_info || ''
+        }],
+        // Keep items for backward compatibility
         items: [{
           description: record.event_description || record.event_name,
           quantity: quantity,
@@ -231,6 +240,15 @@ class BulkOrderService {
         tax_amount: gstAmount,
         tour_package: record.type_of_sale === 'Tour Package',
         
+        // Payment status
+        payment_status: advanceAmount >= finalAmount ? 'paid' : (advanceAmount > 0 ? 'partial' : 'pending'),
+        
+        // Total amount field
+        total_amount: finalAmount,
+        
+        // Currency fields
+        currency: record.payment_currency || 'INR',
+        
         // Approval tracking
         approval_status: 'pending',
         approved_by: null,
@@ -244,6 +262,16 @@ class BulkOrderService {
         }
         return acc;
       }, {});
+
+      // Debug log
+      console.log('📝 Creating order with data:', {
+        type_of_sale: cleanedOrderData.type_of_sale,
+        payment_status: cleanedOrderData.payment_status,
+        total_amount: cleanedOrderData.total_amount,
+        currency: cleanedOrderData.currency,
+        is_outside_india: cleanedOrderData.is_outside_india,
+        event_location: cleanedOrderData.event_location
+      });
 
       // Create the order
       const orderRef = await db.collection('crm_orders').add(cleanedOrderData);

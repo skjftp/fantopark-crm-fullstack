@@ -987,10 +987,22 @@ const updateOrdersPagination = (orders) => {
     }
     
     // ✅ NEW: Check for existing order and pre-load data
-    const existingOrder = orders.find(order => 
+    // Debug: Find all orders for this lead
+    const allOrdersForLead = orders.filter(order => 
       order.lead_id === lead.id && 
       order.status !== 'rejected'
     );
+    
+    console.log(`📋 Found ${allOrdersForLead.length} orders for lead ${lead.id}:`, allOrdersForLead);
+    
+    // Get the most recent order (highest timestamp or order number)
+    const existingOrder = allOrdersForLead.length > 0 
+      ? allOrdersForLead.reduce((latest, order) => {
+          const latestTime = new Date(latest.created_date || latest.created_at || 0).getTime();
+          const orderTime = new Date(order.created_date || order.created_at || 0).getTime();
+          return orderTime > latestTime ? order : latest;
+        })
+      : null;
 
     let initialPaymentData;
 
