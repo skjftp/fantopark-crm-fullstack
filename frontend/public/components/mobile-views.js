@@ -66,7 +66,7 @@ window.MobileLeadsView = function() {
 
   return React.createElement('div', { className: 'mobile-content-wrapper pb-20' },
     // Search bar with filter toggle
-    React.createElement('div', { className: 'mobile-search-bar' },
+    React.createElement('div', { className: 'bg-white dark:bg-gray-900 p-4 border-b -mx-4 mb-4' },
       React.createElement('div', { className: 'flex gap-2' },
         React.createElement('input', {
           type: 'text',
@@ -414,7 +414,7 @@ window.MobileInventoryView = function() {
 
   return React.createElement('div', { className: 'mobile-content-wrapper' },
     // Search bar with filter toggle
-    React.createElement('div', { className: 'mobile-search-bar' },
+    React.createElement('div', { className: 'bg-white dark:bg-gray-900 p-4 border-b -mx-4 mb-4' },
       React.createElement('div', { className: 'flex gap-2' },
         React.createElement('div', { className: 'relative flex-1' },
           React.createElement('input', {
@@ -690,7 +690,7 @@ window.MobileOrdersView = function() {
     ),
 
     // Search bar with filter toggle
-    React.createElement('div', { className: 'mobile-search-bar' },
+    React.createElement('div', { className: 'bg-white dark:bg-gray-900 p-4 border-b -mx-4 mb-4' },
       React.createElement('div', { className: 'flex gap-2' },
         React.createElement('input', {
           type: 'text',
@@ -1865,7 +1865,7 @@ window.MobileDeliveriesView = function() {
   
   return React.createElement('div', { className: 'mobile-content-wrapper pb-20' },
     // Search bar with filter toggle
-    React.createElement('div', { className: 'mobile-search-bar' },
+    React.createElement('div', { className: 'bg-white dark:bg-gray-900 p-4 border-b -mx-4 mb-4' },
       React.createElement('div', { className: 'flex gap-2' },
         React.createElement('div', { className: 'relative flex-1' },
           React.createElement('input', {
@@ -2269,25 +2269,75 @@ window.MobileFinancialsView = function() {
   }
   
   return React.createElement('div', { className: 'mobile-content-wrapper' },
-    // Sticky header with stats
+    // Header with stats
     React.createElement('div', { 
-      className: 'sticky top-0 bg-white dark:bg-gray-900 z-10'
+      className: 'bg-white dark:bg-gray-900 border-b -mx-4 mb-4'
     },
-      // Financial Stats Summary - single line format
-      React.createElement('div', { className: 'p-3 border-b' },
-        React.createElement('div', { className: 'grid grid-cols-2 gap-2' },
-          [
-            { label: 'Active Sales', value: window.formatCurrency(metrics.totalActiveSales), color: 'text-blue-600' },
-            { label: 'Total Sales', value: window.formatCurrency(metrics.totalSales), color: 'text-green-600' },
-            { label: 'Receivables', value: window.formatCurrency(metrics.totalReceivables), color: 'text-yellow-600' },
-            { label: 'Payables', value: window.formatCurrency(metrics.totalPayables), color: 'text-red-600' }
-          ].map((stat, idx) => 
+      // Financial Stats Summary - 2x2 matrix format
+      React.createElement('div', { className: 'p-4' },
+        React.createElement('div', { 
+          className: 'bg-white dark:bg-gray-800 rounded-xl shadow-xl transform transition-all duration-200 hover:scale-[1.02]',
+          style: {
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 20px 25px -5px rgba(0, 0, 0, 0.05)'
+          }
+        },
+          React.createElement('div', { className: 'p-5' },
+            React.createElement('h3', { 
+              className: 'text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wider' 
+            }, 'Financial Overview'),
+            
+            // 2x2 grid layout
             React.createElement('div', { 
-              key: idx,
-              className: 'bg-gray-50 dark:bg-gray-800 p-2 rounded flex items-center justify-between'
+              style: {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gridTemplateRows: 'repeat(2, 1fr)',
+                gap: '12px',
+                width: '100%',
+                boxSizing: 'border-box'
+              }
             },
-              React.createElement('span', { className: 'text-xs text-gray-500' }, stat.label),
-              React.createElement('span', { className: `text-sm font-bold ${stat.color}` }, stat.value)
+              [
+                { 
+                  label: 'Active Sales', 
+                  value: window.formatCurrency(metrics.totalActiveSales), 
+                  icon: '📊',
+                  bgColor: 'bg-blue-100 dark:bg-blue-900/50'
+                },
+                { 
+                  label: 'Total Sales', 
+                  value: window.formatCurrency(metrics.totalSales), 
+                  icon: '💰',
+                  bgColor: 'bg-green-100 dark:bg-green-900/50'
+                },
+                { 
+                  label: 'Receivables', 
+                  value: window.formatCurrency(metrics.totalReceivables), 
+                  icon: '📥',
+                  bgColor: 'bg-yellow-100 dark:bg-yellow-900/50'
+                },
+                { 
+                  label: 'Payables', 
+                  value: window.formatCurrency(metrics.totalPayables), 
+                  icon: '📤',
+                  bgColor: 'bg-red-100 dark:bg-red-900/50'
+                }
+              ].map((stat, idx) => 
+                React.createElement('div', { 
+                  key: idx,
+                  className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center'
+                },
+                  React.createElement('div', { 
+                    className: `w-10 h-10 ${stat.bgColor} rounded-full mx-auto mb-2 flex items-center justify-center`
+                  },
+                    React.createElement('span', { className: 'text-lg' }, stat.icon)
+                  ),
+                  React.createElement('p', { className: 'text-lg font-bold text-gray-900 dark:text-white' }, 
+                    stat.value
+                  ),
+                  React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, stat.label)
+                )
+              )
             )
           )
         )
@@ -2688,7 +2738,7 @@ window.MobileSalesPerformanceView = function() {
   return React.createElement('div', { className: 'mobile-content-wrapper' },
     // Header with tab switcher
     React.createElement('div', { 
-      className: 'sticky top-0 bg-white dark:bg-gray-900 z-10 pb-3 border-b'
+      className: 'bg-white dark:bg-gray-900 pb-3 border-b -mx-4 px-4 mb-4'
     },
       React.createElement('h2', { 
         className: 'text-lg font-semibold mb-3'
@@ -3230,7 +3280,7 @@ window.MobileMarketingPerformanceView = function() {
   return React.createElement('div', { className: 'mobile-content-wrapper' },
     // Header with date filter
     React.createElement('div', { 
-      className: 'sticky top-0 bg-white dark:bg-gray-900 z-10 border-b'
+      className: 'bg-white dark:bg-gray-900 border-b -mx-4 mb-4'
     },
       React.createElement('div', { className: 'p-4' },
         React.createElement('div', { className: 'flex items-center justify-between mb-3' },
@@ -3652,7 +3702,7 @@ window.MobileStadiumsView = function() {
   return React.createElement('div', { className: 'mobile-content-wrapper' },
     // Search and filter bar
     React.createElement('div', { 
-      className: 'sticky top-0 bg-white dark:bg-gray-900 border-b pb-3 mb-4 -mx-4 px-4 pt-3'
+      className: 'bg-white dark:bg-gray-900 border-b pb-3 mb-4 -mx-4 px-4 pt-3'
     },
       React.createElement('div', { className: 'flex gap-2' },
         React.createElement('input', {
@@ -3837,7 +3887,7 @@ window.MobileSportsCalendarView = function() {
   return React.createElement('div', { className: 'mobile-content-wrapper' },
     // Search and filter bar
     React.createElement('div', { 
-      className: 'sticky top-0 bg-white dark:bg-gray-900 border-b pb-3 mb-4 -mx-4 px-4 pt-3'
+      className: 'bg-white dark:bg-gray-900 border-b pb-3 mb-4 -mx-4 px-4 pt-3'
     },
       React.createElement('div', { className: 'flex justify-between items-center' },
         React.createElement('h2', { 
@@ -4009,7 +4059,7 @@ window.MobileMyActionsView = function() {
   return React.createElement('div', { className: 'mobile-content-wrapper pb-20' },
     // Header
     React.createElement('div', { 
-      className: 'sticky top-0 bg-white dark:bg-gray-900 z-10 pb-3 border-b'
+      className: 'bg-white dark:bg-gray-900 pb-3 border-b -mx-4 px-4 mb-4'
     },
       // Search bar
       React.createElement('div', { className: 'px-4 mb-3' },
