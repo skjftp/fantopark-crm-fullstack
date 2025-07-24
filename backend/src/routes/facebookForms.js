@@ -3,14 +3,14 @@
 const express = require('express');
 const router = express.Router();
 const facebookFormsService = require('../services/facebookFormsService');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 // ==========================================
 // FACEBOOK FORMS API ROUTES
 // ==========================================
 
 // GET /api/facebook-forms - Get all available lead forms
-router.get('/', auth, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     console.log('📋 API: Getting Facebook lead forms...');
     
@@ -39,7 +39,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // GET /api/facebook-forms/search?q=query - Search forms by ID or name
-router.get('/search', auth, async (req, res) => {
+router.get('/search', authenticateToken, async (req, res) => {
   try {
     const query = req.query.q;
     
@@ -74,7 +74,7 @@ router.get('/search', auth, async (req, res) => {
 });
 
 // POST /api/facebook-forms/custom - Add a custom form manually
-router.post('/custom', auth, async (req, res) => {
+router.post('/custom', authenticateToken, async (req, res) => {
   try {
     const { formId, formName } = req.body;
     
@@ -107,7 +107,7 @@ router.post('/custom', auth, async (req, res) => {
 });
 
 // GET /api/facebook-forms/cache/status - Get cache status
-router.get('/cache/status', auth, async (req, res) => {
+router.get('/cache/status', authenticateToken, async (req, res) => {
   try {
     console.log('🔍 API: Getting cache status...');
     
@@ -128,7 +128,7 @@ router.get('/cache/status', auth, async (req, res) => {
 });
 
 // POST /api/facebook-forms/cache/clear - Clear cache manually
-router.post('/cache/clear', auth, async (req, res) => {
+router.post('/cache/clear', authenticateToken, async (req, res) => {
   try {
     console.log('🧹 API: Clearing forms cache...');
     
@@ -151,7 +151,7 @@ router.post('/cache/clear', auth, async (req, res) => {
 });
 
 // GET /api/facebook-forms/test - Test Facebook API connection
-router.get('/test', auth, async (req, res) => {
+router.get('/test', authenticateToken, async (req, res) => {
   try {
     console.log('🧪 API: Testing Facebook API connection...');
     
@@ -183,7 +183,7 @@ router.get('/test', auth, async (req, res) => {
 });
 
 // GET /api/facebook-forms/stats - Get forms statistics
-router.get('/stats', auth, async (req, res) => {
+router.get('/stats', authenticateToken, async (req, res) => {
   try {
     console.log('📊 API: Getting forms statistics...');
     
