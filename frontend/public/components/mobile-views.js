@@ -848,6 +848,7 @@ window.MobileDashboardView = function() {
     }
   });
   const [chartsLoaded, setChartsLoaded] = React.useState(false);
+  const [isInitialLoad, setIsInitialLoad] = React.useState(true);
   const [dashboardFilter, setDashboardFilter] = React.useState('overall');
   const [selectedSalesPerson, setSelectedSalesPerson] = React.useState('');
   const [selectedEvent, setSelectedEvent] = React.useState('');
@@ -898,23 +899,29 @@ window.MobileDashboardView = function() {
             setTimeout(() => {
               setDashboardData(result.data);
               setChartsLoaded(true);
+              setIsInitialLoad(false);
             }, remainingTime);
           } else {
             console.error('📱 Mobile Dashboard: Invalid API response:', result);
             setChartsLoaded(true); // Hide loader on error
+            setIsInitialLoad(false);
           }
         } else {
           console.error('📱 Mobile Dashboard: API request failed:', response.status, response.statusText);
           setChartsLoaded(true); // Hide loader on error
+          setIsInitialLoad(false);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         setChartsLoaded(true); // Hide loader on error
+        setIsInitialLoad(false);
       }
     };
     
-    // Reset loading state when filters change
-    setChartsLoaded(false);
+    // Only reset loading state for filter changes after initial load
+    if (!isInitialLoad) {
+      setChartsLoaded(false);
+    }
     fetchDashboardData();
   }, [dashboardFilter, selectedSalesPerson, selectedEvent]);
   
@@ -1259,13 +1266,22 @@ window.MobileDashboardView = function() {
       },
         // Show loader when loading
         isLoading && React.createElement('div', {
-          className: 'absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg',
-          style: { width: '100%', height: '100%', zIndex: 20 }
+          className: 'absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800',
+          style: { 
+            width: '240px', 
+            height: '240px', 
+            zIndex: 20,
+            top: 0,
+            left: 0
+          }
         },
-          React.createElement('div', { className: 'text-center' },
+          React.createElement('div', { 
+            className: 'flex flex-col items-center justify-center',
+            style: { marginTop: '-20px' } // Adjust for visual center
+          },
             // Animated logo loader with different colors based on title
             React.createElement('div', {
-              className: 'relative w-20 h-20 mx-auto mb-3',
+              className: 'relative w-16 h-16 mb-3',
               style: {
                 animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                 animationDelay: title === 'Lead Temperature Count' ? '0.5s' : 
@@ -1368,6 +1384,35 @@ window.MobileDashboardView = function() {
   // Get user's first name
   const firstName = window.user?.name?.split(' ')[0] || window.user?.email?.split('@')[0] || 'there';
   
+  // Show initial loader for entire dashboard
+  if (isInitialLoad && !chartsLoaded) {
+    return React.createElement('div', { className: 'mobile-content-wrapper' },
+      React.createElement('div', { 
+        className: 'flex items-center justify-center min-h-[400px]' 
+      },
+        React.createElement('div', { className: 'text-center' },
+          React.createElement('div', {
+            className: 'relative w-24 h-24 mx-auto mb-4',
+            style: { animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+          },
+            React.createElement('img', {
+              src: 'images/logo.png',
+              alt: 'Loading...',
+              className: 'w-full h-full object-contain',
+              style: {
+                filter: 'drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))',
+                animation: 'float 3s ease-in-out infinite'
+              }
+            })
+          ),
+          React.createElement('p', { 
+            className: 'text-sm text-gray-500 dark:text-gray-400' 
+          }, 'Loading dashboard...')
+        )
+      )
+    );
+  }
+
   return React.createElement('div', { className: 'mobile-content-wrapper' },
     // Greeting section
     React.createElement('div', { className: 'bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-lg shadow-lg mb-6' },
