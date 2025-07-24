@@ -1,10 +1,22 @@
 // Bulk Payment Upload Component for FanToPark CRM
 // Handles CSV upload for bulk payment processing
-// Version: 1.1 - Fixed React hooks error
+// Version: 1.2 - Fixed React hooks error with fallback
 
 window.BulkPaymentUpload = () => {
-  console.log('🔄 BulkPaymentUpload v1.1 - Using window.React');
-  const [state, setState] = window.React.useState({
+  console.log('🔄 BulkPaymentUpload v1.2 - Checking React availability');
+  
+  // Ensure React is available
+  const React = window.React || window.react;
+  if (!React || !React.useState) {
+    console.error('React not found or useState not available');
+    return React.createElement('div', { className: 'p-6 text-center' },
+      React.createElement('p', { className: 'text-red-500' }, 
+        'Bulk Payment Upload component is loading... Please refresh the page.'
+      )
+    );
+  }
+  
+  const [state, setState] = React.useState({
     file: null,
     uploading: false,
     validating: false,
@@ -225,44 +237,44 @@ window.BulkPaymentUpload = () => {
     }).format(amount);
   };
 
-  return window.React.createElement('div', { className: 'p-6' },
+  return React.createElement('div', { className: 'p-6' },
     // Header
-    window.React.createElement('div', { className: 'mb-6' },
-      window.React.createElement('h2', { className: 'text-2xl font-bold text-gray-800 mb-2' }, 
+    React.createElement('div', { className: 'mb-6' },
+      React.createElement('h2', { className: 'text-2xl font-bold text-gray-800 mb-2' }, 
         '💳 Bulk Payment Upload'
       ),
-      window.React.createElement('p', { className: 'text-gray-600' },
+      React.createElement('p', { className: 'text-gray-600' },
         'Upload CSV files to process multiple payment records at once'
       )
     ),
 
     // Action buttons
-    window.React.createElement('div', { className: 'flex flex-wrap gap-4 mb-6' },
-      window.React.createElement('button', {
+    React.createElement('div', { className: 'flex flex-wrap gap-4 mb-6' },
+      React.createElement('button', {
         onClick: downloadTemplate,
         className: 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2'
       },
-        window.React.createElement('i', { className: 'fas fa-download' }),
+        React.createElement('i', { className: 'fas fa-download' }),
         'Download Template'
       ),
-      window.React.createElement('button', {
+      React.createElement('button', {
         onClick: fetchHistory,
         className: 'px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center gap-2'
       },
-        window.React.createElement('i', { className: 'fas fa-history' }),
+        React.createElement('i', { className: 'fas fa-history' }),
         'Upload History'
       ),
-      window.React.createElement('button', {
+      React.createElement('button', {
         onClick: fetchSampleData,
         className: 'px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2'
       },
-        window.React.createElement('i', { className: 'fas fa-database' }),
+        React.createElement('i', { className: 'fas fa-database' }),
         'Get Sample Lead IDs'
       )
     ),
 
     // Upload area
-    window.React.createElement('div', {
+    React.createElement('div', {
       className: `border-2 border-dashed rounded-lg p-8 text-center ${
         state.dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
       }`,
@@ -271,97 +283,97 @@ window.BulkPaymentUpload = () => {
       onDragOver: handleDrag,
       onDrop: handleDrop
     },
-      window.React.createElement('div', { className: 'mb-4' },
-        window.React.createElement('i', { 
+      React.createElement('div', { className: 'mb-4' },
+        React.createElement('i', { 
           className: 'fas fa-cloud-upload-alt text-6xl text-gray-400' 
         })
       ),
-      window.React.createElement('p', { className: 'text-gray-600 mb-4' },
+      React.createElement('p', { className: 'text-gray-600 mb-4' },
         state.file 
           ? `Selected: ${state.file.name}` 
           : 'Drag and drop your CSV file here, or click to browse'
       ),
-      window.React.createElement('input', {
+      React.createElement('input', {
         type: 'file',
         accept: '.csv',
         onChange: (e) => handleFileSelect(e.target.files[0]),
         className: 'hidden',
         id: 'file-upload'
       }),
-      window.React.createElement('label', {
+      React.createElement('label', {
         htmlFor: 'file-upload',
         className: 'px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer inline-block'
       }, 'Choose File')
     ),
 
     // File actions
-    state.file && window.React.createElement('div', { className: 'mt-6 flex gap-4 justify-center' },
-      window.React.createElement('button', {
+    state.file && React.createElement('div', { className: 'mt-6 flex gap-4 justify-center' },
+      React.createElement('button', {
         onClick: validateFile,
         disabled: state.validating || state.uploading,
         className: 'px-6 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50 flex items-center gap-2'
       },
-        state.validating && window.React.createElement('i', { className: 'fas fa-spinner fa-spin' }),
+        state.validating && React.createElement('i', { className: 'fas fa-spinner fa-spin' }),
         'Validate'
       ),
-      window.React.createElement('button', {
+      React.createElement('button', {
         onClick: uploadFile,
         disabled: state.uploading || state.validating,
         className: 'px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center gap-2'
       },
-        state.uploading && window.React.createElement('i', { className: 'fas fa-spinner fa-spin' }),
+        state.uploading && React.createElement('i', { className: 'fas fa-spinner fa-spin' }),
         'Upload & Process'
       )
     ),
 
     // Error display
-    state.error && window.React.createElement('div', {
+    state.error && React.createElement('div', {
       className: 'mt-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-700'
     }, state.error),
 
     // Validation results
-    state.results?.type === 'validation' && window.React.createElement('div', { className: 'mt-6' },
-      window.React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Validation Results'),
-      window.React.createElement('div', { className: 'grid grid-cols-3 gap-4 mb-4' },
-        window.React.createElement('div', { className: 'bg-gray-50 p-4 rounded' },
-          window.React.createElement('div', { className: 'text-2xl font-bold text-gray-800' }, 
+    state.results?.type === 'validation' && React.createElement('div', { className: 'mt-6' },
+      React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Validation Results'),
+      React.createElement('div', { className: 'grid grid-cols-3 gap-4 mb-4' },
+        React.createElement('div', { className: 'bg-gray-50 p-4 rounded' },
+          React.createElement('div', { className: 'text-2xl font-bold text-gray-800' }, 
             state.results.validation.summary.total
           ),
-          window.React.createElement('div', { className: 'text-sm text-gray-600' }, 'Total Rows')
+          React.createElement('div', { className: 'text-sm text-gray-600' }, 'Total Rows')
         ),
-        window.React.createElement('div', { className: 'bg-green-50 p-4 rounded' },
-          window.React.createElement('div', { className: 'text-2xl font-bold text-green-600' }, 
+        React.createElement('div', { className: 'bg-green-50 p-4 rounded' },
+          React.createElement('div', { className: 'text-2xl font-bold text-green-600' }, 
             state.results.validation.summary.valid
           ),
-          window.React.createElement('div', { className: 'text-sm text-gray-600' }, 'Valid')
+          React.createElement('div', { className: 'text-sm text-gray-600' }, 'Valid')
         ),
-        window.React.createElement('div', { className: 'bg-red-50 p-4 rounded' },
-          window.React.createElement('div', { className: 'text-2xl font-bold text-red-600' }, 
+        React.createElement('div', { className: 'bg-red-50 p-4 rounded' },
+          React.createElement('div', { className: 'text-2xl font-bold text-red-600' }, 
             state.results.validation.summary.invalid
           ),
-          window.React.createElement('div', { className: 'text-sm text-gray-600' }, 'Invalid')
+          React.createElement('div', { className: 'text-sm text-gray-600' }, 'Invalid')
         )
       ),
       
       // Show errors if any
       state.results.validation.validationResults
         .filter(r => !r.isValid)
-        .length > 0 && window.React.createElement('div', { className: 'mt-4' },
-        window.React.createElement('h4', { className: 'font-medium mb-2' }, 'Validation Errors:'),
-        window.React.createElement('div', { className: 'space-y-2 max-h-60 overflow-y-auto' },
+        .length > 0 && React.createElement('div', { className: 'mt-4' },
+        React.createElement('h4', { className: 'font-medium mb-2' }, 'Validation Errors:'),
+        React.createElement('div', { className: 'space-y-2 max-h-60 overflow-y-auto' },
           state.results.validation.validationResults
             .filter(r => !r.isValid)
             .map((result, idx) => 
-              window.React.createElement('div', {
+              React.createElement('div', {
                 key: idx,
                 className: 'p-2 bg-red-50 border border-red-200 rounded text-sm'
               },
-                window.React.createElement('div', { className: 'font-medium' }, 
+                React.createElement('div', { className: 'font-medium' }, 
                   `Row ${result.row}: Lead ID ${result.lead_id || 'Missing'}`
                 ),
-                window.React.createElement('ul', { className: 'text-red-600 mt-1' },
+                React.createElement('ul', { className: 'text-red-600 mt-1' },
                   result.errors.map((error, i) => 
-                    window.React.createElement('li', { key: i }, `• ${error}`)
+                    React.createElement('li', { key: i }, `• ${error}`)
                   )
                 )
               )
@@ -371,50 +383,50 @@ window.BulkPaymentUpload = () => {
     ),
 
     // Upload results
-    state.results?.type === 'upload' && window.React.createElement('div', { className: 'mt-6' },
-      window.React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Upload Results'),
-      window.React.createElement('div', { className: 'grid grid-cols-4 gap-4 mb-4' },
-        window.React.createElement('div', { className: 'bg-gray-50 p-4 rounded' },
-          window.React.createElement('div', { className: 'text-2xl font-bold text-gray-800' }, 
+    state.results?.type === 'upload' && React.createElement('div', { className: 'mt-6' },
+      React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Upload Results'),
+      React.createElement('div', { className: 'grid grid-cols-4 gap-4 mb-4' },
+        React.createElement('div', { className: 'bg-gray-50 p-4 rounded' },
+          React.createElement('div', { className: 'text-2xl font-bold text-gray-800' }, 
             state.results.upload.results.summary.total
           ),
-          window.React.createElement('div', { className: 'text-sm text-gray-600' }, 'Total Processed')
+          React.createElement('div', { className: 'text-sm text-gray-600' }, 'Total Processed')
         ),
-        window.React.createElement('div', { className: 'bg-green-50 p-4 rounded' },
-          window.React.createElement('div', { className: 'text-2xl font-bold text-green-600' }, 
+        React.createElement('div', { className: 'bg-green-50 p-4 rounded' },
+          React.createElement('div', { className: 'text-2xl font-bold text-green-600' }, 
             state.results.upload.results.summary.success
           ),
-          window.React.createElement('div', { className: 'text-sm text-gray-600' }, 'Successful')
+          React.createElement('div', { className: 'text-sm text-gray-600' }, 'Successful')
         ),
-        window.React.createElement('div', { className: 'bg-blue-50 p-4 rounded' },
-          window.React.createElement('div', { className: 'text-2xl font-bold text-blue-600' }, 
+        React.createElement('div', { className: 'bg-blue-50 p-4 rounded' },
+          React.createElement('div', { className: 'text-2xl font-bold text-blue-600' }, 
             state.results.upload.results.summary.ordersCreated
           ),
-          window.React.createElement('div', { className: 'text-sm text-gray-600' }, 'Orders Created')
+          React.createElement('div', { className: 'text-sm text-gray-600' }, 'Orders Created')
         ),
-        window.React.createElement('div', { className: 'bg-indigo-50 p-4 rounded' },
-          window.React.createElement('div', { className: 'text-xl font-bold text-indigo-600' }, 
+        React.createElement('div', { className: 'bg-indigo-50 p-4 rounded' },
+          React.createElement('div', { className: 'text-xl font-bold text-indigo-600' }, 
             formatCurrency(state.results.upload.results.summary.totalAmount)
           ),
-          window.React.createElement('div', { className: 'text-sm text-gray-600' }, 'Total Amount')
+          React.createElement('div', { className: 'text-sm text-gray-600' }, 'Total Amount')
         )
       ),
 
       // Failed records
-      state.results.upload.results.failed.length > 0 && window.React.createElement('div', { className: 'mt-4' },
-        window.React.createElement('h4', { className: 'font-medium mb-2 text-red-600' }, 
+      state.results.upload.results.failed.length > 0 && React.createElement('div', { className: 'mt-4' },
+        React.createElement('h4', { className: 'font-medium mb-2 text-red-600' }, 
           `Failed Records (${state.results.upload.results.failed.length})`
         ),
-        window.React.createElement('div', { className: 'space-y-2 max-h-40 overflow-y-auto' },
+        React.createElement('div', { className: 'space-y-2 max-h-40 overflow-y-auto' },
           state.results.upload.results.failed.map((failure, idx) => 
-            window.React.createElement('div', {
+            React.createElement('div', {
               key: idx,
               className: 'p-2 bg-red-50 border border-red-200 rounded text-sm'
             },
-              window.React.createElement('span', { className: 'font-medium' }, 
+              React.createElement('span', { className: 'font-medium' }, 
                 `Row ${failure.row}: ${failure.lead_id} - `
               ),
-              window.React.createElement('span', { className: 'text-red-600' }, 
+              React.createElement('span', { className: 'text-red-600' }, 
                 failure.errors.join(', ')
               )
             )
@@ -424,40 +436,40 @@ window.BulkPaymentUpload = () => {
     ),
 
     // Upload history modal
-    state.showHistory && window.React.createElement('div', {
+    state.showHistory && React.createElement('div', {
       className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
       onClick: () => setState(prev => ({ ...prev, showHistory: false }))
     },
-      window.React.createElement('div', {
+      React.createElement('div', {
         className: 'bg-white rounded-lg p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto',
         onClick: (e) => e.stopPropagation()
       },
-        window.React.createElement('h3', { className: 'text-xl font-bold mb-4' }, 'Upload History'),
-        window.React.createElement('div', { className: 'space-y-3' },
+        React.createElement('h3', { className: 'text-xl font-bold mb-4' }, 'Upload History'),
+        React.createElement('div', { className: 'space-y-3' },
           state.uploadHistory.map((upload, idx) => 
-            window.React.createElement('div', {
+            React.createElement('div', {
               key: idx,
               className: 'border rounded-lg p-4 hover:bg-gray-50'
             },
-              window.React.createElement('div', { className: 'flex justify-between items-start' },
-                window.React.createElement('div', null,
-                  window.React.createElement('div', { className: 'font-medium' }, upload.filename),
-                  window.React.createElement('div', { className: 'text-sm text-gray-600' }, 
+              React.createElement('div', { className: 'flex justify-between items-start' },
+                React.createElement('div', null,
+                  React.createElement('div', { className: 'font-medium' }, upload.filename),
+                  React.createElement('div', { className: 'text-sm text-gray-600' }, 
                     `Uploaded by ${upload.uploaded_by} on ${new Date(upload.created_at).toLocaleString()}`
                   ),
-                  window.React.createElement('div', { className: 'flex gap-4 mt-2 text-sm' },
-                    window.React.createElement('span', { className: 'text-green-600' }, 
+                  React.createElement('div', { className: 'flex gap-4 mt-2 text-sm' },
+                    React.createElement('span', { className: 'text-green-600' }, 
                       `✓ ${upload.results.success} successful`
                     ),
-                    upload.results.failed > 0 && window.React.createElement('span', { className: 'text-red-600' }, 
+                    upload.results.failed > 0 && React.createElement('span', { className: 'text-red-600' }, 
                       `✗ ${upload.results.failed} failed`
                     ),
-                    window.React.createElement('span', { className: 'text-blue-600' }, 
+                    React.createElement('span', { className: 'text-blue-600' }, 
                       `Total: ${formatCurrency(upload.results.totalAmount || 0)}`
                     )
                   )
                 ),
-                window.React.createElement('span', {
+                React.createElement('span', {
                   className: `px-3 py-1 rounded-full text-xs ${
                     upload.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                   }`
@@ -466,7 +478,7 @@ window.BulkPaymentUpload = () => {
             )
           )
         ),
-        window.React.createElement('button', {
+        React.createElement('button', {
           onClick: () => setState(prev => ({ ...prev, showHistory: false })),
           className: 'mt-4 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700'
         }, 'Close')
@@ -474,41 +486,41 @@ window.BulkPaymentUpload = () => {
     ),
 
     // Sample data modal
-    state.sampleData && window.React.createElement('div', {
+    state.sampleData && React.createElement('div', {
       className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50',
       onClick: () => setState(prev => ({ ...prev, sampleData: null }))
     },
-      window.React.createElement('div', {
+      React.createElement('div', {
         className: 'bg-white rounded-lg p-6 max-w-3xl w-full max-h-[80vh] overflow-y-auto',
         onClick: (e) => e.stopPropagation()
       },
-        window.React.createElement('h3', { className: 'text-xl font-bold mb-4' }, 'Sample Lead IDs for Testing'),
-        window.React.createElement('p', { className: 'text-gray-600 mb-4' }, 
+        React.createElement('h3', { className: 'text-xl font-bold mb-4' }, 'Sample Lead IDs for Testing'),
+        React.createElement('p', { className: 'text-gray-600 mb-4' }, 
           'Use these lead IDs in your CSV file for testing the bulk payment upload:'
         ),
-        window.React.createElement('table', { className: 'w-full border-collapse' },
-          window.React.createElement('thead', null,
-            window.React.createElement('tr', { className: 'bg-gray-50' },
-              window.React.createElement('th', { className: 'border px-4 py-2 text-left' }, 'Lead ID'),
-              window.React.createElement('th', { className: 'border px-4 py-2 text-left' }, 'Name'),
-              window.React.createElement('th', { className: 'border px-4 py-2 text-left' }, 'Email'),
-              window.React.createElement('th', { className: 'border px-4 py-2 text-left' }, 'Phone'),
-              window.React.createElement('th', { className: 'border px-4 py-2 text-left' }, 'Event'),
-              window.React.createElement('th', { className: 'border px-4 py-2 text-left' }, 'Status')
+        React.createElement('table', { className: 'w-full border-collapse' },
+          React.createElement('thead', null,
+            React.createElement('tr', { className: 'bg-gray-50' },
+              React.createElement('th', { className: 'border px-4 py-2 text-left' }, 'Lead ID'),
+              React.createElement('th', { className: 'border px-4 py-2 text-left' }, 'Name'),
+              React.createElement('th', { className: 'border px-4 py-2 text-left' }, 'Email'),
+              React.createElement('th', { className: 'border px-4 py-2 text-left' }, 'Phone'),
+              React.createElement('th', { className: 'border px-4 py-2 text-left' }, 'Event'),
+              React.createElement('th', { className: 'border px-4 py-2 text-left' }, 'Status')
             )
           ),
-          window.React.createElement('tbody', null,
+          React.createElement('tbody', null,
             state.sampleData.map((lead, idx) => 
-              window.React.createElement('tr', { key: idx, className: 'hover:bg-gray-50' },
-                window.React.createElement('td', { className: 'border px-4 py-2 font-mono text-sm' }, 
+              React.createElement('tr', { key: idx, className: 'hover:bg-gray-50' },
+                React.createElement('td', { className: 'border px-4 py-2 font-mono text-sm' }, 
                   lead.lead_id
                 ),
-                window.React.createElement('td', { className: 'border px-4 py-2' }, lead.lead_name),
-                window.React.createElement('td', { className: 'border px-4 py-2' }, lead.lead_email),
-                window.React.createElement('td', { className: 'border px-4 py-2' }, lead.lead_phone),
-                window.React.createElement('td', { className: 'border px-4 py-2' }, lead.event_name),
-                window.React.createElement('td', { className: 'border px-4 py-2' },
-                  window.React.createElement('span', {
+                React.createElement('td', { className: 'border px-4 py-2' }, lead.lead_name),
+                React.createElement('td', { className: 'border px-4 py-2' }, lead.lead_email),
+                React.createElement('td', { className: 'border px-4 py-2' }, lead.lead_phone),
+                React.createElement('td', { className: 'border px-4 py-2' }, lead.event_name),
+                React.createElement('td', { className: 'border px-4 py-2' },
+                  React.createElement('span', {
                     className: 'px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800'
                   }, lead.status)
                 )
@@ -516,7 +528,7 @@ window.BulkPaymentUpload = () => {
             )
           )
         ),
-        window.React.createElement('button', {
+        React.createElement('button', {
           onClick: () => setState(prev => ({ ...prev, sampleData: null })),
           className: 'mt-4 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700'
         }, 'Close')
