@@ -1054,8 +1054,8 @@ window.MobileDashboardView = function() {
         
         // Carousel container
         React.createElement('div', { 
-          className: 'relative overflow-hidden mx-12', // Add margin for arrows
-          style: { height: '320px' },
+          className: 'relative overflow-hidden',
+          style: { height: '320px', width: '100%' },
           onTouchStart: handleTouchStart,
           onTouchMove: handleTouchMove,
           onTouchEnd: handleTouchEnd
@@ -1063,7 +1063,7 @@ window.MobileDashboardView = function() {
           // Previous arrow
           currentChart > 0 && React.createElement('button', {
             onClick: () => setCurrentChart(currentChart - 1),
-            className: 'absolute -left-10 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow',
+            className: 'absolute left-2 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow',
             'aria-label': 'Previous chart'
           },
           React.createElement('svg', {
@@ -1084,7 +1084,7 @@ window.MobileDashboardView = function() {
           // Next arrow
           currentChart < charts.length - 1 && React.createElement('button', {
             onClick: () => setCurrentChart(currentChart + 1),
-            className: 'absolute -right-10 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow',
+            className: 'absolute right-2 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow',
             'aria-label': 'Next chart'
           },
           React.createElement('svg', {
@@ -1101,18 +1101,26 @@ window.MobileDashboardView = function() {
             })
           )
         ),
-          // Chart container - render only current chart with fade transition
+          // Charts container with transform
           React.createElement('div', {
-            className: 'h-full flex items-center justify-center p-3',
-            key: currentChart // Force re-render on change
+            className: 'flex transition-transform duration-300 ease-in-out h-full',
+            style: {
+              transform: `translateX(-${currentChart * 100}%)`
+            }
           },
-            charts[currentChart] && React.createElement(MiniPieChart, {
-              title: charts[currentChart].title,
-              data: charts[currentChart].data,
-              labels: charts[currentChart].labels,
-              colors: charts[currentChart].colors,
-              isLoading: !chartsLoaded
-            })
+            charts.map((chart, index) => 
+              React.createElement('div', {
+                key: index,
+                className: 'w-full flex-shrink-0 p-3 h-full flex items-center justify-center'
+              },
+              React.createElement(MiniPieChart, {
+                title: chart.title,
+                data: chart.data,
+                labels: chart.labels,
+                colors: chart.colors,
+                isLoading: !chartsLoaded
+              })
+            )
           )
         )
       ),
