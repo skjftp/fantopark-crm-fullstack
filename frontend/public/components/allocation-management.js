@@ -190,14 +190,15 @@ window.exportAllocationsToCSV = (allocations, inventoryName, hasCategories) => {
       return sum + ((a.tickets_allocated || 0) * price);
     }, 0).toLocaleString()}\n`;
 
-    // Category-wise summary if applicable
+    // Category-wise summary if applicable with unique category+section combinations
     if (hasCategories && window.allocationManagementInventory?.categories) {
       csvContent += '\nCATEGORY-WISE BREAKDOWN\n';
-      csvContent += 'Category,Total Tickets,Available,Allocated\n';
+      csvContent += 'Category - Section,Total Tickets,Available,Allocated\n';
       
       const categoryStats = {};
       window.allocationManagementInventory.categories.forEach(cat => {
-        categoryStats[cat.name] = {
+        const uniqueKey = `${cat.name}${cat.section ? ' - ' + cat.section : ''}`;
+        categoryStats[uniqueKey] = {
           total: cat.total_tickets || 0,
           available: cat.available_tickets || 0,
           allocated: 0
@@ -205,8 +206,24 @@ window.exportAllocationsToCSV = (allocations, inventoryName, hasCategories) => {
       });
 
       allocations.forEach(a => {
-        if (a.category_name && categoryStats[a.category_name]) {
-          categoryStats[a.category_name].allocated += (a.tickets_allocated || 0);
+        if (a.category_name) {
+          // Get section info for this allocation
+          let sectionInfo = '';
+          if (a.category_section) {
+            sectionInfo = a.category_section;
+          } else if (a.category_details && a.category_details.section) {
+            sectionInfo = a.category_details.section;
+          } else {
+            const category = window.allocationManagementInventory.categories.find(cat => cat.name === a.category_name);
+            if (category && category.section) {
+              sectionInfo = category.section;
+            }
+          }
+          
+          const uniqueKey = `${a.category_name}${sectionInfo ? ' - ' + sectionInfo : ''}`;
+          if (categoryStats[uniqueKey]) {
+            categoryStats[uniqueKey].allocated += (a.tickets_allocated || 0);
+          }
         }
       });
 
@@ -290,12 +307,15 @@ window.renderAllocationManagement = () => {
   console.log("🔍 Inventory has categories:", hasCategories);
   console.log("🔍 Inventory categories:", allocationManagementInventory?.categories);
 
-  // NEW: Calculate category-wise allocation summary
+  // NEW: Calculate category-wise allocation summary with unique category+section combinations
   const categoryAllocationSummary = {};
   if (hasCategories) {
-    // Initialize summary for each category
+    // Initialize summary for each unique category+section combination
     allocationManagementInventory.categories.forEach(cat => {
-      categoryAllocationSummary[cat.name] = {
+      const uniqueKey = `${cat.name}${cat.section ? ' - ' + cat.section : ''}`;
+      categoryAllocationSummary[uniqueKey] = {
+        categoryName: cat.name,
+        section: cat.section || '',
         totalTickets: cat.total_tickets || 0,
         originalAvailable: cat.available_tickets || 0,
         allocated: 0,
@@ -303,12 +323,28 @@ window.renderAllocationManagement = () => {
       };
     });
 
-    // Count allocations per category
+    // Count allocations per unique category+section combination
     currentAllocations.forEach(allocation => {
       const categoryName = allocation.category_name || allocation.category_of_ticket || 'General';
-      if (categoryAllocationSummary[categoryName]) {
-        categoryAllocationSummary[categoryName].allocated += (allocation.tickets_allocated || 0);
-        categoryAllocationSummary[categoryName].allocations.push(allocation);
+      
+      // Get section info for this allocation
+      let sectionInfo = '';
+      if (allocation.category_section) {
+        sectionInfo = allocation.category_section;
+      } else if (allocation.category_details && allocation.category_details.section) {
+        sectionInfo = allocation.category_details.section;
+      } else if (allocation.category_name) {
+        const category = allocationManagementInventory.categories.find(cat => cat.name === allocation.category_name);
+        if (category && category.section) {
+          sectionInfo = category.section;
+        }
+      }
+      
+      const uniqueKey = `${categoryName}${sectionInfo ? ' - ' + sectionInfo : ''}`;
+      
+      if (categoryAllocationSummary[uniqueKey]) {
+        categoryAllocationSummary[uniqueKey].allocated += (allocation.tickets_allocated || 0);
+        categoryAllocationSummary[uniqueKey].allocations.push(allocation);
       }
     });
   }
