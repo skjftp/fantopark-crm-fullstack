@@ -194,43 +194,43 @@ window.MobileMoreMenu = function() {
       id: 'orders',
       label: 'Orders',
       icon: '🎫',
-      show: true // Always show for now
+      show: window.hasPermission('orders', 'read')
     },
     {
       id: 'delivery',
       label: 'Deliveries',
       icon: '🚚',
-      show: window.hasPermission('deliveries', 'view')
+      show: window.hasPermission('delivery', 'read')
     },
     {
       id: 'financials',
       label: 'Financials',
       icon: '💰',
-      show: window.hasPermission('finance', 'view')
+      show: window.hasPermission('finance', 'read')
     },
     {
       id: 'sales-performance',
       label: 'Sales Performance',
       icon: '📊',
-      show: window.hasPermission('reports', 'view')
+      show: window.hasPermission('finance', 'read')
     },
     {
       id: 'marketing-performance',
       label: 'Marketing Performance',
       icon: '📈',
-      show: window.hasPermission('reports', 'view')
+      show: window.hasPermission('finance', 'read')
     },
     {
       id: 'stadiums',
       label: 'Stadiums',
       icon: '🏟️',
-      show: window.hasPermission('stadiums', 'view')
+      show: window.hasPermission('stadiums', 'read')
     },
     {
       id: 'sports-calendar',
       label: 'Sports Calendar',
       icon: '📅',
-      show: window.hasPermission('events', 'view')
+      show: true // Sports calendar is typically available to all
     },
     {
       id: 'assignment-rules',
@@ -242,7 +242,7 @@ window.MobileMoreMenu = function() {
       id: 'reminders',
       label: 'Reminders',
       icon: '🔔',
-      show: window.hasPermission('reminders', 'view')
+      show: window.hasPermission('leads', 'read')
     },
     {
       divider: true
