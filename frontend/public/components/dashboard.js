@@ -17,6 +17,27 @@ window._dashboardChartInstances = {
 // ===============================================
 
 window.renderDashboardContent = () => {
+    // Use React hooks to manage chart initialization
+    const [chartsInitialized, setChartsInitialized] = React.useState(false);
+    
+    React.useEffect(() => {
+        console.log('📊 Dashboard mounted, initializing charts...');
+        
+        // Small delay to ensure DOM is ready
+        const initTimer = setTimeout(() => {
+            if (window.fetchChartDataFromAPI && !chartsInitialized) {
+                console.log('📊 Fetching chart data from API...');
+                window.fetchChartDataFromAPI().then(() => {
+                    setChartsInitialized(true);
+                }).catch(error => {
+                    console.error('❌ Error fetching chart data:', error);
+                });
+            }
+        }, 100);
+        
+        return () => clearTimeout(initTimer);
+    }, [chartsInitialized]);
+    
     return React.createElement('div', { className: 'space-y-6' },
         // Dashboard Stats Cards - API DRIVEN
         React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-6 mb-6' },
@@ -595,19 +616,43 @@ window.updateChartsFromAPIData = function(apiData) {
     
     // Delay to ensure DOM is ready with retry mechanism
     const attemptChartCreation = (retryCount = 0) => {
-        const maxRetries = 3;
-        const delay = 200 * (retryCount + 1); // Increasing delay: 200ms, 400ms, 600ms
+        const maxRetries = 5;
+        const delay = 300 * (retryCount + 1); // Increasing delay: 300ms, 600ms, 900ms
         
         setTimeout(() => {
             console.log(`📊 Attempting chart creation (attempt ${retryCount + 1}/${maxRetries + 1})`);
+            
+            // Check if Chart.js is loaded
+            if (typeof Chart === 'undefined') {
+                console.error('❌ Chart.js is not loaded!');
+                if (retryCount < maxRetries) {
+                    attemptChartCreation(retryCount + 1);
+                }
+                return;
+            }
             
             // Check if any canvas elements exist
             const canvasElements = document.querySelectorAll('#leadSplitChart, #tempCountChart, #tempValueChart');
             console.log(`📊 Found ${canvasElements.length}/3 canvas elements`);
             
+            // Log the actual DOM structure for debugging
+            const dashboardEl = document.querySelector('[data-active-tab="dashboard"]');
+            console.log('📊 Dashboard element found:', !!dashboardEl);
+            
             if (canvasElements.length === 0 && retryCount < maxRetries) {
-                console.log(`⏳ No canvas elements found, retrying in ${200 * (retryCount + 2)}ms...`);
+                console.log(`⏳ No canvas elements found, retrying in ${300 * (retryCount + 2)}ms...`);
                 attemptChartCreation(retryCount + 1);
+                return;
+            } else if (canvasElements.length === 0 && retryCount >= maxRetries) {
+                console.error('❌ Failed to find canvas elements after all retries');
+                // Hide all loaders as final fallback
+                ['leadSplitLoader', 'tempCountLoader', 'tempValueLoader'].forEach(loaderId => {
+                    const loader = document.getElementById(loaderId);
+                    if (loader) {
+                        loader.style.display = 'none';
+                    }
+                });
+                window._chartUpdateInProgress = false;
                 return;
             }
             
@@ -704,6 +749,13 @@ window.updateChartsFromAPIData = function(apiData) {
             
         } catch (error) {
             console.error('❌ Error creating charts:', error);
+            // Hide all loaders on error
+            ['leadSplitLoader', 'tempCountLoader', 'tempValueLoader'].forEach(loaderId => {
+                const loader = document.getElementById(loaderId);
+                if (loader) {
+                    loader.style.display = 'none';
+                }
+            });
         } finally {
             window._chartUpdateInProgress = false;
         }
@@ -811,6 +863,18 @@ window.updateDashboardSummary = function(summary) {
     'use strict';
     
     console.log('📊 Dashboard API Integration: Loading...');
+    
+    // Initialize dashboard when page loads if dashboard is active
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            if (window.activeTab === 'dashboard' && window.isLoggedIn) {
+                console.log('📊 Dashboard is active on page load, initializing charts...');
+                if (window.fetchChartDataFromAPI) {
+                    window.fetchChartDataFromAPI();
+                }
+            }
+        }, 1000);
+    });
     
     // Ensure dashboard initializes with API data when switching to dashboard tab
     const originalSetActiveTab = window.setActiveTab;
