@@ -1239,6 +1239,14 @@ window.calculateGSTAndTCS = function(baseAmount, paymentData) {
     finalAmount: baseAmount
   };
 
+  // Get invoice total if type_of_sale is Service Fee
+  let invoiceTotal = 0;
+  if (paymentData.type_of_sale === 'Service Fee') {
+    invoiceTotal = (paymentData.invoice_items || []).reduce((sum, item) => 
+      sum + ((item.quantity || 0) * (item.rate || 0)), 0
+    );
+  }
+
   if (paymentData.type_of_sale === 'Service Fee') {
     result.gst.applicable = true;
     result.gst.rate = 18;
@@ -1278,7 +1286,13 @@ window.calculateGSTAndTCS = function(baseAmount, paymentData) {
     result.tcs.amount = (amountWithGST * result.tcs.rate) / 100;
   }
 
-  result.finalAmount = baseAmount + result.gst.amount + result.tcs.amount;
+  // For Service Fee type: Final Amount = Invoice Total + Service Fee + GST + TCS
+  if (paymentData.type_of_sale === 'Service Fee') {
+    result.finalAmount = invoiceTotal + baseAmount + result.gst.amount + result.tcs.amount;
+  } else {
+    result.finalAmount = baseAmount + result.gst.amount + result.tcs.amount;
+  }
+  
   return result;
 };
 

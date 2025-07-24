@@ -140,15 +140,31 @@ class BulkOrderService {
       const isOutsideIndia = record.is_outside_india === 'true' || record.is_outside_india === 'TRUE' || record.is_outside_india === true || record.event_location === 'outside_india';
       const effectiveGstRate = isOutsideIndia ? 0 : gstRate;
       
-      // Calculate GST on total (invoice + service fee)
-      const totalBeforeTax = invoiceTotal + serviceFeeAmount;
-      const gstAmount = (totalBeforeTax * effectiveGstRate) / 100;
+      // Calculate GST based on type of sale
+      let taxableAmount = 0;
+      let gstAmount = 0;
+      
+      if (record.type_of_sale === 'Service Fee') {
+        // For Service Fee: GST only on service fee amount
+        taxableAmount = serviceFeeAmount;
+        gstAmount = (serviceFeeAmount * effectiveGstRate) / 100;
+      } else {
+        // For other types (Tour Package, Ticket Sale): GST on total
+        taxableAmount = invoiceTotal + serviceFeeAmount;
+        gstAmount = (taxableAmount * effectiveGstRate) / 100;
+      }
+      
       const cgst = gstAmount / 2;
       const sgst = gstAmount / 2;
       const igst = isOutsideIndia ? 0 : gstAmount;
 
+      // Calculate TCS if applicable
+      const tcsRate = parseFloat(record.tcs_rate) || 0;
+      const tcsAmount = tcsRate > 0 ? ((invoiceTotal + serviceFeeAmount + gstAmount) * tcsRate) / 100 : 0;
+      
       // Calculate final amount
-      const finalAmount = totalBeforeTax + gstAmount;
+      const totalBeforeTax = invoiceTotal + serviceFeeAmount;
+      const finalAmount = invoiceTotal + serviceFeeAmount + gstAmount + tcsAmount;
 
       // Prepare order data
       const orderData = {
@@ -205,7 +221,10 @@ class BulkOrderService {
         sgst_amount: sgst,
         igst_amount: igst,
         gst_amount: gstAmount,
+        tcs_rate: tcsRate,
+        tcs_amount: tcsAmount,
         total_amount_before_tax: totalBeforeTax,
+        base_amount: totalBeforeTax, // Some views expect base_amount
         final_amount: finalAmount,
         advance_amount: advanceAmount,
         balance_due: finalAmount - advanceAmount,
@@ -224,8 +243,15 @@ class BulkOrderService {
         status: advanceAmount >= finalAmount ? 'payment_received' : 'pending',
         created_by: uploadedBy,
         created_date: moment().tz('Asia/Kolkata').toISOString(),
+        created_at: moment().tz('Asia/Kolkata').toISOString(), // Some views expect created_at
         created_via: 'bulk_upload',
         notes: record.notes || '',
+        
+        // Assignment fields (expected by order views)
+        assigned_team: null,
+        assigned_to: null,
+        assignment_date: null,
+        assignment_notes: null,
         
         // Additional fields for compatibility with payment form
         advance_amount_inr: advanceAmount,
@@ -245,9 +271,25 @@ class BulkOrderService {
         
         // Total amount field
         total_amount: finalAmount,
+        amount: finalAmount.toString(), // Some views expect 'amount' as string
         
         // Currency fields
         currency: record.payment_currency || 'INR',
+        
+        // GST calculation object (expected by payment form)
+        gst_calculation: {
+          rate: effectiveGstRate,
+          amount: gstAmount,
+          cgst: cgst,
+          sgst: sgst,
+          igst: igst,
+          total: gstAmount,
+          applicable: effectiveGstRate > 0,
+          taxable_amount: taxableAmount,
+          type_of_sale: record.type_of_sale || 'Service Fee',
+          tcs_rate: tcsRate,
+          tcs_amount: tcsAmount
+        },
         
         // Approval tracking
         approval_status: 'pending',
