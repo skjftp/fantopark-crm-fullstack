@@ -1929,15 +1929,17 @@ document.addEventListener('DOMContentLoaded', function() {
 (function() {
   'use strict';
   
-  console.log('📊 Chart initialization disabled - handled by dashboard component to prevent duplicates');
+  console.log('📊 Chart initialization is now handled by dashboard component to prevent duplicates');
   
-  // Legacy function stubs for compatibility only
+  // Legacy function stubs for compatibility
   window.createDashboardCharts = function() {
     console.log('📊 Dashboard charts handled by dashboard component');
+    // Dashboard component will handle this
   };
   
   window.handleChartFilterChange = function() {
     console.log('🎯 Filter changes handled by dashboard component');
+    // Filter changes are handled in dashboard component directly
   };
   
   // All chart function aliases point to API-based creation

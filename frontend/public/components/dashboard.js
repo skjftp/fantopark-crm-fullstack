@@ -16,7 +16,32 @@ window._dashboardChartInstances = {
 // MAIN DASHBOARD RENDER FUNCTION
 // ===============================================
 
-window.renderDashboardContent = () => {
+// Create a proper React component for the dashboard
+const DashboardComponent = () => {
+    // Use React hooks to manage chart initialization
+    const [chartsInitialized, setChartsInitialized] = React.useState(false);
+    
+    React.useEffect(() => {
+        // Only initialize if not already initialized
+        if (!chartsInitialized && window.activeTab === 'dashboard') {
+            console.log('📊 Dashboard mounted, initializing charts...');
+            
+            // Small delay to ensure DOM is ready
+            const initTimer = setTimeout(() => {
+                if (window.fetchChartDataFromAPI) {
+                    console.log('📊 Fetching chart data from API...');
+                    window.fetchChartDataFromAPI().then(() => {
+                        setChartsInitialized(true);
+                    }).catch(error => {
+                        console.error('❌ Error fetching chart data:', error);
+                    });
+                }
+            }, 500); // Increased delay to ensure DOM is ready
+            
+            return () => clearTimeout(initTimer);
+        }
+    }, []); // Remove chartsInitialized dependency to prevent re-runs
+    
     return React.createElement('div', { className: 'space-y-6' },
         // Dashboard Stats Cards - API DRIVEN
         React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-4 gap-6 mb-6' },
@@ -387,14 +412,54 @@ window.renderDashboardContent = () => {
     );
 };
 
+// Wrapper function that renders the component
+window.renderDashboardContent = () => {
+    return React.createElement(DashboardComponent);
+};
+
 // ===============================================
 // API-BASED CHART DATA FETCHING
 // ===============================================
 
-window.fetchChartDataFromAPI = async function() {
-    console.log('🚀 Fetching chart data from API...');
+// Add debounce mechanism to prevent multiple simultaneous calls
+window._chartDataFetchInProgress = false;
+window._chartDataFetchDebounceTimer = null;
+window._lastChartDataFetch = 0;
+
+window.fetchChartDataFromAPI = async function(forceUpdate = false) {
+    // Prevent calls within 2 seconds of each other
+    const now = Date.now();
+    if (now - window._lastChartDataFetch < 2000 && !forceUpdate) {
+        console.log('📊 Chart data recently fetched, skipping...');
+        return window.apiChartData || null;
+    }
     
-    try {
+    // Debounce multiple rapid calls
+    if (window._chartDataFetchDebounceTimer) {
+        clearTimeout(window._chartDataFetchDebounceTimer);
+    }
+    
+    return new Promise((resolve, reject) => {
+        window._chartDataFetchDebounceTimer = setTimeout(async () => {
+            // Prevent multiple simultaneous calls
+            if (window._chartDataFetchInProgress && !forceUpdate) {
+                console.log('📊 Chart data fetch already in progress, skipping...');
+                resolve(window.apiChartData || null);
+                return;
+            }
+            
+            // Only proceed if we're on dashboard tab
+            if (window.activeTab !== 'dashboard') {
+                console.log('📊 Not on dashboard tab, skipping chart fetch');
+                resolve(null);
+                return;
+            }
+            
+            window._chartDataFetchInProgress = true;
+            window._lastChartDataFetch = Date.now();
+            console.log('🚀 Fetching chart data from API...');
+            
+            try {
         // Build query parameters based on current filters
         const params = new URLSearchParams();
         
@@ -435,45 +500,50 @@ window.fetchChartDataFromAPI = async function() {
                 updateDashboardSummary(result.data.summary);
             }
             
-            return result.data;
-        } else {
-            throw new Error(result.error || 'Invalid response format');
+            resolve(result.data);
+            } else {
+                throw new Error(result.error || 'Invalid response format');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error fetching chart data:', error);
+            
+            // Show empty charts instead of falling back
+            const emptyData = {
+                charts: {
+                    leadSplit: {
+                        labels: ['Qualified', 'Junk'],
+                        data: [0, 0],
+                        colors: ['#10B981', '#EF4444']
+                    },
+                    temperatureCount: {
+                        labels: ['Hot', 'Warm', 'Cold'],
+                        data: [0, 0, 0],
+                        colors: ['#EF4444', '#F59E0B', '#3B82F6']
+                    },
+                    temperatureValue: {
+                        labels: ['Hot Value', 'Warm Value', 'Cold Value'],
+                        data: [0, 0, 0],
+                        colors: ['#EF4444', '#F59E0B', '#3B82F6']
+                    }
+                },
+                summary: {
+                    totalLeads: 0,
+                    hotLeads: 0,
+                    qualifiedLeads: 0,
+                    totalPipelineValue: 0
+                }
+            };
+            
+            updateChartsFromAPIData(emptyData);
+            updateDashboardSummary(emptyData.summary);
+            reject(error);
+        } finally {
+            window._chartDataFetchInProgress = false;
         }
         
-    } catch (error) {
-        console.error('❌ Error fetching chart data:', error);
-        
-        // Show empty charts instead of falling back
-        const emptyData = {
-            charts: {
-                leadSplit: {
-                    labels: ['Qualified', 'Junk'],
-                    data: [0, 0],
-                    colors: ['#10B981', '#EF4444']
-                },
-                temperatureCount: {
-                    labels: ['Hot', 'Warm', 'Cold'],
-                    data: [0, 0, 0],
-                    colors: ['#EF4444', '#F59E0B', '#3B82F6']
-                },
-                temperatureValue: {
-                    labels: ['Hot Value', 'Warm Value', 'Cold Value'],
-                    data: [0, 0, 0],
-                    colors: ['#EF4444', '#F59E0B', '#3B82F6']
-                }
-            },
-            summary: {
-                totalLeads: 0,
-                hotLeads: 0,
-                qualifiedLeads: 0,
-                totalPipelineValue: 0
-            }
-        };
-        
-        updateChartsFromAPIData(emptyData);
-        updateDashboardSummary(emptyData.summary);
-        return null;
-    }
+        }, 100); // 100ms debounce delay
+    });
 };
 
 // ===============================================
@@ -564,19 +634,43 @@ window.updateChartsFromAPIData = function(apiData) {
     
     // Delay to ensure DOM is ready with retry mechanism
     const attemptChartCreation = (retryCount = 0) => {
-        const maxRetries = 3;
-        const delay = 200 * (retryCount + 1); // Increasing delay: 200ms, 400ms, 600ms
+        const maxRetries = 5;
+        const delay = 300 * (retryCount + 1); // Increasing delay: 300ms, 600ms, 900ms
         
         setTimeout(() => {
             console.log(`📊 Attempting chart creation (attempt ${retryCount + 1}/${maxRetries + 1})`);
+            
+            // Check if Chart.js is loaded
+            if (typeof Chart === 'undefined') {
+                console.error('❌ Chart.js is not loaded!');
+                if (retryCount < maxRetries) {
+                    attemptChartCreation(retryCount + 1);
+                }
+                return;
+            }
             
             // Check if any canvas elements exist
             const canvasElements = document.querySelectorAll('#leadSplitChart, #tempCountChart, #tempValueChart');
             console.log(`📊 Found ${canvasElements.length}/3 canvas elements`);
             
+            // Log the actual DOM structure for debugging
+            const dashboardEl = document.querySelector('[data-active-tab="dashboard"]');
+            console.log('📊 Dashboard element found:', !!dashboardEl);
+            
             if (canvasElements.length === 0 && retryCount < maxRetries) {
-                console.log(`⏳ No canvas elements found, retrying in ${200 * (retryCount + 2)}ms...`);
+                console.log(`⏳ No canvas elements found, retrying in ${300 * (retryCount + 2)}ms...`);
                 attemptChartCreation(retryCount + 1);
+                return;
+            } else if (canvasElements.length === 0 && retryCount >= maxRetries) {
+                console.error('❌ Failed to find canvas elements after all retries');
+                // Hide all loaders as final fallback
+                ['leadSplitLoader', 'tempCountLoader', 'tempValueLoader'].forEach(loaderId => {
+                    const loader = document.getElementById(loaderId);
+                    if (loader) {
+                        loader.style.display = 'none';
+                    }
+                });
+                window._chartUpdateInProgress = false;
                 return;
             }
             
@@ -673,6 +767,13 @@ window.updateChartsFromAPIData = function(apiData) {
             
         } catch (error) {
             console.error('❌ Error creating charts:', error);
+            // Hide all loaders on error
+            ['leadSplitLoader', 'tempCountLoader', 'tempValueLoader'].forEach(loaderId => {
+                const loader = document.getElementById(loaderId);
+                if (loader) {
+                    loader.style.display = 'none';
+                }
+            });
         } finally {
             window._chartUpdateInProgress = false;
         }
@@ -718,59 +819,8 @@ window.updateDashboardSummary = function(summary) {
     window.dashboardSummary = summary;
 };
 
-// ===============================================
-// TAB SWITCHING OBSERVER
-// ===============================================
-
-(function() {
-    'use strict';
-    
-    console.log('📊 Initializing tab switching fix for dashboard charts...');
-    
-    // Store the original setActiveTab function
-    const originalSetActiveTab = window.setActiveTab;
-    
-    // Override setActiveTab to handle chart recreation
-    window.setActiveTab = function(tab) {
-        const previousTab = window.activeTab;
-        
-        // Call original function
-        if (originalSetActiveTab) {
-            originalSetActiveTab(tab);
-        }
-        
-        // If switching TO dashboard from another tab
-        if (tab === 'dashboard' && previousTab !== 'dashboard') {
-            console.log('📊 Switching to dashboard tab, scheduling chart refresh...');
-            
-            // Clear any existing chart instances
-            ['leadSplitChart', 'tempCountChart', 'tempValueChart'].forEach(id => {
-                const canvas = document.getElementById(id);
-                if (canvas) {
-                    const chart = Chart.getChart(canvas);
-                    if (chart) {
-                        chart.destroy();
-                    }
-                }
-            });
-            
-            // Schedule chart recreation after tab animation
-            setTimeout(() => {
-                // Double-check we're still on dashboard
-                if (window.activeTab === 'dashboard' && window.fetchChartDataFromAPI) {
-                    console.log('📊 Recreating dashboard charts...');
-                    window.fetchChartDataFromAPI().then(() => {
-                        console.log('✅ Dashboard charts recreated successfully');
-                    }).catch(error => {
-                        console.error('❌ Error recreating charts:', error);
-                    });
-                }
-            }, 300);
-        }
-    };
-    
-    console.log('✅ Tab switching fix initialized');
-})();
+// Tab switching is now handled by the DashboardComponent
+// This prevents duplicate chart initializations
 
 // ===============================================
 // DASHBOARD API INTEGRATION
@@ -781,27 +831,7 @@ window.updateDashboardSummary = function(summary) {
     
     console.log('📊 Dashboard API Integration: Loading...');
     
-    // Ensure dashboard initializes with API data when switching to dashboard tab
-    const originalSetActiveTab = window.setActiveTab;
-    if (originalSetActiveTab) {
-        window.setActiveTab = function(tab) {
-            originalSetActiveTab(tab);
-            
-            if (tab === 'dashboard' && window.isLoggedIn) {
-                console.log('📊 Switched to dashboard tab, fetching API data...');
-                
-                // Add a small delay to ensure DOM is ready
-                setTimeout(async () => {
-                    // Fetch chart data (which includes summary stats)
-                    if (window.fetchChartDataFromAPI) {
-                        await window.fetchChartDataFromAPI();
-                    }
-                }, 300);
-            }
-        };
-    }
-    
-    // Dashboard initialization is now handled by the tab switching logic and component mounting
+    // Dashboard initialization is now handled by the DashboardComponent useEffect
     // This prevents duplicate calls during page load
     
     console.log('✅ Dashboard API Integration loaded');
