@@ -1563,7 +1563,15 @@ window.MobileDashboardView = function() {
             return React.createElement('div', {
               key: lead.id || index,
               className: 'mobile-card p-4 touchable',
-              onClick: () => {
+              onClick: (e) => {
+                // Don't open lead detail if clicking on a button
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                  return;
+                }
+                // Don't open if clicking in the action buttons area
+                if (e.target.closest('.action-buttons-area')) {
+                  return;
+                }
                 if (window.openLeadDetail) {
                   window.openLeadDetail(lead);
                 } else {
@@ -1627,11 +1635,16 @@ window.MobileDashboardView = function() {
                 
                 // Action buttons
                 React.createElement('div', { 
-                  className: 'flex items-center gap-2',
+                  className: 'flex items-center gap-2 action-buttons-area',
                   onClick: (e) => e.stopPropagation() // Prevent card click when clicking this area
                 },
                   lead.phone && React.createElement('button', {
                     onClick: (e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      window.location.href = `tel:${lead.phone}`;
+                    },
+                    onTouchEnd: (e) => {
                       e.stopPropagation();
                       e.preventDefault();
                       window.location.href = `tel:${lead.phone}`;
@@ -1642,6 +1655,11 @@ window.MobileDashboardView = function() {
                   
                   lead.email && React.createElement('button', {
                     onClick: (e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      window.location.href = `mailto:${lead.email}`;
+                    },
+                    onTouchEnd: (e) => {
                       e.stopPropagation();
                       e.preventDefault();
                       window.location.href = `mailto:${lead.email}`;
