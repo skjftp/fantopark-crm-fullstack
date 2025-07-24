@@ -986,39 +986,6 @@ window.MobileDashboardView = function() {
     const [touchStart, setTouchStart] = React.useState(0);
     const [touchEnd, setTouchEnd] = React.useState(0);
     
-    // Debug effect must be after charts declaration
-    const debugCarousel = () => {
-      console.log('📱 Carousel - Current chart:', currentChart);
-      console.log('📱 Carousel - Transform:', `translateX(-${currentChart * 100}%)`);
-    };
-    
-    const charts = [
-      {
-        title: 'Lead Split',
-        data: dashboardData.charts.leadSplit.data,
-        labels: dashboardData.charts.leadSplit.labels,
-        colors: dashboardData.charts.leadSplit.colors
-      },
-      {
-        title: 'Lead Temperature Count',
-        data: dashboardData.charts.temperatureCount.data,
-        labels: dashboardData.charts.temperatureCount.labels,
-        colors: dashboardData.charts.temperatureCount.colors
-      },
-      {
-        title: 'Lead Temperature Value',
-        data: dashboardData.charts.temperatureValue.data,
-        labels: dashboardData.charts.temperatureValue.labels.map((label, i) => 
-          `${label} (₹${(dashboardData.charts.temperatureValue.data[i] || 0).toLocaleString('en-IN')})`
-        ),
-        colors: dashboardData.charts.temperatureValue.colors
-      }
-    ];
-    
-    React.useEffect(() => {
-      debugCarousel();
-    }, [currentChart]);
-    
     const handleTouchStart = (e) => {
       setTouchStart(e.targetTouches[0].clientX);
     };
@@ -1034,11 +1001,45 @@ window.MobileDashboardView = function() {
       const isLeftSwipe = distance > 50;
       const isRightSwipe = distance < -50;
       
-      if (isLeftSwipe && currentChart < charts.length - 1) {
+      if (isLeftSwipe && currentChart < 2) {
         setCurrentChart(currentChart + 1);
       }
       if (isRightSwipe && currentChart > 0) {
         setCurrentChart(currentChart - 1);
+      }
+    };
+    
+    // Render the current chart based on index
+    const renderCurrentChart = () => {
+      switch(currentChart) {
+        case 0:
+          return React.createElement(MiniPieChart, {
+            title: 'Lead Split',
+            data: dashboardData.charts.leadSplit.data,
+            labels: dashboardData.charts.leadSplit.labels,
+            colors: dashboardData.charts.leadSplit.colors,
+            isLoading: !chartsLoaded
+          });
+        case 1:
+          return React.createElement(MiniPieChart, {
+            title: 'Lead Temperature Count',
+            data: dashboardData.charts.temperatureCount.data,
+            labels: dashboardData.charts.temperatureCount.labels,
+            colors: dashboardData.charts.temperatureCount.colors,
+            isLoading: !chartsLoaded
+          });
+        case 2:
+          return React.createElement(MiniPieChart, {
+            title: 'Lead Temperature Value',
+            data: dashboardData.charts.temperatureValue.data,
+            labels: dashboardData.charts.temperatureValue.labels.map((label, i) => 
+              `${label} (₹${(dashboardData.charts.temperatureValue.data[i] || 0).toLocaleString('en-IN')})`
+            ),
+            colors: dashboardData.charts.temperatureValue.colors,
+            isLoading: !chartsLoaded
+          });
+        default:
+          return null;
       }
     };
     
@@ -1047,87 +1048,36 @@ window.MobileDashboardView = function() {
       React.createElement('div', { 
         className: 'relative bg-white dark:bg-gray-800 rounded-lg shadow border p-4'
       },
-        // Title
-        React.createElement('h3', { 
-          className: 'text-lg font-semibold text-gray-900 dark:text-white mb-4 text-center' 
-        }, 'Dashboard Charts'),
+        // Title and swipe hint
+        React.createElement('div', { className: 'mb-4' },
+          React.createElement('h3', { 
+            className: 'text-lg font-semibold text-gray-900 dark:text-white text-center' 
+          }, 'Dashboard Charts'),
+          React.createElement('p', { 
+            className: 'text-xs text-gray-500 dark:text-gray-400 text-center mt-1' 
+          }, 'Swipe left or right to navigate')
+        ),
         
-        // Carousel container
+        // Chart container
         React.createElement('div', { 
           className: 'relative overflow-hidden',
-          style: { height: '320px', width: '100%' },
+          style: { height: '300px' },
           onTouchStart: handleTouchStart,
           onTouchMove: handleTouchMove,
           onTouchEnd: handleTouchEnd
         },
-          // Previous arrow
-          currentChart > 0 && React.createElement('button', {
-            onClick: () => setCurrentChart(currentChart - 1),
-            className: 'absolute left-2 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow',
-            'aria-label': 'Previous chart'
-          },
-          React.createElement('svg', {
-            className: 'w-5 h-5 text-gray-600 dark:text-gray-300',
-            fill: 'none',
-            stroke: 'currentColor',
-            viewBox: '0 0 24 24'
-          },
-            React.createElement('path', {
-              strokeLinecap: 'round',
-              strokeLinejoin: 'round',
-              strokeWidth: 2,
-              d: 'M15 19l-7-7 7-7'
-            })
-          )
-        ),
-        
-          // Next arrow
-          currentChart < charts.length - 1 && React.createElement('button', {
-            onClick: () => setCurrentChart(currentChart + 1),
-            className: 'absolute right-2 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow',
-            'aria-label': 'Next chart'
-          },
-          React.createElement('svg', {
-            className: 'w-5 h-5 text-gray-600 dark:text-gray-300',
-            fill: 'none',
-            stroke: 'currentColor',
-            viewBox: '0 0 24 24'
-          },
-            React.createElement('path', {
-              strokeLinecap: 'round',
-              strokeLinejoin: 'round',
-              strokeWidth: 2,
-              d: 'M9 5l7 7-7 7'
-            })
-          )
-        ),
-          // Charts container with transform
           React.createElement('div', {
-            className: 'flex transition-transform duration-300 ease-in-out h-full',
-            style: {
-              transform: `translateX(-${currentChart * 100}%)`
-            }
+            className: 'flex items-center justify-center h-full transition-opacity duration-300',
+            key: currentChart // Force re-render on chart change
           },
-            charts.map((chart, index) => 
-              React.createElement('div', {
-                key: index,
-                className: 'w-full flex-shrink-0 p-3 h-full flex items-center justify-center'
-              },
-              React.createElement(MiniPieChart, {
-                title: chart.title,
-                data: chart.data,
-                labels: chart.labels,
-                colors: chart.colors,
-                isLoading: !chartsLoaded
-              })
-            )
+            renderCurrentChart()
           )
         )
       ),
       
-      // Carousel indicators - moved inside wrapper
+      // Carousel indicators
       React.createElement('div', { className: 'flex justify-center mt-4 space-x-2' },
-        charts.map((_, index) => 
+        [0, 1, 2].map((index) => 
           React.createElement('button', {
             key: index,
             onClick: () => setCurrentChart(index),
@@ -1139,7 +1089,6 @@ window.MobileDashboardView = function() {
           })
         )
       )
-      ) // Close wrapper div
     );
   };
 
@@ -1164,6 +1113,8 @@ window.MobileDashboardView = function() {
       // Check if we have actual data
       const hasData = data && data.length > 0 && data.some(value => value > 0);
       
+      console.log(`📱 MiniPieChart ${title} - hasData:`, hasData, 'data:', data);
+      
       if (!hasData || !canvasRef.current) return;
       
       const canvas = canvasRef.current;
@@ -1179,7 +1130,7 @@ window.MobileDashboardView = function() {
       // Draw pie chart
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-      const radius = Math.min(centerX, centerY) - 40;
+      const radius = Math.min(centerX, centerY) - 30;
       
       let currentAngle = -Math.PI / 2;
       segmentPaths.current = [];
@@ -1280,10 +1231,10 @@ window.MobileDashboardView = function() {
     };
     
     return React.createElement('div', { className: 'relative flex flex-col items-center' },
-      React.createElement('h4', { className: 'text-sm font-medium text-gray-700 dark:text-gray-300 mb-2' }, title),
+      React.createElement('h4', { className: 'text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 text-center' }, title),
       React.createElement('div', { 
         className: 'relative inline-block',
-        style: { width: '280px', height: '280px' }
+        style: { width: '240px', height: '240px' }
       },
         // Show loader when loading
         isLoading && React.createElement('div', {
@@ -1332,9 +1283,9 @@ window.MobileDashboardView = function() {
         ),
         React.createElement('canvas', {
           ref: canvasRef,
-          width: 280,
-          height: 280,
-          className: 'cursor-pointer',
+          width: 240,
+          height: 240,
+          className: 'cursor-pointer w-full h-full',
           onMouseMove: handleInteraction,
           onMouseLeave: handleLeave,
           onTouchStart: handleInteraction,
@@ -1385,8 +1336,32 @@ window.MobileDashboardView = function() {
     );
   };
 
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+  
+  // Get user's first name
+  const firstName = window.user?.name?.split(' ')[0] || window.user?.email?.split('@')[0] || 'there';
+  
   return React.createElement('div', { className: 'mobile-content-wrapper' },
-    // Filters section - moved to top
+    // Greeting section
+    React.createElement('div', { className: 'bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-lg shadow-lg mb-6' },
+      React.createElement('h2', { 
+        className: 'text-2xl font-bold text-white mb-2' 
+      }, `${getGreeting()}, ${firstName}! 👋`),
+      React.createElement('p', { 
+        className: 'text-white/90 text-sm' 
+      }, 'Here\'s your dashboard overview for today')
+    ),
+
+    // Pie Charts Carousel Section
+    React.createElement(PieChartsCarousel),
+    
+    // Filters section - moved below charts
     React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6' },
       React.createElement('div', { className: 'space-y-3' },
         React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300' }, 'View by:'),
@@ -1433,106 +1408,110 @@ window.MobileDashboardView = function() {
         )
       )
     ),
-
-    // Pie Charts Carousel Section
-    React.createElement(PieChartsCarousel),
     
-    // Dashboard Stats Cards - moved below pie charts
+    // Dashboard Stats - Single compact 3D card with 2x2 matrix
     React.createElement('div', { 
-      className: 'grid grid-cols-2 gap-3 mb-6'
+      className: 'bg-white dark:bg-gray-800 rounded-xl shadow-xl mb-6 transform transition-all duration-200 hover:scale-[1.02]',
+      style: {
+        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 20px 25px -5px rgba(0, 0, 0, 0.05)'
+      }
     },
-      // Total Leads Card
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
-        React.createElement('div', { className: 'flex items-center' },
-          React.createElement('div', { className: 'p-2 bg-blue-100 dark:bg-blue-900 rounded-lg' },
-            React.createElement('svg', {
-              className: 'w-5 h-5 text-blue-600 dark:text-blue-400',
-              fill: 'none',
-              stroke: 'currentColor',
-              viewBox: '0 0 24 24'
+      React.createElement('div', { className: 'p-5' },
+        React.createElement('h3', { 
+          className: 'text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wider' 
+        }, 'Quick Stats'),
+        
+        // Create a 2x2 grid layout with truly independent components
+        React.createElement('div', { 
+          className: 'grid grid-cols-2 gap-3',
+          style: {
+            display: 'grid !important',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr)) !important',
+            gridTemplateRows: 'repeat(2, minmax(0, 1fr)) !important',
+            gap: '12px',
+            width: '100%'
+          }
+        },
+          // Map through stats data to create independent components
+          ...[
+            {
+              id: 'total-leads',
+              value: dashboardData.summary.totalLeads || 0,
+              label: 'Total Leads',
+              colorClass: 'bg-blue-100 dark:bg-blue-900/50',
+              iconColor: 'text-blue-600 dark:text-blue-400',
+              iconType: 'svg',
+              iconPath: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'
             },
-              React.createElement('path', {
-                strokeLinecap: 'round',
-                strokeLinejoin: 'round',
-                strokeWidth: 2,
-                d: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z'
-              })
-            )
-          ),
-          React.createElement('div', { className: 'ml-3' },
-            React.createElement('h3', { 
-              className: 'text-lg font-semibold text-gray-900 dark:text-white'
-            }, dashboardData.summary.totalLeads),
-            React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400' }, 'Total Leads')
-          )
-        )
-      ),
-
-      // Hot Leads Card
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
-        React.createElement('div', { className: 'flex items-center' },
-          React.createElement('div', { className: 'p-2 bg-red-100 dark:bg-red-900 rounded-lg' },
-            React.createElement('svg', {
-              className: 'w-5 h-5 text-red-600 dark:text-red-400',
-              fill: 'none',
-              stroke: 'currentColor',
-              viewBox: '0 0 24 24'
+            {
+              id: 'hot-warm',
+              value: dashboardData.summary.hotWarmLeads || dashboardData.summary.hotLeads || 0,
+              label: 'Hot + Warm',
+              colorClass: 'bg-red-100 dark:bg-red-900/50',
+              iconType: 'emoji',
+              emoji: '🔥'
             },
-              React.createElement('path', {
-                strokeLinecap: 'round',
-                strokeLinejoin: 'round',
-                strokeWidth: 2,
-                d: 'M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z'
-              })
-            )
-          ),
-          React.createElement('div', { className: 'ml-3' },
-            React.createElement('h3', { 
-              className: 'text-lg font-semibold text-gray-900 dark:text-white'
-            }, dashboardData.summary.hotWarmLeads || dashboardData.summary.hotLeads),
-            React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400' }, 'Hot + Warm Leads')
-          )
-        )
-      ),
-
-      // Qualified Leads Card
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
-        React.createElement('div', { className: 'flex items-center' },
-          React.createElement('div', { className: 'p-2 bg-green-100 dark:bg-green-900 rounded-lg' },
-            React.createElement('svg', {
-              className: 'w-5 h-5 text-green-600 dark:text-green-400',
-              fill: 'none',
-              stroke: 'currentColor',
-              viewBox: '0 0 24 24'
+            {
+              id: 'qualified',
+              value: dashboardData.summary.qualifiedLeads || 0,
+              label: 'Qualified',
+              colorClass: 'bg-green-100 dark:bg-green-900/50',
+              iconType: 'emoji',
+              emoji: '✓'
             },
-              React.createElement('path', {
-                strokeLinecap: 'round',
-                strokeLinejoin: 'round',
-                strokeWidth: 2,
-                d: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
-              })
+            {
+              id: 'pipeline',
+              value: dashboardData.summary.totalPipelineValue || 0,
+              label: 'Pipeline',
+              colorClass: 'bg-yellow-100 dark:bg-yellow-900/50',
+              iconType: 'emoji',
+              emoji: '₹',
+              isRupee: true
+            }
+          ].map((stat, index) => 
+            // Create independent stat component
+            React.createElement('div', {
+              key: stat.id,
+              className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center',
+              style: {
+                minHeight: '100px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                height: '100%'
+              }
+            },
+              // Icon container
+              React.createElement('div', { 
+                className: `w-10 h-10 ${stat.colorClass} rounded-full mx-auto mb-2 flex items-center justify-center`
+              },
+                stat.iconType === 'svg' ? 
+                  React.createElement('svg', {
+                    className: `w-5 h-5 ${stat.iconColor}`,
+                    fill: 'none',
+                    stroke: 'currentColor',
+                    viewBox: '0 0 24 24'
+                  },
+                    React.createElement('path', {
+                      strokeLinecap: 'round',
+                      strokeLinejoin: 'round',
+                      strokeWidth: 2,
+                      d: stat.iconPath
+                    })
+                  ) :
+                  React.createElement('span', { className: 'text-lg' }, stat.emoji)
+              ),
+              // Value
+              React.createElement('p', { 
+                className: stat.isRupee ? 'text-lg font-bold text-gray-900 dark:text-white' : 'text-xl font-bold text-gray-900 dark:text-white'
+              }, 
+                stat.isRupee ? `₹${(stat.value / 100000).toFixed(1)}L` : stat.value
+              ),
+              // Label
+              React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, stat.label)
             )
-          ),
-          React.createElement('div', { className: 'ml-3' },
-            React.createElement('h3', { 
-              className: 'text-lg font-semibold text-gray-900 dark:text-white'
-            }, dashboardData.summary.qualifiedLeads),
-            React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400' }, 'Qualified Leads')
-          )
-        )
-      ),
-
-      // Pipeline Value Card
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow border' },
-        React.createElement('div', { className: 'flex items-center' },
-          React.createElement('div', { className: 'p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg' },
-            React.createElement('span', { className: 'text-xl' }, '₹')
-          ),
-          React.createElement('div', { className: 'ml-3' },
-            React.createElement('h3', { 
-              className: 'text-lg font-semibold text-gray-900 dark:text-white'
-            }, `₹${dashboardData.summary.totalPipelineValue.toLocaleString('en-IN')}`),
-            React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400' }, 'Total Pipeline Value')
           )
         )
       )
