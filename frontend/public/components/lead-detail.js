@@ -2,6 +2,28 @@
 // Updated with Inclusions Tab Integration
 // Uses window.* globals for CDN-based React compatibility
 
+// WhatsApp Conversation Wrapper Component
+const WhatsAppConversationWrapper = ({ leadId }) => {
+  const [content, setContent] = React.useState('<div class="text-center text-gray-500">Loading WhatsApp conversation...</div>');
+  
+  React.useEffect(() => {
+    if (window.WhatsAppConversation) {
+      window.WhatsAppConversation(leadId).then(html => {
+        setContent(html);
+      }).catch(error => {
+        console.error('Error loading WhatsApp conversation:', error);
+        setContent('<div class="text-center text-gray-500">Error loading WhatsApp conversation</div>');
+      });
+    } else {
+      setContent('<div class="text-center text-gray-500">WhatsApp conversation not available</div>');
+    }
+  }, [leadId]);
+  
+  return React.createElement('div', {
+    dangerouslySetInnerHTML: { __html: content }
+  });
+};
+
 // ===== PDF DOWNLOAD FUNCTION =====
 window.downloadQuotePDF = async function(lead) {
   console.log('📄 Starting quote PDF download for:', lead.name);
@@ -546,7 +568,26 @@ window.renderLeadDetail = () => {
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400'
               }`
-            }, '💬 Communication')
+            }, '💬 Communication'),
+            
+            // WhatsApp Tab
+            React.createElement('button', {
+              onClick: () => setActiveTab('whatsapp'),
+              className: `py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'whatsapp'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400'
+              }`
+            }, 
+              React.createElement('i', { className: 'fab fa-whatsapp mr-1' }),
+              'WhatsApp',
+              lead.leadScore && React.createElement('span', { 
+                className: `ml-2 ${
+                  lead.leadScore >= 70 ? 'bg-green-500' : 
+                  lead.leadScore >= 40 ? 'bg-yellow-500' : 'bg-red-500'
+                } text-white px-2 py-0.5 rounded-full text-xs`
+              }, `${lead.leadScore}%`)
+            )
           )
         ),
         
@@ -578,6 +619,11 @@ window.renderLeadDetail = () => {
             React.createElement('div', { className: 'text-center text-gray-500' },
               'Communication timeline not available'
             )
+          ),
+          
+          // WhatsApp Tab Content
+          activeTab === 'whatsapp' && React.createElement('div', { className: 'p-6' },
+            React.createElement(WhatsAppConversationWrapper, { leadId: lead.id })
           )
         )
       )

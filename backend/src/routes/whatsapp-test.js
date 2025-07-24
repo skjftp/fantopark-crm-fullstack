@@ -91,4 +91,62 @@ router.get('/test-config', (req, res) => {
   });
 });
 
+// Debug endpoint to check WhatsApp Business Account permissions
+router.get('/debug-permissions', async (req, res) => {
+  try {
+    const ACCESS_TOKEN = process.env.META_PAGE_ACCESS_TOKEN;
+    
+    // Check WhatsApp Business Account
+    const wabaSresponse = await axios.get(
+      `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_BUSINESS_ACCOUNT_ID}`,
+      {
+        params: {
+          access_token: ACCESS_TOKEN,
+          fields: 'id,name,currency,timezone_id,business_verification_status'
+        }
+      }
+    );
+    
+    // Check phone number details
+    const phoneResponse = await axios.get(
+      `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}`,
+      {
+        params: {
+          access_token: ACCESS_TOKEN,
+          fields: 'display_phone_number,verified_name,code_verification_status,quality_rating'
+        }
+      }
+    );
+    
+    // Check assigned users
+    const usersResponse = await axios.get(
+      `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_BUSINESS_ACCOUNT_ID}/assigned_users`,
+      {
+        params: {
+          access_token: ACCESS_TOKEN
+        }
+      }
+    );
+    
+    res.json({
+      success: true,
+      businessAccount: wabaSresponse.data,
+      phoneNumber: phoneResponse.data,
+      assignedUsers: usersResponse.data,
+      tokenInfo: {
+        hasToken: !!ACCESS_TOKEN,
+        tokenPrefix: ACCESS_TOKEN ? ACCESS_TOKEN.substring(0, 20) + '...' : null
+      }
+    });
+    
+  } catch (error) {
+    console.error('Debug error:', error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      error: error.response?.data?.error || error.message,
+      details: error.response?.data
+    });
+  }
+});
+
 module.exports = router;
