@@ -3320,7 +3320,7 @@ window.MobileMarketingPerformanceView = function() {
   const totals = data.totals || {};
   
   return React.createElement('div', { className: 'mobile-content-wrapper' },
-    // Header with date filter
+    // Header with date filter and summary stats
     React.createElement('div', { 
       className: 'bg-white dark:bg-gray-900 border-b -mx-4 mb-4'
     },
@@ -3336,7 +3336,7 @@ window.MobileMarketingPerformanceView = function() {
         ),
         
         // Date range filters (always visible)
-        React.createElement('div', { className: 'flex gap-2' },
+        React.createElement('div', { className: 'flex gap-2 mb-4' },
           React.createElement('input', {
             type: 'date',
             value: state.filters.dateFrom,
@@ -3357,6 +3357,84 @@ window.MobileMarketingPerformanceView = function() {
             },
             className: 'px-3 py-1 text-sm rounded border flex-1'
           })
+        ),
+        
+        // Marketing Summary Stats in 2x2 matrix
+        React.createElement('div', {
+          className: 'bg-white dark:bg-gray-800 rounded-xl shadow-xl transform transition-all duration-200 hover:scale-[1.02] mb-4',
+          style: {
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 20px 25px -5px rgba(0, 0, 0, 0.05)'
+          }
+        },
+          React.createElement('div', { className: 'p-5' },
+            React.createElement('h3', { 
+              className: 'text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wider' 
+            }, 'Marketing Summary'),
+            
+            // 2x2 grid layout
+            React.createElement('div', { 
+              style: {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gridTemplateRows: 'repeat(2, 1fr)',
+                gap: '12px',
+                width: '100%',
+                boxSizing: 'border-box'
+              }
+            },
+              React.createElement('div', { 
+                className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center'
+              },
+                React.createElement('div', { className: 'w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-full mx-auto mb-2 flex items-center justify-center' },
+                  React.createElement('span', { className: 'text-lg' }, '📊')
+                ),
+                React.createElement('p', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
+                  totals.totalLeads || 0
+                ),
+                React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 'Total Leads')
+              ),
+              
+              React.createElement('div', { 
+                className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center'
+              },
+                React.createElement('div', { className: 'w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full mx-auto mb-2 flex items-center justify-center' },
+                  React.createElement('span', { className: 'text-lg' }, '✓')
+                ),
+                React.createElement('p', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
+                  totals.qualified || 0
+                ),
+                React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 
+                  `Qualified${totals.totalLeads > 0 ? ` (${Math.round(totals.qualified / totals.totalLeads * 100)}%)` : ''}`
+                )
+              ),
+              
+              React.createElement('div', { 
+                className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center'
+              },
+                React.createElement('div', { className: 'w-10 h-10 bg-purple-100 dark:bg-purple-900/50 rounded-full mx-auto mb-2 flex items-center justify-center' },
+                  React.createElement('span', { className: 'text-lg' }, '🎯')
+                ),
+                React.createElement('p', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
+                  totals.converted || 0
+                ),
+                React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 
+                  `Converted${totals.totalLeads > 0 ? ` (${Math.round(totals.converted / totals.totalLeads * 100)}%)` : ''}`
+                )
+              ),
+              
+              React.createElement('div', { 
+                className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center'
+              },
+                React.createElement('div', { className: 'w-10 h-10 bg-red-100 dark:bg-red-900/50 rounded-full mx-auto mb-2 flex items-center justify-center' },
+                  React.createElement('span', { className: 'text-lg' }, '₹')
+                ),
+                React.createElement('p', { className: 'text-lg font-bold text-gray-900 dark:text-white' }, 
+                  totals.totalCPL ? `₹${parseFloat(totals.totalCPL).toFixed(0)}` : '₹0'
+                ),
+                React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 'Avg CPL')
+              )
+            )
+          )
         )
       ),
       
@@ -3400,89 +3478,7 @@ window.MobileMarketingPerformanceView = function() {
       )
     ),
     
-    // Summary Stats - 2x2 grid with percentages
-    React.createElement('div', { 
-      className: 'p-4'
-    },
-      React.createElement('div', { 
-        className: 'bg-white dark:bg-gray-800 rounded-xl shadow-xl transform transition-all duration-200 hover:scale-[1.02]',
-        style: {
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 20px 25px -5px rgba(0, 0, 0, 0.05)'
-        }
-      },
-        React.createElement('div', { className: 'p-5' },
-          React.createElement('h3', { 
-            className: 'text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wider' 
-          }, 'Campaign Stats'),
-          
-          // 2x2 grid layout
-          React.createElement('div', { 
-            style: {
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gridTemplateRows: 'repeat(2, 1fr)',
-              gap: '12px',
-              width: '100%',
-              boxSizing: 'border-box'
-            }
-          },
-            React.createElement('div', { 
-              className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center'
-            },
-              React.createElement('div', { className: 'w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-full mx-auto mb-2 flex items-center justify-center' },
-                React.createElement('span', { className: 'text-lg' }, '📊')
-              ),
-              React.createElement('p', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
-                totals.totalLeads || 0
-              ),
-              React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 'Total Leads')
-            ),
-            
-            React.createElement('div', { 
-              className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center'
-            },
-              React.createElement('div', { className: 'w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full mx-auto mb-2 flex items-center justify-center' },
-                React.createElement('span', { className: 'text-lg' }, '✓')
-              ),
-              React.createElement('p', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
-                totals.qualified || 0
-              ),
-              React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 
-                `Qualified${totals.totalLeads > 0 ? ` (${Math.round(totals.qualified / totals.totalLeads * 100)}%)` : ''}`
-              )
-            ),
-            
-            React.createElement('div', { 
-              className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center'
-            },
-              React.createElement('div', { className: 'w-10 h-10 bg-purple-100 dark:bg-purple-900/50 rounded-full mx-auto mb-2 flex items-center justify-center' },
-                React.createElement('span', { className: 'text-lg' }, '🎯')
-              ),
-              React.createElement('p', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
-                totals.converted || 0
-              ),
-              React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 
-                `Converted${totals.totalLeads > 0 ? ` (${Math.round(totals.converted / totals.totalLeads * 100)}%)` : ''}`
-              )
-            ),
-            
-            React.createElement('div', { 
-              className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center'
-            },
-              React.createElement('div', { className: 'w-10 h-10 bg-red-100 dark:bg-red-900/50 rounded-full mx-auto mb-2 flex items-center justify-center' },
-                React.createElement('span', { className: 'text-lg' }, '₹')
-              ),
-              React.createElement('p', { className: 'text-lg font-bold text-gray-900 dark:text-white' }, 
-                totals.totalCPL ? `₹${parseFloat(totals.totalCPL).toFixed(0)}` : '₹0'
-              ),
-              React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 'Avg CPL')
-            )
-          )
-        )
-      )
-    ),
-    
-    // Marketing Metrics
+    // Marketing Metrics - now part of main scroll
     React.createElement('div', { className: 'p-4' },
       React.createElement('h3', { 
         className: 'text-lg font-semibold mb-3 text-gray-900 dark:text-white'
