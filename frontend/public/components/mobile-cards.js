@@ -665,14 +665,37 @@ window.MobileEmptyState = function({ icon, title, message, action }) {
   );
 };
 
-// Mobile Loading State
-window.MobileLoadingState = function() {
+// Mobile Loading State - Enhanced with logo loader
+window.MobileLoadingState = function({ message = 'Loading...' } = {}) {
   return React.createElement('div', {
-    className: 'flex items-center justify-center p-8'
+    className: 'fixed inset-0 flex items-center justify-center bg-white dark:bg-gray-900',
+    style: { zIndex: 50 }
   },
-    React.createElement('div', {
-      className: 'pull-to-refresh-spinner'
-    })
+    React.createElement('div', { className: 'text-center' },
+      // Animated logo loader
+      React.createElement('div', {
+        className: 'relative w-24 h-24 mx-auto mb-4',
+        style: {
+          animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+        }
+      },
+        React.createElement('img', {
+          src: document.documentElement.classList.contains('dark') ? 'images/logo-dark.png' : 'images/logo.png',
+          alt: 'Loading...',
+          className: 'w-full h-full object-contain',
+          style: {
+            filter: 'drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))',
+            animation: 'float 3s ease-in-out infinite'
+          }
+        })
+      ),
+      React.createElement('p', { 
+        className: 'text-sm text-gray-500 dark:text-gray-400',
+        style: {
+          animation: 'fadeInOut 2s ease-in-out infinite'
+        }
+      }, message)
+    )
   );
 };
 

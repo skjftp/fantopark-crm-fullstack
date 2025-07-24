@@ -46,6 +46,8 @@ window.renderMainApp = function() {
     return savedTab || 'dashboard';
   });
   const [loading, setLoading] = useState(false);
+  const [tabLoading, setTabLoading] = useState(false);
+  const [tabLoadingMessage, setTabLoadingMessage] = useState('');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   // Add resize listener for mobile view
@@ -421,6 +423,8 @@ window.setIsMobileView = setIsMobileView;
     password, setPassword,
     activeTab, setActiveTab,
     loading, setLoading,
+    tabLoading, setTabLoading,
+    tabLoadingMessage, setTabLoadingMessage,
     isMobile, setIsMobile,
       ordersFilters, setOrdersFilters,
   ordersPagination, setOrdersPagination,

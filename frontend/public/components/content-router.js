@@ -4,6 +4,13 @@
 
 // The renderContent function that SimplifiedApp calls
 window.renderContent = () => {
+    // Check if tab is loading and show loader
+    if (window.appState && window.appState.tabLoading) {
+        return React.createElement(window.MobileLoadingState, {
+            message: window.appState.tabLoadingMessage || 'Loading...'
+        });
+    }
+    
     // Create a wrapper div that forces React to properly unmount/remount content
     // The key prop ensures React treats each tab as a separate component tree
     return React.createElement('div', {
@@ -508,12 +515,23 @@ if (!window._tabCleanupInitialized) {
     // Store original setActiveTab if exists
     const originalSetActiveTab = window.setActiveTab;
     
-    // Create enhanced setActiveTab
+    // Create enhanced setActiveTab with loading state
     window.setActiveTab = function(newTab) {
         const previousTab = window.activeTab;
         
-        // Only cleanup if actually changing tabs
-        if (previousTab !== newTab && previousTab) {
+        // Only proceed if actually changing tabs
+        if (previousTab === newTab) {
+            return;
+        }
+        
+        // Show loading state for tab switch
+        if (window.appState) {
+            window.appState.tabLoading = true;
+            window.appState.tabLoadingMessage = `Loading ${getTabDisplayName(newTab)}...`;
+        }
+        
+        // Cleanup previous tab if needed
+        if (previousTab) {
             window.cleanupTabContent(previousTab);
         }
         
@@ -524,13 +542,40 @@ if (!window._tabCleanupInitialized) {
             window.activeTab = newTab;
         }
         
-        // Force update after tab switch
+        // Hide loading after a brief delay to allow content to render
         setTimeout(() => {
+            if (window.appState) {
+                window.appState.tabLoading = false;
+                window.appState.tabLoadingMessage = '';
+            }
             if (window.forceUpdate) {
                 window.forceUpdate();
             }
-        }, 50);
+        }, 300); // 300ms delay for smooth transition
     };
+    
+    // Helper function to get display names for tabs
+    function getTabDisplayName(tab) {
+        const displayNames = {
+            'dashboard': 'Dashboard',
+            'leads': 'Leads',
+            'inventory': 'Inventory',
+            'orders': 'Orders',
+            'delivery': 'Deliveries',
+            'financials': 'Financials',
+            'sales-performance': 'Sales Performance',
+            'marketing-performance': 'Marketing Performance',
+            'stadiums': 'Stadiums',
+            'sports-calendar': 'Sports Calendar',
+            'reminders': 'Reminders',
+            'myactions': 'My Actions',
+            'assignment-rules': 'Assignment Rules',
+            'users': 'User Management',
+            'roles': 'Role Management',
+            'changePassword': 'Change Password'
+        };
+        return displayNames[tab] || tab;
+    }
 }
 
 console.log('✅ Enhanced content router with tab overlay fix loaded');

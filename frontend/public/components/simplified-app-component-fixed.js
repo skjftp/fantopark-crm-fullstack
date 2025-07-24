@@ -155,6 +155,13 @@ window.appState.currentUser = state.currentUser || null;
   window.appState.showPreview = state.showPreview || false;
   window.appState.uploadPreview = state.uploadPreview || null;
   window.appState.previewLoading = state.previewLoading || false;
+  
+  // Tab Loading States
+  window.appState.tabLoading = state.tabLoading || false;
+  window.appState.tabLoadingMessage = state.tabLoadingMessage || '';
+  window.appState.activeTab = state.activeTab;
+  window.appState.user = state.user;
+  window.appState.darkMode = state.darkMode;
 
   // ===== DIRECT WINDOW VARIABLES =====
   
