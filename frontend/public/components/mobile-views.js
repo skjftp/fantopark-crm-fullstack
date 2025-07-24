@@ -1693,14 +1693,63 @@ window.MobileSweetsContent = function() {
   const { activeTab } = state;
   
   // Add initial mount state to prevent double rendering
-  const [isMounted, setIsMounted] = React.useState(false);
+  // Check session storage to see if we've already initialized
+  const [isMounted, setIsMounted] = React.useState(() => {
+    // Only show loader on actual page refresh, not tab switches
+    const isPageReload = !sessionStorage.getItem('mobile_app_loaded');
+    if (!isPageReload) {
+      return true; // Skip loader if just switching tabs
+    }
+    return false;
+  });
   
   React.useEffect(() => {
-    // Small delay to ensure everything is initialized
-    const timer = setTimeout(() => {
-      setIsMounted(true);
-    }, 50);
-    return () => clearTimeout(timer);
+    // Clear session storage on page unload
+    const handleBeforeUnload = () => {
+      sessionStorage.removeItem('mobile_app_loaded');
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Use requestAnimationFrame for better timing on mobile devices
+    let mounted = true;
+    
+    const initialize = () => {
+      // Double requestAnimationFrame to ensure we're after the next paint
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (mounted) {
+            setIsMounted(true);
+            // Mark that app has loaded
+            sessionStorage.setItem('mobile_app_loaded', 'true');
+          }
+        });
+      });
+    };
+    
+    // Check if DOM is fully loaded
+    if (document.readyState === 'complete' && window.appState) {
+      // Add small delay for mobile browsers
+      setTimeout(initialize, 100);
+    } else {
+      const handleLoad = () => {
+        setTimeout(initialize, 100);
+      };
+      
+      if (document.readyState !== 'complete') {
+        window.addEventListener('load', handleLoad);
+        return () => {
+          mounted = false;
+          window.removeEventListener('load', handleLoad);
+        };
+      } else {
+        handleLoad();
+      }
+    }
+    
+    return () => {
+      mounted = false;
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
   
   if (!isMounted) {
