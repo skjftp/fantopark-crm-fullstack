@@ -50,7 +50,15 @@ Instructions:
 // POST /api/bulk-payments/upload - Upload and process payments
 router.post('/upload', 
   authenticateToken, 
-  checkPermission('finance', 'manage'),
+  (req, res, next) => {
+    // Allow both finance managers and supply_sales_service_manager
+    if (req.user.role === 'supply_sales_service_manager' || 
+        req.user.role === 'super_admin' ||
+        (req.user.permissions && req.user.permissions.finance && req.user.permissions.finance.manage)) {
+      return next();
+    }
+    return res.status(403).json({ error: 'Access denied' });
+  },
   upload.single('file'),
   async (req, res) => {
     try {
@@ -138,7 +146,15 @@ router.get('/history',
 // GET /api/bulk-payments/validate - Validate CSV without processing
 router.post('/validate',
   authenticateToken,
-  checkPermission('finance', 'manage'),
+  (req, res, next) => {
+    // Allow both finance managers and supply_sales_service_manager
+    if (req.user.role === 'supply_sales_service_manager' || 
+        req.user.role === 'super_admin' ||
+        (req.user.permissions && req.user.permissions.finance && req.user.permissions.finance.manage)) {
+      return next();
+    }
+    return res.status(403).json({ error: 'Access denied' });
+  },
   upload.single('file'),
   async (req, res) => {
     try {

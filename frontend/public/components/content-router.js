@@ -78,7 +78,9 @@ window.renderContent = () => {
 
             case 'finance':
             case 'financials': // Support both 'finance' and 'financials' tab names
-                return window.hasPermission('finance', 'read') ? window.renderFinancials() : 
+                return (window.hasPermission('finance', 'read') || 
+                        window.user?.role === 'supply_sales_service_manager') ? 
+                    window.renderFinancials() : 
                     React.createElement('div', { className: 'text-center py-12' },
                         React.createElement('p', { className: 'text-red-500 text-lg' }, 
                             'Access Denied: You do not have permission to view financials.'
