@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Order Final Amounts - FanToPark CRM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">🔧 Order Final Amount Audit & Fix Tool</h1>
+            
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+                <h2 class="text-lg font-semibold text-blue-800 mb-2">ℹ️ About This Tool</h2>
+                <p class="text-blue-700">This tool audits all orders and identifies those with incorrect final amounts.</p>
+                <p class="text-blue-700 mt-2">For Service Fee orders: Final Amount = Invoice Total + Service Fee + GST + TCS</p>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Bearer Token</label>
+                <input type="text" 
+                    id="token" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="Enter your bearer token"
+                    value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluIiwiZW1haWwiOiJhZG1pbkBmYW50b3BhcmsuY29tIiwicm9sZSI6InN1cGVyX2FkbWluIiwibmFtZSI6IlN1cGVyIEFkbWluIiwiaWF0IjoxNzUzMzY2Nzc4LCJleHAiOjE3NTM5NzE1Nzh9.rozQv9NlBoZfCIUQxgISuNPwbO79YumuaV9vwZ62DGs">
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Backend URL</label>
+                <input type="text" 
+                    id="backendUrl" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    value="https://fantopark-backend-150582227311.us-central1.run.app">
+            </div>
+
+            <div class="flex gap-4 mb-8">
+                <button onclick="runAudit()" 
+                    class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
+                    🔍 Run Audit
+                </button>
+                <button onclick="clearResults()" 
+                    class="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700">
+                    Clear Results
+                </button>
+            </div>
+
+            <div id="loading" class="hidden text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p class="mt-2 text-gray-600">Analyzing orders...</p>
+            </div>
+
+            <div id="results" class="hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">📊 Audit Results</h2>
+                
+                <div id="summary" class="mb-6 p-4 bg-gray-50 rounded-lg"></div>
+                
+                <div id="issuesList" class="mb-6"></div>
+                
+                <div id="actions" class="hidden flex gap-4 mb-6">
+                    <button onclick="fixAll()" 
+                        class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700">
+                        ✅ Fix All Issues
+                    </button>
+                    <button onclick="fixServiceFeeOnly()" 
+                        class="bg-yellow-600 text-white px-6 py-2 rounded-md hover:bg-yellow-700">
+                        🏷️ Fix Service Fee Orders Only
+                    </button>
+                    <button onclick="exportToCSV()" 
+                        class="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700">
+                        📄 Export to CSV
+                    </button>
+                </div>
+                
+                <div id="fixResults" class="hidden mb-6 p-4 bg-green-50 rounded-lg"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let auditData = null;
+        let ordersWithIssues = [];
+
+        async function apiCall(endpoint, options = {}) {
+            const token = document.getElementById('token').value;
+            const backendUrl = document.getElementById('backendUrl').value;
+            
+            const response = await fetch(`${backendUrl}${endpoint}`, {
+                ...options,
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API call failed: ${response.statusText}`);
+            }
+            
+            return response.json();
+        }
+
+        async function runAudit() {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('fixResults').classList.add('hidden');
+            
+            try {
+                // Fetch all orders
+                const ordersResponse = await apiCall('/api/orders');
+                const orders = ordersResponse.data;
+                
+                console.log(`Found ${orders.length} orders to audit`);
+                
+                // Analyze each order
+                const issues = {
+                    serviceFee: [],
+                    tourPackage: [],
+                    other: []
+                };
+                
+                let correctCount = 0;
+                
+                orders.forEach(order => {
+                    // Get amounts
+                    const invoiceTotal = order.invoice_total || 0;
+                    const serviceFeeAmount = order.service_fee_amount || order.service_fee || 0;
+                    const gstAmount = order.gst_amount || 0;
+                    const tcsAmount = order.tcs_amount || 0;
+                    
+                    // Calculate correct final amount
+                    let correctFinalAmount;
+                    
+                    if (order.type_of_sale === 'Service Fee') {
+                        // For Service Fee: Invoice Total + Service Fee + GST + TCS
+                        correctFinalAmount = invoiceTotal + serviceFeeAmount + gstAmount + tcsAmount;
+                    } else {
+                        // For other types: Invoice Total + Service Fee + GST + TCS
+                        correctFinalAmount = invoiceTotal + serviceFeeAmount + gstAmount + tcsAmount;
+                    }
+                    
+                    const currentFinalAmount = order.final_amount || 0;
+                    
+                    // Check if there's a discrepancy
+                    if (Math.abs(currentFinalAmount - correctFinalAmount) > 0.01) {
+                        const issue = {
+                            orderId: order.id,
+                            orderNumber: order.order_number,
+                            clientName: order.client_name,
+                            typeOfSale: order.type_of_sale,
+                            currency: order.payment_currency || 'INR',
+                            invoiceTotal,
+                            serviceFeeAmount,
+                            gstAmount,
+                            tcsAmount,
+                            currentFinalAmount,
+                            correctFinalAmount,
+                            difference: correctFinalAmount - currentFinalAmount,
+                            createdDate: order.created_date,
+                            status: order.status
+                        };
+                        
+                        if (order.type_of_sale === 'Service Fee') {
+                            issues.serviceFee.push(issue);
+                        } else if (order.type_of_sale === 'Tour Package') {
+                            issues.tourPackage.push(issue);
+                        } else {
+                            issues.other.push(issue);
+                        }
+                    } else {
+                        correctCount++;
+                    }
+                });
+                
+                auditData = issues;
+                ordersWithIssues = [...issues.serviceFee, ...issues.tourPackage, ...issues.other];
+                
+                displayResults(orders.length, correctCount, issues);
+                
+            } catch (error) {
+                console.error('Audit error:', error);
+                alert('Error running audit: ' + error.message);
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+
+        function displayResults(totalOrders, correctCount, issues) {
+            const totalIssues = issues.serviceFee.length + issues.tourPackage.length + issues.other.length;
+            
+            // Display summary
+            const summaryHtml = `
+                <h3 class="font-semibold text-lg mb-2">Summary</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600">Total Orders</p>
+                        <p class="text-2xl font-bold">${totalOrders}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">✅ Correct</p>
+                        <p class="text-2xl font-bold text-green-600">${correctCount}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">❌ Issues</p>
+                        <p class="text-2xl font-bold text-red-600">${totalIssues}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">💰 Total Impact</p>
+                        <p class="text-2xl font-bold text-orange-600">
+                            ${ordersWithIssues.reduce((sum, issue) => sum + issue.difference, 0).toFixed(2)}
+                        </p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('summary').innerHTML = summaryHtml;
+            
+            // Display issues
+            let issuesHtml = '';
+            
+            if (issues.serviceFee.length > 0) {
+                issuesHtml += '<div class="mb-6"><h3 class="font-semibold text-lg mb-3">🏷️ Service Fee Orders with Issues</h3>';
+                issues.serviceFee.forEach(issue => {
+                    issuesHtml += createIssueCard(issue);
+                });
+                issuesHtml += '</div>';
+            }
+            
+            if (issues.tourPackage.length > 0) {
+                issuesHtml += '<div class="mb-6"><h3 class="font-semibold text-lg mb-3">🎫 Tour Package Orders with Issues</h3>';
+                issues.tourPackage.forEach(issue => {
+                    issuesHtml += createIssueCard(issue);
+                });
+                issuesHtml += '</div>';
+            }
+            
+            if (issues.other.length > 0) {
+                issuesHtml += '<div class="mb-6"><h3 class="font-semibold text-lg mb-3">📦 Other Orders with Issues</h3>';
+                issues.other.forEach(issue => {
+                    issuesHtml += createIssueCard(issue);
+                });
+                issuesHtml += '</div>';
+            }
+            
+            document.getElementById('issuesList').innerHTML = issuesHtml;
+            
+            // Show results and actions
+            document.getElementById('results').classList.remove('hidden');
+            if (totalIssues > 0) {
+                document.getElementById('actions').classList.remove('hidden');
+            }
+        }
+
+        function createIssueCard(issue) {
+            return `
+                <div class="bg-white border border-gray-200 rounded-lg p-4 mb-3">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h4 class="font-semibold">${issue.orderNumber || issue.orderId}</h4>
+                            <p class="text-sm text-gray-600">${issue.clientName}</p>
+                        </div>
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">${issue.typeOfSale}</span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                        <div>
+                            <p class="text-gray-600">Invoice</p>
+                            <p class="font-medium">${issue.currency} ${issue.invoiceTotal}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">Service Fee</p>
+                            <p class="font-medium">${issue.currency} ${issue.serviceFeeAmount}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">GST</p>
+                            <p class="font-medium">${issue.currency} ${issue.gstAmount}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">TCS</p>
+                            <p class="font-medium">${issue.currency} ${issue.tcsAmount}</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-red-600">Current: ${issue.currency} ${issue.currentFinalAmount}</span>
+                                <span class="mx-2">→</span>
+                                <span class="text-green-600">Should be: ${issue.currency} ${issue.correctFinalAmount}</span>
+                            </div>
+                            <span class="font-semibold ${issue.difference > 0 ? 'text-orange-600' : 'text-red-600'}">
+                                ${issue.difference > 0 ? '+' : ''}${issue.difference.toFixed(2)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function fixAll() {
+            if (!confirm(`This will update ${ordersWithIssues.length} orders. Continue?`)) {
+                return;
+            }
+            await fixOrders(ordersWithIssues);
+        }
+
+        async function fixServiceFeeOnly() {
+            const serviceFeeOrders = auditData.serviceFee;
+            if (!confirm(`This will update ${serviceFeeOrders.length} Service Fee orders. Continue?`)) {
+                return;
+            }
+            await fixOrders(serviceFeeOrders);
+        }
+
+        async function fixOrders(orders) {
+            document.getElementById('loading').classList.remove('hidden');
+            
+            try {
+                let successCount = 0;
+                let errorCount = 0;
+                
+                for (const issue of orders) {
+                    try {
+                        await apiCall(`/api/orders/${issue.orderId}`, {
+                            method: 'PUT',
+                            body: JSON.stringify({
+                                final_amount: issue.correctFinalAmount,
+                                final_amount_inr: issue.currency === 'INR' ? issue.correctFinalAmount : issue.correctFinalAmount * 83.5,
+                                balance_due: issue.correctFinalAmount - (issue.advanceAmount || 0),
+                                final_amount_fixed: true,
+                                final_amount_fixed_date: new Date().toISOString(),
+                                final_amount_fixed_reason: 'Bulk fix via audit tool'
+                            })
+                        });
+                        successCount++;
+                    } catch (error) {
+                        console.error(`Failed to update order ${issue.orderId}:`, error);
+                        errorCount++;
+                    }
+                }
+                
+                const resultsHtml = `
+                    <h3 class="font-semibold text-green-800 mb-2">✅ Fix Complete!</h3>
+                    <p>Successfully updated: ${successCount} orders</p>
+                    ${errorCount > 0 ? `<p class="text-red-600">Failed: ${errorCount} orders</p>` : ''}
+                    <button onclick="runAudit()" class="mt-3 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                        Run Audit Again
+                    </button>
+                `;
+                
+                document.getElementById('fixResults').innerHTML = resultsHtml;
+                document.getElementById('fixResults').classList.remove('hidden');
+                
+            } catch (error) {
+                alert('Error fixing orders: ' + error.message);
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+
+        function exportToCSV() {
+            const csv = [
+                'Order ID,Order Number,Client Name,Type of Sale,Currency,Invoice Total,Service Fee,GST,TCS,Current Final,Correct Final,Difference,Status'
+            ];
+            
+            ordersWithIssues.forEach(issue => {
+                csv.push([
+                    issue.orderId,
+                    issue.orderNumber || '',
+                    issue.clientName,
+                    issue.typeOfSale || '',
+                    issue.currency,
+                    issue.invoiceTotal,
+                    issue.serviceFeeAmount,
+                    issue.gstAmount,
+                    issue.tcsAmount,
+                    issue.currentFinalAmount,
+                    issue.correctFinalAmount,
+                    issue.difference.toFixed(2),
+                    issue.status
+                ].join(','));
+            });
+            
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `order-audit-${Date.now()}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function clearResults() {
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('fixResults').classList.add('hidden');
+            auditData = null;
+            ordersWithIssues = [];
+        }
+    </script>
+</body>
+</html>

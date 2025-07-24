@@ -5,6 +5,13 @@ const moment = require('moment-timezone');
 const { v4: uuidv4 } = require('uuid');
 
 class BulkOrderService {
+  // Get a finance team member for assignment
+  getFinanceTeamMember() {
+    const financeTeam = ['jaya@fantopark.com', 'rishabh@fantopark.com'];
+    // Round-robin assignment - alternate between team members
+    const randomIndex = Math.floor(Math.random() * financeTeam.length);
+    return financeTeam[randomIndex];
+  }
   async processBulkOrders(csvBuffer, uploadedBy) {
     console.log('📋 Starting bulk order processing...');
     
@@ -136,9 +143,25 @@ class BulkOrderService {
       const inclusionsCost = parseFloat(record.inclusions_cost) || 0;
       const gstRate = parseFloat(record.gst_rate) || 18;
 
-      // Check if GST applies (not for outside India)
+      // Check location and customer type for GST calculation
       const isOutsideIndia = record.is_outside_india === 'true' || record.is_outside_india === 'TRUE' || record.is_outside_india === true || record.event_location === 'outside_india';
-      const effectiveGstRate = isOutsideIndia ? 0 : gstRate;
+      const isIndian = record.customer_type === 'indian';
+      const isINRPayment = record.payment_currency === 'INR';
+      
+      // Determine if GST applies based on business rules
+      let gstApplicable = false;
+      if (isIndian) {
+        // Indian customers always get GST regardless of location
+        gstApplicable = true;
+      } else if (!isOutsideIndia) {
+        // Event in India = GST applicable
+        gstApplicable = true;
+      } else if (isOutsideIndia && isINRPayment) {
+        // Event outside India but paying in INR = GST applicable
+        gstApplicable = true;
+      }
+      
+      const effectiveGstRate = gstApplicable ? gstRate : 0;
       
       // Calculate GST based on type of sale
       let taxableAmount = 0;
@@ -154,13 +177,26 @@ class BulkOrderService {
         gstAmount = (taxableAmount * effectiveGstRate) / 100;
       }
       
-      const cgst = gstAmount / 2;
-      const sgst = gstAmount / 2;
-      const igst = isOutsideIndia ? 0 : gstAmount;
+      // Determine if intra-state (CGST/SGST) or inter-state (IGST)
+      const isIntraState = record.state_location === 'Haryana' && !isOutsideIndia;
+      const cgst = gstAmount > 0 && isIntraState ? gstAmount / 2 : 0;
+      const sgst = gstAmount > 0 && isIntraState ? gstAmount / 2 : 0;
+      const igst = gstAmount > 0 && !isIntraState ? gstAmount : 0;
 
       // Calculate TCS if applicable
-      const tcsRate = parseFloat(record.tcs_rate) || 0;
-      const tcsAmount = tcsRate > 0 ? ((invoiceTotal + serviceFeeAmount + gstAmount) * tcsRate) / 100 : 0;
+      const isCorporate = record.category_of_sale === 'corporate' || record.category_of_sale === 'Corporate';
+      let tcsApplicable = false;
+      let tcsRate = parseFloat(record.tcs_rate) || 5;
+      
+      // B2B clients NEVER get TCS
+      if (!isCorporate && isOutsideIndia) {
+        // Only B2C (Retail) clients can get TCS for events outside India
+        if (isIndian || isINRPayment) {
+          tcsApplicable = true;
+        }
+      }
+      
+      const tcsAmount = tcsApplicable ? ((invoiceTotal + serviceFeeAmount + gstAmount) * tcsRate) / 100 : 0;
       
       // Calculate final amount
       const totalBeforeTax = invoiceTotal + serviceFeeAmount;
@@ -170,7 +206,9 @@ class BulkOrderService {
       const orderData = {
         // Lead information
         lead_id: record.lead_id,
-        lead_name: record.lead_name || leadData.lead_name,
+        lead_name: record.lead_name || leadData.lead_name || record.client_name,
+        lead_phone: record.client_phone || leadData.lead_phone,
+        lead_email: record.client_email || leadData.lead_email,
         
         // Client information
         client_name: record.client_name,
@@ -185,6 +223,11 @@ class BulkOrderService {
         // Event details
         event_name: record.event_name || leadData.event_name || 'Event',
         event_date: eventDate || null,
+        
+        // Ticket details
+        quantity: quantity,
+        tickets_allocated: quantity,
+        ticket_category: record.category_of_sale || 'Corporate',
         
         // GST & Legal details
         gstin: record.gstin || '',
@@ -240,34 +283,36 @@ class BulkOrderService {
         
         // Metadata
         order_number: `ORD-${Date.now()}-${row}`,
-        status: advanceAmount >= finalAmount ? 'payment_received' : 'pending',
+        status: 'pending_approval', // Always pending_approval for bulk uploads
         created_by: uploadedBy,
         created_date: moment().tz('Asia/Kolkata').toISOString(),
         created_at: moment().tz('Asia/Kolkata').toISOString(), // Some views expect created_at
         created_via: 'bulk_upload',
         notes: record.notes || '',
         
-        // Assignment fields (expected by order views)
-        assigned_team: null,
-        assigned_to: null,
-        assignment_date: null,
-        assignment_notes: null,
+        // Assignment fields - auto-assign to finance team
+        assigned_team: 'finance',
+        assigned_to: this.getFinanceTeamMember(),
+        assignment_date: moment().tz('Asia/Kolkata').toISOString(),
+        assignment_notes: 'Auto-assigned to finance team via bulk upload',
         
         // Additional fields for compatibility with payment form
         advance_amount_inr: advanceAmount,
         final_amount_inr: finalAmount,
-        exchange_rate: 1,
+        exchange_rate: record.exchange_rate || 1,
         sales_person: uploadedBy,
         
         // Fields expected by payment form
         invoice_total: invoiceTotal,
         service_fee: serviceFeeAmount,
+        service_fee_amount: serviceFeeAmount,
         total_before_tax: totalBeforeTax,
         tax_amount: gstAmount,
         tour_package: record.type_of_sale === 'Tour Package',
+        type_of_sale: record.type_of_sale || 'Service Fee',
         
-        // Payment status
-        payment_status: advanceAmount >= finalAmount ? 'paid' : (advanceAmount > 0 ? 'partial' : 'pending'),
+        // Payment status - always 'paid' for bulk uploads
+        payment_status: 'paid',
         
         // Total amount field
         total_amount: finalAmount,
@@ -284,11 +329,12 @@ class BulkOrderService {
           sgst: sgst,
           igst: igst,
           total: gstAmount,
-          applicable: effectiveGstRate > 0,
+          applicable: gstApplicable,
           taxable_amount: taxableAmount,
           type_of_sale: record.type_of_sale || 'Service Fee',
           tcs_rate: tcsRate,
-          tcs_amount: tcsAmount
+          tcs_amount: tcsAmount,
+          tcs_applicable: tcsApplicable
         },
         
         // Approval tracking
@@ -361,19 +407,17 @@ class BulkOrderService {
       const invoiceRef = await db.collection('crm_invoices').add(cleanedInvoiceData);
       console.log(`✅ Invoice created: ${invoiceRef.id}`);
 
-      // Update lead status if payment is complete
-      if (advanceAmount >= finalAmount) {
-        await leadRef.update({
-          status: 'payment_received',
-          'journey.payment_received': {
-            timestamp: moment().tz('Asia/Kolkata').toISOString(),
-            updated_by: uploadedBy,
-            notes: `Payment received via bulk upload - Order ${orderData.order_number}`
-          },
-          updated_date: moment().tz('Asia/Kolkata').toISOString()
-        });
-        console.log(`✅ Lead ${record.lead_id} status updated to payment_received`);
-      }
+      // Update lead status to payment_received for bulk uploads
+      await leadRef.update({
+        status: 'payment_received',
+        'journey.payment_received': {
+          timestamp: moment().tz('Asia/Kolkata').toISOString(),
+          updated_by: uploadedBy,
+          notes: `Payment received via bulk upload - Order ${orderData.order_number}`
+        },
+        updated_date: moment().tz('Asia/Kolkata').toISOString()
+      });
+      console.log(`✅ Lead ${record.lead_id} status updated to payment_received`);
 
       return {
         success: true,
@@ -452,6 +496,11 @@ class BulkOrderService {
         const validPaymentMethods = ['Bank Transfer', 'UPI', 'Credit Card', 'Debit Card', 'Cash', 'Cheque', 'Online'];
         if (record.payment_method && !validPaymentMethods.includes(record.payment_method)) {
           errors.push(`Payment method must be one of: ${validPaymentMethods.join(', ')}`);
+        }
+        
+        const validCategories = ['Corporate', 'Retail', 'corporate', 'retail'];
+        if (record.category_of_sale && !validCategories.includes(record.category_of_sale)) {
+          errors.push(`Category of sale must be one of: Corporate, Retail`);
         }
 
         const isValid = errors.length === 0;
