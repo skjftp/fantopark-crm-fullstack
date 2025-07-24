@@ -16,7 +16,8 @@ window._dashboardChartInstances = {
 // MAIN DASHBOARD RENDER FUNCTION
 // ===============================================
 
-window.renderDashboardContent = () => {
+// Create a proper React component for the dashboard
+const DashboardComponent = () => {
     // Use React hooks to manage chart initialization
     const [chartsInitialized, setChartsInitialized] = React.useState(false);
     
@@ -406,6 +407,11 @@ window.renderDashboardContent = () => {
             )
         )
     );
+};
+
+// Wrapper function that renders the component
+window.renderDashboardContent = () => {
+    return React.createElement(DashboardComponent);
 };
 
 // ===============================================
