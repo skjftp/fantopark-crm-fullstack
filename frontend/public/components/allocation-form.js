@@ -148,6 +148,18 @@ window.renderAllocationForm = () => {
         }, '✕')
       ),
 
+      // Debug Information (temporary)
+      React.createElement('div', { className: 'bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 mb-4 border border-yellow-300' },
+        React.createElement('h4', { className: 'font-bold text-yellow-800 dark:text-yellow-200 mb-2' }, '🔍 Debug Information'),
+        React.createElement('div', { className: 'text-sm text-yellow-700 dark:text-yellow-300 space-y-1' },
+          React.createElement('div', null, `Current category value: "${allocationData.category_name || 'none'}"`),
+          React.createElement('div', null, `Has categories: ${hasCategories}`),
+          React.createElement('div', null, `Number of categories: ${currentInventory.categories ? currentInventory.categories.length : 0}`),
+          React.createElement('div', null, `Selected category object: ${selectedCategory ? selectedCategory.name : 'none'}`),
+          React.createElement('div', null, `Available tickets: ${availableTickets}`)
+        )
+      ),
+
       // Event Information Summary
       React.createElement('div', { className: 'bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6' },
         React.createElement('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
@@ -328,10 +340,29 @@ window.renderAllocationForm = () => {
           React.createElement('select', {
             value: allocationData.category_name || '',
             onChange: (e) => {
-              console.log('Category selection changed:', e.target.value);
+              const newValue = e.target.value;
+              const selectedIndex = e.target.selectedIndex;
+              const selectedOption = e.target.options[selectedIndex];
+              
+              console.log('=== CATEGORY SELECTION DEBUG ===');
+              console.log('New value:', newValue);
+              console.log('Selected index:', selectedIndex);
+              console.log('Selected option text:', selectedOption ? selectedOption.text : 'none');
               console.log('Current categories:', currentInventory.categories);
-              console.log('Current allocation data:', allocationData);
-              handleAllocationInputChange('category_name', e.target.value);
+              console.log('Current allocation data before change:', allocationData);
+              console.log('Category names available:', currentInventory.categories.map(c => c.name));
+              
+              // Check if the value exists in categories
+              const categoryExists = currentInventory.categories.some(cat => cat.name === newValue);
+              console.log('Category exists in list:', categoryExists);
+              
+              handleAllocationInputChange('category_name', newValue);
+              
+              // Log after change
+              setTimeout(() => {
+                console.log('Allocation data after change:', window.allocationData);
+                console.log('=== END CATEGORY DEBUG ===');
+              }, 200);
             },
             className: 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500',
             required: hasCategories
@@ -340,8 +371,8 @@ window.renderAllocationForm = () => {
             currentInventory.categories.map((category, index) =>
               React.createElement('option', { 
                 key: `category-${index}-${category.name}`, 
-                value: category.name,
-                disabled: category.available_tickets === 0 
+                value: category.name
+                // REMOVED: disabled attribute - allow all selections
               },
                 `${category.name} - ${category.section || 'General'} (${category.available_tickets} available @ ₹${category.selling_price})`
               )
@@ -425,7 +456,7 @@ window.renderAllocationForm = () => {
           }, 'Cancel'),
           React.createElement('button', {
             type: 'submit',
-            disabled: loading || !allocationData.lead_id || currentQuantity < 1 || (hasCategories && !allocationData.category_name),
+            disabled: loading, // REMOVED other validations - allow submission to see validation errors
             className: 'flex-1 bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 disabled:opacity-50 font-medium'
           }, loading ? 'Processing...' : 'Allocate and Create Entry')
         )
@@ -487,14 +518,14 @@ window.handleAllocation = async (e) => {
   // Get current quantity with fallback and validation
   const quantity = parseInt(window.allocationData.quantity) || 1;
 
-  // Enhanced validation
+  // Enhanced validation with detailed error messages
   if (!window.allocationData.lead_id) {
-    alert('Please select a lead');
+    alert('Validation Error: Please select a lead');
     return;
   }
 
   if (!window.currentInventory || !window.currentInventory.id) {
-    alert('No inventory selected for allocation');
+    alert('Validation Error: No inventory selected for allocation');
     return;
   }
 
@@ -510,12 +541,12 @@ window.handleAllocation = async (e) => {
   // NEW: Validate category selection if inventory has categories
   const hasCategories = window.currentInventory.categories && Array.isArray(window.currentInventory.categories) && window.currentInventory.categories.length > 0;
   if (hasCategories && !window.allocationData.category_name) {
-    alert('Please select a ticket category');
+    alert('Validation Error: Please select a ticket category');
     return;
   }
 
   if (quantity < 1) {
-    alert('Please enter a valid quantity (at least 1)');
+    alert('Validation Error: Please enter a valid quantity (at least 1)');
     return;
   }
 
@@ -528,8 +559,14 @@ window.handleAllocation = async (e) => {
     ? selectedCategory.available_tickets 
     : window.currentInventory.available_tickets;
 
+  // Check if category has 0 tickets available
+  if (selectedCategory && selectedCategory.available_tickets === 0) {
+    alert(`Validation Error: The selected category "${selectedCategory.name}" has 0 tickets available. Please select a different category.`);
+    return;
+  }
+
   if (quantity > availableTickets) {
-    alert('Quantity exceeds available tickets for the selected category');
+    alert(`Validation Error: Quantity (${quantity}) exceeds available tickets (${availableTickets}) for the selected category "${selectedCategory ? selectedCategory.name : 'General'}".`);
     return;
   }
 
@@ -552,7 +589,8 @@ window.handleAllocation = async (e) => {
     // Validate lead status - backend only allows certain statuses
     const allowedStatuses = ['converted', 'payment_received', 'payment_post_service'];
     if (!allowedStatuses.includes(selectedLead.status)) {
-      throw new Error(`Cannot allocate to lead with status "${selectedLead.status}". Lead must be in one of these statuses: ${allowedStatuses.join(', ')}`);
+      alert(`Validation Error: Cannot allocate to lead with status "${selectedLead.status}". Lead must be in one of these statuses: ${allowedStatuses.join(', ')}`);
+      return;
     }
     
     console.log(`✅ Allocating to lead: ${selectedLead.name} (${selectedLead.status}) - Status valid for allocation`);
@@ -814,10 +852,8 @@ window.openAllocationForm = (inventory) => {
     quantity: 1,
     allocation_date: new Date().toISOString().split('T')[0],
     notes: '',
-    // NEW: Add category selection - default to first category if available
-    category_name: hasCategories && inventory.categories.length > 0 
-      ? inventory.categories[0].name 
-      : ''
+    // NEW: Add category selection - no default to avoid selection issues
+    category_name: ''
   };
   
   // Update state if setters are available
