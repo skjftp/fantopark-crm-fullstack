@@ -93,26 +93,23 @@ window.exportAllocationsToCSV = (allocations, inventoryName, hasCategories) => {
     // Define CSV headers based on whether categories exist
     const headers = hasCategories ? [
       'Lead Name',
-      'Lead Email',
       'Lead Phone',
       'Company',
       'Category',
-      'Section',
+      'Section/Stand',
       'Tickets Allocated',
       'Price per Ticket',
       'Total Amount',
-      'Allocation Date',
       'Allocated By',
       'Notes'
     ] : [
       'Lead Name',
-      'Lead Email',
       'Lead Phone',
       'Company',
+      'Section/Stand',
       'Tickets Allocated',
       'Price per Ticket',
       'Total Amount',
-      'Allocation Date',
       'Allocated By',
       'Notes'
     ];
@@ -123,49 +120,55 @@ window.exportAllocationsToCSV = (allocations, inventoryName, hasCategories) => {
     allocations.forEach(allocation => {
       // Get lead details
       const leadName = allocation.lead_details?.name || allocation.lead_name || 'Unknown';
-      const leadEmail = allocation.lead_details?.email || allocation.lead_email || '';
       const leadPhone = allocation.lead_details?.phone || '';
       const leadCompany = allocation.lead_details?.company || '';
 
       // Get pricing info
       let pricePerTicket = 0;
-      let section = '';
+      let sectionInfo = '';
+      
+      // Get section/stand info
+      if (allocation.category_section) {
+        sectionInfo = allocation.category_section;
+      } else if (allocation.category_details && allocation.category_details.section) {
+        sectionInfo = allocation.category_details.section;
+      } else if (hasCategories && allocation.category_name) {
+        const category = window.allocationManagementInventory.categories.find(cat => cat.name === allocation.category_name);
+        if (category && category.section) {
+          sectionInfo = category.section;
+        }
+      }
       
       if (allocation.category_details?.selling_price) {
         pricePerTicket = allocation.category_details.selling_price;
-        section = allocation.category_details.section || '';
       } else if (window.allocationManagementInventory?.selling_price) {
         pricePerTicket = window.allocationManagementInventory.selling_price;
       }
 
       const totalAmount = (allocation.tickets_allocated || 0) * pricePerTicket;
-      const allocationDate = allocation.allocation_date ? new Date(allocation.allocation_date).toLocaleDateString() : '';
       const allocatedBy = allocation.created_by || '';
       const notes = (allocation.notes || '').replace(/,/g, ';'); // Replace commas to avoid CSV issues
 
       // Build row based on whether categories exist
       const row = hasCategories ? [
         `"${leadName}"`,
-        `"${leadEmail}"`,
         `"${leadPhone}"`,
         `"${leadCompany}"`,
         `"${allocation.category_name || 'General'}"`,
-        `"${section}"`,
+        `"${sectionInfo}"`,
         allocation.tickets_allocated || 0,
         pricePerTicket,
         totalAmount,
-        allocationDate,
         `"${allocatedBy}"`,
         `"${notes}"`
       ] : [
         `"${leadName}"`,
-        `"${leadEmail}"`,
         `"${leadPhone}"`,
         `"${leadCompany}"`,
+        `"${sectionInfo}"`,
         allocation.tickets_allocated || 0,
         pricePerTicket,
         totalAmount,
-        allocationDate,
         `"${allocatedBy}"`,
         `"${notes}"`
       ];
@@ -419,13 +422,12 @@ window.renderAllocationManagement = () => {
           React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-700' },
             React.createElement('tr', null,
               React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Lead Name'),
-              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Email'),
               // NEW: Category column
               hasCategories && React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Category'),
+              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Section/Stand'),
               React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Tickets'),
               React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Price/Ticket'),
               React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Total Value'),
-              React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Date'),
               React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Notes'),
               React.createElement('th', { className: 'px-4 py-2 border dark:border-gray-600 text-left dark:text-white' }, 'Actions')
             )
@@ -449,6 +451,19 @@ window.renderAllocationManagement = () => {
               const stableKey = allocation.id || 
                 `allocation-${index}-${allocation.lead_id || allocation.lead_email || allocation.allocation_date || 'unknown'}`;
               
+              // Get section/stand info
+              let sectionInfo = '';
+              if (allocation.category_section) {
+                sectionInfo = allocation.category_section;
+              } else if (allocation.category_details && allocation.category_details.section) {
+                sectionInfo = allocation.category_details.section;
+              } else if (hasCategories && allocation.category_name) {
+                const category = allocationManagementInventory.categories.find(cat => cat.name === allocation.category_name);
+                if (category && category.section) {
+                  sectionInfo = category.section;
+                }
+              }
+
               return React.createElement('tr', { 
                 key: stableKey, 
                 className: 'hover:bg-gray-50 dark:hover:bg-gray-700' 
@@ -456,14 +471,15 @@ window.renderAllocationManagement = () => {
                 React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' },
                   allocation.lead_details ? allocation.lead_details.name : (allocation.lead_name || 'Unknown')
                 ),
-                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' },
-                  allocation.lead_details ? allocation.lead_details.email : (allocation.lead_email || 'N/A')
-                ),
                 // NEW: Category cell
                 hasCategories && React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600' },
                   React.createElement('span', { 
                     className: 'px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' 
                   }, allocation.category_name || 'General')
+                ),
+                // Section/Stand cell
+                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' },
+                  sectionInfo || '-'
                 ),
                 React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300 text-center' }, 
                   allocation.tickets_allocated || 0
@@ -473,9 +489,6 @@ window.renderAllocationManagement = () => {
                 ),
                 React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300 font-medium' }, 
                   `₹${totalValue.toLocaleString()}`
-                ),
-                React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300' },
-                  allocation.allocation_date ? new Date(allocation.allocation_date).toLocaleDateString() : 'N/A'
                 ),
                 React.createElement('td', { className: 'px-4 py-2 border dark:border-gray-600 dark:text-gray-300 text-sm' }, 
                   allocation.notes || '-'
