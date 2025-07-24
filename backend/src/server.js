@@ -150,6 +150,10 @@ const whatsappRoutes = require('./routes/whatsapp');
 app.use('/whatsapp', whatsappRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 
+// WhatsApp test routes (temporary for testing)
+const whatsappTestRoutes = require('./routes/whatsapp-test');
+app.use('/api/whatsapp-test', whatsappTestRoutes);
+
 // ===============================================
 // AUTHENTICATED ROUTES (existing routes)
 // ✅ MOVED: Journey routes now AFTER CORS setup
