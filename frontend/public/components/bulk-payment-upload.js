@@ -59,7 +59,7 @@ window.BulkPaymentUpload = () => {
   // Download template
   const downloadTemplate = async () => {
     try {
-      const response = await fetch('/api/bulk-payments/template', {
+      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/template`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -95,7 +95,7 @@ window.BulkPaymentUpload = () => {
     formData.append('file', state.file);
 
     try {
-      const response = await fetch('/api/bulk-payments/validate', {
+      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/validate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -135,7 +135,7 @@ window.BulkPaymentUpload = () => {
     formData.append('file', state.file);
 
     try {
-      const response = await fetch('/api/bulk-payments/upload', {
+      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -172,7 +172,7 @@ window.BulkPaymentUpload = () => {
   // Get upload history
   const fetchHistory = async () => {
     try {
-      const response = await fetch('/api/bulk-payments/history', {
+      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/history`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -192,7 +192,7 @@ window.BulkPaymentUpload = () => {
   // Get sample data
   const fetchSampleData = async () => {
     try {
-      const response = await fetch('/api/bulk-payments/sample-data', {
+      const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/sample-data`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
