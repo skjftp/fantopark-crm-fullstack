@@ -774,9 +774,9 @@ res.json({
 router.post('/:id/allocate', authenticateToken, checkPermission('inventory', 'write'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { tickets_allocated, lead_id, allocation_date, notes, category_name } = req.body;
+    const { tickets_allocated, lead_id, allocation_date, notes, category_name, category_section } = req.body;
     
-    console.log('Allocation request:', { id, tickets_allocated, lead_id, allocation_date, notes, category_name });
+    console.log('Allocation request:', { id, tickets_allocated, lead_id, allocation_date, notes, category_name, category_section });
     
     // Verify lead exists and is converted
     const leadDoc = await db.collection('crm_leads').doc(lead_id).get();
@@ -813,9 +813,28 @@ router.post('/:id/allocate', authenticateToken, checkPermission('inventory', 'wr
         return res.status(400).json({ error: 'Category name is required for allocation' });
       }
       
-      const categoryIndex = inventoryData.categories.findIndex(cat => cat.name === category_name);
+      // Find category by both name and section for uniqueness
+      let categoryIndex = inventoryData.categories.findIndex(cat => 
+        cat.name === category_name && 
+        (cat.section || '') === (category_section || '')
+      );
+      
       if (categoryIndex === -1) {
-        return res.status(404).json({ error: `Category '${category_name}' not found in inventory` });
+        // If not found with section, try to find by name only if there's only one with that name
+        const categoriesWithName = inventoryData.categories.filter(cat => cat.name === category_name);
+        if (categoriesWithName.length === 1) {
+          // Only one category with this name, use it
+          categoryIndex = inventoryData.categories.findIndex(cat => cat.name === category_name);
+          console.log(`Found unique category '${category_name}' without section match`);
+        } else if (categoriesWithName.length === 0) {
+          return res.status(404).json({ 
+            error: `Category '${category_name}' not found in inventory` 
+          });
+        } else {
+          return res.status(404).json({ 
+            error: `Multiple categories found with name '${category_name}'. Please specify the section. Found in sections: ${categoriesWithName.map(c => c.section || 'General').join(', ')}` 
+          });
+        }
       }
       
       const category = inventoryData.categories[categoryIndex];
@@ -877,6 +896,7 @@ router.post('/:id/allocate', authenticateToken, checkPermission('inventory', 'wr
       lead_id: lead_id,
       tickets_allocated: allocatedTickets,
       category_name: category_name || inventoryData.category_of_ticket || 'General',
+      category_section: category_section || (inventoryData.categories && categoryIndex >= 0 ? inventoryData.categories[categoryIndex].section : '') || '',
       allocation_date: allocation_date || new Date().toISOString().split('T')[0],
       notes: notes || '',
       created_date: new Date().toISOString(),
@@ -1000,6 +1020,7 @@ router.delete('/:id/allocations/:allocationId', authenticateToken, checkPermissi
     const allocationData = allocationDoc.data();
     const ticketsToReturn = parseInt(allocationData.tickets_allocated) || 0;
     const categoryName = allocationData.category_name;
+    const categorySection = allocationData.category_section || '';
     
     // Get current inventory
     const inventoryDoc = await db.collection('crm_inventory').doc(id).get();
@@ -1014,8 +1035,11 @@ router.delete('/:id/allocations/:allocationId', authenticateToken, checkPermissi
     
     // Handle unallocation based on whether categories exist
     if (inventoryData.categories && Array.isArray(inventoryData.categories) && categoryName) {
-      // New system with categories
-      const categoryIndex = inventoryData.categories.findIndex(cat => cat.name === categoryName);
+      // New system with categories - find by both name and section
+      const categoryIndex = inventoryData.categories.findIndex(cat => 
+        cat.name === categoryName && 
+        (cat.section || '') === categorySection
+      );
       if (categoryIndex !== -1) {
         const category = inventoryData.categories[categoryIndex];
         inventoryData.categories[categoryIndex].available_tickets = 

@@ -355,16 +355,18 @@ window.renderAllocationForm = () => {
               if (!isNaN(selectedIndex) && selectedIndex >= 0 && selectedIndex < currentInventory.categories.length) {
                 const selectedCategory = currentInventory.categories[selectedIndex];
                 
-                // Store both the index and the category name
+                // Store the index, category name, and section for unique identification
                 window.updateAllocationData({
                   category_index: selectedIndex,
-                  category_name: selectedCategory.name
+                  category_name: selectedCategory.name,
+                  category_section: selectedCategory.section || ''
                 });
               } else {
                 // Clear selection
                 window.updateAllocationData({
                   category_index: '',
-                  category_name: ''
+                  category_name: '',
+                  category_section: ''
                 });
               }
             },
@@ -579,7 +581,7 @@ window.handleAllocation = async (e) => {
 
   // NEW: Validate category selection if inventory has categories
   const hasCategories = window.currentInventory.categories && Array.isArray(window.currentInventory.categories) && window.currentInventory.categories.length > 0;
-  if (hasCategories && !window.allocationData.category_name) {
+  if (hasCategories && (!window.allocationData.category_name || window.allocationData.category_index === '')) {
     alert('Validation Error: Please select a ticket category');
     return;
   }
@@ -645,6 +647,7 @@ window.handleAllocation = async (e) => {
     // Add category if inventory has categories
     if (window.allocationData.category_name && window.allocationData.category_name !== null) {
       allocationRequest.category_name = window.allocationData.category_name;
+      allocationRequest.category_section = window.allocationData.category_section || '';
     }
 
     // Try a simpler version first - with both field name variations
@@ -653,6 +656,12 @@ window.handleAllocation = async (e) => {
       quantity: parseInt(quantity),
       tickets_allocated: parseInt(quantity)
     };
+    
+    // Add category info to simple request if present
+    if (window.allocationData.category_name) {
+      simpleAllocationRequest.category_name = window.allocationData.category_name;
+      simpleAllocationRequest.category_section = window.allocationData.category_section || '';
+    }
 
     console.error('🔍 TRYING SIMPLE REQUEST FIRST:', JSON.stringify(simpleAllocationRequest, null, 2));
 
@@ -893,6 +902,7 @@ window.openAllocationForm = (inventory) => {
     notes: '',
     // NEW: Add category selection - no default to avoid selection issues
     category_name: '',
+    category_section: '',
     category_index: ''
   };
   
