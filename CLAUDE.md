@@ -117,6 +117,24 @@ npm run deploy
 - **Database Migration**: Create script in `backend/src/scripts/`, handle IST conversion
 - **Adding New Collection**: Update Firestore rules, create model in `backend/src/models/`
 
+### Recent Features
+
+#### Bulk Payment Upload (Added 2025-07-24)
+- **Location**: Financials → Bulk Payment Upload tab
+- **Access**: Super Admin, Finance Managers, Supply Sales Service Manager
+- **Features**:
+  - CSV upload for bulk payment processing
+  - Support for multiple invoices per payment
+  - Automatic order creation for paid leads
+  - Validation with detailed error reporting
+  - Upload history tracking
+  - Sample data download for testing
+- **Implementation**:
+  - Backend: `/api/bulk-payments/*` endpoints
+  - Frontend: `components/bulk-payment-upload.js` (v1.2 with React hooks fix)
+  - Service: `backend/src/services/bulkPaymentService.js`
+- **CSV Format**: lead_id, payment_date (DD-MM-YYYY), amount, payment_mode, reference_number, notes
+
 ### Environment Variables
 
 Backend requires `.env` with:
