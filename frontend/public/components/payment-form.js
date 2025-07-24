@@ -896,6 +896,11 @@ window.renderEnhancedPaymentForm = () => {
 
             // Enhanced calculation with TCS support
             const calculation = calculateGSTAndTCS(baseAmount, paymentData);
+            
+            // For Service Fee type, adjust the final amount display
+            if (paymentData.type_of_sale === 'Service Fee') {
+              calculation.displayFinalAmount = calculation.finalAmount;
+            }
             const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
             const advanceAmount = parseFloat(paymentData.advance_amount) || 0;
             const isReceivablePayment = paymentData.from_receivable || paymentData.payment_post_service;
@@ -924,7 +929,15 @@ window.renderEnhancedPaymentForm = () => {
                     React.createElement('span', null, 
                       paymentData.payment_currency || 'INR', ' ', baseAmount.toFixed(2)
                     )
-                  )
+                  ),
+                  // Show total before tax for Service Fee type
+                  paymentData.type_of_sale === 'Service Fee' && 
+                    React.createElement('div', { className: 'flex justify-between text-sm mt-2' },
+                      React.createElement('span', null, 'Total Before Tax:'),
+                      React.createElement('span', { className: 'font-medium' }, 
+                        paymentData.payment_currency || 'INR', ' ', (invoiceTotal + baseAmount).toFixed(2)
+                      )
+                    )
                 )
               ),
 
