@@ -1103,15 +1103,17 @@ window.MobileDashboardView = function() {
       React.createElement('div', { className: 'relative inline-block' },
         // Show loader when loading
         isLoading && React.createElement('div', {
-          className: 'absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800',
+          className: 'absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg',
           style: { width: '280px', height: '280px', zIndex: 10 }
         },
           React.createElement('div', { className: 'text-center' },
-            // Animated logo loader
+            // Animated logo loader with different colors based on title
             React.createElement('div', {
-              className: 'relative w-16 h-16 mx-auto mb-3',
+              className: 'relative w-20 h-20 mx-auto mb-3',
               style: {
-                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                animationDelay: title === 'Lead Temperature Count' ? '0.5s' : 
+                               title === 'Lead Temperature Value' ? '1s' : '0s'
               }
             },
               React.createElement('img', {
@@ -1119,17 +1121,29 @@ window.MobileDashboardView = function() {
                 alt: 'Loading...',
                 className: 'w-full h-full object-contain',
                 style: {
-                  filter: 'drop-shadow(0 0 15px rgba(59, 130, 246, 0.5))',
-                  animation: 'float 3s ease-in-out infinite'
+                  filter: title === 'Lead Split' ? 
+                    'drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))' :
+                    title === 'Lead Temperature Count' ? 
+                    'drop-shadow(0 0 20px rgba(34, 197, 94, 0.5))' :
+                    'drop-shadow(0 0 20px rgba(168, 85, 247, 0.5))',
+                  animation: 'float 3s ease-in-out infinite',
+                  animationDelay: title === 'Lead Temperature Count' ? '0.5s' : 
+                                 title === 'Lead Temperature Value' ? '1s' : '0s'
                 }
               })
             ),
             React.createElement('p', { 
               className: 'text-xs text-gray-500 dark:text-gray-400',
               style: {
-                animation: 'fadeInOut 2s ease-in-out infinite'
+                animation: 'fadeInOut 2s ease-in-out infinite',
+                animationDelay: title === 'Lead Temperature Count' ? '0.5s' : 
+                               title === 'Lead Temperature Value' ? '1s' : '0s'
               }
-            }, 'Loading chart...')
+            }, 
+              title === 'Lead Split' ? 'Loading chart data...' :
+              title === 'Lead Temperature Count' ? 'Loading temperature data...' :
+              'Calculating values...'
+            )
           )
         ),
         React.createElement('canvas', {
