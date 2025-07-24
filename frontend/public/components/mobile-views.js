@@ -1327,24 +1327,6 @@ window.MobileDashboardView = function() {
           style: { touchAction: 'none' }
         }),
         
-        // Tooltip for hover/touch
-        hoveredSegment !== null && React.createElement('div', {
-          className: 'absolute z-10 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg whitespace-nowrap',
-          style: touchPoint ? {
-            left: '50%',
-            top: '-30px',
-            transform: 'translateX(-50%)'
-          } : {
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            pointerEvents: 'none'
-          }
-        },
-          labels[hoveredSegment],
-          ': ',
-          data[hoveredSegment]
-        )
       ),
       
       // Compact Horizontal Legend
@@ -1879,65 +1861,70 @@ window.MobileDeliveriesView = function() {
     return React.createElement(window.MobileLoadingState || 'div', null, 'Loading deliveries...');
   }
   
-  return React.createElement('div', { className: 'mobile-content-wrapper' },
-    // Header with search
-    React.createElement('div', { 
-      className: 'sticky top-0 bg-white dark:bg-gray-900 z-10 pb-3 border-b'
-    },
-      React.createElement('h2', { 
-        className: 'text-lg font-semibold mb-3'
-      }, 'Deliveries'),
-      
-      // Search bar
-      React.createElement('div', { className: 'px-4 mb-3' },
-        React.createElement('div', { className: 'relative' },
+  const [showFilters, setShowFilters] = React.useState(false);
+  
+  return React.createElement('div', { className: 'mobile-content-wrapper pb-20' },
+    // Search bar with filter toggle
+    React.createElement('div', { className: 'mobile-search-bar' },
+      React.createElement('div', { className: 'flex gap-2' },
+        React.createElement('div', { className: 'relative flex-1' },
           React.createElement('input', {
             type: 'text',
+            className: 'mobile-search-input w-full',
             placeholder: 'Search deliveries...',
             value: searchQuery,
             onChange: (e) => {
               setSearchQuery(e.target.value);
               setCurrentPage(1);
             },
-            className: 'w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm'
+            style: {
+              paddingLeft: '16px',
+              paddingRight: searchQuery ? '40px' : '16px'
+            }
           }),
-          React.createElement('span', { 
-            className: 'absolute left-3 top-2.5 text-gray-400'
-          }, '🔍')
-        )
-      ),
-      
-      // Status filter tabs
-      React.createElement('div', { className: 'flex overflow-x-auto no-scrollbar px-4 gap-2' },
-        React.createElement('button', {
-          onClick: () => {
-            setStatusFilter('all');
-            setCurrentPage(1);
-          },
-          className: `px-3 py-1 text-xs rounded-full whitespace-nowrap ${
-            statusFilter === 'all' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-gray-100 text-gray-700'
-          }`
-        }, 'All'),
-        Object.entries(DELIVERY_STATUSES).map(([status, config]) =>
-          React.createElement('button', {
-            key: status,
+          searchQuery && React.createElement('button', {
             onClick: () => {
-              setStatusFilter(status);
+              setSearchQuery('');
               setCurrentPage(1);
             },
-            className: `px-3 py-1 text-xs rounded-full whitespace-nowrap flex items-center gap-1 ${
-              statusFilter === status 
-                ? config.color 
-                : 'bg-gray-100 text-gray-700'
-            }`
-          }, 
-            React.createElement('span', null, config.icon),
-            config.label
+            className: 'absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700'
+          }, '✕')
+        ),
+        React.createElement('button', {
+          onClick: () => setShowFilters(!showFilters),
+          className: `px-3 py-2 rounded-lg ${showFilters ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-600'}`
+        }, '⚙️')
+      )
+    ),
+    
+    // Expanded filters section
+    showFilters && React.createElement('div', { 
+      className: 'bg-gray-50 dark:bg-gray-800 p-4 space-y-3 border-b'
+    },
+      // Status Filter
+      React.createElement('div', null,
+        React.createElement('label', { className: 'block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Filter by Status'),
+        React.createElement('select', {
+          value: statusFilter,
+          onChange: (e) => {
+            setStatusFilter(e.target.value);
+            setCurrentPage(1);
+          },
+          className: 'w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg'
+        },
+          React.createElement('option', { value: 'all' }, 'All Statuses'),
+          Object.entries(DELIVERY_STATUSES).map(([status, config]) =>
+            React.createElement('option', { key: status, value: status }, config.label)
           )
         )
       )
+    ),
+    
+    // Header
+    React.createElement('div', { className: 'px-4 pt-2 pb-3' },
+      React.createElement('h2', { 
+        className: 'text-lg font-semibold'
+      }, 'Deliveries')
     ),
     
     // Deliveries list
@@ -3321,40 +3308,84 @@ window.MobileMarketingPerformanceView = function() {
       )
     ),
     
-    // Summary Stats - single line format
+    // Summary Stats - 2x2 grid with percentages
     React.createElement('div', { 
-      className: 'grid grid-cols-2 gap-3 p-4'
+      className: 'p-4'
     },
-      React.createElement('div', { className: 'mobile-card p-3 flex items-center justify-between' },
-        React.createElement('span', { className: 'text-xs text-gray-500' },
-          'Total Leads'
-        ),
-        React.createElement('span', { className: 'text-xl font-bold text-blue-600' },
-          totals.totalLeads || 0
-        )
-      ),
-      React.createElement('div', { className: 'mobile-card p-3 flex items-center justify-between' },
-        React.createElement('span', { className: 'text-xs text-gray-500' },
-          'Qualified'
-        ),
-        React.createElement('span', { className: 'text-xl font-bold text-green-600' },
-          totals.qualified || 0
-        )
-      ),
-      React.createElement('div', { className: 'mobile-card p-3 flex items-center justify-between' },
-        React.createElement('span', { className: 'text-xs text-gray-500' },
-          'Converted'
-        ),
-        React.createElement('span', { className: 'text-xl font-bold text-purple-600' },
-          totals.converted || 0
-        )
-      ),
-      React.createElement('div', { className: 'mobile-card p-3 flex items-center justify-between' },
-        React.createElement('span', { className: 'text-xs text-gray-500' },
-          'Avg CPL'
-        ),
-        React.createElement('span', { className: 'text-xl font-bold text-red-600' },
-          totals.totalCPL ? `₹${parseFloat(totals.totalCPL).toFixed(0)}` : '₹0'
+      React.createElement('div', { 
+        className: 'bg-white dark:bg-gray-800 rounded-xl shadow-xl transform transition-all duration-200 hover:scale-[1.02]',
+        style: {
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 20px 25px -5px rgba(0, 0, 0, 0.05)'
+        }
+      },
+        React.createElement('div', { className: 'p-5' },
+          React.createElement('h3', { 
+            className: 'text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wider' 
+          }, 'Campaign Stats'),
+          
+          // 2x2 grid layout
+          React.createElement('div', { 
+            style: {
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gridTemplateRows: 'repeat(2, 1fr)',
+              gap: '12px',
+              width: '100%',
+              boxSizing: 'border-box'
+            }
+          },
+            React.createElement('div', { 
+              className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center'
+            },
+              React.createElement('div', { className: 'w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-full mx-auto mb-2 flex items-center justify-center' },
+                React.createElement('span', { className: 'text-lg' }, '📊')
+              ),
+              React.createElement('p', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
+                totals.totalLeads || 0
+              ),
+              React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 'Total Leads')
+            ),
+            
+            React.createElement('div', { 
+              className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center'
+            },
+              React.createElement('div', { className: 'w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-full mx-auto mb-2 flex items-center justify-center' },
+                React.createElement('span', { className: 'text-lg' }, '✓')
+              ),
+              React.createElement('p', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
+                totals.qualified || 0
+              ),
+              React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 
+                `Qualified${totals.totalLeads > 0 ? ` (${Math.round(totals.qualified / totals.totalLeads * 100)}%)` : ''}`
+              )
+            ),
+            
+            React.createElement('div', { 
+              className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center'
+            },
+              React.createElement('div', { className: 'w-10 h-10 bg-purple-100 dark:bg-purple-900/50 rounded-full mx-auto mb-2 flex items-center justify-center' },
+                React.createElement('span', { className: 'text-lg' }, '🎯')
+              ),
+              React.createElement('p', { className: 'text-xl font-bold text-gray-900 dark:text-white' }, 
+                totals.converted || 0
+              ),
+              React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 
+                `Converted${totals.totalLeads > 0 ? ` (${Math.round(totals.converted / totals.totalLeads * 100)}%)` : ''}`
+              )
+            ),
+            
+            React.createElement('div', { 
+              className: 'bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 text-center'
+            },
+              React.createElement('div', { className: 'w-10 h-10 bg-red-100 dark:bg-red-900/50 rounded-full mx-auto mb-2 flex items-center justify-center' },
+                React.createElement('span', { className: 'text-lg' }, '₹')
+              ),
+              React.createElement('p', { className: 'text-lg font-bold text-gray-900 dark:text-white' }, 
+                totals.totalCPL ? `₹${parseFloat(totals.totalCPL).toFixed(0)}` : '₹0'
+              ),
+              React.createElement('p', { className: 'text-xs text-gray-500 dark:text-gray-400 mt-1' }, 'Avg CPL')
+            )
+          )
         )
       )
     ),
@@ -3587,41 +3618,6 @@ window.MobileMarketingPerformanceView = function() {
             React.createElement('p', null, 'No marketing data available'),
             React.createElement('p', { className: 'text-sm' }, 'Try adjusting your filters')
           )
-      ),
-      
-      // Total summary card
-      totals && totals.totalLeads > 0 && React.createElement('div', { 
-        className: 'mobile-card p-4 mt-4 bg-gray-100 dark:bg-gray-800'
-      },
-        React.createElement('h4', { 
-          className: 'font-bold text-gray-900 dark:text-white mb-3'
-        }, 'TOTAL'),
-        React.createElement('div', { className: 'grid grid-cols-2 gap-2 text-xs' },
-          React.createElement('div', null,
-            React.createElement('span', { className: 'text-gray-600 block' }, 'Total Leads'),
-            React.createElement('span', { className: 'font-bold text-lg' }, 
-              totals.totalLeads || 0
-            )
-          ),
-          React.createElement('div', null,
-            React.createElement('span', { className: 'text-gray-600 block' }, 'Qualified'),
-            React.createElement('span', { className: 'font-bold text-lg text-green-600' }, 
-              `${totals.qualified || 0} (${totals.totalQualifiedPercent || 0}%)`
-            )
-          ),
-          React.createElement('div', null,
-            React.createElement('span', { className: 'text-gray-600 block' }, 'Converted'),
-            React.createElement('span', { className: 'font-bold text-lg text-blue-600' }, 
-              `${totals.converted || 0} (${totals.totalConvertedPercent || 0}%)`
-            )
-          ),
-          React.createElement('div', null,
-            React.createElement('span', { className: 'text-gray-600 block' }, 'Avg CPL'),
-            React.createElement('span', { className: 'font-bold text-lg' }, 
-              totals.totalCPL ? `₹${parseFloat(totals.totalCPL).toFixed(0)}` : '₹0'
-            )
-          )
-        )
       )
     )
   );
