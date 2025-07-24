@@ -13,6 +13,14 @@ window.calculateGSTAndTCS = (baseAmount, paymentData) => {
   const isCorporate = paymentData.category_of_sale === 'Corporate'; // B2B
   const isRetail = paymentData.category_of_sale === 'Retail'; // B2C
   
+  // Get invoice total for Service Fee type
+  let invoiceTotal = 0;
+  if (paymentData.type_of_sale === 'Service Fee') {
+    invoiceTotal = (paymentData.invoice_items || []).reduce((sum, item) => 
+      sum + ((item.quantity || 0) * (item.rate || 0)), 0
+    );
+  }
+  
   // ===== FIXED: Simplified GST Logic per requirements =====
   let gstApplicable = false;
   let gstRate = 0;
@@ -85,8 +93,14 @@ window.calculateGSTAndTCS = (baseAmount, paymentData) => {
     tcsRate,
     tcsAmount,
     isCorporate,
-    typeOfSale: paymentData.type_of_sale
+    typeOfSale: paymentData.type_of_sale,
+    invoiceTotal
   });
+
+  // For Service Fee type: Final Amount = Invoice Total + Service Fee + GST + TCS
+  const finalAmount = paymentData.type_of_sale === 'Service Fee' 
+    ? invoiceTotal + baseAmount + gstAmount + tcsAmount
+    : baseAmount + gstAmount + tcsAmount;
 
   return {
     gst: {
@@ -104,7 +118,7 @@ window.calculateGSTAndTCS = (baseAmount, paymentData) => {
       amount: tcsAmount,
       base_for_calculation: gstInclusiveAmount // Show what TCS was calculated on
     },
-    finalAmount: baseAmount + gstAmount + tcsAmount
+    finalAmount: finalAmount
   };
 };
 
