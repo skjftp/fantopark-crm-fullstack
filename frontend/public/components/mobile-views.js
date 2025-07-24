@@ -1626,21 +1626,28 @@ window.MobileDashboardView = function() {
                 ),
                 
                 // Action buttons
-                React.createElement('div', { className: 'flex items-center gap-2' },
+                React.createElement('div', { 
+                  className: 'flex items-center gap-2',
+                  onClick: (e) => e.stopPropagation() // Prevent card click when clicking this area
+                },
                   lead.phone && React.createElement('button', {
                     onClick: (e) => {
                       e.stopPropagation();
+                      e.preventDefault();
                       window.location.href = `tel:${lead.phone}`;
                     },
-                    className: 'p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                    className: 'p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+                    title: `Call ${lead.phone}`
                   }, '📞'),
                   
                   lead.email && React.createElement('button', {
                     onClick: (e) => {
                       e.stopPropagation();
+                      e.preventDefault();
                       window.location.href = `mailto:${lead.email}`;
                     },
-                    className: 'p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                    className: 'p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+                    title: `Email ${lead.email}`
                   }, '✉️')
                 )
               )
