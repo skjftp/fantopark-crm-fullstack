@@ -728,6 +728,31 @@ async function triggerAutoAssignment(leadId, leadData) {
       });
 
       console.log(`✅ Lead auto-assigned to: ${assignedTo}`);
+      
+      // Trigger WhatsApp welcome message
+      try {
+        // Get assigned user details
+        const userSnapshot = await db.collection('crm_users')
+          .where('email', '==', assignedTo)
+          .limit(1)
+          .get();
+        
+        if (!userSnapshot.empty) {
+          const assignedRep = userSnapshot.docs[0].data();
+          const whatsappService = require('../services/whatsappService');
+          
+          // Send WhatsApp welcome message
+          await whatsappService.sendWelcomeMessage(leadData, {
+            name: assignedRep.name || assignedRep.email,
+            phone: assignedRep.phone || ''
+          });
+          
+          console.log('📱 WhatsApp welcome message triggered for lead:', leadId);
+        }
+      } catch (whatsappError) {
+        console.error('❌ WhatsApp message error:', whatsappError);
+        // Don't throw - WhatsApp failure shouldn't break assignment
+      }
     }
     
   } catch (error) {

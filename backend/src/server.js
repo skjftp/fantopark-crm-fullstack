@@ -145,6 +145,11 @@ const webhookRoutes = require('./routes/webhooks');
 app.use('/webhooks', webhookRoutes);
 app.use('/api/webhooks', webhookRoutes);
 
+// WhatsApp webhook routes
+const whatsappRoutes = require('./routes/whatsapp');
+app.use('/whatsapp', whatsappRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
+
 // ===============================================
 // AUTHENTICATED ROUTES (existing routes)
 // ✅ MOVED: Journey routes now AFTER CORS setup
