@@ -986,9 +986,11 @@ window.MobileDashboardView = function() {
     const [touchStart, setTouchStart] = React.useState(0);
     const [touchEnd, setTouchEnd] = React.useState(0);
     
-    React.useEffect(() => {
+    // Debug effect must be after charts declaration
+    const debugCarousel = () => {
       console.log('📱 Carousel - Current chart:', currentChart);
-    }, [currentChart]);
+      console.log('📱 Carousel - Transform:', `translateX(-${currentChart * 100}%)`);
+    };
     
     const charts = [
       {
@@ -1012,6 +1014,10 @@ window.MobileDashboardView = function() {
         colors: dashboardData.charts.temperatureValue.colors
       }
     ];
+    
+    React.useEffect(() => {
+      debugCarousel();
+    }, [currentChart]);
     
     const handleTouchStart = (e) => {
       setTouchStart(e.targetTouches[0].clientX);
@@ -1049,17 +1055,17 @@ window.MobileDashboardView = function() {
         // Carousel container
         React.createElement('div', { 
           className: 'relative overflow-hidden',
-          style: { height: '320px' },
+          style: { height: '320px', width: '100%' },
           onTouchStart: handleTouchStart,
           onTouchMove: handleTouchMove,
           onTouchEnd: handleTouchEnd
         },
-        // Previous arrow
-        currentChart > 0 && React.createElement('button', {
-          onClick: () => setCurrentChart(currentChart - 1),
-          className: 'absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow',
-          'aria-label': 'Previous chart'
-        },
+          // Previous arrow
+          currentChart > 0 && React.createElement('button', {
+            onClick: () => setCurrentChart(currentChart - 1),
+            className: 'absolute left-2 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow',
+            'aria-label': 'Previous chart'
+          },
           React.createElement('svg', {
             className: 'w-5 h-5 text-gray-600 dark:text-gray-300',
             fill: 'none',
@@ -1075,12 +1081,12 @@ window.MobileDashboardView = function() {
           )
         ),
         
-        // Next arrow
-        currentChart < charts.length - 1 && React.createElement('button', {
-          onClick: () => setCurrentChart(currentChart + 1),
-          className: 'absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow',
-          'aria-label': 'Next chart'
-        },
+          // Next arrow
+          currentChart < charts.length - 1 && React.createElement('button', {
+            onClick: () => setCurrentChart(currentChart + 1),
+            className: 'absolute right-2 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow',
+            'aria-label': 'Next chart'
+          },
           React.createElement('svg', {
             className: 'w-5 h-5 text-gray-600 dark:text-gray-300',
             fill: 'none',
@@ -1095,18 +1101,18 @@ window.MobileDashboardView = function() {
             })
           )
         ),
-        // Charts container with transform
-        React.createElement('div', {
-          className: 'flex transition-transform duration-300 ease-in-out h-full',
-          style: {
-            transform: `translateX(-${currentChart * 100}%)`
-          }
-        },
-          charts.map((chart, index) => 
-            React.createElement('div', {
-              key: index,
-              className: 'w-full flex-shrink-0 p-3 h-full flex items-center justify-center'
-            },
+          // Charts container with transform
+          React.createElement('div', {
+            className: 'flex transition-transform duration-300 ease-in-out h-full',
+            style: {
+              transform: `translateX(-${currentChart * 100}%)`
+            }
+          },
+            charts.map((chart, index) => 
+              React.createElement('div', {
+                key: index,
+                className: 'w-full flex-shrink-0 p-3 h-full flex items-center justify-center'
+              },
               React.createElement(MiniPieChart, {
                 title: chart.title,
                 data: chart.data,
