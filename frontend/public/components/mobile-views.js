@@ -3910,7 +3910,7 @@ window.MobileMyActionsView = function() {
     return React.createElement(window.MobileLoadingState || 'div', null, 'Loading my actions...');
   }
   
-  return React.createElement('div', { className: 'mobile-content-wrapper' },
+  return React.createElement('div', { className: 'mobile-content-wrapper pb-20' },
     // Header
     React.createElement('div', { 
       className: 'sticky top-0 bg-white dark:bg-gray-900 z-10 pb-3 border-b'
@@ -3931,36 +3931,48 @@ window.MobileMyActionsView = function() {
         )
       ),
       
-      // Section tabs
-      React.createElement('div', { className: 'flex overflow-x-auto no-scrollbar px-4 gap-2' },
+      // Section tabs - Icons only with counts
+      React.createElement('div', { className: 'flex justify-around px-4' },
         sections.map(section => {
           // Define color classes based on section
           const activeColors = {
-            'leads': 'bg-blue-600 text-white',
-            'quotes': 'bg-purple-600 text-white',
-            'orders': 'bg-green-600 text-white',
-            'deliveries': 'bg-orange-600 text-white',
-            'receivables': 'bg-yellow-600 text-white'
+            'leads': 'bg-blue-600 text-white border-blue-600',
+            'quotes': 'bg-purple-600 text-white border-purple-600',
+            'orders': 'bg-green-600 text-white border-green-600',
+            'deliveries': 'bg-orange-600 text-white border-orange-600',
+            'receivables': 'bg-yellow-600 text-white border-yellow-600'
           };
+          
+          const inactiveColors = {
+            'leads': 'text-blue-600 border-gray-300',
+            'quotes': 'text-purple-600 border-gray-300',
+            'orders': 'text-green-600 border-gray-300',
+            'deliveries': 'text-orange-600 border-gray-300',
+            'receivables': 'text-yellow-600 border-gray-300'
+          };
+          
+          const count = getSectionCount(section.id);
           
           return React.createElement('button', {
             key: section.id,
             onClick: () => setActiveSection(section.id),
-            className: `px-3 py-1.5 text-xs rounded-full whitespace-nowrap flex items-center gap-1 ${
+            className: `relative flex flex-col items-center justify-center w-14 h-14 rounded-lg border-2 transition-all ${
               activeSection === section.id 
                 ? activeColors[section.id] 
-                : 'bg-gray-100 text-gray-700'
-            }`
+                : `bg-white ${inactiveColors[section.id]}`
+            }`,
+            title: section.label
           }, 
-            React.createElement('span', null, section.icon),
-            section.label,
             React.createElement('span', { 
-              className: `ml-1 px-1.5 py-0.5 rounded-full text-xs ${
+              className: 'text-lg'
+            }, section.icon),
+            count > 0 && React.createElement('span', { 
+              className: `absolute -top-1 -right-1 text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[20px] ${
                 activeSection === section.id 
-                  ? 'bg-white/20' 
-                  : 'bg-gray-200'
+                  ? 'bg-white text-gray-800' 
+                  : 'bg-red-500 text-white'
               }`
-            }, getSectionCount(section.id))
+            }, count)
           );
         })
       )
@@ -4014,35 +4026,84 @@ window.MobileMyActionsView = function() {
                   )
                 ),
                 // Action buttons for leads
-                React.createElement('div', { className: 'flex gap-2 mt-3' },
+                React.createElement('div', { className: 'flex gap-2 mt-3 flex-wrap' },
+                  // View Details button (always shown)
                   React.createElement('button', {
-                    className: 'flex-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors',
+                    className: 'px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors',
                     onClick: (e) => {
                       e.stopPropagation();
-                      if (window.openLeadEditForm) {
-                        window.openLeadEditForm(item);
+                      if (window.openLeadDetail) {
+                        window.openLeadDetail(item);
                       }
-                    }
-                  }, '✏️ '),
+                    },
+                    title: 'View lead details'
+                  }, '👁️'),
+                  
+                  // Edit button
+                  window.hasPermission && window.hasPermission('leads', 'write') && 
                   React.createElement('button', {
-                    className: 'flex-1 px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors',
+                    className: 'px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors',
                     onClick: (e) => {
                       e.stopPropagation();
-                      if (window.convertLeadToOrder) {
-                        window.convertLeadToOrder(item);
+                      if (window.openEditForm) {
+                        window.openEditForm(item);
                       }
-                    }
-                  }, '📦 '),
+                    },
+                    title: 'Edit lead'
+                  }, '✏️'),
+                  
+                  // Assign button (only for unassigned leads)
+                  window.hasPermission && window.hasPermission('leads', 'assign') && !item.assigned_to && item.status === 'unassigned' &&
                   React.createElement('button', {
-                    className: 'flex-1 px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors',
+                    className: 'px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors',
                     onClick: (e) => {
                       e.stopPropagation();
-                      if (window.setCurrentLead && window.setShowChoiceModal) {
-                        window.setCurrentLead(item);
-                        window.setShowChoiceModal(true);
+                      if (window.openAssignForm) {
+                        window.openAssignForm(item);
                       }
-                    }
-                  }, '🎯 ')
+                    },
+                    title: 'Assign lead'
+                  }, '👤'),
+                  
+                  // Progress button
+                  window.hasPermission && window.hasPermission('leads', 'progress') && 
+                  React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.handleLeadProgression) {
+                        window.handleLeadProgression(item);
+                      }
+                    },
+                    title: 'Progress lead to next stage'
+                  }, '→'),
+                  
+                  // Payment button (for converted leads or leads with orders)
+                  window.hasPermission && window.hasPermission('leads', 'write') && (item.status === 'converted' || 
+                    (window.orders && window.orders.some(order => order.lead_id === item.id && order.status !== 'rejected'))) &&
+                  React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.openPaymentForm) {
+                        window.openPaymentForm(item);
+                      }
+                    },
+                    title: 'Collect Payment'
+                  }, '💳'),
+                  
+                  // Delete button
+                  window.hasPermission && window.hasPermission('leads', 'delete') && 
+                  React.createElement('button', {
+                    className: 'px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.handleDelete) {
+                        window.handleDelete('leads', item.id, item.name);
+                      }
+                    },
+                    title: 'Delete lead'
+                  }, '🗑️')
                 )
               );
             } else if (activeSection === 'quotes') {
@@ -4056,15 +4117,15 @@ window.MobileMyActionsView = function() {
                 React.createElement('div', { className: 'flex justify-between items-start mb-3' },
                   React.createElement('div', null,
                     React.createElement('div', { className: 'font-bold text-gray-900' },
-                      item.client_name || item.lead_name || 'Unknown Client'
+                      item.client_name || item.lead_name || item.company_name || item.name || 'Unknown Client'
                     ),
                     React.createElement('div', { className: 'text-xs text-gray-500' },
-                      'Quote #', item.id
+                      'Quote #', item.id?.slice(-8) || item.id
                     )
                   ),
                   React.createElement('div', { 
                     className: 'px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800'
-                  }, 'Pending')
+                  }, item.status || 'Pending')
                 ),
                 React.createElement('div', { className: 'space-y-1 text-sm' },
                   item.event_name && React.createElement('div', { className: 'flex items-center gap-2' },
@@ -4073,22 +4134,43 @@ window.MobileMyActionsView = function() {
                   ),
                   React.createElement('div', { className: 'flex items-center gap-2' },
                     React.createElement('span', { className: 'text-gray-500' }, '🎫'),
-                    item.quantity || 0, ' tickets'
+                    item.tickets_allocated || item.quantity || item.total_tickets || 0, ' tickets'
                   ),
                   React.createElement('div', { className: 'flex items-center gap-2' },
                     React.createElement('span', { className: 'text-gray-500' }, '💰'),
-                    window.formatCurrency(item.amount || 0)
+                    window.formatCurrency(item.final_amount || item.total_amount || item.amount || 0)
                   )
                 ),
-                React.createElement('button', {
-                  className: 'mt-3 w-full px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors',
-                  onClick: (e) => {
-                    e.stopPropagation();
-                    if (window.openQuoteUploadModal) {
-                      window.openQuoteUploadModal(item);
+                // Action buttons for quotes
+                React.createElement('div', { className: 'flex gap-2 mt-3' },
+                  React.createElement('button', {
+                    className: 'flex-1 px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.openLeadDetail) {
+                        window.openLeadDetail(item);
+                      }
                     }
-                  }
-                }, '📤 ')
+                  }, '📋 Create'),
+                  React.createElement('button', {
+                    className: 'flex-1 px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.openQuoteUploadModal) {
+                        window.openQuoteUploadModal(item);
+                      }
+                    }
+                  }, '📤 Upload'),
+                  React.createElement('button', {
+                    className: 'flex-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors',
+                    onClick: (e) => {
+                      e.stopPropagation();
+                      if (window.openLeadDetail) {
+                        window.openLeadDetail(item);
+                      }
+                    }
+                  }, '👁️ View')
+                )
               );
             } else if (activeSection === 'orders') {
               return React.createElement('div', {
