@@ -985,9 +985,22 @@ window.MobileDashboardView = function() {
     const [currentChart, setCurrentChart] = React.useState(0);
     const [touchStart, setTouchStart] = React.useState(0);
     const [touchEnd, setTouchEnd] = React.useState(0);
+    const [isPaused, setIsPaused] = React.useState(false);
+    
+    // Auto-carousel effect - advance every 3 seconds
+    React.useEffect(() => {
+      if (isPaused) return;
+      
+      const interval = setInterval(() => {
+        setCurrentChart((prev) => (prev + 1) % 3); // Cycle through 0, 1, 2
+      }, 3000);
+      
+      return () => clearInterval(interval);
+    }, [isPaused]);
     
     const handleTouchStart = (e) => {
       setTouchStart(e.targetTouches[0].clientX);
+      setIsPaused(true); // Pause auto-carousel on touch
     };
     
     const handleTouchMove = (e) => {
@@ -1007,6 +1020,9 @@ window.MobileDashboardView = function() {
       if (isRightSwipe && currentChart > 0) {
         setCurrentChart(currentChart - 1);
       }
+      
+      // Resume auto-carousel after 5 seconds
+      setTimeout(() => setIsPaused(false), 5000);
     };
     
     // Render the current chart based on index
@@ -1055,7 +1071,7 @@ window.MobileDashboardView = function() {
           }, 'Dashboard Charts'),
           React.createElement('p', { 
             className: 'text-xs text-gray-500 dark:text-gray-400 text-center mt-1' 
-          }, 'Swipe left or right to navigate')
+          }, isPaused ? 'Auto-play paused' : 'Auto-playing • Swipe to navigate')
         ),
         
         // Chart container
@@ -1080,7 +1096,12 @@ window.MobileDashboardView = function() {
         [0, 1, 2].map((index) => 
           React.createElement('button', {
             key: index,
-            onClick: () => setCurrentChart(index),
+            onClick: () => {
+              setCurrentChart(index);
+              setIsPaused(true);
+              // Resume auto-carousel after 5 seconds
+              setTimeout(() => setIsPaused(false), 5000);
+            },
             className: `h-2 rounded-full transition-all duration-300 ${
               index === currentChart 
                 ? 'w-8 bg-blue-600 dark:bg-blue-400' 
