@@ -253,7 +253,7 @@ window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financi
             // Tab Navigation - ENHANCED
             React.createElement('div', { className: 'border-b border-gray-200 dark:border-gray-700' },
                 React.createElement('nav', { className: '-mb-px flex space-x-8 px-6' },
-                    ['activesales', 'sales', 'receivables', 'payables', 'expiring'].map(tab =>
+                    ['activesales', 'sales', 'receivables', 'payables', 'expiring', 'bulkpayment'].map(tab =>
                         React.createElement('button', {
                             key: tab,
                             onClick: () => setActiveFinancialTab(tab),
@@ -1381,7 +1381,7 @@ window.renderResponsiveFinancials = () => {
         React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow' },
             React.createElement('div', { className: 'border-b border-gray-200 dark:border-gray-700 overflow-x-auto' },
                 React.createElement('nav', { className: 'flex space-x-4 md:space-x-8 px-4 md:px-6 min-w-max' },
-                    ['activesales', 'sales', 'receivables', 'payables', 'expiring'].map(tab =>
+                    ['activesales', 'sales', 'receivables', 'payables', 'expiring', 'bulkpayment'].map(tab =>
                         React.createElement('button', {
                             key: tab,
                             onClick: () => setActiveFinancialTab(tab),
