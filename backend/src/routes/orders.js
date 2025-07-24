@@ -148,6 +148,25 @@ router.post('/', authenticateToken, async (req, res) => {
       }
     }
     
+    // Calculate invoice_total if not provided
+    if (!orderData.invoice_total && orderData.invoice_items && orderData.invoice_items.length > 0) {
+      orderData.invoice_total = orderData.invoice_items.reduce((sum, item) => {
+        return sum + ((item.quantity || 0) * (item.rate || 0));
+      }, 0);
+      orderData.invoice_subtotal = orderData.invoice_total;
+    }
+    
+    // For Service Fee type, ensure we have invoice_total separate from base_amount
+    if (orderData.type_of_sale === 'Service Fee' && !orderData.invoice_total) {
+      // base_amount might be service fee, so calculate invoice_total from items
+      if (orderData.invoice_items && orderData.invoice_items.length > 0) {
+        orderData.invoice_total = orderData.invoice_items.reduce((sum, item) => {
+          return sum + ((item.quantity || 0) * (item.rate || 0));
+        }, 0);
+        orderData.invoice_subtotal = orderData.invoice_total;
+      }
+    }
+    
     // Ensure currency fields are properly set
     orderData = ensureCurrencyFields(orderData);
     
@@ -227,6 +246,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
       ...req.body,
       updated_date: new Date().toISOString()
     };
+    
+    // Calculate invoice_total if updating invoice_items
+    if (updates.invoice_items && updates.invoice_items.length > 0 && !updates.invoice_total) {
+      updates.invoice_total = updates.invoice_items.reduce((sum, item) => {
+        return sum + ((item.quantity || 0) * (item.rate || 0));
+      }, 0);
+      updates.invoice_subtotal = updates.invoice_total;
+    }
     
     // Explicitly ensure customer classification fields are included if provided
     console.log('🔍 UPDATE route - customer_type from request:', req.body.customer_type);

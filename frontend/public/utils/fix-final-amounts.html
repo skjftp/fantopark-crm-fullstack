@@ -124,20 +124,36 @@
                 
                 orders.forEach(order => {
                     // Get amounts - check multiple possible fields for invoice total
-                    let invoiceTotal = order.invoice_total || 0;
+                    let invoiceTotal = order.invoice_total || order.invoice_subtotal || 0;
                     
-                    // If invoice_total is 0, try to calculate from invoice_items
-                    if (invoiceTotal === 0 && order.invoice_items && order.invoice_items.length > 0) {
-                        invoiceTotal = order.invoice_items.reduce((sum, item) => {
-                            return sum + ((item.quantity || 0) * (item.rate || 0));
-                        }, 0);
-                    }
-                    
-                    // Also check items array (some orders might use this)
-                    if (invoiceTotal === 0 && order.items && order.items.length > 0) {
-                        invoiceTotal = order.items.reduce((sum, item) => {
-                            return sum + ((item.quantity || 0) * (item.rate || 0));
-                        }, 0);
+                    // For Service Fee orders, base_amount might be the service fee, not invoice total
+                    if (order.type_of_sale === 'Service Fee' && invoiceTotal === 0) {
+                        // Try to get from invoice_items first
+                        if (order.invoice_items && order.invoice_items.length > 0) {
+                            invoiceTotal = order.invoice_items.reduce((sum, item) => {
+                                return sum + ((item.quantity || 0) * (item.rate || 0));
+                            }, 0);
+                        } else if (order.items && order.items.length > 0) {
+                            invoiceTotal = order.items.reduce((sum, item) => {
+                                return sum + ((item.quantity || 0) * (item.rate || 0));
+                            }, 0);
+                        }
+                    } else if (invoiceTotal === 0) {
+                        // For non-Service Fee orders, base_amount is usually the invoice total
+                        invoiceTotal = order.base_amount || 0;
+                        
+                        // If still 0, calculate from items
+                        if (invoiceTotal === 0 && order.invoice_items && order.invoice_items.length > 0) {
+                            invoiceTotal = order.invoice_items.reduce((sum, item) => {
+                                return sum + ((item.quantity || 0) * (item.rate || 0));
+                            }, 0);
+                        }
+                        
+                        if (invoiceTotal === 0 && order.items && order.items.length > 0) {
+                            invoiceTotal = order.items.reduce((sum, item) => {
+                                return sum + ((item.quantity || 0) * (item.rate || 0));
+                            }, 0);
+                        }
                     }
                     
                     const serviceFeeAmount = order.service_fee_amount || order.service_fee || 0;
@@ -172,6 +188,12 @@
                     
                     // Calculate correct final amount
                     let correctFinalAmount;
+                    
+                    // Ensure all amounts are numbers, not strings
+                    invoiceTotal = parseFloat(invoiceTotal) || 0;
+                    serviceFeeAmount = parseFloat(serviceFeeAmount) || 0;
+                    gstAmount = parseFloat(gstAmount) || 0;
+                    tcsAmount = parseFloat(tcsAmount) || 0;
                     
                     if (order.type_of_sale === 'Service Fee') {
                         // For Service Fee: Invoice Total + Service Fee + GST + TCS
@@ -369,9 +391,15 @@
                             final_amount_fixed_reason: 'Bulk fix via audit tool'
                         };
                         
-                        // If invoice_total was 0, also update it
-                        if (issue.invoiceTotal > 0) {
+                        // Always update invoice_total for Service Fee orders
+                        if (issue.typeOfSale === 'Service Fee' && issue.invoiceTotal > 0) {
                             updateData.invoice_total = issue.invoiceTotal;
+                            updateData.invoice_subtotal = issue.invoiceTotal;
+                        }
+                        
+                        // Update GST amount if it was missing
+                        if (issue.gstAmount > 0) {
+                            updateData.gst_amount = issue.gstAmount;
                         }
                         
                         await apiCall(`/api/orders/${issue.orderId}`, {
