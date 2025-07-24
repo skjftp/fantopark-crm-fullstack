@@ -174,6 +174,7 @@ app.use('/api/website-leads', require('./routes/websiteLeads'));
 app.use('/api/market-rates', require('./routes/marketRates'));
 app.use('/api/marketing', require('./routes/marketing'));
 app.use('/api/maintenance', require('./routes/maintenance'));
+app.use('/api/facebook-forms', require('./routes/facebookForms'));
 
 
 // ✅ JOURNEY ROUTES - NOW AFTER CORS SETUP!

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Forms Integration Test</title>
+    <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div id="test-app"></div>
+    
+    <script>
+        // Mock API call function
+        window.apiCall = async function(endpoint, options = {}) {
+            console.log('🔗 API Call:', endpoint, options);
+            
+            // Simulate API call to Facebook forms endpoint
+            if (endpoint === '/facebook-forms') {
+                // Simulate network delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Mock response with sample data
+                return {
+                    success: true,
+                    data: [
+                        { id: '123456789', name: 'Test Form API Response', source: 'api', status: 'ACTIVE' },
+                        { id: '987654321', name: 'Another API Form', source: 'api', status: 'ACTIVE' },
+                        { id: '555666777', name: 'Wimbledon Test Form', source: 'api', status: 'INACTIVE' },
+                        { id: '111222333', name: 'Football Championship', source: 'api', status: 'ACTIVE' }
+                    ],
+                    cached: false,
+                    cacheAge: 0,
+                    fallbackUsed: false,
+                    apiError: null,
+                    count: 4
+                };
+            }
+            
+            if (endpoint === '/facebook-forms/custom' && options.method === 'POST') {
+                // Simulate adding custom form
+                await new Promise(resolve => setTimeout(resolve, 500));
+                const body = JSON.parse(options.body);
+                return {
+                    success: true,
+                    data: {
+                        id: body.formId,
+                        name: body.formName,
+                        source: 'manual',
+                        status: 'UNKNOWN'
+                    }
+                };
+            }
+            
+            throw new Error('API endpoint not found');
+        };
+        
+        // Test component
+        function FacebookFormsTest() {
+            const [formIds, setFormIds] = React.useState(['123456789', '555666777']);
+            const [logs, setLogs] = React.useState([]);
+            
+            const addLog = (message) => {
+                setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+            };
+            
+            React.useEffect(() => {
+                addLog('Component initialized with form IDs: ' + formIds.join(', '));
+            }, []);
+            
+            const handleChange = (newFormIds) => {
+                addLog(`Form IDs changed: ${newFormIds.join(', ')}`);
+                setFormIds(newFormIds);
+            };
+            
+            return React.createElement('div', { className: 'max-w-4xl mx-auto' },
+                React.createElement('h1', { className: 'text-3xl font-bold mb-6' }, 
+                    '🧪 Facebook Forms Integration Test'
+                ),
+                
+                React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-2 gap-6' },
+                    // Form Manager Component
+                    React.createElement('div', { className: 'bg-white rounded-lg shadow p-6' },
+                        React.createElement('h2', { className: 'text-xl font-semibold mb-4' }, 
+                            'Form Manager Component'
+                        ),
+                        React.createElement(window.InventoryFormManager, {
+                            formIds: formIds,
+                            onChange: handleChange
+                        })
+                    ),
+                    
+                    // Debug Information
+                    React.createElement('div', { className: 'bg-white rounded-lg shadow p-6' },
+                        React.createElement('h2', { className: 'text-xl font-semibold mb-4' }, 
+                            'Debug Information'
+                        ),
+                        React.createElement('div', { className: 'space-y-2' },
+                            React.createElement('div', null,
+                                React.createElement('strong', null, 'Current Form IDs: '),
+                                React.createElement('code', { className: 'bg-gray-100 px-2 py-1 rounded' },
+                                    JSON.stringify(formIds)
+                                )
+                            ),
+                            React.createElement('div', null,
+                                React.createElement('strong', null, 'Form Count: '),
+                                React.createElement('span', { className: 'text-blue-600' }, formIds.length)
+                            )
+                        ),
+                        
+                        React.createElement('h3', { className: 'text-lg font-semibold mt-6 mb-2' }, 
+                            'Activity Log'
+                        ),
+                        React.createElement('div', { 
+                            className: 'bg-gray-900 text-green-400 p-4 rounded font-mono text-sm max-h-60 overflow-y-auto'
+                        },
+                            logs.length === 0 ? 
+                                React.createElement('div', { className: 'text-gray-500' }, 'No activity yet...') :
+                                logs.map((log, index) => 
+                                    React.createElement('div', { key: index }, log)
+                                )
+                        )
+                    )
+                )
+            );
+        }
+        
+        // Load the inventory form manager component
+        fetch('/components/inventory-form-manager.js')
+            .then(response => response.text())
+            .then(code => {
+                // Execute the component code
+                eval(code);
+                
+                // Render the test component
+                ReactDOM.render(
+                    React.createElement(FacebookFormsTest),
+                    document.getElementById('test-app')
+                );
+            })
+            .catch(error => {
+                console.error('Error loading component:', error);
+                document.getElementById('test-app').innerHTML = `
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                        <strong>Error:</strong> Could not load the inventory form manager component. 
+                        Make sure you're running this from the frontend directory with a local server.
+                        <br><br>
+                        <code>${error.message}</code>
+                    </div>
+                `;
+            });
+    </script>
+</body>
+</html>
