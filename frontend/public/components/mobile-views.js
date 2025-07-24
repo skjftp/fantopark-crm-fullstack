@@ -1271,43 +1271,147 @@ window.MobileDashboardView = function() {
       )
     ),
 
-    // Pie Charts Section - moved above stats
-    React.createElement('div', { className: 'grid grid-cols-1 gap-4 mb-6' },
-      // Lead Split Chart
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-3 rounded-lg shadow border' },
-        React.createElement(MiniPieChart, {
+    // Pie Charts Carousel Section
+    (() => {
+      const [currentChart, setCurrentChart] = React.useState(0);
+      const [touchStart, setTouchStart] = React.useState(0);
+      const [touchEnd, setTouchEnd] = React.useState(0);
+      
+      const charts = [
+        {
           title: 'Lead Split',
           data: dashboardData.charts.leadSplit.data,
           labels: dashboardData.charts.leadSplit.labels,
-          colors: dashboardData.charts.leadSplit.colors,
-          isLoading: !chartsLoaded
-        })
-      ),
-
-      // Temperature Count Chart
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-3 rounded-lg shadow border' },
-        React.createElement(MiniPieChart, {
+          colors: dashboardData.charts.leadSplit.colors
+        },
+        {
           title: 'Lead Temperature Count',
           data: dashboardData.charts.temperatureCount.data,
           labels: dashboardData.charts.temperatureCount.labels,
-          colors: dashboardData.charts.temperatureCount.colors,
-          isLoading: !chartsLoaded
-        })
-      ),
-
-      // Temperature Value Chart
-      React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-3 rounded-lg shadow border' },
-        React.createElement(MiniPieChart, {
+          colors: dashboardData.charts.temperatureCount.colors
+        },
+        {
           title: 'Lead Temperature Value',
           data: dashboardData.charts.temperatureValue.data,
           labels: dashboardData.charts.temperatureValue.labels.map((label, i) => 
             `${label} (₹${(dashboardData.charts.temperatureValue.data[i] || 0).toLocaleString('en-IN')})`
           ),
-          colors: dashboardData.charts.temperatureValue.colors,
-          isLoading: !chartsLoaded
-        })
-      )
-    ),
+          colors: dashboardData.charts.temperatureValue.colors
+        }
+      ];
+      
+      const handleTouchStart = (e) => {
+        setTouchStart(e.targetTouches[0].clientX);
+      };
+      
+      const handleTouchMove = (e) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+      };
+      
+      const handleTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+        
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > 50;
+        const isRightSwipe = distance < -50;
+        
+        if (isLeftSwipe && currentChart < charts.length - 1) {
+          setCurrentChart(currentChart + 1);
+        }
+        if (isRightSwipe && currentChart > 0) {
+          setCurrentChart(currentChart - 1);
+        }
+      };
+      
+      return React.createElement('div', { className: 'mb-6' },
+        // Carousel container
+        React.createElement('div', { 
+          className: 'relative overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow border',
+          onTouchStart: handleTouchStart,
+          onTouchMove: handleTouchMove,
+          onTouchEnd: handleTouchEnd
+        },
+          // Previous arrow
+          currentChart > 0 && React.createElement('button', {
+            onClick: () => setCurrentChart(currentChart - 1),
+            className: 'absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow',
+            'aria-label': 'Previous chart'
+          },
+            React.createElement('svg', {
+              className: 'w-5 h-5 text-gray-600 dark:text-gray-300',
+              fill: 'none',
+              stroke: 'currentColor',
+              viewBox: '0 0 24 24'
+            },
+              React.createElement('path', {
+                strokeLinecap: 'round',
+                strokeLinejoin: 'round',
+                strokeWidth: 2,
+                d: 'M15 19l-7-7 7-7'
+              })
+            )
+          ),
+          
+          // Next arrow
+          currentChart < charts.length - 1 && React.createElement('button', {
+            onClick: () => setCurrentChart(currentChart + 1),
+            className: 'absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow',
+            'aria-label': 'Next chart'
+          },
+            React.createElement('svg', {
+              className: 'w-5 h-5 text-gray-600 dark:text-gray-300',
+              fill: 'none',
+              stroke: 'currentColor',
+              viewBox: '0 0 24 24'
+            },
+              React.createElement('path', {
+                strokeLinecap: 'round',
+                strokeLinejoin: 'round',
+                strokeWidth: 2,
+                d: 'M9 5l7 7-7 7'
+              })
+            )
+          ),
+          // Charts container with transform
+          React.createElement('div', {
+            className: 'flex transition-transform duration-300 ease-in-out',
+            style: {
+              transform: `translateX(-${currentChart * 100}%)`
+            }
+          },
+            charts.map((chart, index) => 
+              React.createElement('div', {
+                key: index,
+                className: 'w-full flex-shrink-0 p-3'
+              },
+                React.createElement(MiniPieChart, {
+                  title: chart.title,
+                  data: chart.data,
+                  labels: chart.labels,
+                  colors: chart.colors,
+                  isLoading: !chartsLoaded
+                })
+              )
+            )
+          )
+        ),
+        
+        // Carousel indicators
+        React.createElement('div', { className: 'flex justify-center mt-4 space-x-2' },
+          charts.map((_, index) => 
+            React.createElement('button', {
+              key: index,
+              onClick: () => setCurrentChart(index),
+              className: `h-2 rounded-full transition-all duration-300 ${
+                index === currentChart 
+                  ? 'w-8 bg-blue-600 dark:bg-blue-400' 
+                  : 'w-2 bg-gray-300 dark:bg-gray-600'
+              }`
+            })
+          )
+        )
+      );
+    })(),
     
     // Dashboard Stats Cards - moved below pie charts
     React.createElement('div', { 
