@@ -61,7 +61,7 @@ window.BulkPaymentUpload = () => {
     try {
       const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/template`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
         }
       });
 
@@ -98,7 +98,7 @@ window.BulkPaymentUpload = () => {
       const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/validate`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
         },
         body: formData
       });
@@ -138,7 +138,7 @@ window.BulkPaymentUpload = () => {
       const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/upload`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
         },
         body: formData
       });
@@ -174,7 +174,7 @@ window.BulkPaymentUpload = () => {
     try {
       const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/history`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
         }
       });
 
@@ -194,7 +194,7 @@ window.BulkPaymentUpload = () => {
     try {
       const response = await fetch(`${window.API_CONFIG.API_URL}/bulk-payments/sample-data`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
         }
       });
 
