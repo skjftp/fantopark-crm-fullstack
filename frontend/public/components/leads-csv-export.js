@@ -114,6 +114,7 @@ window.exportLeadsToCSV = async function(exportAll = false, includeCommunication
     
     // Define specific fields to export (in order)
     const fieldOrder = [
+      'id',                   // Lead ID
       'date_of_enquiry',      // Date of Lead
       'assigned_to_name',     // Alloted to Sales Person
       'name',                 // Name of Lead
@@ -189,6 +190,7 @@ window.exportLeadsToCSV = async function(exportAll = false, includeCommunication
     // Filter out fields that don't exist in any lead
     const fieldsToExport = fieldOrder.filter(field => 
       allFields.has(field) || 
+      field === 'id' || // Always include lead ID
       field === 'assigned_to_name' || // This is derived from assigned_to
       field === 'event_category' || // Might need special handling
       field === 'annual_income_bracket' || // Might be in different field name
@@ -200,6 +202,7 @@ window.exportLeadsToCSV = async function(exportAll = false, includeCommunication
     
     // Create CSV headers with proper labels
     const headerLabels = {
+      id: 'Lead ID',
       date_of_enquiry: 'Date of Lead',
       assigned_to_name: 'Alloted to Sales Person',
       name: 'Name of Lead',
