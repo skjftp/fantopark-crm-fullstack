@@ -52,10 +52,20 @@ function ensureCurrencyFields(orderData) {
 // GET all orders
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    // Extract date filters from query parameters
-    const { from_date, to_date } = req.query;
+    // Extract filters from query parameters
+    const { from_date, to_date, lead_id, event_name } = req.query;
     
     let query = db.collection(collections.orders);
+    
+    // Apply lead_id filter if provided
+    if (lead_id) {
+      query = query.where('lead_id', '==', lead_id);
+    }
+    
+    // Apply event_name filter if provided
+    if (event_name) {
+      query = query.where('event_name', '==', event_name);
+    }
     
     // Apply date filters if provided
     if (from_date || to_date) {
@@ -201,6 +211,55 @@ router.post('/', authenticateToken, async (req, res) => {
     // Fetch the created document to ensure we have all fields
     const createdDoc = await docRef.get();
     const createdOrder = { id: docRef.id, ...createdDoc.data() };
+    
+    // Link existing allocations to this new order
+    try {
+      if (orderData.lead_id && orderData.event_name) {
+        // Find all allocations for this lead and event
+        const allocationsSnapshot = await db.collection('crm_allocations')
+          .where('lead_id', '==', orderData.lead_id)
+          .where('inventory_event', '==', orderData.event_name)
+          .get();
+        
+        if (!allocationsSnapshot.empty) {
+          const allocationIds = [];
+          let totalBuyingPrice = 0;
+          let totalAllocatedTickets = 0;
+          
+          // Update each allocation to include this order
+          for (const allocationDoc of allocationsSnapshot.docs) {
+            const allocationData = allocationDoc.data();
+            const existingOrderIds = allocationData.order_ids || [];
+            
+            if (!existingOrderIds.includes(docRef.id)) {
+              existingOrderIds.push(docRef.id);
+              
+              // Update allocation with new order reference
+              await db.collection('crm_allocations').doc(allocationDoc.id).update({
+                order_ids: existingOrderIds,
+                primary_order_id: allocationData.primary_order_id || docRef.id
+              });
+            }
+            
+            allocationIds.push(allocationDoc.id);
+            totalBuyingPrice += parseFloat(allocationData.total_buying_price) || 0;
+            totalAllocatedTickets += parseInt(allocationData.tickets_allocated) || 0;
+          }
+          
+          // Update order with allocation references and buying price
+          await db.collection(collections.orders).doc(docRef.id).update({
+            allocation_ids: allocationIds,
+            buying_price: totalBuyingPrice,
+            total_allocated_tickets: totalAllocatedTickets
+          });
+          
+          console.log(`Linked ${allocationIds.length} existing allocations to order ${docRef.id}`);
+        }
+      }
+    } catch (allocationError) {
+      console.error('Error linking allocations to order:', allocationError);
+      // Don't fail order creation if allocation linking fails
+    }
     
     console.log('✅ Order created with customer_type:', createdOrder.customer_type);
     console.log('📥 Order retrieved from Firebase:', JSON.stringify({
@@ -355,6 +414,139 @@ router.put('/:id/sales-person', authenticateToken, async (req, res) => {
     
   } catch (error) {
     console.error('Error updating sales person:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Split order into multiple orders
+router.post('/:id/split', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { splitOrders } = req.body; // Array of split order configurations
+    
+    // Get original order
+    const originalOrderDoc = await db.collection(collections.orders).doc(id).get();
+    if (!originalOrderDoc.exists) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    const originalOrder = originalOrderDoc.data();
+    const createdOrders = [];
+    
+    // Create split orders
+    for (const splitConfig of splitOrders) {
+      const splitOrderData = {
+        ...originalOrder,
+        ...splitConfig, // Override with split-specific data
+        parent_order_id: id,
+        is_split_order: true,
+        split_date: new Date().toISOString(),
+        split_by: req.user.email,
+        order_number: `${originalOrder.order_number}-${splitConfig.split_suffix || Date.now()}`
+      };
+      
+      // Remove fields that shouldn't be duplicated
+      delete splitOrderData.id;
+      delete splitOrderData.allocation_ids; // Will be reassigned
+      
+      const splitOrderRef = await db.collection(collections.orders).add(splitOrderData);
+      createdOrders.push({ id: splitOrderRef.id, ...splitOrderData });
+    }
+    
+    // Mark original order as split
+    await db.collection(collections.orders).doc(id).update({
+      is_split: true,
+      split_into_orders: createdOrders.map(o => o.id),
+      split_date: new Date().toISOString()
+    });
+    
+    res.json({
+      data: {
+        originalOrderId: id,
+        splitOrders: createdOrders
+      }
+    });
+  } catch (error) {
+    console.error('Error splitting order:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Reassign allocation to different order
+router.put('/allocations/:allocationId/reassign', authenticateToken, async (req, res) => {
+  try {
+    const { allocationId } = req.params;
+    const { newOrderId, removeFromOrderId } = req.body;
+    
+    // Get allocation
+    const allocationDoc = await db.collection('crm_allocations').doc(allocationId).get();
+    if (!allocationDoc.exists) {
+      return res.status(404).json({ error: 'Allocation not found' });
+    }
+    
+    const allocationData = allocationDoc.data();
+    let orderIds = allocationData.order_ids || [];
+    
+    // Remove from old order if specified
+    if (removeFromOrderId) {
+      orderIds = orderIds.filter(id => id !== removeFromOrderId);
+      
+      // Update old order to remove this allocation
+      const oldOrderDoc = await db.collection(collections.orders).doc(removeFromOrderId).get();
+      if (oldOrderDoc.exists) {
+        const oldOrderData = oldOrderDoc.data();
+        const updatedAllocationIds = (oldOrderData.allocation_ids || []).filter(id => id !== allocationId);
+        const newBuyingPrice = (parseFloat(oldOrderData.buying_price) || 0) - (parseFloat(allocationData.total_buying_price) || 0);
+        const newAllocatedTickets = (parseInt(oldOrderData.total_allocated_tickets) || 0) - (parseInt(allocationData.tickets_allocated) || 0);
+        
+        await db.collection(collections.orders).doc(removeFromOrderId).update({
+          allocation_ids: updatedAllocationIds,
+          buying_price: Math.max(0, newBuyingPrice),
+          total_allocated_tickets: Math.max(0, newAllocatedTickets)
+        });
+      }
+    }
+    
+    // Add to new order
+    if (newOrderId && !orderIds.includes(newOrderId)) {
+      orderIds.push(newOrderId);
+      
+      // Update new order to include this allocation
+      const newOrderDoc = await db.collection(collections.orders).doc(newOrderId).get();
+      if (newOrderDoc.exists) {
+        const newOrderData = newOrderDoc.data();
+        const updatedAllocationIds = newOrderData.allocation_ids || [];
+        if (!updatedAllocationIds.includes(allocationId)) {
+          updatedAllocationIds.push(allocationId);
+        }
+        const newBuyingPrice = (parseFloat(newOrderData.buying_price) || 0) + (parseFloat(allocationData.total_buying_price) || 0);
+        const newAllocatedTickets = (parseInt(newOrderData.total_allocated_tickets) || 0) + (parseInt(allocationData.tickets_allocated) || 0);
+        
+        await db.collection(collections.orders).doc(newOrderId).update({
+          allocation_ids: updatedAllocationIds,
+          buying_price: newBuyingPrice,
+          total_allocated_tickets: newAllocatedTickets
+        });
+      }
+    }
+    
+    // Update allocation
+    await db.collection('crm_allocations').doc(allocationId).update({
+      order_ids: orderIds,
+      primary_order_id: orderIds.length > 0 ? orderIds[0] : null,
+      last_reassigned: new Date().toISOString(),
+      last_reassigned_by: req.user.email
+    });
+    
+    res.json({
+      data: {
+        allocationId,
+        orderIds,
+        primaryOrderId: orderIds.length > 0 ? orderIds[0] : null
+      }
+    });
+  } catch (error) {
+    console.error('Error reassigning allocation:', error);
     res.status(500).json({ error: error.message });
   }
 });

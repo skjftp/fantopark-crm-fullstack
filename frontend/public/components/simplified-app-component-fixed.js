@@ -3358,6 +3358,7 @@ console.log("✅ AssignmentRulesTab exposed to window");
     state.showInventoryDetail && window.renderInventoryDetail && window.renderInventoryDetail(),
     state.showAllocationForm && window.renderAllocationForm && window.renderAllocationForm(),
     window.renderAllocationManagement && window.renderAllocationManagement(),
+    window.renderReassignAllocationModal && window.renderReassignAllocationModal(),
     window.renderStadiumForm && window.renderStadiumForm(),
     window.renderChoiceModal && window.renderChoiceModal(),
     window.renderUserManagement && window.renderUserManagement(),

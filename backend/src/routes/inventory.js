@@ -905,34 +905,54 @@ router.post('/:id/allocate', authenticateToken, checkPermission('inventory', 'wr
       lead_email: leadData.email,
       inventory_event: inventoryData.event_name,
       buying_price_per_ticket: buyingPricePerTicket,
-      total_buying_price: totalBuyingPrice
+      total_buying_price: totalBuyingPrice,
+      order_ids: [], // Array to support many-to-many relationship
+      primary_order_id: null // Main order if there's one
     };
     
     const allocationRef = await db.collection('crm_allocations').add(allocationData);
     
-    // Update order with cumulative buying price
+    // Update order with cumulative buying price and establish relationship
+    const linkedOrderIds = [];
     try {
-      // Find the order for this lead and event
+      // Find all orders for this lead and event
       const ordersSnapshot = await db.collection('crm_orders')
         .where('lead_id', '==', lead_id)
         .where('event_name', '==', inventoryData.event_name)
         .get();
       
       if (!ordersSnapshot.empty) {
-        const orderDoc = ordersSnapshot.docs[0]; // Assuming one order per lead per event
-        const orderData = orderDoc.data();
-        const currentBuyingPrice = parseFloat(orderData.buying_price) || 0;
-        const newBuyingPrice = currentBuyingPrice + totalBuyingPrice;
+        // Handle multiple orders (including split orders)
+        for (const orderDoc of ordersSnapshot.docs) {
+          const orderData = orderDoc.data();
+          const currentBuyingPrice = parseFloat(orderData.buying_price) || 0;
+          const newBuyingPrice = currentBuyingPrice + totalBuyingPrice;
+          
+          // Update order with new cumulative buying price and allocation reference
+          const existingAllocations = orderData.allocation_ids || [];
+          if (!existingAllocations.includes(allocationRef.id)) {
+            existingAllocations.push(allocationRef.id);
+          }
+          
+          await db.collection('crm_orders').doc(orderDoc.id).update({
+            buying_price: newBuyingPrice,
+            updated_date: new Date().toISOString(),
+            last_allocation_date: allocation_date || new Date().toISOString().split('T')[0],
+            total_allocated_tickets: (parseInt(orderData.total_allocated_tickets) || 0) + allocatedTickets,
+            allocation_ids: existingAllocations // Array of allocation IDs
+          });
+          
+          linkedOrderIds.push(orderDoc.id);
+          console.log(`Updated order ${orderDoc.id} buying price: ${currentBuyingPrice} -> ${newBuyingPrice}`);
+        }
         
-        // Update order with new cumulative buying price
-        await db.collection('crm_orders').doc(orderDoc.id).update({
-          buying_price: newBuyingPrice,
-          updated_date: new Date().toISOString(),
-          last_allocation_date: allocation_date || new Date().toISOString().split('T')[0],
-          total_allocated_tickets: (parseInt(orderData.total_allocated_tickets) || 0) + allocatedTickets
-        });
-        
-        console.log(`Updated order ${orderDoc.id} buying price: ${currentBuyingPrice} -> ${newBuyingPrice}`);
+        // Update allocation with linked order IDs
+        if (linkedOrderIds.length > 0) {
+          await db.collection('crm_allocations').doc(allocationRef.id).update({
+            order_ids: linkedOrderIds,
+            primary_order_id: linkedOrderIds[0] // First order as primary
+          });
+        }
       } else {
         console.log(`No order found for lead ${lead_id} and event ${inventoryData.event_name}`);
       }
