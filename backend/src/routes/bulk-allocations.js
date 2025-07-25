@@ -98,12 +98,16 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
       if (!inventory) {
         const inventorySnapshot = await db.collection('crm_inventory')
           .where('event_name', '==', record.event_name)
-          .where('isDeleted', '!=', true)
           .limit(1)
           .get();
 
-        if (!inventorySnapshot.empty) {
-          const doc = inventorySnapshot.docs[0];
+        // Filter out deleted items
+        const validDocs = inventorySnapshot.docs.filter(doc => 
+          doc.data().isDeleted !== true
+        );
+        
+        if (validDocs.length > 0) {
+          const doc = validDocs[0];
           inventory = { id: doc.id, ...doc.data() };
           inventoryCache.set(record.event_name, inventory);
         }
@@ -136,7 +140,6 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
           // Search by phone
           leadSnapshot = await db.collection('crm_leads')
             .where('phone', '==', leadIdentifier)
-            .where('isDeleted', '!=', true)
             .limit(1)
             .get();
 
@@ -144,7 +147,6 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
             // Try with cleaned phone
             leadSnapshot = await db.collection('crm_leads')
               .where('phone', '==', cleanPhone)
-              .where('isDeleted', '!=', true)
               .limit(1)
               .get();
           }
@@ -153,7 +155,6 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
             // Try with +91 prefix
             leadSnapshot = await db.collection('crm_leads')
               .where('phone', '==', '+91' + cleanPhone)
-              .where('isDeleted', '!=', true)
               .limit(1)
               .get();
           }
@@ -164,16 +165,22 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
           if (leadIdentifier.includes('@')) {
             leadSnapshot = await db.collection('crm_leads')
               .where('email', '==', leadIdentifier.toLowerCase())
-              .where('isDeleted', '!=', true)
               .limit(1)
               .get();
           }
         }
 
         if (leadSnapshot && !leadSnapshot.empty) {
-          const doc = leadSnapshot.docs[0];
-          lead = { id: doc.id, ...doc.data() };
-          leadCache.set(leadIdentifier, lead);
+          // Filter out deleted leads
+          const validLeads = leadSnapshot.docs.filter(doc => 
+            doc.data().isDeleted !== true
+          );
+          
+          if (validLeads.length > 0) {
+            const doc = validLeads[0];
+            lead = { id: doc.id, ...doc.data() };
+            leadCache.set(leadIdentifier, lead);
+          }
         }
       }
 
@@ -241,19 +248,25 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
       const existingAllocationSnapshot = await db.collection('crm_allocations')
         .where('inventory_id', '==', inventory.id)
         .where('lead_id', '==', lead.id)
-        .where('isDeleted', '!=', true)
         .get();
 
       if (!existingAllocationSnapshot.empty) {
-        const totalExisting = existingAllocationSnapshot.docs.reduce((sum, doc) => 
-          sum + (doc.data().tickets_allocated || 0), 0
+        // Filter out deleted allocations
+        const validAllocations = existingAllocationSnapshot.docs.filter(doc => 
+          doc.data().isDeleted !== true
         );
-        result.warnings.push(`Lead already has ${totalExisting} tickets allocated for this event`);
-        result.enrichedData.existingAllocations = existingAllocationSnapshot.docs.map(doc => ({
-          id: doc.id,
-          tickets: doc.data().tickets_allocated,
-          category: doc.data().category_name
-        }));
+        
+        if (validAllocations.length > 0) {
+          const totalExisting = validAllocations.reduce((sum, doc) => 
+            sum + (doc.data().tickets_allocated || 0), 0
+          );
+          result.warnings.push(`Lead already has ${totalExisting} tickets allocated for this event`);
+          result.enrichedData.existingAllocations = validAllocations.map(doc => ({
+            id: doc.id,
+            tickets: doc.data().tickets_allocated,
+            category: doc.data().category_name
+          }));
+        }
       }
 
       // Validate order_id if provided
@@ -379,12 +392,16 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
       if (!inventory) {
         const inventorySnapshot = await db.collection('crm_inventory')
           .where('event_name', '==', record.event_name)
-          .where('isDeleted', '!=', true)
           .limit(1)
           .get();
 
-        if (!inventorySnapshot.empty) {
-          const doc = inventorySnapshot.docs[0];
+        // Filter out deleted items
+        const validDocs = inventorySnapshot.docs.filter(doc => 
+          doc.data().isDeleted !== true
+        );
+        
+        if (validDocs.length > 0) {
+          const doc = validDocs[0];
           inventory = { id: doc.id, ...doc.data() };
           inventoryCache.set(record.event_name, inventory);
         }
@@ -405,23 +422,28 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
         if (cleanPhone.length >= 10) {
           leadSnapshot = await db.collection('crm_leads')
             .where('phone', '==', leadIdentifier)
-            .where('isDeleted', '!=', true)
             .limit(1)
             .get();
 
           if (leadSnapshot.empty && leadIdentifier.includes('@')) {
             leadSnapshot = await db.collection('crm_leads')
               .where('email', '==', leadIdentifier.toLowerCase())
-              .where('isDeleted', '!=', true)
               .limit(1)
               .get();
           }
         }
 
         if (leadSnapshot && !leadSnapshot.empty) {
-          const doc = leadSnapshot.docs[0];
-          lead = { id: doc.id, ...doc.data() };
-          leadCache.set(leadIdentifier, lead);
+          // Filter out deleted leads
+          const validLeads = leadSnapshot.docs.filter(doc => 
+            doc.data().isDeleted !== true
+          );
+          
+          if (validLeads.length > 0) {
+            const doc = validLeads[0];
+            lead = { id: doc.id, ...doc.data() };
+            leadCache.set(leadIdentifier, lead);
+          }
         }
       }
 
@@ -570,9 +592,9 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
 // Download sample CSV template
 router.get('/template', authenticateToken, (req, res) => {
   const csvContent = `event_name,lead_identifier,tickets_to_allocate,category_name,stand_section,notes,order_id,price_override
-"India Tour Of England, 2025 - Lords Test","+919876543210",2,"Premium","A1","VIP Client","",""
-"India Tour Of England, 2025 - Lords Test","john@example.com",4,"Standard","B2","Corporate booking","ORD-2025-001",""
-"IPL 2025 - MI vs CSK","9988776655",1,"General","","Single ticket allocation","",5000`;
+"Abu Dhabi Grand Prix'25","+919876543210",2,"Premium","A1","VIP Client","",""
+"India Tour of Australia, 2025 - MCG T20","john@example.com",4,"Standard","B2","Corporate booking","ORD-2025-001",""
+"Manchester City vs Aston Villa","9988776655",1,"General","","Single ticket allocation","",5000`;
 
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="bulk_allocation_template.csv"');
