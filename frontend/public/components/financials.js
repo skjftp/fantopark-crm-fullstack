@@ -905,11 +905,25 @@ window.renderEnhancedFinancialStats = () => {
         }
     ];
     
-    // Trigger async percentage calculation after render
+    // Trigger async calculations after render
     if (!window.financialPercentagesLoading) {
         window.financialPercentagesLoading = true;
-        window.calculateEnhancedFinancialMetrics().then(newMetrics => {
+        
+        // Run both percentage and margin calculations in parallel
+        Promise.all([
+            window.calculateEnhancedFinancialMetrics(),
+            window.calculateOrderBasedMargin ? window.calculateOrderBasedMargin() : Promise.resolve(null)
+        ]).then(([newMetrics, marginResults]) => {
             window.financialPercentagesLoading = false;
+            
+            // Cache the margin results
+            if (marginResults) {
+                window.cachedOrderMargin = {
+                    ...marginResults,
+                    timestamp: Date.now()
+                };
+            }
+            
             // Update the UI by re-rendering
             if (window.appState?.activeTab === 'financials' && window.renderFinancials) {
                 window.renderFinancials();
@@ -972,6 +986,21 @@ window.calculateEnhancedFinancialMetricsSync = () => {
         console.log('🔍 Current fetchFinancialData function:', window.fetchFinancialData.toString().substring(0, 200) + '...');
     }
     
+    // Debug: Show sample order fields for margin calculation
+    if (financialData.allSales && financialData.allSales.length > 0) {
+        const sampleOrder = financialData.allSales[0];
+        console.log('📋 Sample order fields for margin calculation:', {
+            id: sampleOrder.id,
+            hasBaseAmount: !!sampleOrder.base_amount,
+            hasFinalAmount: !!sampleOrder.final_amount,
+            hasGstAmount: !!sampleOrder.gst_amount,
+            hasTcsAmount: !!sampleOrder.tcs_amount,
+            hasFinalAmountInr: !!sampleOrder.final_amount_inr,
+            paymentCurrency: sampleOrder.payment_currency,
+            availableFields: Object.keys(sampleOrder).filter(key => key.includes('amount'))
+        });
+    }
+    
     // Calculate totals - Use the new totalSales from financialData
     const totalActiveSales = activeSales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
     // Use the new totalSales that includes ALL orders (matching sales performance)
@@ -989,18 +1018,48 @@ window.calculateEnhancedFinancialMetricsSync = () => {
         totalReceivables
     });
     
-    // Calculate margin from inventory data
-    let totalCost = 0;
-    let totalRevenue = 0;
+    // Calculate margin from orders and allocations (enhanced method)
+    let totalMargin = 0;
+    let marginPercentage = 0;
     
-    inventory.forEach(item => {
-        const soldTickets = (item.total_tickets || 0) - (item.available_tickets || 0);
-        totalCost += soldTickets * (item.buying_price || 0);
-        totalRevenue += soldTickets * (item.selling_price || 0);
-    });
-    
-    const totalMargin = totalRevenue - totalCost;
-    const marginPercentage = totalRevenue > 0 ? ((totalMargin / totalRevenue) * 100) : 0;
+    // Try to use order-based margin calculation if available
+    if (window.calculateOrderBasedMargin && financialData.allSales && financialData.allSales.length > 0) {
+        // Use cached result if available to avoid repeated API calls
+        if (window.cachedOrderMargin && Date.now() - window.cachedOrderMargin.timestamp < 60000) {
+            totalMargin = window.cachedOrderMargin.totalMargin;
+            marginPercentage = window.cachedOrderMargin.marginPercentage;
+            console.log('📊 Using cached order-based margin:', { totalMargin, marginPercentage });
+        } else {
+            // Will be calculated asynchronously and cached
+            console.log('📊 Using inventory fallback for immediate display, order-based calculation will update');
+            
+            // Fallback to inventory-based calculation for immediate display
+            let totalCost = 0;
+            let totalRevenue = 0;
+            
+            inventory.forEach(item => {
+                const soldTickets = (item.total_tickets || 0) - (item.available_tickets || 0);
+                totalCost += soldTickets * (item.buying_price || 0);
+                totalRevenue += soldTickets * (item.selling_price || 0);
+            });
+            
+            totalMargin = totalRevenue - totalCost;
+            marginPercentage = totalRevenue > 0 ? ((totalMargin / totalRevenue) * 100) : 0;
+        }
+    } else {
+        // Fallback to inventory-based calculation
+        let totalCost = 0;
+        let totalRevenue = 0;
+        
+        inventory.forEach(item => {
+            const soldTickets = (item.total_tickets || 0) - (item.available_tickets || 0);
+            totalCost += soldTickets * (item.buying_price || 0);
+            totalRevenue += soldTickets * (item.selling_price || 0);
+        });
+        
+        totalMargin = totalRevenue - totalCost;
+        marginPercentage = totalRevenue > 0 ? ((totalMargin / totalRevenue) * 100) : 0;
+    }
     
     // Get cached percentages or defaults
     const cachedPercentages = window.financialPercentageCache || {
