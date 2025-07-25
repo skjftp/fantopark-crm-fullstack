@@ -12,8 +12,19 @@ window.bulkAllocationState = window.bulkAllocationState || {
   showHistory: false
 };
 
+// Load upload history
+const loadBulkAllocationHistory = () => {
+  try {
+    const history = JSON.parse(localStorage.getItem('bulk_allocation_history') || '[]');
+    window.bulkAllocationState.uploadHistory = history.slice(0, 10); // Keep last 10 uploads
+  } catch (error) {
+    console.error('Error loading upload history:', error);
+  }
+};
+
 // Global function to open modal
 window.openBulkAllocationUpload = () => {
+  console.log('Opening bulk allocation upload modal...');
   window.bulkAllocationState.showModal = true;
   window.bulkAllocationState.file = null;
   window.bulkAllocationState.previewData = null;
@@ -33,16 +44,6 @@ window.closeBulkAllocationUpload = () => {
   window.bulkAllocationState.processing = false;
   if (window.renderApp) {
     window.renderApp();
-  }
-};
-
-// Load upload history
-const loadBulkAllocationHistory = () => {
-  try {
-    const history = JSON.parse(localStorage.getItem('bulk_allocation_history') || '[]');
-    window.bulkAllocationState.uploadHistory = history.slice(0, 10); // Keep last 10 uploads
-  } catch (error) {
-    console.error('Error loading upload history:', error);
   }
 };
 
@@ -506,3 +507,9 @@ window.renderBulkAllocationUpload = () => {
 
 // Initialize when loaded
 console.log('✅ Bulk Allocation Upload component loaded');
+
+// Ensure the component is ready
+if (window.bulkAllocationState && window.bulkAllocationState.showModal && window.renderApp) {
+  console.log('🔄 Bulk allocation modal was waiting to be shown, triggering render...');
+  window.renderApp();
+}

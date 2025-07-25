@@ -282,7 +282,29 @@ window.renderInventoryContent = () => {
                     'Upload CSV'
                 ),
                 React.createElement('button', {
-                    onClick: () => window.openBulkAllocationUpload && window.openBulkAllocationUpload(),
+                    onClick: () => {
+                        if (window.openBulkAllocationUpload) {
+                            window.openBulkAllocationUpload();
+                        } else {
+                            // If the component isn't loaded yet, set the state directly and trigger render
+                            if (!window.bulkAllocationState) {
+                                window.bulkAllocationState = {
+                                    showModal: true,
+                                    file: null,
+                                    uploading: false,
+                                    previewData: null,
+                                    processing: false,
+                                    uploadHistory: [],
+                                    showHistory: false
+                                };
+                            } else {
+                                window.bulkAllocationState.showModal = true;
+                            }
+                            if (window.renderApp) {
+                                window.renderApp();
+                            }
+                        }
+                    },
                     className: 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors',
                     title: 'Bulk allocate tickets to leads via CSV'
                 }, 
