@@ -31,19 +31,6 @@ window.renderReassignAllocationModal = () => {
       window.appState.availableOrders = [];
     }
     
-    // Restore the allocation management modal if it was open
-    if (window._savedAllocationModalState) {
-      console.log('🔄 Restoring allocation management modal');
-      if (window.setShowAllocationManagement) {
-        window.setShowAllocationManagement(true);
-      }
-      if (window.appState) {
-        window.appState.showAllocationManagement = true;
-      }
-      window.showAllocationManagement = true;
-      window._savedAllocationModalState = null;
-    }
-    
     if (window.renderApp) window.renderApp();
   };
 
@@ -132,8 +119,8 @@ window.renderReassignAllocationModal = () => {
   };
 
   return React.createElement('div', {
-    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]',
-    style: { zIndex: 9999 }, // Ensure it's on top
+    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center',
+    style: { zIndex: 999999 }, // Extremely high z-index to ensure it's on top
     onClick: (e) => {
       // Close on backdrop click
       if (e.target === e.currentTarget) {
@@ -191,8 +178,19 @@ window.renderReassignAllocationModal = () => {
 
       // Available Orders
       React.createElement('div', { className: 'mb-4' },
-        React.createElement('h3', { className: 'font-semibold mb-2' }, 'Assign to Order'),
+        React.createElement('h3', { className: 'font-semibold mb-2' }, 'Available Orders'),
+        availableOrders.length === 0 ? 
+          React.createElement('div', { className: 'p-4 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800' },
+            React.createElement('p', { className: 'font-semibold' }, 'No orders found for this lead and event.'),
+            React.createElement('p', { className: 'mt-1' }, 'You may need to create an order first before linking this allocation.')
+          ) :
         React.createElement('div', { className: 'space-y-2' },
+          availableOrders.filter(order => 
+            !(selectedAllocation.order_ids || []).includes(order.id)
+          ).length === 0 ?
+            React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400' }, 
+              'All available orders are already linked to this allocation.'
+            ) :
           availableOrders.filter(order => 
             !(selectedAllocation.order_ids || []).includes(order.id)
           ).map(order => 
@@ -243,7 +241,7 @@ window.renderReassignAllocationModal = () => {
 window.showReassignAllocationModal = async (allocation) => {
   console.log('🔄 Opening reassign allocation modal for:', allocation);
   
-  // FIRST: Set up reassign modal data BEFORE hiding allocation modal
+  // Set up reassign modal data
   window.selectedAllocation = allocation;
   window.showReassignModal = true;
   if (window.appState) {
@@ -251,29 +249,31 @@ window.showReassignAllocationModal = async (allocation) => {
     window.appState.showReassignModal = true;
   }
   
-  // Store the current allocation modal state
-  window._savedAllocationModalState = window.showAllocationManagement || window.appState?.showAllocationManagement;
-  
-  // THEN: Hide the allocation management modal (after data is set)
-  if (window.setShowAllocationManagement) {
-    window.setShowAllocationManagement(false);
-  }
-  if (window.appState) {
-    window.appState.showAllocationManagement = false;
-  }
-  window.showAllocationManagement = false;
-  
   // Load available orders for this lead and event
   try {
+    console.log('📋 Fetching orders for allocation:', {
+      lead_id: allocation.lead_id,
+      event_name: allocation.inventory_event
+    });
+    
     const response = await window.apiCall(`/orders/for-allocation?lead_id=${allocation.lead_id}&event_name=${encodeURIComponent(allocation.inventory_event)}`);
-    if (!response.error) {
+    console.log('📋 Orders API response:', response);
+    
+    if (!response.error && response.data) {
       window.availableOrders = response.data;
       if (window.appState) {
         window.appState.availableOrders = response.data;
       }
+      console.log(`✅ Loaded ${response.data.length} orders`);
+    } else {
+      console.warn('⚠️ No orders found or error in response');
+      window.availableOrders = [];
+      if (window.appState) {
+        window.appState.availableOrders = [];
+      }
     }
   } catch (error) {
-    console.error('Error loading orders:', error);
+    console.error('❌ Error loading orders:', error);
     window.availableOrders = [];
     if (window.appState) {
       window.appState.availableOrders = [];
