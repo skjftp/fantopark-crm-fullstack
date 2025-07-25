@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const csv = require('csv-parse');
-const { db, admin } = require('../config/db');
+const { db } = require('../config/db');
+const admin = require('../config/firebase');
 const { authenticateToken, checkPermission } = require('../middleware/auth');
 
 // Configure multer for CSV uploads
