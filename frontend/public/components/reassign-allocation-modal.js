@@ -13,6 +13,19 @@ window.renderReassignAllocationModal = () => {
     return null;
   }
 
+  // Define close function
+  const closeModal = () => {
+    window.showReassignModal = false;
+    window.selectedAllocation = null;
+    window.availableOrders = [];
+    if (window.appState) {
+      window.appState.showReassignModal = false;
+      window.appState.selectedAllocation = null;
+      window.appState.availableOrders = [];
+    }
+    if (window.renderApp) window.renderApp();
+  };
+
   const handleReassign = async (newOrderId, removeFromOrderId) => {
     if (window.setLoading) {
       window.setLoading(true);
@@ -34,8 +47,7 @@ window.renderReassignAllocationModal = () => {
       alert('Allocation reassigned successfully!');
       
       // Close modal and refresh
-      window.showReassignModal = false;
-      window.selectedAllocation = null;
+      closeModal();
       
       // Refresh allocations
       if (window.loadAllocations) {
@@ -99,10 +111,18 @@ window.renderReassignAllocationModal = () => {
   };
 
   return React.createElement('div', {
-    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]'
+    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]',
+    style: { zIndex: 9999 }, // Ensure it's on top
+    onClick: (e) => {
+      // Close on backdrop click
+      if (e.target === e.currentTarget) {
+        closeModal();
+      }
+    }
   },
     React.createElement('div', {
-      className: 'bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto'
+      className: 'bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto',
+      onClick: (e) => e.stopPropagation() // Prevent closing when clicking inside modal
     },
       // Header
       React.createElement('div', { className: 'flex justify-between items-center mb-4' },
@@ -110,12 +130,8 @@ window.renderReassignAllocationModal = () => {
           'Reassign Allocation'
         ),
         React.createElement('button', {
-          onClick: () => {
-            window.showReassignModal = false;
-            window.selectedAllocation = null;
-            if (window.renderApp) window.renderApp();
-          },
-          className: 'text-gray-500 hover:text-gray-700'
+          onClick: closeModal,
+          className: 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
         }, '✕')
       ),
 
@@ -194,11 +210,7 @@ window.renderReassignAllocationModal = () => {
       // Footer
       React.createElement('div', { className: 'mt-6 flex justify-end' },
         React.createElement('button', {
-          onClick: () => {
-            window.showReassignModal = false;
-            window.selectedAllocation = null;
-            if (window.renderApp) window.renderApp();
-          },
+          onClick: closeModal,
           className: 'bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600'
         }, 'Close')
       )
