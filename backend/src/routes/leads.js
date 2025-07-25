@@ -341,7 +341,8 @@ router.get('/paginated', authenticateToken, async (req, res) => {
         (lead.name && lead.name.toLowerCase().includes(searchLower)) ||
         (lead.email && lead.email.toLowerCase().includes(searchLower)) ||
         (lead.phone && lead.phone.includes(search)) ||
-        (lead.company && lead.company.toLowerCase().includes(searchLower))
+        (lead.company && lead.company.toLowerCase().includes(searchLower)) ||
+        (lead.event && lead.event.toLowerCase().includes(searchLower))
       );
     }
 
