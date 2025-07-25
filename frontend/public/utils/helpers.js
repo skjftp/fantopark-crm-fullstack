@@ -384,21 +384,42 @@ window.normalizeAllocationData = (allocations) => {
 const authoritativeOpenAllocationManagement = async (inventory) => {
   console.log("👁️ [UTILS] openAllocationManagement called with:", inventory?.event_name);
   
-  // Check if we're already in allocation management to prevent conflicts
-  if (window.showAllocationManagement || window.appState?.showAllocationManagement) {
-    console.log("⚠️ Allocation management already open, using existing data");
+  // Check if we're already in allocation management with the same inventory
+  const currentInventoryId = window.allocationManagementInventory?.id || window.appState?.allocationManagementInventory?.id;
+  if ((window.showAllocationManagement || window.appState?.showAllocationManagement) && currentInventoryId === inventory.id) {
+    console.log("⚠️ Allocation management already open for this inventory, using existing data");
     return;
   }
   
   try {
-    // Set loading state
-    if (window.setLoading) {
-      window.setLoading(true);
+    // If modal is open for a different inventory, close it first
+    if ((window.showAllocationManagement || window.appState?.showAllocationManagement) && currentInventoryId !== inventory.id) {
+      console.log("🔄 Closing previous allocation modal before opening new one");
+      if (window.setShowAllocationManagement) {
+        window.setShowAllocationManagement(false);
+      }
+      // Small delay to allow React to unmount
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
     
     // Set the inventory for allocation management
     if (window.setAllocationManagementInventory) {
       window.setAllocationManagementInventory(inventory);
+    }
+    
+    // Clear any existing allocations to trigger loading state
+    if (window.setCurrentAllocations) {
+      window.setCurrentAllocations(null);
+    }
+    
+    // Show the modal immediately with loading state
+    if (window.setShowAllocationManagement) {
+      window.setShowAllocationManagement(true);
+    }
+    
+    // Set loading state AFTER showing modal
+    if (window.setLoading) {
+      window.setLoading(true);
     }
     
     // CRITICAL FIX: Fetch allocations from API with React-safe timing
@@ -434,21 +455,19 @@ const authoritativeOpenAllocationManagement = async (inventory) => {
         if (window.setCurrentAllocations) {
           window.setCurrentAllocations([]);
         }
+      } finally {
+        // Turn off loading state AFTER fetch completes
+        if (window.setLoading) {
+          window.setLoading(false);
+        }
       }
     });
-    
-    // Show the modal immediately 
-    if (window.setShowAllocationManagement) {
-      window.setShowAllocationManagement(true);
-    }
     
     console.log("✅ Allocation management modal setup initiated");
     
   } catch (error) {
     console.error('❌ Error in openAllocationManagement:', error);
     alert('Error opening allocation management: ' + error.message);
-    
-  } finally {
     if (window.setLoading) {
       window.setLoading(false);
     }
