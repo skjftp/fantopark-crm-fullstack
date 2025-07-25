@@ -254,28 +254,26 @@ router.get('/metrics', authenticateToken, async (req, res) => {
 
     // Get date range for the period
     let dateRange = null;
-    if (period) {
-      const now = new Date();
-      let startDate, endDate;
-      
-      switch(period) {
-        case 'current_fy':
-          const currentMonth = now.getMonth();
-          const currentYear = now.getFullYear();
-          const fyYear = currentMonth >= 3 ? currentYear : currentYear - 1;
-          startDate = new Date(fyYear, 3, 1);
-          endDate = new Date();
-          break;
-        case 'current_month':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          endDate = new Date();
-          break;
-        case 'last_month':
-          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          endDate = new Date(now.getFullYear(), now.getMonth(), 0);
-          break;
-      }
-      
+    const now = new Date();
+    let startDate, endDate;
+    
+    // Always calculate date range, even for 'all' or no period (defaults to current FY)
+    if (!period || period === 'all' || period === 'current_fy') {
+      // Current financial year
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const fyYear = currentMonth >= 3 ? currentYear : currentYear - 1;
+      startDate = new Date(fyYear, 3, 1); // April 1
+      endDate = new Date();
+    } else if (period === 'current_month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date();
+    } else if (period === 'last_month') {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+    }
+    
+    if (startDate && endDate) {
       dateRange = { startDate, endDate };
     }
 
@@ -286,13 +284,48 @@ router.get('/metrics', authenticateToken, async (req, res) => {
     }, 0);
 
     // Calculate active sales (pending/processing orders)
-    const activeSalesOrders = filteredOrders.filter(order => 
-      order.status === 'pending' || order.status === 'processing' || order.status === 'active'
-    );
-    activeSales = activeSalesOrders.reduce((sum, order) => {
-      const amount = parseFloat(order.final_amount_inr || order.final_amount || 0);
-      return sum + amount;
-    }, 0);
+    // Check all possible statuses first
+    const allStatuses = [...new Set(filteredOrders.map(o => o.status))];
+    console.log('📊 All order statuses found:', allStatuses);
+    
+    // If most orders don't have status field, consider them all as active
+    const ordersWithoutStatus = filteredOrders.filter(o => !o.status && !o.order_status).length;
+    console.log(`📊 Orders without status: ${ordersWithoutStatus} out of ${filteredOrders.length}`);
+    
+    // For now, if orders don't have status, consider them active
+    // This matches the frontend behavior where active sales are calculated
+    if (ordersWithoutStatus > filteredOrders.length * 0.8) {
+      // Most orders don't have status - use the frontend logic
+      // Active sales = orders created in last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const activeSalesOrders = filteredOrders.filter(order => {
+        const orderDate = order.event_date?.toDate ? order.event_date.toDate() : new Date(order.event_date);
+        return orderDate >= thirtyDaysAgo;
+      });
+      
+      console.log(`📊 Active sales (last 30 days): ${activeSalesOrders.length} orders`);
+      
+      activeSales = activeSalesOrders.reduce((sum, order) => {
+        const amount = parseFloat(order.final_amount_inr || order.final_amount || 0);
+        return sum + amount;
+      }, 0);
+    } else {
+      // Orders have status field - use status-based filtering
+      const activeSalesOrders = filteredOrders.filter(order => {
+        const status = order.status || order.order_status || '';
+        return status === 'pending' || status === 'processing' || status === 'active' || 
+               status === 'in_progress' || status === 'confirmed';
+      });
+      
+      console.log(`📊 Active sales (by status): ${activeSalesOrders.length} orders`);
+      
+      activeSales = activeSalesOrders.reduce((sum, order) => {
+        const amount = parseFloat(order.final_amount_inr || order.final_amount || 0);
+        return sum + amount;
+      }, 0);
+    }
 
     // Fetch receivables and payables
     const [receivablesSnapshot, payablesSnapshot] = await Promise.all([
@@ -317,18 +350,39 @@ router.get('/metrics', authenticateToken, async (req, res) => {
 
     // Process payables for the period
     const payables = [];
+    let allPayablesCount = 0;
+    let unpaidPayablesCount = 0;
+    
     payablesSnapshot.forEach(doc => {
       const data = doc.data();
-      if (data.isDeleted !== true && data.status !== 'paid') {
-        // Check if payable falls within the period
-        if (!dateRange || (data.event_date && 
-            new Date(data.event_date) >= dateRange.startDate && 
-            new Date(data.event_date) <= dateRange.endDate)) {
+      allPayablesCount++;
+      
+      if (data.isDeleted !== true && (data.status !== 'paid' && data.status !== 'completed')) {
+        unpaidPayablesCount++;
+        
+        // For payables, if no period filter, include all unpaid
+        if (!dateRange) {
           payables.push(data);
+        } else {
+          // Check multiple date fields for payables
+          const payableDate = data.event_date || data.invoice_date || data.due_date || data.created_date;
+          if (payableDate) {
+            const date = payableDate.toDate ? payableDate.toDate() : new Date(payableDate);
+            if (date >= dateRange.startDate && date <= dateRange.endDate) {
+              payables.push(data);
+            }
+          }
         }
       }
     });
-    totalPayables = payables.reduce((sum, pay) => sum + (pay.amount_inr || pay.amount || 0), 0);
+    
+    console.log(`📊 Payables: ${payables.length} included (${unpaidPayablesCount} unpaid out of ${allPayablesCount} total)`);
+    
+    totalPayables = payables.reduce((sum, pay) => {
+      // Use amount_inr if available, otherwise amount
+      const amount = parseFloat(pay.amount_inr || pay.amount || 0);
+      return sum + amount;
+    }, 0);
 
     console.log('💰 Backend financial metrics results:', {
       period: period || 'all',
