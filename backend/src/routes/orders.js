@@ -680,8 +680,7 @@ router.post('/preview-delete', authenticateToken, checkPermission('orders', 'del
 
     // Build query
     let query = db.collection('crm_orders')
-      .where('event_name', '==', event)
-      .where('isDeleted', '!=', true);
+      .where('event_name', '==', event);
 
     // Add date filters if provided
     if (start_date) {
@@ -692,20 +691,28 @@ router.post('/preview-delete', authenticateToken, checkPermission('orders', 'del
     }
 
     // Get preview data
-    const snapshot = await query.limit(100).get(); // Limit preview to 100 items
-    const totalCount = (await query.get()).size;
-
+    const allSnapshot = await query.get();
+    
+    // Filter out deleted items manually
     const items = [];
-    snapshot.forEach(doc => {
+    let totalCount = 0;
+    
+    allSnapshot.forEach(doc => {
       const data = doc.data();
-      items.push({
-        id: doc.id,
-        order_id: data.order_id,
-        lead_name: data.lead_name,
-        final_amount: data.final_amount,
-        order_date: data.order_date,
-        status: data.status
-      });
+      // Skip if deleted
+      if (data.isDeleted === true) return;
+      
+      totalCount++;
+      if (items.length < 100) { // Limit preview items
+        items.push({
+          id: doc.id,
+          order_id: data.order_id,
+          lead_name: data.lead_name,
+          final_amount: data.final_amount,
+          order_date: data.order_date,
+          status: data.status
+        });
+      }
     });
 
     res.json({
@@ -741,8 +748,7 @@ router.delete('/bulk-delete', authenticateToken, checkPermission('orders', 'dele
 
     // Build query
     let query = db.collection('crm_orders')
-      .where('event_name', '==', event)
-      .where('isDeleted', '!=', true);
+      .where('event_name', '==', event);
 
     // Add date filters if provided
     if (start_date) {
@@ -764,6 +770,10 @@ router.delete('/bulk-delete', authenticateToken, checkPermission('orders', 'dele
     let count = 0;
     
     snapshot.forEach(doc => {
+      const data = doc.data();
+      // Skip if already deleted
+      if (data.isDeleted === true) return;
+      
       batch.update(doc.ref, {
         isDeleted: true,
         deletedAt: new Date().toISOString(),

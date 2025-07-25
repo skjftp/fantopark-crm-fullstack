@@ -1576,8 +1576,7 @@ router.post('/preview-delete', authenticateToken, checkPermission('leads', 'dele
 
     // Build query
     let query = db.collection('crm_leads')
-      .where('event_name', '==', event)
-      .where('isDeleted', '!=', true);
+      .where('event_name', '==', event);
 
     // Add date filters if provided
     if (start_date) {
@@ -1588,19 +1587,27 @@ router.post('/preview-delete', authenticateToken, checkPermission('leads', 'dele
     }
 
     // Get preview data
-    const snapshot = await query.limit(100).get(); // Limit preview to 100 items
-    const totalCount = (await query.get()).size;
-
+    const allSnapshot = await query.get();
+    
+    // Filter out deleted items manually
     const items = [];
-    snapshot.forEach(doc => {
+    let totalCount = 0;
+    
+    allSnapshot.forEach(doc => {
       const data = doc.data();
-      items.push({
-        id: doc.id,
-        name: data.name,
-        phone: data.phone,
-        date_of_enquiry: data.date_of_enquiry,
-        status: data.status
-      });
+      // Skip if deleted
+      if (data.isDeleted === true) return;
+      
+      totalCount++;
+      if (items.length < 100) { // Limit preview items
+        items.push({
+          id: doc.id,
+          name: data.name,
+          phone: data.phone,
+          date_of_enquiry: data.date_of_enquiry,
+          status: data.status
+        });
+      }
     });
 
     res.json({
@@ -1636,8 +1643,7 @@ router.delete('/bulk-delete', authenticateToken, checkPermission('leads', 'delet
 
     // Build query
     let query = db.collection('crm_leads')
-      .where('event_name', '==', event)
-      .where('isDeleted', '!=', true);
+      .where('event_name', '==', event);
 
     // Add date filters if provided
     if (start_date) {
@@ -1659,6 +1665,10 @@ router.delete('/bulk-delete', authenticateToken, checkPermission('leads', 'delet
     let count = 0;
     
     snapshot.forEach(doc => {
+      const data = doc.data();
+      // Skip if already deleted
+      if (data.isDeleted === true) return;
+      
       batch.update(doc.ref, {
         isDeleted: true,
         deletedAt: new Date().toISOString(),
