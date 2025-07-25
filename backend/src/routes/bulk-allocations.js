@@ -596,9 +596,10 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
       // Update inventory availability
       const inventoryRef = db.collection('crm_inventory').doc(inventory.id);
       
-      console.log(`Updating inventory ${inventory.id} - has_categories: ${inventory.has_categories}, category: ${category?.name}`);
+      console.log(`Updating inventory ${inventory.id} - has_categories: ${inventory.has_categories}, categories exist: ${!!inventory.categories}, category: ${category?.name}`);
       
-      if (category && inventory.has_categories) {
+      // Check if inventory has categories array instead of has_categories flag
+      if (category && inventory.categories && inventory.categories.length > 0) {
         // Update category-specific availability
         const updatedCategories = [...(inventory.categories || [])];
         const categoryIndex = updatedCategories.findIndex(cat => 
