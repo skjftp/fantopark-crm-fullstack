@@ -282,43 +282,53 @@ window.fetchFinancialData = async function() {
     original_amount: order.final_amount || order.total_amount || 0
   }));
 
-// Update the sales data processing to include all orders with past event dates:
-const salesData = ordersData
+// Process ALL orders for total sales (matching sales performance logic)
+const allSalesData = ordersData
   .filter(order => {
     // Exclude orders that haven't reached approved stage yet
     const preApprovalStatuses = ['new', 'pending', 'rejected', 'cancelled', 'draft', 'pending_approval'];
     if (preApprovalStatuses.includes(order.status)) {
       return false;
     }
-    
-    // Only include orders with past event dates (not orders without event dates)
-    if (order.event_date) {
-      const eventDate = new Date(order.event_date);
-      eventDate.setHours(0, 0, 0, 0);
-      const isEventPast = eventDate < today;
-      
-      if (isEventPast) {
-        console.log(`Including past event order ${order.id}: eventDate=${order.event_date}, status=${order.status}`);
-        return true;
-      }
-    }
-    
-    return false;
+    return true;
   })
-  .map(order => ({
-    id: order.id,
-    date: order.created_at || order.created_date || new Date().toISOString(),
-    invoice_number: order.invoice_number || 'INV-' + order.id,
-    clientName: order.lead_name || order.client_name || 'N/A',
-    assignedTo: order.assigned_to || order.sales_person || order.created_by || 'Unassigned',
-    amount: parseFloat(order.final_amount || order.total_amount || 0),
-    status: order.payment_status === 'paid' ? 'paid' : 'completed',
-    event_date: order.event_date,
-    event_name: order.event_name || 'N/A',
-    payment_status: order.payment_status || 'pending',
-    original_currency: order.payment_currency || 'INR',
-    original_amount: order.final_amount || order.total_amount || 0
-  }));
+  .map(order => {
+    // Use INR equivalent for foreign currency orders (matching sales performance)
+    const isForeignCurrency = order.payment_currency && order.payment_currency !== 'INR';
+    const orderAmount = parseFloat(
+      isForeignCurrency && order.final_amount_inr 
+        ? order.final_amount_inr 
+        : (order.final_amount || order.total_amount || 0)
+    );
+    
+    return {
+      id: order.id,
+      date: order.created_at || order.created_date || new Date().toISOString(),
+      invoice_number: order.invoice_number || 'INV-' + order.id,
+      clientName: order.lead_name || order.client_name || 'N/A',
+      assignedTo: order.assigned_to || order.sales_person || order.created_by || 'Unassigned',
+      amount: orderAmount,
+      status: order.payment_status === 'paid' ? 'paid' : 'completed',
+      event_date: order.event_date,
+      event_name: order.event_name || 'N/A',
+      payment_status: order.payment_status || 'pending',
+      original_currency: order.payment_currency || 'INR',
+      original_amount: order.final_amount || order.total_amount || 0,
+      is_actualized: false // Will be set below
+    };
+  });
+
+// Mark actualized sales (past event dates)
+allSalesData.forEach(sale => {
+  if (sale.event_date) {
+    const eventDate = new Date(sale.event_date);
+    eventDate.setHours(0, 0, 0, 0);
+    sale.is_actualized = eventDate < today;
+  }
+});
+
+// For backward compatibility, keep salesData as actualized sales only
+const salesData = allSalesData.filter(sale => sale.is_actualized);
 
     // Process receivables - ensure all fields are properly mapped
     const processedReceivables = receivablesData.map(r => {
@@ -347,9 +357,10 @@ const salesData = ordersData
 
     console.log('Unpaid receivables to display:', unpaidReceivables);
 
-    // Calculate totals
+    // Calculate totals (matching sales performance logic)
     const totalActiveSales = activeSalesData.reduce((sum, sale) => sum + sale.amount, 0);
-    const totalSales = salesData.reduce((sum, sale) => sum + sale.amount, 0);
+    const totalSales = allSalesData.reduce((sum, sale) => sum + sale.amount, 0); // ALL orders
+    const totalActualizedSales = salesData.reduce((sum, sale) => sum + sale.amount, 0); // Past events only
     const totalReceivables = unpaidReceivables.reduce((sum, rec) => 
       sum + (rec.balance_amount || rec.amount || 0), 0
     );
@@ -360,14 +371,18 @@ const salesData = ordersData
     // Log the results
     console.log('=== FINANCIAL DATA SUMMARY ===');
     console.log(`Active Sales: ${activeSalesData.length} orders, Total: ₹${totalActiveSales.toLocaleString()}`);
-    console.log(`Completed Sales: ${salesData.length} orders, Total: ₹${totalSales.toLocaleString()}`);
+    console.log(`Total Sales (All): ${allSalesData.length} orders, Total: ₹${totalSales.toLocaleString()}`);
+    console.log(`Actualized Sales: ${salesData.length} orders, Total: ₹${totalActualizedSales.toLocaleString()}`);
     console.log(`Receivables: ${unpaidReceivables.length} entries, Total: ₹${totalReceivables.toLocaleString()}`);
     console.log(`Payables: ${payablesData.length} entries, Total: ₹${totalPayables.toLocaleString()}`);
 
     // Update state
     window.setFinancialData({
       activeSales: activeSalesData,
-      sales: salesData,
+      sales: salesData, // Keep for backward compatibility (actualized sales)
+      allSales: allSalesData, // NEW: All sales data
+      totalSales: totalSales, // NEW: Total sales amount
+      totalActualizedSales: totalActualizedSales, // NEW: Actualized sales amount
       receivables: unpaidReceivables,
       payables: payablesData,
       expiringInventory: inventoryData.filter(item => {

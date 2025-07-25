@@ -954,9 +954,12 @@ window.calculateEnhancedFinancialMetricsSync = () => {
     const payables = financialData.payables || [];
     const receivables = financialData.receivables || [];
     
-    // Calculate totals
+    // Calculate totals - Use the new totalSales from financialData
     const totalActiveSales = activeSales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
-    const totalSales = sales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
+    // Use the new totalSales that includes ALL orders (matching sales performance)
+    const totalSales = financialData.totalSales || 
+                      (financialData.allSales || []).reduce((sum, sale) => sum + (sale.amount || 0), 0) ||
+                      sales.reduce((sum, sale) => sum + (sale.amount || 0), 0); // fallback to old logic
     const totalPayables = payables.reduce((sum, payable) => sum + (payable.amount || 0), 0);
     const totalReceivables = receivables.reduce((sum, receivable) => sum + (receivable.amount || receivable.balance_amount || 0), 0);
     
