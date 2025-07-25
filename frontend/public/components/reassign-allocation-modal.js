@@ -15,6 +15,8 @@ window.renderReassignAllocationModal = () => {
 
   // Define close function
   const closeModal = () => {
+    console.log('🔄 Closing reassign allocation modal');
+    
     window.showReassignModal = false;
     window.selectedAllocation = null;
     window.availableOrders = [];
@@ -23,6 +25,20 @@ window.renderReassignAllocationModal = () => {
       window.appState.selectedAllocation = null;
       window.appState.availableOrders = [];
     }
+    
+    // Restore the allocation management modal if it was open
+    if (window._savedAllocationModalState) {
+      console.log('🔄 Restoring allocation management modal');
+      if (window.setShowAllocationManagement) {
+        window.setShowAllocationManagement(true);
+      }
+      if (window.appState) {
+        window.appState.showAllocationManagement = true;
+      }
+      window.showAllocationManagement = true;
+      window._savedAllocationModalState = null;
+    }
+    
     if (window.renderApp) window.renderApp();
   };
 
@@ -46,13 +62,13 @@ window.renderReassignAllocationModal = () => {
 
       alert('Allocation reassigned successfully!');
       
+      // Refresh allocations if inventory is loaded
+      if (window.loadAllocationsForInventory && window.allocationManagementInventory) {
+        await window.loadAllocationsForInventory(window.allocationManagementInventory.id);
+      }
+      
       // Close modal and refresh
       closeModal();
-      
-      // Refresh allocations
-      if (window.loadAllocations) {
-        window.loadAllocations();
-      }
       
       // Force re-render
       if (window.renderApp) {
@@ -220,18 +236,43 @@ window.renderReassignAllocationModal = () => {
 
 // Helper function to show the modal
 window.showReassignAllocationModal = async (allocation) => {
+  console.log('🔄 Opening reassign allocation modal for:', allocation);
+  
+  // Store the current allocation modal state
+  window._savedAllocationModalState = window.showAllocationManagement || window.appState?.showAllocationManagement;
+  
+  // Temporarily hide the allocation management modal
+  if (window.setShowAllocationManagement) {
+    window.setShowAllocationManagement(false);
+  }
+  if (window.appState) {
+    window.appState.showAllocationManagement = false;
+  }
+  window.showAllocationManagement = false;
+  
+  // Set up reassign modal
   window.selectedAllocation = allocation;
   window.showReassignModal = true;
+  if (window.appState) {
+    window.appState.selectedAllocation = allocation;
+    window.appState.showReassignModal = true;
+  }
   
   // Load available orders for this lead and event
   try {
     const response = await window.apiCall(`/orders/for-allocation?lead_id=${allocation.lead_id}&event_name=${encodeURIComponent(allocation.inventory_event)}`);
     if (!response.error) {
       window.availableOrders = response.data;
+      if (window.appState) {
+        window.appState.availableOrders = response.data;
+      }
     }
   } catch (error) {
     console.error('Error loading orders:', error);
     window.availableOrders = [];
+    if (window.appState) {
+      window.appState.availableOrders = [];
+    }
   }
   
   if (window.renderApp) {
