@@ -342,7 +342,7 @@ router.get('/paginated', authenticateToken, async (req, res) => {
         (lead.email && lead.email.toLowerCase().includes(searchLower)) ||
         (lead.phone && lead.phone.includes(search)) ||
         (lead.company && lead.company.toLowerCase().includes(searchLower)) ||
-        (lead.event && lead.event.toLowerCase().includes(searchLower))
+        (lead.lead_for_event && lead.lead_for_event.toLowerCase().includes(searchLower))
       );
     }
 
