@@ -562,7 +562,7 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
         lead_name: lead.name,
         tickets_allocated: tickets_to_allocate,
         notes: notes || `Bulk allocated by ${req.user.name}`,
-        created_by: req.user.uid,
+        created_by: req.user.id,
         created_by_name: req.user.name,
         created_date: admin.firestore.FieldValue.serverTimestamp(),
         isDeleted: false,
