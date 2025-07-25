@@ -133,7 +133,44 @@ const fetchSalesPerformance = async () => {
     
     if (salesResponse.ok) {
       const salesResult = await salesResponse.json();
-      setSalesData(salesResult.salesTeam || []);
+      let salesTeamData = salesResult.salesTeam || [];
+      
+      // Fetch accurate margin data from finance endpoint
+      try {
+        const marginResponse = await fetch(`${window.API_CONFIG.API_URL}/finance/sales-margins`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (marginResponse.ok) {
+          const marginResult = await marginResponse.json();
+          const marginData = marginResult.data || [];
+          
+          // Merge margin data with sales data
+          salesTeamData = salesTeamData.map(salesPerson => {
+            const marginInfo = marginData.find(m => 
+              m.userName === salesPerson.name || 
+              m.userId === salesPerson.userId
+            );
+            
+            if (marginInfo) {
+              return {
+                ...salesPerson,
+                totalMargin: marginInfo.margin / 10000000, // Convert to crores
+                actualizedMargin: marginInfo.margin / 10000000, // TODO: Calculate actualized separately
+                marginPercentage: marginInfo.marginPercentage
+              };
+            }
+            return salesPerson;
+          });
+          
+          console.log('💰 Updated sales data with accurate margins');
+        }
+      } catch (marginError) {
+        console.error('Error fetching margin data:', marginError);
+        // Continue with original data if margin fetch fails
+      }
+      
+      setSalesData(salesTeamData);
       
       // Optional: Show cache status
       if (salesResult.cached && salesResult.cacheAge) {
