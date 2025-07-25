@@ -1,5 +1,6 @@
 // API Configuration
 window.API_CONFIG = {
+  // Always use production backend
   API_URL: "https://fantopark-backend-150582227311.us-central1.run.app/api",
   
   UPLOAD_URL_FUNCTION: 'https://asia-south1-enduring-wharf-464005-h7.cloudfunctions.net/getSignedUploadUrl',

@@ -1,3 +1,317 @@
+// ============================================================================
+// PAYABLE MANAGEMENT FUNCTIONS - Define early to avoid reference errors
+// ============================================================================
+
+// Function to handle recording payment for a payable
+window.handleRecordPaymentClick = function(payable) {
+    console.log('Recording payment for payable:', payable);
+    
+    // If submitPayablePayment function exists, use the custom modal
+    if (window.submitPayablePayment) {
+        // Get currency and amount info
+        const currency = payable.original_currency || payable.currency || 'INR';
+        const originalAmount = payable.original_amount || payable.amount || 0;
+        const paymentHistory = payable.payment_history || [];
+        const totalPaid = paymentHistory.reduce((sum, p) => sum + (p.amount_foreign || 0), 0);
+        const remainingAmount = originalAmount - totalPaid;
+        
+        // Check if already fully paid
+        if (remainingAmount <= 0) {
+            alert('This payable has already been fully paid.');
+            return;
+        }
+        
+        // Create payment modal with full functionality
+        const modalHtml = `
+            <div id="record-payment-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Record Payment</h3>
+                    
+                    <div class="mb-4 p-3 bg-gray-50 rounded">
+                        <p class="text-sm text-gray-600 mb-1">
+                            <strong>Vendor:</strong> ${payable.vendor_name || payable.supplierName || 'Unknown Vendor'}
+                        </p>
+                        <p class="text-sm text-gray-600 mb-1">
+                            <strong>Total Amount:</strong> ${currency} ${originalAmount.toLocaleString()}
+                        </p>
+                        <p class="text-sm text-gray-600 mb-1">
+                            <strong>Already Paid:</strong> ${currency} ${totalPaid.toLocaleString()}
+                        </p>
+                        <p class="text-sm text-gray-900 font-semibold">
+                            <strong>Remaining:</strong> ${currency} ${remainingAmount.toLocaleString()}
+                        </p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Payment Amount (${currency})
+                        </label>
+                        <input type="number" id="payment-amount" value="${remainingAmount}" 
+                               max="${remainingAmount}" step="0.01"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <p class="text-xs text-gray-500 mt-1">Max: ${currency} ${remainingAmount.toLocaleString()}</p>
+                    </div>
+                    
+                    ${currency !== 'INR' ? `
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Current Exchange Rate (1 ${currency} = ? INR)
+                        </label>
+                        <input type="number" id="exchange-rate" value="${payable.exchange_rate || ''}" 
+                               step="0.01" placeholder="Enter current exchange rate"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <p class="text-xs text-gray-500 mt-1">
+                            Original rate: ₹${payable.creation_exchange_rate || payable.exchange_rate || 'N/A'}
+                        </p>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Payment Date</label>
+                        <input type="date" id="payment-date" value="${new Date().toISOString().split('T')[0]}" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Reference Number</label>
+                        <input type="text" id="reference-number" placeholder="Transaction ID / Cheque Number" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                        <textarea id="payment-notes" rows="2" 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                    </div>
+                    
+                    <div class="flex justify-end gap-2">
+                        <button onclick="document.getElementById('record-payment-modal').remove()" 
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                            Cancel
+                        </button>
+                        <button onclick="window.submitPayablePayment('${payable.id}')" 
+                                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                            Record Payment
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add modal to page
+        const modalDiv = document.createElement('div');
+        modalDiv.innerHTML = modalHtml;
+        document.body.appendChild(modalDiv.firstElementChild);
+        return;
+    }
+    
+    // Fallback to handleMarkAsPaid if available
+    if (window.handleMarkAsPaid) {
+        window.handleMarkAsPaid(payable);
+        return;
+    }
+};
+    
+// Function to open inventory form for payable payment (legacy support)
+window.openInventoryFormForPayable = function(payable) {
+    // Redirect to handleMarkAsPaid which handles inventory form opening
+    if (window.handleMarkAsPaid) {
+        window.handleMarkAsPaid(payable);
+    } else {
+        console.error('handleMarkAsPaid function not found');
+        alert('Payment functionality not available. Please refresh the page.');
+    }
+};
+
+// Function to submit payment for a payable
+window.submitPayablePayment = async function(payableId) {
+    console.log('submitPayablePayment called with payableId:', payableId);
+    
+    try {
+        const paymentAmount = parseFloat(document.getElementById('payment-amount').value);
+        const paymentDate = document.getElementById('payment-date').value;
+        const referenceNumber = document.getElementById('reference-number').value;
+        const paymentNotes = document.getElementById('payment-notes').value;
+        
+        console.log('Payment data collected:', {
+            paymentAmount,
+            paymentDate,
+            referenceNumber,
+            paymentNotes
+        });
+        
+        // Validate payment amount
+        if (!paymentAmount || paymentAmount <= 0) {
+            alert('Please enter a valid payment amount');
+            return;
+        }
+        
+        // Get exchange rate if applicable
+        const exchangeRateInput = document.getElementById('exchange-rate');
+        const exchangeRate = exchangeRateInput ? parseFloat(exchangeRateInput.value) : null;
+        
+        // Use the partial-payment endpoint
+        const paymentData = {
+            payment_amount: paymentAmount,
+            payment_date: paymentDate,
+            payment_reference: referenceNumber,
+            payment_notes: paymentNotes
+        };
+        
+        // Add exchange rate if foreign currency
+        if (exchangeRate) {
+            paymentData.payment_exchange_rate = exchangeRate;
+        }
+        
+        console.log('Sending payment data:', paymentData);
+        console.log('API URL:', `${window.API_CONFIG.API_URL}/payables/${payableId}/partial-payment`);
+        
+        const response = await fetch(`${window.API_CONFIG.API_URL}/payables/${payableId}/partial-payment`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
+            },
+            body: JSON.stringify(paymentData)
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to record payment');
+        }
+        
+        const result = await response.json();
+        console.log('Payment response result:', result);
+        
+        // Close modal and show success message
+        document.getElementById('record-payment-modal').remove();
+        
+        // Show detailed payment result
+        let message = 'Payment recorded successfully!\n\n';
+        
+        if (result.data) {
+            const { remaining_amount, status, exchange_impact } = result.data;
+            
+            if (status === 'paid') {
+                message += '✅ Payable is now fully paid!\n';
+            } else {
+                message += `Remaining amount: ${remaining_amount.toFixed(2)}\n`;
+            }
+            
+            if (exchange_impact) {
+                message += `\nExchange ${exchange_impact.type}: ₹${exchange_impact.amount.toFixed(2)}`;
+                message += `\n(Creation rate: ₹${exchange_impact.creation_rate}, Payment rate: ₹${exchange_impact.payment_rate})`;
+            }
+        }
+        
+        alert(message);
+        
+        // Refresh financial data
+        if (window.fetchFinancialData) {
+            window.fetchFinancialData();
+        }
+        
+        // Also refresh payment history modal if open
+        if (window.showPaymentHistoryModal && window.appState?.financialData?.payables) {
+            const updatedPayable = window.appState.financialData.payables.find(p => p.id === payableId);
+            if (updatedPayable) {
+                // Re-fetch the payable data to get updated payment history
+                window.fetchFinancialData().then(() => {
+                    const refreshedPayable = window.appState.financialData.payables.find(p => p.id === payableId);
+                    if (refreshedPayable) {
+                        window.showPaymentHistoryModal(refreshedPayable);
+                    }
+                });
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error recording payment:', error);
+        alert('Error recording payment: ' + error.message);
+    }
+};
+
+// Function to delete a payable
+window.deletePayable = async function(payableId) {
+    if (!confirm('Are you sure you want to delete this payable?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${window.API_CONFIG.API_URL}/payables/${payableId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to delete payable');
+        }
+        
+        alert('Payable deleted successfully');
+        
+        // Refresh financial data
+        if (window.fetchFinancialData) {
+            window.fetchFinancialData();
+        }
+        
+    } catch (error) {
+        console.error('Error deleting payable:', error);
+        alert('Error deleting payable: ' + error.message);
+    }
+};
+
+// ============================================================================
+// RECEIVABLE MANAGEMENT FUNCTIONS
+// ============================================================================
+
+// Function to delete a receivable
+window.deleteReceivable = async function(receivableId) {
+    if (!confirm('Are you sure you want to delete this receivable?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${window.API_CONFIG.API_URL}/receivables/${receivableId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete receivable');
+        }
+        
+        alert('Receivable deleted successfully');
+        
+        // Refresh financial data
+        if (window.fetchFinancialData) {
+            window.fetchFinancialData();
+        }
+        
+    } catch (error) {
+        console.error('Error deleting receivable:', error);
+        alert('Error deleting receivable: ' + error.message);
+    }
+};
+
+// Function to handle marking payment from receivable
+window.handleMarkPaymentFromReceivable = async function(receivable) {
+    // Check if there's already a recordPayment function
+    if (window.recordPayment) {
+        window.recordPayment(receivable.id);
+    } else {
+        // Fallback implementation
+        console.error('recordPayment function not found');
+        alert('Payment recording functionality not available. Please refresh the page.');
+    }
+};
+
 // Override renderFinancials to ensure data is loaded first
 
 const originalRenderFinancials = window.renderFinancials;
@@ -32,7 +346,7 @@ window.renderFinancials = function() {
         console.log('Financial data empty, loading before render...');
         
         // Load data first, then render
-        window.loadFinancialData().then(() => {
+        window.fetchFinancialData().then(() => {
             console.log('Data loaded, rendering financials...');
             originalRenderFinancials.call(this);
         });
@@ -336,8 +650,8 @@ if (!window.financialsAutoLoader) {
                 // Use fetchFinancialData instead of loadFinancialData
                 if (window.fetchFinancialData) {
                     window.fetchFinancialData();
-                } else if (window.loadFinancialData) {
-                    window.loadFinancialData();
+                } else if (window.fetchFinancialData) {
+                    window.fetchFinancialData();
                 }
             }, 100);
         }
@@ -1002,7 +1316,7 @@ window.renderReceivablesTab = (receivables) => {
                                             title: 'Mark Payment Received'
                                         }, 'Mark Payment'),
                                         React.createElement('button', {
-                                            onClick: () => deleteReceivable(rec.id),
+                                            onClick: () => window.deleteReceivable(rec.id),
                                             className: 'text-red-600 hover:text-red-800 font-medium',
                                             title: 'Delete Receivable'
                                         }, '🗑️ Delete')
@@ -1641,14 +1955,14 @@ window.setActiveTab = function(tab) {
     if (tab === 'finance' || tab === 'financials') {
         console.log('Loading financial data for finance tab...');
         setTimeout(() => {
-            window.loadFinancialData();
+            window.fetchFinancialData();
         }, 100);
     }
 };
 
 // Also check if already on finance tab
 if (window.appState?.activeTab === 'finance' || window.appState?.activeTab === 'financials') {
-    window.loadFinancialData();
+    window.fetchFinancialData();
 }
 
 console.log('✅ FIXED PAGINATION Financials Component loaded successfully - All functionality preserved');
