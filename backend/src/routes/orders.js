@@ -359,6 +359,151 @@ router.put('/:id/sales-person', authenticateToken, async (req, res) => {
   }
 });
 
+// Preview bulk delete - shows what orders will be deleted
+router.post('/preview-delete', authenticateToken, checkPermission('orders', 'delete'), async (req, res) => {
+  try {
+    // Only super admins can bulk delete
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Only super admins can perform bulk delete' });
+    }
+
+    const { event, start_date, end_date } = req.body;
+
+    if (!event) {
+      return res.status(400).json({ error: 'Event name is required' });
+    }
+
+    // Build query
+    let query = db.collection('crm_orders')
+      .where('event_name', '==', event);
+
+    // Add date filters if provided
+    if (start_date) {
+      query = query.where('order_date', '>=', start_date);
+    }
+    if (end_date) {
+      query = query.where('order_date', '<=', end_date);
+    }
+
+    // Get preview data
+    const allSnapshot = await query.get();
+    
+    // Filter out deleted items manually
+    const items = [];
+    let totalCount = 0;
+    
+    allSnapshot.forEach(doc => {
+      const data = doc.data();
+      // Skip if deleted
+      if (data.isDeleted === true) return;
+      
+      totalCount++;
+      if (items.length < 100) { // Limit preview items
+        items.push({
+          id: doc.id,
+          order_id: data.order_id,
+          lead_name: data.lead_name,
+          final_amount: data.final_amount,
+          order_date: data.order_date,
+          status: data.status
+        });
+      }
+    });
+
+    res.json({
+      data: {
+        count: totalCount,
+        items: items.slice(0, 5), // Return only first 5 for preview
+        event: event,
+        filters: { start_date, end_date }
+      }
+    });
+  } catch (error) {
+    console.error('Error in preview-delete orders:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk delete orders
+router.delete('/bulk-delete', authenticateToken, checkPermission('orders', 'delete'), async (req, res) => {
+  try {
+    // Only super admins can bulk delete
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Only super admins can perform bulk delete' });
+    }
+
+    const { event, start_date, end_date } = req.body;
+
+    if (!event) {
+      return res.status(400).json({ error: 'Event name is required' });
+    }
+
+    // Log the bulk delete attempt
+    console.log(`BULK DELETE ATTEMPT by ${req.user.email}: Orders with event="${event}"`);
+
+    // Build query
+    let query = db.collection('crm_orders')
+      .where('event_name', '==', event);
+
+    // Add date filters if provided
+    if (start_date) {
+      query = query.where('order_date', '>=', start_date);
+    }
+    if (end_date) {
+      query = query.where('order_date', '<=', end_date);
+    }
+
+    // Get all matching documents
+    const snapshot = await query.get();
+    
+    if (snapshot.empty) {
+      return res.json({ data: { deletedCount: 0 } });
+    }
+
+    // Perform soft delete in batches
+    let batch = db.batch();
+    let count = 0;
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      // Skip if already deleted
+      if (data.isDeleted === true) return;
+      
+      batch.update(doc.ref, {
+        isDeleted: true,
+        deletedAt: new Date().toISOString(),
+        deletedBy: req.user.email
+      });
+      count++;
+      
+      // Firestore has a limit of 500 operations per batch
+      if (count % 500 === 0) {
+        batch.commit();
+        batch = db.batch();
+      }
+    });
+
+    // Commit any remaining operations
+    if (count % 500 !== 0) {
+      await batch.commit();
+    }
+
+    console.log(`BULK DELETE SUCCESS: Deleted ${count} orders with event="${event}" by ${req.user.email}`);
+
+    res.json({
+      data: {
+        deletedCount: count,
+        event: event,
+        deletedBy: req.user.email,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Error in bulk-delete orders:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // DELETE order
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
@@ -660,151 +805,6 @@ router.post('/bulk-update-event-ids', authenticateToken, async (req, res) => {
     
   } catch (error) {
     console.error('Error in bulk update:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Preview bulk delete - shows what orders will be deleted
-router.post('/preview-delete', authenticateToken, checkPermission('orders', 'delete'), async (req, res) => {
-  try {
-    // Only super admins can bulk delete
-    if (req.user.role !== 'super_admin') {
-      return res.status(403).json({ error: 'Only super admins can perform bulk delete' });
-    }
-
-    const { event, start_date, end_date } = req.body;
-
-    if (!event) {
-      return res.status(400).json({ error: 'Event name is required' });
-    }
-
-    // Build query
-    let query = db.collection('crm_orders')
-      .where('event_name', '==', event);
-
-    // Add date filters if provided
-    if (start_date) {
-      query = query.where('order_date', '>=', start_date);
-    }
-    if (end_date) {
-      query = query.where('order_date', '<=', end_date);
-    }
-
-    // Get preview data
-    const allSnapshot = await query.get();
-    
-    // Filter out deleted items manually
-    const items = [];
-    let totalCount = 0;
-    
-    allSnapshot.forEach(doc => {
-      const data = doc.data();
-      // Skip if deleted
-      if (data.isDeleted === true) return;
-      
-      totalCount++;
-      if (items.length < 100) { // Limit preview items
-        items.push({
-          id: doc.id,
-          order_id: data.order_id,
-          lead_name: data.lead_name,
-          final_amount: data.final_amount,
-          order_date: data.order_date,
-          status: data.status
-        });
-      }
-    });
-
-    res.json({
-      data: {
-        count: totalCount,
-        items: items.slice(0, 5), // Return only first 5 for preview
-        event: event,
-        filters: { start_date, end_date }
-      }
-    });
-  } catch (error) {
-    console.error('Error in preview-delete orders:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Bulk delete orders
-router.delete('/bulk-delete', authenticateToken, checkPermission('orders', 'delete'), async (req, res) => {
-  try {
-    // Only super admins can bulk delete
-    if (req.user.role !== 'super_admin') {
-      return res.status(403).json({ error: 'Only super admins can perform bulk delete' });
-    }
-
-    const { event, start_date, end_date } = req.body;
-
-    if (!event) {
-      return res.status(400).json({ error: 'Event name is required' });
-    }
-
-    // Log the bulk delete attempt
-    console.log(`BULK DELETE ATTEMPT by ${req.user.email}: Orders with event="${event}"`);
-
-    // Build query
-    let query = db.collection('crm_orders')
-      .where('event_name', '==', event);
-
-    // Add date filters if provided
-    if (start_date) {
-      query = query.where('order_date', '>=', start_date);
-    }
-    if (end_date) {
-      query = query.where('order_date', '<=', end_date);
-    }
-
-    // Get all matching documents
-    const snapshot = await query.get();
-    
-    if (snapshot.empty) {
-      return res.json({ data: { deletedCount: 0 } });
-    }
-
-    // Perform soft delete in batches
-    let batch = db.batch();
-    let count = 0;
-    
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      // Skip if already deleted
-      if (data.isDeleted === true) return;
-      
-      batch.update(doc.ref, {
-        isDeleted: true,
-        deletedAt: new Date().toISOString(),
-        deletedBy: req.user.email
-      });
-      count++;
-      
-      // Firestore has a limit of 500 operations per batch
-      if (count % 500 === 0) {
-        batch.commit();
-        batch = db.batch();
-      }
-    });
-
-    // Commit any remaining operations
-    if (count % 500 !== 0) {
-      await batch.commit();
-    }
-
-    console.log(`BULK DELETE SUCCESS: Deleted ${count} orders with event="${event}" by ${req.user.email}`);
-
-    res.json({
-      data: {
-        deletedCount: count,
-        event: event,
-        deletedBy: req.user.email,
-        timestamp: new Date().toISOString()
-      }
-    });
-  } catch (error) {
-    console.error('Error in bulk-delete orders:', error);
     res.status(500).json({ error: error.message });
   }
 });
