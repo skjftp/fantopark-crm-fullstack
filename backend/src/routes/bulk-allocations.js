@@ -269,14 +269,31 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
         }
       }
 
-      // Validate order_id if provided
+      // Validate order_id if provided (can be either document ID or order_number)
       if (record.order_id) {
-        const orderSnapshot = await db.collection('crm_orders')
-          .doc(record.order_id)
-          .get();
+        let orderSnapshot;
+        
+        // First try as document ID
+        if (record.order_id.length === 20 && !record.order_id.includes('-')) {
+          orderSnapshot = await db.collection('crm_orders')
+            .doc(record.order_id)
+            .get();
+        }
+        
+        // If not found or not a valid doc ID format, search by order_number
+        if (!orderSnapshot || !orderSnapshot.exists) {
+          const orderQuery = await db.collection('crm_orders')
+            .where('order_number', '==', record.order_id)
+            .limit(1)
+            .get();
+          
+          if (!orderQuery.empty) {
+            orderSnapshot = orderQuery.docs[0];
+          }
+        }
 
-        if (!orderSnapshot.exists) {
-          result.warnings.push(`Order ID "${record.order_id}" not found - will create allocation without order link`);
+        if (!orderSnapshot || !orderSnapshot.exists) {
+          result.warnings.push(`Order "${record.order_id}" not found - will create allocation without order link`);
         } else {
           const orderData = orderSnapshot.data();
           if (orderData.lead_id !== lead.id) {
@@ -284,7 +301,7 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
             result.status = 'error';
           } else {
             result.enrichedData.order = {
-              id: record.order_id,
+              id: orderSnapshot.id,
               order_number: orderData.order_number
             };
           }
@@ -467,14 +484,32 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
         }
       }
 
-      // Validate order if specified
+      // Validate order if specified (can be either document ID or order_number)
       if (record.order_id) {
-        const orderSnapshot = await db.collection('crm_orders')
-          .doc(record.order_id)
-          .get();
-        if (orderSnapshot.exists && orderSnapshot.data().lead_id === lead.id) {
+        let orderSnapshot;
+        
+        // First try as document ID
+        if (record.order_id.length === 20 && !record.order_id.includes('-')) {
+          orderSnapshot = await db.collection('crm_orders')
+            .doc(record.order_id)
+            .get();
+        }
+        
+        // If not found or not a valid doc ID format, search by order_number
+        if (!orderSnapshot || !orderSnapshot.exists) {
+          const orderQuery = await db.collection('crm_orders')
+            .where('order_number', '==', record.order_id)
+            .limit(1)
+            .get();
+          
+          if (!orderQuery.empty) {
+            orderSnapshot = orderQuery.docs[0];
+          }
+        }
+        
+        if (orderSnapshot && orderSnapshot.exists && orderSnapshot.data().lead_id === lead.id) {
           result.enrichedData.order = {
-            id: record.order_id,
+            id: orderSnapshot.id,
             order_number: orderSnapshot.data().order_number
           };
         }
