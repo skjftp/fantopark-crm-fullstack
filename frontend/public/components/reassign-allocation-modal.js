@@ -56,7 +56,7 @@ window.renderReassignAllocationModal = () => {
   };
 
   const handleCreateSplitOrder = async () => {
-    const primaryOrderId = selectedAllocation.primary_order_id || selectedAllocation.order_ids[0];
+    const primaryOrderId = selectedAllocation.primary_order_id || (selectedAllocation.order_ids && selectedAllocation.order_ids[0]);
     
     // Get split configuration from user
     const splitSuffix = prompt('Enter suffix for split order (e.g., "A", "B", "1"):');
@@ -157,7 +157,7 @@ window.renderReassignAllocationModal = () => {
         React.createElement('h3', { className: 'font-semibold mb-2' }, 'Assign to Order'),
         React.createElement('div', { className: 'space-y-2' },
           availableOrders.filter(order => 
-            !selectedAllocation.order_ids.includes(order.id)
+            !(selectedAllocation.order_ids || []).includes(order.id)
           ).map(order => 
             React.createElement('div', { 
               key: order.id,
