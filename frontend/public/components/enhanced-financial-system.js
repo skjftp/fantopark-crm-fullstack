@@ -29,11 +29,8 @@ window.fetchFinancialDataWithINR = async () => {
     // Process active sales (future events) - matching financial-system.js logic
     const activeSalesData = ordersData
       .filter(order => {
-        // Exclude orders that haven't reached approved stage yet
-        const preApprovalStatuses = ['new', 'pending', 'rejected', 'cancelled', 'draft', 'pending_approval'];
-        if (preApprovalStatuses.includes(order.status)) {
-          return false;
-        }
+        // REMOVED STATUS FILTERING to match sales performance tab
+        // Only filter by event date now
         
         // If no event date, include it in active sales
         if (!order.event_date) {
@@ -62,12 +59,8 @@ window.fetchFinancialDataWithINR = async () => {
       }));
 
     // Process ALL orders for total sales (matching sales performance logic)
+    // REMOVED STATUS FILTERING - include all orders like sales performance tab
     const allSalesData = ordersData
-      .filter(order => {
-        // Exclude orders that haven't reached approved stage yet
-        const preApprovalStatuses = ['new', 'pending', 'rejected', 'cancelled', 'draft', 'pending_approval'];
-        return !preApprovalStatuses.includes(order.status);
-      })
       .map(order => {
         // Use INR equivalent for foreign currency orders (matching sales performance)
         const isForeignCurrency = order.payment_currency && order.payment_currency !== 'INR';
