@@ -1009,7 +1009,7 @@ window.calculateEnhancedFinancialMetricsSync = () => {
     };
     
     return {
-        totalSales: totalSales + totalActiveSales, // Combined total
+        totalSales: totalSales, // FIXED: Don't add totalActiveSales - it's already included in totalSales
         totalActiveSales,
         totalPayables,
         totalReceivables,
