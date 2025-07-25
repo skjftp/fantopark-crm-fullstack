@@ -295,6 +295,59 @@ window.renderInventoryContent = () => {
                 }, 
                     React.createElement('span', { className: 'text-lg' }, '🎫'),
                     'Bulk Allocate'
+                ),
+                React.createElement('button', {
+                    onClick: async () => {
+                        console.log('Download Allocations button clicked');
+                        try {
+                            const response = await fetch(`${window.API_URL}/bulk-allocations/download`, {
+                                method: 'GET',
+                                headers: {
+                                    'Authorization': `Bearer ${window.authToken}`
+                                }
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error('Failed to download allocations');
+                            }
+                            
+                            // Get filename from Content-Disposition header
+                            const contentDisposition = response.headers.get('Content-Disposition');
+                            const filenameMatch = contentDisposition && contentDisposition.match(/filename="(.+)"/);
+                            const filename = filenameMatch ? filenameMatch[1] : 'allocations_export.csv';
+                            
+                            // Download the file
+                            const blob = await response.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+                        } catch (error) {
+                            console.error('Error downloading allocations:', error);
+                            alert('Error downloading allocations: ' + error.message);
+                        }
+                    },
+                    className: 'bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors',
+                    title: 'Download all allocations as CSV'
+                }, 
+                    React.createElement('svg', {
+                        className: 'w-5 h-5',
+                        fill: 'none',
+                        stroke: 'currentColor',
+                        viewBox: '0 0 24 24'
+                    },
+                        React.createElement('path', {
+                            strokeLinecap: 'round',
+                            strokeLinejoin: 'round',
+                            strokeWidth: 2,
+                            d: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4'
+                        })
+                    ),
+                    'Download Allocations'
                 )
             )
         ),

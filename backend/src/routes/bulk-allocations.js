@@ -675,4 +675,84 @@ router.get('/template', authenticateToken, (req, res) => {
   res.send(csvContent);
 });
 
+// Download all allocations as CSV
+router.get('/download', authenticateToken, async (req, res) => {
+  try {
+    console.log('Fetching all allocations for download...');
+    
+    // Fetch all allocations that are not deleted
+    const allocationsSnapshot = await db.collection('crm_allocations')
+      .where('isDeleted', '!=', true)
+      .orderBy('created_date', 'desc')
+      .get();
+    
+    console.log(`Found ${allocationsSnapshot.size} allocations`);
+    
+    // Build CSV content
+    let csvContent = 'allocation_id,event_name,lead_name,lead_id,tickets_allocated,category_name,stand_section,order_ids,notes,created_by,created_date,price_per_ticket,total_value\n';
+    
+    for (const doc of allocationsSnapshot.docs) {
+      const allocation = doc.data();
+      const allocationId = doc.id;
+      
+      // Format date to IST
+      let createdDate = '';
+      if (allocation.created_date) {
+        const date = allocation.created_date.toDate ? allocation.created_date.toDate() : new Date(allocation.created_date);
+        createdDate = new Date(date).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+      }
+      
+      // Get price information
+      let pricePerTicket = '';
+      let totalValue = '';
+      if (allocation.category_details && allocation.category_details.selling_price) {
+        pricePerTicket = allocation.category_details.selling_price;
+        totalValue = allocation.category_details.selling_price * (allocation.tickets_allocated || 0);
+      }
+      
+      // Escape CSV fields
+      const escapeCSV = (field) => {
+        if (!field) return '';
+        const str = String(field);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+      
+      // Build CSV row
+      const row = [
+        allocationId,
+        escapeCSV(allocation.inventory_event || ''),
+        escapeCSV(allocation.lead_name || ''),
+        allocation.lead_id || '',
+        allocation.tickets_allocated || 0,
+        escapeCSV(allocation.category_name || ''),
+        escapeCSV(allocation.category_section || allocation.category_details?.section || ''),
+        escapeCSV((allocation.order_ids || []).join('; ')),
+        escapeCSV(allocation.notes || ''),
+        escapeCSV(allocation.created_by_name || ''),
+        createdDate,
+        pricePerTicket,
+        totalValue
+      ].join(',');
+      
+      csvContent += row + '\n';
+    }
+    
+    // Set headers for download
+    const timestamp = new Date().toISOString().split('T')[0];
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="allocations_export_${timestamp}.csv"`);
+    res.send(csvContent);
+    
+  } catch (error) {
+    console.error('Error downloading allocations:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
