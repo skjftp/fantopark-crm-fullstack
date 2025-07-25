@@ -59,11 +59,15 @@
             window.user = user;
             window.authToken = authToken;
 
-            // Fetch events list
+            // Fetch inventory list (events)
             try {
-                const response = await window.apiCall('/events');
+                const response = await window.apiCall('/inventory');
                 if (!response.error && response.data) {
-                    window.appState.events = response.data;
+                    // Map inventory items to events format
+                    window.appState.events = response.data.map(item => ({
+                        id: item.id,
+                        name: item.event_name || item.name
+                    }));
                 }
             } catch (error) {
                 console.error('Error fetching events:', error);

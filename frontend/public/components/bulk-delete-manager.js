@@ -17,96 +17,113 @@ window.renderBulkDeleteManager = () => {
     return null;
   }
 
-  // State management using React hooks
-  const [deleteType, setDeleteType] = React.useState('leads'); // 'leads' or 'orders'
-  const [selectedEvent, setSelectedEvent] = React.useState('');
-  const [dateRange, setDateRange] = React.useState({ start: '', end: '' });
-  const [previewData, setPreviewData] = React.useState(null);
-  const [loading, setLoading] = React.useState(false);
-  const [confirmText, setConfirmText] = React.useState('');
+  // State management using window state (React hooks not available in this setup)
+  if (!window.bulkDeleteState) {
+    window.bulkDeleteState = {
+      deleteType: 'leads',
+      selectedEvent: '',
+      dateRange: { start: '', end: '' },
+      previewData: null,
+      loading: false,
+      confirmText: ''
+    };
+  }
+  
+  const state = window.bulkDeleteState;
+  
+  // Helper function to update state and re-render
+  const updateState = (updates) => {
+    Object.assign(window.bulkDeleteState, updates);
+    // Force re-render by toggling the showBulkDeleteManager
+    if (window.setShowBulkDeleteManager) {
+      window.setShowBulkDeleteManager(true);
+    }
+  };
 
   // Fetch preview of items to be deleted
   const fetchPreview = async () => {
-    if (!selectedEvent) {
+    if (!state.selectedEvent) {
       alert('Please select an event');
       return;
     }
 
-    setLoading(true);
+    updateState({ loading: true });
     try {
       const filters = {
-        event: selectedEvent,
-        ...(dateRange.start && { start_date: dateRange.start }),
-        ...(dateRange.end && { end_date: dateRange.end })
+        event: state.selectedEvent,
+        ...(state.dateRange.start && { start_date: state.dateRange.start }),
+        ...(state.dateRange.end && { end_date: state.dateRange.end })
       };
 
-      const endpoint = deleteType === 'leads' ? '/leads/preview-delete' : '/orders/preview-delete';
+      const endpoint = state.deleteType === 'leads' ? '/leads/preview-delete' : '/orders/preview-delete';
       const response = await window.apiCall(endpoint, {
         method: 'POST',
         body: JSON.stringify(filters)
       });
 
       if (!response.error) {
-        setPreviewData(response.data);
+        updateState({ previewData: response.data });
       } else {
         alert('Error fetching preview: ' + response.error);
       }
     } catch (error) {
       alert('Error: ' + error.message);
     } finally {
-      setLoading(false);
+      updateState({ loading: false });
     }
   };
 
   // Execute bulk delete
   const executeBulkDelete = async () => {
-    if (confirmText !== 'DELETE') {
+    if (state.confirmText !== 'DELETE') {
       alert('Please type DELETE to confirm');
       return;
     }
 
-    if (!previewData || previewData.count === 0) {
+    if (!state.previewData || state.previewData.count === 0) {
       alert('No items to delete');
       return;
     }
 
     const confirmed = window.confirm(
       `⚠️ FINAL WARNING ⚠️\n\n` +
-      `You are about to permanently delete ${previewData.count} ${deleteType}.\n` +
+      `You are about to permanently delete ${state.previewData.count} ${state.deleteType}.\n` +
       `This action CANNOT be undone.\n\n` +
       `Are you absolutely sure?`
     );
 
     if (!confirmed) return;
 
-    setLoading(true);
+    updateState({ loading: true });
     try {
       const filters = {
-        event: selectedEvent,
-        ...(dateRange.start && { start_date: dateRange.start }),
-        ...(dateRange.end && { end_date: dateRange.end })
+        event: state.selectedEvent,
+        ...(state.dateRange.start && { start_date: state.dateRange.start }),
+        ...(state.dateRange.end && { end_date: state.dateRange.end })
       };
 
-      const endpoint = deleteType === 'leads' ? '/leads/bulk-delete' : '/orders/bulk-delete';
+      const endpoint = state.deleteType === 'leads' ? '/leads/bulk-delete' : '/orders/bulk-delete';
       const response = await window.apiCall(endpoint, {
         method: 'DELETE',
         body: JSON.stringify(filters)
       });
 
       if (!response.error) {
-        alert(`Successfully deleted ${response.data.deletedCount} ${deleteType}`);
+        alert(`Successfully deleted ${response.data.deletedCount} ${state.deleteType}`);
         // Reset form
-        setPreviewData(null);
-        setConfirmText('');
-        setSelectedEvent('');
-        setDateRange({ start: '', end: '' });
+        updateState({
+          previewData: null,
+          confirmText: '',
+          selectedEvent: '',
+          dateRange: { start: '', end: '' }
+        });
       } else {
         alert('Error during deletion: ' + response.error);
       }
     } catch (error) {
       alert('Error: ' + error.message);
     } finally {
-      setLoading(false);
+      updateState({ loading: false });
     }
   };
 
@@ -147,10 +164,12 @@ window.renderBulkDeleteManager = () => {
               type: 'radio',
               name: 'deleteType',
               value: 'leads',
-              checked: deleteType === 'leads',
+              checked: state.deleteType === 'leads',
               onChange: (e) => {
-                setDeleteType(e.target.value);
-                setPreviewData(null);
+                updateState({
+                  deleteType: e.target.value,
+                  previewData: null
+                });
               },
               className: 'mr-2'
             }),
@@ -161,10 +180,12 @@ window.renderBulkDeleteManager = () => {
               type: 'radio',
               name: 'deleteType',
               value: 'orders',
-              checked: deleteType === 'orders',
+              checked: state.deleteType === 'orders',
               onChange: (e) => {
-                setDeleteType(e.target.value);
-                setPreviewData(null);
+                updateState({
+                  deleteType: e.target.value,
+                  previewData: null
+                });
               },
               className: 'mr-2'
             }),
@@ -181,13 +202,15 @@ window.renderBulkDeleteManager = () => {
             'Event Name *'
           ),
           React.createElement('select', {
-            value: selectedEvent,
+            value: state.selectedEvent,
             onChange: (e) => {
-              setSelectedEvent(e.target.value);
-              setPreviewData(null);
+              updateState({
+                selectedEvent: e.target.value,
+                previewData: null
+              });
             },
             className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
-            disabled: loading
+            disabled: state.loading
           },
             React.createElement('option', { value: '' }, 'Select an event...'),
             events.map(event => 
@@ -206,13 +229,15 @@ window.renderBulkDeleteManager = () => {
             ),
             React.createElement('input', {
               type: 'date',
-              value: dateRange.start,
+              value: state.dateRange.start,
               onChange: (e) => {
-                setDateRange(prev => ({ ...prev, start: e.target.value }));
-                setPreviewData(null);
+                updateState({
+                  dateRange: { ...state.dateRange, start: e.target.value },
+                  previewData: null
+                });
               },
               className: 'w-full px-3 py-2 border border-gray-300 rounded-md',
-              disabled: loading
+              disabled: state.loading
             })
           ),
           React.createElement('div', null,
@@ -221,13 +246,15 @@ window.renderBulkDeleteManager = () => {
             ),
             React.createElement('input', {
               type: 'date',
-              value: dateRange.end,
+              value: state.dateRange.end,
               onChange: (e) => {
-                setDateRange(prev => ({ ...prev, end: e.target.value }));
-                setPreviewData(null);
+                updateState({
+                  dateRange: { ...state.dateRange, end: e.target.value },
+                  previewData: null
+                });
               },
               className: 'w-full px-3 py-2 border border-gray-300 rounded-md',
-              disabled: loading
+              disabled: state.loading
             })
           )
         )
@@ -236,42 +263,42 @@ window.renderBulkDeleteManager = () => {
       // Preview Button
       React.createElement('button', {
         onClick: fetchPreview,
-        disabled: loading || !selectedEvent,
+        disabled: state.loading || !state.selectedEvent,
         className: 'w-full bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 disabled:opacity-50 mb-6'
-      }, loading ? 'Loading...' : 'Preview Items to Delete'),
+      }, state.loading ? 'Loading...' : 'Preview Items to Delete'),
 
       // Preview Results
-      previewData && React.createElement('div', { 
+      state.previewData && React.createElement('div', { 
         className: 'bg-gray-50 rounded-lg p-4 mb-6'
       },
         React.createElement('h3', { className: 'font-semibold mb-2' }, 
-          `Found ${previewData.count} ${deleteType} to delete`
+          `Found ${state.previewData.count} ${state.deleteType} to delete`
         ),
         
         // Show sample items
-        previewData.items && previewData.items.length > 0 && 
+        state.previewData.items && state.previewData.items.length > 0 && 
         React.createElement('div', { className: 'space-y-2' },
           React.createElement('p', { className: 'text-sm text-gray-600' }, 
             'Sample items (showing first 5):'
           ),
           React.createElement('ul', { className: 'text-sm space-y-1' },
-            previewData.items.slice(0, 5).map((item, index) => 
+            state.previewData.items.slice(0, 5).map((item, index) => 
               React.createElement('li', { key: index, className: 'pl-4' },
-                deleteType === 'leads' 
+                state.deleteType === 'leads' 
                   ? `• ${item.name || 'Unknown'} - ${item.phone || 'No phone'} - ${item.date_of_enquiry || 'No date'}`
                   : `• Order #${item.order_id || 'Unknown'} - ${item.lead_name || 'Unknown'} - ₹${item.final_amount || 0}`
               )
             )
           ),
-          previewData.count > 5 && 
+          state.previewData.count > 5 && 
           React.createElement('p', { className: 'text-sm text-gray-500 italic' }, 
-            `... and ${previewData.count - 5} more`
+            `... and ${state.previewData.count - 5} more`
           )
         )
       ),
 
       // Delete Confirmation
-      previewData && previewData.count > 0 && React.createElement('div', { 
+      state.previewData && state.previewData.count > 0 && React.createElement('div', { 
         className: 'bg-red-50 border-2 border-red-300 rounded-lg p-4'
       },
         React.createElement('p', { className: 'font-semibold mb-3' }, 
@@ -279,18 +306,18 @@ window.renderBulkDeleteManager = () => {
         ),
         React.createElement('input', {
           type: 'text',
-          value: confirmText,
-          onChange: (e) => setConfirmText(e.target.value),
+          value: state.confirmText,
+          onChange: (e) => updateState({ confirmText: e.target.value }),
           placeholder: 'Type DELETE here',
           className: 'w-full px-3 py-2 border border-red-300 rounded-md mb-3',
-          disabled: loading
+          disabled: state.loading
         }),
         React.createElement('button', {
           onClick: executeBulkDelete,
-          disabled: loading || confirmText !== 'DELETE',
+          disabled: state.loading || state.confirmText !== 'DELETE',
           className: 'w-full bg-red-600 text-white px-4 py-3 rounded hover:bg-red-700 disabled:opacity-50 font-semibold'
         }, 
-          loading ? 'Deleting...' : `Permanently Delete ${previewData.count} ${deleteType}`
+          state.loading ? 'Deleting...' : `Permanently Delete ${state.previewData.count} ${state.deleteType}`
         )
       ),
 

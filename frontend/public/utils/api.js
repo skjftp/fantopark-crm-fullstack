@@ -63,4 +63,4 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = { apiCall: window.apiCall, uploadFileToGCS: window.uploadFileToGCS };
 }
 
-window.log.success('API utilities loaded');
+console.log('✅ API utilities loaded');
