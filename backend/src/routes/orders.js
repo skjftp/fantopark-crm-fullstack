@@ -49,6 +49,49 @@ function ensureCurrencyFields(orderData) {
   return orderData;
 }
 
+// GET orders for allocation linking (specific endpoint to avoid index requirement)
+router.get('/for-allocation', authenticateToken, async (req, res) => {
+  try {
+    const { lead_id, event_name } = req.query;
+    
+    if (!lead_id || !event_name) {
+      return res.status(400).json({
+        success: false,
+        error: 'lead_id and event_name are required'
+      });
+    }
+    
+    // First get all orders for the lead
+    const leadOrdersSnapshot = await db.collection(collections.orders)
+      .where('lead_id', '==', lead_id)
+      .orderBy('created_date', 'desc')
+      .get();
+    
+    const orders = [];
+    leadOrdersSnapshot.forEach(doc => {
+      const data = doc.data();
+      // Filter by event_name in memory to avoid composite index
+      if (data.event_name === event_name) {
+        orders.push({ id: doc.id, ...data });
+      }
+    });
+    
+    console.log(`Found ${orders.length} orders for lead ${lead_id} and event ${event_name}`);
+    
+    res.json({
+      success: true,
+      data: orders
+    });
+    
+  } catch (error) {
+    console.error('Error fetching orders for allocation:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // GET all orders
 router.get('/', authenticateToken, async (req, res) => {
   try {
@@ -87,6 +130,10 @@ router.get('/', authenticateToken, async (req, res) => {
         query = query.where('event_date', '<', toDateISO);
         console.log('Filtering orders with event_date to:', toDateISO);
       }
+    } else if (lead_id && event_name) {
+      // When both lead_id and event_name are provided without dates,
+      // we need to add an orderBy to avoid composite index requirement
+      query = query.orderBy('created_date', 'desc');
     } else {
       // No date filters, use default ordering by created_date
       query = query.orderBy('created_date', 'desc');

@@ -213,7 +213,7 @@ window.showReassignAllocationModal = async (allocation) => {
   
   // Load available orders for this lead and event
   try {
-    const response = await window.apiCall(`/orders?lead_id=${allocation.lead_id}&event_name=${allocation.inventory_event}`);
+    const response = await window.apiCall(`/orders/for-allocation?lead_id=${allocation.lead_id}&event_name=${encodeURIComponent(allocation.inventory_event)}`);
     if (!response.error) {
       window.availableOrders = response.data;
     }
