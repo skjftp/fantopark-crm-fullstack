@@ -956,48 +956,78 @@ router.post('/:id/allocate', authenticateToken, checkPermission('inventory', 'wr
   }
 });
 
-// Get allocations for a specific inventory item
+// Get allocations for a specific inventory item - OPTIMIZED VERSION
 router.get('/:id/allocations', authenticateToken, checkPermission('inventory', 'read'), async (req, res) => {
   try {
     const { id } = req.params;
+    console.log(`📊 Fetching allocations for inventory: ${id}`);
+    const startTime = Date.now();
     
-    // Get allocations for this inventory
-    const allocationsSnapshot = await db.collection('crm_allocations')
-      .where('inventory_id', '==', id)
-      .get();
+    // Parallel fetch: Get both allocations and inventory details at the same time
+    const [allocationsSnapshot, inventoryDoc] = await Promise.all([
+      db.collection('crm_allocations').where('inventory_id', '==', id).get(),
+      db.collection('crm_inventory').doc(id).get()
+    ]);
     
+    console.log(`✅ Found ${allocationsSnapshot.size} allocations`);
+    
+    // Extract allocation data and collect unique lead IDs
     const allocations = [];
-    for (const doc of allocationsSnapshot.docs) {
-      const allocationData = doc.data();
-      
-      // Get lead details
-      let leadDetails = null;
-      if (allocationData.lead_id) {
-        try {
-          const leadDoc = await db.collection('crm_leads').doc(allocationData.lead_id).get();
-          if (leadDoc.exists) {
-            leadDetails = { id: leadDoc.id, ...leadDoc.data() };
-          }
-        } catch (leadError) {
-          console.error('Error fetching lead details:', leadError);
-        }
+    const leadIds = new Set();
+    
+    allocationsSnapshot.forEach(doc => {
+      const data = { id: doc.id, ...doc.data() };
+      allocations.push(data);
+      if (data.lead_id) {
+        leadIds.add(data.lead_id);
       }
-      
-      allocations.push({
-        id: doc.id,
-        ...allocationData,
-        lead_details: leadDetails
-      });
+    });
+    
+    console.log(`🔍 Need to fetch ${leadIds.size} unique lead details`);
+    
+    // Batch fetch all leads using document references (most efficient)
+    let leadMap = new Map();
+    if (leadIds.size > 0) {
+      try {
+        // Create references for all leads
+        const leadRefs = Array.from(leadIds).map(leadId => 
+          db.collection('crm_leads').doc(leadId)
+        );
+        
+        // Fetch all leads in a single batch operation
+        const leadDocs = await db.getAll(...leadRefs);
+        
+        // Build lead map for quick lookup
+        leadDocs.forEach(doc => {
+          if (doc.exists) {
+            leadMap.set(doc.id, { id: doc.id, ...doc.data() });
+          }
+        });
+        
+        console.log(`✅ Successfully fetched ${leadMap.size} leads in batch`);
+      } catch (leadError) {
+        console.error('Error batch fetching lead details:', leadError);
+        // Fall back to empty lead details rather than failing the entire request
+      }
     }
     
-    // Get inventory details
-    const inventoryDoc = await db.collection('crm_inventory').doc(id).get();
+    // Attach lead details to allocations
+    const allocationsWithLeads = allocations.map(allocation => ({
+      ...allocation,
+      lead_details: allocation.lead_id && leadMap.has(allocation.lead_id) 
+        ? leadMap.get(allocation.lead_id) 
+        : null
+    }));
+    
     const inventoryData = inventoryDoc.exists ? inventoryDoc.data() : null;
+    
+    const endTime = Date.now();
+    console.log(`⚡ Total execution time: ${endTime - startTime}ms`);
     
     res.json({ 
       data: {
         inventory: { id, ...inventoryData },
-        allocations: allocations
+        allocations: allocationsWithLeads
       }
     });
   } catch (error) {
