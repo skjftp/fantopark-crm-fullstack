@@ -475,54 +475,79 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
 
       result.enrichedData.inventory = inventory;
 
-      // Look up lead
+      // Look up lead by phone or email + event name (FIXED: use same logic as preview)
       const leadIdentifier = record.lead_identifier.trim();
-      let lead = leadCache.get(leadIdentifier);
+      const cacheKey = `${leadIdentifier}_${record.event_name}`;
+      let lead = leadCache.get(cacheKey);
       
       if (!lead) {
+        // Try phone first (remove non-digits and check)
         const cleanPhone = leadIdentifier.replace(/\D/g, '');
-        let leadSnapshot;
+        let allLeadsSnapshots = [];
 
-        if (leadIdentifier.includes('@')) {
-          // Try email first for email identifiers
-          leadSnapshot = await db.collection('crm_leads')
-            .where('email', '==', leadIdentifier.toLowerCase())
-            .limit(1)
-            .get();
-        } else if (cleanPhone.length >= 10) {
-          // Try phone variations
-          leadSnapshot = await db.collection('crm_leads')
-            .where('phone', '==', leadIdentifier)
-            .limit(1)
-            .get();
-
-          if (leadSnapshot.empty) {
-            // Try with cleaned phone
-            leadSnapshot = await db.collection('crm_leads')
-              .where('phone', '==', cleanPhone)
-              .limit(1)
-              .get();
+        if (cleanPhone.length >= 10) {
+          // Search by phone - get ALL matching leads (not just first one)
+          const phoneQueries = [
+            db.collection('crm_leads').where('phone', '==', leadIdentifier).get(),
+            db.collection('crm_leads').where('phone', '==', cleanPhone).get()
+          ];
+          
+          if (!leadIdentifier.startsWith('+91')) {
+            phoneQueries.push(
+              db.collection('crm_leads').where('phone', '==', '+91' + cleanPhone).get()
+            );
           }
+          
+          const phoneResults = await Promise.all(phoneQueries);
+          phoneResults.forEach(snapshot => {
+            if (!snapshot.empty) {
+              allLeadsSnapshots.push(...snapshot.docs);
+            }
+          });
+        }
 
-          if (leadSnapshot.empty && !leadIdentifier.startsWith('+91')) {
-            // Try with +91 prefix
-            leadSnapshot = await db.collection('crm_leads')
-              .where('phone', '==', '+91' + cleanPhone)
-              .limit(1)
-              .get();
+        // If not found by phone, try email
+        if (allLeadsSnapshots.length === 0 && leadIdentifier.includes('@')) {
+          const emailSnapshot = await db.collection('crm_leads')
+            .where('email', '==', leadIdentifier.toLowerCase())
+            .get();
+          
+          if (!emailSnapshot.empty) {
+            allLeadsSnapshots.push(...emailSnapshot.docs);
           }
         }
 
-        if (leadSnapshot && !leadSnapshot.empty) {
-          // Filter out deleted leads
-          const validLeads = leadSnapshot.docs.filter(doc => 
-            doc.data().isDeleted !== true
+        if (allLeadsSnapshots.length > 0) {
+          // Filter out deleted leads and find the one matching the event
+          const validLeads = allLeadsSnapshots
+            .filter(doc => doc.data().isDeleted !== true)
+            .map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          console.log(`Found ${validLeads.length} valid leads for identifier ${leadIdentifier}`);
+          
+          // First try to find exact event match in lead_for_event
+          let matchingLead = validLeads.find(leadData => 
+            leadData.lead_for_event === record.event_name
           );
           
-          if (validLeads.length > 0) {
-            const doc = validLeads[0];
-            lead = { id: doc.id, ...doc.data() };
-            leadCache.set(leadIdentifier, lead);
+          // If no exact match, check client_events array
+          if (!matchingLead) {
+            matchingLead = validLeads.find(leadData => 
+              leadData.client_events && 
+              leadData.client_events.includes(record.event_name)
+            );
+          }
+          
+          // If still no match but we have leads, take the first one (fallback)
+          if (!matchingLead && validLeads.length > 0) {
+            matchingLead = validLeads[0];
+            console.log(`WARNING: No exact event match for ${leadIdentifier}, using lead for ${matchingLead.lead_for_event || 'unknown event'}`);
+          }
+          
+          if (matchingLead) {
+            lead = matchingLead;
+            leadCache.set(cacheKey, lead);
+            console.log(`Matched lead ${lead.id} for event ${record.event_name}`);
           }
         }
       }
