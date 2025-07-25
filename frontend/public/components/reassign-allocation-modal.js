@@ -37,6 +37,13 @@ window.renderReassignAllocationModal = () => {
       portalContainer.remove();
     }
     
+    // Restore allocation modal z-index
+    const allocationModal = document.querySelector('.z-40');
+    if (allocationModal && window._originalAllocationZIndex) {
+      allocationModal.style.zIndex = window._originalAllocationZIndex;
+      window._originalAllocationZIndex = null;
+    }
+    
     if (window.renderApp) window.renderApp();
   };
 
@@ -130,8 +137,17 @@ window.renderReassignAllocationModal = () => {
     portalContainer = document.createElement('div');
     portalContainer.id = 'reassign-modal-portal';
     portalContainer.style.position = 'fixed';
-    portalContainer.style.zIndex = '999999';
+    portalContainer.style.zIndex = '2147483647'; // Maximum z-index value
     portalContainer.style.pointerEvents = 'none';
+    portalContainer.style.top = '0';
+    portalContainer.style.left = '0';
+    portalContainer.style.width = '100%';
+    portalContainer.style.height = '100%';
+    document.body.appendChild(portalContainer);
+  }
+  
+  // Force portal to end of body
+  if (portalContainer.parentNode !== document.body) {
     document.body.appendChild(portalContainer);
   }
   
@@ -267,6 +283,13 @@ window.showReassignAllocationModal = async (allocation) => {
   if (window.appState) {
     window.appState.selectedAllocation = allocation;
     window.appState.showReassignModal = true;
+  }
+  
+  // Temporarily reduce z-index of allocation modal
+  const allocationModal = document.querySelector('.z-40');
+  if (allocationModal) {
+    allocationModal.style.zIndex = '1';
+    window._originalAllocationZIndex = '40';
   }
   
   // Load available orders for this lead and event
