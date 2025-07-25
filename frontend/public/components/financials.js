@@ -963,8 +963,14 @@ window.calculateEnhancedFinancialMetricsSync = () => {
         allSalesLength: financialData.allSales?.length,
         salesLength: sales.length,
         fallbackSum: (financialData.allSales || []).reduce((sum, sale) => sum + (sale.amount || 0), 0),
-        oldSum: sales.reduce((sum, sale) => sum + (sale.amount || 0), 0)
+        oldSum: sales.reduce((sum, sale) => sum + (sale.amount || 0), 0),
+        whichFetchFunctionUsed: window.fetchFinancialData?.name || 'anonymous'
     });
+    
+    // Check if we're using the enhanced system
+    if (typeof window.fetchFinancialData === 'function') {
+        console.log('🔍 Current fetchFinancialData function:', window.fetchFinancialData.toString().substring(0, 200) + '...');
+    }
     
     // Calculate totals - Use the new totalSales from financialData
     const totalActiveSales = activeSales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
