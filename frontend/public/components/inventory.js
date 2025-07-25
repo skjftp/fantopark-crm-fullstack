@@ -283,26 +283,34 @@ window.renderInventoryContent = () => {
                 ),
                 React.createElement('button', {
                     onClick: () => {
+                        console.log('Bulk Allocate button clicked');
+                        
+                        // Ensure state is initialized
+                        if (!window.bulkAllocationState) {
+                            window.bulkAllocationState = {
+                                showModal: false,
+                                file: null,
+                                uploading: false,
+                                previewData: null,
+                                processing: false,
+                                uploadHistory: [],
+                                showHistory: false
+                            };
+                        }
+                        
+                        // Set modal to show
+                        window.bulkAllocationState.showModal = true;
+                        
+                        // Load history if function exists
                         if (window.openBulkAllocationUpload) {
                             window.openBulkAllocationUpload();
                         } else {
-                            // If the component isn't loaded yet, set the state directly and trigger render
-                            if (!window.bulkAllocationState) {
-                                window.bulkAllocationState = {
-                                    showModal: true,
-                                    file: null,
-                                    uploading: false,
-                                    previewData: null,
-                                    processing: false,
-                                    uploadHistory: [],
-                                    showHistory: false
-                                };
-                            } else {
-                                window.bulkAllocationState.showModal = true;
-                            }
-                            if (window.renderApp) {
-                                window.renderApp();
-                            }
+                            // Force immediate render
+                            setTimeout(() => {
+                                if (window.renderApp) {
+                                    window.renderApp();
+                                }
+                            }, 0);
                         }
                     },
                     className: 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors',

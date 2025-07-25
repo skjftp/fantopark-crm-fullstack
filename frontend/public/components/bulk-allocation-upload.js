@@ -30,8 +30,14 @@ window.openBulkAllocationUpload = () => {
   window.bulkAllocationState.previewData = null;
   window.bulkAllocationState.showHistory = false;
   loadBulkAllocationHistory();
+  
+  // Multiple render triggers to ensure modal shows
   if (window.renderApp) {
     window.renderApp();
+    // Force a second render in case the first one doesn't catch the state change
+    requestAnimationFrame(() => {
+      window.renderApp();
+    });
   }
 };
 
