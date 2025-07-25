@@ -58,21 +58,42 @@ window.closeBulkAllocationUpload = () => {
   window.bulkAllocationState.previewData = null;
   window.bulkAllocationState.uploading = false;
   window.bulkAllocationState.processing = false;
-  if (window.renderApp) {
+  
+  // Force re-render using the same pattern as open
+  if (window.setLoading) {
+    const currentLoading = window.loading;
+    window.setLoading(true);
+    setTimeout(() => window.setLoading(currentLoading), 0);
+  } else if (window.renderApp) {
     window.renderApp();
   }
 };
 
 // Handle file selection
 window.handleBulkAllocationFileSelect = (event) => {
+  console.log('File select triggered');
   const selectedFile = event.target.files[0];
   if (selectedFile && selectedFile.type === 'text/csv') {
+    console.log('Valid CSV file selected:', selectedFile.name);
     window.bulkAllocationState.file = selectedFile;
     window.bulkAllocationState.previewData = null;
-    if (window.renderApp) {
+    
+    // Force re-render with multiple attempts
+    if (window.setLoading) {
+      const currentLoading = window.loading;
+      window.setLoading(true);
+      setTimeout(() => {
+        window.setLoading(currentLoading);
+        // Double render for reliability
+        if (window.renderApp) {
+          requestAnimationFrame(() => window.renderApp());
+        }
+      }, 10);
+    } else if (window.renderApp) {
       window.renderApp();
+      requestAnimationFrame(() => window.renderApp());
     }
-  } else {
+  } else if (event.target.files[0]) {
     alert('Please select a valid CSV file');
   }
 };
@@ -86,7 +107,13 @@ window.handleBulkAllocationPreview = async () => {
   }
 
   window.bulkAllocationState.uploading = true;
-  if (window.renderApp) {
+  
+  // Force re-render
+  if (window.setLoading) {
+    const currentLoading = window.loading;
+    window.setLoading(true);
+    setTimeout(() => window.setLoading(currentLoading), 0);
+  } else if (window.renderApp) {
     window.renderApp();
   }
 
@@ -108,7 +135,13 @@ window.handleBulkAllocationPreview = async () => {
     alert('Error previewing allocations: ' + error.message);
   } finally {
     window.bulkAllocationState.uploading = false;
-    if (window.renderApp) {
+    
+    // Force re-render
+    if (window.setLoading) {
+      const currentLoading = window.loading;
+      window.setLoading(true);
+      setTimeout(() => window.setLoading(currentLoading), 0);
+    } else if (window.renderApp) {
       window.renderApp();
     }
   }
@@ -127,7 +160,13 @@ window.handleBulkAllocationProcess = async () => {
   }
 
   window.bulkAllocationState.processing = true;
-  if (window.renderApp) {
+  
+  // Force re-render
+  if (window.setLoading) {
+    const currentLoading = window.loading;
+    window.setLoading(true);
+    setTimeout(() => window.setLoading(currentLoading), 0);
+  } else if (window.renderApp) {
     window.renderApp();
   }
 
@@ -170,7 +209,13 @@ window.handleBulkAllocationProcess = async () => {
     alert('Error processing allocations: ' + error.message);
   } finally {
     window.bulkAllocationState.processing = false;
-    if (window.renderApp) {
+    
+    // Force re-render
+    if (window.setLoading) {
+      const currentLoading = window.loading;
+      window.setLoading(true);
+      setTimeout(() => window.setLoading(currentLoading), 0);
+    } else if (window.renderApp) {
       window.renderApp();
     }
   }
@@ -205,8 +250,35 @@ window.handleBulkAllocationDownloadTemplate = async () => {
 
 // Toggle history
 window.toggleBulkAllocationHistory = () => {
+  console.log('Toggle history clicked, current state:', window.bulkAllocationState.showHistory);
   window.bulkAllocationState.showHistory = !window.bulkAllocationState.showHistory;
-  if (window.renderApp) {
+  console.log('New history state:', window.bulkAllocationState.showHistory);
+  
+  // Force re-render with multiple attempts
+  if (window.setLoading) {
+    const currentLoading = window.loading;
+    window.setLoading(true);
+    setTimeout(() => {
+      window.setLoading(currentLoading);
+      // Double render for reliability
+      if (window.renderApp) {
+        requestAnimationFrame(() => window.renderApp());
+      }
+    }, 10);
+  } else if (window.renderApp) {
+    window.renderApp();
+    requestAnimationFrame(() => window.renderApp());
+  }
+};
+
+// Force refresh function
+window.refreshBulkAllocationModal = () => {
+  console.log('Force refreshing bulk allocation modal');
+  if (window.setLoading) {
+    const currentLoading = window.loading;
+    window.setLoading(!currentLoading);
+    setTimeout(() => window.setLoading(currentLoading), 10);
+  } else if (window.renderApp) {
     window.renderApp();
   }
 };
@@ -214,6 +286,7 @@ window.toggleBulkAllocationHistory = () => {
 // Render component
 window.renderBulkAllocationUpload = () => {
   const state = window.bulkAllocationState;
+  console.log('Rendering bulk allocation modal, showModal:', state.showModal, 'file:', state.file?.name, 'showHistory:', state.showHistory);
   
   if (!state.showModal) return null;
 
@@ -231,8 +304,11 @@ window.renderBulkAllocationUpload = () => {
           className: 'text-2xl font-bold dark:text-white'
         }, 'Bulk Allocation Upload'),
         React.createElement('button', {
-          onClick: window.closeBulkAllocationUpload,
-          className: 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+          onClick: () => {
+            console.log('Close button clicked');
+            window.closeBulkAllocationUpload();
+          },
+          className: 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl p-2'
         }, '✕')
       ),
 
@@ -273,7 +349,10 @@ window.renderBulkAllocationUpload = () => {
             React.createElement('input', {
               type: 'file',
               accept: '.csv',
-              onChange: window.handleBulkAllocationFileSelect,
+              onChange: (e) => {
+                console.log('File input onChange triggered');
+                window.handleBulkAllocationFileSelect(e);
+              },
               className: 'hidden',
               id: 'bulk-allocation-csv-input'
             }),
@@ -467,7 +546,15 @@ window.renderBulkAllocationUpload = () => {
               onClick: () => {
                 window.bulkAllocationState.file = null;
                 window.bulkAllocationState.previewData = null;
-                if (window.renderApp) window.renderApp();
+                
+                // Force re-render
+                if (window.setLoading) {
+                  const currentLoading = window.loading;
+                  window.setLoading(true);
+                  setTimeout(() => window.setLoading(currentLoading), 0);
+                } else if (window.renderApp) {
+                  window.renderApp();
+                }
               },
               className: 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
             }, '← Back to Upload'),
@@ -516,11 +603,17 @@ window.renderBulkAllocationUpload = () => {
         className: 'flex justify-between items-center p-6 border-t dark:border-gray-700'
       },
         React.createElement('button', {
-          onClick: window.toggleBulkAllocationHistory,
+          onClick: () => {
+            console.log('History button clicked');
+            window.toggleBulkAllocationHistory();
+          },
           className: 'text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
         }, state.showHistory ? 'Hide History' : 'Show History'),
         React.createElement('button', {
-          onClick: window.closeBulkAllocationUpload,
+          onClick: () => {
+            console.log('Footer close button clicked');
+            window.closeBulkAllocationUpload();
+          },
           className: 'bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600'
         }, 'Close')
       )
@@ -530,6 +623,19 @@ window.renderBulkAllocationUpload = () => {
 
 // Initialize when loaded
 console.log('✅ Bulk Allocation Upload component loaded');
+
+// Debug helper
+window.debugBulkAllocation = () => {
+  console.log('Bulk Allocation State:', {
+    showModal: window.bulkAllocationState.showModal,
+    file: window.bulkAllocationState.file?.name,
+    uploading: window.bulkAllocationState.uploading,
+    previewData: window.bulkAllocationState.previewData ? 'Present' : 'None',
+    processing: window.bulkAllocationState.processing,
+    showHistory: window.bulkAllocationState.showHistory,
+    historyCount: window.bulkAllocationState.uploadHistory.length
+  });
+};
 
 // Register the modal with the app
 if (!window.modalRegistry) {
