@@ -842,6 +842,10 @@ window.createFinancialSalesChart = () => {
 };
 // Final renderEnhancedFinancialStats - NO async, NO hooks
 window.renderEnhancedFinancialStats = () => {
+    // Check if data is still loading
+    const financialData = window.appState?.financialData || {};
+    const isLoading = !financialData.sales && !financialData.activeSales && !financialData.receivables && !financialData.payables;
+    
     // Get metrics synchronously
     const metrics = window.calculateEnhancedFinancialMetricsSync() || {
         totalSales: 0,
@@ -891,9 +895,7 @@ window.renderEnhancedFinancialStats = () => {
         },
         {
             title: 'Total Margin',
-            value: metrics.totalMargin === null ? 
-                React.createElement('span', { className: 'text-gray-400' }, 'Loading...') : 
-                window.formatCurrency(metrics.totalMargin),
+            value: metrics.totalMargin === null ? 'Loading...' : window.formatCurrency(metrics.totalMargin),
             change: metrics.totalMargin === null ? '' : formatPercentage(metrics.percentageChanges?.margin || 15.7),
             changeType: (metrics.percentageChanges?.margin || 15.7) >= 0 ? 'positive' : 'negative',
             icon: '📊',
@@ -901,9 +903,7 @@ window.renderEnhancedFinancialStats = () => {
         },
         {
             title: 'Margin %',
-            value: metrics.marginPercentage === null ? 
-                React.createElement('span', { className: 'text-gray-400' }, 'Loading...') :
-                `${metrics.marginPercentage}%`,
+            value: metrics.marginPercentage === null ? 'Loading...' : `${metrics.marginPercentage}%`,
             icon: '📈',
             showChange: false // No percentage
         }
@@ -952,23 +952,59 @@ window.renderEnhancedFinancialStats = () => {
         statsCards.map((stat, index) =>
             React.createElement('div', { 
                 key: index,
-                className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow'
+                className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow relative overflow-hidden',
+                style: { minHeight: '140px' }
             },
-                React.createElement('div', { className: 'flex items-center justify-between' },
-                    React.createElement('div', null,
-                        React.createElement('p', { className: 'text-sm font-medium text-gray-600 dark:text-gray-400' }, stat.title),
-                        React.createElement('p', { className: 'text-2xl font-bold text-gray-900 dark:text-white mt-1' }, stat.value)
-                    ),
-                    React.createElement('div', { className: 'text-2xl' }, stat.icon)
-                ),
-                stat.showChange ? React.createElement('div', { className: 'flex items-center mt-4' },
-                    React.createElement('span', {
-                        className: `text-sm font-medium ${
-                            stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                        }`
-                    }, stat.change),
-                    React.createElement('span', { className: 'text-sm text-gray-500 ml-2' }, 'vs last month')
-                ) : null
+                isLoading || (stat.title.includes('Margin') && stat.value === 'Loading...') ?
+                    // FanToPark Logo Loader
+                    React.createElement('div', {
+                        className: 'absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800',
+                        style: { zIndex: 10 }
+                    },
+                        React.createElement('div', { className: 'text-center' },
+                            // Animated logo
+                            React.createElement('div', {
+                                className: 'relative w-16 h-16 mx-auto mb-2',
+                                style: {
+                                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                                }
+                            },
+                                React.createElement('img', {
+                                    src: document.documentElement.classList.contains('dark') ? 'images/logo-dark.png' : 'images/logo.png',
+                                    alt: 'Loading...',
+                                    className: 'w-full h-full object-contain',
+                                    style: {
+                                        filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.5))',
+                                        animation: 'float 3s ease-in-out infinite'
+                                    }
+                                })
+                            ),
+                            React.createElement('p', { 
+                                className: 'text-xs text-gray-500 dark:text-gray-400',
+                                style: {
+                                    animation: 'fadeInOut 2s ease-in-out infinite'
+                                }
+                            }, 'Loading...')
+                        )
+                    ) :
+                    // Normal content
+                    React.createElement(React.Fragment, null,
+                        React.createElement('div', { className: 'flex items-center justify-between' },
+                            React.createElement('div', null,
+                                React.createElement('p', { className: 'text-sm font-medium text-gray-600 dark:text-gray-400' }, stat.title),
+                                React.createElement('p', { className: 'text-2xl font-bold text-gray-900 dark:text-white mt-1' }, stat.value)
+                            ),
+                            React.createElement('div', { className: 'text-2xl' }, stat.icon)
+                        ),
+                        stat.showChange ? React.createElement('div', { className: 'flex items-center mt-4' },
+                            React.createElement('span', {
+                                className: `text-sm font-medium ${
+                                    stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                                }`
+                            }, stat.change),
+                            React.createElement('span', { className: 'text-sm text-gray-500 ml-2' }, 'vs last month')
+                        ) : null
+                    )
             )
         )
     );
