@@ -31,6 +31,12 @@ window.renderReassignAllocationModal = () => {
       window.appState.availableOrders = [];
     }
     
+    // Clean up portal container
+    const portalContainer = document.getElementById('reassign-modal-portal');
+    if (portalContainer) {
+      portalContainer.remove();
+    }
+    
     if (window.renderApp) window.renderApp();
   };
 
@@ -118,9 +124,20 @@ window.renderReassignAllocationModal = () => {
     }
   };
 
-  return React.createElement('div', {
+  // Create a portal container if it doesn't exist
+  let portalContainer = document.getElementById('reassign-modal-portal');
+  if (!portalContainer) {
+    portalContainer = document.createElement('div');
+    portalContainer.id = 'reassign-modal-portal';
+    portalContainer.style.position = 'fixed';
+    portalContainer.style.zIndex = '999999';
+    portalContainer.style.pointerEvents = 'none';
+    document.body.appendChild(portalContainer);
+  }
+  
+  const modalContent = React.createElement('div', {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center',
-    style: { zIndex: 999999 }, // Extremely high z-index to ensure it's on top
+    style: { pointerEvents: 'auto' },
     onClick: (e) => {
       // Close on backdrop click
       if (e.target === e.currentTarget) {
@@ -235,6 +252,9 @@ window.renderReassignAllocationModal = () => {
       )
     )
   );
+  
+  // Use React Portal to render at the top level
+  return ReactDOM.createPortal(modalContent, portalContainer);
 };
 
 // Helper function to show the modal
