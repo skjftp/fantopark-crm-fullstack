@@ -680,18 +680,22 @@ router.get('/download', authenticateToken, async (req, res) => {
   try {
     console.log('Fetching all allocations for download...');
     
-    // Fetch all allocations that are not deleted
+    // Fetch all allocations and filter in memory to avoid index requirements
     const allocationsSnapshot = await db.collection('crm_allocations')
-      .where('isDeleted', '!=', true)
       .orderBy('created_date', 'desc')
       .get();
     
-    console.log(`Found ${allocationsSnapshot.size} allocations`);
+    // Filter out deleted allocations
+    const validAllocations = allocationsSnapshot.docs.filter(doc => 
+      doc.data().isDeleted !== true
+    );
+    
+    console.log(`Found ${validAllocations.length} valid allocations out of ${allocationsSnapshot.size} total`);
     
     // Build CSV content
     let csvContent = 'allocation_id,event_name,lead_name,lead_id,tickets_allocated,category_name,stand_section,order_ids,notes,created_by,created_date,price_per_ticket,total_value\n';
     
-    for (const doc of allocationsSnapshot.docs) {
+    for (const doc of validAllocations) {
       const allocation = doc.data();
       const allocationId = doc.id;
       
