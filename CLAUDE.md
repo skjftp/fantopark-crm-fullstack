@@ -72,9 +72,44 @@ git push origin main
    - Mobile gestures handled by dedicated components
 
 3. **Database Collections**:
-   - `crm_users`, `crm_leads`, `crm_inventory`, `crm_orders`, `crm_invoices`
+   - `crm_users`, `crm_leads`, `crm_inventory`, `crm_orders`, `crm_invoices`, `crm_allocations`, `crm_receivables`, `crm_deliveries`
    - All timestamps stored in IST (UTC+5:30)
-   - Soft deletes via `isDeleted` field
+   - Soft deletes via `isDeleted` field (may be null, false, or true)
+   
+   #### Lead Collection (crm_leads) Fields:
+   - `name` - Lead's full name
+   - `email` - Email address
+   - `phone` - Phone number (various formats supported)
+   - `company` - Company name
+   - `lead_for_event` - Event interested in (NOT `event`)
+   - `source` - Lead source (Facebook, Instagram, Website, etc.)
+   - `status` - Lead status (unassigned, assigned, converted, etc.)
+   - `assigned_to` - User ID of assigned sales person
+   - `assignment_date` - When lead was assigned
+   - `assignment_reason` - Why lead was assigned
+   - `assignment_rule_id` - Rule used for auto-assignment
+   - `assignment_rule_used` - Name of assignment rule
+   - `auto_assigned` - Boolean if auto-assigned
+   - `client_id` - Unique client identifier (client_PHONENUMBER)
+   - `is_primary_lead` - Primary lead for a client
+   - `created_date` - When lead was created
+   - `updated_date` - Last update timestamp
+   - `date_of_enquiry` - Date of initial enquiry
+   - `potential_value` - Estimated deal value
+   - `last_quoted_price` - Last price quoted
+   - `number_of_people` - Number of tickets/people
+   - `business_type` - Type of business
+   - `city_of_residence` - Lead's city
+   - `country_of_residence` - Lead's country
+   - `campaign_name`, `adset_name`, `ad_name` - Marketing attribution
+   - `form_name` - Facebook form name
+   - `notes` - Additional notes
+   - `first_touch_base_done_by` - First contact person
+   - `annual_income_bracket` - Income range
+   - `attended_sporting_event_before` - Previous attendance
+   - `has_valid_passport` - Passport status
+   - `visa_available` - Visa status
+   - `preferred_contact_time` - Best time to contact
 
 4. **Component Pattern** (Frontend):
    ```javascript
@@ -139,6 +174,32 @@ git push origin main
   - Frontend: `components/bulk-payment-upload.js` (v1.2 with React hooks fix)
   - Service: `backend/src/services/bulkPaymentService.js`
 - **CSV Format**: lead_id, payment_date (DD-MM-YYYY), amount, payment_mode, reference_number, notes
+
+#### Bulk Allocation Upload (Added 2025-07-25)
+- **Location**: Inventory → Bulk Allocate button
+- **Access**: No restrictions (any authenticated user)
+- **Features**:
+  - CSV upload for bulk ticket allocations
+  - Preview before processing
+  - Support for category-specific allocations
+  - Order linking by order_number or document ID
+  - Validation with detailed error reporting
+  - Upload history tracking
+  - Inventory counter updates (category & total)
+- **Implementation**:
+  - Backend: `/api/bulk-allocations/*` endpoints (preview, process, template, download)
+  - Frontend: `components/bulk-allocation-upload.js` (uses window state pattern)
+- **CSV Format**: event_name, lead_identifier (phone/email), tickets_to_allocate, category_name, stand_section, notes, order_id, price_override
+
+#### Bulk Allocation Download (Added 2025-07-25)
+- **Location**: Inventory → Download Allocations button
+- **Access**: Any authenticated user
+- **Features**:
+  - Export all allocations to CSV
+  - Includes all allocation details, pricing, timestamps
+  - Filtered to exclude deleted allocations
+  - Proper CSV escaping for special characters
+- **Endpoint**: `GET /api/bulk-allocations/download`
 
 ### Environment Variables
 
