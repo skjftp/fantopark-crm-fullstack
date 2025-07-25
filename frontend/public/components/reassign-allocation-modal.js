@@ -13,6 +13,11 @@ window.renderReassignAllocationModal = () => {
     return null;
   }
 
+  // Debug logging
+  console.log('🔍 Reassign Modal - selectedAllocation:', selectedAllocation);
+  console.log('🔍 Reassign Modal - order_ids:', selectedAllocation.order_ids);
+  console.log('🔍 Reassign Modal - availableOrders:', availableOrders);
+
   // Define close function
   const closeModal = () => {
     console.log('🔄 Closing reassign allocation modal');
@@ -238,10 +243,18 @@ window.renderReassignAllocationModal = () => {
 window.showReassignAllocationModal = async (allocation) => {
   console.log('🔄 Opening reassign allocation modal for:', allocation);
   
+  // FIRST: Set up reassign modal data BEFORE hiding allocation modal
+  window.selectedAllocation = allocation;
+  window.showReassignModal = true;
+  if (window.appState) {
+    window.appState.selectedAllocation = allocation;
+    window.appState.showReassignModal = true;
+  }
+  
   // Store the current allocation modal state
   window._savedAllocationModalState = window.showAllocationManagement || window.appState?.showAllocationManagement;
   
-  // Temporarily hide the allocation management modal
+  // THEN: Hide the allocation management modal (after data is set)
   if (window.setShowAllocationManagement) {
     window.setShowAllocationManagement(false);
   }
@@ -249,14 +262,6 @@ window.showReassignAllocationModal = async (allocation) => {
     window.appState.showAllocationManagement = false;
   }
   window.showAllocationManagement = false;
-  
-  // Set up reassign modal
-  window.selectedAllocation = allocation;
-  window.showReassignModal = true;
-  if (window.appState) {
-    window.appState.selectedAllocation = allocation;
-    window.appState.showReassignModal = true;
-  }
   
   // Load available orders for this lead and event
   try {
