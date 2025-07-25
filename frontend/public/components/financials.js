@@ -6,7 +6,106 @@
 window.handleRecordPaymentClick = function(payable) {
     console.log('Recording payment for payable:', payable);
     
-    // Use the existing handleMarkAsPaid function which opens the inventory form for payment
+    // If submitPayablePayment function exists, use the custom modal
+    if (window.submitPayablePayment) {
+        // Get currency and amount info
+        const currency = payable.original_currency || payable.currency || 'INR';
+        const originalAmount = payable.original_amount || payable.amount || 0;
+        const paymentHistory = payable.payment_history || [];
+        const totalPaid = paymentHistory.reduce((sum, p) => sum + (p.amount_foreign || 0), 0);
+        const remainingAmount = originalAmount - totalPaid;
+        
+        // Check if already fully paid
+        if (remainingAmount <= 0) {
+            alert('This payable has already been fully paid.');
+            return;
+        }
+        
+        // Create payment modal with full functionality
+        const modalHtml = `
+            <div id="record-payment-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Record Payment</h3>
+                    
+                    <div class="mb-4 p-3 bg-gray-50 rounded">
+                        <p class="text-sm text-gray-600 mb-1">
+                            <strong>Vendor:</strong> ${payable.vendor_name || payable.supplierName || 'Unknown Vendor'}
+                        </p>
+                        <p class="text-sm text-gray-600 mb-1">
+                            <strong>Total Amount:</strong> ${currency} ${originalAmount.toLocaleString()}
+                        </p>
+                        <p class="text-sm text-gray-600 mb-1">
+                            <strong>Already Paid:</strong> ${currency} ${totalPaid.toLocaleString()}
+                        </p>
+                        <p class="text-sm text-gray-900 font-semibold">
+                            <strong>Remaining:</strong> ${currency} ${remainingAmount.toLocaleString()}
+                        </p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Payment Amount (${currency})
+                        </label>
+                        <input type="number" id="payment-amount" value="${remainingAmount}" 
+                               max="${remainingAmount}" step="0.01"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <p class="text-xs text-gray-500 mt-1">Max: ${currency} ${remainingAmount.toLocaleString()}</p>
+                    </div>
+                    
+                    ${currency !== 'INR' ? `
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Current Exchange Rate (1 ${currency} = ? INR)
+                        </label>
+                        <input type="number" id="exchange-rate" value="${payable.exchange_rate || ''}" 
+                               step="0.01" placeholder="Enter current exchange rate"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <p class="text-xs text-gray-500 mt-1">
+                            Original rate: ₹${payable.creation_exchange_rate || payable.exchange_rate || 'N/A'}
+                        </p>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Payment Date</label>
+                        <input type="date" id="payment-date" value="${new Date().toISOString().split('T')[0]}" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Reference Number</label>
+                        <input type="text" id="reference-number" placeholder="Transaction ID / Cheque Number" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                        <textarea id="payment-notes" rows="2" 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                    </div>
+                    
+                    <div class="flex justify-end gap-2">
+                        <button onclick="document.getElementById('record-payment-modal').remove()" 
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                            Cancel
+                        </button>
+                        <button onclick="window.submitPayablePayment('${payable.id}')" 
+                                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                            Record Payment
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add modal to page
+        const modalDiv = document.createElement('div');
+        modalDiv.innerHTML = modalHtml;
+        document.body.appendChild(modalDiv.firstElementChild);
+        return;
+    }
+    
+    // Fallback to handleMarkAsPaid if available
     if (window.handleMarkAsPaid) {
         window.handleMarkAsPaid(payable);
         return;
@@ -55,7 +154,7 @@ window.submitPayablePayment = async function(payableId) {
             paymentData.payment_exchange_rate = exchangeRate;
         }
         
-        const response = await fetch(`/api/payables/${payableId}/partial-payment`, {
+        const response = await fetch(`${window.API_CONFIG.API_URL}/payables/${payableId}/partial-payment`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -126,7 +225,7 @@ window.deletePayable = async function(payableId) {
     }
     
     try {
-        const response = await fetch(`/api/payables/${payableId}`, {
+        const response = await fetch(`${window.API_CONFIG.API_URL}/payables/${payableId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
@@ -161,7 +260,7 @@ window.deleteReceivable = async function(receivableId) {
     }
     
     try {
-        const response = await fetch(`/api/receivables/${receivableId}`, {
+        const response = await fetch(`${window.API_CONFIG.API_URL}/receivables/${receivableId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}`
