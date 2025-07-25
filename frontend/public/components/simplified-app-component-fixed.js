@@ -2072,10 +2072,13 @@ window.openEventForm = handlers.openEventForm || ((event = null) => {
   });
 
   // ✅ FINANCIAL FUNCTIONS
-  window.fetchFinancialData = handlers.fetchFinancialData || (() => {
-    console.log("💰 fetchFinancialData called");
-    console.warn("⚠️ fetchFinancialData not implemented in handlers");
-  });
+  // DON'T override fetchFinancialData - it's implemented in enhanced-financial-system.js
+  if (!window.fetchFinancialData) {
+    window.fetchFinancialData = handlers.fetchFinancialData || (() => {
+      console.log("💰 fetchFinancialData called");
+      console.warn("⚠️ fetchFinancialData not implemented in handlers");
+    });
+  }
 
   // Status Filter Functions
   window.handleStatusFilterToggle = handlers.handleStatusFilterToggle;

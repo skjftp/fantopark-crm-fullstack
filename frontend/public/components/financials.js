@@ -961,7 +961,9 @@ window.calculateEnhancedFinancialMetricsSync = () => {
         hasAllSales: !!financialData.allSales,
         totalSalesValue: financialData.totalSales,
         allSalesLength: financialData.allSales?.length,
-        salesLength: sales.length
+        salesLength: sales.length,
+        fallbackSum: (financialData.allSales || []).reduce((sum, sale) => sum + (sale.amount || 0), 0),
+        oldSum: sales.reduce((sum, sale) => sum + (sale.amount || 0), 0)
     });
     
     // Calculate totals - Use the new totalSales from financialData
@@ -975,6 +977,7 @@ window.calculateEnhancedFinancialMetricsSync = () => {
     
     console.log('📊 Calculated totals:', {
         totalSales,
+        totalSalesFormatted: `₹${(totalSales / 10000000).toFixed(2)} Cr`,
         totalActiveSales,
         totalPayables,
         totalReceivables

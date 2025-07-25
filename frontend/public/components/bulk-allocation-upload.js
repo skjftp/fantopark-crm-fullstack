@@ -532,7 +532,14 @@ window.renderBulkAllocationUpload = () => {
                     }, result.data.event_name || '-'),
                     React.createElement('td', {
                       className: 'px-4 py-2 text-sm dark:text-gray-300'
-                    }, result.enrichedData?.lead?.name || result.data.lead_identifier || '-'),
+                    }, result.enrichedData?.lead ? 
+                      React.createElement('div', null,
+                        React.createElement('div', { className: 'font-medium' }, 
+                          `${result.enrichedData.lead.name} (${result.enrichedData.lead.id})`),
+                        React.createElement('div', { className: 'text-xs text-gray-500' }, 
+                          `Lead Event: ${result.enrichedData.lead.lead_for_event || 'Unknown'}`)
+                      ) : 
+                      result.data.lead_identifier || '-'),
                     React.createElement('td', {
                       className: 'px-4 py-2 text-sm text-center dark:text-gray-300'
                     }, result.data.tickets_to_allocate || '-'),
