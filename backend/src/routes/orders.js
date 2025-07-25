@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { db, collections } = require('../config/db');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, checkPermission } = require('../middleware/auth');
 
 /**
  * Ensures all currency fields are properly set with INR equivalents
