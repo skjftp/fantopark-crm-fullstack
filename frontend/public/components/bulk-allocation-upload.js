@@ -121,16 +121,22 @@ window.handleBulkAllocationPreview = async () => {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await window.apiCall('/bulk-allocations/preview', {
+    // Use fetch directly for FormData to avoid Content-Type issues
+    const response = await fetch(`${window.API_URL}/bulk-allocations/preview`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${window.authToken}`
+      },
       body: formData
     });
 
-    if (response.error) {
-      throw new Error(response.error);
+    const responseData = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(responseData.error || 'Preview failed');
     }
 
-    window.bulkAllocationState.previewData = response.data;
+    window.bulkAllocationState.previewData = responseData.data;
   } catch (error) {
     alert('Error previewing allocations: ' + error.message);
   } finally {
@@ -174,13 +180,19 @@ window.handleBulkAllocationProcess = async () => {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await window.apiCall('/bulk-allocations/process', {
+    // Use fetch directly for FormData to avoid Content-Type issues
+    const response = await fetch(`${window.API_URL}/bulk-allocations/process`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${window.authToken}`
+      },
       body: formData
     });
 
-    if (response.error) {
-      throw new Error(response.error);
+    const responseData = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(responseData.error || 'Processing failed');
     }
 
     // Save to history
@@ -188,7 +200,7 @@ window.handleBulkAllocationProcess = async () => {
       id: Date.now(),
       date: new Date().toISOString(),
       filename: file.name,
-      processed: response.data.processed_count,
+      processed: responseData.data.processed_count,
       user: window.user?.name || 'Unknown'
     };
 
@@ -196,7 +208,7 @@ window.handleBulkAllocationProcess = async () => {
     history.unshift(historyEntry);
     localStorage.setItem('bulk_allocation_history', JSON.stringify(history.slice(0, 10)));
 
-    alert(`Successfully processed ${response.data.processed_count} allocations!`);
+    alert(`Successfully processed ${responseData.data.processed_count} allocations!`);
     
     // Reset and close
     window.closeBulkAllocationUpload();
