@@ -74,7 +74,15 @@ window.handleBulkAllocationFileSelect = (event) => {
   console.log('File select triggered');
   const selectedFile = event.target.files[0];
   if (selectedFile && selectedFile.type === 'text/csv') {
-    console.log('Valid CSV file selected:', selectedFile.name);
+    console.log('Valid CSV file selected:', selectedFile.name, 'Size:', selectedFile.size, 'bytes');
+    
+    // Debug: Read file content to verify it's not empty
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      console.log('File content preview (first 200 chars):', e.target.result.substring(0, 200));
+    };
+    reader.readAsText(selectedFile);
+    
     window.bulkAllocationState.file = selectedFile;
     window.bulkAllocationState.previewData = null;
     

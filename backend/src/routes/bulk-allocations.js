@@ -388,6 +388,8 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
       parser.on('end', resolve);
     });
 
+    console.log(`Processing ${records.length} records from CSV`);
+
     // Run the same validation logic as preview
     const validationResults = [];
     const inventoryCache = new Map();
@@ -395,7 +397,10 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
 
     // Validate each record (simplified validation for processing)
     for (const record of records) {
+      console.log('Processing record:', JSON.stringify(record));
+      
       if (!record.event_name || !record.lead_identifier || !record.tickets_to_allocate) {
+        console.log('Skipping record - missing required fields');
         continue; // Skip invalid records
       }
 
@@ -520,6 +525,8 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
     }
 
     const validRows = validationResults.filter(r => r.status === 'valid');
+    
+    console.log(`Found ${validRows.length} valid rows out of ${validationResults.length} total validation results`);
     
     // Process each valid row
     for (const row of validRows) {
