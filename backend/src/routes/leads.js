@@ -1576,7 +1576,7 @@ router.post('/preview-delete', authenticateToken, checkPermission('leads', 'dele
 
     // Build query
     let query = db.collection('crm_leads')
-      .where('event', '==', event)
+      .where('event_name', '==', event)
       .where('isDeleted', '!=', true);
 
     // Add date filters if provided
@@ -1636,7 +1636,7 @@ router.delete('/bulk-delete', authenticateToken, checkPermission('leads', 'delet
 
     // Build query
     let query = db.collection('crm_leads')
-      .where('event', '==', event)
+      .where('event_name', '==', event)
       .where('isDeleted', '!=', true);
 
     // Add date filters if provided
