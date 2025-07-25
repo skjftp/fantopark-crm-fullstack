@@ -493,62 +493,49 @@ window.renderFinancials = () => {
         // Exchange Impact Summary
 window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financialData),                       
 
-        // Enhanced Filter System
-        React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border' },
-            React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Filters'),
-            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4' },
+        // Compact Filter System
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border' },
+            React.createElement('div', { className: 'flex flex-wrap items-center gap-2' },
                 // Client/Supplier Name Filter (tab-specific)
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' },
-                        activeFinancialTab === 'payables' ? 'Supplier Name' : 'Client Name'
-                    ),
-                    React.createElement('input', {
-                        type: 'text',
-                        value: financialFilters.clientName || '',
-                        onChange: (e) => setFinancialFilters({...financialFilters, clientName: e.target.value}),
-                        placeholder: activeFinancialTab === 'payables' ? 'Search by supplier...' : 'Search by client...',
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    })
+                React.createElement('input', {
+                    type: 'text',
+                    value: financialFilters.clientName || '',
+                    onChange: (e) => setFinancialFilters({...financialFilters, clientName: e.target.value}),
+                    placeholder: activeFinancialTab === 'payables' ? 'Search supplier...' : 'Search client...',
+                    className: 'w-36 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
+                }),
+                
+                // Date filters inline
+                React.createElement('span', { className: 'text-sm text-gray-500 ml-2' }, 'From:'),
+                React.createElement('input', {
+                    type: 'date',
+                    value: financialFilters.dateFrom || '',
+                    onChange: (e) => setFinancialFilters({...financialFilters, dateFrom: e.target.value}),
+                    className: 'px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
+                }),
+                
+                React.createElement('span', { className: 'text-sm text-gray-500' }, 'To:'),
+                React.createElement('input', {
+                    type: 'date',
+                    value: financialFilters.dateTo || '',
+                    onChange: (e) => setFinancialFilters({...financialFilters, dateTo: e.target.value}),
+                    className: 'px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
+                }),
+                
+                // Status Filter inline
+                React.createElement('select', {
+                    value: financialFilters.status || 'all',
+                    onChange: (e) => setFinancialFilters({...financialFilters, status: e.target.value}),
+                    className: 'ml-2 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
+                },
+                    React.createElement('option', { value: 'all' }, 'All Status'),
+                    React.createElement('option', { value: 'pending' }, 'Pending'),
+                    React.createElement('option', { value: 'partially_paid' }, 'Partial'),
+                    React.createElement('option', { value: 'paid' }, 'Paid'),
+                    React.createElement('option', { value: 'overdue' }, 'Overdue')
                 ),
                 
-                // Date From Filter
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'From Date'),
-                    React.createElement('input', {
-                        type: 'date',
-                        value: financialFilters.dateFrom || '',
-                        onChange: (e) => setFinancialFilters({...financialFilters, dateFrom: e.target.value}),
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    })
-                ),
-                
-                // Date To Filter
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'To Date'),
-                    React.createElement('input', {
-                        type: 'date',
-                        value: financialFilters.dateTo || '',
-                        onChange: (e) => setFinancialFilters({...financialFilters, dateTo: e.target.value}),
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    })
-                ),
-                
-                // Status Filter
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Status'),
-                    React.createElement('select', {
-                        value: financialFilters.status || 'all',
-                        onChange: (e) => setFinancialFilters({...financialFilters, status: e.target.value}),
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    },
-                        React.createElement('option', { value: 'all' }, 'All Status'),
-                        React.createElement('option', { value: 'paid' }, 'Paid'),
-                        React.createElement('option', { value: 'pending' }, 'Pending'),
-                        React.createElement('option', { value: 'overdue' }, 'Overdue')
-                    )
-                )
-            ),
-            React.createElement('div', { className: 'flex justify-end mt-4 space-x-2' },
+                // Clear button inline
                 React.createElement('button', {
                     onClick: () => setFinancialFilters({
                         clientName: '',
@@ -557,8 +544,8 @@ window.renderExchangeImpactSummary && window.renderExchangeImpactSummary(financi
                         dateTo: '',
                         status: 'all'
                     }),
-                    className: 'px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50'
-                }, 'Clear Filters')
+                    className: 'ml-auto px-3 py-1 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded hover:bg-gray-50'
+                }, 'Clear')
             )
         ),
 
@@ -840,175 +827,161 @@ window.createFinancialSalesChart = () => {
         console.error('❌ Failed to create financial sales chart:', error);
     }
 };
-// Final renderEnhancedFinancialStats - NO async, NO hooks
-window.renderEnhancedFinancialStats = () => {
-    // Check if data is still loading
-    const financialData = window.appState?.financialData || {};
-    const isLoading = !financialData.sales && !financialData.activeSales && !financialData.receivables && !financialData.payables;
+// Enhanced Financial Stats Component - Multiple time periods
+const EnhancedFinancialStats = () => {
+    // State for storing metrics for all periods
+    const [periodMetrics, setPeriodMetrics] = React.useState({
+        current_fy: null,
+        current_month: null,
+        last_month: null
+    });
+    const [loadingPeriods, setLoadingPeriods] = React.useState({
+        current_fy: true,
+        current_month: true,
+        last_month: true
+    });
     
-    // Get metrics synchronously
-    const metrics = window.calculateEnhancedFinancialMetricsSync() || {
-        totalSales: 0,
-        totalActiveSales: 0,
-        totalPayables: 0,
-        totalReceivables: 0,
-        totalMargin: 0,
-        marginPercentage: 0,
-        percentageChanges: {
-            sales: 0,
-            margin: 0
-        }
-    };
-    
-    // Format percentage with + or - sign
-    const formatPercentage = (value) => {
-        const rounded = Math.round(value * 10) / 10;
-        return rounded >= 0 ? `+${rounded}%` : `${rounded}%`;
-    };
-    
-    const statsCards = [
-        {
-            title: 'Total Sales',
-            value: window.formatCurrency(metrics.totalSales),
-            change: formatPercentage(metrics.percentageChanges?.sales || 0),
-            changeType: (metrics.percentageChanges?.sales || 0) >= 0 ? 'positive' : 'negative',
-            icon: '📈',
-            showChange: true // Show percentage
-        },
-        {
-            title: 'Total Active Sales',
-            value: window.formatCurrency(metrics.totalActiveSales),
-            icon: '🎯',
-            showChange: false // No percentage
-        },
-        {
-            title: 'Total Receivables',
-            value: window.formatCurrency(metrics.totalReceivables),
-            icon: '💰',
-            showChange: false // No percentage
-        },
-        {
-            title: 'Total Payables',
-            value: window.formatCurrency(metrics.totalPayables),
-            icon: '💸',
-            showChange: false // No percentage
-        },
-        {
-            title: 'Total Margin',
-            value: metrics.totalMargin === null ? 'Loading...' : window.formatCurrency(metrics.totalMargin),
-            change: metrics.totalMargin === null ? '' : formatPercentage(metrics.percentageChanges?.margin || 15.7),
-            changeType: (metrics.percentageChanges?.margin || 15.7) >= 0 ? 'positive' : 'negative',
-            icon: '📊',
-            showChange: metrics.totalMargin !== null // Show percentage only when loaded
-        },
-        {
-            title: 'Margin %',
-            value: metrics.marginPercentage === null ? 'Loading...' : `${metrics.marginPercentage}%`,
-            icon: '📈',
-            showChange: false // No percentage
-        }
-    ];
-    
-    // Trigger async calculations after render
-    if (!window.financialPercentagesLoading) {
-        window.financialPercentagesLoading = true;
+    // Fetch metrics for all time periods
+    React.useEffect(() => {
+        const fetchAllPeriodMetrics = async () => {
+            const periods = ['current_fy', 'current_month', 'last_month'];
+            
+            for (const period of periods) {
+                try {
+                    // Fetch complete financial metrics from backend
+                    const response = await fetch(`${window.API_CONFIG.API_URL}/finance/metrics?period=${period}`, {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}` }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success && result.data) {
+                        const metrics = result.data;
+                        
+                        setPeriodMetrics(prev => ({
+                            ...prev,
+                            [period]: {
+                                totalSales: metrics.totalSales || 0,
+                                activeSales: metrics.activeSales || 0,
+                                totalReceivables: metrics.totalReceivables || 0,
+                                totalPayables: metrics.totalPayables || 0,
+                                totalMargin: metrics.totalMargin || 0,
+                                marginPercentage: metrics.marginPercentage || 0,
+                                processedOrders: metrics.processedOrders || 0
+                            }
+                        }));
+                    }
+                    
+                    setLoadingPeriods(prev => ({ ...prev, [period]: false }));
+                } catch (error) {
+                    console.error(`Error fetching metrics for ${period}:`, error);
+                    setLoadingPeriods(prev => ({ ...prev, [period]: false }));
+                }
+            }
+        };
         
-        // Run both percentage and margin calculations in parallel
-        Promise.all([
-            window.calculateEnhancedFinancialMetrics(),
-            window.apiCall('/finance/metrics').catch(error => {
-                console.warn('⚠️ Backend margin calculation failed, using fallback:', error);
-                return null;
-            })
-        ]).then(([newMetrics, marginResponse]) => {
-            window.financialPercentagesLoading = false;
-            
-            const marginResults = marginResponse?.data || null;
-            console.log('🔄 Backend margin calculation completed:', marginResults);
-            
-            // Cache the margin results
-            if (marginResults) {
-                window.cachedOrderMargin = {
-                    ...marginResults,
-                    timestamp: Date.now()
-                };
-                console.log('💾 Cached backend margin results:', window.cachedOrderMargin);
-            } else {
-                console.log('⚠️ No margin results returned from backend');
-            }
-            
-            // Update the UI by re-rendering
-            if (window.appState?.activeTab === 'financials' && window.renderFinancials) {
-                console.log('🔄 Re-rendering financials with updated margin data');
-                window.renderFinancials();
-            }
-        }).catch(error => {
-            console.error('❌ Error in async margin calculation:', error);
-            window.financialPercentagesLoading = false;
-        });
-    }
+        fetchAllPeriodMetrics();
+    }, []);
     
-    return React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6' },
-        statsCards.map((stat, index) =>
-            React.createElement('div', { 
-                key: index,
-                className: 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow relative overflow-hidden',
-                style: { minHeight: '140px' }
-            },
-                isLoading || (stat.title.includes('Margin') && stat.value === 'Loading...') ?
-                    // FanToPark Logo Loader
-                    React.createElement('div', {
-                        className: 'absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800',
-                        style: { zIndex: 10 }
-                    },
-                        React.createElement('div', { className: 'text-center' },
-                            // Animated logo
-                            React.createElement('div', {
-                                className: 'relative w-16 h-16 mx-auto mb-2',
+    const periodNames = {
+        current_fy: 'Current FY',
+        current_month: 'Current Month',
+        last_month: 'Last Month'
+    };
+    
+    // Render a single stat card with loader
+    const renderStatCard = (title, value, icon, isLoading) => {
+        return React.createElement('div', { 
+            className: 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 relative overflow-hidden',
+            style: { minHeight: '80px' }
+        },
+            isLoading ?
+                // FanToPark Logo Loader
+                React.createElement('div', {
+                    className: 'absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800',
+                    style: { zIndex: 10 }
+                },
+                    React.createElement('div', { className: 'text-center' },
+                        React.createElement('div', {
+                            className: 'relative w-12 h-12 mx-auto',
+                            style: { animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+                        },
+                            React.createElement('img', {
+                                src: document.documentElement.classList.contains('dark') ? 'images/logo-dark.png' : 'images/logo.png',
+                                alt: 'Loading...',
+                                className: 'w-full h-full object-contain',
                                 style: {
-                                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                                    filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.5))',
+                                    animation: 'float 3s ease-in-out infinite'
                                 }
-                            },
-                                React.createElement('img', {
-                                    src: document.documentElement.classList.contains('dark') ? 'images/logo-dark.png' : 'images/logo.png',
-                                    alt: 'Loading...',
-                                    className: 'w-full h-full object-contain',
-                                    style: {
-                                        filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.5))',
-                                        animation: 'float 3s ease-in-out infinite'
-                                    }
-                                })
-                            ),
-                            React.createElement('p', { 
-                                className: 'text-xs text-gray-500 dark:text-gray-400',
-                                style: {
-                                    animation: 'fadeInOut 2s ease-in-out infinite'
-                                }
-                            }, 'Loading...')
+                            })
                         )
-                    ) :
-                    // Normal content
-                    React.createElement(React.Fragment, null,
-                        React.createElement('div', { className: 'flex items-center justify-between' },
-                            React.createElement('div', null,
-                                React.createElement('p', { className: 'text-sm font-medium text-gray-600 dark:text-gray-400' }, stat.title),
-                                React.createElement('p', { className: 'text-2xl font-bold text-gray-900 dark:text-white mt-1' }, stat.value)
-                            ),
-                            React.createElement('div', { className: 'text-2xl' }, stat.icon)
-                        ),
-                        stat.showChange ? React.createElement('div', { className: 'flex items-center mt-4' },
-                            React.createElement('span', {
-                                className: `text-sm font-medium ${
-                                    stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                                }`
-                            }, stat.change),
-                            React.createElement('span', { className: 'text-sm text-gray-500 ml-2' }, 'vs last month')
-                        ) : null
                     )
+                ) :
+                // Normal content
+                React.createElement('div', { className: 'flex items-center justify-between h-full' },
+                    React.createElement('div', null,
+                        React.createElement('p', { className: 'text-xs font-medium text-gray-600 dark:text-gray-400' }, title),
+                        React.createElement('p', { className: 'text-lg font-bold text-gray-900 dark:text-white mt-1' }, 
+                            typeof value === 'number' ? window.formatCurrency(value) : value
+                        )
+                    ),
+                    React.createElement('div', { className: 'text-xl opacity-50' }, icon)
+                )
+        );
+    };
+    
+    // Render period section
+    const renderPeriodSection = (period, metrics, isLoading) => {
+        return React.createElement('div', { className: 'space-y-3' },
+            React.createElement('h4', { 
+                className: 'text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider' 
+            }, periodNames[period]),
+            
+            React.createElement('div', { className: 'grid grid-cols-2 gap-3' },
+                renderStatCard('Total Sales', metrics?.totalSales || 0, '💰', isLoading),
+                renderStatCard('Active Sales', metrics?.activeSales || 0, '🎯', isLoading),
+                renderStatCard('Receivables', metrics?.totalReceivables || 0, '📥', isLoading),
+                renderStatCard('Payables', metrics?.totalPayables || 0, '📤', isLoading),
+                renderStatCard('Margin', metrics?.totalMargin || 0, '📊', isLoading),
+                renderStatCard('Margin %', 
+                    metrics?.marginPercentage ? `${metrics.marginPercentage}%` : '0%', 
+                    '📈', 
+                    isLoading
+                )
             )
+        );
+    };
+    
+    return React.createElement('div', { className: 'space-y-6' },
+        // Stats Section Header
+        React.createElement('div', { className: 'flex items-center justify-between mb-4' },
+            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
+                'Financial Overview'
+            ),
+            React.createElement('button', {
+                onClick: () => window.location.reload(),
+                className: 'text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400'
+            }, '↻ Refresh')
+        ),
+        
+        // Three Period Sections
+        React.createElement('div', { 
+            className: 'grid grid-cols-1 lg:grid-cols-3 gap-6 bg-gray-50 dark:bg-gray-900 p-6 rounded-lg' 
+        },
+            renderPeriodSection('current_fy', periodMetrics.current_fy, loadingPeriods.current_fy),
+            renderPeriodSection('current_month', periodMetrics.current_month, loadingPeriods.current_month),
+            renderPeriodSection('last_month', periodMetrics.last_month, loadingPeriods.last_month)
         )
     );
 };
+
+// Wrapper function to render the Enhanced Financial Stats component
+window.renderEnhancedFinancialStats = () => {
+    return React.createElement(EnhancedFinancialStats);
+};
+
+// Old stats rendering code removed - replaced with new 3-period design
 
 // Synchronous version for immediate display
 window.calculateEnhancedFinancialMetricsSync = () => {
@@ -1754,59 +1727,46 @@ window.renderResponsiveFinancials = () => {
             window.renderEnhancedFinancialStats()
         ),
         
-        // Filters Section - Stack on mobile
-        React.createElement('div', { className: 'bg-white dark:bg-gray-800 rounded-lg shadow p-4' },
-            React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Filters'),
-            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4' },
-                // Client Name
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Client Name'),
-                    React.createElement('input', {
-                        type: 'text',
-                        placeholder: 'Search by client...',
-                        value: financialFilters.clientName || '',
-                        onChange: (e) => setFinancialFilters({...financialFilters, clientName: e.target.value}),
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    })
+        // Use the same compact filter system for mobile
+        React.createElement('div', { className: 'bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border' },
+            React.createElement('div', { className: 'flex flex-wrap items-center gap-2' },
+                React.createElement('input', {
+                    type: 'text',
+                    value: financialFilters.clientName || '',
+                    onChange: (e) => setFinancialFilters({...financialFilters, clientName: e.target.value}),
+                    placeholder: 'Search client...',
+                    className: 'w-36 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
+                }),
+                
+                React.createElement('span', { className: 'text-sm text-gray-500 ml-2' }, 'From:'),
+                React.createElement('input', {
+                    type: 'date',
+                    value: financialFilters.dateFrom || '',
+                    onChange: (e) => setFinancialFilters({...financialFilters, dateFrom: e.target.value}),
+                    className: 'px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
+                }),
+                
+                React.createElement('span', { className: 'text-sm text-gray-500' }, 'To:'),
+                React.createElement('input', {
+                    type: 'date',
+                    value: financialFilters.dateTo || '',
+                    onChange: (e) => setFinancialFilters({...financialFilters, dateTo: e.target.value}),
+                    className: 'px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
+                }),
+                
+                // Status Filter inline
+                React.createElement('select', {
+                    value: financialFilters.status || 'all',
+                    onChange: (e) => setFinancialFilters({...financialFilters, status: e.target.value}),
+                    className: 'ml-2 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
+                },
+                    React.createElement('option', { value: 'all' }, 'All Status'),
+                    React.createElement('option', { value: 'pending' }, 'Pending'),
+                    React.createElement('option', { value: 'paid' }, 'Paid'),
+                    React.createElement('option', { value: 'overdue' }, 'Overdue')
                 ),
                 
-                // Date filters on separate rows on mobile
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'From Date'),
-                    React.createElement('input', {
-                        type: 'date',
-                        value: financialFilters.dateFrom || '',
-                        onChange: (e) => setFinancialFilters({...financialFilters, dateFrom: e.target.value}),
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    })
-                ),
-                
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'To Date'),
-                    React.createElement('input', {
-                        type: 'date',
-                        value: financialFilters.dateTo || '',
-                        onChange: (e) => setFinancialFilters({...financialFilters, dateTo: e.target.value}),
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    })
-                ),
-                
-                // Status Filter
-                React.createElement('div', null,
-                    React.createElement('label', { className: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1' }, 'Status'),
-                    React.createElement('select', {
-                        value: financialFilters.status || 'all',
-                        onChange: (e) => setFinancialFilters({...financialFilters, status: e.target.value}),
-                        className: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    },
-                        React.createElement('option', { value: 'all' }, 'All Status'),
-                        React.createElement('option', { value: 'paid' }, 'Paid'),
-                        React.createElement('option', { value: 'pending' }, 'Pending'),
-                        React.createElement('option', { value: 'overdue' }, 'Overdue')
-                    )
-                )
-            ),
-            React.createElement('div', { className: 'flex justify-end mt-4' },
+                // Clear button inline
                 React.createElement('button', {
                     onClick: () => setFinancialFilters({
                         clientName: '',
@@ -1815,8 +1775,8 @@ window.renderResponsiveFinancials = () => {
                         dateTo: '',
                         status: 'all'
                     }),
-                    className: 'px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50'
-                }, 'Clear Filters')
+                    className: 'ml-auto px-3 py-1 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded hover:bg-gray-50'
+                }, 'Clear')
             )
         ),
 

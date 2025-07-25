@@ -25,10 +25,11 @@ router.get('/payables', authenticateToken, checkPermission('finance', 'read'), a
   }
 });
 
-// Enhanced financial metrics with margin calculation
+// Enhanced financial metrics with margin calculation and complete financial data
 router.get('/metrics', authenticateToken, async (req, res) => {
   try {
-    console.log('🔢 Starting backend margin calculation...');
+    const { period } = req.query; // 'current_fy', 'current_month', 'last_month'
+    console.log('🔢 Starting backend financial metrics calculation for period:', period || 'all');
 
     // Fetch all required data in parallel
     // Note: Using .get() without where clause then filtering in memory because
@@ -66,7 +67,43 @@ router.get('/metrics', authenticateToken, async (req, res) => {
       }
     });
 
-    console.log(`📊 Processing ${orders.length} orders, ${allocations.length} allocations, ${inventory.length} inventory items`);
+    // Apply date filtering based on period
+    let filteredOrders = orders;
+    if (period) {
+      const now = new Date();
+      let startDate, endDate;
+      
+      switch(period) {
+        case 'current_fy':
+          // Indian FY: April 1 to March 31
+          const currentMonth = now.getMonth();
+          const currentYear = now.getFullYear();
+          const fyYear = currentMonth >= 3 ? currentYear : currentYear - 1;
+          startDate = new Date(fyYear, 3, 1); // April 1
+          endDate = new Date();
+          break;
+          
+        case 'current_month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date();
+          break;
+          
+        case 'last_month':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          endDate = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of previous month
+          break;
+      }
+      
+      if (startDate && endDate) {
+        filteredOrders = orders.filter(order => {
+          // Use event_date for filtering
+          const orderDate = order.event_date?.toDate ? order.event_date.toDate() : new Date(order.event_date);
+          return orderDate >= startDate && orderDate <= endDate;
+        });
+      }
+    }
+    
+    console.log(`📊 Processing ${filteredOrders.length} orders (filtered from ${orders.length}), ${allocations.length} allocations, ${inventory.length} inventory items`);
     console.log(`📊 Raw snapshots: orders=${ordersSnapshot.size}, allocations=${allocationsSnapshot.size}, inventory=${inventorySnapshot.size}`);
     
     // Debug: Log first few raw orders to see structure
@@ -95,7 +132,7 @@ router.get('/metrics', authenticateToken, async (req, res) => {
     // Debug: Log first few orders and their allocation matching
     let debugCount = 0;
     
-    orders.forEach(order => {
+    filteredOrders.forEach(order => {
       // Find allocations for this order
       const orderAllocations = allocations.filter(allocation => 
         (allocation.order_ids && allocation.order_ids.includes(order.id)) ||
@@ -209,11 +246,96 @@ router.get('/metrics', authenticateToken, async (req, res) => {
     const totalMargin = totalSellingPrice - totalBuyingPrice;
     const marginPercentage = totalSellingPrice > 0 ? (totalMargin / totalSellingPrice * 100) : 0;
 
-    console.log('💰 Backend margin calculation results:', {
-      processedOrders,
-      totalOrders: orders.length,
-      totalSellingPrice: `₹${totalSellingPrice.toLocaleString()}`,
-      totalBuyingPrice: `₹${totalBuyingPrice.toLocaleString()}`,
+    // Calculate additional financial metrics based on period
+    let totalSales = 0;
+    let activeSales = 0;
+    let totalReceivables = 0;
+    let totalPayables = 0;
+
+    // Get date range for the period
+    let dateRange = null;
+    if (period) {
+      const now = new Date();
+      let startDate, endDate;
+      
+      switch(period) {
+        case 'current_fy':
+          const currentMonth = now.getMonth();
+          const currentYear = now.getFullYear();
+          const fyYear = currentMonth >= 3 ? currentYear : currentYear - 1;
+          startDate = new Date(fyYear, 3, 1);
+          endDate = new Date();
+          break;
+        case 'current_month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date();
+          break;
+        case 'last_month':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+          break;
+      }
+      
+      dateRange = { startDate, endDate };
+    }
+
+    // Calculate total sales (all orders in period)
+    totalSales = filteredOrders.reduce((sum, order) => {
+      const amount = parseFloat(order.final_amount_inr || order.final_amount || 0);
+      return sum + amount;
+    }, 0);
+
+    // Calculate active sales (pending/processing orders)
+    const activeSalesOrders = filteredOrders.filter(order => 
+      order.status === 'pending' || order.status === 'processing' || order.status === 'active'
+    );
+    activeSales = activeSalesOrders.reduce((sum, order) => {
+      const amount = parseFloat(order.final_amount_inr || order.final_amount || 0);
+      return sum + amount;
+    }, 0);
+
+    // Fetch receivables and payables
+    const [receivablesSnapshot, payablesSnapshot] = await Promise.all([
+      db.collection('crm_receivables').get(),
+      db.collection('crm_payables').get()
+    ]);
+
+    // Process receivables for the period
+    const receivables = [];
+    receivablesSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.isDeleted !== true && data.status !== 'paid') {
+        // Check if receivable falls within the period
+        if (!dateRange || (data.due_date && 
+            new Date(data.due_date) >= dateRange.startDate && 
+            new Date(data.due_date) <= dateRange.endDate)) {
+          receivables.push(data);
+        }
+      }
+    });
+    totalReceivables = receivables.reduce((sum, rec) => sum + (rec.balance_amount || rec.amount || 0), 0);
+
+    // Process payables for the period
+    const payables = [];
+    payablesSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.isDeleted !== true && data.status !== 'paid') {
+        // Check if payable falls within the period
+        if (!dateRange || (data.event_date && 
+            new Date(data.event_date) >= dateRange.startDate && 
+            new Date(data.event_date) <= dateRange.endDate)) {
+          payables.push(data);
+        }
+      }
+    });
+    totalPayables = payables.reduce((sum, pay) => sum + (pay.amount_inr || pay.amount || 0), 0);
+
+    console.log('💰 Backend financial metrics results:', {
+      period: period || 'all',
+      totalSales: `₹${totalSales.toLocaleString()}`,
+      activeSales: `₹${activeSales.toLocaleString()}`,
+      totalReceivables: `₹${totalReceivables.toLocaleString()}`,
+      totalPayables: `₹${totalPayables.toLocaleString()}`,
       totalMargin: `₹${totalMargin.toLocaleString()}`,
       marginPercentage: `${marginPercentage.toFixed(2)}%`
     });
@@ -221,12 +343,19 @@ router.get('/metrics', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       data: {
+        // Financial totals
+        totalSales,
+        activeSales,
+        totalReceivables,
+        totalPayables,
+        // Margin data
         totalMargin,
         marginPercentage: Math.round(marginPercentage * 100) / 100,
         totalSellingPrice,
         totalBuyingPrice,
         processedOrders,
-        totalOrders: orders.length
+        totalOrders: filteredOrders.length,
+        period: period || 'all'
       }
     });
 
