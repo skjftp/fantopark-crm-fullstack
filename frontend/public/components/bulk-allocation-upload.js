@@ -25,14 +25,23 @@ const loadBulkAllocationHistory = () => {
 // Global function to open modal
 window.openBulkAllocationUpload = () => {
   console.log('Opening bulk allocation upload modal...');
+  
+  // Set multiple state flags to ensure React picks it up
   window.bulkAllocationState.showModal = true;
+  window.showBulkAllocationModal = true; // Alternative flag
+  
   window.bulkAllocationState.file = null;
   window.bulkAllocationState.previewData = null;
   window.bulkAllocationState.showHistory = false;
   loadBulkAllocationHistory();
   
-  // Multiple render triggers to ensure modal shows
-  if (window.renderApp) {
+  // Use the same pattern as other modals that work
+  if (window.setLoading) {
+    // Trigger a loading state change to force React to re-render
+    const currentLoading = window.loading;
+    window.setLoading(true);
+    setTimeout(() => window.setLoading(currentLoading), 0);
+  } else if (window.renderApp) {
     window.renderApp();
     // Force a second render in case the first one doesn't catch the state change
     requestAnimationFrame(() => {
@@ -44,6 +53,7 @@ window.openBulkAllocationUpload = () => {
 // Close modal function
 window.closeBulkAllocationUpload = () => {
   window.bulkAllocationState.showModal = false;
+  window.showBulkAllocationModal = false; // Alternative flag
   window.bulkAllocationState.file = null;
   window.bulkAllocationState.previewData = null;
   window.bulkAllocationState.uploading = false;
@@ -520,6 +530,15 @@ window.renderBulkAllocationUpload = () => {
 
 // Initialize when loaded
 console.log('✅ Bulk Allocation Upload component loaded');
+
+// Register the modal with the app
+if (!window.modalRegistry) {
+  window.modalRegistry = {};
+}
+window.modalRegistry.bulkAllocation = {
+  isOpen: () => window.bulkAllocationState?.showModal || false,
+  render: window.renderBulkAllocationUpload
+};
 
 // Ensure the component is ready
 if (window.bulkAllocationState && window.bulkAllocationState.showModal && window.renderApp) {
