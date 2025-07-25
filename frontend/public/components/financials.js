@@ -209,8 +209,8 @@ window.submitPayablePayment = async function(payableId) {
         alert(message);
         
         // Refresh financial data
-        if (window.loadFinancialData) {
-            window.loadFinancialData();
+        if (window.fetchFinancialData) {
+            window.fetchFinancialData();
         }
         
         // Also refresh payment history modal if open
@@ -218,7 +218,7 @@ window.submitPayablePayment = async function(payableId) {
             const updatedPayable = window.appState.financialData.payables.find(p => p.id === payableId);
             if (updatedPayable) {
                 // Re-fetch the payable data to get updated payment history
-                window.loadFinancialData().then(() => {
+                window.fetchFinancialData().then(() => {
                     const refreshedPayable = window.appState.financialData.payables.find(p => p.id === payableId);
                     if (refreshedPayable) {
                         window.showPaymentHistoryModal(refreshedPayable);
@@ -254,8 +254,8 @@ window.deletePayable = async function(payableId) {
         alert('Payable deleted successfully');
         
         // Refresh financial data
-        if (window.loadFinancialData) {
-            window.loadFinancialData();
+        if (window.fetchFinancialData) {
+            window.fetchFinancialData();
         }
         
     } catch (error) {
@@ -290,8 +290,8 @@ window.deleteReceivable = async function(receivableId) {
         alert('Receivable deleted successfully');
         
         // Refresh financial data
-        if (window.loadFinancialData) {
-            window.loadFinancialData();
+        if (window.fetchFinancialData) {
+            window.fetchFinancialData();
         }
         
     } catch (error) {
@@ -346,7 +346,7 @@ window.renderFinancials = function() {
         console.log('Financial data empty, loading before render...');
         
         // Load data first, then render
-        window.loadFinancialData().then(() => {
+        window.fetchFinancialData().then(() => {
             console.log('Data loaded, rendering financials...');
             originalRenderFinancials.call(this);
         });
@@ -650,8 +650,8 @@ if (!window.financialsAutoLoader) {
                 // Use fetchFinancialData instead of loadFinancialData
                 if (window.fetchFinancialData) {
                     window.fetchFinancialData();
-                } else if (window.loadFinancialData) {
-                    window.loadFinancialData();
+                } else if (window.fetchFinancialData) {
+                    window.fetchFinancialData();
                 }
             }, 100);
         }
@@ -1955,14 +1955,14 @@ window.setActiveTab = function(tab) {
     if (tab === 'finance' || tab === 'financials') {
         console.log('Loading financial data for finance tab...');
         setTimeout(() => {
-            window.loadFinancialData();
+            window.fetchFinancialData();
         }, 100);
     }
 };
 
 // Also check if already on finance tab
 if (window.appState?.activeTab === 'finance' || window.appState?.activeTab === 'financials') {
-    window.loadFinancialData();
+    window.fetchFinancialData();
 }
 
 console.log('✅ FIXED PAGINATION Financials Component loaded successfully - All functionality preserved');
