@@ -1589,15 +1589,12 @@ router.post('/preview-delete', authenticateToken, checkPermission('leads', 'dele
     // Get preview data
     const allSnapshot = await query.get();
     
-    // Filter out deleted items manually
+    // Get all items (including soft-deleted ones for hard delete)
     const items = [];
     let totalCount = 0;
     
     allSnapshot.forEach(doc => {
       const data = doc.data();
-      // Skip if deleted
-      if (data.isDeleted === true) return;
-      
       totalCount++;
       if (items.length < 100) { // Limit preview items
         items.push({
@@ -1605,7 +1602,8 @@ router.post('/preview-delete', authenticateToken, checkPermission('leads', 'dele
           name: data.name,
           phone: data.phone,
           date_of_enquiry: data.date_of_enquiry,
-          status: data.status
+          status: data.status,
+          isDeleted: data.isDeleted || false
         });
       }
     });
@@ -1661,16 +1659,12 @@ router.delete('/bulk-delete', authenticateToken, checkPermission('leads', 'delet
       return res.json({ data: { deletedCount: 0 } });
     }
 
-    // Perform hard delete in batches
+    // Perform hard delete in batches (including soft-deleted items)
     let batch = db.batch();
     let count = 0;
     
     snapshot.forEach(doc => {
-      const data = doc.data();
-      // Skip if already deleted
-      if (data.isDeleted === true) return;
-      
-      // Hard delete - permanently remove the document
+      // Hard delete - permanently remove the document (including soft-deleted ones)
       batch.delete(doc.ref);
       count++;
       
