@@ -217,7 +217,8 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
         name: lead.name,
         phone: lead.phone,
         email: lead.email,
-        company: lead.company
+        company: lead.company,
+        lead_for_event: lead.lead_for_event
       };
 
       // Validate category if specified
