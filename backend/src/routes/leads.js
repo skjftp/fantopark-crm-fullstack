@@ -1560,4 +1560,138 @@ router.put('/:id/inclusions', authenticateToken, async (req, res) => {
   }
 });
 
+// Preview bulk delete - shows what will be deleted
+router.post('/preview-delete', authenticateToken, checkPermission('leads', 'delete'), async (req, res) => {
+  try {
+    // Only super admins can bulk delete
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Only super admins can perform bulk delete' });
+    }
+
+    const { event, start_date, end_date } = req.body;
+
+    if (!event) {
+      return res.status(400).json({ error: 'Event name is required' });
+    }
+
+    // Build query
+    let query = db.collection('crm_leads')
+      .where('event', '==', event)
+      .where('isDeleted', '!=', true);
+
+    // Add date filters if provided
+    if (start_date) {
+      query = query.where('date_of_enquiry', '>=', start_date);
+    }
+    if (end_date) {
+      query = query.where('date_of_enquiry', '<=', end_date);
+    }
+
+    // Get preview data
+    const snapshot = await query.limit(100).get(); // Limit preview to 100 items
+    const totalCount = (await query.get()).size;
+
+    const items = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      items.push({
+        id: doc.id,
+        name: data.name,
+        phone: data.phone,
+        date_of_enquiry: data.date_of_enquiry,
+        status: data.status
+      });
+    });
+
+    res.json({
+      data: {
+        count: totalCount,
+        items: items.slice(0, 5), // Return only first 5 for preview
+        event: event,
+        filters: { start_date, end_date }
+      }
+    });
+  } catch (error) {
+    console.error('Error in preview-delete:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk delete leads
+router.delete('/bulk-delete', authenticateToken, checkPermission('leads', 'delete'), async (req, res) => {
+  try {
+    // Only super admins can bulk delete
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Only super admins can perform bulk delete' });
+    }
+
+    const { event, start_date, end_date } = req.body;
+
+    if (!event) {
+      return res.status(400).json({ error: 'Event name is required' });
+    }
+
+    // Log the bulk delete attempt
+    console.log(`BULK DELETE ATTEMPT by ${req.user.email}: Leads with event="${event}"`);
+
+    // Build query
+    let query = db.collection('crm_leads')
+      .where('event', '==', event)
+      .where('isDeleted', '!=', true);
+
+    // Add date filters if provided
+    if (start_date) {
+      query = query.where('date_of_enquiry', '>=', start_date);
+    }
+    if (end_date) {
+      query = query.where('date_of_enquiry', '<=', end_date);
+    }
+
+    // Get all matching documents
+    const snapshot = await query.get();
+    
+    if (snapshot.empty) {
+      return res.json({ data: { deletedCount: 0 } });
+    }
+
+    // Perform soft delete in batches
+    let batch = db.batch();
+    let count = 0;
+    
+    snapshot.forEach(doc => {
+      batch.update(doc.ref, {
+        isDeleted: true,
+        deletedAt: new Date().toISOString(),
+        deletedBy: req.user.email
+      });
+      count++;
+      
+      // Firestore has a limit of 500 operations per batch
+      if (count % 500 === 0) {
+        batch.commit();
+        batch = db.batch();
+      }
+    });
+
+    // Commit any remaining operations
+    if (count % 500 !== 0) {
+      await batch.commit();
+    }
+
+    console.log(`BULK DELETE SUCCESS: Deleted ${count} leads with event="${event}" by ${req.user.email}`);
+
+    res.json({
+      data: {
+        deletedCount: count,
+        event: event,
+        deletedBy: req.user.email,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Error in bulk-delete:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

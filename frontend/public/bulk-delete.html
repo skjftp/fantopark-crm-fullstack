@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Delete Manager - Fantopark CRM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+
+    <!-- Load required utilities and components -->
+    <script src="/constants/config.js"></script>
+    <script src="/utils/api.js"></script>
+    <script src="/utils/logger.js"></script>
+    <script src="/components/bulk-delete-manager.js"></script>
+
+    <script>
+        // Initialize app state
+        window.appState = {
+            showBulkDeleteManager: true,
+            user: null,
+            events: []
+        };
+
+        // State setters
+        window.setShowBulkDeleteManager = (value) => {
+            if (!value) {
+                // Redirect back to admin utilities when closed
+                window.location.href = '/admin-utilities.html';
+            }
+        };
+
+        // Check authentication
+        async function initializePage() {
+            // Check auth token
+            const authToken = localStorage.getItem('crm_auth_token') || localStorage.getItem('authToken');
+            const userStr = localStorage.getItem('crm_user') || localStorage.getItem('user');
+            
+            if (!authToken || !userStr) {
+                alert('Please login first');
+                window.location.href = '/';
+                return;
+            }
+
+            const user = JSON.parse(userStr);
+            
+            // Check if user is super admin
+            if (user.role !== 'super_admin') {
+                alert('Access denied. This page is only available to Super Admins.');
+                window.location.href = '/';
+                return;
+            }
+
+            // Store user info
+            window.appState.user = user;
+            window.user = user;
+            window.authToken = authToken;
+
+            // Fetch events list
+            try {
+                const response = await window.apiCall('/events');
+                if (!response.error && response.data) {
+                    window.appState.events = response.data;
+                }
+            } catch (error) {
+                console.error('Error fetching events:', error);
+            }
+
+            // Render the bulk delete manager
+            renderApp();
+        }
+
+        // Render function
+        function renderApp() {
+            const rootElement = document.getElementById('root');
+            const app = React.createElement('div', { className: 'min-h-screen bg-gray-100 py-8' },
+                React.createElement('div', { className: 'container mx-auto px-4' },
+                    React.createElement('div', { className: 'mb-4' },
+                        React.createElement('a', {
+                            href: '/admin-utilities.html',
+                            className: 'text-blue-600 hover:text-blue-800 flex items-center'
+                        }, '← Back to Admin Utilities')
+                    ),
+                    window.renderBulkDeleteManager()
+                )
+            );
+            
+            const root = ReactDOM.createRoot(rootElement);
+            root.render(app);
+        }
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePage);
+        } else {
+            initializePage();
+        }
+    </script>
+</body>
+</html>
