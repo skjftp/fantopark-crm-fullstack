@@ -891,15 +891,19 @@ window.renderEnhancedFinancialStats = () => {
         },
         {
             title: 'Total Margin',
-            value: window.formatCurrency(metrics.totalMargin),
-            change: formatPercentage(metrics.percentageChanges?.margin || 15.7),
+            value: metrics.totalMargin === null ? 
+                React.createElement('span', { className: 'text-gray-400' }, 'Loading...') : 
+                window.formatCurrency(metrics.totalMargin),
+            change: metrics.totalMargin === null ? '' : formatPercentage(metrics.percentageChanges?.margin || 15.7),
             changeType: (metrics.percentageChanges?.margin || 15.7) >= 0 ? 'positive' : 'negative',
             icon: '📊',
-            showChange: true // Show percentage
+            showChange: metrics.totalMargin !== null // Show percentage only when loaded
         },
         {
             title: 'Margin %',
-            value: `${metrics.marginPercentage}%`,
+            value: metrics.marginPercentage === null ? 
+                React.createElement('span', { className: 'text-gray-400' }, 'Loading...') :
+                `${metrics.marginPercentage}%`,
             icon: '📈',
             showChange: false // No percentage
         }
@@ -1043,54 +1047,18 @@ window.calculateEnhancedFinancialMetricsSync = () => {
             marginPercentage = window.cachedOrderMargin.marginPercentage;
             console.log('📊 Using cached backend margin:', { totalMargin, marginPercentage });
         } else {
-            // Will be calculated asynchronously and cached
-            console.log('📊 Using inventory fallback for immediate display, backend calculation will update');
+            // Show loading state instead of incorrect fallback values
+            console.log('📊 Margin data loading from backend...');
             
-            // Fallback to inventory-based calculation for immediate display
-            let totalCost = 0;
-            let totalRevenue = 0;
-            
-            console.log('🔍 Inventory fallback debug - Inventory items:', inventory.length);
-            inventory.forEach((item, index) => {
-                const soldTickets = (item.total_tickets || 0) - (item.available_tickets || 0);
-                const itemCost = soldTickets * (item.buying_price || 0);
-                const itemRevenue = soldTickets * (item.selling_price || 0);
-                
-                if (index < 3) { // Log first 3 items for debugging
-                    console.log(`🔍 Item ${index + 1}:`, {
-                        event: item.event_name,
-                        totalTickets: item.total_tickets,
-                        availableTickets: item.available_tickets, 
-                        soldTickets,
-                        buyingPrice: item.buying_price,
-                        sellingPrice: item.selling_price,
-                        itemCost,
-                        itemRevenue
-                    });
-                }
-                
-                totalCost += itemCost;
-                totalRevenue += itemRevenue;
-            });
-            
-            console.log('🔍 Inventory fallback totals:', { totalCost, totalRevenue });
-            
-            totalMargin = totalRevenue - totalCost;
-            marginPercentage = totalRevenue > 0 ? ((totalMargin / totalRevenue) * 100) : 0;
+            // Set to null to indicate loading state
+            totalMargin = null;
+            marginPercentage = null;
         }
     } else {
-        // Fallback to inventory-based calculation
-        let totalCost = 0;
-        let totalRevenue = 0;
-        
-        inventory.forEach(item => {
-            const soldTickets = (item.total_tickets || 0) - (item.available_tickets || 0);
-            totalCost += soldTickets * (item.buying_price || 0);
-            totalRevenue += soldTickets * (item.selling_price || 0);
-        });
-        
-        totalMargin = totalRevenue - totalCost;
-        marginPercentage = totalRevenue > 0 ? ((totalMargin / totalRevenue) * 100) : 0;
+        // No sales data available, show loading state
+        console.log('📊 No sales data available for margin calculation');
+        totalMargin = null;
+        marginPercentage = null;
     }
     
     // Get cached percentages or defaults
