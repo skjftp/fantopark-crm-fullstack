@@ -429,7 +429,10 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
         }
       }
 
-      if (!inventory) continue;
+      if (!inventory) {
+        console.log('Inventory not found for:', record.event_name);
+        continue;
+      }
 
       result.enrichedData.inventory = inventory;
 
@@ -441,15 +444,31 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
         const cleanPhone = leadIdentifier.replace(/\D/g, '');
         let leadSnapshot;
 
-        if (cleanPhone.length >= 10) {
+        if (leadIdentifier.includes('@')) {
+          // Try email first for email identifiers
+          leadSnapshot = await db.collection('crm_leads')
+            .where('email', '==', leadIdentifier.toLowerCase())
+            .limit(1)
+            .get();
+        } else if (cleanPhone.length >= 10) {
+          // Try phone variations
           leadSnapshot = await db.collection('crm_leads')
             .where('phone', '==', leadIdentifier)
             .limit(1)
             .get();
 
-          if (leadSnapshot.empty && leadIdentifier.includes('@')) {
+          if (leadSnapshot.empty) {
+            // Try with cleaned phone
             leadSnapshot = await db.collection('crm_leads')
-              .where('email', '==', leadIdentifier.toLowerCase())
+              .where('phone', '==', cleanPhone)
+              .limit(1)
+              .get();
+          }
+
+          if (leadSnapshot.empty && !leadIdentifier.startsWith('+91')) {
+            // Try with +91 prefix
+            leadSnapshot = await db.collection('crm_leads')
+              .where('phone', '==', '+91' + cleanPhone)
               .limit(1)
               .get();
           }
@@ -469,7 +488,10 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
         }
       }
 
-      if (!lead) continue;
+      if (!lead) {
+        console.log('Lead not found for:', record.lead_identifier);
+        continue;
+      }
 
       result.enrichedData.lead = lead;
       result.enrichedData.tickets_to_allocate = parseInt(record.tickets_to_allocate);
