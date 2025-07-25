@@ -67,7 +67,6 @@ router.get('/for-allocation', authenticateToken, async (req, res) => {
     console.log('Querying orders for lead:', lead_id);
     const leadOrdersSnapshot = await db.collection(collections.orders)
       .where('lead_id', '==', lead_id)
-      .orderBy('created_date', 'desc')
       .get();
     
     console.log('Query completed, found', leadOrdersSnapshot.size, 'orders for lead');
@@ -79,6 +78,13 @@ router.get('/for-allocation', authenticateToken, async (req, res) => {
       if (data.event_name === event_name) {
         orders.push({ id: doc.id, ...data });
       }
+    });
+    
+    // Sort by created_date in memory
+    orders.sort((a, b) => {
+      const dateA = new Date(a.created_date || 0);
+      const dateB = new Date(b.created_date || 0);
+      return dateB - dateA; // Descending order
     });
     
     console.log(`Found ${orders.length} orders for lead ${lead_id} and event ${event_name}`);
