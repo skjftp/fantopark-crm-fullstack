@@ -31,12 +31,6 @@ window.renderReassignAllocationModal = () => {
       window.appState.availableOrders = [];
     }
     
-    // Clean up portal container
-    const portalContainer = document.getElementById('reassign-modal-portal');
-    if (portalContainer) {
-      portalContainer.remove();
-    }
-    
     // Restore allocation modal z-index
     const allocationModal = document.querySelector('.z-40');
     if (allocationModal && window._originalAllocationZIndex) {
@@ -131,29 +125,17 @@ window.renderReassignAllocationModal = () => {
     }
   };
 
-  // Create a portal container if it doesn't exist
-  let portalContainer = document.getElementById('reassign-modal-portal');
-  if (!portalContainer) {
-    portalContainer = document.createElement('div');
-    portalContainer.id = 'reassign-modal-portal';
-    portalContainer.style.position = 'fixed';
-    portalContainer.style.zIndex = '2147483647'; // Maximum z-index value
-    portalContainer.style.pointerEvents = 'none';
-    portalContainer.style.top = '0';
-    portalContainer.style.left = '0';
-    portalContainer.style.width = '100%';
-    portalContainer.style.height = '100%';
-    document.body.appendChild(portalContainer);
-  }
-  
-  // Force portal to end of body
-  if (portalContainer.parentNode !== document.body) {
-    document.body.appendChild(portalContainer);
-  }
-  
-  const modalContent = React.createElement('div', {
+  // Don't use portal - render directly with very high z-index
+  return React.createElement('div', {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center',
-    style: { pointerEvents: 'auto' },
+    style: { 
+      zIndex: 2147483647, // Maximum z-index
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0
+    },
     onClick: (e) => {
       // Close on backdrop click
       if (e.target === e.currentTarget) {
@@ -163,6 +145,7 @@ window.renderReassignAllocationModal = () => {
   },
     React.createElement('div', {
       className: 'bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto',
+      style: { position: 'relative', zIndex: 2147483647 },
       onClick: (e) => e.stopPropagation() // Prevent closing when clicking inside modal
     },
       // Header
@@ -268,9 +251,6 @@ window.renderReassignAllocationModal = () => {
       )
     )
   );
-  
-  // Use React Portal to render at the top level
-  return ReactDOM.createPortal(modalContent, portalContainer);
 };
 
 // Helper function to show the modal
