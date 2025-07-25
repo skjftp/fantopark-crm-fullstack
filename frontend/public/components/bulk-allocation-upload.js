@@ -1,166 +1,204 @@
 // Bulk Allocation Upload Component
 // Allows bulk uploading allocations via CSV file
 
+// Initialize state
+window.bulkAllocationState = window.bulkAllocationState || {
+  showModal: false,
+  file: null,
+  uploading: false,
+  previewData: null,
+  processing: false,
+  uploadHistory: [],
+  showHistory: false
+};
+
+// Global function to open modal
+window.openBulkAllocationUpload = () => {
+  window.bulkAllocationState.showModal = true;
+  window.bulkAllocationState.file = null;
+  window.bulkAllocationState.previewData = null;
+  window.bulkAllocationState.showHistory = false;
+  loadBulkAllocationHistory();
+  if (window.renderApp) {
+    window.renderApp();
+  }
+};
+
+// Close modal function
+window.closeBulkAllocationUpload = () => {
+  window.bulkAllocationState.showModal = false;
+  window.bulkAllocationState.file = null;
+  window.bulkAllocationState.previewData = null;
+  window.bulkAllocationState.uploading = false;
+  window.bulkAllocationState.processing = false;
+  if (window.renderApp) {
+    window.renderApp();
+  }
+};
+
+// Load upload history
+const loadBulkAllocationHistory = () => {
+  try {
+    const history = JSON.parse(localStorage.getItem('bulk_allocation_history') || '[]');
+    window.bulkAllocationState.uploadHistory = history.slice(0, 10); // Keep last 10 uploads
+  } catch (error) {
+    console.error('Error loading upload history:', error);
+  }
+};
+
+// Handle file selection
+window.handleBulkAllocationFileSelect = (event) => {
+  const selectedFile = event.target.files[0];
+  if (selectedFile && selectedFile.type === 'text/csv') {
+    window.bulkAllocationState.file = selectedFile;
+    window.bulkAllocationState.previewData = null;
+    if (window.renderApp) {
+      window.renderApp();
+    }
+  } else {
+    alert('Please select a valid CSV file');
+  }
+};
+
+// Preview allocations
+window.handleBulkAllocationPreview = async () => {
+  const { file } = window.bulkAllocationState;
+  if (!file) {
+    alert('Please select a file first');
+    return;
+  }
+
+  window.bulkAllocationState.uploading = true;
+  if (window.renderApp) {
+    window.renderApp();
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await window.apiCall('/bulk-allocations/preview', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+
+    window.bulkAllocationState.previewData = response.data;
+  } catch (error) {
+    alert('Error previewing allocations: ' + error.message);
+  } finally {
+    window.bulkAllocationState.uploading = false;
+    if (window.renderApp) {
+      window.renderApp();
+    }
+  }
+};
+
+// Process allocations
+window.handleBulkAllocationProcess = async () => {
+  const { file, previewData } = window.bulkAllocationState;
+  if (!file || !previewData || !previewData.canProceed) {
+    alert('Cannot process allocations. Please check the preview.');
+    return;
+  }
+
+  if (!confirm(`Are you sure you want to allocate ${previewData.summary.total_tickets} tickets across ${previewData.summary.valid_rows} allocations?`)) {
+    return;
+  }
+
+  window.bulkAllocationState.processing = true;
+  if (window.renderApp) {
+    window.renderApp();
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await window.apiCall('/bulk-allocations/process', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+
+    // Save to history
+    const historyEntry = {
+      id: Date.now(),
+      date: new Date().toISOString(),
+      filename: file.name,
+      processed: response.data.processed_count,
+      user: window.user?.name || 'Unknown'
+    };
+
+    const history = JSON.parse(localStorage.getItem('bulk_allocation_history') || '[]');
+    history.unshift(historyEntry);
+    localStorage.setItem('bulk_allocation_history', JSON.stringify(history.slice(0, 10)));
+
+    alert(`Successfully processed ${response.data.processed_count} allocations!`);
+    
+    // Reset and close
+    window.closeBulkAllocationUpload();
+
+    // Refresh inventory page
+    if (window.refreshInventory) {
+      window.refreshInventory();
+    }
+  } catch (error) {
+    alert('Error processing allocations: ' + error.message);
+  } finally {
+    window.bulkAllocationState.processing = false;
+    if (window.renderApp) {
+      window.renderApp();
+    }
+  }
+};
+
+// Download template
+window.handleBulkAllocationDownloadTemplate = async () => {
+  try {
+    const response = await fetch(`${window.API_URL}/bulk-allocations/template`, {
+      headers: {
+        'Authorization': `Bearer ${window.authToken}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to download template');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bulk_allocation_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (error) {
+    alert('Error downloading template: ' + error.message);
+  }
+};
+
+// Toggle history
+window.toggleBulkAllocationHistory = () => {
+  window.bulkAllocationState.showHistory = !window.bulkAllocationState.showHistory;
+  if (window.renderApp) {
+    window.renderApp();
+  }
+};
+
+// Render component
 window.renderBulkAllocationUpload = () => {
-  const { useState, useEffect } = React;
+  const state = window.bulkAllocationState;
   
-  // State management
-  const [isOpen, setIsOpen] = useState(window.showBulkAllocationUpload || false);
-  const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [previewData, setPreviewData] = useState(null);
-  const [processing, setProcessing] = useState(false);
-  const [uploadHistory, setUploadHistory] = useState([]);
-  const [showHistory, setShowHistory] = useState(false);
-
-  // Sync with window state
-  useEffect(() => {
-    window.showBulkAllocationUpload = isOpen;
-  }, [isOpen]);
-
-  // Global function to open modal
-  window.openBulkAllocationUpload = () => {
-    setIsOpen(true);
-    setFile(null);
-    setPreviewData(null);
-    loadUploadHistory();
-  };
-
-  // Load upload history
-  const loadUploadHistory = async () => {
-    try {
-      // For now, we'll store history in localStorage
-      const history = JSON.parse(localStorage.getItem('bulk_allocation_history') || '[]');
-      setUploadHistory(history.slice(0, 10)); // Keep last 10 uploads
-    } catch (error) {
-      console.error('Error loading upload history:', error);
-    }
-  };
-
-  // Handle file selection
-  const handleFileSelect = (event) => {
-    const selectedFile = event.target.files[0];
-    if (selectedFile && selectedFile.type === 'text/csv') {
-      setFile(selectedFile);
-      setPreviewData(null);
-    } else {
-      alert('Please select a valid CSV file');
-    }
-  };
-
-  // Preview allocations
-  const handlePreview = async () => {
-    if (!file) {
-      alert('Please select a file first');
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await window.apiCall('/bulk-allocations/preview', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      setPreviewData(response.data);
-    } catch (error) {
-      alert('Error previewing allocations: ' + error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Process allocations
-  const handleProcess = async () => {
-    if (!file || !previewData || !previewData.canProceed) {
-      alert('Cannot process allocations. Please check the preview.');
-      return;
-    }
-
-    if (!confirm(`Are you sure you want to allocate ${previewData.summary.total_tickets} tickets across ${previewData.summary.valid_rows} allocations?`)) {
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await window.apiCall('/bulk-allocations/process', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      // Save to history
-      const historyEntry = {
-        id: Date.now(),
-        date: new Date().toISOString(),
-        filename: file.name,
-        processed: response.data.processed_count,
-        user: window.user?.name || 'Unknown'
-      };
-
-      const history = JSON.parse(localStorage.getItem('bulk_allocation_history') || '[]');
-      history.unshift(historyEntry);
-      localStorage.setItem('bulk_allocation_history', JSON.stringify(history.slice(0, 10)));
-
-      alert(`Successfully processed ${response.data.processed_count} allocations!`);
-      
-      // Reset and close
-      setFile(null);
-      setPreviewData(null);
-      setIsOpen(false);
-
-      // Refresh inventory page
-      if (window.refreshInventory) {
-        window.refreshInventory();
-      }
-    } catch (error) {
-      alert('Error processing allocations: ' + error.message);
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  // Download template
-  const handleDownloadTemplate = async () => {
-    try {
-      const response = await fetch(`${window.API_URL}/bulk-allocations/template`, {
-        headers: {
-          'Authorization': `Bearer ${window.authToken}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to download template');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'bulk_allocation_template.csv';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      alert('Error downloading template: ' + error.message);
-    }
-  };
-
-  if (!isOpen) return null;
+  if (!state.showModal) return null;
 
   return React.createElement('div', {
     className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
@@ -176,7 +214,7 @@ window.renderBulkAllocationUpload = () => {
           className: 'text-2xl font-bold dark:text-white'
         }, 'Bulk Allocation Upload'),
         React.createElement('button', {
-          onClick: () => setIsOpen(false),
+          onClick: window.closeBulkAllocationUpload,
           className: 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
         }, '✕')
       ),
@@ -202,13 +240,13 @@ window.renderBulkAllocationUpload = () => {
             React.createElement('li', null, '• All allocations in a batch will succeed or fail together')
           ),
           React.createElement('button', {
-            onClick: handleDownloadTemplate,
+            onClick: window.handleBulkAllocationDownloadTemplate,
             className: 'mt-3 text-sm text-blue-600 dark:text-blue-400 hover:underline'
           }, '📥 Download Sample Template')
         ),
 
         // File Upload Section
-        !previewData && React.createElement('div', {
+        !state.previewData && React.createElement('div', {
           className: 'mb-6'
         },
           React.createElement('div', {
@@ -217,12 +255,12 @@ window.renderBulkAllocationUpload = () => {
             React.createElement('input', {
               type: 'file',
               accept: '.csv',
-              onChange: handleFileSelect,
+              onChange: window.handleBulkAllocationFileSelect,
               className: 'hidden',
-              id: 'csv-file-input'
+              id: 'bulk-allocation-csv-input'
             }),
             React.createElement('label', {
-              htmlFor: 'csv-file-input',
+              htmlFor: 'bulk-allocation-csv-input',
               className: 'cursor-pointer'
             },
               React.createElement('div', {
@@ -234,26 +272,26 @@ window.renderBulkAllocationUpload = () => {
               ),
               React.createElement('p', {
                 className: 'text-lg font-medium dark:text-white mb-2'
-              }, file ? file.name : 'Click to select CSV file'),
+              }, state.file ? state.file.name : 'Click to select CSV file'),
               React.createElement('p', {
                 className: 'text-sm text-gray-500 dark:text-gray-400'
               }, 'or drag and drop')
             )
           ),
 
-          file && React.createElement('div', {
+          state.file && React.createElement('div', {
             className: 'mt-4 flex justify-center'
           },
             React.createElement('button', {
-              onClick: handlePreview,
-              disabled: uploading,
+              onClick: window.handleBulkAllocationPreview,
+              disabled: state.uploading,
               className: 'bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 disabled:opacity-50'
-            }, uploading ? 'Validating...' : 'Preview Allocations')
+            }, state.uploading ? 'Validating...' : 'Preview Allocations')
           )
         ),
 
         // Preview Section
-        previewData && React.createElement('div', {
+        state.previewData && React.createElement('div', {
           className: 'space-y-6'
         },
           // Summary
@@ -272,7 +310,7 @@ window.renderBulkAllocationUpload = () => {
                 }, 'Total Rows'),
                 React.createElement('p', {
                   className: 'text-lg font-semibold dark:text-white'
-                }, previewData.summary.total_rows)
+                }, state.previewData.summary.total_rows)
               ),
               React.createElement('div', null,
                 React.createElement('p', {
@@ -280,7 +318,7 @@ window.renderBulkAllocationUpload = () => {
                 }, 'Valid'),
                 React.createElement('p', {
                   className: 'text-lg font-semibold text-green-600 dark:text-green-400'
-                }, previewData.summary.valid_rows)
+                }, state.previewData.summary.valid_rows)
               ),
               React.createElement('div', null,
                 React.createElement('p', {
@@ -288,7 +326,7 @@ window.renderBulkAllocationUpload = () => {
                 }, 'Errors'),
                 React.createElement('p', {
                   className: 'text-lg font-semibold text-red-600 dark:text-red-400'
-                }, previewData.summary.error_rows)
+                }, state.previewData.summary.error_rows)
               ),
               React.createElement('div', null,
                 React.createElement('p', {
@@ -296,7 +334,7 @@ window.renderBulkAllocationUpload = () => {
                 }, 'Warnings'),
                 React.createElement('p', {
                   className: 'text-lg font-semibold text-yellow-600 dark:text-yellow-400'
-                }, previewData.summary.warning_rows)
+                }, state.previewData.summary.warning_rows)
               ),
               React.createElement('div', null,
                 React.createElement('p', {
@@ -304,7 +342,7 @@ window.renderBulkAllocationUpload = () => {
                 }, 'Total Tickets'),
                 React.createElement('p', {
                   className: 'text-lg font-semibold text-blue-600 dark:text-blue-400'
-                }, previewData.summary.total_tickets)
+                }, state.previewData.summary.total_tickets)
               )
             )
           ),
@@ -349,7 +387,7 @@ window.renderBulkAllocationUpload = () => {
               React.createElement('tbody', {
                 className: 'bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700'
               },
-                previewData.validationResults.map((result, index) => 
+                state.previewData.validationResults.map((result, index) => 
                   React.createElement('tr', {
                     key: index,
                     className: result.status === 'error' ? 'bg-red-50 dark:bg-red-900/20' : 
@@ -403,21 +441,22 @@ window.renderBulkAllocationUpload = () => {
           },
             React.createElement('button', {
               onClick: () => {
-                setFile(null);
-                setPreviewData(null);
+                window.bulkAllocationState.file = null;
+                window.bulkAllocationState.previewData = null;
+                if (window.renderApp) window.renderApp();
               },
               className: 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
             }, '← Back to Upload'),
-            previewData.canProceed && React.createElement('button', {
-              onClick: handleProcess,
-              disabled: processing,
+            state.previewData.canProceed && React.createElement('button', {
+              onClick: window.handleBulkAllocationProcess,
+              disabled: state.processing,
               className: 'bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 disabled:opacity-50'
-            }, processing ? 'Processing...' : `Process ${previewData.summary.valid_rows} Allocations`)
+            }, state.processing ? 'Processing...' : `Process ${state.previewData.summary.valid_rows} Allocations`)
           )
         ),
 
         // Upload History
-        showHistory && uploadHistory.length > 0 && React.createElement('div', {
+        state.showHistory && state.uploadHistory.length > 0 && React.createElement('div', {
           className: 'mt-8 border-t pt-6'
         },
           React.createElement('h3', {
@@ -426,7 +465,7 @@ window.renderBulkAllocationUpload = () => {
           React.createElement('div', {
             className: 'space-y-2'
           },
-            uploadHistory.map(entry => 
+            state.uploadHistory.map(entry => 
               React.createElement('div', {
                 key: entry.id,
                 className: 'flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded'
@@ -453,11 +492,11 @@ window.renderBulkAllocationUpload = () => {
         className: 'flex justify-between items-center p-6 border-t dark:border-gray-700'
       },
         React.createElement('button', {
-          onClick: () => setShowHistory(!showHistory),
+          onClick: window.toggleBulkAllocationHistory,
           className: 'text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
-        }, showHistory ? 'Hide History' : 'Show History'),
+        }, state.showHistory ? 'Hide History' : 'Show History'),
         React.createElement('button', {
-          onClick: () => setIsOpen(false),
+          onClick: window.closeBulkAllocationUpload,
           className: 'bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600'
         }, 'Close')
       )

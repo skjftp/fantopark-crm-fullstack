@@ -157,3 +157,60 @@ Frontend `.env.example` shows required variables:
 - Use browser DevTools for frontend debugging
 - Backend logs to console; check Cloud Run logs in production
 - Common issues: IST timezone mismatches, permission errors, cache invalidation
+
+## CRITICAL: Frontend Component Patterns
+
+### ⚠️ DO NOT USE React Hooks in Modal/Component Functions
+
+The frontend uses a specific pattern where components are rendered outside of React's component tree. **NEVER use useState, useEffect, or any React hooks** in these components as they will cause React error #310.
+
+#### ❌ WRONG Pattern (causes React error #310):
+```javascript
+window.renderMyModal = () => {
+  const [isOpen, setIsOpen] = useState(false); // ❌ WILL CRASH
+  const [data, setData] = useState(null);      // ❌ WILL CRASH
+  
+  useEffect(() => {                            // ❌ WILL CRASH
+    // effect code
+  }, []);
+}
+```
+
+#### ✅ CORRECT Pattern (use window state):
+```javascript
+// Initialize state object
+window.myModalState = window.myModalState || {
+  showModal: false,
+  data: null,
+  loading: false
+};
+
+// Global functions to manage state
+window.openMyModal = () => {
+  window.myModalState.showModal = true;
+  window.myModalState.data = null;
+  if (window.renderApp) window.renderApp();
+};
+
+window.closeMyModal = () => {
+  window.myModalState.showModal = false;
+  if (window.renderApp) window.renderApp();
+};
+
+// Render function just reads state
+window.renderMyModal = () => {
+  const state = window.myModalState;
+  if (!state.showModal) return null;
+  
+  return React.createElement('div', { /* props */ },
+    // modal content
+  );
+};
+```
+
+### State Management Rules:
+1. **Use window objects** for state: `window.myComponentState = { ... }`
+2. **Call window.renderApp()** after state changes to trigger re-render
+3. **Event handlers** should be global functions: `window.handleMyAction = () => { ... }`
+4. **Check existing components** for patterns (e.g., allocation-management.js, inventory.js)
+5. **Never use hooks** - the components are called directly, not within React's render tree
