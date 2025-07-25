@@ -77,6 +77,9 @@
             renderApp();
         }
 
+        // Store root globally for re-renders
+        let reactRoot = null;
+        
         // Render function
         function renderApp() {
             const rootElement = document.getElementById('root');
@@ -92,9 +95,14 @@
                 )
             );
             
-            const root = ReactDOM.createRoot(rootElement);
-            root.render(app);
+            if (!reactRoot) {
+                reactRoot = ReactDOM.createRoot(rootElement);
+            }
+            reactRoot.render(app);
         }
+        
+        // Make renderApp globally available
+        window.renderApp = renderApp;
 
         // Initialize when DOM is ready
         if (document.readyState === 'loading') {

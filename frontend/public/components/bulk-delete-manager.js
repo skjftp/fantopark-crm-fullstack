@@ -34,9 +34,9 @@ window.renderBulkDeleteManager = () => {
   // Helper function to update state and re-render
   const updateState = (updates) => {
     Object.assign(window.bulkDeleteState, updates);
-    // Force re-render by toggling the showBulkDeleteManager
-    if (window.setShowBulkDeleteManager) {
-      window.setShowBulkDeleteManager(true);
+    // Force re-render by calling renderApp from the parent page
+    if (window.renderApp) {
+      window.renderApp();
     }
   };
 
