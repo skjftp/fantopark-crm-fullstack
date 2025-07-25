@@ -2,12 +2,11 @@
 // Allows reassigning allocations between orders (including split orders)
 
 window.renderReassignAllocationModal = () => {
-  const {
-    showReassignModal = window.showReassignModal,
-    selectedAllocation = window.selectedAllocation,
-    availableOrders = window.availableOrders || [],
-    loading = window.loading || false
-  } = window.appState || {};
+  // Check both appState and window for state variables
+  const showReassignModal = window.appState?.showReassignModal || window.showReassignModal;
+  const selectedAllocation = window.appState?.selectedAllocation || window.selectedAllocation;
+  const availableOrders = window.appState?.availableOrders || window.availableOrders || [];
+  const loading = window.appState?.loading || window.loading || false;
 
   if (!showReassignModal || !selectedAllocation) {
     return null;
@@ -22,13 +21,32 @@ window.renderReassignAllocationModal = () => {
   const closeModal = () => {
     console.log('🔄 Closing reassign allocation modal');
     
-    window.showReassignModal = false;
-    window.selectedAllocation = null;
-    window.availableOrders = [];
-    if (window.appState) {
-      window.appState.showReassignModal = false;
-      window.appState.selectedAllocation = null;
-      window.appState.availableOrders = [];
+    // Use proper setter functions
+    if (window.setShowReassignModal) {
+      window.setShowReassignModal(false);
+    } else {
+      window.showReassignModal = false;
+      if (window.appState) {
+        window.appState.showReassignModal = false;
+      }
+    }
+    
+    if (window.setSelectedAllocation) {
+      window.setSelectedAllocation(null);
+    } else {
+      window.selectedAllocation = null;
+      if (window.appState) {
+        window.appState.selectedAllocation = null;
+      }
+    }
+    
+    if (window.setAvailableOrders) {
+      window.setAvailableOrders([]);
+    } else {
+      window.availableOrders = [];
+      if (window.appState) {
+        window.appState.availableOrders = [];
+      }
     }
     
     // Restore allocation modal z-index
@@ -257,12 +275,23 @@ window.renderReassignAllocationModal = () => {
 window.showReassignAllocationModal = async (allocation) => {
   console.log('🔄 Opening reassign allocation modal for:', allocation);
   
-  // Set up reassign modal data
-  window.selectedAllocation = allocation;
-  window.showReassignModal = true;
-  if (window.appState) {
-    window.appState.selectedAllocation = allocation;
-    window.appState.showReassignModal = true;
+  // Set up reassign modal data using proper setter functions
+  if (window.setSelectedAllocation) {
+    window.setSelectedAllocation(allocation);
+  } else {
+    window.selectedAllocation = allocation;
+    if (window.appState) {
+      window.appState.selectedAllocation = allocation;
+    }
+  }
+  
+  if (window.setShowReassignModal) {
+    window.setShowReassignModal(true);
+  } else {
+    window.showReassignModal = true;
+    if (window.appState) {
+      window.appState.showReassignModal = true;
+    }
   }
   
   // Temporarily reduce z-index of allocation modal
@@ -283,23 +312,35 @@ window.showReassignAllocationModal = async (allocation) => {
     console.log('📋 Orders API response:', response);
     
     if (!response.error && response.data) {
-      window.availableOrders = response.data;
-      if (window.appState) {
-        window.appState.availableOrders = response.data;
+      if (window.setAvailableOrders) {
+        window.setAvailableOrders(response.data);
+      } else {
+        window.availableOrders = response.data;
+        if (window.appState) {
+          window.appState.availableOrders = response.data;
+        }
       }
       console.log(`✅ Loaded ${response.data.length} orders`);
     } else {
       console.warn('⚠️ No orders found or error in response');
-      window.availableOrders = [];
-      if (window.appState) {
-        window.appState.availableOrders = [];
+      if (window.setAvailableOrders) {
+        window.setAvailableOrders([]);
+      } else {
+        window.availableOrders = [];
+        if (window.appState) {
+          window.appState.availableOrders = [];
+        }
       }
     }
   } catch (error) {
     console.error('❌ Error loading orders:', error);
-    window.availableOrders = [];
-    if (window.appState) {
-      window.appState.availableOrders = [];
+    if (window.setAvailableOrders) {
+      window.setAvailableOrders([]);
+    } else {
+      window.availableOrders = [];
+      if (window.appState) {
+        window.appState.availableOrders = [];
+      }
     }
   }
   

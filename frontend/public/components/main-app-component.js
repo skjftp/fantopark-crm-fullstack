@@ -155,6 +155,9 @@ const [myActionsPagination, setMyActionsPagination] = useState({
   const [inventorySortField, setInventorySortField] = useState('event_date');
   const [inventorySortDirection, setInventorySortDirection] = useState('desc');
   const [allocationManagementInventory, setAllocationManagementInventory] = React.useState(null);
+  const [showReassignModal, setShowReassignModal] = React.useState(false);
+  const [selectedAllocation, setSelectedAllocation] = React.useState(null);
+  const [availableOrders, setAvailableOrders] = React.useState([]);
   const [leadsSourceFilter, setLeadsSourceFilter] = useState('all');
   const [leadsBusinessTypeFilter, setLeadsBusinessTypeFilter] = useState('all');
   const [leadsEventFilter, setLeadsEventFilter] = useState('all');
@@ -458,6 +461,9 @@ window.setIsMobileView = setIsMobileView;
     inventorySortField, setInventorySortField,
     inventorySortDirection, setInventorySortDirection,
     allocationManagementInventory, setAllocationManagementInventory,
+    showReassignModal, setShowReassignModal,
+    selectedAllocation, setSelectedAllocation,
+    availableOrders, setAvailableOrders,
     leadsSourceFilter, setLeadsSourceFilter,
     leadsBusinessTypeFilter, setLeadsBusinessTypeFilter,
     leadsEventFilter, setLeadsEventFilter,

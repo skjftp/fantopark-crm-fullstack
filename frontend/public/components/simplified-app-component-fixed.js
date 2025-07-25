@@ -97,6 +97,9 @@ window.testAssignmentRulesButtons = () => {
   window.appState.allocationManagementInventory = state.allocationManagementInventory;
   window.appState.currentAllocations = state.currentAllocations;
   window.appState.editingInventory = state.editingInventory;
+  window.appState.showReassignModal = state.showReassignModal;
+  window.appState.selectedAllocation = state.selectedAllocation;
+  window.appState.availableOrders = state.availableOrders;
 
   // Leads Filter States
   window.appState.searchQuery = state.searchQuery || '';
@@ -737,6 +740,9 @@ window.setShowReminderDashboard = createEnhancedModalSetter('setShowReminderDash
   window.setShowAllocationManagement = createEnhancedModalSetter('setShowAllocationManagement', 'showAllocationManagement', state.setShowAllocationManagement);
   window.setShowInventoryDetail = createEnhancedModalSetter('setShowInventoryDetail', 'showInventoryDetail', state.setShowInventoryDetail);
   window.setShowAllocationForm = createEnhancedModalSetter('setShowAllocationForm', 'showAllocationForm', state.setShowAllocationForm);
+  window.setShowReassignModal = createEnhancedModalSetter('setShowReassignModal', 'showReassignModal', state.setShowReassignModal);
+  window.setSelectedAllocation = state.setSelectedAllocation;
+  window.setAvailableOrders = state.setAvailableOrders;
 
   // ✅ ENHANCED MODAL STATE SETTERS - Order Management
   window.setShowOrderDetail = createEnhancedModalSetter('setShowOrderDetail', 'showOrderDetail', state.setShowOrderDetail);
