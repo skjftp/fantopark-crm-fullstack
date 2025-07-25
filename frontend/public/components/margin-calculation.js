@@ -3,14 +3,30 @@
 
 window.calculateOrderBasedMargin = async () => {
   try {
-    console.log('🔢 Calculating margin from orders and allocations...');
+    console.log('🔢 Starting order-based margin calculation...');
+    console.log('🔢 Function called with appState:', !!window.appState);
+    console.log('🔢 Financial data available:', !!window.appState?.financialData);
+    console.log('🔢 All sales data:', window.appState?.financialData?.allSales?.length || 0);
     
     const financialData = window.appState?.financialData || {};
-    const allSales = financialData.allSales || [];
+    // Try allSales first, then fall back to sales + activeSales
+    let allSales = financialData.allSales || [];
+    
+    if (allSales.length === 0) {
+      // Fallback: combine sales and activeSales if allSales not available
+      const sales = financialData.sales || [];
+      const activeSales = financialData.activeSales || [];
+      allSales = [...sales, ...activeSales];
+      console.log('🔄 Using fallback: combined sales + activeSales =', allSales.length);
+    }
+    
     const inventory = window.inventory || [];
     
     if (allSales.length === 0) {
       console.log('⚠️ No sales data available for margin calculation');
+      console.log('🔍 Available financial data keys:', Object.keys(financialData));
+      console.log('🔍 Sales data:', financialData.sales?.length || 0);
+      console.log('🔍 Active sales data:', financialData.activeSales?.length || 0);
       return { totalMargin: 0, marginPercentage: 0, totalSellingPrice: 0, totalBuyingPrice: 0, processedOrders: 0 };
     }
     

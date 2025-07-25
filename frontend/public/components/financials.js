@@ -912,9 +912,15 @@ window.renderEnhancedFinancialStats = () => {
         // Run both percentage and margin calculations in parallel
         Promise.all([
             window.calculateEnhancedFinancialMetrics(),
-            window.calculateOrderBasedMargin ? window.calculateOrderBasedMargin() : Promise.resolve(null)
-        ]).then(([newMetrics, marginResults]) => {
+            window.apiCall('/finance/metrics').catch(error => {
+                console.warn('⚠️ Backend margin calculation failed, using fallback:', error);
+                return null;
+            })
+        ]).then(([newMetrics, marginResponse]) => {
             window.financialPercentagesLoading = false;
+            
+            const marginResults = marginResponse?.data || null;
+            console.log('🔄 Backend margin calculation completed:', marginResults);
             
             // Cache the margin results
             if (marginResults) {
@@ -922,12 +928,19 @@ window.renderEnhancedFinancialStats = () => {
                     ...marginResults,
                     timestamp: Date.now()
                 };
+                console.log('💾 Cached backend margin results:', window.cachedOrderMargin);
+            } else {
+                console.log('⚠️ No margin results returned from backend');
             }
             
             // Update the UI by re-rendering
             if (window.appState?.activeTab === 'financials' && window.renderFinancials) {
+                console.log('🔄 Re-rendering financials with updated margin data');
                 window.renderFinancials();
             }
+        }).catch(error => {
+            console.error('❌ Error in async margin calculation:', error);
+            window.financialPercentagesLoading = false;
         });
     }
     
@@ -1022,26 +1035,45 @@ window.calculateEnhancedFinancialMetricsSync = () => {
     let totalMargin = 0;
     let marginPercentage = 0;
     
-    // Try to use order-based margin calculation if available
-    if (window.calculateOrderBasedMargin && financialData.allSales && financialData.allSales.length > 0) {
+    // Try to use backend margin calculation if available
+    if (financialData.allSales && financialData.allSales.length > 0) {
         // Use cached result if available to avoid repeated API calls
         if (window.cachedOrderMargin && Date.now() - window.cachedOrderMargin.timestamp < 60000) {
             totalMargin = window.cachedOrderMargin.totalMargin;
             marginPercentage = window.cachedOrderMargin.marginPercentage;
-            console.log('📊 Using cached order-based margin:', { totalMargin, marginPercentage });
+            console.log('📊 Using cached backend margin:', { totalMargin, marginPercentage });
         } else {
             // Will be calculated asynchronously and cached
-            console.log('📊 Using inventory fallback for immediate display, order-based calculation will update');
+            console.log('📊 Using inventory fallback for immediate display, backend calculation will update');
             
             // Fallback to inventory-based calculation for immediate display
             let totalCost = 0;
             let totalRevenue = 0;
             
-            inventory.forEach(item => {
+            console.log('🔍 Inventory fallback debug - Inventory items:', inventory.length);
+            inventory.forEach((item, index) => {
                 const soldTickets = (item.total_tickets || 0) - (item.available_tickets || 0);
-                totalCost += soldTickets * (item.buying_price || 0);
-                totalRevenue += soldTickets * (item.selling_price || 0);
+                const itemCost = soldTickets * (item.buying_price || 0);
+                const itemRevenue = soldTickets * (item.selling_price || 0);
+                
+                if (index < 3) { // Log first 3 items for debugging
+                    console.log(`🔍 Item ${index + 1}:`, {
+                        event: item.event_name,
+                        totalTickets: item.total_tickets,
+                        availableTickets: item.available_tickets, 
+                        soldTickets,
+                        buyingPrice: item.buying_price,
+                        sellingPrice: item.selling_price,
+                        itemCost,
+                        itemRevenue
+                    });
+                }
+                
+                totalCost += itemCost;
+                totalRevenue += itemRevenue;
             });
+            
+            console.log('🔍 Inventory fallback totals:', { totalCost, totalRevenue });
             
             totalMargin = totalRevenue - totalCost;
             marginPercentage = totalRevenue > 0 ? ((totalMargin / totalRevenue) * 100) : 0;
