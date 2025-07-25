@@ -596,6 +596,8 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
       // Update inventory availability
       const inventoryRef = db.collection('crm_inventory').doc(inventory.id);
       
+      console.log(`Updating inventory ${inventory.id} - has_categories: ${inventory.has_categories}, category: ${category?.name}`);
+      
       if (category && inventory.has_categories) {
         // Update category-specific availability
         const updatedCategories = [...(inventory.categories || [])];
@@ -603,15 +605,19 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
           cat.name === category.name && cat.section === category.section
         );
         
+        console.log(`Found category at index: ${categoryIndex}`);
+        
         if (categoryIndex >= 0) {
           updatedCategories[categoryIndex].available_tickets -= tickets_to_allocate;
           batch.update(inventoryRef, {
             categories: updatedCategories,
             available_tickets: admin.firestore.FieldValue.increment(-tickets_to_allocate)
           });
+          console.log(`Updating category tickets and total tickets by -${tickets_to_allocate}`);
         }
       } else {
         // Update general availability
+        console.log(`Updating general availability by -${tickets_to_allocate}`);
         batch.update(inventoryRef, {
           available_tickets: admin.firestore.FieldValue.increment(-tickets_to_allocate)
         });
@@ -635,7 +641,9 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
     }
 
     // Commit all changes
+    console.log(`Committing batch with ${processedAllocations.length} allocations`);
     await batch.commit();
+    console.log('Batch committed successfully');
 
     res.json({
       success: true,
