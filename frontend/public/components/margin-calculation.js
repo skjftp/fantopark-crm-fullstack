@@ -60,15 +60,32 @@ window.calculateOrderBasedMargin = async () => {
       );
       
       if (orderAllocations.length > 0) {
-        // Get order selling price (base_amount = amount without GST/TCS)
+        // Get order selling price (amount without GST/TCS, in INR)
         let orderSellingPrice = 0;
         
-        if (order.base_amount) {
-          orderSellingPrice = parseFloat(order.base_amount);
-        } else if (order.final_amount_inr) {
-          orderSellingPrice = parseFloat(order.final_amount_inr);
-        } else if (order.final_amount) {
-          orderSellingPrice = parseFloat(order.final_amount);
+        // For foreign currency orders, prioritize INR equivalents
+        if (order.payment_currency && order.payment_currency !== 'INR') {
+          // Foreign currency order - use INR equivalents
+          if (order.base_amount && order.exchange_rate) {
+            orderSellingPrice = parseFloat(order.base_amount) * parseFloat(order.exchange_rate);
+          } else if (order.final_amount_inr && order.gst_amount_inr && order.tcs_amount_inr) {
+            // Calculate base amount from final amount INR
+            orderSellingPrice = parseFloat(order.final_amount_inr) - parseFloat(order.gst_amount_inr || 0) - parseFloat(order.tcs_amount_inr || 0);
+          } else if (order.final_amount_inr) {
+            orderSellingPrice = parseFloat(order.final_amount_inr);
+          }
+        } else {
+          // INR order - use base amount directly
+          if (order.base_amount) {
+            orderSellingPrice = parseFloat(order.base_amount);
+          } else if (order.final_amount && order.gst_amount && order.tcs_amount) {
+            // Calculate base amount from final amount
+            orderSellingPrice = parseFloat(order.final_amount) - parseFloat(order.gst_amount || 0) - parseFloat(order.tcs_amount || 0);
+          } else if (order.final_amount_inr) {
+            orderSellingPrice = parseFloat(order.final_amount_inr);
+          } else if (order.final_amount) {
+            orderSellingPrice = parseFloat(order.final_amount);
+          }
         }
         
         // Calculate buying price from allocations and inventory
@@ -90,10 +107,19 @@ window.calculateOrderBasedMargin = async () => {
                 (!allocation.stand_section || cat.section === allocation.stand_section)
               );
               
-              if (category && category.buying_price) {
-                buyingPrice = parseFloat(category.buying_price);
-              } else if (category && category.buying_price_inr) {
-                buyingPrice = parseFloat(category.buying_price_inr);
+              if (category) {
+                // Prioritize INR buying price, then convert if needed
+                if (category.buying_price_inr) {
+                  buyingPrice = parseFloat(category.buying_price_inr);
+                } else if (category.buying_price) {
+                  const categoryBuyingPrice = parseFloat(category.buying_price);
+                  // Convert to INR if needed
+                  if (inventoryItem.price_currency && inventoryItem.price_currency !== 'INR' && inventoryItem.exchange_rate) {
+                    buyingPrice = categoryBuyingPrice * parseFloat(inventoryItem.exchange_rate);
+                  } else {
+                    buyingPrice = categoryBuyingPrice;
+                  }
+                }
               }
             }
             
@@ -102,7 +128,13 @@ window.calculateOrderBasedMargin = async () => {
               if (inventoryItem.buying_price_inr) {
                 buyingPrice = parseFloat(inventoryItem.buying_price_inr);
               } else if (inventoryItem.buying_price) {
-                buyingPrice = parseFloat(inventoryItem.buying_price);
+                const itemBuyingPrice = parseFloat(inventoryItem.buying_price);
+                // Convert to INR if needed
+                if (inventoryItem.price_currency && inventoryItem.price_currency !== 'INR' && inventoryItem.exchange_rate) {
+                  buyingPrice = itemBuyingPrice * parseFloat(inventoryItem.exchange_rate);
+                } else {
+                  buyingPrice = itemBuyingPrice;
+                }
               }
             }
             
@@ -119,9 +151,14 @@ window.calculateOrderBasedMargin = async () => {
         // Debug log for first few orders
         if (processedOrders <= 3) {
           console.log(`📋 Order ${order.order_number}:`, {
+            currency: order.payment_currency || 'INR',
+            baseAmount: order.base_amount,
+            finalAmountInr: order.final_amount_inr,
             sellingPrice: orderSellingPrice,
             buyingPrice: orderBuyingPrice,
-            allocations: orderAllocations.length
+            allocations: orderAllocations.length,
+            margin: orderSellingPrice - orderBuyingPrice,
+            marginPercent: orderSellingPrice > 0 ? ((orderSellingPrice - orderBuyingPrice) / orderSellingPrice * 100).toFixed(2) + '%' : '0%'
           });
         }
       }
