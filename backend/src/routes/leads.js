@@ -1615,7 +1615,8 @@ router.post('/preview-delete', authenticateToken, checkPermission('leads', 'dele
         count: totalCount,
         items: items.slice(0, 5), // Return only first 5 for preview
         event: event,
-        filters: { start_date, end_date }
+        filters: { start_date, end_date },
+        deleteType: 'HARD DELETE - PERMANENT'
       }
     });
   } catch (error) {
@@ -1660,7 +1661,7 @@ router.delete('/bulk-delete', authenticateToken, checkPermission('leads', 'delet
       return res.json({ data: { deletedCount: 0 } });
     }
 
-    // Perform soft delete in batches
+    // Perform hard delete in batches
     let batch = db.batch();
     let count = 0;
     
@@ -1669,11 +1670,8 @@ router.delete('/bulk-delete', authenticateToken, checkPermission('leads', 'delet
       // Skip if already deleted
       if (data.isDeleted === true) return;
       
-      batch.update(doc.ref, {
-        isDeleted: true,
-        deletedAt: new Date().toISOString(),
-        deletedBy: req.user.email
-      });
+      // Hard delete - permanently remove the document
+      batch.delete(doc.ref);
       count++;
       
       // Firestore has a limit of 500 operations per batch
@@ -1688,7 +1686,7 @@ router.delete('/bulk-delete', authenticateToken, checkPermission('leads', 'delet
       await batch.commit();
     }
 
-    console.log(`BULK DELETE SUCCESS: Deleted ${count} leads with event="${event}" by ${req.user.email}`);
+    console.log(`BULK HARD DELETE SUCCESS: Permanently deleted ${count} leads with event="${event}" by ${req.user.email}`);
 
     res.json({
       data: {

@@ -86,10 +86,11 @@ window.renderBulkDeleteManager = () => {
     }
 
     const confirmed = window.confirm(
-      `⚠️ FINAL WARNING ⚠️\n\n` +
-      `You are about to permanently delete ${state.previewData.count} ${state.deleteType}.\n` +
-      `This action CANNOT be undone.\n\n` +
-      `Are you absolutely sure?`
+      `⚠️ FINAL WARNING - HARD DELETE ⚠️\n\n` +
+      `You are about to PERMANENTLY DELETE ${state.previewData.count} ${state.deleteType}.\n` +
+      `This is a HARD DELETE - data will be COMPLETELY REMOVED from the database.\n` +
+      `This action CANNOT be undone or recovered!\n\n` +
+      `Are you absolutely sure you want to proceed?`
     );
 
     if (!confirmed) return;
@@ -149,7 +150,7 @@ window.renderBulkDeleteManager = () => {
         className: 'bg-red-50 border-2 border-red-300 rounded-lg p-4 mb-6'
       },
         React.createElement('p', { className: 'text-red-800 font-semibold' },
-          '🚨 CRITICAL WARNING: This tool permanently deletes data from the database. Use with extreme caution!'
+          '🚨 CRITICAL WARNING: This tool PERMANENTLY DELETES data from the database. This is a HARD DELETE - data CANNOT be recovered! Use with extreme caution!'
         )
       ),
 
