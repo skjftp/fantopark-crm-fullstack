@@ -235,7 +235,8 @@ window.renderBulkAllocationUpload = () => {
             className: 'space-y-1 text-sm text-blue-800 dark:text-blue-200'
           },
             React.createElement('li', null, '• CSV must contain: event_name, lead_identifier (phone/email), tickets_to_allocate'),
-            React.createElement('li', null, '• Optional fields: category_name, notes, order_id, price_override'),
+            React.createElement('li', null, '• Optional fields: category_name, stand_section, notes, order_id, price_override'),
+            React.createElement('li', null, '• For categorized inventory: provide both category_name AND stand_section for unique match'),
             React.createElement('li', null, '• Lead identifier can be phone number or email address'),
             React.createElement('li', null, '• System will validate inventory availability and lead existence'),
             React.createElement('li', null, '• All allocations in a batch will succeed or fail together')
@@ -382,6 +383,9 @@ window.renderBulkAllocationUpload = () => {
                   }, 'Category'),
                   React.createElement('th', {
                     className: 'px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase'
+                  }, 'Stand/Section'),
+                  React.createElement('th', {
+                    className: 'px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase'
                   }, 'Issues')
                 )
               ),
@@ -420,6 +424,9 @@ window.renderBulkAllocationUpload = () => {
                     React.createElement('td', {
                       className: 'px-4 py-2 text-sm dark:text-gray-300'
                     }, result.data.category_name || '-'),
+                    React.createElement('td', {
+                      className: 'px-4 py-2 text-sm dark:text-gray-300'
+                    }, result.data.stand_section || result.enrichedData?.category?.section || '-'),
                     React.createElement('td', {
                       className: 'px-4 py-2 text-sm'
                     },

@@ -196,16 +196,25 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
       const ticketsToAllocate = parseInt(record.tickets_to_allocate);
       
       if (record.category_name && inventory.categories) {
-        const category = inventory.categories.find(cat => 
-          cat.name.toLowerCase() === record.category_name.toLowerCase()
-        );
+        // Match by both category name AND section/stand
+        const category = inventory.categories.find(cat => {
+          const categoryMatches = cat.name.toLowerCase() === record.category_name.toLowerCase();
+          const sectionMatches = !record.stand_section || 
+            (cat.section && cat.section.toLowerCase() === record.stand_section.toLowerCase());
+          return categoryMatches && sectionMatches;
+        });
 
         if (!category) {
-          result.errors.push(`Category "${record.category_name}" not found for this event`);
+          if (record.stand_section) {
+            result.errors.push(`Category "${record.category_name}" with section "${record.stand_section}" not found for this event`);
+          } else {
+            result.errors.push(`Category "${record.category_name}" not found for this event`);
+          }
           result.status = 'error';
         } else {
           result.enrichedData.category = {
             name: category.name,
+            section: category.section || '',
             available_tickets: category.available_tickets || 0,
             selling_price: category.selling_price || inventory.selling_price || 0
           };
@@ -425,9 +434,12 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
 
       // Validate category if specified
       if (record.category_name && inventory.categories) {
-        const category = inventory.categories.find(cat => 
-          cat.name.toLowerCase() === record.category_name.toLowerCase()
-        );
+        const category = inventory.categories.find(cat => {
+          const categoryMatches = cat.name.toLowerCase() === record.category_name.toLowerCase();
+          const sectionMatches = !record.stand_section || 
+            (cat.section && cat.section.toLowerCase() === record.stand_section.toLowerCase());
+          return categoryMatches && sectionMatches;
+        });
         if (category) {
           result.enrichedData.category = category;
         }
@@ -473,8 +485,10 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
       // Add category info if applicable
       if (category) {
         allocationData.category_name = category.name;
+        allocationData.category_section = category.section || '';
         allocationData.category_details = {
           name: category.name,
+          section: category.section || '',
           selling_price: price_override || category.selling_price
         };
       }
@@ -498,7 +512,9 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
       if (category && inventory.has_categories) {
         // Update category-specific availability
         const updatedCategories = [...(inventory.categories || [])];
-        const categoryIndex = updatedCategories.findIndex(cat => cat.name === category.name);
+        const categoryIndex = updatedCategories.findIndex(cat => 
+          cat.name === category.name && cat.section === category.section
+        );
         
         if (categoryIndex >= 0) {
           updatedCategories[categoryIndex].available_tickets -= tickets_to_allocate;
@@ -553,10 +569,10 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
 
 // Download sample CSV template
 router.get('/template', authenticateToken, (req, res) => {
-  const csvContent = `event_name,lead_identifier,tickets_to_allocate,category_name,notes,order_id,price_override
-"India Tour Of England, 2025 - Lords Test","+919876543210",2,"Premium","VIP Client","",""
-"India Tour Of England, 2025 - Lords Test","john@example.com",4,"Standard","Corporate booking","ORD-2025-001",""
-"IPL 2025 - MI vs CSK","9988776655",1,"","Single ticket allocation","",5000`;
+  const csvContent = `event_name,lead_identifier,tickets_to_allocate,category_name,stand_section,notes,order_id,price_override
+"India Tour Of England, 2025 - Lords Test","+919876543210",2,"Premium","A1","VIP Client","",""
+"India Tour Of England, 2025 - Lords Test","john@example.com",4,"Standard","B2","Corporate booking","ORD-2025-001",""
+"IPL 2025 - MI vs CSK","9988776655",1,"General","","Single ticket allocation","",5000`;
 
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="bulk_allocation_template.csv"');
