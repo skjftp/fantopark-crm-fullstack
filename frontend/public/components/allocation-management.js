@@ -559,13 +559,20 @@ window.renderAllocationManagement = () => {
                         ),
                         React.createElement('td', { className: 'px-4 py-2 text-center' },
                           React.createElement('div', { className: 'flex space-x-2 justify-center' },
-                            // Reassign button
-                            allocation.order_ids && allocation.order_ids.length > 0 && React.createElement('button', {
+                            // Link/Reassign button
+                            allocation.order_ids && allocation.order_ids.length > 0 ? 
+                            React.createElement('button', {
                               onClick: () => window.showReassignAllocationModal(allocation),
                               className: 'bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 disabled:opacity-50',
                               disabled: loading,
                               title: `Reassign allocation to different order`
-                            }, '🔄'),
+                            }, '🔄') :
+                            React.createElement('button', {
+                              onClick: () => window.showReassignAllocationModal(allocation),
+                              className: 'bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 disabled:opacity-50',
+                              disabled: loading,
+                              title: `Link allocation to order`
+                            }, '🔗'),
                             // Unallocate button
                             React.createElement('button', {
                               onClick: () => handleUnallocate(allocation.id, allocation.tickets_allocated, allocation.category_name),

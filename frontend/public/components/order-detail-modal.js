@@ -262,6 +262,154 @@ window.renderOrderDetailModal = () => {
           )
         ),
 
+        // 🎫 Linked Allocations Section
+        (() => {
+          // Function to fetch available allocations when clicked
+          const fetchAvailableAllocations = async () => {
+            if (!currentOrderDetail.lead_id || !currentOrderDetail.event_name) {
+              console.warn('Missing lead_id or event_name for fetching allocations');
+              return;
+            }
+
+            try {
+              const response = await window.apiCall(`/allocations?lead_id=${currentOrderDetail.lead_id}&event_name=${encodeURIComponent(currentOrderDetail.event_name)}`);
+              if (response.data) {
+                // Filter to show only unlinked allocations or allocations linked to this order
+                const relevantAllocations = response.data.filter(allocation => 
+                  !allocation.order_ids || allocation.order_ids.length === 0 || 
+                  allocation.order_ids.includes(currentOrderDetail.id)
+                );
+                
+                // Store in window for easy access
+                window.orderDetailAllocations = relevantAllocations;
+                
+                // Force re-render
+                if (window.setShowOrderDetail) {
+                  window.setShowOrderDetail(true);
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching allocations:', error);
+            }
+          };
+
+          // Initialize state for expanded view
+          if (!window.orderDetailAllocationsExpanded) {
+            window.orderDetailAllocationsExpanded = false;
+          }
+
+          const linkedAllocations = window.orderDetailAllocations?.filter(a => 
+            a.order_ids && a.order_ids.includes(currentOrderDetail.id)
+          ) || [];
+          
+          const availableAllocations = window.orderDetailAllocations?.filter(a => 
+            !a.order_ids || a.order_ids.length === 0
+          ) || [];
+
+          return React.createElement('div', null,
+            React.createElement('div', { className: 'flex items-center mb-4' },
+              React.createElement('span', { className: 'text-blue-600 text-lg mr-2' }, '🎫'),
+              React.createElement('h3', { className: 'text-lg font-semibold text-gray-900' }, 'Allocations'),
+              React.createElement('button', {
+                className: 'ml-auto text-blue-600 hover:text-blue-800 text-sm',
+                onClick: async () => {
+                  if (!window.orderDetailAllocations) {
+                    await fetchAvailableAllocations();
+                  }
+                  window.orderDetailAllocationsExpanded = !window.orderDetailAllocationsExpanded;
+                  // Force re-render
+                  if (window.setShowOrderDetail) {
+                    window.setShowOrderDetail(true);
+                  }
+                }
+              }, window.orderDetailAllocationsExpanded ? '−' : '+')
+            ),
+            
+            // Summary view when collapsed
+            !window.orderDetailAllocationsExpanded && React.createElement('div', { className: 'text-sm text-gray-600' },
+              `${linkedAllocations.length} linked allocation(s) ${availableAllocations.length > 0 ? `• ${availableAllocations.length} available to link` : ''}`
+            ),
+            
+            // Expanded view with allocations
+            window.orderDetailAllocationsExpanded && React.createElement('div', { className: 'space-y-4' },
+              // Linked allocations
+              linkedAllocations.length > 0 && React.createElement('div', null,
+                React.createElement('h4', { className: 'font-medium text-gray-700 mb-2' }, 'Linked Allocations'),
+                React.createElement('div', { className: 'space-y-2' },
+                  linkedAllocations.map(allocation => 
+                    React.createElement('div', { 
+                      key: allocation.id,
+                      className: 'p-2 bg-gray-50 rounded text-sm'
+                    },
+                      React.createElement('div', { className: 'flex justify-between items-center' },
+                        React.createElement('span', null,
+                          `${allocation.tickets_allocated} tickets • ${allocation.category_name || 'General'} • ${allocation.lead_details?.name || 'Unknown'}`
+                        ),
+                        hasPermission('orders', 'write') && React.createElement('button', {
+                          className: 'text-red-600 hover:text-red-800 text-xs',
+                          onClick: async () => {
+                            if (confirm('Unlink this allocation from the order?')) {
+                              // Call reassign with null to unlink
+                              try {
+                                await window.apiCall(`/orders/allocations/${allocation.id}/reassign`, {
+                                  method: 'PUT',
+                                  body: JSON.stringify({ new_order_id: null })
+                                });
+                                await fetchAvailableAllocations();
+                                alert('Allocation unlinked successfully');
+                              } catch (error) {
+                                alert('Failed to unlink allocation: ' + error.message);
+                              }
+                            }
+                          }
+                        }, 'Unlink')
+                      )
+                    )
+                  )
+                )
+              ),
+              
+              // Available allocations to link
+              availableAllocations.length > 0 && React.createElement('div', null,
+                React.createElement('h4', { className: 'font-medium text-gray-700 mb-2' }, 'Available Allocations to Link'),
+                React.createElement('div', { className: 'space-y-2' },
+                  availableAllocations.map(allocation => 
+                    React.createElement('div', { 
+                      key: allocation.id,
+                      className: 'p-2 bg-blue-50 rounded text-sm'
+                    },
+                      React.createElement('div', { className: 'flex justify-between items-center' },
+                        React.createElement('span', null,
+                          `${allocation.tickets_allocated} tickets • ${allocation.category_name || 'General'} • ${allocation.lead_details?.name || 'Unknown'}`
+                        ),
+                        hasPermission('orders', 'write') && React.createElement('button', {
+                          className: 'bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700',
+                          onClick: async () => {
+                            try {
+                              await window.apiCall(`/orders/allocations/${allocation.id}/reassign`, {
+                                method: 'PUT',
+                                body: JSON.stringify({ new_order_id: currentOrderDetail.id })
+                              });
+                              await fetchAvailableAllocations();
+                              alert('Allocation linked successfully');
+                            } catch (error) {
+                              alert('Failed to link allocation: ' + error.message);
+                            }
+                          }
+                        }, 'Link to Order')
+                      )
+                    )
+                  )
+                )
+              ),
+              
+              // No allocations message
+              linkedAllocations.length === 0 && availableAllocations.length === 0 && 
+              React.createElement('p', { className: 'text-sm text-gray-500' }, 'No allocations found for this lead and event')
+            )
+          );
+        })(),
+
             // 🏷️ Uploaded Documents Section - UPDATED WITH DOWNLOAD FUNCTIONALITY
             React.createElement('div', null,               
 
