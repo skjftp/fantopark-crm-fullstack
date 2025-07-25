@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { db } = require('../firebase');
+const { db } = require('../config/db');
 const { authenticateToken, checkPermission } = require('../middleware/auth');
-const { logUserActivity } = require('../services/auditService');
 
 // Get allocations by lead_id and event_name
 router.get('/', authenticateToken, checkPermission('inventory', 'read'), async (req, res) => {
