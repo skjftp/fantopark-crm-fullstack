@@ -125,11 +125,20 @@ window.openInventoryFormForPayable = function(payable) {
 
 // Function to submit payment for a payable
 window.submitPayablePayment = async function(payableId) {
+    console.log('submitPayablePayment called with payableId:', payableId);
+    
     try {
         const paymentAmount = parseFloat(document.getElementById('payment-amount').value);
         const paymentDate = document.getElementById('payment-date').value;
         const referenceNumber = document.getElementById('reference-number').value;
         const paymentNotes = document.getElementById('payment-notes').value;
+        
+        console.log('Payment data collected:', {
+            paymentAmount,
+            paymentDate,
+            referenceNumber,
+            paymentNotes
+        });
         
         // Validate payment amount
         if (!paymentAmount || paymentAmount <= 0) {
@@ -154,6 +163,9 @@ window.submitPayablePayment = async function(payableId) {
             paymentData.payment_exchange_rate = exchangeRate;
         }
         
+        console.log('Sending payment data:', paymentData);
+        console.log('API URL:', `${window.API_CONFIG.API_URL}/payables/${payableId}/partial-payment`);
+        
         const response = await fetch(`${window.API_CONFIG.API_URL}/payables/${payableId}/partial-payment`, {
             method: 'POST',
             headers: {
@@ -163,12 +175,15 @@ window.submitPayablePayment = async function(payableId) {
             body: JSON.stringify(paymentData)
         });
         
+        console.log('Response status:', response.status);
+        
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to record payment');
         }
         
         const result = await response.json();
+        console.log('Payment response result:', result);
         
         // Close modal and show success message
         document.getElementById('record-payment-modal').remove();
