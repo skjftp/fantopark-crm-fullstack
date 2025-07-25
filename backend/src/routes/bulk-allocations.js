@@ -4,7 +4,6 @@ const multer = require('multer');
 const csv = require('csv-parse');
 const { db, admin } = require('../config/db');
 const { authenticateToken, checkPermission } = require('../middleware/auth');
-const collections = require('../config/collections');
 
 // Configure multer for CSV uploads
 const upload = multer({
@@ -97,7 +96,7 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
       // Look up inventory
       let inventory = inventoryCache.get(record.event_name);
       if (!inventory) {
-        const inventorySnapshot = await db.collection(collections.inventory)
+        const inventorySnapshot = await db.collection('crm_inventory')
           .where('event_name', '==', record.event_name)
           .where('isDeleted', '!=', true)
           .limit(1)
@@ -135,7 +134,7 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
 
         if (cleanPhone.length >= 10) {
           // Search by phone
-          leadSnapshot = await db.collection(collections.leads)
+          leadSnapshot = await db.collection('crm_leads')
             .where('phone', '==', leadIdentifier)
             .where('isDeleted', '!=', true)
             .limit(1)
@@ -143,7 +142,7 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
 
           if (leadSnapshot.empty) {
             // Try with cleaned phone
-            leadSnapshot = await db.collection(collections.leads)
+            leadSnapshot = await db.collection('crm_leads')
               .where('phone', '==', cleanPhone)
               .where('isDeleted', '!=', true)
               .limit(1)
@@ -152,7 +151,7 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
 
           if (leadSnapshot.empty && !leadIdentifier.startsWith('+91')) {
             // Try with +91 prefix
-            leadSnapshot = await db.collection(collections.leads)
+            leadSnapshot = await db.collection('crm_leads')
               .where('phone', '==', '+91' + cleanPhone)
               .where('isDeleted', '!=', true)
               .limit(1)
@@ -163,7 +162,7 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
         // If not found by phone, try email
         if (!leadSnapshot || leadSnapshot.empty) {
           if (leadIdentifier.includes('@')) {
-            leadSnapshot = await db.collection(collections.leads)
+            leadSnapshot = await db.collection('crm_leads')
               .where('email', '==', leadIdentifier.toLowerCase())
               .where('isDeleted', '!=', true)
               .limit(1)
@@ -230,7 +229,7 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
       }
 
       // Check for existing allocation
-      const existingAllocationSnapshot = await db.collection(collections.allocations)
+      const existingAllocationSnapshot = await db.collection('crm_allocations')
         .where('inventory_id', '==', inventory.id)
         .where('lead_id', '==', lead.id)
         .where('isDeleted', '!=', true)
@@ -250,7 +249,7 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
 
       // Validate order_id if provided
       if (record.order_id) {
-        const orderSnapshot = await db.collection(collections.orders)
+        const orderSnapshot = await db.collection('crm_orders')
           .doc(record.order_id)
           .get();
 
@@ -369,7 +368,7 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
       // Look up inventory
       let inventory = inventoryCache.get(record.event_name);
       if (!inventory) {
-        const inventorySnapshot = await db.collection(collections.inventory)
+        const inventorySnapshot = await db.collection('crm_inventory')
           .where('event_name', '==', record.event_name)
           .where('isDeleted', '!=', true)
           .limit(1)
@@ -395,14 +394,14 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
         let leadSnapshot;
 
         if (cleanPhone.length >= 10) {
-          leadSnapshot = await db.collection(collections.leads)
+          leadSnapshot = await db.collection('crm_leads')
             .where('phone', '==', leadIdentifier)
             .where('isDeleted', '!=', true)
             .limit(1)
             .get();
 
           if (leadSnapshot.empty && leadIdentifier.includes('@')) {
-            leadSnapshot = await db.collection(collections.leads)
+            leadSnapshot = await db.collection('crm_leads')
               .where('email', '==', leadIdentifier.toLowerCase())
               .where('isDeleted', '!=', true)
               .limit(1)
@@ -436,7 +435,7 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
 
       // Validate order if specified
       if (record.order_id) {
-        const orderSnapshot = await db.collection(collections.orders)
+        const orderSnapshot = await db.collection('crm_orders')
           .doc(record.order_id)
           .get();
         if (orderSnapshot.exists && orderSnapshot.data().lead_id === lead.id) {
@@ -490,11 +489,11 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
       }
 
       // Create allocation
-      const allocationRef = db.collection(collections.allocations).doc();
+      const allocationRef = db.collection('crm_allocations').doc();
       batch.set(allocationRef, allocationData);
 
       // Update inventory availability
-      const inventoryRef = db.collection(collections.inventory).doc(inventory.id);
+      const inventoryRef = db.collection('crm_inventory').doc(inventory.id);
       
       if (category && inventory.has_categories) {
         // Update category-specific availability
@@ -517,7 +516,7 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
 
       // Update order if linked
       if (order) {
-        const orderRef = db.collection(collections.orders).doc(order.id);
+        const orderRef = db.collection('crm_orders').doc(order.id);
         batch.update(orderRef, {
           allocation_ids: admin.firestore.FieldValue.arrayUnion(allocationRef.id)
         });
