@@ -128,59 +128,79 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
         has_categories: inventory.categories && inventory.categories.length > 0
       };
 
-      // Look up lead by phone or email
+      // Look up lead by phone or email + event name
       const leadIdentifier = record.lead_identifier.trim();
-      let lead = leadCache.get(leadIdentifier);
+      const cacheKey = `${leadIdentifier}_${record.event_name}`;
+      let lead = leadCache.get(cacheKey);
       
       if (!lead) {
         // Try phone first (remove non-digits and check)
         const cleanPhone = leadIdentifier.replace(/\D/g, '');
-        let leadSnapshot;
+        let allLeadsSnapshots = [];
 
         if (cleanPhone.length >= 10) {
-          // Search by phone
-          leadSnapshot = await db.collection('crm_leads')
-            .where('phone', '==', leadIdentifier)
-            .limit(1)
-            .get();
-
-          if (leadSnapshot.empty) {
-            // Try with cleaned phone
-            leadSnapshot = await db.collection('crm_leads')
-              .where('phone', '==', cleanPhone)
-              .limit(1)
-              .get();
+          // Search by phone - get ALL matching leads
+          const phoneQueries = [
+            db.collection('crm_leads').where('phone', '==', leadIdentifier).get(),
+            db.collection('crm_leads').where('phone', '==', cleanPhone).get()
+          ];
+          
+          if (!leadIdentifier.startsWith('+91')) {
+            phoneQueries.push(
+              db.collection('crm_leads').where('phone', '==', '+91' + cleanPhone).get()
+            );
           }
-
-          if (leadSnapshot.empty && !leadIdentifier.startsWith('+91')) {
-            // Try with +91 prefix
-            leadSnapshot = await db.collection('crm_leads')
-              .where('phone', '==', '+91' + cleanPhone)
-              .limit(1)
-              .get();
-          }
+          
+          const phoneResults = await Promise.all(phoneQueries);
+          phoneResults.forEach(snapshot => {
+            if (!snapshot.empty) {
+              allLeadsSnapshots.push(...snapshot.docs);
+            }
+          });
         }
 
         // If not found by phone, try email
-        if (!leadSnapshot || leadSnapshot.empty) {
-          if (leadIdentifier.includes('@')) {
-            leadSnapshot = await db.collection('crm_leads')
-              .where('email', '==', leadIdentifier.toLowerCase())
-              .limit(1)
-              .get();
+        if (allLeadsSnapshots.length === 0 && leadIdentifier.includes('@')) {
+          const emailSnapshot = await db.collection('crm_leads')
+            .where('email', '==', leadIdentifier.toLowerCase())
+            .get();
+          
+          if (!emailSnapshot.empty) {
+            allLeadsSnapshots.push(...emailSnapshot.docs);
           }
         }
 
-        if (leadSnapshot && !leadSnapshot.empty) {
-          // Filter out deleted leads
-          const validLeads = leadSnapshot.docs.filter(doc => 
-            doc.data().isDeleted !== true
+        if (allLeadsSnapshots.length > 0) {
+          // Filter out deleted leads and find the one matching the event
+          const validLeads = allLeadsSnapshots
+            .filter(doc => doc.data().isDeleted !== true)
+            .map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          console.log(`Found ${validLeads.length} valid leads for identifier ${leadIdentifier}`);
+          
+          // First try to find exact event match in lead_for_event
+          let matchingLead = validLeads.find(leadData => 
+            leadData.lead_for_event === record.event_name
           );
           
-          if (validLeads.length > 0) {
-            const doc = validLeads[0];
-            lead = { id: doc.id, ...doc.data() };
-            leadCache.set(leadIdentifier, lead);
+          // If no exact match, check client_events array
+          if (!matchingLead) {
+            matchingLead = validLeads.find(leadData => 
+              leadData.client_events && 
+              leadData.client_events.includes(record.event_name)
+            );
+          }
+          
+          // If still no match but we have leads, take the first one and add warning
+          if (!matchingLead && validLeads.length > 0) {
+            matchingLead = validLeads[0];
+            result.warnings.push(`No lead found for exact event match. Using lead for ${matchingLead.lead_for_event || 'unknown event'}`);
+          }
+          
+          if (matchingLead) {
+            lead = matchingLead;
+            leadCache.set(cacheKey, lead);
+            console.log(`Matched lead ${lead.id} for event ${record.event_name}`);
           }
         }
       }
@@ -297,10 +317,28 @@ router.post('/preview', authenticateToken, upload.single('file'), async (req, re
           result.warnings.push(`Order "${record.order_id}" not found - will create allocation without order link`);
         } else {
           const orderData = orderSnapshot.data();
-          if (orderData.lead_id !== lead.id) {
-            result.errors.push(`Order "${record.order_id}" belongs to a different lead`);
-            result.status = 'error';
+          
+          // FIXED: Allow multiple allocations for the same lead-order combination
+          // Only error if the order belongs to a completely different lead
+          // If the CSV has the same lead as the order, it's valid (multiple allocations)
+          if (orderData.lead_id && orderData.lead_id !== lead.id) {
+            // Double check if the order's lead_name matches the current lead
+            if (orderData.lead_name && 
+                (orderData.lead_name.toLowerCase() === lead.name?.toLowerCase() ||
+                 orderData.client_name?.toLowerCase() === lead.name?.toLowerCase() ||
+                 orderData.legal_name?.toLowerCase() === lead.name?.toLowerCase())) {
+              // Names match, this is likely the same lead - allow it
+              result.enrichedData.order = {
+                id: orderSnapshot.id,
+                order_number: orderData.order_number
+              };
+              result.warnings.push(`Order lead_id mismatch but names match - proceeding with allocation`);
+            } else {
+              result.errors.push(`Order "${record.order_id}" belongs to a different lead`);
+              result.status = 'error';
+            }
           } else {
+            // No lead_id in order or it matches - proceed normally
             result.enrichedData.order = {
               id: orderSnapshot.id,
               order_number: orderData.order_number

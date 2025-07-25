@@ -954,14 +954,31 @@ window.calculateEnhancedFinancialMetricsSync = () => {
     const payables = financialData.payables || [];
     const receivables = financialData.receivables || [];
     
+    // Debug logging
+    console.log('📊 calculateEnhancedFinancialMetricsSync DEBUG:', {
+        hasFinancialData: !!financialData,
+        hasTotalSales: !!financialData.totalSales,
+        hasAllSales: !!financialData.allSales,
+        totalSalesValue: financialData.totalSales,
+        allSalesLength: financialData.allSales?.length,
+        salesLength: sales.length
+    });
+    
     // Calculate totals - Use the new totalSales from financialData
     const totalActiveSales = activeSales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
     // Use the new totalSales that includes ALL orders (matching sales performance)
     const totalSales = financialData.totalSales || 
                       (financialData.allSales || []).reduce((sum, sale) => sum + (sale.amount || 0), 0) ||
-                      sales.reduce((sum, sale) => sum + (sale.amount || 0), 0); // fallback to old logic
+                      0; // Remove fallback to old filtered logic that causes discrepancy
     const totalPayables = payables.reduce((sum, payable) => sum + (payable.amount || 0), 0);
     const totalReceivables = receivables.reduce((sum, receivable) => sum + (receivable.amount || receivable.balance_amount || 0), 0);
+    
+    console.log('📊 Calculated totals:', {
+        totalSales,
+        totalActiveSales,
+        totalPayables,
+        totalReceivables
+    });
     
     // Calculate margin from inventory data
     let totalCost = 0;

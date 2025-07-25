@@ -23,9 +23,28 @@ window.fetchFinancialDataWithINR = async () => {
     const ordersData = ordersRes.data || [];
     console.log('Orders data:', ordersData);
 
-    // Process active sales (delivered orders) - use INR values
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Process active sales (future events) - matching financial-system.js logic
     const activeSalesData = ordersData
-      .filter(order => order.status === 'delivered' || order.payment_status === 'paid')
+      .filter(order => {
+        // Exclude orders that haven't reached approved stage yet
+        const preApprovalStatuses = ['new', 'pending', 'rejected', 'cancelled', 'draft', 'pending_approval'];
+        if (preApprovalStatuses.includes(order.status)) {
+          return false;
+        }
+        
+        // If no event date, include it in active sales
+        if (!order.event_date) {
+          return true;
+        }
+        
+        // Check if event date is in the future
+        const eventDate = new Date(order.event_date);
+        eventDate.setHours(0, 0, 0, 0);
+        return eventDate >= today;
+      })
       .map(order => ({
         ...order,
         // Use INR equivalent if available, otherwise original amount
@@ -42,23 +61,49 @@ window.fetchFinancialDataWithINR = async () => {
         exchange_rate: order.exchange_rate || 1
       }));
 
-    // Process completed sales - use INR values
-    const salesData = ordersData
-      .filter(order => order.status === 'completed' || order.status === 'delivered')
-      .map(order => ({
-        ...order,
-        // Use INR equivalent if available
-        amount: order.inr_equivalent || order.final_amount_inr || order.final_amount || 0,
-        event_name: order.event_name,
-        client_name: order.client_name,
-        sale_date: order.created_date,
-        status: order.payment_status === 'paid' ? 'paid' : 'completed',
-        event_date: order.event_date,
-        payment_status: order.payment_status || 'pending',
-        // Currency info
-        original_currency: order.payment_currency || 'INR',
-        original_amount: order.final_amount || 0
-      }));
+    // Process ALL orders for total sales (matching sales performance logic)
+    const allSalesData = ordersData
+      .filter(order => {
+        // Exclude orders that haven't reached approved stage yet
+        const preApprovalStatuses = ['new', 'pending', 'rejected', 'cancelled', 'draft', 'pending_approval'];
+        return !preApprovalStatuses.includes(order.status);
+      })
+      .map(order => {
+        // Use INR equivalent for foreign currency orders (matching sales performance)
+        const isForeignCurrency = order.payment_currency && order.payment_currency !== 'INR';
+        const orderAmount = parseFloat(
+          isForeignCurrency && order.final_amount_inr 
+            ? order.final_amount_inr 
+            : (order.inr_equivalent || order.final_amount || order.total_amount || 0)
+        );
+        
+        return {
+          ...order,
+          amount: orderAmount,
+          event_name: order.event_name,
+          client_name: order.client_name,
+          sale_date: order.created_date,
+          status: order.payment_status === 'paid' ? 'paid' : 'completed',
+          event_date: order.event_date,
+          payment_status: order.payment_status || 'pending',
+          // Currency info
+          original_currency: order.payment_currency || 'INR',
+          original_amount: order.final_amount || 0,
+          is_actualized: false // Will be set below
+        };
+      });
+
+    // Mark actualized sales (past event dates)
+    allSalesData.forEach(sale => {
+      if (sale.event_date) {
+        const eventDate = new Date(sale.event_date);
+        eventDate.setHours(0, 0, 0, 0);
+        sale.is_actualized = eventDate < today;
+      }
+    });
+
+    // For backward compatibility, keep salesData as actualized sales only
+    const salesData = allSalesData.filter(sale => sale.is_actualized);
 
     // Process receivables - properly preserve original amounts
     const receivablesData = receivablesRes.data || [];
@@ -164,9 +209,10 @@ window.fetchFinancialDataWithINR = async () => {
       };
     });
 
-    // Calculate totals using INR values
+    // Calculate totals using INR values (matching sales performance logic)
     const totalActiveSales = activeSalesData.reduce((sum, sale) => sum + sale.amount, 0);
-    const totalSales = salesData.reduce((sum, sale) => sum + sale.amount, 0);
+    const totalSales = allSalesData.reduce((sum, sale) => sum + sale.amount, 0); // ALL orders
+    const totalActualizedSales = salesData.reduce((sum, sale) => sum + sale.amount, 0); // Past events only
     const totalReceivables = unpaidReceivables.reduce((sum, rec) => 
       sum + (rec.balance_amount || rec.amount || 0), 0
     );
@@ -206,7 +252,8 @@ window.fetchFinancialDataWithINR = async () => {
     // Log the results
     console.log('=== FINANCIAL DATA SUMMARY (INR) ===');
     console.log(`Active Sales: ${activeSalesData.length} orders, Total: ₹${totalActiveSales.toLocaleString()}`);
-    console.log(`Completed Sales: ${salesData.length} orders, Total: ₹${totalSales.toLocaleString()}`);
+    console.log(`Total Sales (All): ${allSalesData.length} orders, Total: ₹${totalSales.toLocaleString()}`);
+    console.log(`Actualized Sales: ${salesData.length} orders, Total: ₹${totalActualizedSales.toLocaleString()}`);
     console.log(`Receivables: ${unpaidReceivables.length} entries, Total: ₹${totalReceivables.toLocaleString()}`);
     console.log(`Payables: ${payablesData.length} entries, Total: ₹${totalPayables.toLocaleString()}`);
     
@@ -224,7 +271,10 @@ window.fetchFinancialDataWithINR = async () => {
     // Update state
     window.setFinancialData({
       activeSales: activeSalesData,
-      sales: salesData,
+      sales: salesData, // Keep for backward compatibility (actualized sales)
+      allSales: allSalesData, // NEW: All sales data
+      totalSales: totalSales, // NEW: Total sales amount
+      totalActualizedSales: totalActualizedSales, // NEW: Actualized sales amount
       receivables: unpaidReceivables,
       payables: payablesData,
       expiringInventory: expiringInventory
