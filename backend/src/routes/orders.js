@@ -54,6 +54,8 @@ router.get('/for-allocation', authenticateToken, async (req, res) => {
   try {
     const { lead_id, event_name } = req.query;
     
+    console.log('Fetching orders for allocation - lead_id:', lead_id, 'event_name:', event_name);
+    
     if (!lead_id || !event_name) {
       return res.status(400).json({
         success: false,
@@ -62,10 +64,13 @@ router.get('/for-allocation', authenticateToken, async (req, res) => {
     }
     
     // First get all orders for the lead
+    console.log('Querying orders for lead:', lead_id);
     const leadOrdersSnapshot = await db.collection(collections.orders)
       .where('lead_id', '==', lead_id)
       .orderBy('created_date', 'desc')
       .get();
+    
+    console.log('Query completed, found', leadOrdersSnapshot.size, 'orders for lead');
     
     const orders = [];
     leadOrdersSnapshot.forEach(doc => {
@@ -85,9 +90,11 @@ router.get('/for-allocation', authenticateToken, async (req, res) => {
     
   } catch (error) {
     console.error('Error fetching orders for allocation:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      details: error.toString()
     });
   }
 });
