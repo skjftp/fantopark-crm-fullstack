@@ -5,6 +5,21 @@
 // Initialize search state if not already present
 window.inventorySearchQuery = window.inventorySearchQuery || '';
 
+// Refresh inventory function
+window.refreshInventory = async () => {
+  console.log('🔄 Refreshing inventory...');
+  try {
+    if (window.fetchData) {
+      await window.fetchData();
+    }
+    if (window.renderApp) {
+      window.renderApp();
+    }
+  } catch (error) {
+    console.error('Error refreshing inventory:', error);
+  }
+};
+
 // Initialize filter states if not already present
 window.inventoryEventFilter = window.inventoryEventFilter || 'all';
 window.inventoryEventTypeFilter = window.inventoryEventTypeFilter || 'all';
@@ -265,6 +280,14 @@ window.renderInventoryContent = () => {
                         })
                     ),
                     'Upload CSV'
+                ),
+                React.createElement('button', {
+                    onClick: () => window.openBulkAllocationUpload && window.openBulkAllocationUpload(),
+                    className: 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors',
+                    title: 'Bulk allocate tickets to leads via CSV'
+                }, 
+                    React.createElement('span', { className: 'text-lg' }, '🎫'),
+                    'Bulk Allocate'
                 )
             )
         ),

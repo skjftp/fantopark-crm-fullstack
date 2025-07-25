@@ -186,6 +186,7 @@ app.use('/api/maintenance', require('./routes/maintenance'));
 app.use('/api/facebook-forms', require('./routes/facebookForms'));
 app.use('/api/bulk-orders', require('./routes/bulkOrders'));
 app.use('/api/allocations', require('./routes/allocations'));
+app.use('/api/bulk-allocations', require('./routes/bulk-allocations'));
 
 
 // ✅ JOURNEY ROUTES - NOW AFTER CORS SETUP!
