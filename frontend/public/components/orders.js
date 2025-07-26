@@ -1198,6 +1198,7 @@ window.renderEnhancedOrderActions = function(order) {
 
     case 'approved':
     case 'assigned':
+    case 'service_assigned':
       // Actions for approved orders
       if (hasPermission('orders', 'read')) {
         actions.push(
@@ -1296,7 +1297,6 @@ if (hasPermission('orders', 'write')) {
       break;
 
     case 'in_progress':
-    case 'service_assigned':
       // Actions for in-progress orders
       if (hasPermission('orders', 'write')) {
         actions.push(
