@@ -989,11 +989,23 @@ window.handlePaymentInputChange = function(field, value) {
     console.log("🎯 Current paymentData before update:", window.paymentData);
   }
   
+  // Special logging for exchange_rate
+  if (field === 'exchange_rate') {
+    console.log("💱 Exchange rate specifically changed to:", value);
+    console.log("💱 Current paymentData before update:", window.appState?.paymentData || window.paymentData);
+    console.log("💱 Current exchange_rate value:", (window.appState?.paymentData || window.paymentData)?.exchange_rate);
+  }
+  
   window.setPaymentData(prev => {
     const updated = { ...prev, [field]: value };
     
     if (field === 'customer_type') {
       console.log("🎯 PaymentData after customer_type update:", updated);
+    }
+    
+    if (field === 'exchange_rate') {
+      console.log("💱 PaymentData after exchange_rate update:", updated);
+      console.log("💱 New exchange_rate value:", updated.exchange_rate);
     }
     
     return updated;
@@ -1006,7 +1018,15 @@ window.handlePaymentInputChange = function(field, value) {
 window.handlePaymentSubmit = async function(e) {
   e.preventDefault();
   console.log('=== PAYMENT SUBMIT DEBUG ===');
-  console.log('Full paymentData:', window.paymentData);
+  // Get payment data from the correct source
+  const paymentData = window.appState?.paymentData || window.paymentData || {};
+  
+  console.log('Full paymentData:', paymentData);
+  console.log('Exchange rate in paymentData:', paymentData.exchange_rate);
+  console.log('Payment currency:', paymentData.payment_currency);
+  console.log('All payment data keys:', Object.keys(paymentData));
+  console.log('window.appState.paymentData:', window.appState?.paymentData);
+  console.log('window.paymentData:', window.paymentData);
 
   if (!window.hasPermission('orders', 'create')) {
     alert('You do not have permission to process payments');
@@ -1017,7 +1037,7 @@ window.handlePaymentSubmit = async function(e) {
 
   try {
     // Check if we're updating an existing order (payment collection for post service)
-    const existingOrderId = window.paymentData.existing_order_id || window.paymentData.order_id;
+    const existingOrderId = paymentData.existing_order_id || paymentData.order_id;
     
     if (existingOrderId) {
       console.log('💰 Processing payment for existing order:', existingOrderId);
@@ -1036,15 +1056,15 @@ window.handlePaymentSubmit = async function(e) {
                                    existingOrder.order_type === 'payment_post_service';
       
       // Calculate GST and TCS for the update
-      const invoiceTotal = window.paymentData.invoice_items?.reduce((sum, item) => 
+      const invoiceTotal = paymentData.invoice_items?.reduce((sum, item) => 
         sum + ((item.quantity || 0) * (item.rate || 0)), 0
       ) || 0;
 
-      const baseAmount = window.paymentData.type_of_sale === 'Service Fee' 
-        ? (parseFloat(window.paymentData.service_fee_amount) || 0)
+      const baseAmount = paymentData.type_of_sale === 'Service Fee' 
+        ? (parseFloat(paymentData.service_fee_amount) || 0)
         : invoiceTotal;
 
-      const calculation = window.calculateGSTAndTCS(baseAmount, window.paymentData);
+      const calculation = window.calculateGSTAndTCS(baseAmount, paymentData);
       
       // Prepare update data - INCLUDING ALL FIELDS FROM THE FORM
       const updateData = {
@@ -1053,7 +1073,7 @@ window.handlePaymentSubmit = async function(e) {
         order_number: existingOrder.order_number,
         
         // Client information from form
-        client_name: window.paymentData.legal_name || window.currentLead.name,
+        client_name: paymentData.legal_name || window.currentLead.name,
         client_email: window.currentLead.email,
         client_phone: window.currentLead.phone,
         lead_name: window.currentLead.name,
@@ -1061,36 +1081,36 @@ window.handlePaymentSubmit = async function(e) {
         lead_phone: window.currentLead.phone,
         
         // Payment details from form
-        payment_method: window.paymentData.payment_method,
-        transaction_id: window.paymentData.transaction_id,
-        payment_date: window.paymentData.payment_date,
-        advance_amount: parseFloat(window.paymentData.advance_amount) || 0,
-        payment_amount: window.paymentData.payment_amount || window.paymentData.advance_amount,
+        payment_method: paymentData.payment_method,
+        transaction_id: paymentData.transaction_id,
+        payment_date: paymentData.payment_date,
+        advance_amount: parseFloat(paymentData.advance_amount) || 0,
+        payment_amount: paymentData.payment_amount || paymentData.advance_amount,
         
         // GST and legal details from form
-        gstin: window.paymentData.gstin || '',
-        legal_name: window.paymentData.legal_name || window.currentLead.name,
-        registered_address: window.paymentData.registered_address,
-        category_of_sale: window.paymentData.category_of_sale,
-        type_of_sale: window.paymentData.type_of_sale,
-        indian_state: window.paymentData.indian_state,
-        is_outside_india: window.paymentData.is_outside_india,
+        gstin: paymentData.gstin || '',
+        legal_name: paymentData.legal_name || window.currentLead.name,
+        registered_address: paymentData.registered_address,
+        category_of_sale: paymentData.category_of_sale,
+        type_of_sale: paymentData.type_of_sale,
+        indian_state: paymentData.indian_state,
+        is_outside_india: paymentData.is_outside_india,
         
         // Customer classification fields from form
-        customer_type: window.paymentData.customer_type,
-        event_location: window.paymentData.event_location,
-        payment_currency: window.paymentData.payment_currency,
-        exchange_rate: window.paymentData.exchange_rate || 1,
+        customer_type: paymentData.customer_type,
+        event_location: paymentData.event_location,
+        payment_currency: paymentData.payment_currency,
+        exchange_rate: paymentData.exchange_rate || 1,
         
         // Invoice items and financial calculations
-        invoice_items: window.paymentData.invoice_items || [],
+        invoice_items: paymentData.invoice_items || [],
         invoice_total: invoiceTotal,
         invoice_subtotal: invoiceTotal,
         base_amount: baseAmount,
         total_amount: baseAmount, // This should be the original currency amount, not converted
         
         // Service fee if applicable
-        service_fee_amount: window.paymentData.service_fee_amount || 0,
+        service_fee_amount: paymentData.service_fee_amount || 0,
         
         // GST and TCS calculations
         gst_rate: calculation.gst.rate,
@@ -1100,11 +1120,11 @@ window.handlePaymentSubmit = async function(e) {
         final_amount: calculation.finalAmount,
         
         // Inclusions
-        buying_price_inclusions: parseFloat(window.paymentData.buying_price_inclusions) || 0,
-        inclusions_description: window.paymentData.inclusions_description || '',
+        buying_price_inclusions: parseFloat(paymentData.buying_price_inclusions) || 0,
+        inclusions_description: paymentData.inclusions_description || '',
         
         // Event details
-        event_name: window.paymentData.event_name || existingOrder.event_name,
+        event_name: paymentData.event_name || existingOrder.event_name,
         event_id: existingOrder.event_id,
         inventory_id: existingOrder.inventory_id,
         event_date: existingOrder.event_date,
@@ -1138,13 +1158,13 @@ window.handlePaymentSubmit = async function(e) {
         }),
         
         // Additional notes
-        notes: window.paymentData.notes || existingOrder.notes
+        notes: paymentData.notes || existingOrder.notes
       };
       
       console.log('Update data being sent:', updateData);
       console.log('🎯 Specifically customer_type in updateData:', updateData.customer_type);
       console.log('🎯 Exchange rate in updateData:', updateData.exchange_rate);
-      console.log('💱 Exchange rate from paymentData:', window.paymentData.exchange_rate);
+      console.log('💱 Exchange rate from paymentData:', paymentData.exchange_rate);
       console.log('💱 Exchange rate from existingOrder:', existingOrder.exchange_rate);
       console.log('🎯 Full updateData:', JSON.stringify(updateData, null, 2));
       
@@ -1163,21 +1183,21 @@ window.handlePaymentSubmit = async function(e) {
       ));
       
       // Update receivable if from receivable
-      if (window.paymentData.from_receivable && window.paymentData.receivable_id) {
-        await window.apiCall(`/receivables/${window.paymentData.receivable_id}`, {
+      if (paymentData.from_receivable && paymentData.receivable_id) {
+        await window.apiCall(`/receivables/${paymentData.receivable_id}`, {
           method: 'PUT',
           body: JSON.stringify({
             status: 'collected',
-            payment_date: window.paymentData.payment_date,
-            payment_method: window.paymentData.payment_method,
-            transaction_id: window.paymentData.transaction_id,
+            payment_date: paymentData.payment_date,
+            payment_method: paymentData.payment_method,
+            transaction_id: paymentData.transaction_id,
             collected_by: window.user.name,
             collected_date: new Date().toISOString()
           })
         });
         
         window.setReceivables(prev => prev.map(r => 
-          r.id === window.paymentData.receivable_id 
+          r.id === paymentData.receivable_id 
             ? { ...r, status: 'collected' }
             : r
         ));
@@ -1193,51 +1213,51 @@ window.handlePaymentSubmit = async function(e) {
       console.log('Creating new order with payment...');
       
       // Calculate GST and TCS
-      const invoiceTotal = window.paymentData.invoice_items?.reduce((sum, item) => 
+      const invoiceTotal = paymentData.invoice_items?.reduce((sum, item) => 
         sum + ((item.quantity || 0) * (item.rate || 0)), 0
       ) || 0;
 
-      const baseAmount = window.paymentData.type_of_sale === 'Service Fee' 
-        ? (parseFloat(window.paymentData.service_fee_amount) || 0)
+      const baseAmount = paymentData.type_of_sale === 'Service Fee' 
+        ? (parseFloat(paymentData.service_fee_amount) || 0)
         : invoiceTotal;
 
-      const calculation = window.calculateGSTAndTCS(baseAmount, window.paymentData);
+      const calculation = window.calculateGSTAndTCS(baseAmount, paymentData);
       
       // Debug log payment data before creating order
-      console.log('🔍 Payment data customer_type:', window.paymentData.customer_type);
-      console.log('🔍 Payment data event_location:', window.paymentData.event_location);
-      console.log('🔍 Payment data payment_currency:', window.paymentData.payment_currency);
+      console.log('🔍 Payment data customer_type:', paymentData.customer_type);
+      console.log('🔍 Payment data event_location:', paymentData.event_location);
+      console.log('🔍 Payment data payment_currency:', paymentData.payment_currency);
       
       const newOrder = {
         order_number: 'ORD-' + Date.now(),
         lead_id: window.currentLead.id,
-        client_name: window.paymentData.legal_name || window.currentLead.name,
+        client_name: paymentData.legal_name || window.currentLead.name,
         client_email: window.currentLead.email,
         client_phone: window.currentLead.phone,
 
         // Payment fields
-        payment_method: window.paymentData.payment_method,
-        transaction_id: window.paymentData.transaction_id,
-        payment_date: window.paymentData.payment_date,
-        advance_amount: parseFloat(window.paymentData.advance_amount) || 0,
+        payment_method: paymentData.payment_method,
+        transaction_id: paymentData.transaction_id,
+        payment_date: paymentData.payment_date,
+        advance_amount: parseFloat(paymentData.advance_amount) || 0,
 
         // GST details
-        gstin: window.paymentData.gstin,
-        legal_name: window.paymentData.legal_name,
-        category_of_sale: window.paymentData.category_of_sale,
-        type_of_sale: window.paymentData.type_of_sale,
-        registered_address: window.paymentData.registered_address,
-        indian_state: window.paymentData.indian_state,
-        is_outside_india: window.paymentData.is_outside_india,
+        gstin: paymentData.gstin,
+        legal_name: paymentData.legal_name,
+        category_of_sale: paymentData.category_of_sale,
+        type_of_sale: paymentData.type_of_sale,
+        registered_address: paymentData.registered_address,
+        indian_state: paymentData.indian_state,
+        is_outside_india: paymentData.is_outside_india,
         
         // Customer classification fields
-        customer_type: window.paymentData.customer_type,
-        event_location: window.paymentData.event_location,
-        payment_currency: window.paymentData.payment_currency,
-        exchange_rate: window.paymentData.exchange_rate || 1,
+        customer_type: paymentData.customer_type,
+        event_location: paymentData.event_location,
+        payment_currency: paymentData.payment_currency,
+        exchange_rate: paymentData.exchange_rate || 1,
         
         // Financial calculations
-        invoice_items: window.paymentData.invoice_items || [],
+        invoice_items: paymentData.invoice_items || [],
         base_amount: baseAmount,
         gst_calculation: calculation.gst,
         tcs_calculation: calculation.tcs,

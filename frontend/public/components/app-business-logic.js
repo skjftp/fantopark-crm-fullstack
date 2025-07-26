@@ -1146,6 +1146,7 @@ const updateOrdersPagination = (orders) => {
         customer_type: 'indian', // Default, user can change in form
         event_location: eventLocation,
         payment_currency: 'INR',
+        exchange_rate: 1, // Default exchange rate for INR
         gst_certificate: null,
         pan_card: null,
         invoice_items: [{
