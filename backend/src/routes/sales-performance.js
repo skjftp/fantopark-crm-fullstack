@@ -180,6 +180,38 @@ router.get('/', authenticateToken, async (req, res) => {
       console.log(`Found ${allLeadsSnapshot.size} total leads`);
     }
     
+    // 3.5 Get allocations and inventory for buying price calculation
+    const [allocationsSnapshot, inventorySnapshot] = await Promise.all([
+      db.collection(collections.allocations).get(),
+      db.collection(collections.inventory).get()
+    ]);
+    
+    // Create allocation and inventory maps
+    const allocationsByOrderId = new Map();
+    allocationsSnapshot.forEach(doc => {
+      const allocation = { id: doc.id, ...doc.data() };
+      // Group allocations by order
+      const orderIds = [
+        allocation.order_id,
+        allocation.order_number,
+        ...(allocation.order_ids || [])
+      ].filter(Boolean);
+      
+      orderIds.forEach(orderId => {
+        if (!allocationsByOrderId.has(orderId)) {
+          allocationsByOrderId.set(orderId, []);
+        }
+        allocationsByOrderId.get(orderId).push(allocation);
+      });
+    });
+    
+    const inventoryMap = new Map();
+    inventorySnapshot.forEach(doc => {
+      inventoryMap.set(doc.id, { id: doc.id, ...doc.data() });
+    });
+    
+    console.log(`Found ${allocationsSnapshot.size} allocations and ${inventorySnapshot.size} inventory items`);
+    
     // 4. Create maps for quick lookup
     const ordersByUser = new Map();
     const leadsByUser = new Map();
@@ -254,11 +286,44 @@ router.get('/', authenticateToken, async (req, res) => {
         }
         
         // New margin calculation:
-        // Selling Price = Invoice value (total_amount without GST/TCS)
-        // Buying Price = buying_price (cumulative from allocations) + buying_price_inclusions
-        // For foreign currency orders, use inr_equivalent for base amount
-        const sellingPrice = parseFloat(order.inr_equivalent || order.base_amount || order.total_amount || 0);
-        const buyingPriceTickets = parseFloat(order.buying_price || 0);
+        // Selling Price = total_amount for INR, inr_equivalent for other currencies
+        // Buying Price = calculated from inventory based on allocations + buying_price_inclusions
+        const sellingPrice = order.payment_currency === 'INR' 
+          ? parseFloat(order.total_amount || 0)
+          : parseFloat(order.inr_equivalent || 0);
+        
+        // Calculate buying price from allocations and inventory
+        let buyingPriceTickets = 0;
+        const orderAllocations = allocationsByOrderId.get(order.id) || 
+                                allocationsByOrderId.get(order.order_number) || 
+                                (order.allocation_ids ? order.allocation_ids.flatMap(aid => 
+                                  Array.from(allocationsSnapshot.docs)
+                                    .filter(doc => doc.id === aid)
+                                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                                ) : []);
+        
+        orderAllocations.forEach(allocation => {
+          const inventory = inventoryMap.get(allocation.inventory_id);
+          if (inventory) {
+            const allocatedQty = allocation.tickets_allocated || allocation.quantity || 0;
+            let buyingPricePerTicket = 0;
+            
+            // Get buying price from inventory categories
+            if (inventory.categories && Array.isArray(inventory.categories)) {
+              const categoryName = allocation.category_name || allocation.category || '';
+              const category = inventory.categories.find(cat => cat.name === categoryName);
+              if (category) {
+                buyingPricePerTicket = parseFloat(category.buying_price) || 0;
+              }
+            } else if (inventory.buying_price) {
+              // Fallback to legacy inventory structure
+              buyingPricePerTicket = parseFloat(inventory.buying_price) || 0;
+            }
+            
+            buyingPriceTickets += buyingPricePerTicket * allocatedQty;
+          }
+        });
+        
         const buyingPriceInclusions = parseFloat(order.buying_price_inclusions || 0);
         const totalBuyingPrice = buyingPriceTickets + buyingPriceInclusions;
         

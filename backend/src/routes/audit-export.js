@@ -106,8 +106,10 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
       const leadName = lead.name || lead.company_name || order.client_name || order.customer_name || 'Unknown';
       const leadEvent = order.event_name || lead.lead_for_event || 'Unknown';
 
-      // FIXED: Use inr_equivalent for sales value as per requirement
-      const sellingPrice = parseFloat(order.inr_equivalent || 0);
+      // Use correct field based on currency for sales value
+      const sellingPrice = order.payment_currency === 'INR' 
+        ? parseFloat(order.total_amount || 0)
+        : parseFloat(order.inr_equivalent || 0);
       
       // Don't use order buying price - will get from allocations
       const buyingPriceInclusions = parseFloat(order.buying_price_inclusions || 0);
@@ -184,8 +186,38 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
         for (const allocation of orderAllocations) {
           const inv = inventoryMap[allocation.inventory_id] || {};
           
-          // FIXED: Get buying price from allocation
-          const allocationBuyingPrice = parseFloat(allocation.total_buying_price || allocation.buying_price || 0);
+          // Get buying price from inventory based on category and stand
+          let buyingPricePerTicket = 0;
+          const allocatedQty = allocation.tickets_allocated || allocation.quantity || 0;
+          
+          // Debug logging for Nandini's order
+          if (order.order_number === 'ORD-1753256861487') {
+            console.log('Processing Nandini order:', {
+              allocation_id: allocation.id,
+              inventory_id: allocation.inventory_id,
+              category: allocation.category_name || allocation.category,
+              stand: allocation.stand_section || allocation.stand,
+              qty: allocatedQty,
+              inv_categories: inv.categories ? inv.categories.length : 'none'
+            });
+          }
+          
+          // First try to get from inventory categories
+          if (inv.categories && Array.isArray(inv.categories)) {
+            const categoryName = allocation.category_name || allocation.category || '';
+            const category = inv.categories.find(cat => cat.name === categoryName);
+            if (category) {
+              buyingPricePerTicket = parseFloat(category.buying_price) || 0;
+              if (order.order_number === 'ORD-1753256861487') {
+                console.log('Found category buying price:', buyingPricePerTicket);
+              }
+            }
+          } else if (inv.buying_price) {
+            // Fallback to legacy inventory structure
+            buyingPricePerTicket = parseFloat(inv.buying_price) || 0;
+          }
+          
+          const allocationBuyingPrice = buyingPricePerTicket * allocatedQty;
           const totalBuyingPrice = allocationBuyingPrice + buyingPriceInclusions;
           const margin = sellingPrice - totalBuyingPrice;
           const marginPercentage = sellingPrice > 0 ? (margin / sellingPrice * 100) : 0;
