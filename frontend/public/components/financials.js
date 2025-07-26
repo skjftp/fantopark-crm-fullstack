@@ -871,8 +871,8 @@ const EnhancedFinancialStats = () => {
     
     // Fetch metrics for all time periods
     React.useEffect(() => {
-        // Clear cache on first load to ensure fresh data with updated calculations
-        financialCache.clear();
+        // Don't clear cache on every load - let the 6-hour cache work
+        // financialCache.clear();
         
         const fetchAllPeriodMetrics = async () => {
             const periods = ['current_fy', 'current_month', 'last_month'];
