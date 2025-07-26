@@ -858,6 +858,17 @@ const EnhancedFinancialStats = () => {
                     if (result.success && result.data) {
                         const metrics = result.data;
                         
+                        // Debug log the metrics received from backend
+                        console.log(`📊 Metrics for ${period}:`, {
+                            totalSales: metrics.totalSales,
+                            totalSalesFormatted: metrics.totalSales ? `₹${(metrics.totalSales / 10000000).toFixed(2)} Cr` : '0',
+                            totalMargin: metrics.totalMargin,
+                            marginPercentage: metrics.marginPercentage,
+                            totalSellingPrice: metrics.totalSellingPrice,
+                            totalBuyingPrice: metrics.totalBuyingPrice,
+                            processedOrders: metrics.processedOrders
+                        });
+                        
                         setPeriodMetrics(prev => ({
                             ...prev,
                             [period]: {
