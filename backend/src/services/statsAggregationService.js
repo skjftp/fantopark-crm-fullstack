@@ -209,13 +209,17 @@ class StatsAggregationService {
     const salesMemberIds = new Set();
     const salesMemberTargets = new Map();
     
-    // Get member IDs and targets
+    // Get member IDs
     salesMembersSnapshot.forEach(doc => {
       salesMemberIds.add(doc.id);
+    });
+    
+    // Get targets from sales_targets collection
+    const targetsSnapshot = await db.collection('sales_targets').get();
+    targetsSnapshot.forEach(doc => {
       const data = doc.data();
-      if (data.target !== undefined) {
-        salesMemberTargets.set(doc.id, data.target);
-      }
+      // Convert from rupees to crores for display
+      salesMemberTargets.set(doc.id, data.target / 10000000);
     });
     
     // Filter to only sales team members
