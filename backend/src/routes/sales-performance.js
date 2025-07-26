@@ -78,6 +78,15 @@ function getDateRange(period) {
       startDate.setMonth(startDate.getMonth() - 6);
       break;
       
+    case 'current_month':
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      break;
+      
+    case 'last_month':
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of previous month
+      break;
+      
     case 'lifetime':
     default:
       return { startDate: null, endDate: null };
