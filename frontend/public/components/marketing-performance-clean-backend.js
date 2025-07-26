@@ -52,8 +52,24 @@ function MarketingPerformanceBackend() {
             console.log('✅ Marketing data received:', response);
             
             // Transform the new response structure to match the expected format
+            // Convert sources object to array format expected by frontend
+            const sourcesArray = Object.entries(response.sources || {}).map(([source, data]) => ({
+                source,
+                total: data.total || 0,
+                qualified: data.qualified || 0,
+                converted: data.converted || 0,
+                pipeline: data.pipeline || 0,
+                conversionRate: data.total > 0 ? ((data.converted / data.total) * 100).toFixed(2) : 0
+            }));
+            
             const transformedData = {
-                sources: response.sources || {},
+                marketingData: sourcesArray,
+                totals: {
+                    total: sourcesArray.reduce((sum, item) => sum + item.total, 0),
+                    qualified: sourcesArray.reduce((sum, item) => sum + item.qualified, 0),
+                    converted: sourcesArray.reduce((sum, item) => sum + item.converted, 0),
+                    pipeline: sourcesArray.reduce((sum, item) => sum + item.pipeline, 0)
+                },
                 campaigns: response.campaigns || {},
                 lastUpdated: response.lastUpdated,
                 nextUpdateIn: response.nextUpdateIn
