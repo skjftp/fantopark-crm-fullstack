@@ -1,0 +1,23 @@
+name: Update Performance Stats
+on:
+  schedule:
+    # Run every 2 hours
+    - cron: '0 */2 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update-stats:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Trigger Stats Update
+      run: |
+        curl -X POST https://fantopark-backend-150582227311.us-central1.run.app/api/cron/update-stats \
+          -H "Content-Type: application/json" \
+          -H "X-CloudScheduler-Token: ${{ secrets.CRON_TOKEN }}" \
+          -d '{"source": "github-actions"}' \
+          -f # Fail on HTTP errors
+      env:
+        CRON_TOKEN: ${{ secrets.CRON_TOKEN }}
+    - name: Check Status
+      if: failure()
+      run: echo "Stats update failed. Check Cloud Run logs."
