@@ -427,6 +427,10 @@ router.post('/', authenticateToken, async (req, res) => {
 // PUT update order
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
+    console.log('🔍 RAW REQUEST BODY:', JSON.stringify(req.body, null, 2));
+    console.log('🔍 EXCHANGE RATE IN REQUEST:', req.body.exchange_rate);
+    console.log('🔍 EXCHANGE RATE TYPE:', typeof req.body.exchange_rate);
+    
     let updates = {
       ...req.body,
       updated_date: new Date().toISOString()
@@ -475,14 +479,44 @@ router.put('/:id', authenticateToken, async (req, res) => {
     }
     
     // If updating payment/currency fields, ensure INR equivalents are updated
-    if (updates.payment_currency || updates.exchange_rate || updates.advance_amount || updates.final_amount || updates.total_amount || updates.base_amount || updates.invoice_total) {
+    const currencyFieldsPresent = updates.payment_currency || updates.exchange_rate || updates.advance_amount || updates.final_amount || updates.total_amount || updates.base_amount || updates.invoice_total;
+    console.log('🔍 Currency fields present?', currencyFieldsPresent);
+    console.log('🔍 Individual checks:', {
+      payment_currency: !!updates.payment_currency,
+      exchange_rate: !!updates.exchange_rate,
+      advance_amount: !!updates.advance_amount,
+      final_amount: !!updates.final_amount,
+      total_amount: !!updates.total_amount,
+      base_amount: !!updates.base_amount,
+      invoice_total: !!updates.invoice_total
+    });
+    
+    if (currencyFieldsPresent) {
       console.log('💱 Before ensureCurrencyFields - exchange_rate:', updates.exchange_rate);
       console.log('💱 Before ensureCurrencyFields - payment_currency:', updates.payment_currency);
+      
+      // For updates, we need to fetch existing order to have complete data
+      const existingOrderDoc = await db.collection(collections.orders).doc(req.params.id).get();
+      if (!existingOrderDoc.exists) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+      const existingOrder = existingOrderDoc.data();
+      
+      console.log('🔍 Existing order exchange_rate:', existingOrder.exchange_rate);
+      console.log('🔍 Update request exchange_rate:', updates.exchange_rate);
+      
+      // Merge existing order with updates, but ALWAYS prefer the updates
+      const mergedData = {
+        ...existingOrder,
+        ...updates  // Updates override existing data
+      };
+      
+      console.log('🔍 Merged exchange_rate (should be from updates):', mergedData.exchange_rate);
       
       // Store the user-provided exchange rate before processing
       const userProvidedExchangeRate = updates.exchange_rate;
       
-      updates = ensureCurrencyFields(updates);
+      updates = ensureCurrencyFields(mergedData);
       
       // If user explicitly provided an exchange rate, ensure it's preserved
       if (userProvidedExchangeRate !== undefined && updates.payment_currency !== 'INR') {
