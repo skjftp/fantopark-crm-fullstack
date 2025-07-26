@@ -827,6 +827,34 @@ window.createFinancialSalesChart = () => {
         console.error('❌ Failed to create financial sales chart:', error);
     }
 };
+
+// Cache for financial data (5 minute cache)
+const financialCache = {
+    data: {},
+    timestamps: {},
+    CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
+    // Clear cache function
+    clear: function() {
+        this.data = {};
+        this.timestamps = {};
+        console.log('📊 Financial cache cleared');
+    },
+    // Force refresh function
+    forceRefresh: function() {
+        this.clear();
+    }
+};
+
+// Make cache available globally for debugging
+window.financialCache = financialCache;
+
+// Helper function to check if cache is valid
+const isCacheValid = (period) => {
+    const timestamp = financialCache.timestamps[period];
+    if (!timestamp) return false;
+    return (Date.now() - timestamp) < financialCache.CACHE_DURATION;
+};
+
 // Enhanced Financial Stats Component - Multiple time periods
 const EnhancedFinancialStats = () => {
     // State for storing metrics for all periods
@@ -843,16 +871,32 @@ const EnhancedFinancialStats = () => {
     
     // Fetch metrics for all time periods
     React.useEffect(() => {
+        // Clear cache on first load to ensure fresh data with updated calculations
+        financialCache.clear();
+        
         const fetchAllPeriodMetrics = async () => {
             const periods = ['current_fy', 'current_month', 'last_month'];
             
             for (const period of periods) {
                 try {
+                    // Check cache first
+                    if (isCacheValid(period)) {
+                        console.log(`📊 Using cached data for ${period}`);
+                        setPeriodMetrics(prev => ({
+                            ...prev,
+                            [period]: financialCache.data[period]
+                        }));
+                        setLoadingPeriods(prev => ({ ...prev, [period]: false }));
+                        continue;
+                    }
+                    
+                    console.log(`📊 Fetching fresh data for ${period}`);
+                    
                     // Use sales-performance API instead of finance/metrics
-                    // Map financials periods to sales-performance supported periods
+                    // Now all periods are directly supported
                     const periodParam = period === 'current_fy' ? 'current_fy' : 
-                                      period === 'current_month' ? 'current_quarter' : 
-                                      period === 'last_month' ? 'previous_quarter' : 'lifetime';
+                                      period === 'current_month' ? 'current_month' : 
+                                      period === 'last_month' ? 'last_month' : 'lifetime';
                     
                     const response = await fetch(`${window.API_CONFIG.API_URL}/sales-performance?period=${periodParam}`, {
                         headers: { 'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}` }
@@ -928,17 +972,23 @@ const EnhancedFinancialStats = () => {
                             console.error('Failed to calculate active sales:', error);
                         }
 
+                        const periodData = {
+                            totalSales: totalSalesInRupees,
+                            activeSales: activeSales,
+                            totalReceivables: totalReceivables,
+                            totalPayables: totalPayables,
+                            totalMargin: totalMarginInRupees,
+                            marginPercentage: parseFloat(marginPercentage.toFixed(2)), // Store rounded value
+                            processedOrders: result.salesTeam.reduce((sum, m) => sum + (m.orderCount || 0), 0)
+                        };
+                        
+                        // Store in cache
+                        financialCache.data[period] = periodData;
+                        financialCache.timestamps[period] = Date.now();
+                        
                         setPeriodMetrics(prev => ({
                             ...prev,
-                            [period]: {
-                                totalSales: totalSalesInRupees,
-                                activeSales: activeSales,
-                                totalReceivables: totalReceivables,
-                                totalPayables: totalPayables,
-                                totalMargin: totalMarginInRupees,
-                                marginPercentage: marginPercentage,
-                                processedOrders: result.salesTeam.reduce((sum, m) => sum + (m.orderCount || 0), 0)
-                            }
+                            [period]: periodData
                         }));
                     }
                     
@@ -1015,7 +1065,7 @@ const EnhancedFinancialStats = () => {
                 renderStatCard('Payables', metrics?.totalPayables || 0, '📤', isLoading),
                 renderStatCard('Margin', metrics?.totalMargin || 0, '📊', isLoading),
                 renderStatCard('Margin %', 
-                    metrics?.marginPercentage ? `${metrics.marginPercentage}%` : '0%', 
+                    metrics?.marginPercentage ? `${metrics.marginPercentage.toFixed(2)}%` : '0%', 
                     '📈', 
                     isLoading
                 )
