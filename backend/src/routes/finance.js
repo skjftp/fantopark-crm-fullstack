@@ -66,6 +66,11 @@ router.get('/metrics', authenticateToken, async (req, res) => {
 
     // Apply date filtering based on period
     let filteredOrders = orders;
+    
+    // CRITICAL: Filter orders to only include those with sales_person (to match sales-performance)
+    filteredOrders = filteredOrders.filter(order => 
+      order.sales_person || order.sales_person_email
+    );
     if (period) {
       const now = new Date();
       let startDate, endDate;
@@ -283,7 +288,24 @@ router.get('/metrics', authenticateToken, async (req, res) => {
       ordersWithAmount: orderAmounts.length,
       totalSales: totalSales,
       totalSalesInCr: (totalSales / 10000000).toFixed(2),
-      sampleOrders: orderAmounts.slice(0, 5)
+      sampleOrders: orderAmounts.slice(0, 5),
+      ordersWithoutSalesPerson: filteredOrders.filter(o => !o.sales_person && !o.sales_person_email).length,
+      uniqueSalesPersons: [...new Set(filteredOrders.filter(o => o.sales_person || o.sales_person_email).map(o => o.sales_person || o.sales_person_email))]
+    });
+    
+    // Debug: Check if total_amount includes GST/TCS
+    const ordersWithGST = filteredOrders.filter(o => o.gst_amount > 0 || o.tcs_amount > 0);
+    console.log(`🔍 Orders with GST/TCS:`, {
+      count: ordersWithGST.length,
+      samples: ordersWithGST.slice(0, 3).map(o => ({
+        order_number: o.order_number,
+        total_amount: o.total_amount,
+        base_amount: o.base_amount,
+        gst_amount: o.gst_amount,
+        tcs_amount: o.tcs_amount,
+        final_amount: o.final_amount,
+        invoice_total: o.invoice_total
+      }))
     });
 
     // Calculate active sales (pending/processing orders)
