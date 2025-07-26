@@ -124,6 +124,11 @@ function MarketingPerformanceBackend() {
     const totals = data.totals || {};
     const filterOptions = data.filterOptions || { events: [], sources: [], adSets: [] };
     
+    // Debug: Log render count
+    React.useEffect(() => {
+        console.log('Marketing component rendered, data length:', marketingData.length);
+    }, [marketingData.length]);
+    
     // Main render with unique key for the table container
     return React.createElement('div', { 
         className: 'p-6 space-y-6',
@@ -378,7 +383,7 @@ function MarketingPerformanceBackend() {
             React.createElement('div', { className: 'overflow-x-auto' },
                 React.createElement('table', { 
                     className: 'w-full',
-                    key: `marketing-table-${Date.now()}`
+                    key: 'marketing-metrics-table'
                 },
                     React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
                         React.createElement('tr', null,
