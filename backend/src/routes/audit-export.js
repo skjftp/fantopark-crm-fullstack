@@ -9,12 +9,13 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
   try {
     console.log('Starting audit data export for user:', req.user.email);
 
-    // Fetch all required data - include all orders, not just approved
-    const [leadsSnapshot, ordersSnapshot, allocationsSnapshot, inventorySnapshot] = await Promise.all([
+    // Fetch all required data
+    const [leadsSnapshot, ordersSnapshot, allocationsSnapshot, inventorySnapshot, usersSnapshot] = await Promise.all([
       db.collection(collections.leads).get(),
-      db.collection(collections.orders).get(), // Get ALL orders for audit
+      db.collection(collections.orders).get(),
       db.collection(collections.allocations).get(),
-      db.collection(collections.inventory).get()
+      db.collection(collections.inventory).get(),
+      db.collection(collections.users).get()
     ]);
 
     // Convert snapshots to data arrays
@@ -30,11 +31,23 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
     const inventory = [];
     inventorySnapshot.forEach(doc => inventory.push({ id: doc.id, ...doc.data() }));
 
+    const users = [];
+    usersSnapshot.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+
     console.log('Data counts:', {
       leads: leads.length,
       orders: orders.length,
       allocations: allocations.length,
-      inventory: inventory.length
+      inventory: inventory.length,
+      users: users.length
+    });
+
+    // Create name to email mapping for conversion
+    const nameToEmail = new Map();
+    const emailToName = new Map();
+    users.forEach(user => {
+      nameToEmail.set(user.name, user.email);
+      emailToName.set(user.email, user.name);
     });
 
     // Log sample data to debug
@@ -62,178 +75,181 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
 
     // Process data for audit report
     const auditData = [];
-
-    let ordersWithAllocations = 0;
-    let ordersWithoutAllocations = 0;
+    const now = new Date();
 
     for (const order of orders) {
-      // Check multiple ways to match allocations to orders
-      const orderAllocations = allocations.filter(alloc => {
-        // Try multiple matching strategies
-        const matches = 
-          alloc.order_id === order.id || 
-          alloc.order_id === order.order_number ||
-          alloc.order_number === order.order_number ||
-          alloc.order_number === order.id;
-        
-        if (matches && ordersWithAllocations < 5) {
-          console.log('Matched allocation:', {
-            allocation_order_id: alloc.order_id,
-            allocation_order_number: alloc.order_number,
-            order_id: order.id,
-            order_number: order.order_number
-          });
-        }
-        
-        return matches;
-      });
+      // Get sales person information
+      const salesPersonField = order.sales_person || order.sales_person_email;
+      if (!salesPersonField) continue;
 
-      if (orderAllocations.length === 0) {
-        ordersWithoutAllocations++;
-        continue;
+      // Convert to email if it's a name
+      let salesPersonEmail = salesPersonField;
+      let salesPersonName = salesPersonField;
+      if (!salesPersonField.includes('@')) {
+        // It's a name, convert to email
+        salesPersonEmail = nameToEmail.get(salesPersonField);
+        if (!salesPersonEmail) continue;
+        salesPersonName = salesPersonField;
+      } else {
+        // It's an email, get the name
+        salesPersonName = emailToName.get(salesPersonField) || salesPersonField;
       }
-      
-      ordersWithAllocations++;
 
       // Get lead information
       const lead = leadMap[order.lead_id] || {};
-      const leadName = lead.name || lead.company_name || order.client_name || 'Unknown';
-      const leadEvent = lead.lead_for_event || order.event_name || 'Unknown';
+      const leadName = lead.name || lead.company_name || order.client_name || order.customer_name || 'Unknown';
+      const leadEvent = order.event_name || lead.lead_for_event || 'Unknown';
 
-      // Process each allocation for this order
-      for (const allocation of orderAllocations) {
-        const inv = inventoryMap[allocation.inventory_id] || {};
-        
-        // Calculate values
-        const quantity = allocation.quantity || 0;
-        const unitPrice = allocation.unit_price || 0;
-        const salesValue = quantity * unitPrice;
-        
-        // Get cost price from inventory or allocation
-        const costPrice = allocation.cost_price || inv.cost_price || 0;
-        const totalCost = quantity * costPrice;
-        
-        // Calculate margin
-        const margin = salesValue - totalCost;
-        const marginPercentage = salesValue > 0 ? (margin / salesValue * 100).toFixed(2) : '0.00';
+      // Calculate sales values (following sales-performance.js logic)
+      const isForeignCurrency = order.payment_currency && order.payment_currency !== 'INR';
+      const orderAmount = parseFloat(order.final_amount_inr || order.total_amount || 0);
+      
+      // Calculate margins using the same logic as sales performance
+      const sellingPrice = parseFloat(order.inr_equivalent || order.base_amount || order.total_amount || 0);
+      const buyingPriceTickets = parseFloat(order.buying_price || 0);
+      const buyingPriceInclusions = parseFloat(order.buying_price_inclusions || 0);
+      const totalBuyingPrice = buyingPriceTickets + buyingPriceInclusions;
+      
+      // Calculate margin
+      const margin = sellingPrice - totalBuyingPrice;
+      const marginPercentage = sellingPrice > 0 ? (margin / sellingPrice * 100) : 0;
 
+      // Check if actualized (event date has passed)
+      let isActualized = false;
+      if (order.event_date) {
+        const eventDate = new Date(order.event_date);
+        isActualized = eventDate < now;
+      }
+
+      // Get allocation details for this order
+      const orderAllocations = allocations.filter(alloc => 
+        alloc.order_id === order.id || 
+        alloc.order_id === order.order_number ||
+        alloc.order_number === order.order_number ||
+        alloc.order_number === order.id
+      );
+
+      // If no allocations, still include the order with basic info
+      if (orderAllocations.length === 0) {
         auditData.push({
           lead_name: leadName,
           lead_for_event: leadEvent,
-          allocation_category: allocation.category_name || inv.category || 'Unknown',
-          allocation_stand: allocation.stand_section || inv.stand || 'Unknown',
+          allocation_category: 'No Allocation',
+          allocation_stand: 'No Allocation',
           order_id: order.order_number || order.id,
-          sales_person: order.sales_person || lead.assigned_to || 'Unknown',
-          quantity: quantity,
-          unit_price: unitPrice,
-          sales_value: salesValue,
-          cost_price: costPrice,
-          total_cost: totalCost,
+          order_date: order.created_date || order.updated_date || '',
+          sales_person_name: salesPersonName,
+          sales_person_email: salesPersonEmail,
+          client_name: order.client_name || order.customer_name || leadName,
+          event_name: order.event_name || leadEvent,
+          event_date: order.event_date || '',
+          is_actualized: isActualized,
+          payment_currency: order.payment_currency || 'INR',
+          exchange_rate: order.exchange_rate || 1,
+          base_amount: order.base_amount || order.total_amount || 0,
+          total_amount: order.total_amount || 0,
+          inr_equivalent: order.inr_equivalent || order.total_amount || 0,
+          final_amount_inr: orderAmount,
+          buying_price_tickets: buyingPriceTickets,
+          buying_price_inclusions: buyingPriceInclusions,
+          total_buying_price: totalBuyingPrice,
+          selling_price: sellingPrice,
           margin: margin,
-          margin_percentage: marginPercentage,
-          order_date: order.created_date || '',
-          client_name: order.client_name || lead.company_name || lead.name || 'Unknown',
+          margin_percentage: marginPercentage.toFixed(2),
           payment_status: order.payment_status || 'pending',
-          order_status: order.status || 'unknown'
+          order_status: order.status || 'unknown',
+          number_of_people: order.number_of_people || 0
         });
+      } else {
+        // Process each allocation
+        for (const allocation of orderAllocations) {
+          const inv = inventoryMap[allocation.inventory_id] || {};
+          
+          auditData.push({
+            lead_name: leadName,
+            lead_for_event: leadEvent,
+            allocation_category: allocation.category_name || allocation.category || inv.category || 'Unknown',
+            allocation_stand: allocation.stand_section || allocation.stand || inv.stand || 'Unknown',
+            allocation_quantity: allocation.quantity || 0,
+            allocation_unit_price: allocation.unit_price || allocation.price || 0,
+            order_id: order.order_number || order.id,
+            order_date: order.created_date || order.updated_date || '',
+            sales_person_name: salesPersonName,
+            sales_person_email: salesPersonEmail,
+            client_name: order.client_name || order.customer_name || leadName,
+            event_name: order.event_name || leadEvent,
+            event_date: order.event_date || '',
+            is_actualized: isActualized,
+            payment_currency: order.payment_currency || 'INR',
+            exchange_rate: order.exchange_rate || 1,
+            base_amount: order.base_amount || order.total_amount || 0,
+            total_amount: order.total_amount || 0,
+            inr_equivalent: order.inr_equivalent || order.total_amount || 0,
+            final_amount_inr: orderAmount,
+            buying_price_tickets: buyingPriceTickets,
+            buying_price_inclusions: buyingPriceInclusions,
+            total_buying_price: totalBuyingPrice,
+            selling_price: sellingPrice,
+            margin: margin,
+            margin_percentage: marginPercentage.toFixed(2),
+            payment_status: order.payment_status || 'pending',
+            order_status: order.status || 'unknown',
+            number_of_people: order.number_of_people || 0
+          });
+        }
       }
     }
 
     // Sort by sales person and order date
     auditData.sort((a, b) => {
-      if (a.sales_person !== b.sales_person) {
-        return a.sales_person.localeCompare(b.sales_person);
+      if (a.sales_person_name !== b.sales_person_name) {
+        return a.sales_person_name.localeCompare(b.sales_person_name);
       }
       return new Date(b.order_date) - new Date(a.order_date);
     });
 
-    console.log('Audit processing results:', {
-      ordersWithAllocations,
-      ordersWithoutAllocations,
-      totalAuditRecords: auditData.length
-    });
-
-    // If no data found with order matching, try direct allocation approach
-    if (auditData.length === 0 && allocations.length > 0) {
-      console.log('No order-matched data found. Processing allocations directly...');
-      
-      for (const allocation of allocations) {
-        const inv = inventoryMap[allocation.inventory_id] || {};
-        
-        // Find related order if possible
-        const relatedOrder = orders.find(o => 
-          o.id === allocation.order_id || 
-          o.order_number === allocation.order_id ||
-          o.order_number === allocation.order_number ||
-          o.id === allocation.order_number
-        );
-        
-        // Get lead information
-        const lead = relatedOrder ? leadMap[relatedOrder.lead_id] : {};
-        
-        // Calculate values
-        const quantity = allocation.quantity || 0;
-        const unitPrice = allocation.unit_price || allocation.price || 0;
-        const salesValue = quantity * unitPrice;
-        
-        // Get cost price from inventory or allocation
-        const costPrice = allocation.cost_price || inv.cost_price || 0;
-        const totalCost = quantity * costPrice;
-        
-        // Calculate margin
-        const margin = salesValue - totalCost;
-        const marginPercentage = salesValue > 0 ? (margin / salesValue * 100).toFixed(2) : '0.00';
-
-        auditData.push({
-          lead_name: lead.name || lead.company_name || allocation.customer_name || allocation.client_name || 'Unknown',
-          lead_for_event: allocation.event_name || lead.lead_for_event || 'Unknown',
-          allocation_category: allocation.category_name || allocation.category || inv.category || 'Unknown',
-          allocation_stand: allocation.stand_section || allocation.stand || inv.stand || 'Unknown',
-          order_id: allocation.order_number || allocation.order_id || 'Direct Allocation',
-          sales_person: allocation.allocated_by || relatedOrder?.sales_person || 'Unknown',
-          quantity: quantity,
-          unit_price: unitPrice,
-          sales_value: salesValue,
-          cost_price: costPrice,
-          total_cost: totalCost,
-          margin: margin,
-          margin_percentage: marginPercentage,
-          order_date: relatedOrder?.created_date || allocation.allocated_date || allocation.created_at || '',
-          client_name: allocation.customer_name || allocation.client_name || lead.company_name || lead.name || 'Unknown',
-          payment_status: relatedOrder?.payment_status || 'unknown',
-          order_status: relatedOrder?.status || 'allocated'
-        });
-      }
-      
-      console.log('Processed allocations directly. Total records:', auditData.length);
-      
-      // Sort the fallback data too
-      auditData.sort((a, b) => {
-        if (a.sales_person !== b.sales_person) {
-          return a.sales_person.localeCompare(b.sales_person);
-        }
-        return new Date(b.order_date) - new Date(a.order_date);
-      });
-    }
+    console.log('Audit processing complete. Total records:', auditData.length);
 
     // Return based on format parameter
     if (req.query.format === 'json') {
-      // Calculate summary
+      // Calculate summary by sales person
       const summary = {};
+      const salesPersonTotals = new Map();
+      
       auditData.forEach(row => {
-        const salesPerson = row.sales_person;
+        const salesPerson = row.sales_person_name;
+        if (!salesPersonTotals.has(row.order_id)) {
+          salesPersonTotals.set(row.order_id, {
+            salesPerson: salesPerson,
+            totalSales: row.final_amount_inr,
+            actualizedSales: row.is_actualized ? row.final_amount_inr : 0,
+            totalMargin: row.margin,
+            actualizedMargin: row.is_actualized ? row.margin : 0,
+            orderProcessed: false
+          });
+        }
+        
         if (!summary[salesPerson]) {
           summary[salesPerson] = {
             total_sales: 0,
-            total_cost: 0,
+            actualized_sales: 0,
             total_margin: 0,
+            actualized_margin: 0,
             order_count: new Set(),
             lead_count: new Set()
           };
         }
-        summary[salesPerson].total_sales += row.sales_value;
-        summary[salesPerson].total_cost += row.total_cost;
-        summary[salesPerson].total_margin += row.margin;
+        
+        // Only count each order once for totals
+        const orderData = salesPersonTotals.get(row.order_id);
+        if (!orderData.orderProcessed) {
+          summary[salesPerson].total_sales += orderData.totalSales;
+          summary[salesPerson].actualized_sales += orderData.actualizedSales;
+          summary[salesPerson].total_margin += orderData.totalMargin;
+          summary[salesPerson].actualized_margin += orderData.actualizedMargin;
+          orderData.orderProcessed = true;
+        }
+        
         summary[salesPerson].order_count.add(row.order_id);
         summary[salesPerson].lead_count.add(row.lead_name);
       });
@@ -242,6 +258,9 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
       Object.keys(summary).forEach(key => {
         summary[key].order_count = summary[key].order_count.size;
         summary[key].lead_count = summary[key].lead_count.size;
+        summary[key].margin_percentage = summary[key].total_sales > 0 
+          ? ((summary[key].total_margin / summary[key].total_sales) * 100).toFixed(2)
+          : '0.00';
       });
 
       res.json({
@@ -257,19 +276,31 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
         'lead_for_event',
         'allocation_category',
         'allocation_stand',
+        'allocation_quantity',
+        'allocation_unit_price',
         'order_id',
-        'sales_person',
-        'quantity',
-        'unit_price',
-        'sales_value',
-        'cost_price',
-        'total_cost',
+        'order_date',
+        'sales_person_name',
+        'sales_person_email',
+        'client_name',
+        'event_name',
+        'event_date',
+        'is_actualized',
+        'payment_currency',
+        'exchange_rate',
+        'base_amount',
+        'total_amount',
+        'inr_equivalent',
+        'final_amount_inr',
+        'buying_price_tickets',
+        'buying_price_inclusions',
+        'total_buying_price',
+        'selling_price',
         'margin',
         'margin_percentage',
-        'order_date',
-        'client_name',
         'payment_status',
-        'order_status'
+        'order_status',
+        'number_of_people'
       ];
 
       const json2csvParser = new Parser({ fields });
