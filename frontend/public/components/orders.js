@@ -165,7 +165,11 @@ window.getSupplyTeamMember = async function() {
 // MAIN ORDERS COMPONENT
 // =============================================================================
 
-window.renderOrdersContent = () => {
+const OrdersContent = () => {
+  // State for bulk selection
+  const [selectedOrders, setSelectedOrders] = React.useState(new Set());
+  const [bulkActionMode, setBulkActionMode] = React.useState(false);
+  
   // Extract state from window.appState (passed from React components)
   const appState = window.appState || {};
   const {
@@ -430,7 +434,18 @@ const viewInvoice = window.viewInvoice;
           onClick: () => window.showInvoiceCSVImport && window.showInvoiceCSVImport(),
           className: 'px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700',
           title: 'Import finance invoice numbers from CSV'
-        }, '📤 Import Invoice CSV')
+        }, '📤 Import Invoice CSV'),
+        // Bulk Actions toggle - for super_admin, finance_manager
+        (window.user?.role === 'super_admin' || 
+         window.user?.role === 'finance_manager') && 
+        React.createElement('button', {
+          onClick: () => {
+            setBulkActionMode(!bulkActionMode);
+            setSelectedOrders(new Set()); // Clear selections when toggling
+          },
+          className: `px-4 py-2 rounded-md ${bulkActionMode ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-gray-600 text-white hover:bg-gray-700'}`,
+          title: 'Enable bulk actions'
+        }, bulkActionMode ? '✖️ Cancel Bulk' : '☑️ Bulk Actions')
       )
     ),
 
@@ -584,6 +599,57 @@ const viewInvoice = window.viewInvoice;
       )
     ),
 
+    // Bulk action bar - shows when orders are selected
+    bulkActionMode && selectedOrders.size > 0 && React.createElement('div', { 
+      className: 'bg-blue-50 dark:bg-blue-900 rounded-lg shadow border p-4' 
+    },
+      React.createElement('div', { className: 'flex items-center justify-between' },
+        React.createElement('div', { className: 'flex items-center space-x-4' },
+          React.createElement('span', { className: 'font-medium text-blue-900 dark:text-blue-100' }, 
+            `${selectedOrders.size} order${selectedOrders.size > 1 ? 's' : ''} selected`
+          ),
+          React.createElement('button', {
+            onClick: () => {
+              // Only select pending_approval orders on the current page
+              const pendingOrderIds = paginatedOrders
+                .filter(o => o.status === 'pending_approval')
+                .map(o => o.id);
+              setSelectedOrders(new Set(pendingOrderIds));
+            },
+            className: 'text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400'
+          }, 'Select All Pending on Page'),
+          React.createElement('button', {
+            onClick: () => setSelectedOrders(new Set()),
+            className: 'text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400'
+          }, 'Clear Selection')
+        ),
+        React.createElement('div', { className: 'flex items-center space-x-2' },
+          React.createElement('button', {
+            onClick: async () => {
+              const eligibleOrders = Array.from(selectedOrders).map(id => 
+                orders.find(o => o.id === id)
+              ).filter(o => o && o.status === 'pending_approval');
+              
+              if (eligibleOrders.length === 0) {
+                alert('No pending approval orders selected for approval');
+                return;
+              }
+              if (confirm(`Approve ${eligibleOrders.length} order${eligibleOrders.length > 1 ? 's' : ''}?`)) {
+                await window.bulkApproveOrders(Array.from(selectedOrders));
+                setSelectedOrders(new Set());
+                setBulkActionMode(false);
+              }
+            },
+            className: 'px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700',
+            title: 'Bulk approve selected pending orders'
+          }, `✅ Approve (${Array.from(selectedOrders).filter(id => {
+            const order = orders.find(o => o.id === id);
+            return order && order.status === 'pending_approval';
+          }).length})`)
+        )
+      )
+    ),
+
     // Orders table
     React.createElement('div', { 
       className: 'bg-white dark:bg-gray-800 rounded-lg shadow border overflow-hidden',
@@ -595,6 +661,27 @@ const viewInvoice = window.viewInvoice;
         React.createElement('table', { className: 'w-full divide-y divide-gray-200 dark:divide-gray-700' },
           React.createElement('thead', { className: 'bg-gray-50 dark:bg-gray-900' },
             React.createElement('tr', null,
+              // Add checkbox column when in bulk mode
+              bulkActionMode && React.createElement('th', { 
+                className: 'px-6 py-3 w-12' 
+              },
+                React.createElement('input', {
+                  type: 'checkbox',
+                  checked: paginatedOrders.length > 0 && paginatedOrders.every(o => selectedOrders.has(o.id)),
+                  onChange: (e) => {
+                    if (e.target.checked) {
+                      const newSelection = new Set(selectedOrders);
+                      paginatedOrders.forEach(o => newSelection.add(o.id));
+                      setSelectedOrders(newSelection);
+                    } else {
+                      const newSelection = new Set(selectedOrders);
+                      paginatedOrders.forEach(o => newSelection.delete(o.id));
+                      setSelectedOrders(newSelection);
+                    }
+                  },
+                  className: 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500'
+                })
+              ),
               ['order_number', 'client_name', 'event_name', 'total_amount', 'status', 'payment_status', 'assigned_to'].map(field =>
                 React.createElement('th', {
                   key: field,
@@ -624,6 +711,29 @@ const viewInvoice = window.viewInvoice;
                 key: order.id || index,
                 className: 'hover:bg-gray-50 dark:hover:bg-gray-700'
               },
+                // Add checkbox column when in bulk mode
+                bulkActionMode && React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                  React.createElement('div', { className: 'flex items-center' },
+                    React.createElement('input', {
+                      type: 'checkbox',
+                      checked: selectedOrders.has(order.id),
+                      onChange: (e) => {
+                        const newSelection = new Set(selectedOrders);
+                        if (e.target.checked) {
+                          newSelection.add(order.id);
+                        } else {
+                          newSelection.delete(order.id);
+                        }
+                        setSelectedOrders(newSelection);
+                      },
+                      className: 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500'
+                    }),
+                    order.status !== 'pending_approval' && React.createElement('span', { 
+                      className: 'ml-2 text-xs text-gray-500',
+                      title: 'Only pending approval orders can be approved'
+                    }, '⚠️')
+                  )
+                ),
                 React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white' },
                   order.order_number || 'N/A'
                 ),
@@ -756,6 +866,11 @@ const viewInvoice = window.viewInvoice;
       )
     )
   );
+};
+
+// Wrapper function to render the Orders component
+window.renderOrdersContent = () => {
+  return React.createElement(OrdersContent);
 };
 
 // =============================================================================
@@ -1584,5 +1699,229 @@ window.updateFinanceInvoiceNumbers = async function(updates) {
     console.error('❌ Error updating invoice numbers:', error);
     alert('Error updating invoice numbers: ' + error.message);
     throw error;
+  }
+};
+
+// Bulk approve orders function
+window.bulkApproveOrders = async function(orderIds) {
+  console.log('🚀 Starting bulk approval for orders:', orderIds);
+  
+  if (!window.hasPermission('orders', 'approve')) {
+    alert('You do not have permission to approve orders');
+    return;
+  }
+  
+  window.setLoading(true);
+  
+  try {
+    // Filter only pending_approval orders
+    const pendingOrders = window.orders.filter(o => 
+      orderIds.includes(o.id) && o.status === 'pending_approval'
+    );
+    
+    if (pendingOrders.length === 0) {
+      alert('No pending approval orders found in selection');
+      window.setLoading(false);
+      return;
+    }
+    
+    console.log(`📋 Processing ${pendingOrders.length} pending orders for approval`);
+    
+    const results = {
+      approved: [],
+      failed: [],
+      deliveries: [],
+      assignments: []
+    };
+    
+    // Process each order
+    for (const order of pendingOrders) {
+      try {
+        console.log(`Processing order ${order.order_number}...`);
+        
+        // Step 1: Approve the order
+        const approvedBy = window.user?.email || window.currentUser?.email || 
+                          (window.user?.id || window.currentUser?.id) || 'admin';
+        
+        console.log(`📝 Approving order ${order.id} by ${approvedBy}`);
+        
+        const approvalData = {
+          status: 'approved',
+          approved_by: approvedBy,
+          approved_date: new Date().toISOString(),
+          approval_notes: 'Bulk approved'
+        };
+        
+        console.log('📤 Sending approval data:', approvalData);
+        
+        const approvalResponse = await window.apiCall(`/orders/${order.id}`, {
+          method: 'PUT',
+          body: approvalData
+        });
+        
+        console.log(`📥 Order ${order.id} approval response:`, approvalResponse);
+        
+        if (!approvalResponse || approvalResponse.error) {
+          throw new Error(approvalResponse?.error || 'Failed to approve order');
+        }
+        
+        results.approved.push(order.order_number);
+        
+        // Step 2: Generate invoice if required
+        if (order.requires_gst_invoice) {
+          console.log('📄 Generating invoice for order:', order.order_number);
+          
+          try {
+            const invoiceNumber = 'STTS/INV/' + new Date().getFullYear() + '/' + String(Date.now()).slice(-6);
+            
+            const newInvoice = {
+              invoice_number: invoiceNumber,
+              order_id: order.id,
+              order_number: order.order_number,
+              client_name: order.legal_name || order.client_name,
+              client_email: order.client_email,
+              gstin: order.gstin,
+              legal_name: order.legal_name,
+              category_of_sale: order.category_of_sale,
+              type_of_sale: order.type_of_sale,
+              registered_address: order.registered_address,
+              indian_state: order.indian_state,
+              is_outside_india: order.is_outside_india,
+              invoice_items: order.invoice_items,
+              base_amount: order.base_amount,
+              gst_amount: order.gst_amount,
+              igst_amount: order.igst_amount,
+              cgst_amount: order.cgst_amount,
+              sgst_amount: order.sgst_amount,
+              tcs_amount: order.tcs_amount,
+              total_amount: order.total_amount,
+              exchange_rate: order.exchange_rate,
+              payment_currency: order.payment_currency || 'INR',
+              invoice_date: new Date().toISOString().split('T')[0],
+              invoice_status: 'issued'
+            };
+            
+            const invoiceResponse = await window.apiCall('/invoices', {
+              method: 'POST',
+              body: newInvoice
+            });
+            
+            if (invoiceResponse && !invoiceResponse.error) {
+              console.log('✅ Invoice created:', invoiceNumber);
+            }
+          } catch (invoiceError) {
+            console.error('❌ Invoice generation failed:', invoiceError);
+            // Continue with the process even if invoice fails
+          }
+        }
+        
+        // Step 3: Assign to supply team and create delivery record
+        try {
+          console.log('🚚 Creating delivery record and assigning to supply team...');
+          
+          // Get supply team member
+          const assignee = await window.getSupplyTeamMember();
+          
+          if (assignee) {
+            // Update order assignment
+            const assignmentData = {
+              assigned_to: assignee,
+              status: 'service_assigned',
+              assigned_date: new Date().toISOString(),
+              assignment_notes: 'Auto-assigned during bulk approval'
+            };
+            
+            const assignResponse = await window.apiCall(`/orders/${order.id}`, {
+              method: 'PUT',
+              body: assignmentData
+            });
+            
+            if (assignResponse && !assignResponse.error) {
+              results.assignments.push(order.order_number);
+            }
+            
+            // Create delivery record
+            const createdBy = window.user?.email || window.currentUser?.email || 
+                             (window.user?.id || window.currentUser?.id) || 'admin';
+            
+            const newDelivery = {
+              order_id: order.id,
+              order_number: order.order_number,
+              client_name: order.client_name,
+              client_email: order.client_email,
+              client_phone: order.client_phone,
+              event_name: order.event_name || 'N/A',
+              event_date: order.event_date || new Date().toISOString().split('T')[0],
+              tickets_count: order.tickets_allocated || 0,
+              amount: order.total_amount || 0,
+              delivery_status: 'pending',
+              assigned_to: assignee,
+              assigned_date: new Date().toISOString(),
+              payment_currency: order.payment_currency || 'INR',
+              created_by: createdBy,
+              created_date: new Date().toISOString()
+            };
+            
+            const deliveryResponse = await window.apiCall('/deliveries', {
+              method: 'POST',
+              body: newDelivery
+            });
+            
+            if (deliveryResponse && !deliveryResponse.error) {
+              results.deliveries.push(order.order_number);
+              console.log('✅ Delivery record created for order:', order.order_number);
+            }
+          }
+        } catch (assignError) {
+          console.error('❌ Assignment/delivery failed:', assignError);
+          // Continue with the process
+        }
+        
+      } catch (orderError) {
+        console.error(`❌ Failed to process order ${order.order_number}:`, orderError);
+        results.failed.push({
+          order: order.order_number,
+          error: orderError.message
+        });
+      }
+    }
+    
+    // Update local state - refresh orders
+    if (window.fetchData && typeof window.fetchData === 'function') {
+      await window.fetchData();
+    } else if (window.setOrders && typeof window.setOrders === 'function') {
+      // Manually refresh orders
+      try {
+        const response = await window.apiCall('/orders');
+        window.setOrders(response.data || []);
+        window.orders = response.data || [];
+      } catch (error) {
+        console.error('Failed to refresh orders:', error);
+      }
+    }
+    
+    // Show results summary
+    let message = `Bulk Approval Complete!\n\n`;
+    message += `✅ Approved: ${results.approved.length} orders\n`;
+    if (results.assignments.length > 0) {
+      message += `👥 Assigned to supply team: ${results.assignments.length} orders\n`;
+    }
+    if (results.deliveries.length > 0) {
+      message += `🚚 Delivery records created: ${results.deliveries.length}\n`;
+    }
+    if (results.failed.length > 0) {
+      message += `\n❌ Failed: ${results.failed.length} orders\n`;
+      results.failed.forEach(f => {
+        message += `  - ${f.order}: ${f.error}\n`;
+      });
+    }
+    
+    alert(message);
+    
+  } catch (error) {
+    console.error('❌ Bulk approval error:', error);
+    alert('Error during bulk approval: ' + error.message);
+  } finally {
+    window.setLoading(false);
   }
 };

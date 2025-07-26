@@ -53,6 +53,11 @@ window.apiCall = async function(endpoint, options = {}) {
     throw new Error('Token expired');
   }
   
+  // Automatically stringify body if it's an object
+  if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
+    options.body = JSON.stringify(options.body);
+  }
+  
   const config = {
     ...options,
     headers: {
@@ -74,7 +79,21 @@ window.apiCall = async function(endpoint, options = {}) {
     }
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      // Try to get error message from response body
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch (e) {
+        // If response body is not JSON, use default error message
+      }
+      
+      console.error(`API Error ${response.status} for ${endpoint}:`, errorMessage);
+      throw new Error(errorMessage);
     }
     
     const data = await response.json();
