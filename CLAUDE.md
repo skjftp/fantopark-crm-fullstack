@@ -201,6 +201,15 @@ git push origin main
   - Proper CSV escaping for special characters
 - **Endpoint**: `GET /api/bulk-allocations/download`
 
+#### Sales Performance Margin Calculation Fix (2025-07-26)
+- **Issue**: Financials tab showing margin = sales (100% margin) while Sales Performance tab showed correct margins
+- **Root Cause**: The `/api/sales-performance/all-periods` endpoint (used by financials) was missing `buying_price_inclusions` calculation that the main `/api/sales-performance/` endpoint included
+- **Fix**: Added missing `buying_price_inclusions` logic to all-periods endpoint at `backend/src/routes/sales-performance.js:751-759`
+- **Before**: `margin = totalSales - totalBuyingPrice` (missing inclusions)
+- **After**: `margin = totalSales - (totalBuyingPrice + totalBuyingPriceInclusions)` (includes all buying costs)
+- **Impact**: Financials tab now shows correct margin values matching Sales Performance tab
+- **Deployment**: Backend deployed to Cloud Run revision `fantopark-backend-00423-8hx`
+
 ### Environment Variables
 
 Backend requires `.env` with:

@@ -619,12 +619,25 @@ router.post('/process', authenticateToken, upload.single('file'), async (req, re
     for (const row of validRows) {
       const { inventory, lead, category, tickets_to_allocate, notes, order, price_override } = row.enrichedData;
       
+      // Get buying price for allocation
+      let buyingPricePerTicket = 0;
+      if (category) {
+        buyingPricePerTicket = parseFloat(category.buying_price) || 0;
+      } else if (inventory.buying_price) {
+        // Fallback to legacy inventory buying price
+        buyingPricePerTicket = parseFloat(inventory.buying_price) || 0;
+      }
+      
+      const totalBuyingPrice = buyingPricePerTicket * tickets_to_allocate;
+
       // Create allocation document
       const allocationData = {
         inventory_id: inventory.id,
         lead_id: lead.id,
         lead_name: lead.name,
         tickets_allocated: tickets_to_allocate,
+        buying_price_per_ticket: buyingPricePerTicket,
+        total_buying_price: totalBuyingPrice,
         notes: notes || `Bulk allocated by ${req.user.name}`,
         created_by: req.user.id,
         created_by_name: req.user.name,

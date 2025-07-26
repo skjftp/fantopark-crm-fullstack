@@ -958,6 +958,9 @@ const EnhancedFinancialStats = () => {
                             const totalMargin = salesTeam.reduce((sum, member) => sum + (member.totalMargin || 0), 0);
                             const marginPercentage = totalSales > 0 ? (totalMargin / totalSales * 100) : 0;
                             
+                            // Debug logging for margin calculation
+                            console.log(`📊 Financials ${period} - Sales: ₹${(totalSales * 10000000).toLocaleString()}, Margin: ₹${(totalMargin * 10000000).toLocaleString()}, %: ${marginPercentage.toFixed(2)}%`);
+                            
                             // Convert from crores to actual value
                             const totalSalesInRupees = totalSales * 10000000;
                             const totalMarginInRupees = totalMargin * 10000000;

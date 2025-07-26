@@ -190,6 +190,10 @@ app.use('/api/bulk-allocations', require('./routes/bulk-allocations'));
 // app.use('/api/bulk-payments', require('./routes/bulk-payments')); // TODO: Create this route
 app.use('/api/audit-export', require('./routes/audit-export'));
 app.use('/api/currency-fix', require('./routes/currency-fix'));
+app.use('/api/fix-allocations', require('./routes/fix-allocations'));
+app.use('/api/fix-allocations-v2', require('./routes/fix-allocations-v2'));
+app.use('/api/performance-stats', require('./routes/performance-stats'));
+app.use('/api/cron', require('./routes/cron'));
 
 
 // ✅ JOURNEY ROUTES - NOW AFTER CORS SETUP!

@@ -96,6 +96,70 @@ function getDateRange(period) {
   return { startDate, endDate: endDate || now };
 }
 
+// GET debug margin data for troubleshooting
+router.get('/debug-margin', authenticateToken, async (req, res) => {
+  try {
+    // Get first order from jackson@fantopark.com
+    const ordersSnapshot = await db.collection(collections.orders)
+      .where('sales_person', '==', 'jackson@fantopark.com')
+      .limit(1)
+      .get();
+    
+    if (ordersSnapshot.empty) {
+      return res.json({ error: 'No orders found for jackson@fantopark.com' });
+    }
+    
+    const orderDoc = ordersSnapshot.docs[0];
+    const order = orderDoc.data();
+    
+    // Get allocations for this order
+    const allocationsSnapshot = await db.collection(collections.allocations)
+      .where('order_id', '==', orderDoc.id)
+      .get();
+    
+    // Get all inventory
+    const inventorySnapshot = await db.collection(collections.inventory).get();
+    
+    const debug = {
+      order: {
+        id: orderDoc.id,
+        order_number: order.order_number,
+        total_amount: order.total_amount,
+        inr_equivalent: order.inr_equivalent,
+        event_name: order.event_name
+      },
+      allocations: [],
+      inventory_events: inventorySnapshot.docs.map(doc => ({
+        event_name: doc.data().event_name,
+        categories: doc.data().categories?.map(c => ({
+          name: c.name,
+          section: c.section,
+          buying_price: c.buying_price
+        }))
+      }))
+    };
+    
+    allocationsSnapshot.forEach(allocDoc => {
+      const allocation = allocDoc.data();
+      debug.allocations.push({
+        id: allocDoc.id,
+        order_id: allocation.order_id,
+        event_name: allocation.event_name,
+        category_name: allocation.category_name,
+        category_section: allocation.category_section,
+        tickets_allocated: allocation.tickets_allocated,
+        isDeleted: allocation.isDeleted
+      });
+    });
+    
+    res.json({ success: true, debug });
+    
+  } catch (error) {
+    console.error('Debug margin error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET sales team performance data - SHOWS ONLY MEMBERS IN sales_performance_members
 router.get('/', authenticateToken, async (req, res) => {
   try {
@@ -190,13 +254,10 @@ router.get('/', authenticateToken, async (req, res) => {
       console.log(`Found ${allLeadsSnapshot.size} total leads`);
     }
     
-    // 3.5 Get allocations and inventory for buying price calculation
-    const [allocationsSnapshot, inventorySnapshot] = await Promise.all([
-      db.collection(collections.allocations).get(),
-      db.collection(collections.inventory).get()
-    ]);
+    // 3.5 Get allocations for buying price calculation (no inventory needed)
+    const allocationsSnapshot = await db.collection(collections.allocations).get();
     
-    // Create allocation and inventory maps
+    // Create allocation map (no inventory needed anymore)
     const allocationsByOrderId = new Map();
     allocationsSnapshot.forEach(doc => {
       const allocation = { id: doc.id, ...doc.data() };
@@ -215,12 +276,7 @@ router.get('/', authenticateToken, async (req, res) => {
       });
     });
     
-    const inventoryMap = new Map();
-    inventorySnapshot.forEach(doc => {
-      inventoryMap.set(doc.id, { id: doc.id, ...doc.data() });
-    });
-    
-    console.log(`Found ${allocationsSnapshot.size} allocations and ${inventorySnapshot.size} inventory items`);
+    console.log(`Found ${allocationsSnapshot.size} allocations`);
     
     // 4. Create maps for quick lookup
     const ordersByUser = new Map();
@@ -305,7 +361,7 @@ router.get('/', authenticateToken, async (req, res) => {
           ? parseFloat(order.base_amount || order.total_amount || 0)
           : parseFloat(order.base_amount || 0) * parseFloat(order.exchange_rate || 1);
         
-        // Calculate buying price from allocations and inventory
+        // SIMPLIFIED: Get buying price directly from allocation fields
         let buyingPriceTickets = 0;
         const orderAllocations = allocationsByOrderId.get(order.id) || 
                                 allocationsByOrderId.get(order.order_number) || 
@@ -316,37 +372,9 @@ router.get('/', authenticateToken, async (req, res) => {
                                 ) : []);
         
         orderAllocations.forEach(allocation => {
-          const inventory = inventoryMap.get(allocation.inventory_id);
-          if (inventory) {
-            const allocatedQty = allocation.tickets_allocated || allocation.quantity || 0;
-            let buyingPricePerTicket = 0;
-            
-            // Get buying price from inventory categories
-            if (inventory.categories && Array.isArray(inventory.categories)) {
-              const categoryName = allocation.category_name || allocation.category || '';
-              const categorySection = allocation.category_section || allocation.stand_section || '';
-              
-              // Match both category name AND section for accurate buying price
-              let category = inventory.categories.find(cat => 
-                cat.name === categoryName && 
-                cat.section === categorySection
-              );
-              
-              // Fallback: if no exact match found, match by name only
-              if (!category) {
-                category = inventory.categories.find(cat => cat.name === categoryName);
-              }
-              
-              if (category) {
-                buyingPricePerTicket = parseFloat(category.buying_price) || 0;
-              }
-            } else if (inventory.buying_price) {
-              // Fallback to legacy inventory structure
-              buyingPricePerTicket = parseFloat(inventory.buying_price) || 0;
-            }
-            
-            buyingPriceTickets += buyingPricePerTicket * allocatedQty;
-          }
+          // Use existing allocation fields - much simpler!
+          const totalBuyingPrice = parseFloat(allocation.total_buying_price || 0);
+          buyingPriceTickets += totalBuyingPrice;
         });
         
         const buyingPriceInclusions = parseFloat(order.buying_price_inclusions || 0);
@@ -564,12 +592,11 @@ router.get('/all-periods', authenticateToken, async (req, res) => {
       emailToName.set(userData.email, userData.name);
     });
     
-    // Get all orders and leads once
-    const [allOrdersSnapshot, allLeadsSnapshot, allAllocationsSnapshot, allInventorySnapshot] = await Promise.all([
+    // Get all orders, leads, and allocations (no inventory needed)
+    const [allOrdersSnapshot, allLeadsSnapshot, allAllocationsSnapshot] = await Promise.all([
       db.collection(collections.orders).get(),
       db.collection(collections.leads).get(),
-      db.collection(collections.allocations).get(),
-      db.collection(collections.inventory).get()
+      db.collection(collections.allocations).get()
     ]);
     
     console.log(`📊 Fetched ${allOrdersSnapshot.size} orders, ${allLeadsSnapshot.size} leads`);
@@ -622,66 +649,140 @@ router.get('/all-periods', authenticateToken, async (req, res) => {
           return order.sales_person === userData.name || order.sales_person === userEmail;
         });
         
-        // Calculate metrics
+        // Calculate metrics - EXACT COPY from main sales-performance endpoint
         let totalSales = 0;
-        let totalBuyingPrice = 0;
+        let actualizedSales = 0;
+        let totalMargin = 0;
+        let actualizedMargin = 0;
+        const now = new Date();
         
-        for (const orderDoc of userOrders) {
+        // Create allocation map (no inventory needed)
+        const allocationsByOrderId = new Map();
+        allAllocationsSnapshot.forEach(doc => {
+          const allocation = { id: doc.id, ...doc.data() };
+          // Group allocations by order
+          const orderIds = [
+            allocation.order_id,
+            allocation.order_number,
+            ...(allocation.order_ids || [])
+          ].filter(Boolean);
+          
+          orderIds.forEach(orderId => {
+            if (!allocationsByOrderId.has(orderId)) {
+              allocationsByOrderId.set(orderId, []);
+            }
+            allocationsByOrderId.get(orderId).push(allocation);
+          });
+        });
+        
+        userOrders.forEach(orderDoc => {
           const order = orderDoc.data();
           
-          // Calculate sales value using base_amount logic
-          const salesValue = order.payment_currency === 'INR' 
-            ? parseFloat(order.base_amount || 0)
+          // Use base_amount logic for sales value calculation (EXACT COPY)
+          const isForeignCurrency = order.payment_currency && order.payment_currency !== 'INR';
+          const orderAmount = order.payment_currency === 'INR' 
+            ? parseFloat(order.base_amount || order.total_amount || 0)
             : parseFloat(order.base_amount || 0) * parseFloat(order.exchange_rate || 1);
           
-          totalSales += salesValue;
+          // New margin calculation (EXACT COPY from main endpoint):
+          const sellingPrice = order.payment_currency === 'INR' 
+            ? parseFloat(order.base_amount || order.total_amount || 0)
+            : parseFloat(order.base_amount || 0) * parseFloat(order.exchange_rate || 1);
           
-          // Get buying price from allocations
-          const orderAllocations = allAllocationsSnapshot.docs.filter(doc => {
-            const alloc = doc.data();
-            return alloc.order_id === orderDoc.id && !alloc.isDeleted;
+          // Calculate buying price from allocations and inventory (EXACT COPY)
+          let buyingPriceTickets = 0;
+          const orderAllocations = allocationsByOrderId.get(orderDoc.id) || 
+                                  allocationsByOrderId.get(order.order_number) || 
+                                  (order.allocation_ids ? order.allocation_ids.flatMap(aid => 
+                                    Array.from(allAllocationsSnapshot.docs)
+                                      .filter(doc => doc.id === aid)
+                                      .map(doc => ({ id: doc.id, ...doc.data() }))
+                                  ) : []);
+          
+          orderAllocations.forEach(allocation => {
+            // SIMPLIFIED: Use existing allocation fields directly
+            const totalBuyingPrice = parseFloat(allocation.total_buying_price || 0);
+            buyingPriceTickets += totalBuyingPrice;
           });
           
-          for (const allocDoc of orderAllocations) {
-            const allocation = allocDoc.data();
-            const tickets = parseInt(allocation.tickets_allocated || 0);
-            
-            // Find inventory for buying price
-            const invDoc = allInventorySnapshot.docs.find(doc => 
-              doc.data().event_name === allocation.event_name
-            );
-            
-            if (invDoc && tickets > 0) {
-              const inv = invDoc.data();
-              const categoryName = allocation.category_name || allocation.category || '';
-              const categorySection = allocation.category_section || allocation.stand_section || '';
-              
-              const category = inv.categories?.find(cat => 
-                cat.name === categoryName && cat.section === categorySection
-              );
-              
-              if (category) {
-                totalBuyingPrice += parseFloat(category.buying_price || 0) * tickets;
-              }
+          const buyingPriceInclusions = parseFloat(order.buying_price_inclusions || 0);
+          const totalBuyingPrice = buyingPriceTickets + buyingPriceInclusions;
+          
+          // Calculate margin (EXACT COPY)
+          const margin = sellingPrice - totalBuyingPrice;
+          
+          totalSales += orderAmount;
+          totalMargin += margin;
+          
+          // Check if event date has passed (EXACT COPY)
+          if (order.event_date) {
+            const eventDate = new Date(order.event_date);
+            if (eventDate < now) {
+              actualizedSales += orderAmount;
+              actualizedMargin += margin;
             }
           }
-        }
+        });
         
-        const margin = totalSales - totalBuyingPrice;
-        const marginPercentage = totalSales > 0 ? (margin / totalSales * 100) : 0;
+        // Calculate margin percentages (EXACT COPY)
+        const marginPercentage = totalSales > 0 ? (totalMargin / totalSales) * 100 : 0;
+        const actualizedMarginPercentage = actualizedSales > 0 ? (actualizedMargin / actualizedSales) * 100 : 0;
+        
+        // Get user's leads for pipeline (EXACT COPY from main endpoint)
+        let salesPersonPipeline = 0;
+        let retailPipeline = 0;
+        let corporatePipeline = 0;
+        
+        userLeads.forEach(lead => {
+          const potentialValue = parseFloat(lead.potential_value || 0);
+          const status = (lead.status || '').toLowerCase();
+          const temperature = (lead.temperature || '').toLowerCase();
+          
+          // Only include in pipeline if status is hot/warm/cold OR quote statuses with temperature
+          if (status === 'hot' || status === 'warm' || status === 'cold' ||
+              ((status === 'quote_requested' || status === 'quote_received') && 
+               (temperature === 'hot' || temperature === 'warm' || temperature === 'cold'))) {
+            
+            // Check business_type for leads (B2B/B2C)
+            if (lead.business_type === 'B2C') {
+              retailPipeline += potentialValue;
+            } else if (lead.business_type === 'B2B') {
+              corporatePipeline += potentialValue;
+            } else {
+              // If business_type is not set, default to retail
+              retailPipeline += potentialValue;
+            }
+          }
+        });
+        
+        const overallPipeline = salesPersonPipeline + retailPipeline + corporatePipeline;
+        
+        // Get target (EXACT COPY)
+        let target = userData.sales_target || 0;
+        try {
+          const targetDoc = await db.collection('sales_targets').doc(userDoc.id).get();
+          if (targetDoc.exists) {
+            target = targetDoc.data().target;
+          }
+        } catch (err) {
+          // Use default
+        }
         
         salesTeam.push({
           id: userDoc.id,
           name: userData.name,
           email: userEmail,
-          totalSales: totalSales / 10000000, // Convert to crores
-          orderCount: userOrders.length,
-          pipelineCount: userLeads.length,
-          totalMargin: margin / 10000000, // Convert to crores
+          target: target / 10000000, // Convert to Crores
+          totalSales: totalSales / 10000000,
+          actualizedSales: actualizedSales / 10000000,
+          totalMargin: totalMargin / 10000000,
+          actualizedMargin: actualizedMargin / 10000000,
           marginPercentage: marginPercentage,
-          target: userData.sales_target || 0,
-          achievementPercentage: userData.sales_target > 0 ? 
-            ((totalSales / 10000000) / userData.sales_target * 100) : 0
+          actualizedMarginPercentage: actualizedMarginPercentage,
+          salesPersonPipeline: salesPersonPipeline / 10000000,
+          retailPipeline: retailPipeline / 10000000,
+          corporatePipeline: corporatePipeline / 10000000,
+          overallPipeline: overallPipeline / 10000000
         });
       }
       

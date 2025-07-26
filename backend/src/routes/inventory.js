@@ -878,8 +878,16 @@ router.post('/:id/allocate', authenticateToken, checkPermission('inventory', 'wr
     // Get buying price for allocation
     let buyingPricePerTicket = 0;
     if (inventoryData.categories && Array.isArray(inventoryData.categories)) {
-      // For categorized inventory
-      const category = inventoryData.categories.find(cat => cat.name === category_name);
+      // For categorized inventory - match both name AND section for accurate price
+      let category = inventoryData.categories.find(cat => 
+        cat.name === category_name && cat.section === category_section
+      );
+      
+      // Fallback: if no exact match, try name only
+      if (!category) {
+        category = inventoryData.categories.find(cat => cat.name === category_name);
+      }
+      
       if (category) {
         buyingPricePerTicket = parseFloat(category.buying_price) || 0;
       }

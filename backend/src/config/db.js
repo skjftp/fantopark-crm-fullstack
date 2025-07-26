@@ -15,6 +15,7 @@ const collections = {
   allocations: 'crm_allocations',
   deliveries: 'crm_deliveries',
   receivables: 'crm_receivables',
+  payables: 'crm_payables',
   emailNotifications: 'crm_email_notifications',
   roles: 'crm_roles'
 };
