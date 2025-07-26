@@ -295,6 +295,7 @@ window.filterOrdersByRole = function(orders, userRole, userEmail) {
     
     case 'finance_manager':
     case 'finance_executive':
+      // Finance team only sees orders pending approval
       return orders.filter(order => order.status === 'pending_approval');
     
     case 'sales_executive':

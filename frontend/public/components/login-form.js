@@ -8,6 +8,11 @@ window.renderLogin = function() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Clear any existing auth data before attempting login
+    localStorage.removeItem('crm_auth_token');
+    localStorage.removeItem('crm_user');
+    window.authToken = null;
+    
     if (!window.handleLogin) {
       console.error('handleLogin function not available');
       alert('Login system is initializing. Please try again in a moment.');

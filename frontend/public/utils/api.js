@@ -58,8 +58,11 @@ window.handleAuthError = function(status) {
 
 // Main API helper function - Single source of truth
 window.apiCall = async function(endpoint, options = {}) {
-  // Check token expiry before making request
-  if (window.isTokenExpired()) {
+  // Skip token expiry check for auth endpoints (login, register, etc.)
+  const isAuthEndpoint = endpoint.includes('/auth/');
+  
+  // Check token expiry before making request (except for auth endpoints)
+  if (!isAuthEndpoint && window.isTokenExpired()) {
     window.handleAuthError(403);
     throw new Error('Token expired');
   }
@@ -73,7 +76,8 @@ window.apiCall = async function(endpoint, options = {}) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(localStorage.getItem('crm_auth_token') ? { 
+      // Don't send Authorization header for auth endpoints
+      ...(!isAuthEndpoint && localStorage.getItem('crm_auth_token') ? { 
         'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}` 
       } : {}),
       ...options.headers
