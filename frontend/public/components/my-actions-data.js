@@ -296,7 +296,13 @@ window.filterOrdersByRole = function(orders, userRole, userEmail) {
     case 'finance_manager':
     case 'finance_executive':
       // Finance team only sees orders pending approval
-      return orders.filter(order => order.status === 'pending_approval');
+      return orders.filter(order => {
+        // Skip orders that were bulk approved (even if status wasn't updated properly)
+        if (order.approval_notes && order.approval_notes.toLowerCase().includes('bulk')) {
+          return false;
+        }
+        return order.status === 'pending_approval';
+      });
     
     case 'sales_executive':
     case 'sales_manager':
@@ -306,7 +312,22 @@ window.filterOrdersByRole = function(orders, userRole, userEmail) {
     
     case 'admin':
     case 'super_admin':
-      return orders; // Admins see all orders
+      // In My Actions, admins should only see orders that need action
+      return orders.filter(order => {
+        // Skip orders that were bulk approved (even if status wasn't updated properly)
+        if (order.approval_notes && order.approval_notes.toLowerCase().includes('bulk')) {
+          console.log('Skipping bulk approved order:', order.order_number, 'approval_notes:', order.approval_notes);
+          return false;
+        }
+        
+        // Show pending approval orders
+        if (order.status === 'pending_approval') return true;
+        
+        // Show approved orders that need service assignment
+        if (order.status === 'approved' && !order.assigned_to) return true;
+        
+        return false;
+      });
     
     default:
       return orders.filter(order => order.assigned_to === userEmail);
