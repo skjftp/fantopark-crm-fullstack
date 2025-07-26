@@ -106,47 +106,11 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
       const leadName = lead.name || lead.company_name || order.client_name || order.customer_name || 'Unknown';
       const leadEvent = order.event_name || lead.lead_for_event || 'Unknown';
 
-      // Calculate sales values (following sales-performance.js logic)
-      const isForeignCurrency = order.payment_currency && order.payment_currency !== 'INR';
+      // FIXED: Use inr_equivalent for sales value as per requirement
+      const sellingPrice = parseFloat(order.inr_equivalent || 0);
       
-      // For foreign currency orders, use proper INR conversion
-      let orderAmount, sellingPrice;
-      if (isForeignCurrency) {
-        // Use final_amount_inr if available, otherwise calculate using exchange rate
-        orderAmount = parseFloat(order.final_amount_inr || 0);
-        if (orderAmount === 0 && order.total_amount && order.exchange_rate) {
-          orderAmount = parseFloat(order.total_amount) * parseFloat(order.exchange_rate);
-        }
-        
-        // For selling price, use inr_equivalent first, then final_amount_inr, then calculated
-        sellingPrice = parseFloat(order.inr_equivalent || order.final_amount_inr || 0);
-        if (sellingPrice === 0 && order.base_amount && order.exchange_rate) {
-          sellingPrice = parseFloat(order.base_amount) * parseFloat(order.exchange_rate);
-        }
-        
-        console.log(`Foreign currency conversion for ${order.order_number}:`, {
-          currency: order.payment_currency,
-          originalAmount: order.total_amount,
-          exchangeRate: order.exchange_rate,
-          calculatedINR: parseFloat(order.total_amount) * parseFloat(order.exchange_rate),
-          final_amount_inr: order.final_amount_inr,
-          inr_equivalent: order.inr_equivalent,
-          usedOrderAmount: orderAmount,
-          usedSellingPrice: sellingPrice
-        });
-      } else {
-        // For INR orders, use the amounts directly
-        orderAmount = parseFloat(order.final_amount_inr || order.total_amount || 0);
-        sellingPrice = parseFloat(order.inr_equivalent || order.base_amount || order.total_amount || 0);
-      }
-      
-      const buyingPriceTickets = parseFloat(order.buying_price || 0);
+      // Don't use order buying price - will get from allocations
       const buyingPriceInclusions = parseFloat(order.buying_price_inclusions || 0);
-      const totalBuyingPrice = buyingPriceTickets + buyingPriceInclusions;
-      
-      // Calculate margin
-      const margin = sellingPrice - totalBuyingPrice;
-      const marginPercentage = sellingPrice > 0 ? (margin / sellingPrice * 100) : 0;
 
       // Check if actualized (event date has passed)
       let isActualized = false;
@@ -160,11 +124,22 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
         alloc.order_id === order.id || 
         alloc.order_id === order.order_number ||
         alloc.order_number === order.order_number ||
-        alloc.order_number === order.id
+        alloc.order_number === order.id ||
+        (alloc.order_ids && alloc.order_ids.includes(order.id)) // Check if order is in order_ids array
       );
+      
+      // Debug allocation matching
+      if (orderAllocations.length === 0 && order.order_number) {
+        console.log(`No allocations found for order ${order.order_number} (${order.id})`);
+      }
 
       // If no allocations, still include the order with basic info
       if (orderAllocations.length === 0) {
+        // No allocations = no buying price from allocations
+        const totalBuyingPrice = buyingPriceInclusions; // Only inclusions, no ticket buying price
+        const margin = sellingPrice - totalBuyingPrice;
+        const marginPercentage = sellingPrice > 0 ? (margin / sellingPrice * 100) : 0;
+        
         auditData.push({
           lead_name: leadName,
           lead_for_event: leadEvent,
@@ -182,12 +157,11 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
           exchange_rate: order.exchange_rate || 1,
           base_amount: order.base_amount || order.total_amount || 0,
           total_amount: order.total_amount || 0,
-          inr_equivalent: order.inr_equivalent || order.total_amount || 0,
-          final_amount_inr: orderAmount,
-          buying_price_tickets: buyingPriceTickets,
+          inr_equivalent: order.inr_equivalent || 0,
+          selling_price_inr: sellingPrice,
+          buying_price_tickets: 0, // No allocations = no ticket buying price
           buying_price_inclusions: buyingPriceInclusions,
           total_buying_price: totalBuyingPrice,
-          selling_price: sellingPrice,
           margin: margin,
           margin_percentage: marginPercentage.toFixed(2),
           payment_status: order.payment_status || 'pending',
@@ -199,12 +173,18 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
         for (const allocation of orderAllocations) {
           const inv = inventoryMap[allocation.inventory_id] || {};
           
+          // FIXED: Get buying price from allocation
+          const allocationBuyingPrice = parseFloat(allocation.total_buying_price || allocation.buying_price || 0);
+          const totalBuyingPrice = allocationBuyingPrice + buyingPriceInclusions;
+          const margin = sellingPrice - totalBuyingPrice;
+          const marginPercentage = sellingPrice > 0 ? (margin / sellingPrice * 100) : 0;
+          
           auditData.push({
             lead_name: leadName,
             lead_for_event: leadEvent,
             allocation_category: allocation.category_name || allocation.category || inv.category || 'Unknown',
             allocation_stand: allocation.stand_section || allocation.stand || inv.stand || 'Unknown',
-            allocation_quantity: allocation.quantity || 0,
+            allocation_quantity: allocation.tickets_allocated || allocation.quantity || 0,
             allocation_unit_price: allocation.unit_price || allocation.price || 0,
             order_id: order.order_number || order.id,
             order_date: order.created_date || order.updated_date || '',
@@ -218,12 +198,11 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
             exchange_rate: order.exchange_rate || 1,
             base_amount: order.base_amount || order.total_amount || 0,
             total_amount: order.total_amount || 0,
-            inr_equivalent: order.inr_equivalent || order.total_amount || 0,
-            final_amount_inr: orderAmount,
-            buying_price_tickets: buyingPriceTickets,
+            inr_equivalent: order.inr_equivalent || 0,
+            selling_price_inr: sellingPrice,
+            buying_price_tickets: allocationBuyingPrice,
             buying_price_inclusions: buyingPriceInclusions,
             total_buying_price: totalBuyingPrice,
-            selling_price: sellingPrice,
             margin: margin,
             margin_percentage: marginPercentage.toFixed(2),
             payment_status: order.payment_status || 'pending',
@@ -325,11 +304,10 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
         'base_amount',
         'total_amount',
         'inr_equivalent',
-        'final_amount_inr',
+        'selling_price_inr',
         'buying_price_tickets',
         'buying_price_inclusions',
         'total_buying_price',
-        'selling_price',
         'margin',
         'margin_percentage',
         'payment_status',
