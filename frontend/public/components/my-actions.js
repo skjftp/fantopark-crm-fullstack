@@ -712,6 +712,7 @@ window.renderMyActionsContent = () => {
                                             delivery.status === 'delivered' ? 'bg-green-100 text-green-800' :
                                             delivery.status === 'in_transit' ? 'bg-blue-100 text-blue-800' :
                                             delivery.status === 'scheduled' ? 'bg-yellow-100 text-yellow-800' :
+                                            delivery.status === 'pending' ? 'bg-orange-100 text-orange-800' :
                                             'bg-gray-100 text-gray-800'
                                         }`
                                     }, (delivery.status || 'pending').replace(/_/g, ' ').toUpperCase())
@@ -732,23 +733,32 @@ window.renderMyActionsContent = () => {
                                             title: 'Schedule delivery'
                                         }, '📅'),
                                         
-                                        // Start button for scheduled deliveries
+                                        // Start button for pending/scheduled deliveries
                                         window.hasPermission && window.hasPermission('delivery', 'write') && 
-                                        delivery.status === 'scheduled' && React.createElement('button', {
+                                        (delivery.status === 'pending' || delivery.status === 'scheduled') && React.createElement('button', {
                                             onClick: async () => {
                                                 if (confirm('Start delivery now?')) {
                                                     try {
-                                                        await window.apiCall(`/deliveries/${delivery.id}`, {
+                                                        console.log('🚚 Starting delivery:', delivery.id);
+                                                        const response = await window.apiCall(`/deliveries/${delivery.id}`, {
                                                             method: 'PUT',
                                                             body: { 
                                                                 status: 'in_transit',
                                                                 started_at: new Date().toISOString()
                                                             }
                                                         });
-                                                        window.fetchMyActions && window.fetchMyActions();
-                                                        alert('Delivery started!');
+                                                        console.log('📦 Delivery start response:', response);
+                                                        
+                                                        if (response.error) {
+                                                            throw new Error(response.error);
+                                                        }
+                                                        
+                                                        // Refresh the data
+                                                        await window.fetchMyActions();
+                                                        alert('Delivery marked as in transit!');
                                                     } catch (error) {
-                                                        alert('Failed to start delivery');
+                                                        console.error('❌ Failed to start delivery:', error);
+                                                        alert('Failed to start delivery: ' + error.message);
                                                     }
                                                 }
                                             },
@@ -762,17 +772,26 @@ window.renderMyActionsContent = () => {
                                             onClick: async () => {
                                                 if (confirm('Mark delivery as completed?')) {
                                                     try {
-                                                        await window.apiCall(`/deliveries/${delivery.id}`, {
+                                                        console.log('✅ Completing delivery:', delivery.id);
+                                                        const response = await window.apiCall(`/deliveries/${delivery.id}`, {
                                                             method: 'PUT',
                                                             body: { 
                                                                 status: 'delivered',
                                                                 delivered_at: new Date().toISOString()
                                                             }
                                                         });
-                                                        window.fetchMyActions && window.fetchMyActions();
-                                                        alert('Delivery completed!');
+                                                        console.log('📦 Delivery complete response:', response);
+                                                        
+                                                        if (response.error) {
+                                                            throw new Error(response.error);
+                                                        }
+                                                        
+                                                        // Refresh the data
+                                                        await window.fetchMyActions();
+                                                        alert('Delivery marked as completed!');
                                                     } catch (error) {
-                                                        alert('Failed to complete delivery');
+                                                        console.error('❌ Failed to complete delivery:', error);
+                                                        alert('Failed to complete delivery: ' + error.message);
                                                     }
                                                 }
                                             },
