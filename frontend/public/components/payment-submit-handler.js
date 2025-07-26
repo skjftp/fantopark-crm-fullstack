@@ -8,11 +8,16 @@ window.renderPaymentSubmitHandler = () => {
   window.handlePaymentSubmit = async (e) => {
     e.preventDefault();
 
+    // Get payment data from the correct source
+    const paymentData = window.appState?.paymentData || window.paymentData || {};
+
     // ADD THESE DEBUG LINES
-    console.log('=== PAYMENT SUBMIT DEBUG ===');
-    console.log('Full paymentData:', window.paymentData);
-    console.log('GST Certificate:', window.paymentData.gst_certificate);
-    console.log('PAN Card:', window.paymentData.pan_card);
+    console.log('=== PAYMENT SUBMIT DEBUG (from payment-submit-handler.js) ===');
+    console.log('Full paymentData:', paymentData);
+    console.log('GST Certificate:', paymentData.gst_certificate);
+    console.log('PAN Card:', paymentData.pan_card);
+    console.log('Exchange rate:', paymentData.exchange_rate);
+    console.log('Registered address:', paymentData.registered_address);
 
     if (!window.hasPermission('leads', 'write')) {
       alert('You do not have permission to manage payments');
@@ -25,13 +30,13 @@ window.renderPaymentSubmitHandler = () => {
   await new Promise(resolve => setTimeout(resolve, 1000));
   
   // Check if this is a post-service payment
-  if (window.paymentData.payment_post_service && window.paymentData.receivable_id) {
+  if (paymentData.payment_post_service && paymentData.receivable_id) {
     // Update receivable status
     if (window.setFinancialData) {
       window.setFinancialData(prev => ({
         ...prev,
         receivables: prev.receivables.map(r => 
-          r.id === window.paymentData.receivable_id 
+          r.id === paymentData.receivable_id 
             ? { ...r, status: 'paid', paid_date: new Date().toISOString().split('T')[0] }
             : r
         )
@@ -40,7 +45,7 @@ window.renderPaymentSubmitHandler = () => {
       // If setFinancialData doesn't exist, update the financialData object directly
       if (window.financialData && window.financialData.receivables) {
         window.financialData.receivables = window.financialData.receivables.map(r => 
-          r.id === window.paymentData.receivable_id 
+          r.id === paymentData.receivable_id 
             ? { ...r, status: 'paid', paid_date: new Date().toISOString().split('T')[0] }
             : r
         );
@@ -71,11 +76,11 @@ window.renderPaymentSubmitHandler = () => {
   }
 
       // FIXED: Use helper function and correct GST calculation
-      const baseAmount = window.getBaseAmount(window.paymentData);
-      const isIntraState = window.paymentData.indian_state === 'Haryana' && !window.paymentData.is_outside_india;
+      const baseAmount = window.getBaseAmount(paymentData);
+      const isIntraState = paymentData.indian_state === 'Haryana' && !paymentData.is_outside_india;
 
       // FIXED: Use the correct calculateGSTAndTCS function
-      const calculation = window.calculateGSTAndTCS(baseAmount, window.paymentData);
+      const calculation = window.calculateGSTAndTCS(baseAmount, paymentData);
       const totalTax = calculation.gst.total;
       const finalAmount = calculation.finalAmount;
 
@@ -83,8 +88,8 @@ window.renderPaymentSubmitHandler = () => {
       const updatedLead = {
         ...window.currentLead,
         payment_details: {
-          ...window.paymentData,
-          advance_amount: parseFloat(window.paymentData.advance_amount) || 0,
+          ...paymentData,
+          advance_amount: parseFloat(paymentData.advance_amount) || 0,
           base_amount: baseAmount,
           gst_calculation: calculation.gst,
           tcs_calculation: calculation.tcs,
@@ -112,16 +117,25 @@ window.renderPaymentSubmitHandler = () => {
       if (existingOrder) {
         // UPDATE existing order
         console.log('Updating order with GST details:', {
-          gstin: window.paymentData.gstin,
-          legal_name: window.paymentData.legal_name,
-          registered_address: window.paymentData.registered_address,
-          category_of_sale: window.paymentData.category_of_sale,
-          type_of_sale: window.paymentData.type_of_sale,
-          indian_state: window.paymentData.indian_state,
-          customer_type: window.paymentData.customer_type,
-          event_location: window.paymentData.event_location,
-          payment_currency: window.paymentData.payment_currency
+          gstin: paymentData.gstin,
+          legal_name: paymentData.legal_name,
+          registered_address: paymentData.registered_address,
+          category_of_sale: paymentData.category_of_sale,
+          type_of_sale: paymentData.type_of_sale,
+          indian_state: paymentData.indian_state,
+          customer_type: paymentData.customer_type,
+          event_location: paymentData.event_location,
+          payment_currency: paymentData.payment_currency
         });
+
+        // Calculate invoice total from current form data
+        const invoiceTotal = paymentData.invoice_items?.reduce((sum, item) => 
+          sum + ((item.quantity || 0) * (item.rate || 0)), 0
+        ) || 0;
+
+        console.log('Calculated invoice total:', invoiceTotal);
+        console.log('Exchange rate from form:', paymentData.exchange_rate);
+        console.log('Registered address from form:', paymentData.registered_address);
 
         // FIXED: Correct API call format
         const updateResponse = await window.apiCall(`/orders/${existingOrder.id}`, {
@@ -150,49 +164,57 @@ window.renderPaymentSubmitHandler = () => {
     }),
 
             // Payment fields (will override existing)
-            payment_amount: window.paymentData.advance_amount,
-            payment_method: window.paymentData.payment_method,
-            transaction_id: window.paymentData.transaction_id,
-            payment_date: window.paymentData.payment_date,
-            payment_proof: window.paymentData.payment_proof,
+            payment_amount: paymentData.advance_amount,
+            payment_method: paymentData.payment_method,
+            transaction_id: paymentData.transaction_id,
+            payment_date: paymentData.payment_date,
+            payment_proof: paymentData.payment_proof,
+            advance_amount: parseFloat(paymentData.advance_amount) || 0,
+            
+            // Currency and exchange rate - CRITICAL FIX
+            payment_currency: paymentData.payment_currency || existingOrder.payment_currency || 'INR',
+            exchange_rate: paymentData.exchange_rate || existingOrder.exchange_rate || 1,
+            
             // Amount fields
-            amount: window.paymentData.advance_amount,
+            amount: paymentData.advance_amount,
             total_amount: existingOrder.total_amount || existingOrder.final_amount,
             final_amount: existingOrder.final_amount || existingOrder.total_amount,
 
             // GST fields - IMPORTANT: These will override existing values
-            legal_name: window.paymentData.legal_name || existingOrder.legal_name,
-            gstin: window.paymentData.gstin || existingOrder.gstin,
-            registered_address: window.paymentData.registered_address || existingOrder.registered_address,
-            category_of_sale: window.paymentData.category_of_sale || existingOrder.category_of_sale,
-            type_of_sale: window.paymentData.type_of_sale || existingOrder.type_of_sale,
-            indian_state: window.paymentData.indian_state || existingOrder.indian_state,
-            is_outside_india: window.paymentData.is_outside_india || existingOrder.is_outside_india,
-            gst_certificate: window.paymentData.gst_certificate || existingOrder.gst_certificate,
-            pan_card: window.paymentData.pan_card || existingOrder.pan_card,
+            legal_name: paymentData.legal_name || existingOrder.legal_name,
+            gstin: paymentData.gstin || existingOrder.gstin,
+            registered_address: paymentData.registered_address, // Always use form value, no fallback
+            category_of_sale: paymentData.category_of_sale || existingOrder.category_of_sale,
+            type_of_sale: paymentData.type_of_sale || existingOrder.type_of_sale,
+            indian_state: paymentData.indian_state || existingOrder.indian_state,
+            is_outside_india: paymentData.is_outside_india || existingOrder.is_outside_india,
+            gst_certificate: paymentData.gst_certificate || existingOrder.gst_certificate,
+            pan_card: paymentData.pan_card || existingOrder.pan_card,
             
             // Customer classification fields
-            customer_type: window.paymentData.customer_type || existingOrder.customer_type,
-            event_location: window.paymentData.event_location || existingOrder.event_location,
-            payment_currency: window.paymentData.payment_currency || existingOrder.payment_currency,
+            customer_type: paymentData.customer_type || existingOrder.customer_type,
+            event_location: paymentData.event_location || existingOrder.event_location,
+            payment_currency: paymentData.payment_currency || existingOrder.payment_currency,
 
-            // Invoice details
-            invoice_items: window.paymentData.invoice_items || existingOrder.invoice_items,
+            // Invoice details - IMPORTANT: Always use current form values
+            invoice_items: paymentData.invoice_items || existingOrder.invoice_items,
+            invoice_total: invoiceTotal,
+            invoice_subtotal: invoiceTotal,
             base_amount: baseAmount,
             gst_calculation: calculation.gst,
             tcs_calculation: calculation.tcs,
             total_tax: totalTax,
             final_amount: finalAmount,
             gst_rate: calculation.gst.rate,
-            service_fee_amount: window.paymentData.service_fee_amount || existingOrder.service_fee_amount,
+            service_fee_amount: paymentData.service_fee_amount || existingOrder.service_fee_amount,
             
             // Preserve event information for event_id lookup
             event_name: existingOrder.event_name || window.currentLead?.lead_for_event || '',
             event_date: existingOrder.event_date,
             
             // Inclusions fields
-            buying_price_inclusions: parseFloat(window.paymentData.buying_price_inclusions) || 0,
-            inclusions_description: window.paymentData.inclusions_description || '',
+            buying_price_inclusions: parseFloat(paymentData.buying_price_inclusions) || 0,
+            inclusions_description: paymentData.inclusions_description || '',
 
             // Clear post-service fields if this was a post-service order
             expected_amount: null,
@@ -200,7 +222,7 @@ window.renderPaymentSubmitHandler = () => {
             order_type: 'standard',
 
             // Metadata
-            notes: window.paymentData.notes || existingOrder.notes,
+            notes: paymentData.notes || existingOrder.notes,
             updated_date: new Date().toISOString(),
             updated_by: window.user.name
           })
@@ -215,24 +237,24 @@ window.renderPaymentSubmitHandler = () => {
         ));
 
         // IMPORTANT: Update lead status for payment_post_service to payment_received
-        if (window.paymentData.payment_post_service) {
+        if (paymentData.payment_post_service) {
           await window.updateLeadStatus(window.currentLead.id, 'payment_received');
         }
 
         // Update lead status if this is payment collection after service
-        if (window.paymentData.payment_post_service || window.currentLead.status === 'payment_post_service') {
+        if (paymentData.payment_post_service || window.currentLead.status === 'payment_post_service') {
           await window.updateLeadStatus(window.currentLead.id, 'payment_received');
         }
 
         // Handle receivable updates/deletion if payment is from receivables
-        if (window.paymentData.from_receivable && window.paymentData.receivable_id) {
+        if (paymentData.from_receivable && paymentData.receivable_id) {
           console.log('Processing receivable payment...');
-          console.log('Receivable ID:', window.paymentData.receivable_id);
-          console.log('Original receivable amount:', window.paymentData.receivable_amount);
+          console.log('Receivable ID:', paymentData.receivable_id);
+          console.log('Original receivable amount:', paymentData.receivable_amount);
 
           // For receivable payments, the advance_amount field contains the actual payment amount
-          const paidAmount = parseFloat(window.paymentData.advance_amount) || 0;
-          const receivableAmount = parseFloat(window.paymentData.receivable_amount) || 0;
+          const paidAmount = parseFloat(paymentData.advance_amount) || 0;
+          const receivableAmount = parseFloat(paymentData.receivable_amount) || 0;
 
           console.log('Payment being collected:', paidAmount);
           console.log('Original receivable amount:', receivableAmount);
@@ -241,7 +263,7 @@ window.renderPaymentSubmitHandler = () => {
           if (paidAmount >= receivableAmount) {
             // Full payment - delete the receivable
             try {
-              await window.apiCall(`/receivables/${window.paymentData.receivable_id}`, {
+              await window.apiCall(`/receivables/${paymentData.receivable_id}`, {
                 method: 'DELETE'
               });
 
@@ -249,11 +271,11 @@ window.renderPaymentSubmitHandler = () => {
               if (window.setFinancialData) {
   window.setFinancialData(prev => ({
     ...prev,
-    receivables: prev.receivables.filter(r => r.id !== window.paymentData.receivable_id)
+    receivables: prev.receivables.filter(r => r.id !== paymentData.receivable_id)
   }));
 } else if (window.financialData && window.financialData.receivables) {
   window.financialData.receivables = window.financialData.receivables.filter(
-    r => r.id !== window.paymentData.receivable_id
+    r => r.id !== paymentData.receivable_id
   );
 }
               console.log('Receivable deleted after full payment');
@@ -273,7 +295,7 @@ window.renderPaymentSubmitHandler = () => {
             if (userChoice) {
               // Update receivable with remaining amount
               try {
-                await window.apiCall(`/receivables/${window.paymentData.receivable_id}`, {
+                await window.apiCall(`/receivables/${paymentData.receivable_id}`, {
                   method: 'PUT',
                   body: JSON.stringify({
                     balance_amount: remainingAmount,
@@ -290,7 +312,7 @@ window.renderPaymentSubmitHandler = () => {
   window.setFinancialData(prev => ({
     ...prev,
     receivables: prev.receivables.map(r => 
-      r.id === window.paymentData.receivable_id 
+      r.id === paymentData.receivable_id 
         ? {
             ...r,
             balance_amount: remainingAmount,
@@ -313,7 +335,7 @@ window.renderPaymentSubmitHandler = () => {
               // Close receivable and update order total
               try {
                 // Delete the receivable
-                await window.apiCall(`/receivables/${window.paymentData.receivable_id}`, {
+                await window.apiCall(`/receivables/${paymentData.receivable_id}`, {
                   method: 'DELETE'
                 });
 
@@ -331,7 +353,7 @@ window.renderPaymentSubmitHandler = () => {
 
                 // Update local states
                 if (typeof window.setReceivables === 'function') {
-                  window.setReceivables(prev => prev.filter(r => r.id !== window.paymentData.receivable_id));
+                  window.setReceivables(prev => prev.filter(r => r.id !== paymentData.receivable_id));
                 }
                 window.setOrders(prev => prev.map(o => 
                   o.id === existingOrder.id 
@@ -360,7 +382,7 @@ window.renderPaymentSubmitHandler = () => {
         }
 
         window.setLoading(false);
-        alert(window.paymentData.payment_post_service 
+        alert(paymentData.payment_post_service 
           ? 'Payment collected successfully! Invoice can now be generated.' 
           : 'Payment updated successfully!'
         );
@@ -378,31 +400,31 @@ window.renderPaymentSubmitHandler = () => {
         client_email: window.currentLead.email,
         lead_phone: window.currentLead.phone,
         client_phone: window.currentLead.phone,
-        legal_name: window.paymentData.legal_name || window.currentLead.legal_name,
-        gstin: window.paymentData.gstin,
-        registered_address: window.paymentData.registered_address,
-        category_of_sale: window.paymentData.category_of_sale,
-        type_of_sale: window.paymentData.type_of_sale,
-        indian_state: window.paymentData.indian_state,
-        is_outside_india: window.paymentData.is_outside_india || false,
-        payment_amount: window.paymentData.advance_amount,
-        payment_method: window.paymentData.payment_method,
-        transaction_id: window.paymentData.transaction_id,
-        payment_date: window.paymentData.payment_date,
-        payment_proof: window.paymentData.payment_proof,
-        notes: window.paymentData.notes,
+        legal_name: paymentData.legal_name || window.currentLead.legal_name,
+        gstin: paymentData.gstin,
+        registered_address: paymentData.registered_address,
+        category_of_sale: paymentData.category_of_sale,
+        type_of_sale: paymentData.type_of_sale,
+        indian_state: paymentData.indian_state,
+        is_outside_india: paymentData.is_outside_india || false,
+        payment_amount: paymentData.advance_amount,
+        payment_method: paymentData.payment_method,
+        transaction_id: paymentData.transaction_id,
+        payment_date: paymentData.payment_date,
+        payment_proof: paymentData.payment_proof,
+        notes: paymentData.notes,
         gst_rate: calculation.gst.rate,
-        service_fee_amount: window.paymentData.service_fee_amount,
-        invoice_items: window.paymentData.invoice_items,
+        service_fee_amount: paymentData.service_fee_amount,
+        invoice_items: paymentData.invoice_items,
         status: 'pending_approval',
         requires_gst_invoice: true,
 
         // Add the missing fields by extracting from invoice items
-        event_name: window.paymentData.invoice_items?.[0]?.description || window.currentLead?.lead_for_event || 'General Event',
-        event_date: window.paymentData.payment_date || new Date().toISOString().split('T')[0],
-        tickets_allocated: parseInt(window.paymentData.invoice_items?.[0]?.quantity) || 1,
-        ticket_category: window.paymentData.category_of_sale || 'General',
-        price_per_ticket: window.paymentData.invoice_items?.[0]?.rate || 0,
+        event_name: paymentData.invoice_items?.[0]?.description || window.currentLead?.lead_for_event || 'General Event',
+        event_date: paymentData.payment_date || new Date().toISOString().split('T')[0],
+        tickets_allocated: parseInt(paymentData.invoice_items?.[0]?.quantity) || 1,
+        ticket_category: paymentData.category_of_sale || 'General',
+        price_per_ticket: paymentData.invoice_items?.[0]?.rate || 0,
         total_amount: baseAmount,
         base_amount: baseAmount,
         gst_calculation: calculation.gst,
@@ -421,13 +443,13 @@ window.renderPaymentSubmitHandler = () => {
         assigned_to: await window.getFinanceManager(),
         assigned_team: 'finance',
         
-        payment_currency: window.paymentData.payment_currency || 'INR',
+        payment_currency: paymentData.payment_currency || 'INR',
         payment_status: 'paid',
         order_type: 'standard',
         
         // Add inclusions fields
-        buying_price_inclusions: parseFloat(window.paymentData.buying_price_inclusions) || 0,
-        inclusions_description: window.paymentData.inclusions_description || ''
+        buying_price_inclusions: parseFloat(paymentData.buying_price_inclusions) || 0,
+        inclusions_description: paymentData.inclusions_description || ''
       };
 
       console.log('=== ENHANCED ORDER CREATION DEBUG ===');
@@ -550,7 +572,7 @@ window.renderPaymentSubmitHandler = () => {
       await window.updateLeadStatus(window.currentLead.id, 'payment_received');
 
       window.setLoading(false);
-      alert(window.paymentData.payment_post_service 
+      alert(paymentData.payment_post_service 
         ? 'Payment collected successfully! Invoice can now be generated.' 
         : 'Payment details submitted successfully! Order created and assigned to finance for approval.'
       );
