@@ -159,28 +159,10 @@ router.get('/metrics', authenticateToken, async (req, res) => {
         // Calculate order selling price (amount without GST/TCS, in INR)
         let orderSellingPrice = 0;
 
-        // Handle foreign currency orders
-        if (order.payment_currency && order.payment_currency !== 'INR') {
-          // Foreign currency - prioritize INR equivalents
-          if (order.base_amount && order.exchange_rate) {
-            orderSellingPrice = parseFloat(order.base_amount) * parseFloat(order.exchange_rate);
-          } else if (order.final_amount_inr && order.gst_amount_inr && order.tcs_amount_inr) {
-            orderSellingPrice = parseFloat(order.final_amount_inr) - parseFloat(order.gst_amount_inr || 0) - parseFloat(order.tcs_amount_inr || 0);
-          } else if (order.final_amount_inr) {
-            orderSellingPrice = parseFloat(order.final_amount_inr);
-          }
-        } else {
-          // INR order
-          if (order.base_amount) {
-            orderSellingPrice = parseFloat(order.base_amount);
-          } else if (order.final_amount && order.gst_amount && order.tcs_amount) {
-            orderSellingPrice = parseFloat(order.final_amount) - parseFloat(order.gst_amount || 0) - parseFloat(order.tcs_amount || 0);
-          } else if (order.final_amount_inr) {
-            orderSellingPrice = parseFloat(order.final_amount_inr);
-          } else if (order.final_amount) {
-            orderSellingPrice = parseFloat(order.final_amount);
-          }
-        }
+        // Match sales performance logic for selling price
+        orderSellingPrice = order.payment_currency === 'INR' 
+          ? parseFloat(order.total_amount || 0)
+          : parseFloat(order.inr_equivalent || 0);
 
         // Calculate buying price from allocations
         let orderBuyingPrice = 0;
@@ -277,9 +259,11 @@ router.get('/metrics', authenticateToken, async (req, res) => {
       dateRange = { startDate, endDate };
     }
 
-    // Calculate total sales (all orders in period)
+    // Calculate total sales (all orders in period) - match sales performance logic
     totalSales = filteredOrders.reduce((sum, order) => {
-      const amount = parseFloat(order.final_amount_inr || order.final_amount || 0);
+      const amount = order.payment_currency === 'INR' 
+        ? parseFloat(order.total_amount || 0)
+        : parseFloat(order.inr_equivalent || 0);
       return sum + amount;
     }, 0);
 
@@ -308,7 +292,9 @@ router.get('/metrics', authenticateToken, async (req, res) => {
       console.log(`📊 Active sales (last 30 days): ${activeSalesOrders.length} orders`);
       
       activeSales = activeSalesOrders.reduce((sum, order) => {
-        const amount = parseFloat(order.final_amount_inr || order.final_amount || 0);
+        const amount = order.payment_currency === 'INR' 
+          ? parseFloat(order.total_amount || 0)
+          : parseFloat(order.inr_equivalent || 0);
         return sum + amount;
       }, 0);
     } else {
@@ -322,7 +308,9 @@ router.get('/metrics', authenticateToken, async (req, res) => {
       console.log(`📊 Active sales (by status): ${activeSalesOrders.length} orders`);
       
       activeSales = activeSalesOrders.reduce((sum, order) => {
-        const amount = parseFloat(order.final_amount_inr || order.final_amount || 0);
+        const amount = order.payment_currency === 'INR' 
+          ? parseFloat(order.total_amount || 0)
+          : parseFloat(order.inr_equivalent || 0);
         return sum + amount;
       }, 0);
     }
@@ -499,25 +487,10 @@ router.get('/sales-margins', authenticateToken, async (req, res) => {
           // Calculate order selling price (same logic as main endpoint)
           let orderSellingPrice = 0;
 
-          if (order.payment_currency && order.payment_currency !== 'INR') {
-            if (order.base_amount && order.exchange_rate) {
-              orderSellingPrice = parseFloat(order.base_amount) * parseFloat(order.exchange_rate);
-            } else if (order.final_amount_inr && order.gst_amount_inr && order.tcs_amount_inr) {
-              orderSellingPrice = parseFloat(order.final_amount_inr) - parseFloat(order.gst_amount_inr || 0) - parseFloat(order.tcs_amount_inr || 0);
-            } else if (order.final_amount_inr) {
-              orderSellingPrice = parseFloat(order.final_amount_inr);
-            }
-          } else {
-            if (order.base_amount) {
-              orderSellingPrice = parseFloat(order.base_amount);
-            } else if (order.final_amount && order.gst_amount && order.tcs_amount) {
-              orderSellingPrice = parseFloat(order.final_amount) - parseFloat(order.gst_amount || 0) - parseFloat(order.tcs_amount || 0);
-            } else if (order.final_amount_inr) {
-              orderSellingPrice = parseFloat(order.final_amount_inr);
-            } else if (order.final_amount) {
-              orderSellingPrice = parseFloat(order.final_amount);
-            }
-          }
+          // Match sales performance logic for selling price
+          orderSellingPrice = order.payment_currency === 'INR' 
+            ? parseFloat(order.total_amount || 0)
+            : parseFloat(order.inr_equivalent || 0);
 
           // Calculate buying price from allocations (same logic as main endpoint)
           let orderBuyingPrice = 0;
