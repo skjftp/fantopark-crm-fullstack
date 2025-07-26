@@ -1086,7 +1086,7 @@ const EnhancedFinancialStats = () => {
                 React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
                     'Financial Overview'
                 ),
-                lastUpdated && React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400 mt-1' }, 
+                lastUpdated && React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400 mt-1 last-updated-blink' }, 
                     `Last updated: ${new Date(lastUpdated).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`,
                     nextUpdateIn && ` • Next update in: ${nextUpdateIn}`
                 )

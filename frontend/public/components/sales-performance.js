@@ -680,7 +680,7 @@ if (loading) {
               React.createElement('h2', { className: 'text-xl font-semibold' }, 
                 'Target vs achievement for each sales team member'
               ),
-              lastUpdated && React.createElement('p', { className: 'text-sm text-gray-500 mt-1' }, 
+              lastUpdated && React.createElement('p', { className: 'text-sm text-gray-500 mt-1 last-updated-blink' }, 
                 `Last updated: ${new Date(lastUpdated).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`,
                 nextUpdateIn && ` • Next update in: ${nextUpdateIn}`
               )
@@ -850,7 +850,7 @@ if (loading) {
               React.createElement('h2', { className: 'text-xl font-semibold' }, 
                 'Retail Tracker'
               ),
-              lastUpdated && React.createElement('p', { className: 'text-sm text-gray-500 mt-1' }, 
+              lastUpdated && React.createElement('p', { className: 'text-sm text-gray-500 mt-1 last-updated-blink' }, 
                 `Last updated: ${new Date(lastUpdated).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`,
                 nextUpdateIn && ` • Next update in: ${nextUpdateIn}`
               )

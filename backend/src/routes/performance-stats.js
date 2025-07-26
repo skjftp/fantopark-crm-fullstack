@@ -247,7 +247,7 @@ router.post('/aggregate', authenticateToken, async (req, res) => {
 // Helper function to calculate next update time
 function getNextUpdateTime(lastUpdateTimestamp) {
   const lastUpdate = new Date(lastUpdateTimestamp);
-  const nextUpdate = new Date(lastUpdate.getTime() + (2 * 60 * 60 * 1000)); // 2 hours
+  const nextUpdate = new Date(lastUpdate.getTime() + (60 * 60 * 1000)); // 1 hour
   const now = new Date();
   
   if (nextUpdate > now) {

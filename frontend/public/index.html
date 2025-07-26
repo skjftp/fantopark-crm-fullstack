@@ -720,6 +720,16 @@ window.optimizeLoginPerformance();
   transition: all 0.3s ease;
 }
 
+/* Mild blinking animation for last updated text */
+@keyframes mildBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.last-updated-blink {
+  animation: mildBlink 3s ease-in-out infinite;
+}
+
 /* If using React transitions */
 .fade-enter {
   opacity: 0;
