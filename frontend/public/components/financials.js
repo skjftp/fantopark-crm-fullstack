@@ -849,9 +849,10 @@ const EnhancedFinancialStats = () => {
             for (const period of periods) {
                 try {
                     // Use sales-performance API instead of finance/metrics
+                    // Map financials periods to sales-performance supported periods
                     const periodParam = period === 'current_fy' ? 'current_fy' : 
-                                      period === 'current_month' ? 'current_month' : 
-                                      period === 'last_month' ? 'last_month' : 'lifetime';
+                                      period === 'current_month' ? 'current_quarter' : 
+                                      period === 'last_month' ? 'previous_quarter' : 'lifetime';
                     
                     const response = await fetch(`${window.API_CONFIG.API_URL}/sales-performance?period=${periodParam}`, {
                         headers: { 'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}` }
@@ -892,11 +893,46 @@ const EnhancedFinancialStats = () => {
                         const totalReceivables = (receivablesData.data || []).reduce((sum, r) => sum + (r.amount || 0), 0);
                         const totalPayables = (payablesData.data || []).reduce((sum, p) => sum + (p.amount || 0), 0);
                         
+                        // Calculate active sales (orders with future event dates)
+                        let activeSales = 0;
+                        try {
+                            const ordersResponse = await fetch(`${window.API_CONFIG.API_URL}/orders`, {
+                                headers: { 'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}` }
+                            });
+                            const ordersData = await ordersResponse.json();
+                            const orders = ordersData.data || [];
+                            
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            
+                            const activeOrders = orders.filter(order => {
+                                // Skip cancelled/rejected orders
+                                if (['cancelled', 'rejected', 'refunded'].includes(order.status)) return false;
+                                
+                                // If no event date, consider as active
+                                if (!order.event_date) return true;
+                                
+                                // Check if event date is in future
+                                const eventDate = new Date(order.event_date);
+                                eventDate.setHours(0, 0, 0, 0);
+                                return eventDate >= today;
+                            });
+                            
+                            activeSales = activeOrders.reduce((sum, order) => {
+                                const amount = order.payment_currency === 'INR' 
+                                    ? parseFloat(order.total_amount || 0)
+                                    : parseFloat(order.inr_equivalent || 0);
+                                return sum + amount;
+                            }, 0);
+                        } catch (error) {
+                            console.error('Failed to calculate active sales:', error);
+                        }
+
                         setPeriodMetrics(prev => ({
                             ...prev,
                             [period]: {
                                 totalSales: totalSalesInRupees,
-                                activeSales: 0, // Not available from sales-performance
+                                activeSales: activeSales,
                                 totalReceivables: totalReceivables,
                                 totalPayables: totalPayables,
                                 totalMargin: totalMarginInRupees,
