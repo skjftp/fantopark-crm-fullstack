@@ -37,9 +37,20 @@ window.handleAuthError = function(status) {
     // Store current location for redirect after login
     localStorage.setItem('redirect_after_login', window.location.hash || '/');
     
-    // Show alert and redirect to login
+    // Show alert
     alert(message);
-    window.location.href = '/login.html';
+    
+    // Instead of redirecting, update app state to show login form
+    if (window.setIsLoggedIn) {
+      window.setIsLoggedIn(false);
+    }
+    if (window.setUser) {
+      window.setUser(null);
+    }
+    if (window.renderApp) {
+      window.renderApp();
+    }
+    
     return true;
   }
   return false;

@@ -41,6 +41,8 @@ window.renderDeliveryContent = () => {
     console.log('🔍 deliveries count:', (deliveries || []).length);
     console.log('🔍 hasPermission function available:', typeof hasPermission === 'function');
     console.log('🔍 openDeliveryForm function available:', typeof openDeliveryForm === 'function');
+    console.log('🔍 window.apiCall available:', typeof window.apiCall);
+    console.log('🔍 window.setDeliveries available:', typeof window.setDeliveries);
 
     return React.createElement('div', { className: 'space-y-6' },
         React.createElement('div', { className: 'flex justify-between items-center' },
@@ -116,6 +118,59 @@ window.renderDeliveryContent = () => {
                                             }
                                         }, '📅 Schedule'),
 
+                                        // ✅ FIXED: Start button for pending deliveries (quick start without scheduling)
+                                        hasPermission('delivery', 'write') && delivery.status === 'pending' && 
+                                        React.createElement('button', {
+                                            className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
+                                            onClick: async () => {
+                                                console.log('🔍 Start button clicked, window.apiCall available:', typeof window.apiCall);
+                                                if (!window.apiCall) {
+                                                    alert('API call function not available. Please refresh the page.');
+                                                    return;
+                                                }
+                                                if (confirm('Start delivery now?')) {
+                                                    try {
+                                                        console.log('🚚 Starting delivery:', delivery.id);
+                                                        const response = await window.apiCall(`/deliveries/${delivery.id}`, {
+                                                            method: 'PUT',
+                                                            body: { 
+                                                                status: 'in_transit',
+                                                                started_at: new Date().toISOString()
+                                                            }
+                                                        });
+                                                        console.log('📦 Delivery start response:', response);
+                                                        
+                                                        if (response.error) {
+                                                            throw new Error(response.error);
+                                                        }
+                                                        
+                                                        // Update local state after successful API call
+                                                        if (window.setDeliveries) {
+                                                            window.setDeliveries(prev => 
+                                                                prev.map(d => 
+                                                                    d.id === delivery.id 
+                                                                        ? { ...d, status: 'in_transit', started_at: new Date().toISOString() }
+                                                                        : d
+                                                                )
+                                                            );
+                                                        } else {
+                                                            console.error('setDeliveries function not available');
+                                                        }
+                                                        alert('Delivery started successfully!');
+                                                        
+                                                        // Refresh deliveries list if function is available
+                                                        if (window.fetchDeliveries) {
+                                                            window.fetchDeliveries();
+                                                        }
+                                                    } catch (error) {
+                                                        console.error('Failed to start delivery:', error);
+                                                        alert('Failed to start delivery: ' + error.message);
+                                                    }
+                                                }
+                                            },
+                                            title: 'Start delivery immediately'
+                                        }, '🚚 Start'),
+
                                         // ✅ FIXED: Delete button with proper function reference
                                         hasPermission('delivery', 'write') && 
                                         React.createElement('button', {
@@ -127,37 +182,108 @@ window.renderDeliveryContent = () => {
                                             disabled: loading
                                         }, '🗑️ Delete'),
 
-                                        // ✅ FIXED: Start Transit button with proper function reference
+                                        // ✅ FIXED: Start Transit button with proper API call
                                         hasPermission('delivery', 'write') && delivery.status === 'scheduled' && 
                                         React.createElement('button', {
                                             className: 'text-purple-600 hover:text-purple-900 text-xs px-2 py-1 rounded border border-purple-200 hover:bg-purple-50',
-                                            onClick: () => {
-                                                console.log('🔍 Start Transit button clicked for delivery:', delivery.id);
-                                                setDeliveries(prev => 
-                                                    prev.map(d => 
-                                                        d.id === delivery.id 
-                                                            ? { ...d, status: 'in_transit' }
-                                                            : d
-                                                    )
-                                                );
-                                                alert('Delivery marked as in transit!');
+                                            onClick: async () => {
+                                                console.log('🔍 Start button (scheduled) clicked, window.apiCall available:', typeof window.apiCall);
+                                                if (!window.apiCall) {
+                                                    alert('API call function not available. Please refresh the page.');
+                                                    return;
+                                                }
+                                                if (confirm('Start delivery now?')) {
+                                                    try {
+                                                        console.log('🚚 Starting delivery:', delivery.id);
+                                                        const response = await window.apiCall(`/deliveries/${delivery.id}`, {
+                                                            method: 'PUT',
+                                                            body: { 
+                                                                status: 'in_transit',
+                                                                started_at: new Date().toISOString()
+                                                            }
+                                                        });
+                                                        console.log('📦 Delivery start response:', response);
+                                                        
+                                                        if (response.error) {
+                                                            throw new Error(response.error);
+                                                        }
+                                                        
+                                                        // Update local state after successful API call
+                                                        if (window.setDeliveries) {
+                                                            window.setDeliveries(prev => 
+                                                                prev.map(d => 
+                                                                    d.id === delivery.id 
+                                                                        ? { ...d, status: 'in_transit', started_at: new Date().toISOString() }
+                                                                        : d
+                                                                )
+                                                            );
+                                                        } else {
+                                                            console.error('setDeliveries function not available');
+                                                        }
+                                                        alert('Delivery started successfully!');
+                                                        
+                                                        // Refresh deliveries list if function is available
+                                                        if (window.fetchDeliveries) {
+                                                            window.fetchDeliveries();
+                                                        }
+                                                    } catch (error) {
+                                                        console.error('Failed to start delivery:', error);
+                                                        alert('Failed to start delivery: ' + error.message);
+                                                    }
+                                                }
                                             }
                                         }, '🚚 Start'),
 
-                                        // ✅ FIXED: Complete button with proper function reference
+                                        // ✅ FIXED: Complete button with proper API call
                                         hasPermission('delivery', 'write') && delivery.status === 'in_transit' && 
                                         React.createElement('button', {
                                             className: 'text-green-600 hover:text-green-900 text-xs px-2 py-1 rounded border border-green-200 hover:bg-green-50',
-                                            onClick: () => {
-                                                console.log('🔍 Complete button clicked for delivery:', delivery.id);
-                                                setDeliveries(prev => 
-                                                    prev.map(d => 
-                                                        d.id === delivery.id 
-                                                            ? { ...d, status: 'delivered', delivered_date: new Date().toISOString().split('T')[0] }
-                                                            : d
-                                                    )
-                                                );
-                                                alert('Delivery completed successfully!');
+                                            onClick: async () => {
+                                                console.log('🔍 Complete button clicked, window.apiCall available:', typeof window.apiCall);
+                                                if (!window.apiCall) {
+                                                    alert('API call function not available. Please refresh the page.');
+                                                    return;
+                                                }
+                                                if (confirm('Mark delivery as completed?')) {
+                                                    try {
+                                                        console.log('✅ Completing delivery:', delivery.id);
+                                                        const response = await window.apiCall(`/deliveries/${delivery.id}`, {
+                                                            method: 'PUT',
+                                                            body: { 
+                                                                status: 'delivered',
+                                                                delivered_at: new Date().toISOString(),
+                                                                delivered_date: new Date().toISOString().split('T')[0]
+                                                            }
+                                                        });
+                                                        console.log('📦 Delivery complete response:', response);
+                                                        
+                                                        if (response.error) {
+                                                            throw new Error(response.error);
+                                                        }
+                                                        
+                                                        // Update local state after successful API call
+                                                        if (window.setDeliveries) {
+                                                            window.setDeliveries(prev => 
+                                                                prev.map(d => 
+                                                                    d.id === delivery.id 
+                                                                        ? { ...d, status: 'delivered', delivered_at: new Date().toISOString(), delivered_date: new Date().toISOString().split('T')[0] }
+                                                                        : d
+                                                                )
+                                                            );
+                                                        } else {
+                                                            console.error('setDeliveries function not available');
+                                                        }
+                                                        alert('Delivery completed successfully!');
+                                                        
+                                                        // Refresh deliveries list if function is available
+                                                        if (window.fetchDeliveries) {
+                                                            window.fetchDeliveries();
+                                                        }
+                                                    } catch (error) {
+                                                        console.error('Failed to complete delivery:', error);
+                                                        alert('Failed to complete delivery: ' + error.message);
+                                                    }
+                                                }
                                             }
                                         }, '✅ Complete'),
 
