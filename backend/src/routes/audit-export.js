@@ -9,10 +9,10 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
   try {
     console.log('Starting audit data export for user:', req.user.email);
 
-    // Fetch all required data
+    // Fetch all required data - include all orders, not just approved
     const [leadsSnapshot, ordersSnapshot, allocationsSnapshot, inventorySnapshot] = await Promise.all([
       db.collection(collections.leads).get(),
-      db.collection(collections.orders).where('status', '==', 'approved').get(),
+      db.collection(collections.orders).get(), // Get ALL orders for audit
       db.collection(collections.allocations).get(),
       db.collection(collections.inventory).get()
     ]);
@@ -30,6 +30,25 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
     const inventory = [];
     inventorySnapshot.forEach(doc => inventory.push({ id: doc.id, ...doc.data() }));
 
+    console.log('Data counts:', {
+      leads: leads.length,
+      orders: orders.length,
+      allocations: allocations.length,
+      inventory: inventory.length
+    });
+
+    // Log sample data to debug
+    if (allocations.length > 0) {
+      console.log('Sample allocation:', allocations[0]);
+    }
+    if (orders.length > 0) {
+      console.log('Sample order:', {
+        id: orders[0].id,
+        order_number: orders[0].order_number,
+        status: orders[0].status
+      });
+    }
+
     // Create lookup maps
     const leadMap = {};
     leads.forEach(lead => {
@@ -44,13 +63,21 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
     // Process data for audit report
     const auditData = [];
 
+    let ordersWithAllocations = 0;
+    let ordersWithoutAllocations = 0;
+
     for (const order of orders) {
       // Skip orders without allocations
       const orderAllocations = allocations.filter(alloc => 
         alloc.order_id === order.id || alloc.order_id === order.order_number
       );
 
-      if (orderAllocations.length === 0) continue;
+      if (orderAllocations.length === 0) {
+        ordersWithoutAllocations++;
+        continue;
+      }
+      
+      ordersWithAllocations++;
 
       // Get lead information
       const lead = leadMap[order.lead_id] || {};
@@ -102,6 +129,12 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
         return a.sales_person.localeCompare(b.sales_person);
       }
       return new Date(b.order_date) - new Date(a.order_date);
+    });
+
+    console.log('Audit processing results:', {
+      ordersWithAllocations,
+      ordersWithoutAllocations,
+      totalAuditRecords: auditData.length
     });
 
     // Return based on format parameter
