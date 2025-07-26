@@ -37,9 +37,14 @@ function ensureCurrencyFields(orderData) {
     orderData.advance_amount_inr = advanceAmount;
     orderData.service_fee_amount_inr = serviceFeeAmount;
   } else {
-    // For foreign currency, calculate INR equivalents
-    orderData.base_amount = baseAmount * exchangeRate;
-    orderData.total_amount = totalAmount * exchangeRate;
+    // For foreign currency, keep original amounts and calculate INR equivalents separately
+    orderData.base_amount = baseAmount;
+    orderData.total_amount = totalAmount;
+    orderData.final_amount = finalAmount;
+    orderData.advance_amount = advanceAmount;
+    orderData.service_fee_amount = serviceFeeAmount;
+    
+    // Store INR equivalents in separate fields
     orderData.inr_equivalent = invoiceTotal * exchangeRate;
     orderData.final_amount_inr = finalAmount * exchangeRate;
     orderData.advance_amount_inr = advanceAmount * exchangeRate;
