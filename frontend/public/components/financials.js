@@ -848,37 +848,60 @@ const EnhancedFinancialStats = () => {
             
             for (const period of periods) {
                 try {
-                    // Fetch complete financial metrics from backend
-                    const response = await fetch(`${window.API_CONFIG.API_URL}/finance/metrics?period=${period}`, {
+                    // Use sales-performance API instead of finance/metrics
+                    const periodParam = period === 'current_fy' ? 'current_fy' : 
+                                      period === 'current_month' ? 'current_month' : 
+                                      period === 'last_month' ? 'last_month' : 'lifetime';
+                    
+                    const response = await fetch(`${window.API_CONFIG.API_URL}/sales-performance?period=${periodParam}`, {
                         headers: { 'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}` }
                     });
                     
                     const result = await response.json();
                     
-                    if (result.success && result.data) {
-                        const metrics = result.data;
+                    if (result.success && result.salesTeam) {
+                        // Calculate totals from sales team data
+                        const totalSales = result.salesTeam.reduce((sum, member) => sum + (member.totalSales || 0), 0);
+                        const totalMargin = result.salesTeam.reduce((sum, member) => sum + (member.totalMargin || 0), 0);
+                        const marginPercentage = totalSales > 0 ? (totalMargin / totalSales * 100) : 0;
                         
-                        // Debug log the metrics received from backend
-                        console.log(`📊 Metrics for ${period}:`, {
-                            totalSales: metrics.totalSales,
-                            totalSalesFormatted: metrics.totalSales ? `₹${(metrics.totalSales / 10000000).toFixed(2)} Cr` : '0',
-                            totalMargin: metrics.totalMargin,
-                            marginPercentage: metrics.marginPercentage,
-                            totalSellingPrice: metrics.totalSellingPrice,
-                            totalBuyingPrice: metrics.totalBuyingPrice,
-                            processedOrders: metrics.processedOrders
+                        // Convert from crores to actual value
+                        const totalSalesInRupees = totalSales * 10000000;
+                        const totalMarginInRupees = totalMargin * 10000000;
+                        
+                        console.log(`📊 Sales Performance Metrics for ${period}:`, {
+                            totalSales: totalSalesInRupees,
+                            totalSalesFormatted: `₹${totalSales.toFixed(2)} Cr`,
+                            totalMargin: totalMarginInRupees,
+                            marginPercentage: marginPercentage.toFixed(2)
                         });
+                        
+                        // Fetch receivables and payables separately
+                        const [receivablesRes, payablesRes] = await Promise.all([
+                            fetch(`${window.API_CONFIG.API_URL}/receivables`, {
+                                headers: { 'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}` }
+                            }),
+                            fetch(`${window.API_CONFIG.API_URL}/payables`, {
+                                headers: { 'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}` }
+                            })
+                        ]);
+                        
+                        const receivablesData = await receivablesRes.json();
+                        const payablesData = await payablesRes.json();
+                        
+                        const totalReceivables = (receivablesData.data || []).reduce((sum, r) => sum + (r.amount || 0), 0);
+                        const totalPayables = (payablesData.data || []).reduce((sum, p) => sum + (p.amount || 0), 0);
                         
                         setPeriodMetrics(prev => ({
                             ...prev,
                             [period]: {
-                                totalSales: metrics.totalSales || 0,
-                                activeSales: metrics.activeSales || 0,
-                                totalReceivables: metrics.totalReceivables || 0,
-                                totalPayables: metrics.totalPayables || 0,
-                                totalMargin: metrics.totalMargin || 0,
-                                marginPercentage: metrics.marginPercentage || 0,
-                                processedOrders: metrics.processedOrders || 0
+                                totalSales: totalSalesInRupees,
+                                activeSales: 0, // Not available from sales-performance
+                                totalReceivables: totalReceivables,
+                                totalPayables: totalPayables,
+                                totalMargin: totalMarginInRupees,
+                                marginPercentage: marginPercentage,
+                                processedOrders: result.salesTeam.reduce((sum, m) => sum + (m.orderCount || 0), 0)
                             }
                         }));
                     }
