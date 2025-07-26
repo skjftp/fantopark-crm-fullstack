@@ -195,7 +195,7 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
             lead_for_event: leadEvent,
             allocation_category: allocation.category_name || allocation.category || inv.category || 'Unknown',
             allocation_stand: allocation.stand_section || allocation.stand || inv.stand || 'Unknown',
-            allocation_quantity: allocation.tickets_allocated || allocation.quantity || 0,
+            allocation_qty: allocation.tickets_allocated || allocation.quantity || 0,
             allocation_unit_price: allocation.unit_price || allocation.price || 0,
             order_id: order.order_number || order.id,
             order_date: order.created_date || order.updated_date || '',
@@ -294,36 +294,20 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
         total_records: auditData.length
       });
     } else {
-      // Return as CSV (default)
+      // Return as CSV (default) - simplified fields as requested with custom headers
       const fields = [
-        'lead_name',
-        'lead_for_event',
-        'allocation_category',
-        'allocation_stand',
-        'allocation_quantity',
-        'allocation_unit_price',
-        'order_id',
-        'order_date',
-        'sales_person_name',
-        'sales_person_email',
-        'client_name',
-        'event_name',
-        'event_date',
-        'is_actualized',
-        'payment_currency',
-        'exchange_rate',
-        'base_amount',
-        'total_amount',
-        'inr_equivalent',
-        'selling_price_inr',
-        'buying_price_tickets',
-        'buying_price_inclusions',
-        'total_buying_price',
-        'margin',
-        'margin_percentage',
-        'payment_status',
-        'order_status',
-        'number_of_people'
+        { label: 'lead_name', value: 'lead_name' },
+        { label: 'lead_for_event', value: 'lead_for_event' },
+        { label: 'allocation_category', value: 'allocation_category' },
+        { label: 'allocation_stand', value: 'allocation_stand' },
+        { label: 'allocation_qty', value: 'allocation_qty' },
+        { label: 'order_id', value: 'order_id' },
+        { label: 'sales_person', value: 'sales_person_name' },
+        { label: 'currency', value: 'payment_currency' },
+        { label: 'inr_equivalent', value: 'inr_equivalent' },
+        { label: 'total_amount', value: 'total_amount' },
+        { label: 'buying_price', value: 'total_buying_price' },
+        { label: 'margin', value: 'margin' }
       ];
 
       const json2csvParser = new Parser({ fields });
