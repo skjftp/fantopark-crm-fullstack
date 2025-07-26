@@ -52,6 +52,8 @@ function SalesPerformanceTracker() {
   const [availablePeriods, setAvailablePeriods] = React.useState([]);
   const [isSuperAdmin, setIsSuperAdmin] = React.useState(false);
   const [clearingCache, setClearingCache] = React.useState(false);
+  const [lastUpdated, setLastUpdated] = React.useState(null);
+  const [nextUpdateIn, setNextUpdateIn] = React.useState(null);
   // Calculate last 7 days date range
 const getDefaultDateRange = () => {
   const endDate = new Date();
@@ -217,6 +219,14 @@ const fetchSalesPerformance = async (forceRefresh = false) => {
     if (salesResponse.ok) {
       const salesResult = await salesResponse.json();
       let salesTeamData = salesResult.salesTeam || [];
+      
+      // Update timestamps
+      if (salesResult.lastUpdated) {
+        setLastUpdated(salesResult.lastUpdated);
+      }
+      if (salesResult.nextUpdateIn) {
+        setNextUpdateIn(salesResult.nextUpdateIn);
+      }
       
       // Fetch accurate margin data from finance endpoint
       try {
@@ -666,8 +676,14 @@ if (loading) {
       React.createElement('div', { className: 'bg-white rounded-lg shadow' },
         React.createElement('div', { className: 'p-6' },
           React.createElement('div', { className: 'flex justify-between items-center mb-4' },
-            React.createElement('h2', { className: 'text-xl font-semibold' }, 
-              'Target vs achievement for each sales team member'
+            React.createElement('div', null,
+              React.createElement('h2', { className: 'text-xl font-semibold' }, 
+                'Target vs achievement for each sales team member'
+              ),
+              lastUpdated && React.createElement('p', { className: 'text-sm text-gray-500 mt-1' }, 
+                `Last updated: ${new Date(lastUpdated).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`,
+                nextUpdateIn && ` • Next update in: ${nextUpdateIn}`
+              )
             ),
             React.createElement('button', {
               onClick: () => {
@@ -830,8 +846,14 @@ if (loading) {
       React.createElement('div', { className: 'bg-white rounded-lg shadow' },
         React.createElement('div', { className: 'p-6' },
           React.createElement('div', { className: 'flex justify-between items-center mb-4' },
-            React.createElement('h2', { className: 'text-xl font-semibold' }, 
-              'Retail Tracker'
+            React.createElement('div', null,
+              React.createElement('h2', { className: 'text-xl font-semibold' }, 
+                'Retail Tracker'
+              ),
+              lastUpdated && React.createElement('p', { className: 'text-sm text-gray-500 mt-1' }, 
+                `Last updated: ${new Date(lastUpdated).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`,
+                nextUpdateIn && ` • Next update in: ${nextUpdateIn}`
+              )
             ),
             React.createElement('button', {
               onClick: () => {

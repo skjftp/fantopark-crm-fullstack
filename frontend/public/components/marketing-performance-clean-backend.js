@@ -15,7 +15,9 @@ function MarketingPerformanceBackend() {
             adSet: 'all'
         },
         showSourceDropdown: false, // For dropdown visibility
-        showFilters: true
+        showFilters: true,
+        lastUpdated: null,
+        nextUpdateIn: null
     });
 
     // Single API call to get everything
@@ -42,6 +44,20 @@ function MarketingPerformanceBackend() {
             
             if (filters.adSet !== 'all') queryParams.append('ad_set', filters.adSet);
             
+            // First try to get cached data from performance-stats for timestamp info
+            let lastUpdated = null;
+            let nextUpdateIn = null;
+            
+            try {
+                const statsResponse = await window.apiCall('/performance-stats/marketing-performance');
+                if (statsResponse.success) {
+                    lastUpdated = statsResponse.lastUpdated;
+                    nextUpdateIn = statsResponse.nextUpdateIn;
+                }
+            } catch (e) {
+                console.log('Could not fetch stats metadata');
+            }
+            
             // Use original marketing API for detailed data
             const response = await window.apiCall(`/marketing/performance?${queryParams}`);
             
@@ -55,7 +71,9 @@ function MarketingPerformanceBackend() {
                 ...prev,
                 loading: false,
                 data: response.data,
-                error: null
+                error: null,
+                lastUpdated: lastUpdated,
+                nextUpdateIn: nextUpdateIn
             }));
             
         } catch (error) {
@@ -136,8 +154,14 @@ function MarketingPerformanceBackend() {
     },
         // Header
         React.createElement('div', { className: 'flex justify-between items-center' },
-            React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 
-                'Marketing Performance'
+            React.createElement('div', null,
+                React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 
+                    'Marketing Performance'
+                ),
+                state.lastUpdated && React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400 mt-1' }, 
+                    `Last updated: ${new Date(state.lastUpdated).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`,
+                    state.nextUpdateIn && ` • Next update in: ${state.nextUpdateIn}`
+                )
             ),
             React.createElement('div', { className: 'flex gap-2' },
                 React.createElement('button', {

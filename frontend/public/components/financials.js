@@ -868,6 +868,8 @@ const EnhancedFinancialStats = () => {
         current_month: true,
         last_month: true
     });
+    const [lastUpdated, setLastUpdated] = React.useState(null);
+    const [nextUpdateIn, setNextUpdateIn] = React.useState(null);
     
     // Fetch metrics for all time periods
     React.useEffect(() => {
@@ -923,6 +925,14 @@ const EnhancedFinancialStats = () => {
                 const ordersData = await ordersRes.json();
                 
                 if (salesResult.success && salesResult.periods) {
+                    // Capture timestamps
+                    if (salesResult.lastUpdated) {
+                        setLastUpdated(salesResult.lastUpdated);
+                    }
+                    if (salesResult.nextUpdateIn) {
+                        setNextUpdateIn(salesResult.nextUpdateIn);
+                    }
+                    
                     // Calculate common data once
                     const totalReceivables = (receivablesData.data || []).reduce((sum, r) => sum + (r.amount || 0), 0);
                     const totalPayables = (payablesData.data || []).reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -1072,8 +1082,14 @@ const EnhancedFinancialStats = () => {
     return React.createElement('div', { className: 'space-y-6' },
         // Stats Section Header
         React.createElement('div', { className: 'flex items-center justify-between mb-4' },
-            React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
-                'Financial Overview'
+            React.createElement('div', null,
+                React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 dark:text-white' }, 
+                    'Financial Overview'
+                ),
+                lastUpdated && React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400 mt-1' }, 
+                    `Last updated: ${new Date(lastUpdated).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`,
+                    nextUpdateIn && ` • Next update in: ${nextUpdateIn}`
+                )
             ),
             React.createElement('button', {
                 onClick: () => window.location.reload(),
