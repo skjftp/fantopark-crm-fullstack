@@ -702,7 +702,7 @@ if (loading) {
                   React.createElement('th', { 
                     colSpan: 4, 
                     className: 'border border-gray-300 p-2 bg-gray-100' 
-                  }, 'Pipeline in Crs.'),
+                  }, 'Pipeline in Lacs'),
                   React.createElement('th', { 
                     rowSpan: 2, 
                     className: 'border border-gray-300 p-2 bg-gray-100' 
@@ -766,13 +766,13 @@ if (loading) {
                       }, (person.salesPersonPipeline || 0).toFixed(2)),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
-                      }, (person.retailPipeline || 0).toFixed(2)),
+                      }, ((person.retailPipeline || 0) / 100000).toFixed(2)),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
-                      }, (person.corporatePipeline || 0).toFixed(2)),
+                      }, ((person.corporatePipeline || 0) / 100000).toFixed(2)),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
-                      }, (person.overallPipeline || 0).toFixed(2)),
+                      }, ((person.overallPipeline || 0) / 100000).toFixed(2)),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
                       },

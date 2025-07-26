@@ -71,9 +71,9 @@ router.get('/sales-performance', authenticateToken, async (req, res) => {
       actualizedMargin: user.periods[period].actualizedMargin / 10000000,
       marginPercentage: user.periods[period].marginPercentage,
       actualizedMarginPercentage: user.periods[period].actualizedMarginPercentage,
-      retailPipeline: user.periods[period].retailPipeline / 10000000,
-      corporatePipeline: user.periods[period].corporatePipeline / 10000000,
-      overallPipeline: user.periods[period].overallPipeline / 10000000,
+      retailPipeline: user.periods[period].retailPipeline,
+      corporatePipeline: user.periods[period].corporatePipeline,
+      overallPipeline: user.periods[period].overallPipeline,
       orderCount: user.periods[period].orderCount
     }));
     
