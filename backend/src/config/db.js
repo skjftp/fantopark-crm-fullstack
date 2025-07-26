@@ -12,10 +12,10 @@ const collections = {
   events: 'crm_events', // Add this line
   orders: 'crm_orders',
   invoices: 'crm_invoices',
+  allocations: 'crm_allocations',
   deliveries: 'crm_deliveries',
   receivables: 'crm_receivables',
-  emailNotifications: 'crm_email_notifications'
-  ,
+  emailNotifications: 'crm_email_notifications',
   roles: 'crm_roles'
 };
 
