@@ -1071,6 +1071,7 @@ const updateOrdersPagination = (orders) => {
           return eventLocation;
         })(),
         payment_currency: existingOrder.payment_currency || 'INR',
+        exchange_rate: existingOrder.exchange_rate || 1,
         
         // Documents
         gst_certificate: existingOrder.gst_certificate || null,

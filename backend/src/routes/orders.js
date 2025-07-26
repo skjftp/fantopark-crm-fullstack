@@ -9,8 +9,20 @@ const { authenticateToken, checkPermission } = require('../middleware/auth');
  * @returns {Object} - Order data with INR fields populated
  */
 function ensureCurrencyFields(orderData) {
+  console.log('🔍 ensureCurrencyFields input:', {
+    payment_currency: orderData.payment_currency,
+    exchange_rate: orderData.exchange_rate,
+    exchange_rate_type: typeof orderData.exchange_rate
+  });
+  
   const currency = orderData.payment_currency || 'INR';
   const exchangeRate = parseFloat(orderData.exchange_rate) || 1;
+  
+  console.log('🔍 Parsed values:', {
+    currency,
+    exchangeRate,
+    original_exchange_rate: orderData.exchange_rate
+  });
   
   // If currency is INR, ensure exchange rate is 1
   if (currency === 'INR') {
@@ -456,7 +468,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
     
     // If updating payment/currency fields, ensure INR equivalents are updated
     if (updates.payment_currency || updates.exchange_rate || updates.advance_amount || updates.final_amount || updates.total_amount || updates.base_amount || updates.invoice_total) {
+      console.log('💱 Before ensureCurrencyFields - exchange_rate:', updates.exchange_rate);
+      console.log('💱 Before ensureCurrencyFields - payment_currency:', updates.payment_currency);
       updates = ensureCurrencyFields(updates);
+      console.log('💱 After ensureCurrencyFields - exchange_rate:', updates.exchange_rate);
     }
     
     console.log('Updating order with customer_type:', updates.customer_type);

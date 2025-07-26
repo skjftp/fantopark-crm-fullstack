@@ -1143,6 +1143,9 @@ window.handlePaymentSubmit = async function(e) {
       
       console.log('Update data being sent:', updateData);
       console.log('🎯 Specifically customer_type in updateData:', updateData.customer_type);
+      console.log('🎯 Exchange rate in updateData:', updateData.exchange_rate);
+      console.log('💱 Exchange rate from paymentData:', window.paymentData.exchange_rate);
+      console.log('💱 Exchange rate from existingOrder:', existingOrder.exchange_rate);
       console.log('🎯 Full updateData:', JSON.stringify(updateData, null, 2));
       
       // Update order via API
