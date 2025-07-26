@@ -57,10 +57,13 @@ window.updateDeliveryStatus = async function(deliveryId) {
     
     try {
         // Update delivery status via API
-        const response = await window.apiCall(`/deliveries/${deliveryId}`, 'PUT', {
-            status: selectedStatus,
-            updated_date: new Date().toISOString(),
-            updated_by: window.user?.email
+        const response = await window.apiCall(`/deliveries/${deliveryId}`, {
+            method: 'PUT',
+            body: {
+                status: selectedStatus,
+                updated_date: new Date().toISOString(),
+                updated_by: window.user?.email
+            }
         });
         
         if (response.success) {
@@ -737,10 +740,10 @@ window.renderMyActionsContent = () => {
                                                     try {
                                                         await window.apiCall(`/deliveries/${delivery.id}`, {
                                                             method: 'PUT',
-                                                            body: JSON.stringify({ 
+                                                            body: { 
                                                                 status: 'in_transit',
                                                                 started_at: new Date().toISOString()
-                                                            })
+                                                            }
                                                         });
                                                         window.fetchMyActions && window.fetchMyActions();
                                                         alert('Delivery started!');
@@ -761,10 +764,10 @@ window.renderMyActionsContent = () => {
                                                     try {
                                                         await window.apiCall(`/deliveries/${delivery.id}`, {
                                                             method: 'PUT',
-                                                            body: JSON.stringify({ 
+                                                            body: { 
                                                                 status: 'delivered',
                                                                 delivered_at: new Date().toISOString()
-                                                            })
+                                                            }
                                                         });
                                                         window.fetchMyActions && window.fetchMyActions();
                                                         alert('Delivery completed!');

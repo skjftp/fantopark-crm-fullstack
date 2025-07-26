@@ -38,13 +38,24 @@ router.post('/', authenticateToken, async (req, res) => {
 // PUT update delivery status
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
+    console.log(`🚚 Updating delivery ${req.params.id} with:`, req.body);
+    
     const updates = {
       ...req.body,
       updated_date: new Date().toISOString()
     };
     
     await db.collection(collections.deliveries).doc(req.params.id).update(updates);
-    res.json({ data: { id: req.params.id, ...updates } });
+    console.log(`✅ Delivery ${req.params.id} updated successfully`);
+    
+    // Fetch the updated document to return complete data
+    const updatedDoc = await db.collection(collections.deliveries).doc(req.params.id).get();
+    const updatedData = { id: req.params.id, ...updatedDoc.data() };
+    
+    res.json({ 
+      success: true, 
+      data: updatedData 
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
