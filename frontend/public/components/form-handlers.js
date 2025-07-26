@@ -1075,6 +1075,7 @@ window.handlePaymentSubmit = async function(e) {
         customer_type: window.paymentData.customer_type || existingOrder.customer_type,
         event_location: window.paymentData.event_location || existingOrder.event_location,
         payment_currency: window.paymentData.payment_currency || existingOrder.payment_currency,
+        exchange_rate: window.paymentData.exchange_rate || existingOrder.exchange_rate || 1,
         
         // Keep financial calculations
         base_amount: existingOrder.base_amount,
@@ -1180,6 +1181,7 @@ window.handlePaymentSubmit = async function(e) {
         customer_type: window.paymentData.customer_type,
         event_location: window.paymentData.event_location,
         payment_currency: window.paymentData.payment_currency,
+        exchange_rate: window.paymentData.exchange_rate || 1,
         
         // Financial calculations
         invoice_items: window.paymentData.invoice_items || [],

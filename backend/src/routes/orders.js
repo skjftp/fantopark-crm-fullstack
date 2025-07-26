@@ -19,13 +19,26 @@ function ensureCurrencyFields(orderData) {
     orderData.exchange_rate = exchangeRate;
   }
   
-  // Parse amounts as floats for proper calculation
-  const baseAmount = parseFloat(orderData.base_amount) || 0;
-  const totalAmount = parseFloat(orderData.total_amount) || baseAmount || 0;
-  const invoiceTotal = parseFloat(orderData.invoice_total) || totalAmount || 0;
-  const finalAmount = parseFloat(orderData.final_amount) || invoiceTotal || 0;
-  const advanceAmount = parseFloat(orderData.advance_amount) || 0;
-  const serviceFeeAmount = parseFloat(orderData.service_fee_amount) || 0;
+  // Check if we have original amounts stored (for already converted orders)
+  let baseAmount, totalAmount, invoiceTotal, finalAmount, advanceAmount, serviceFeeAmount;
+  
+  if (currency !== 'INR' && orderData.original_base_amount !== undefined) {
+    // Use original amounts if available (this handles already-converted orders)
+    baseAmount = parseFloat(orderData.original_base_amount) || 0;
+    totalAmount = parseFloat(orderData.original_base_amount) || baseAmount || 0;
+    invoiceTotal = parseFloat(orderData.invoice_total) || totalAmount || 0;
+    finalAmount = parseFloat(orderData.original_final_amount) || invoiceTotal || 0;
+    advanceAmount = parseFloat(orderData.original_advance_amount) || 0;
+    serviceFeeAmount = parseFloat(orderData.service_fee_amount) || 0;
+  } else {
+    // Parse amounts as floats for proper calculation
+    baseAmount = parseFloat(orderData.base_amount) || 0;
+    totalAmount = parseFloat(orderData.total_amount) || baseAmount || 0;
+    invoiceTotal = parseFloat(orderData.invoice_total) || totalAmount || 0;
+    finalAmount = parseFloat(orderData.final_amount) || invoiceTotal || 0;
+    advanceAmount = parseFloat(orderData.advance_amount) || 0;
+    serviceFeeAmount = parseFloat(orderData.service_fee_amount) || 0;
+  }
   
   // Calculate INR equivalents using the provided exchange rate
   if (currency === 'INR') {
@@ -434,7 +447,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     }
     
     // If updating payment/currency fields, ensure INR equivalents are updated
-    if (updates.payment_currency || updates.exchange_rate || updates.advance_amount || updates.final_amount) {
+    if (updates.payment_currency || updates.exchange_rate || updates.advance_amount || updates.final_amount || updates.total_amount || updates.base_amount || updates.invoice_total) {
       updates = ensureCurrencyFields(updates);
     }
     

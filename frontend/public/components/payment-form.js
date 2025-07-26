@@ -10,12 +10,7 @@ window.renderEnhancedCurrencySection = () => {
   const { paymentData } = window.appState || {};
   
   // Get current exchange rates from the currency ticker
-  const currentRates = window.currentExchangeRates || {
-    USD: 83.50,
-    EUR: 90.20,
-    GBP: 105.50,
-    AED: 22.75
-  };
+  const currentRates = window.currentExchangeRates || window.currencyTickerState?.rates || {};
   
   // Calculate invoice total for conversion display
   const invoiceTotal = paymentData.invoice_items?.reduce((sum, item) => 
@@ -88,9 +83,11 @@ window.renderEnhancedCurrencySection = () => {
             // Auto-update exchange rate when currency changes
             if (newCurrency !== 'INR') {
               const rate = currentRates[newCurrency] || 1;
+              console.log(`🔄 Setting exchange rate for ${newCurrency}: ${rate}`);
               window.handlePaymentInputChange('exchange_rate', rate);
               window.handlePaymentInputChange('conversion_date', new Date().toISOString());
             } else {
+              console.log('🔄 Setting exchange rate for INR: 1');
               window.handlePaymentInputChange('exchange_rate', 1);
             }
           },
@@ -165,12 +162,7 @@ window.renderEnhancedCurrencySection = () => {
 window.renderCurrencyConversionSection = () => {
   const { paymentData } = window.appState || {};
   
-  const currentRates = window.currentExchangeRates || {
-    USD: 83.50,
-    EUR: 90.20,
-    GBP: 105.50,
-    AED: 22.75
-  };
+  const currentRates = window.currentExchangeRates || window.currencyTickerState?.rates || {};
   
   const currency = paymentData.payment_currency || 'INR';
   const exchangeRate = paymentData.exchange_rate || currentRates[currency] || 1;
@@ -209,7 +201,9 @@ window.renderCurrencyConversionSection = () => {
             type: 'number',
             value: paymentData.exchange_rate || exchangeRate,
             onChange: (e) => {
-              window.handlePaymentInputChange('exchange_rate', parseFloat(e.target.value) || 0);
+              const newRate = parseFloat(e.target.value) || 0;
+              console.log(`💱 Manual exchange rate update: ${newRate}`);
+              window.handlePaymentInputChange('exchange_rate', newRate);
               window.handlePaymentInputChange('conversion_date', new Date().toISOString());
             },
             className: 'flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500',
