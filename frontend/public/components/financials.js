@@ -951,28 +951,27 @@ const EnhancedFinancialStats = () => {
                     for (const period of periods) {
                         if (salesResult.periods[period]) {
                             const periodData = salesResult.periods[period];
-                            const salesTeam = periodData.salesTeam || [];
                             
-                            // Calculate totals from sales team data
-                            const totalSales = salesTeam.reduce((sum, member) => sum + (member.totalSales || 0), 0);
-                            const totalMargin = salesTeam.reduce((sum, member) => sum + (member.totalMargin || 0), 0);
-                            const marginPercentage = totalSales > 0 ? (totalMargin / totalSales * 100) : 0;
+                            // New API structure - data is directly in periodData, already in rupees
+                            const totalSales = periodData.totalSales || 0;
+                            const totalMargin = periodData.totalMargin || 0;
+                            const marginPercentage = periodData.marginPercentage || 0;
                             
                             // Debug logging for margin calculation
-                            console.log(`📊 Financials ${period} - Sales: ₹${(totalSales * 10000000).toLocaleString()}, Margin: ₹${(totalMargin * 10000000).toLocaleString()}, %: ${marginPercentage.toFixed(2)}%`);
+                            console.log(`📊 Financials ${period} - Sales: ₹${totalSales.toLocaleString()}, Margin: ₹${totalMargin.toLocaleString()}, %: ${marginPercentage.toFixed(2)}%`);
                             
-                            // Convert from crores to actual value
-                            const totalSalesInRupees = totalSales * 10000000;
-                            const totalMarginInRupees = totalMargin * 10000000;
+                            // Data is already in rupees from the new API
+                            const totalSalesInRupees = totalSales;
+                            const totalMarginInRupees = totalMargin;
                             
                             const data = {
                                 totalSales: totalSalesInRupees,
-                                activeSales: activeSales,
-                                totalReceivables: totalReceivables,
-                                totalPayables: totalPayables,
+                                activeSales: periodData.activeSales || activeSales,
+                                totalReceivables: periodData.totalReceivables || totalReceivables,
+                                totalPayables: periodData.totalPayables || totalPayables,
                                 totalMargin: totalMarginInRupees,
                                 marginPercentage: parseFloat(marginPercentage.toFixed(2)),
-                                processedOrders: salesTeam.reduce((sum, m) => sum + (m.orderCount || 0), 0)
+                                processedOrders: periodData.orderCount || 0
                             };
                             
                             // Store in cache
