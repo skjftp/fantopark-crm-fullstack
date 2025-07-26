@@ -208,9 +208,9 @@ const fetchSalesPerformance = async (forceRefresh = false) => {
   try {
     const token = localStorage.getItem('crm_auth_token');
     
-    // Fetch sales team data with period filter (add force parameter if needed)
+    // Use new performance-stats endpoint for ultra-fast response
     const forceParam = forceRefresh === true || forceRefresh === 'force' ? '&force=true' : '';
-    const salesResponse = await fetch(`${window.API_CONFIG.API_URL}/sales-performance?period=${period}${forceParam}`, {
+    const salesResponse = await fetch(`${window.API_CONFIG.API_URL}/performance-stats/sales-performance?period=${period}${forceParam}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
@@ -264,8 +264,8 @@ const fetchSalesPerformance = async (forceRefresh = false) => {
       }
     }
     
-    // Fetch retail tracker data - remove /api prefix
-    const retailResponse = await fetch(`${window.API_CONFIG.API_URL}/sales-performance/retail-tracker?start_date=${dateRange.start}&end_date=${dateRange.end}`, {
+    // Use new performance-stats endpoint for retail tracker
+    const retailResponse = await fetch(`${window.API_CONFIG.API_URL}/performance-stats/retail-tracker`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     

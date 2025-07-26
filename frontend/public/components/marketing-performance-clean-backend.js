@@ -42,18 +42,27 @@ function MarketingPerformanceBackend() {
             
             if (filters.adSet !== 'all') queryParams.append('ad_set', filters.adSet);
             
-            const response = await window.apiCall(`/marketing/performance?${queryParams}`);
+            // Use new performance-stats endpoint for ultra-fast response
+            const response = await window.apiCall(`/performance-stats/marketing-performance`);
             
             if (!response.success) {
                 throw new Error(response.message || 'Failed to fetch marketing data');
             }
             
-            console.log('✅ Marketing data received:', response.data);
+            console.log('✅ Marketing data received:', response);
+            
+            // Transform the new response structure to match the expected format
+            const transformedData = {
+                sources: response.sources || {},
+                campaigns: response.campaigns || {},
+                lastUpdated: response.lastUpdated,
+                nextUpdateIn: response.nextUpdateIn
+            };
             
             setState(prev => ({
                 ...prev,
                 loading: false,
-                data: response.data,
+                data: transformedData,
                 error: null
             }));
             

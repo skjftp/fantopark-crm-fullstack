@@ -901,9 +901,9 @@ const EnhancedFinancialStats = () => {
                 console.log('📊 Fetching sales performance data for all periods');
                 const token = localStorage.getItem('crm_auth_token');
                 
-                // Single API call to get all periods data
+                // Use new performance-stats endpoint for ultra-fast response
                 const [salesResponse, receivablesRes, payablesRes, ordersRes] = await Promise.all([
-                    fetch(`${window.API_CONFIG.API_URL}/sales-performance/all-periods`, {
+                    fetch(`${window.API_CONFIG.API_URL}/performance-stats/financials`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     }),
                     fetch(`${window.API_CONFIG.API_URL}/receivables`, {
