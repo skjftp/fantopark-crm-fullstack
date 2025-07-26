@@ -67,10 +67,26 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
     let ordersWithoutAllocations = 0;
 
     for (const order of orders) {
-      // Skip orders without allocations
-      const orderAllocations = allocations.filter(alloc => 
-        alloc.order_id === order.id || alloc.order_id === order.order_number
-      );
+      // Check multiple ways to match allocations to orders
+      const orderAllocations = allocations.filter(alloc => {
+        // Try multiple matching strategies
+        const matches = 
+          alloc.order_id === order.id || 
+          alloc.order_id === order.order_number ||
+          alloc.order_number === order.order_number ||
+          alloc.order_number === order.id;
+        
+        if (matches && ordersWithAllocations < 5) {
+          console.log('Matched allocation:', {
+            allocation_order_id: alloc.order_id,
+            allocation_order_number: alloc.order_number,
+            order_id: order.id,
+            order_number: order.order_number
+          });
+        }
+        
+        return matches;
+      });
 
       if (orderAllocations.length === 0) {
         ordersWithoutAllocations++;
@@ -136,6 +152,69 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
       ordersWithoutAllocations,
       totalAuditRecords: auditData.length
     });
+
+    // If no data found with order matching, try direct allocation approach
+    if (auditData.length === 0 && allocations.length > 0) {
+      console.log('No order-matched data found. Processing allocations directly...');
+      
+      for (const allocation of allocations) {
+        const inv = inventoryMap[allocation.inventory_id] || {};
+        
+        // Find related order if possible
+        const relatedOrder = orders.find(o => 
+          o.id === allocation.order_id || 
+          o.order_number === allocation.order_id ||
+          o.order_number === allocation.order_number ||
+          o.id === allocation.order_number
+        );
+        
+        // Get lead information
+        const lead = relatedOrder ? leadMap[relatedOrder.lead_id] : {};
+        
+        // Calculate values
+        const quantity = allocation.quantity || 0;
+        const unitPrice = allocation.unit_price || allocation.price || 0;
+        const salesValue = quantity * unitPrice;
+        
+        // Get cost price from inventory or allocation
+        const costPrice = allocation.cost_price || inv.cost_price || 0;
+        const totalCost = quantity * costPrice;
+        
+        // Calculate margin
+        const margin = salesValue - totalCost;
+        const marginPercentage = salesValue > 0 ? (margin / salesValue * 100).toFixed(2) : '0.00';
+
+        auditData.push({
+          lead_name: lead.name || lead.company_name || allocation.customer_name || allocation.client_name || 'Unknown',
+          lead_for_event: allocation.event_name || lead.lead_for_event || 'Unknown',
+          allocation_category: allocation.category_name || allocation.category || inv.category || 'Unknown',
+          allocation_stand: allocation.stand_section || allocation.stand || inv.stand || 'Unknown',
+          order_id: allocation.order_number || allocation.order_id || 'Direct Allocation',
+          sales_person: allocation.allocated_by || relatedOrder?.sales_person || 'Unknown',
+          quantity: quantity,
+          unit_price: unitPrice,
+          sales_value: salesValue,
+          cost_price: costPrice,
+          total_cost: totalCost,
+          margin: margin,
+          margin_percentage: marginPercentage,
+          order_date: relatedOrder?.created_date || allocation.allocated_date || allocation.created_at || '',
+          client_name: allocation.customer_name || allocation.client_name || lead.company_name || lead.name || 'Unknown',
+          payment_status: relatedOrder?.payment_status || 'unknown',
+          order_status: relatedOrder?.status || 'allocated'
+        });
+      }
+      
+      console.log('Processed allocations directly. Total records:', auditData.length);
+      
+      // Sort the fallback data too
+      auditData.sort((a, b) => {
+        if (a.sales_person !== b.sales_person) {
+          return a.sales_person.localeCompare(b.sales_person);
+        }
+        return new Date(b.order_date) - new Date(a.order_date);
+      });
+    }
 
     // Return based on format parameter
     if (req.query.format === 'json') {
