@@ -34,6 +34,14 @@ function ensureCurrencyFields(orderData) {
     // Parse amounts as floats for proper calculation
     baseAmount = parseFloat(orderData.base_amount) || 0;
     totalAmount = parseFloat(orderData.total_amount) || baseAmount || 0;
+    
+    // Fix for corrupted total_amount values (e.g., 2425503.7)
+    // If total_amount is suspiciously large compared to base_amount, use base_amount
+    if (currency !== 'INR' && totalAmount > baseAmount * 1000) {
+      console.log(`⚠️ Detected corrupted total_amount: ${totalAmount}, using base_amount: ${baseAmount}`);
+      totalAmount = baseAmount;
+    }
+    
     invoiceTotal = parseFloat(orderData.invoice_total) || totalAmount || 0;
     finalAmount = parseFloat(orderData.final_amount) || invoiceTotal || 0;
     advanceAmount = parseFloat(orderData.advance_amount) || 0;

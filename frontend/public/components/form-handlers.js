@@ -1035,60 +1035,110 @@ window.handlePaymentSubmit = async function(e) {
       const isConvertingProforma = existingOrder.invoice_type === 'proforma' || 
                                    existingOrder.order_type === 'payment_post_service';
       
-      // Prepare update data
+      // Calculate GST and TCS for the update
+      const invoiceTotal = window.paymentData.invoice_items?.reduce((sum, item) => 
+        sum + ((item.quantity || 0) * (item.rate || 0)), 0
+      ) || 0;
+
+      const baseAmount = window.paymentData.type_of_sale === 'Service Fee' 
+        ? (parseFloat(window.paymentData.service_fee_amount) || 0)
+        : invoiceTotal;
+
+      const calculation = window.calculateGSTAndTCS(baseAmount, window.paymentData);
+      
+      // Prepare update data - INCLUDING ALL FIELDS FROM THE FORM
       const updateData = {
-        // Payment details
+        // Keep existing IDs and references
+        lead_id: existingOrder.lead_id,
+        order_number: existingOrder.order_number,
+        
+        // Client information from form
+        client_name: window.paymentData.legal_name || window.currentLead.name,
+        client_email: window.currentLead.email,
+        client_phone: window.currentLead.phone,
+        lead_name: window.currentLead.name,
+        lead_email: window.currentLead.email,
+        lead_phone: window.currentLead.phone,
+        
+        // Payment details from form
         payment_method: window.paymentData.payment_method,
         transaction_id: window.paymentData.transaction_id,
         payment_date: window.paymentData.payment_date,
-        advance_amount: parseFloat(window.paymentData.advance_amount) || existingOrder.final_amount || 0,
+        advance_amount: parseFloat(window.paymentData.advance_amount) || 0,
+        payment_amount: window.paymentData.payment_amount || window.paymentData.advance_amount,
         
-        // CRITICAL: Update invoice type and status for proforma conversion
-        invoice_type: 'tax',  // Convert to tax invoice
+        // GST and legal details from form
+        gstin: window.paymentData.gstin || '',
+        legal_name: window.paymentData.legal_name || window.currentLead.name,
+        registered_address: window.paymentData.registered_address,
+        category_of_sale: window.paymentData.category_of_sale,
+        type_of_sale: window.paymentData.type_of_sale,
+        indian_state: window.paymentData.indian_state,
+        is_outside_india: window.paymentData.is_outside_india,
+        
+        // Customer classification fields from form
+        customer_type: window.paymentData.customer_type,
+        event_location: window.paymentData.event_location,
+        payment_currency: window.paymentData.payment_currency,
+        exchange_rate: window.paymentData.exchange_rate || 1,
+        
+        // Invoice items and financial calculations
+        invoice_items: window.paymentData.invoice_items || [],
+        invoice_total: invoiceTotal,
+        invoice_subtotal: invoiceTotal,
+        base_amount: baseAmount,
+        total_amount: baseAmount, // This should be the original currency amount, not converted
+        
+        // Service fee if applicable
+        service_fee_amount: window.paymentData.service_fee_amount || 0,
+        
+        // GST and TCS calculations
+        gst_rate: calculation.gst.rate,
+        gst_calculation: calculation.gst,
+        tcs_calculation: calculation.tcs,
+        total_tax: calculation.gst.amount + calculation.tcs.amount,
+        final_amount: calculation.finalAmount,
+        
+        // Inclusions
+        buying_price_inclusions: parseFloat(window.paymentData.buying_price_inclusions) || 0,
+        inclusions_description: window.paymentData.inclusions_description || '',
+        
+        // Event details
+        event_name: window.paymentData.event_name || existingOrder.event_name,
+        event_id: existingOrder.event_id,
+        inventory_id: existingOrder.inventory_id,
+        event_date: existingOrder.event_date,
+        
+        // Order metadata
+        invoice_type: 'tax',
         payment_status: 'completed',
         status: 'payment_received',
+        order_type: 'standard',
         
-        // Keep proforma reference if converting
-        ...(isConvertingProforma && {
-          proforma_invoice_number: existingOrder.invoice_number || existingOrder.order_number,
-          proforma_order_number: existingOrder.order_number,
-          // Generate new order number for tax invoice
-          order_number: 'ORD-' + Date.now(),
-        }),
-        
-        // Update order type to standard if it was payment_post_service
-        ...(existingOrder.order_type === 'payment_post_service' && {
-          order_type: 'standard',
-          original_order_type: 'payment_post_service'
-        }),
-        
-        // GST and other details from payment form
-        gstin: window.paymentData.gstin || existingOrder.gstin,
-        legal_name: window.paymentData.legal_name || existingOrder.legal_name,
-        registered_address: window.paymentData.registered_address || existingOrder.registered_address,
-        category_of_sale: window.paymentData.category_of_sale || existingOrder.category_of_sale,
-        type_of_sale: window.paymentData.type_of_sale || existingOrder.type_of_sale,
-        indian_state: window.paymentData.indian_state || existingOrder.indian_state,
-        is_outside_india: window.paymentData.is_outside_india || existingOrder.is_outside_india,
-        
-        // Customer classification fields
-        customer_type: window.paymentData.customer_type || existingOrder.customer_type,
-        event_location: window.paymentData.event_location || existingOrder.event_location,
-        payment_currency: window.paymentData.payment_currency || existingOrder.payment_currency,
-        exchange_rate: window.paymentData.exchange_rate || existingOrder.exchange_rate || 1,
-        
-        // Keep financial calculations
-        base_amount: existingOrder.base_amount,
-        gst_calculation: existingOrder.gst_calculation,
-        tcs_calculation: existingOrder.tcs_calculation,
-        total_tax: existingOrder.total_tax,
-        final_amount: existingOrder.final_amount,
+        // Preserve allocation data
+        tickets_allocated: existingOrder.tickets_allocated,
+        ticket_category: existingOrder.ticket_category,
+        price_per_ticket: existingOrder.price_per_ticket,
+        buying_price: existingOrder.buying_price,
+        total_allocated_tickets: existingOrder.total_allocated_tickets,
         
         // Metadata
         payment_collected_date: new Date().toISOString(),
         payment_collected_by: window.user.name,
         updated_date: new Date().toISOString(),
-        updated_by: window.user.name
+        updated_by: window.user.name,
+        
+        // Preserve sales person
+        sales_person: existingOrder.sales_person,
+        
+        // Keep proforma reference if converting
+        ...(isConvertingProforma && {
+          proforma_invoice_number: existingOrder.invoice_number || existingOrder.order_number,
+          proforma_order_number: existingOrder.order_number,
+        }),
+        
+        // Additional notes
+        notes: window.paymentData.notes || existingOrder.notes
       };
       
       console.log('Update data being sent:', updateData);
