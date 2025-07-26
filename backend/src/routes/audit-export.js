@@ -52,14 +52,20 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
 
     // Log sample data to debug
     if (allocations.length > 0) {
-      console.log('Sample allocation:', allocations[0]);
+      console.log('Sample allocation:', JSON.stringify(allocations[0], null, 2));
     }
     if (orders.length > 0) {
-      console.log('Sample order:', {
+      console.log('Sample order:', JSON.stringify({
         id: orders[0].id,
         order_number: orders[0].order_number,
-        status: orders[0].status
-      });
+        status: orders[0].status,
+        payment_currency: orders[0].payment_currency,
+        total_amount: orders[0].total_amount,
+        final_amount_inr: orders[0].final_amount_inr,
+        inr_equivalent: orders[0].inr_equivalent,
+        exchange_rate: orders[0].exchange_rate,
+        base_amount: orders[0].base_amount
+      }, null, 2));
     }
 
     // Create lookup maps
@@ -102,10 +108,38 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
 
       // Calculate sales values (following sales-performance.js logic)
       const isForeignCurrency = order.payment_currency && order.payment_currency !== 'INR';
-      const orderAmount = parseFloat(order.final_amount_inr || order.total_amount || 0);
       
-      // Calculate margins using the same logic as sales performance
-      const sellingPrice = parseFloat(order.inr_equivalent || order.base_amount || order.total_amount || 0);
+      // For foreign currency orders, use proper INR conversion
+      let orderAmount, sellingPrice;
+      if (isForeignCurrency) {
+        // Use final_amount_inr if available, otherwise calculate using exchange rate
+        orderAmount = parseFloat(order.final_amount_inr || 0);
+        if (orderAmount === 0 && order.total_amount && order.exchange_rate) {
+          orderAmount = parseFloat(order.total_amount) * parseFloat(order.exchange_rate);
+        }
+        
+        // For selling price, use inr_equivalent first, then final_amount_inr, then calculated
+        sellingPrice = parseFloat(order.inr_equivalent || order.final_amount_inr || 0);
+        if (sellingPrice === 0 && order.base_amount && order.exchange_rate) {
+          sellingPrice = parseFloat(order.base_amount) * parseFloat(order.exchange_rate);
+        }
+        
+        console.log(`Foreign currency conversion for ${order.order_number}:`, {
+          currency: order.payment_currency,
+          originalAmount: order.total_amount,
+          exchangeRate: order.exchange_rate,
+          calculatedINR: parseFloat(order.total_amount) * parseFloat(order.exchange_rate),
+          final_amount_inr: order.final_amount_inr,
+          inr_equivalent: order.inr_equivalent,
+          usedOrderAmount: orderAmount,
+          usedSellingPrice: sellingPrice
+        });
+      } else {
+        // For INR orders, use the amounts directly
+        orderAmount = parseFloat(order.final_amount_inr || order.total_amount || 0);
+        sellingPrice = parseFloat(order.inr_equivalent || order.base_amount || order.total_amount || 0);
+      }
+      
       const buyingPriceTickets = parseFloat(order.buying_price || 0);
       const buyingPriceInclusions = parseFloat(order.buying_price_inclusions || 0);
       const totalBuyingPrice = buyingPriceTickets + buyingPriceInclusions;

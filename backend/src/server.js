@@ -189,6 +189,7 @@ app.use('/api/allocations', require('./routes/allocations'));
 app.use('/api/bulk-allocations', require('./routes/bulk-allocations'));
 // app.use('/api/bulk-payments', require('./routes/bulk-payments')); // TODO: Create this route
 app.use('/api/audit-export', require('./routes/audit-export'));
+app.use('/api/currency-fix', require('./routes/currency-fix'));
 
 
 // ✅ JOURNEY ROUTES - NOW AFTER CORS SETUP!
