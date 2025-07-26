@@ -904,7 +904,7 @@ if (loading) {
                     return React.createElement('tr', { key: row.id },
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 font-medium' 
-                      }, row.salesMember),
+                      }, row.name || row.salesMember),
                       React.createElement('td', { 
                         className: 'border border-gray-300 p-2 text-center' 
                       }, row.assigned),
