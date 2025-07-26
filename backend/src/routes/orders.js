@@ -78,10 +78,18 @@ function ensureCurrencyFields(orderData) {
     orderData.service_fee_amount = serviceFeeAmount;
     
     // Store INR equivalents in separate fields
+    // IMPORTANT: Always recalculate INR equivalents based on current exchange rate
     orderData.inr_equivalent = invoiceTotal * exchangeRate;
     orderData.final_amount_inr = finalAmount * exchangeRate;
     orderData.advance_amount_inr = advanceAmount * exchangeRate;
     orderData.service_fee_amount_inr = serviceFeeAmount * exchangeRate;
+    
+    console.log('💱 Calculated INR equivalents:', {
+      invoiceTotal,
+      exchangeRate,
+      inr_equivalent: orderData.inr_equivalent,
+      final_amount_inr: orderData.final_amount_inr
+    });
   }
   
   // Add conversion date if not present
@@ -470,7 +478,18 @@ router.put('/:id', authenticateToken, async (req, res) => {
     if (updates.payment_currency || updates.exchange_rate || updates.advance_amount || updates.final_amount || updates.total_amount || updates.base_amount || updates.invoice_total) {
       console.log('💱 Before ensureCurrencyFields - exchange_rate:', updates.exchange_rate);
       console.log('💱 Before ensureCurrencyFields - payment_currency:', updates.payment_currency);
+      
+      // Store the user-provided exchange rate before processing
+      const userProvidedExchangeRate = updates.exchange_rate;
+      
       updates = ensureCurrencyFields(updates);
+      
+      // If user explicitly provided an exchange rate, ensure it's preserved
+      if (userProvidedExchangeRate !== undefined && updates.payment_currency !== 'INR') {
+        updates.exchange_rate = parseFloat(userProvidedExchangeRate);
+        console.log('💱 Preserving user-provided exchange_rate:', updates.exchange_rate);
+      }
+      
       console.log('💱 After ensureCurrencyFields - exchange_rate:', updates.exchange_rate);
     }
     
