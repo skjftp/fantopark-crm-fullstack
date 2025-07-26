@@ -125,12 +125,23 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
         alloc.order_id === order.order_number ||
         alloc.order_number === order.order_number ||
         alloc.order_number === order.id ||
-        (alloc.order_ids && alloc.order_ids.includes(order.id)) // Check if order is in order_ids array
+        (alloc.order_ids && alloc.order_ids.includes(order.id)) || // Check if order is in order_ids array
+        (order.allocation_ids && order.allocation_ids.includes(alloc.id)) // Check if allocation is in order's allocation_ids array
       );
       
       // Debug allocation matching
       if (orderAllocations.length === 0 && order.order_number) {
         console.log(`No allocations found for order ${order.order_number} (${order.id})`);
+        if (order.allocation_ids && order.allocation_ids.length > 0) {
+          console.log(`Order has allocation_ids: ${order.allocation_ids.join(', ')}`);
+          // Check if these allocations exist
+          order.allocation_ids.forEach(allocId => {
+            const allocExists = allocations.some(a => a.id === allocId);
+            if (!allocExists) {
+              console.log(`  - Allocation ${allocId} not found in allocations collection`);
+            }
+          });
+        }
       }
 
       // If no allocations, still include the order with basic info
