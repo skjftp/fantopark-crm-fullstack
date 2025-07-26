@@ -10,22 +10,41 @@ const { authenticateToken, checkPermission } = require('../middleware/auth');
  */
 function ensureCurrencyFields(orderData) {
   const currency = orderData.payment_currency || 'INR';
-  const exchangeRate = orderData.exchange_rate || 1;
+  const exchangeRate = parseFloat(orderData.exchange_rate) || 1;
   
   // If currency is INR, ensure exchange rate is 1
   if (currency === 'INR') {
     orderData.exchange_rate = 1;
+  } else {
+    orderData.exchange_rate = exchangeRate;
   }
   
-  // Calculate INR equivalents
-  const invoiceTotal = orderData.invoice_total || 0;
+  // Parse amounts as floats for proper calculation
+  const baseAmount = parseFloat(orderData.base_amount) || 0;
+  const totalAmount = parseFloat(orderData.total_amount) || baseAmount || 0;
+  const invoiceTotal = parseFloat(orderData.invoice_total) || totalAmount || 0;
+  const finalAmount = parseFloat(orderData.final_amount) || invoiceTotal || 0;
   const advanceAmount = parseFloat(orderData.advance_amount) || 0;
   const serviceFeeAmount = parseFloat(orderData.service_fee_amount) || 0;
   
-  // Add INR fields
-  orderData.inr_equivalent = currency === 'INR' ? invoiceTotal : invoiceTotal * exchangeRate;
-  orderData.advance_amount_inr = currency === 'INR' ? advanceAmount : advanceAmount * exchangeRate;
-  orderData.service_fee_amount_inr = currency === 'INR' ? serviceFeeAmount : serviceFeeAmount * exchangeRate;
+  // Calculate INR equivalents using the provided exchange rate
+  if (currency === 'INR') {
+    // For INR, keep amounts as-is
+    orderData.base_amount = baseAmount;
+    orderData.total_amount = totalAmount;
+    orderData.inr_equivalent = invoiceTotal;
+    orderData.final_amount_inr = finalAmount;
+    orderData.advance_amount_inr = advanceAmount;
+    orderData.service_fee_amount_inr = serviceFeeAmount;
+  } else {
+    // For foreign currency, calculate INR equivalents
+    orderData.base_amount = baseAmount * exchangeRate;
+    orderData.total_amount = totalAmount * exchangeRate;
+    orderData.inr_equivalent = invoiceTotal * exchangeRate;
+    orderData.final_amount_inr = finalAmount * exchangeRate;
+    orderData.advance_amount_inr = advanceAmount * exchangeRate;
+    orderData.service_fee_amount_inr = serviceFeeAmount * exchangeRate;
+  }
   
   // Add conversion date if not present
   if (!orderData.conversion_date && currency !== 'INR') {
@@ -34,17 +53,18 @@ function ensureCurrencyFields(orderData) {
   
   // Calculate tax amounts in INR
   if (orderData.gst_amount) {
-    orderData.gst_amount_inr = currency === 'INR' ? orderData.gst_amount : orderData.gst_amount * exchangeRate;
+    const gstAmount = parseFloat(orderData.gst_amount) || 0;
+    orderData.gst_amount_inr = currency === 'INR' ? gstAmount : gstAmount * exchangeRate;
   }
   
   if (orderData.tcs_amount) {
-    orderData.tcs_amount_inr = currency === 'INR' ? orderData.tcs_amount : orderData.tcs_amount * exchangeRate;
+    const tcsAmount = parseFloat(orderData.tcs_amount) || 0;
+    orderData.tcs_amount_inr = currency === 'INR' ? tcsAmount : tcsAmount * exchangeRate;
   }
   
-  // Calculate final amount in INR
-  if (orderData.final_amount) {
-    orderData.final_amount_inr = currency === 'INR' ? orderData.final_amount : orderData.final_amount * exchangeRate;
-  }
+  // Add metadata for tracking currency conversion
+  orderData.currency_conversion_applied = true;
+  orderData.last_currency_conversion_date = new Date().toISOString();
   
   return orderData;
 }
