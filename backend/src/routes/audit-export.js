@@ -106,10 +106,10 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
       const leadName = lead.name || lead.company_name || order.client_name || order.customer_name || 'Unknown';
       const leadEvent = order.event_name || lead.lead_for_event || 'Unknown';
 
-      // Use correct field based on currency for sales value
+      // Use base_amount logic for sales value (same as sales-performance API)
       const sellingPrice = order.payment_currency === 'INR' 
-        ? parseFloat(order.total_amount || 0)
-        : parseFloat(order.inr_equivalent || 0);
+        ? parseFloat(order.base_amount || order.total_amount || 0)
+        : parseFloat(order.base_amount || 0) * parseFloat(order.exchange_rate || 1);
       
       // Don't use order buying price - will get from allocations
       const buyingPriceInclusions = parseFloat(order.buying_price_inclusions || 0);
@@ -190,9 +190,9 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
           let buyingPricePerTicket = 0;
           const allocatedQty = allocation.tickets_allocated || allocation.quantity || 0;
           
-          // Debug logging for Nandini's order
-          if (order.order_number === 'ORD-1753256861487') {
-            console.log('Processing Nandini order:', {
+          // Debug logging for specific order
+          if (order.order_number === 'ORD-1753455836188-10') {
+            console.log('Processing order ORD-1753455836188-10:', {
               allocation_id: allocation.id,
               inventory_id: allocation.inventory_id,
               category: allocation.category_name || allocation.category,
@@ -205,16 +205,46 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
           // First try to get from inventory categories
           if (inv.categories && Array.isArray(inv.categories)) {
             const categoryName = allocation.category_name || allocation.category || '';
-            const category = inv.categories.find(cat => cat.name === categoryName);
+            const categorySection = allocation.category_section || allocation.stand_section || '';
+            
+            if (order.order_number === 'ORD-1753455836188-10') {
+              console.log('Inventory categories:', inv.categories.map(cat => ({
+                name: cat.name,
+                buying_price: cat.buying_price,
+                section: cat.section
+              })));
+              console.log('Looking for category:', categoryName);
+              console.log('Looking for section:', categorySection);
+            }
+            
+            // Match both category name AND section for accurate buying price
+            let category = inv.categories.find(cat => 
+              cat.name === categoryName && 
+              cat.section === categorySection
+            );
+            
+            // Fallback: if no exact match found, match by name only (original logic)
+            if (!category) {
+              category = inv.categories.find(cat => cat.name === categoryName);
+            }
             if (category) {
               buyingPricePerTicket = parseFloat(category.buying_price) || 0;
-              if (order.order_number === 'ORD-1753256861487') {
-                console.log('Found category buying price:', buyingPricePerTicket);
+              if (order.order_number === 'ORD-1753455836188-10') {
+                console.log('Found matching category:', category);
+                console.log('Extracted buying price:', buyingPricePerTicket);
+                console.log('Used exact match:', !!(categorySection && category && category.section === categorySection));
               }
+            } else if (order.order_number === 'ORD-1753455836188-10') {
+              console.log('No matching category found for:', categoryName);
             }
           } else if (inv.buying_price) {
             // Fallback to legacy inventory structure
             buyingPricePerTicket = parseFloat(inv.buying_price) || 0;
+            if (order.order_number === 'ORD-1753455836188-10') {
+              console.log('Using legacy inventory buying price:', buyingPricePerTicket);
+            }
+          } else if (order.order_number === 'ORD-1753455836188-10') {
+            console.log('No buying price found in inventory');
           }
           
           const allocationBuyingPrice = buyingPricePerTicket * allocatedQty;
@@ -326,7 +356,7 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
         total_records: auditData.length
       });
     } else {
-      // Return as CSV (default) - simplified fields as requested with custom headers
+      // Return as CSV (default) - using base_amount logic for selling_price, removed inr_equivalent and total_amount columns
       const fields = [
         { label: 'lead_name', value: 'lead_name' },
         { label: 'lead_for_event', value: 'lead_for_event' },
@@ -336,8 +366,7 @@ router.get('/', authenticateToken, checkPermission('super_admin'), async (req, r
         { label: 'order_id', value: 'order_id' },
         { label: 'sales_person', value: 'sales_person_name' },
         { label: 'currency', value: 'payment_currency' },
-        { label: 'inr_equivalent', value: 'inr_equivalent' },
-        { label: 'total_amount', value: 'total_amount' },
+        { label: 'selling_price', value: 'selling_price_inr' },
         { label: 'buying_price', value: 'total_buying_price' },
         { label: 'margin', value: 'margin' }
       ];

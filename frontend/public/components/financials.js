@@ -828,11 +828,11 @@ window.createFinancialSalesChart = () => {
     }
 };
 
-// Cache for financial data (5 minute cache)
+// Cache for financial data (6 hour cache to match backend)
 const financialCache = {
     data: {},
     timestamps: {},
-    CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
+    CACHE_DURATION: 6 * 60 * 60 * 1000, // 6 hours to match backend cache
     // Clear cache function
     clear: function() {
         this.data = {};
@@ -877,128 +877,122 @@ const EnhancedFinancialStats = () => {
         const fetchAllPeriodMetrics = async () => {
             const periods = ['current_fy', 'current_month', 'last_month'];
             
-            for (const period of periods) {
-                try {
-                    // Check cache first
-                    if (isCacheValid(period)) {
-                        console.log(`📊 Using cached data for ${period}`);
-                        setPeriodMetrics(prev => ({
-                            ...prev,
-                            [period]: financialCache.data[period]
-                        }));
-                        setLoadingPeriods(prev => ({ ...prev, [period]: false }));
-                        continue;
-                    }
-                    
-                    console.log(`📊 Fetching fresh data for ${period}`);
-                    
-                    // Use sales-performance API instead of finance/metrics
-                    // Now all periods are directly supported
-                    const periodParam = period === 'current_fy' ? 'current_fy' : 
-                                      period === 'current_month' ? 'current_month' : 
-                                      period === 'last_month' ? 'last_month' : 'lifetime';
-                    
-                    const response = await fetch(`${window.API_CONFIG.API_URL}/sales-performance?period=${periodParam}`, {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}` }
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (result.success && result.salesTeam) {
-                        // Calculate totals from sales team data
-                        const totalSales = result.salesTeam.reduce((sum, member) => sum + (member.totalSales || 0), 0);
-                        const totalMargin = result.salesTeam.reduce((sum, member) => sum + (member.totalMargin || 0), 0);
-                        const marginPercentage = totalSales > 0 ? (totalMargin / totalSales * 100) : 0;
-                        
-                        // Convert from crores to actual value
-                        const totalSalesInRupees = totalSales * 10000000;
-                        const totalMarginInRupees = totalMargin * 10000000;
-                        
-                        console.log(`📊 Sales Performance Metrics for ${period}:`, {
-                            totalSales: totalSalesInRupees,
-                            totalSalesFormatted: `₹${totalSales.toFixed(2)} Cr`,
-                            totalMargin: totalMarginInRupees,
-                            marginPercentage: marginPercentage.toFixed(2)
-                        });
-                        
-                        // Fetch receivables and payables separately
-                        const [receivablesRes, payablesRes] = await Promise.all([
-                            fetch(`${window.API_CONFIG.API_URL}/receivables`, {
-                                headers: { 'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}` }
-                            }),
-                            fetch(`${window.API_CONFIG.API_URL}/payables`, {
-                                headers: { 'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}` }
-                            })
-                        ]);
-                        
-                        const receivablesData = await receivablesRes.json();
-                        const payablesData = await payablesRes.json();
-                        
-                        const totalReceivables = (receivablesData.data || []).reduce((sum, r) => sum + (r.amount || 0), 0);
-                        const totalPayables = (payablesData.data || []).reduce((sum, p) => sum + (p.amount || 0), 0);
-                        
-                        // Calculate active sales (orders with future event dates)
-                        let activeSales = 0;
-                        try {
-                            const ordersResponse = await fetch(`${window.API_CONFIG.API_URL}/orders`, {
-                                headers: { 'Authorization': `Bearer ${localStorage.getItem('crm_auth_token')}` }
-                            });
-                            const ordersData = await ordersResponse.json();
-                            const orders = ordersData.data || [];
-                            
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            
-                            const activeOrders = orders.filter(order => {
-                                // Skip cancelled/rejected orders
-                                if (['cancelled', 'rejected', 'refunded'].includes(order.status)) return false;
-                                
-                                // If no event date, consider as active
-                                if (!order.event_date) return true;
-                                
-                                // Check if event date is in future
-                                const eventDate = new Date(order.event_date);
-                                eventDate.setHours(0, 0, 0, 0);
-                                return eventDate >= today;
-                            });
-                            
-                            activeSales = activeOrders.reduce((sum, order) => {
-                                const amount = order.payment_currency === 'INR' 
-                                    ? parseFloat(order.total_amount || 0)
-                                    : parseFloat(order.inr_equivalent || 0);
-                                return sum + amount;
-                            }, 0);
-                        } catch (error) {
-                            console.error('Failed to calculate active sales:', error);
-                        }
-
-                        const periodData = {
-                            totalSales: totalSalesInRupees,
-                            activeSales: activeSales,
-                            totalReceivables: totalReceivables,
-                            totalPayables: totalPayables,
-                            totalMargin: totalMarginInRupees,
-                            marginPercentage: parseFloat(marginPercentage.toFixed(2)), // Store rounded value
-                            processedOrders: result.salesTeam.reduce((sum, m) => sum + (m.orderCount || 0), 0)
-                        };
-                        
-                        // Store in cache
-                        financialCache.data[period] = periodData;
-                        financialCache.timestamps[period] = Date.now();
-                        
-                        setPeriodMetrics(prev => ({
-                            ...prev,
-                            [period]: periodData
-                        }));
-                    }
-                    
-                    setLoadingPeriods(prev => ({ ...prev, [period]: false }));
-                } catch (error) {
-                    console.error(`Error fetching metrics for ${period}:`, error);
+            // First, set all cached data immediately
+            periods.forEach(period => {
+                if (isCacheValid(period)) {
+                    console.log(`📊 Using cached data for ${period}`);
+                    setPeriodMetrics(prev => ({
+                        ...prev,
+                        [period]: financialCache.data[period]
+                    }));
                     setLoadingPeriods(prev => ({ ...prev, [period]: false }));
                 }
+            });
+            
+            // Check if we need to fetch any data
+            const needsFetch = periods.some(period => !isCacheValid(period));
+            
+            if (!needsFetch) {
+                console.log('📊 All periods cached, no fetch needed');
+                return;
+            }
+            
+            try {
+                console.log('📊 Fetching sales performance data for all periods');
+                const token = localStorage.getItem('crm_auth_token');
+                
+                // Single API call to get all periods data
+                const [salesResponse, receivablesRes, payablesRes, ordersRes] = await Promise.all([
+                    fetch(`${window.API_CONFIG.API_URL}/sales-performance/all-periods`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch(`${window.API_CONFIG.API_URL}/receivables`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch(`${window.API_CONFIG.API_URL}/payables`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch(`${window.API_CONFIG.API_URL}/orders`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                ]);
+                
+                const salesResult = await salesResponse.json();
+                const receivablesData = await receivablesRes.json();
+                const payablesData = await payablesRes.json();
+                const ordersData = await ordersRes.json();
+                
+                if (salesResult.success && salesResult.periods) {
+                    // Calculate common data once
+                    const totalReceivables = (receivablesData.data || []).reduce((sum, r) => sum + (r.amount || 0), 0);
+                    const totalPayables = (payablesData.data || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+                    
+                    // Calculate active sales
+                    const orders = ordersData.data || [];
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    const activeOrders = orders.filter(order => {
+                        if (['cancelled', 'rejected', 'refunded'].includes(order.status)) return false;
+                        if (!order.event_date) return true;
+                        const eventDate = new Date(order.event_date);
+                        eventDate.setHours(0, 0, 0, 0);
+                        return eventDate >= today;
+                    });
+                    
+                    const activeSales = activeOrders.reduce((sum, order) => {
+                        const amount = order.payment_currency === 'INR' 
+                            ? parseFloat(order.total_amount || 0)
+                            : parseFloat(order.inr_equivalent || 0);
+                        return sum + amount;
+                    }, 0);
+                    
+                    // Process each period from the response
+                    for (const period of periods) {
+                        if (salesResult.periods[period]) {
+                            const periodData = salesResult.periods[period];
+                            const salesTeam = periodData.salesTeam || [];
+                            
+                            // Calculate totals from sales team data
+                            const totalSales = salesTeam.reduce((sum, member) => sum + (member.totalSales || 0), 0);
+                            const totalMargin = salesTeam.reduce((sum, member) => sum + (member.totalMargin || 0), 0);
+                            const marginPercentage = totalSales > 0 ? (totalMargin / totalSales * 100) : 0;
+                            
+                            // Convert from crores to actual value
+                            const totalSalesInRupees = totalSales * 10000000;
+                            const totalMarginInRupees = totalMargin * 10000000;
+                            
+                            const data = {
+                                totalSales: totalSalesInRupees,
+                                activeSales: activeSales,
+                                totalReceivables: totalReceivables,
+                                totalPayables: totalPayables,
+                                totalMargin: totalMarginInRupees,
+                                marginPercentage: parseFloat(marginPercentage.toFixed(2)),
+                                processedOrders: salesTeam.reduce((sum, m) => sum + (m.orderCount || 0), 0)
+                            };
+                            
+                            // Store in cache
+                            financialCache.data[period] = data;
+                            financialCache.timestamps[period] = Date.now();
+                            
+                            setPeriodMetrics(prev => ({
+                                ...prev,
+                                [period]: data
+                            }));
+                            
+                            setLoadingPeriods(prev => ({ ...prev, [period]: false }));
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching all periods metrics:', error);
+                periods.forEach(period => {
+                    setLoadingPeriods(prev => ({ ...prev, [period]: false }));
+                });
             }
         };
+                    
         
         fetchAllPeriodMetrics();
     }, []);

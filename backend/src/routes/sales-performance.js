@@ -18,13 +18,14 @@ const performanceCache = {
   salesData: null,
   salesDataTimestamp: null,
   retailData: new Map(), // Map to store different date ranges
-  CACHE_DURATION: 6 * 60 * 60 * 1000 // 6 hours in milliseconds
+  CACHE_DURATION: 6 * 60 * 60 * 1000, // 6 hours in milliseconds for sales data
+  RETAIL_CACHE_DURATION: 1 * 60 * 60 * 1000 // 1 hour in milliseconds for retail data
 };
 
 // Helper function to check if cache is valid
-function isCacheValid(timestamp) {
+function isCacheValid(timestamp, duration = performanceCache.CACHE_DURATION) {
   if (!timestamp) return false;
-  return (Date.now() - timestamp) < performanceCache.CACHE_DURATION;
+  return (Date.now() - timestamp) < duration;
 }
 
 // Helper function to generate cache key for retail data
@@ -281,12 +282,12 @@ router.get('/', authenticateToken, async (req, res) => {
       let actualizedMargin = 0;
       
       userOrders.forEach(order => {
-        // Use INR equivalent amounts for foreign currency orders
+        // Use base_amount logic for sales value calculation
         const isForeignCurrency = order.payment_currency && order.payment_currency !== 'INR';
-        // FIXED: Use same logic as sellingPrice - don't include GST/TCS
+        // NEW LOGIC: base_amount for INR, base_amount * exchange_rate for non-INR
         const orderAmount = order.payment_currency === 'INR' 
-          ? parseFloat(order.total_amount || 0)
-          : parseFloat(order.inr_equivalent || 0);
+          ? parseFloat(order.base_amount || order.total_amount || 0)
+          : parseFloat(order.base_amount || 0) * parseFloat(order.exchange_rate || 1);
         
         if (isForeignCurrency && userOrders.indexOf(order) < 3) {
           console.log(`💱 Foreign currency order detected:`, {
@@ -298,11 +299,11 @@ router.get('/', authenticateToken, async (req, res) => {
         }
         
         // New margin calculation:
-        // Selling Price = total_amount for INR, inr_equivalent for other currencies
+        // Selling Price = base_amount for INR, base_amount * exchange_rate for other currencies
         // Buying Price = calculated from inventory based on allocations + buying_price_inclusions
         const sellingPrice = order.payment_currency === 'INR' 
-          ? parseFloat(order.total_amount || 0)
-          : parseFloat(order.inr_equivalent || 0);
+          ? parseFloat(order.base_amount || order.total_amount || 0)
+          : parseFloat(order.base_amount || 0) * parseFloat(order.exchange_rate || 1);
         
         // Calculate buying price from allocations and inventory
         let buyingPriceTickets = 0;
@@ -323,7 +324,19 @@ router.get('/', authenticateToken, async (req, res) => {
             // Get buying price from inventory categories
             if (inventory.categories && Array.isArray(inventory.categories)) {
               const categoryName = allocation.category_name || allocation.category || '';
-              const category = inventory.categories.find(cat => cat.name === categoryName);
+              const categorySection = allocation.category_section || allocation.stand_section || '';
+              
+              // Match both category name AND section for accurate buying price
+              let category = inventory.categories.find(cat => 
+                cat.name === categoryName && 
+                cat.section === categorySection
+              );
+              
+              // Fallback: if no exact match found, match by name only
+              if (!category) {
+                category = inventory.categories.find(cat => cat.name === categoryName);
+              }
+              
               if (category) {
                 buyingPricePerTicket = parseFloat(category.buying_price) || 0;
               }
@@ -356,6 +369,7 @@ router.get('/', authenticateToken, async (req, res) => {
             originalAmount: order.total_amount || 0,
             finalAmountINR: order.final_amount_inr || 'N/A',
             baseAmount: order.base_amount || 0,
+            baseAmountINR: isForeignCurrency ? `${order.base_amount} * ${order.exchange_rate} = ${parseFloat(order.base_amount || 0) * parseFloat(order.exchange_rate || 1)}` : order.base_amount,
             inrEquivalent: order.inr_equivalent || 'N/A',
             sellingPrice: sellingPrice,
             buyingPriceTickets: buyingPriceTickets,
@@ -492,6 +506,216 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+// GET all periods data in one call - optimized for financials dashboard
+router.get('/all-periods', authenticateToken, async (req, res) => {
+  try {
+    const forceRefresh = req.query.force === 'true';
+    const periods = ['current_fy', 'current_month', 'last_month'];
+    const results = {};
+    
+    // Check if all periods are cached
+    let allCached = true;
+    for (const period of periods) {
+      const cacheKey = `sales_${period}`;
+      if (!performanceCache[cacheKey] || !isCacheValid(performanceCache[`${cacheKey}_timestamp`]) || forceRefresh) {
+        allCached = false;
+        break;
+      }
+    }
+    
+    // If all cached, return immediately
+    if (allCached && !forceRefresh && !performanceCache.clearingInProgress) {
+      for (const period of periods) {
+        const cacheKey = `sales_${period}`;
+        results[period] = {
+          salesTeam: performanceCache[cacheKey],
+          cached: true,
+          cacheAge: Math.round((Date.now() - performanceCache[`${cacheKey}_timestamp`]) / 1000 / 60) + ' minutes'
+        };
+      }
+      
+      return res.json({
+        success: true,
+        periods: results,
+        allCached: true
+      });
+    }
+    
+    console.log('📊 Fetching sales performance data for multiple periods');
+    const startTime = Date.now();
+    
+    // Get sales performance members
+    const salesMembersSnapshot = await db.collection('sales_performance_members').get();
+    const salesMemberIds = new Set();
+    salesMembersSnapshot.forEach(doc => {
+      salesMemberIds.add(doc.id);
+    });
+    
+    // Get all users and filter to sales members
+    const allUsersSnapshot = await db.collection('crm_users').get();
+    const allUserDocs = allUsersSnapshot.docs.filter(doc => salesMemberIds.has(doc.id));
+    
+    // Create mappings
+    const nameToEmail = new Map();
+    const emailToName = new Map();
+    allUserDocs.forEach(doc => {
+      const userData = doc.data();
+      nameToEmail.set(userData.name, userData.email);
+      emailToName.set(userData.email, userData.name);
+    });
+    
+    // Get all orders and leads once
+    const [allOrdersSnapshot, allLeadsSnapshot, allAllocationsSnapshot, allInventorySnapshot] = await Promise.all([
+      db.collection(collections.orders).get(),
+      db.collection(collections.leads).get(),
+      db.collection(collections.allocations).get(),
+      db.collection(collections.inventory).get()
+    ]);
+    
+    console.log(`📊 Fetched ${allOrdersSnapshot.size} orders, ${allLeadsSnapshot.size} leads`);
+    
+    // Process each period
+    for (const period of periods) {
+      const cacheKey = `sales_${period}`;
+      
+      // Check cache for this specific period
+      if (!forceRefresh && performanceCache[cacheKey] && isCacheValid(performanceCache[`${cacheKey}_timestamp`])) {
+        results[period] = {
+          salesTeam: performanceCache[cacheKey],
+          cached: true,
+          cacheAge: Math.round((Date.now() - performanceCache[`${cacheKey}_timestamp`]) / 1000 / 60) + ' minutes'
+        };
+        continue;
+      }
+      
+      // Get date range for period
+      const { startDate, endDate } = getDateRange(period);
+      
+      // Filter orders by event_date for this period
+      let periodOrders = allOrdersSnapshot.docs;
+      if (startDate) {
+        periodOrders = periodOrders.filter(doc => {
+          const order = doc.data();
+          if (!order.event_date) return false;
+          const eventDate = new Date(order.event_date);
+          return eventDate >= startDate && (!endDate || eventDate <= endDate);
+        });
+      }
+      
+      // Process sales team data
+      const salesTeam = [];
+      
+      for (const userDoc of allUserDocs) {
+        const userData = userDoc.data();
+        const userEmail = userData.email;
+        
+        // Get user's leads
+        const userLeads = allLeadsSnapshot.docs.filter(doc => {
+          const lead = doc.data();
+          return lead.assigned_to === userEmail && 
+                 ['hot', 'warm', 'cold', 'qualified', 'attempt_1', 'attempt_2', 'attempt_3', 'quote_requested', 'quote_received'].includes(lead.status);
+        });
+        
+        // Get user's orders for this period
+        const userOrders = periodOrders.filter(doc => {
+          const order = doc.data();
+          return order.sales_person === userData.name || order.sales_person === userEmail;
+        });
+        
+        // Calculate metrics
+        let totalSales = 0;
+        let totalBuyingPrice = 0;
+        
+        for (const orderDoc of userOrders) {
+          const order = orderDoc.data();
+          
+          // Calculate sales value using base_amount logic
+          const salesValue = order.payment_currency === 'INR' 
+            ? parseFloat(order.base_amount || 0)
+            : parseFloat(order.base_amount || 0) * parseFloat(order.exchange_rate || 1);
+          
+          totalSales += salesValue;
+          
+          // Get buying price from allocations
+          const orderAllocations = allAllocationsSnapshot.docs.filter(doc => {
+            const alloc = doc.data();
+            return alloc.order_id === orderDoc.id && !alloc.isDeleted;
+          });
+          
+          for (const allocDoc of orderAllocations) {
+            const allocation = allocDoc.data();
+            const tickets = parseInt(allocation.tickets_allocated || 0);
+            
+            // Find inventory for buying price
+            const invDoc = allInventorySnapshot.docs.find(doc => 
+              doc.data().event_name === allocation.event_name
+            );
+            
+            if (invDoc && tickets > 0) {
+              const inv = invDoc.data();
+              const categoryName = allocation.category_name || allocation.category || '';
+              const categorySection = allocation.category_section || allocation.stand_section || '';
+              
+              const category = inv.categories?.find(cat => 
+                cat.name === categoryName && cat.section === categorySection
+              );
+              
+              if (category) {
+                totalBuyingPrice += parseFloat(category.buying_price || 0) * tickets;
+              }
+            }
+          }
+        }
+        
+        const margin = totalSales - totalBuyingPrice;
+        const marginPercentage = totalSales > 0 ? (margin / totalSales * 100) : 0;
+        
+        salesTeam.push({
+          id: userDoc.id,
+          name: userData.name,
+          email: userEmail,
+          totalSales: totalSales / 10000000, // Convert to crores
+          orderCount: userOrders.length,
+          pipelineCount: userLeads.length,
+          totalMargin: margin / 10000000, // Convert to crores
+          marginPercentage: marginPercentage,
+          target: userData.sales_target || 0,
+          achievementPercentage: userData.sales_target > 0 ? 
+            ((totalSales / 10000000) / userData.sales_target * 100) : 0
+        });
+      }
+      
+      // Sort by total sales descending
+      salesTeam.sort((a, b) => b.totalSales - a.totalSales);
+      
+      // Cache the result
+      performanceCache[cacheKey] = salesTeam;
+      performanceCache[`${cacheKey}_timestamp`] = Date.now();
+      
+      results[period] = {
+        salesTeam: salesTeam,
+        cached: false
+      };
+    }
+    
+    const endTime = Date.now();
+    
+    res.json({
+      success: true,
+      periods: results,
+      responseTime: endTime - startTime,
+      allCached: false
+    });
+    
+  } catch (error) {
+    console.error('❌ All periods sales performance error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message
+    });
+  }
+});
+
 // GET retail tracker data - SHOWS ONLY MEMBERS IN retail_tracker_members
 router.get('/retail-tracker', authenticateToken, async (req, res) => {
   try {
@@ -501,7 +725,7 @@ router.get('/retail-tracker', authenticateToken, async (req, res) => {
     const cacheKey = getRetailCacheKey(start_date, end_date);
     const cachedEntry = performanceCache.retailData.get(cacheKey);
     
-    if (cachedEntry && isCacheValid(cachedEntry.timestamp)) {
+    if (cachedEntry && isCacheValid(cachedEntry.timestamp, performanceCache.RETAIL_CACHE_DURATION)) {
       // console.log('📊 Returning cached retail tracker data for range:', cacheKey);
       return res.json({
         success: true,
