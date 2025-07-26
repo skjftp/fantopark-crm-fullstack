@@ -40,13 +40,10 @@ router.get('/metrics', authenticateToken, async (req, res) => {
       db.collection('crm_inventory').get()
     ]);
 
-    // Process orders (filter out deleted)
+    // Process orders - NO FILTERING to match sales performance
     const orders = [];
     ordersSnapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.isDeleted !== true) {
-        orders.push({ id: doc.id, ...data });
-      }
+      orders.push({ id: doc.id, ...doc.data() });
     });
 
     // Process allocations (filter out deleted)
@@ -260,12 +257,34 @@ router.get('/metrics', authenticateToken, async (req, res) => {
     }
 
     // Calculate total sales (all orders in period) - match sales performance logic
+    const orderAmounts = [];
     totalSales = filteredOrders.reduce((sum, order) => {
       const amount = order.payment_currency === 'INR' 
         ? parseFloat(order.total_amount || 0)
         : parseFloat(order.inr_equivalent || 0);
+      
+      // Debug: Track each order amount
+      if (amount > 0) {
+        orderAmounts.push({
+          order_id: order.id,
+          order_number: order.order_number,
+          amount: amount,
+          currency: order.payment_currency,
+          total_amount: order.total_amount,
+          inr_equivalent: order.inr_equivalent
+        });
+      }
+      
       return sum + amount;
     }, 0);
+    
+    console.log(`💰 Finance Total Sales Calculation:`, {
+      totalOrders: filteredOrders.length,
+      ordersWithAmount: orderAmounts.length,
+      totalSales: totalSales,
+      totalSalesInCr: (totalSales / 10000000).toFixed(2),
+      sampleOrders: orderAmounts.slice(0, 5)
+    });
 
     // Calculate active sales (pending/processing orders)
     // Check all possible statuses first
@@ -423,13 +442,10 @@ router.get('/sales-margins', authenticateToken, async (req, res) => {
       db.collection('crm_users').get()
     ]);
 
-    // Process orders (filter out deleted)
+    // Process orders - NO FILTERING to match sales performance
     const orders = [];
     ordersSnapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.isDeleted !== true) {
-        orders.push({ id: doc.id, ...data });
-      }
+      orders.push({ id: doc.id, ...doc.data() });
     });
 
     // Process allocations (filter out deleted)

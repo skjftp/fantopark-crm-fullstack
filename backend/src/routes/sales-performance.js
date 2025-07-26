@@ -274,7 +274,10 @@ router.get('/', authenticateToken, async (req, res) => {
       userOrders.forEach(order => {
         // Use INR equivalent amounts for foreign currency orders
         const isForeignCurrency = order.payment_currency && order.payment_currency !== 'INR';
-        const orderAmount = parseFloat(order.final_amount_inr || order.total_amount || 0);
+        // FIXED: Use same logic as sellingPrice - don't include GST/TCS
+        const orderAmount = order.payment_currency === 'INR' 
+          ? parseFloat(order.total_amount || 0)
+          : parseFloat(order.inr_equivalent || 0);
         
         if (isForeignCurrency && userOrders.indexOf(order) < 3) {
           console.log(`💱 Foreign currency order detected:`, {
