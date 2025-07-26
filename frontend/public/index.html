@@ -722,12 +722,20 @@ window.optimizeLoginPerformance();
 
 /* Mild blinking animation for last updated text */
 @keyframes mildBlink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%, 100% { 
+    opacity: 1;
+    color: #059669; /* Green color when fully visible */
+  }
+  50% { 
+    opacity: 0.7;
+    color: #10b981; /* Lighter green when faded */
+  }
 }
 
 .last-updated-blink {
-  animation: mildBlink 3s ease-in-out infinite;
+  animation: mildBlink 2s ease-in-out infinite;
+  color: #059669; /* Emerald green */
+  font-weight: 500; /* Medium weight for better visibility */
 }
 
 /* If using React transitions */

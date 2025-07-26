@@ -158,7 +158,7 @@ function MarketingPerformanceBackend() {
                 React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 dark:text-white' }, 
                     'Marketing Performance'
                 ),
-                state.lastUpdated && React.createElement('p', { className: 'text-sm text-gray-500 dark:text-gray-400 mt-1 last-updated-blink' }, 
+                state.lastUpdated && React.createElement('p', { className: 'text-sm mt-1 last-updated-blink' }, 
                     `Last updated: ${new Date(state.lastUpdated).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`,
                     state.nextUpdateIn && ` • Next update in: ${state.nextUpdateIn}`
                 )
