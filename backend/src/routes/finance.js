@@ -156,7 +156,7 @@ router.get('/metrics', authenticateToken, async (req, res) => {
         // Calculate order selling price (amount without GST/TCS, in INR)
         let orderSellingPrice = 0;
 
-        // Match sales performance logic for selling price
+        // EXACT SAME AS SALES PERFORMANCE
         orderSellingPrice = order.payment_currency === 'INR' 
           ? parseFloat(order.total_amount || 0)
           : parseFloat(order.inr_equivalent || 0);
@@ -259,9 +259,9 @@ router.get('/metrics', authenticateToken, async (req, res) => {
     // Calculate total sales (all orders in period) - match sales performance logic
     const orderAmounts = [];
     totalSales = filteredOrders.reduce((sum, order) => {
-      // FIXED: Use base_amount when available, as total_amount might include GST/TCS
+      // EXACT SAME AS SALES PERFORMANCE
       const amount = order.payment_currency === 'INR' 
-        ? parseFloat(order.base_amount || order.total_amount || 0)
+        ? parseFloat(order.total_amount || 0)
         : parseFloat(order.inr_equivalent || 0);
       
       // Debug: Track each order amount
@@ -349,7 +349,7 @@ router.get('/metrics', authenticateToken, async (req, res) => {
       
       activeSales = activeSalesOrders.reduce((sum, order) => {
         const amount = order.payment_currency === 'INR' 
-          ? parseFloat(order.base_amount || order.total_amount || 0)
+          ? parseFloat(order.total_amount || 0)
           : parseFloat(order.inr_equivalent || 0);
         return sum + amount;
       }, 0);
@@ -365,7 +365,7 @@ router.get('/metrics', authenticateToken, async (req, res) => {
       
       activeSales = activeSalesOrders.reduce((sum, order) => {
         const amount = order.payment_currency === 'INR' 
-          ? parseFloat(order.base_amount || order.total_amount || 0)
+          ? parseFloat(order.total_amount || 0)
           : parseFloat(order.inr_equivalent || 0);
         return sum + amount;
       }, 0);
