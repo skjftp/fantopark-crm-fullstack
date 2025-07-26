@@ -9,14 +9,27 @@ const { db } = require('../config/db');
  */
 router.post('/update-stats', async (req, res) => {
   try {
-    // Verify the request is from Cloud Scheduler (optional security)
+    // Verify the request is from Cloud Scheduler or GitHub Actions
     const cronToken = req.headers['x-cloudscheduler-token'];
     const expectedToken = process.env.CRON_TOKEN;
+    const source = req.body?.source;
     
-    if (expectedToken && cronToken !== expectedToken) {
+    // Log the request details for debugging
+    console.log('⏰ Cron request received:', {
+      source: source,
+      hasToken: !!cronToken,
+      hasExpectedToken: !!expectedToken,
+      headers: Object.keys(req.headers)
+    });
+    
+    // Skip token check for github-actions if CRON_TOKEN is not set in production
+    const isGitHubActions = source === 'github-actions';
+    const shouldCheckToken = expectedToken && !isGitHubActions;
+    
+    if (shouldCheckToken && cronToken !== expectedToken) {
       return res.status(403).json({
         success: false,
-        error: 'Unauthorized'
+        error: 'Unauthorized - Invalid cron token'
       });
     }
     
