@@ -1,6 +1,35 @@
 // Sales Performance Component for FanToPark CRM
 // Tracks team targets, achievements, and pipeline metrics
 
+// Cache for sales performance data (6 hours to match backend)
+const salesPerformanceCache = {
+  data: {},
+  timestamps: {},
+  CACHE_DURATION: 6 * 60 * 60 * 1000, // 6 hours
+  
+  get: function(key) {
+    const timestamp = this.timestamps[key];
+    if (!timestamp || (Date.now() - timestamp) > this.CACHE_DURATION) {
+      return null;
+    }
+    return this.data[key];
+  },
+  
+  set: function(key, value) {
+    this.data[key] = value;
+    this.timestamps[key] = Date.now();
+  },
+  
+  clear: function() {
+    this.data = {};
+    this.timestamps = {};
+    console.log('📊 Sales performance cache cleared');
+  }
+};
+
+// Make cache available globally for debugging
+window.salesPerformanceCache = salesPerformanceCache;
+
 window.renderSalesPerformanceContent = function() {
   // Create a wrapper component that handles state properly
   return React.createElement(SalesPerformanceTracker);
@@ -8,13 +37,18 @@ window.renderSalesPerformanceContent = function() {
 
 // Main component with proper React structure
 function SalesPerformanceTracker() {
-  const [salesData, setSalesData] = React.useState([]);
+  const [period, setPeriod] = React.useState('lifetime'); // Default to lifetime
+  
+  // Initialize with cached data if available
+  const initialCacheKey = `sales_${period}`;
+  const initialCachedData = salesPerformanceCache.get(initialCacheKey);
+  
+  const [salesData, setSalesData] = React.useState(initialCachedData?.salesData || []);
   const [retailData, setRetailData] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState(!initialCachedData); // Only show loader if no cached data
   const [allUsers, setAllUsers] = React.useState([]);
   const [showUserModal, setShowUserModal] = React.useState(false);
   const [modalType, setModalType] = React.useState('sales'); // 'sales' or 'retail'
-  const [period, setPeriod] = React.useState('lifetime'); // Default to lifetime
   const [availablePeriods, setAvailablePeriods] = React.useState([]);
   const [isSuperAdmin, setIsSuperAdmin] = React.useState(false);
   const [clearingCache, setClearingCache] = React.useState(false);
@@ -105,9 +139,11 @@ const clearCache = async () => {
     const result = await response.json();
     
     if (response.ok) {
+      // Clear client-side cache too
+      salesPerformanceCache.clear();
       alert('Cache cleared successfully! Data will be refreshed.');
       // Force refresh the data (bypass any remaining cache)
-      await fetchSalesPerformance('force');
+      await fetchSalesPerformance(true);
     } else {
       alert(result.error || 'Failed to clear cache');
     }
@@ -120,13 +156,60 @@ const clearCache = async () => {
 };
 
  // Fetch sales performance data
-const fetchSalesPerformance = async () => {
+const fetchSalesPerformance = async (forceRefresh = false) => {
+  // Check cache first
+  const cacheKey = `sales_${period}`;
+  const cachedData = salesPerformanceCache.get(cacheKey);
+  
+  if (cachedData && !forceRefresh) {
+    console.log(`📊 Using cached sales data for ${period}`);
+    setSalesData(cachedData.salesData);
+    
+    // Still fetch margin data as it might have changed
+    try {
+      const token = localStorage.getItem('crm_auth_token');
+      const marginResponse = await fetch(`${window.API_CONFIG.API_URL}/finance/sales-margins`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (marginResponse.ok) {
+        const marginResult = await marginResponse.json();
+        const marginData = marginResult.data || [];
+        
+        // Update cached data with fresh margins
+        const updatedSalesData = cachedData.salesData.map(salesPerson => {
+          const marginInfo = marginData.find(m => 
+            m.userName === salesPerson.name || 
+            m.userId === salesPerson.userId
+          );
+          
+          if (marginInfo) {
+            return {
+              ...salesPerson,
+              totalMargin: marginInfo.margin / 10000000,
+              actualizedMargin: marginInfo.margin / 10000000,
+              marginPercentage: marginInfo.marginPercentage
+            };
+          }
+          return salesPerson;
+        });
+        
+        setSalesData(updatedSalesData);
+        salesPerformanceCache.set(cacheKey, { salesData: updatedSalesData });
+      }
+    } catch (error) {
+      console.error('Error updating margins:', error);
+    }
+    
+    return; // Don't show loader for cached data
+  }
+  
   setLoading(true);
   try {
     const token = localStorage.getItem('crm_auth_token');
     
     // Fetch sales team data with period filter (add force parameter if needed)
-    const forceParam = arguments[0] === 'force' ? '&force=true' : '';
+    const forceParam = forceRefresh === true || forceRefresh === 'force' ? '&force=true' : '';
     const salesResponse = await fetch(`${window.API_CONFIG.API_URL}/sales-performance?period=${period}${forceParam}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -171,6 +254,9 @@ const fetchSalesPerformance = async () => {
       }
       
       setSalesData(salesTeamData);
+      
+      // Cache the data
+      salesPerformanceCache.set(cacheKey, { salesData: salesTeamData });
       
       // Optional: Show cache status
       if (salesResult.cached && salesResult.cacheAge) {
