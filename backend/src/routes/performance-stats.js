@@ -64,6 +64,7 @@ router.get('/sales-performance', authenticateToken, async (req, res) => {
       id: user.id,
       name: user.name,
       email: user.email,
+      target: user.target || 0,
       totalSales: user.periods[period].totalSales / 10000000, // Convert to crores
       actualizedSales: user.periods[period].actualizedSales / 10000000,
       totalMargin: user.periods[period].totalMargin / 10000000,

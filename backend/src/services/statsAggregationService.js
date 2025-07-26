@@ -207,7 +207,16 @@ class StatsAggregationService {
    */
   async calculateSalesPerformance(ordersSnapshot, leadsSnapshot, allocationsSnapshot, usersSnapshot, salesMembersSnapshot) {
     const salesMemberIds = new Set();
-    salesMembersSnapshot.forEach(doc => salesMemberIds.add(doc.id));
+    const salesMemberTargets = new Map();
+    
+    // Get member IDs and targets
+    salesMembersSnapshot.forEach(doc => {
+      salesMemberIds.add(doc.id);
+      const data = doc.data();
+      if (data.target !== undefined) {
+        salesMemberTargets.set(doc.id, data.target);
+      }
+    });
     
     // Filter to only sales team members
     const salesUsers = usersSnapshot.docs.filter(doc => salesMemberIds.has(doc.id));
@@ -250,6 +259,7 @@ class StatsAggregationService {
         id: userDoc.id,
         name: userName,
         email: userEmail,
+        target: salesMemberTargets.get(userDoc.id) || 0,
         periods: {}
       };
 
