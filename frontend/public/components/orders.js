@@ -1854,7 +1854,7 @@ window.bulkApproveOrders = async function(orderIds) {
               event_date: order.event_date || new Date().toISOString().split('T')[0],
               tickets_count: order.tickets_allocated || 0,
               amount: order.total_amount || 0,
-              delivery_status: 'pending',
+              status: 'pending',
               assigned_to: assignee,
               assigned_date: new Date().toISOString(),
               payment_currency: order.payment_currency || 'INR',
