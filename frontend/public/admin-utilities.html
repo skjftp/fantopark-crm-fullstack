@@ -60,6 +60,24 @@
                     </a>
                 </div>
 
+                <!-- Audit Data Export -->
+                <div class="bg-indigo-50 p-6 rounded-lg border border-indigo-200">
+                    <h2 class="text-xl font-semibold text-indigo-800 mb-3">Audit Data Export</h2>
+                    <p class="text-gray-700 mb-4">
+                        Export comprehensive audit data including leads, allocations, orders, sales values, costs, and margin calculations.
+                    </p>
+                    <div class="space-y-2">
+                        <button onclick="exportAuditData('csv')" 
+                                class="block w-full bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition duration-200 text-center">
+                            Export as CSV →
+                        </button>
+                        <button onclick="exportAuditData('json')" 
+                                class="block w-full bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 transition duration-200 text-center">
+                            View Summary (JSON) →
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Back to Main App -->
                 <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
                     <h2 class="text-xl font-semibold text-gray-800 mb-3">Main Application</h2>
@@ -124,6 +142,120 @@
                 setTimeout(() => {
                     alert('Click on "Import Invoice CSV" button in the orders page');
                 }, 1000);
+            }
+        }
+
+        async function exportAuditData(format) {
+            try {
+                // Show loading message
+                const loadingEl = document.createElement('div');
+                loadingEl.className = 'fixed top-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                loadingEl.textContent = 'Generating audit export...';
+                document.body.appendChild(loadingEl);
+
+                // Get the API base URL - checking both development and production
+                const apiUrl = window.location.hostname === 'localhost' 
+                    ? 'http://localhost:8080/api/audit-export'
+                    : 'https://fantopark-backend-150582227311.us-central1.run.app/api/audit-export';
+                
+                const url = `${apiUrl}?format=${format}`;
+                
+                if (format === 'csv') {
+                    // For CSV, we need to handle the download
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${window.authToken}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Export failed: ${response.statusText}`);
+                    }
+
+                    // Get the blob data
+                    const blob = await response.blob();
+                    
+                    // Create download link
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = `audit_export_${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(downloadUrl);
+
+                    // Show success message
+                    loadingEl.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                    loadingEl.textContent = 'Audit data exported successfully!';
+                    setTimeout(() => loadingEl.remove(), 3000);
+
+                } else {
+                    // For JSON, show in a modal
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${window.authToken}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Export failed: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    // Remove loading message
+                    loadingEl.remove();
+
+                    // Create modal
+                    const modal = document.createElement('div');
+                    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                    modal.innerHTML = `
+                        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                            <div class="bg-indigo-600 text-white p-4">
+                                <h3 class="text-xl font-bold">Audit Data Summary</h3>
+                            </div>
+                            <div class="p-6 overflow-y-auto max-h-[70vh]">
+                                <div class="mb-4">
+                                    <p class="text-gray-600">Total Records: <span class="font-semibold">${data.total_records}</span></p>
+                                </div>
+                                <h4 class="text-lg font-semibold mb-3">Sales Person Summary:</h4>
+                                <div class="space-y-4">
+                                    ${Object.entries(data.summary).map(([person, stats]) => `
+                                        <div class="bg-gray-50 p-4 rounded-lg">
+                                            <h5 class="font-semibold text-gray-800 mb-2">${person}</h5>
+                                            <div class="grid grid-cols-2 gap-2 text-sm">
+                                                <div>Total Sales: ₹${(stats.total_sales / 10000000).toFixed(2)} Cr</div>
+                                                <div>Total Cost: ₹${(stats.total_cost / 10000000).toFixed(2)} Cr</div>
+                                                <div>Total Margin: ₹${(stats.total_margin / 10000000).toFixed(2)} Cr</div>
+                                                <div>Margin %: ${stats.total_sales > 0 ? (stats.total_margin / stats.total_sales * 100).toFixed(2) : '0.00'}%</div>
+                                                <div>Orders: ${stats.order_count}</div>
+                                                <div>Leads: ${stats.lead_count}</div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <div class="mt-6 flex gap-3">
+                                    <button onclick="exportAuditData('csv')" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                                        Download Full CSV
+                                    </button>
+                                    <button onclick="this.closest('.fixed').remove()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                }
+
+            } catch (error) {
+                console.error('Error exporting audit data:', error);
+                alert('Failed to export audit data: ' + error.message);
+                
+                // Remove loading message if it exists
+                const loadingEl = document.querySelector('.fixed.top-4.right-4');
+                if (loadingEl) loadingEl.remove();
             }
         }
     </script>
