@@ -66,11 +66,6 @@ router.get('/metrics', authenticateToken, async (req, res) => {
 
     // Apply date filtering based on period
     let filteredOrders = orders;
-    
-    // CRITICAL: Filter orders to only include those with sales_person (to match sales-performance)
-    filteredOrders = filteredOrders.filter(order => 
-      order.sales_person || order.sales_person_email
-    );
     if (period) {
       const now = new Date();
       let startDate, endDate;
@@ -264,8 +259,9 @@ router.get('/metrics', authenticateToken, async (req, res) => {
     // Calculate total sales (all orders in period) - match sales performance logic
     const orderAmounts = [];
     totalSales = filteredOrders.reduce((sum, order) => {
+      // FIXED: Use base_amount when available, as total_amount might include GST/TCS
       const amount = order.payment_currency === 'INR' 
-        ? parseFloat(order.total_amount || 0)
+        ? parseFloat(order.base_amount || order.total_amount || 0)
         : parseFloat(order.inr_equivalent || 0);
       
       // Debug: Track each order amount
@@ -307,6 +303,25 @@ router.get('/metrics', authenticateToken, async (req, res) => {
         invoice_total: o.invoice_total
       }))
     });
+    
+    // CRITICAL DEBUG: Check if we should use base_amount instead of total_amount
+    const ordersWithDifferentAmounts = filteredOrders.filter(o => 
+      o.base_amount && o.total_amount && Math.abs(o.base_amount - o.total_amount) > 1
+    );
+    console.log(`⚠️ Orders where base_amount != total_amount:`, {
+      count: ordersWithDifferentAmounts.length,
+      totalDifference: ordersWithDifferentAmounts.reduce((sum, o) => 
+        sum + (parseFloat(o.total_amount) - parseFloat(o.base_amount || o.total_amount)), 0
+      ),
+      samples: ordersWithDifferentAmounts.slice(0, 5).map(o => ({
+        order_number: o.order_number,
+        base_amount: o.base_amount,
+        total_amount: o.total_amount,
+        difference: o.total_amount - o.base_amount,
+        has_gst: !!o.gst_amount,
+        has_tcs: !!o.tcs_amount
+      }))
+    });
 
     // Calculate active sales (pending/processing orders)
     // Check all possible statuses first
@@ -334,7 +349,7 @@ router.get('/metrics', authenticateToken, async (req, res) => {
       
       activeSales = activeSalesOrders.reduce((sum, order) => {
         const amount = order.payment_currency === 'INR' 
-          ? parseFloat(order.total_amount || 0)
+          ? parseFloat(order.base_amount || order.total_amount || 0)
           : parseFloat(order.inr_equivalent || 0);
         return sum + amount;
       }, 0);
@@ -350,7 +365,7 @@ router.get('/metrics', authenticateToken, async (req, res) => {
       
       activeSales = activeSalesOrders.reduce((sum, order) => {
         const amount = order.payment_currency === 'INR' 
-          ? parseFloat(order.total_amount || 0)
+          ? parseFloat(order.base_amount || order.total_amount || 0)
           : parseFloat(order.inr_equivalent || 0);
         return sum + amount;
       }, 0);
