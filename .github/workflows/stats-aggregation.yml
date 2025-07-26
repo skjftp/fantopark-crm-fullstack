@@ -1,17 +1,14 @@
 name: Update Performance Stats
-
-  on:
-    schedule:
-      - cron: '0 */2 * * *'
-    workflow_dispatch:
-
-  jobs:
-    update-stats:
-      runs-on: ubuntu-latest
-      steps:
+on:
+  schedule:
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+jobs:
+  update-stats:
+    runs-on: ubuntu-latest
+    steps:
       - name: Trigger Stats Update
         run: |
-          curl -X POST https://fantopark-backend-150582227311.u
-  s-central1.run.app/api/cron/update-stats \
+          curl -X POST https://fantopark-backend-150582227311.us-central1.run.app/api/cron/update-stats \
             -H "Content-Type: application/json" \
             -d '{"source": "github-actions"}'
